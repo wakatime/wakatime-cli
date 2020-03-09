@@ -8,7 +8,7 @@ import (
 	"github.com/go-ini/ini"
 	"github.com/mitchellh/go-homedir"
 	"github.com/wakatime/wakatime-cli/constants"
-	user "github.com/wakatime/wakatime-cli/lib/user"
+	"github.com/wakatime/wakatime-cli/lib/system"
 )
 
 // ConfigFile ConfigFile
@@ -47,7 +47,7 @@ func getConfigFile() string {
 		return path.Join(p, fileName)
 	}
 
-	home = user.GetHomeDirectory()
+	home = system.GetHomeDirectory()
 
 	return path.Join(home, fileName)
 }
