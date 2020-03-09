@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
+	"github.com/wakatime/wakatime-cli/constants"
 )
 
 // NewVersionCommand returns a cobra command for `version` subcommands
@@ -19,5 +20,5 @@ func NewVersionCommand() *cobra.Command {
 }
 
 func runVersion() {
-	fmt.Println("0.0.1")
+	fmt.Println(constants.Version)
 }
