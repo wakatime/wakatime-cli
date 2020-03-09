@@ -250,7 +250,7 @@ func runHeartbeat(options heartbeatOptions, cmd *cobra.Command) {
 		}
 	}
 
-	if options.Proxy != "" {
+	if len(strings.TrimSpace(options.Proxy)) > 0 {
 		pattern := "^(?i)((https?|socks5)://)?([^:@]+(:([^:@])+)?@)?[^:]+(:\\d+)?$"
 
 		if strings.Contains(options.Proxy, "\\\\") {
