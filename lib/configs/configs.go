@@ -17,7 +17,7 @@ type ConfigFile struct {
 	Path   string
 }
 
-//NewConfig returns a configFile
+// NewConfig returns a configFile
 func NewConfig(path string) *ConfigFile {
 	if path == "" {
 		path = getConfigFile()
@@ -52,7 +52,7 @@ func getConfigFile() string {
 	return path.Join(home, fileName)
 }
 
-//Get Get an option value for a given section
+// Get Get an option value for a given section
 func (cf ConfigFile) Get(section string, key string) (*string, error) {
 	if section == "" {
 		section = "settings"
@@ -71,6 +71,16 @@ func (cf ConfigFile) Get(section string, key string) (*string, error) {
 	v := s.Key(key).Value()
 
 	return &v, nil
+}
+
+// GetSectionMap Get a map for a given section
+func (cf ConfigFile) GetSectionMap(section string) (map[string]string, error) {
+	s, err := cf.Config.GetSection(section)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.KeysHash(), nil
 }
 
 // Set Set an option
