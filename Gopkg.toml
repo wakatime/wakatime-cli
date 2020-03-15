@@ -44,3 +44,15 @@
 [[constraint]]
   name = "github.com/mitchellh/go-homedir"
   version = "1.1.0"
+
+[[constraint]]
+  name = "github.com/alecthomas/chroma"
+  version = "0.7.1"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/matishsiao/goInfo"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/slongfield/pyfmt"
