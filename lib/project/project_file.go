@@ -1,9 +1,7 @@
 package project
 
 import (
-	"bufio"
 	"log"
-	"os"
 	"strings"
 
 	"github.com/wakatime/wakatime-cli/lib/utils"
@@ -20,19 +18,11 @@ type ProjectFile struct {
 func (p ProjectFile) Process() (*string, *string) {
 	projectFile := utils.FindProjectFile(p.Entity)
 	if projectFile != nil {
-		file, err := os.Open(*projectFile)
+		lines, err := utils.ReadFile(*projectFile)
 		if err != nil {
-			log.Printf("Error while opening file '%s' (%s)", projectFile, err)
+			log.Printf("Error while opening file '%s' (%s)", *projectFile, err)
+			return nil, nil
 		}
-
-		scanner := bufio.NewScanner(file)
-		scanner.Split(bufio.ScanLines)
-		var lines []string
-
-		for scanner.Scan() {
-			lines = append(lines, scanner.Text())
-		}
-		file.Close()
 
 		var name *string
 		var branch *string
