@@ -14,14 +14,19 @@ type ProjectFile struct {
 	Entity string
 }
 
+var (
+	projectFileProjectName *string
+	projectFileBranchName  *string
+)
+
 // Process Process
-func (p ProjectFile) Process() (*string, *string) {
+func (p ProjectFile) Process() bool {
 	projectFile := utils.FindProjectFile(p.Entity)
 	if projectFile != nil {
 		lines, err := utils.ReadFile(*projectFile)
 		if err != nil {
 			log.Printf("Error while opening file '%s' (%s)", *projectFile, err)
-			return nil, nil
+			return false
 		}
 
 		var name *string
@@ -34,8 +39,18 @@ func (p ProjectFile) Process() (*string, *string) {
 			*branch = strings.TrimSpace(lines[1])
 		}
 
-		return name, branch
+		return true
 	}
 
-	return nil, nil
+	return false
+}
+
+// ProjectName ProjectName
+func (p ProjectFile) ProjectName() *string {
+	return projectFileProjectName
+}
+
+// BranchName BranchName
+func (p ProjectFile) BranchName() *string {
+	return projectFileBranchName
 }

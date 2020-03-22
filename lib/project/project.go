@@ -4,12 +4,15 @@ import (
 	"strings"
 
 	"github.com/wakatime/wakatime-cli/lib/configs"
+	"github.com/wakatime/wakatime-cli/lib/scm"
 	"github.com/wakatime/wakatime-cli/lib/utils"
 )
 
 // Project Project interface
 type Project interface {
-	Process() (*string, *string)
+	Process() bool
+	ProjectName() *string
+	BranchName() *string
 }
 
 // ProjectInfo ProjectInfo
@@ -52,15 +55,39 @@ func GetProjectInfo(pi ProjectInfo, cfg *configs.ConfigFile) (string, string) {
 			pluginConfigs := cfg.GetConfigForPlugin(pluginCls)
 			project := GetProjectPlugin(pluginCls, pi.Entity, pluginConfigs)
 
-			p, b := project.Process()
-			projectName = *p
-			branchName = *b
+			if project.Process() {
+				projectName = *project.ProjectName()
+				branchName = *project.BranchName()
+				break
+			}
 		}
 	}
 
 	hideProject := utils.ShouldObfuscateProject(pi.Entity, pi.HideProjectNames)
 
 	if len(projectName) == 0 || len(branchName) == 0 {
+		for _, pluginCls := range revControlPlugins {
+			pluginConfigs := cfg.GetConfigForPlugin(pluginCls)
+			project := scm.GetScmPlugin(pluginCls, pi.Entity, pluginConfigs)
 
+			if project.Process() {
+				if !hideProject {
+					projectName = *project.ProjectName()
+				}
+				branchName = *project.BranchName()
+				break
+			}
+		}
 	}
+
+	if len(projectName) == 0 {
+		if !hideProject {
+			projectName = pi.AlternateProject
+		} else {
+			projectName = utils.GenerateProjectName()
+			//todo: https://github.com/wakatime/wakatime/blob/master/wakatime/project.py#L92
+		}
+	}
+
+	return projectName, branchName
 }

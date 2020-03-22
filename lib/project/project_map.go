@@ -24,11 +24,15 @@ type ProjectMap struct {
 	ConfigItems map[string]string
 }
 
-// Process Process
-func (p ProjectMap) Process() (*string, *string) {
-	name := p.findProject()
+var (
+	projectMapProjectName *string
+)
 
-	return name, nil
+// Process Process
+func (p ProjectMap) Process() bool {
+	projectMapProjectName := p.findProject()
+
+	return projectMapProjectName != nil
 }
 
 func (p ProjectMap) findProject() *string {
@@ -52,5 +56,15 @@ func (p ProjectMap) findProject() *string {
 		}
 	}
 
+	return nil
+}
+
+// ProjectName ProjectName
+func (p ProjectMap) ProjectName() *string {
+	return projectMapProjectName
+}
+
+// BranchName BranchName
+func (p ProjectMap) BranchName() *string {
 	return nil
 }
