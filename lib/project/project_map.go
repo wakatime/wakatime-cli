@@ -22,17 +22,18 @@ import (
 type ProjectMap struct {
 	Entity      string
 	ConfigItems map[string]string
+	Name        *string
 }
-
-var (
-	projectMapProjectName *string
-)
 
 // Process Process
 func (p ProjectMap) Process() bool {
-	projectMapProjectName := p.findProject()
+	name := p.findProject()
 
-	return projectMapProjectName != nil
+	if name != nil {
+		p.Name = name
+		return true
+	}
+	return false
 }
 
 func (p ProjectMap) findProject() *string {
@@ -61,7 +62,7 @@ func (p ProjectMap) findProject() *string {
 
 // ProjectName ProjectName
 func (p ProjectMap) ProjectName() *string {
-	return projectMapProjectName
+	return p.Name
 }
 
 // BranchName BranchName

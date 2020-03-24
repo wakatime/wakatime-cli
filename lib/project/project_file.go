@@ -12,12 +12,9 @@ import (
 // name. Second line sets the current branch name.
 type ProjectFile struct {
 	Entity string
+	Name   *string
+	Branch *string
 }
-
-var (
-	projectFileProjectName *string
-	projectFileBranchName  *string
-)
 
 // Process Process
 func (p ProjectFile) Process() bool {
@@ -29,14 +26,11 @@ func (p ProjectFile) Process() bool {
 			return false
 		}
 
-		var name *string
-		var branch *string
-
 		if utils.Isset(lines, 0) {
-			*name = strings.TrimSpace(lines[0])
+			*p.Name = strings.TrimSpace(lines[0])
 		}
 		if utils.Isset(lines, 1) {
-			*branch = strings.TrimSpace(lines[1])
+			*p.Branch = strings.TrimSpace(lines[1])
 		}
 
 		return true
@@ -47,10 +41,10 @@ func (p ProjectFile) Process() bool {
 
 // ProjectName ProjectName
 func (p ProjectFile) ProjectName() *string {
-	return projectFileProjectName
+	return p.Name
 }
 
 // BranchName BranchName
 func (p ProjectFile) BranchName() *string {
-	return projectFileBranchName
+	return p.Branch
 }

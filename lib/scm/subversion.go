@@ -1,7 +1,9 @@
 package scm
 
-// Mercurial Information about the mercurial project for a given file.
+// Subversion Information about the mercurial project for a given file.
 type Subversion struct {
+	Name   *string
+	Branch *string
 }
 
 // Process Process
@@ -11,10 +13,10 @@ func (s Subversion) Process() bool {
 
 // ProjectName ProjectName
 func (s Subversion) ProjectName() *string {
-	return nil
+	return s.Name
 }
 
 // BranchName BranchName
 func (s Subversion) BranchName() *string {
-	return nil
+	return s.Branch
 }

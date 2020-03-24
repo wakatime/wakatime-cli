@@ -15,12 +15,9 @@ import (
 type Git struct {
 	Entity      string
 	ConfigItems map[string]string
+	Name        *string
+	Branch      *string
 }
-
-var (
-	gitProjectName *string
-	gitBranchName  *string
-)
 
 // Process Process
 func (s Git) Process() bool {
@@ -33,23 +30,23 @@ func (s Git) findGitConfigFile() bool {
 		if utils.FileExists(absPath) {
 			path_, filename := path.Split(absPath)
 			if utils.FileExists(path.Join(path_, ".git", "config")) {
-				*gitProjectName = filepath.Base(path_)
-				gitBranchName = getBranch(path.Join(path_, ".git", "HEAD"))
+				*s.Name = filepath.Base(path_)
+				s.Branch = getBranch(path.Join(path_, ".git", "HEAD"))
 				return true
 			}
 
 			if linkPath := getPathFromGitdirLinkFile(path_); linkPath != nil {
 				//first check if this is a worktree
 				if isWortree(*linkPath) {
-					gitProjectName = getProjectFromWorktree(*linkPath)
-					gitBranchName = getBranch(path.Join(*linkPath, "HEAD"))
+					s.Name = getProjectFromWorktree(*linkPath)
+					s.Branch = getBranch(path.Join(*linkPath, "HEAD"))
 					return true
 				}
 
 				//next check if this is a submodule
 				if isSubmodulesSupportedForPath(path_, s.ConfigItems) {
-					*gitProjectName = filepath.Base(path_)
-					gitBranchName = getBranch(path.Join(*linkPath, "HEAD"))
+					*s.Name = filepath.Base(path_)
+					s.Branch = getBranch(path.Join(*linkPath, "HEAD"))
 					return true
 				}
 			}
@@ -65,12 +62,12 @@ func (s Git) findGitConfigFile() bool {
 
 // ProjectName ProjectName
 func (s Git) ProjectName() *string {
-	return gitProjectName
+	return s.Name
 }
 
 // BranchName BranchName
 func (s Git) BranchName() *string {
-	return gitBranchName
+	return s.Branch
 }
 
 func getBranch(headFile string) *string {
