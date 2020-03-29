@@ -8,3 +8,8 @@ type ObsoleteArguments struct {
 	LogFile        string //log-file
 	APIURL         string //apiurl
 }
+
+// NewObsoleteArgs NewObsoleteArgs
+func NewObsoleteArgs() *ObsoleteArguments {
+	return &ObsoleteArguments{}
+}
