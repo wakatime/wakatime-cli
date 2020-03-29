@@ -16,6 +16,11 @@ func GetProjectPlugin(projectType string, entity string, configItems map[string]
 			Entity:      entity,
 			ConfigItems: configItems,
 		}
+	case "git":
+		return &Git{
+			Entity:      entity,
+			ConfigItems: configItems,
+		}
 	default:
 		log.Printf("Project plugin of type '%s' is not implemented.", projectType)
 		return nil

@@ -1,4 +1,4 @@
-package scm
+package project
 
 import (
 	"log"

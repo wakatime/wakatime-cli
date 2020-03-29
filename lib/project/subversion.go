@@ -1,4 +1,4 @@
-package scm
+package project
 
 // Subversion Information about the mercurial project for a given file.
 type Subversion struct {

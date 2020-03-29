@@ -4,7 +4,6 @@ import (
 	"strings"
 
 	"github.com/wakatime/wakatime-cli/lib/configs"
-	"github.com/wakatime/wakatime-cli/lib/scm"
 	"github.com/wakatime/wakatime-cli/lib/utils"
 )
 
@@ -68,7 +67,7 @@ func GetProjectInfo(pi ProjectInfo, cfg *configs.ConfigFile) (string, string) {
 	if len(projectName) == 0 || len(branchName) == 0 {
 		for _, pluginCls := range revControlPlugins {
 			pluginConfigs := cfg.GetConfigForPlugin(pluginCls)
-			project := scm.GetScmPlugin(pluginCls, pi.Entity, pluginConfigs)
+			project := GetProjectPlugin(pluginCls, pi.Entity, pluginConfigs)
 
 			if project.Process() {
 				if !hideProject {

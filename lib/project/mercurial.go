@@ -1,4 +1,4 @@
-package scm
+package project
 
 // Mercurial Information about the mercurial project for a given file.
 type Mercurial struct {
