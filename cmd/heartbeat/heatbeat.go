@@ -42,7 +42,7 @@ type Heartbeat struct {
 	Ignore                     []string
 	ExtraHeartbeats            bool
 	LogFile                    string
-	ApiUrl                     string
+	APIURL                     string
 	Timeout                    int
 	SyncOfflineActivity        int
 	ConfigPath                 string

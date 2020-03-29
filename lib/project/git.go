@@ -28,14 +28,14 @@ func (s Git) findGitConfigFile() bool {
 	absPath, err := filepath.Abs(s.Entity)
 	if err == nil {
 		if utils.FileExists(absPath) {
-			path_, filename := path.Split(absPath)
-			if utils.FileExists(path.Join(path_, ".git", "config")) {
-				*s.Name = filepath.Base(path_)
-				s.Branch = getBranch(path.Join(path_, ".git", "HEAD"))
+			p, filename := path.Split(absPath)
+			if utils.FileExists(path.Join(p, ".git", "config")) {
+				*s.Name = filepath.Base(p)
+				s.Branch = getBranch(path.Join(p, ".git", "HEAD"))
 				return true
 			}
 
-			if linkPath := getPathFromGitdirLinkFile(path_); linkPath != nil {
+			if linkPath := getPathFromGitdirLinkFile(p); linkPath != nil {
 				//first check if this is a worktree
 				if isWortree(*linkPath) {
 					s.Name = getProjectFromWorktree(*linkPath)
@@ -44,8 +44,8 @@ func (s Git) findGitConfigFile() bool {
 				}
 
 				//next check if this is a submodule
-				if isSubmodulesSupportedForPath(path_, s.ConfigItems) {
-					*s.Name = filepath.Base(path_)
+				if isSubmodulesSupportedForPath(p, s.ConfigItems) {
+					*s.Name = filepath.Base(p)
 					s.Branch = getBranch(path.Join(*linkPath, "HEAD"))
 					return true
 				}
@@ -91,25 +91,25 @@ func getBranchFromHeadFile(line string) *string {
 	return nil
 }
 
-func getPathFromGitdirLinkFile(path_ string) *string {
-	link := path.Join(path_, ".git")
+func getPathFromGitdirLinkFile(p string) *string {
+	link := path.Join(p, ".git")
 	if !utils.FileExists(link) {
 		return nil
 	}
 
 	if lines, err := utils.ReadFile(link); err == nil {
 		if !utils.Isset(lines, 0) {
-			return getPathfromGitdirString(path_, lines[0])
+			return getPathfromGitdirString(p, lines[0])
 		}
 	}
 	return nil
 }
 
-func getPathfromGitdirString(path_ string, line string) *string {
+func getPathfromGitdirString(p string, line string) *string {
 	if strings.HasPrefix(line, "gitdir: ") {
 		subpath := strings.TrimSpace(line[len("gitdir: "):])
-		if utils.FileExists(path.Join(path_, subpath, "HEAD")) {
-			if absPath, err := filepath.Abs(path.Join(path_, subpath)); err == nil {
+		if utils.FileExists(path.Join(p, subpath, "HEAD")) {
+			if absPath, err := filepath.Abs(path.Join(p, subpath)); err == nil {
 				return &absPath
 			}
 		}
@@ -140,7 +140,7 @@ func getProjectFromWorktree(linkPath string) *string {
 	return nil
 }
 
-func isSubmodulesSupportedForPath(path_ string, configItems map[string]string) bool {
+func isSubmodulesSupportedForPath(p string, configItems map[string]string) bool {
 	if rawValue, ok := configItems["submodules_disabled"]; ok {
 		if disabled, err := strconv.ParseBool(rawValue); err == nil {
 			return !disabled
@@ -154,7 +154,7 @@ func isSubmodulesSupportedForPath(path_ string, configItems map[string]string) b
 					continue
 				}
 
-				if re.MatchString(path_) {
+				if re.MatchString(p) {
 					return false
 				}
 			}

@@ -12,12 +12,11 @@ import (
 	"time"
 
 	"github.com/beevik/guid"
+	"github.com/spf13/cobra"
 	"github.com/wakatime/wakatime-cli/cmd/legacy"
 	"github.com/wakatime/wakatime-cli/constants"
 	"github.com/wakatime/wakatime-cli/lib/arguments"
 	"github.com/wakatime/wakatime-cli/lib/configs"
-
-	"github.com/spf13/cobra"
 )
 
 var args = legacy.Arguments{}
@@ -71,8 +70,8 @@ func Execute() {
 	flags.BoolVar(&args.ExtraHeartbeats, "extra-heartbeats", false, "Reads extra heartbeats from STDIN as a JSON array until EOF.")
 	flags.StringVar(&args.LogFile, "log-file", "~/.wakatime.log", "") //help missing
 	flags.StringVar(&obsoleteArgs.LogFile, "logfile", "", "")         //help missing
-	flags.StringVar(&args.ApiUrl, "api-url", "", "Heartbeats api url. For debugging with a local server.")
-	flags.StringVar(&obsoleteArgs.ApiUrl, "apiurl", "", "") //help missing
+	flags.StringVar(&args.APIURL, "api-url", "", "Heartbeats api url. For debugging with a local server.")
+	flags.StringVar(&obsoleteArgs.APIURL, "apiurl", "", "") //help missing
 	flags.IntVar(&args.Timeout, "timeout", constants.DefaultTimeout, "Number of seconds to wait when sending heartbeats to api.")
 	flags.IntVar(&args.SyncOfflineActivity, "sync-offline-activity", constants.DefaultSyncOfflineActivity, "Amount of offline activity to sync from your local ~/.wakatime.db sqlite3 file to your WakaTime Dashboard before exiting. Can be a positive integer number. It means for every heartbeat sent while online, 100 offline heartbeats are synced. Can be used without --entity to only sync offline activity without generating new heartbeats.") //should be revisited when the 'provider' for local database has already been decided
 	flags.BoolVar(&args.Today, "today", false, "Prints dashboard time for Today, then exits.")
@@ -314,11 +313,11 @@ func runLegacy(args legacy.Arguments, obsoleteArgs legacy.ObsoleteArguments, cmd
 
 	if !flags.Changed("api-url") {
 		if flags.Changed("apiurl") {
-			args.ApiUrl = obsoleteArgs.ApiUrl
-		} else if len(args.ApiUrl) == 0 {
-			apiUrl, err := cfg.Get("settings", "api_url")
+			args.APIURL = obsoleteArgs.APIURL
+		} else if len(args.APIURL) == 0 {
+			apiURL, err := cfg.Get("settings", "api_url")
 			if err == nil {
-				args.ApiUrl = *apiUrl
+				args.APIURL = *apiURL
 			}
 		}
 	}

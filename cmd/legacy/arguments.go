@@ -1,6 +1,6 @@
 package legacy
 
-// LegacyArguments Legacy structure
+// Arguments Legacy structure
 type Arguments struct {
 	Entity                     string
 	Key                        string
@@ -35,7 +35,7 @@ type Arguments struct {
 	Ignore                     []string
 	ExtraHeartbeats            bool
 	LogFile                    string
-	ApiUrl                     string
+	APIURL                     string
 	Timeout                    int
 	SyncOfflineActivity        int
 	Today                      bool

@@ -7,17 +7,17 @@ import (
 	"github.com/wakatime/wakatime-cli/lib/utils"
 )
 
-// ProjectFile Information from a .wakatime-project file about the project for
+// File Information from a .wakatime-project file about the project for
 // a given file. First line of .wakatime-project sets the project
 // name. Second line sets the current branch name.
-type ProjectFile struct {
+type File struct {
 	Entity string
 	Name   *string
 	Branch *string
 }
 
 // Process Process
-func (p ProjectFile) Process() bool {
+func (p File) Process() bool {
 	projectFile := utils.FindProjectFile(p.Entity)
 	if projectFile != nil {
 		lines, err := utils.ReadFile(*projectFile)
@@ -40,11 +40,11 @@ func (p ProjectFile) Process() bool {
 }
 
 // ProjectName ProjectName
-func (p ProjectFile) ProjectName() *string {
+func (p File) ProjectName() *string {
 	return p.Name
 }
 
 // BranchName BranchName
-func (p ProjectFile) BranchName() *string {
+func (p File) BranchName() *string {
 	return p.Branch
 }

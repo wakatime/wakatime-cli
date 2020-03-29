@@ -1,8 +1,8 @@
 package utils
 
 //IsValidEntityType Return true if entity type is valid, otherwise false
-func IsValidEntityType(entityType string) bool {
-	switch entityType {
+func IsValidEntityType(et string) bool {
+	switch et {
 	case
 		"file",
 		"domain",
@@ -13,8 +13,8 @@ func IsValidEntityType(entityType string) bool {
 }
 
 //IsValidCategory Return true if category is valid, otherwise false
-func IsValidCategory(category string) bool {
-	switch category {
+func IsValidCategory(c string) bool {
+	switch c {
 	case
 		"coding",
 		"building",

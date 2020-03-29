@@ -22,8 +22,8 @@ type uncPath struct {
 }
 
 // FormatFilePath Formats a path as absolute and with the correct platform separator
-func FormatFilePath(path string) string {
-	if absPath, _ := filepath.Abs(path); len(absPath) > 0 {
+func FormatFilePath(p string) string {
+	if absPath, _ := filepath.Abs(p); len(absPath) > 0 {
 		if filepath, _ := filepath.EvalSymlinks(absPath); len(filepath) > 0 {
 			if re, _ := regexp.Compile("[\\/]+"); re != nil {
 				filepath = re.ReplaceAllString(filepath, "/")
@@ -31,9 +31,9 @@ func FormatFilePath(path string) string {
 				windowsDrivePathPattern := "^(?i)[a-z]:/"
 				re, err := regexp.Compile(windowsDrivePathPattern)
 				if err != nil {
-					return path
+					return p
 				}
-				isWindowsDrive := re.MatchString(path)
+				isWindowsDrive := re.MatchString(p)
 				if isWindowsDrive {
 					filepath = strings.Title(filepath)
 				}
@@ -41,9 +41,9 @@ func FormatFilePath(path string) string {
 				windowsNetworkMountPattern := "^(?i)\\{2}[a-z]+"
 				re, err = regexp.Compile(windowsNetworkMountPattern)
 				if err != nil {
-					return path
+					return p
 				}
-				isWindowsNetworkMount := re.MatchString(path)
+				isWindowsNetworkMount := re.MatchString(p)
 				if isWindowsNetworkMount {
 					filepath = fmt.Sprintf("/%s", filepath)
 				}
@@ -51,7 +51,7 @@ func FormatFilePath(path string) string {
 		}
 	}
 
-	return path
+	return p
 }
 
 // FormatLocalFile When local-file is empty on Windows,
@@ -78,8 +78,8 @@ func FormatLocalFile(entity string, entityType string, localFile string) *string
 }
 
 // FileExists checks if a file exists and is not a directory
-func FileExists(filename string) bool {
-	info, err := os.Stat(filename)
+func FileExists(f string) bool {
+	info, err := os.Stat(f)
 	if os.IsNotExist(err) {
 		return false
 	}
@@ -87,10 +87,10 @@ func FileExists(filename string) bool {
 }
 
 // FormatUncPath FormatUncPath
-func FormatUncPath(filepath string) string {
-	split := splitDrive(filepath)
+func FormatUncPath(fp string) string {
+	split := splitDrive(fp)
 	if len(split.Drive) == 0 {
-		return filepath
+		return fp
 	}
 
 	if stdout, err := Popen([]string{"net", "use"}, []string{}); err == nil {
@@ -127,7 +127,7 @@ func FormatUncPath(filepath string) string {
 		}
 	}
 
-	return filepath
+	return fp
 }
 
 func uncColumns(line string) map[string]column {
@@ -160,30 +160,30 @@ func uncColumns(line string) map[string]column {
 	return cols
 }
 
-func splitDrive(filepath string) uncPath {
-	if filepath[1:2] != ":" && !unicode.IsLetter(rune(filepath[0])) {
+func splitDrive(fp string) uncPath {
+	if fp[1:2] != ":" && !unicode.IsLetter(rune(fp[0])) {
 		return uncPath{
-			Path: filepath,
+			Path: fp,
 		}
 	}
 
 	return uncPath{
-		Drive: strings.ToUpper(string(filepath[0])),
-		Path:  filepath[2:],
+		Drive: strings.ToUpper(string(fp[0])),
+		Path:  fp[2:],
 	}
 }
 
 // FindProjectFile FindProjectFile
-func FindProjectFile(path_ string) *string {
-	path_, _ = filepath.Abs(path_)
-	if FileExists(path_) {
-		path_, _ = path.Split(path_)
-		if FileExists(path.Join(path_, ".wakatime-project")) {
-			path_ = path.Join(path_, ".wakatime-project")
-			return &path_
+func FindProjectFile(p string) *string {
+	p, _ = filepath.Abs(p)
+	if FileExists(p) {
+		p, _ = path.Split(p)
+		if FileExists(path.Join(p, ".wakatime-project")) {
+			p = path.Join(p, ".wakatime-project")
+			return &p
 		}
 	}
-	dir, file := path.Split(path_)
+	dir, file := path.Split(p)
 	if len(file) == 0 {
 		return nil
 	}

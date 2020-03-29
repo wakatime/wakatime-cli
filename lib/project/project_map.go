@@ -8,7 +8,7 @@ import (
 	"github.com/slongfield/pyfmt"
 )
 
-// ProjectMap Use the ~/.wakatime.cfg file to set custom project names by matching files
+// Map Use the ~/.wakatime.cfg file to set custom project names by matching files
 // with regex patterns. Project maps go under the [projectmap] config section.
 //
 // For example:
@@ -19,14 +19,14 @@ import (
 // Will result in file '/home/user/projects/foo/src/main.c' to have
 // project name 'new project name' and file '/home/user/projects/bar42/main.c'
 // to have project name 'project42'.
-type ProjectMap struct {
+type Map struct {
 	Entity      string
 	ConfigItems map[string]string
 	Name        *string
 }
 
 // Process Process
-func (p ProjectMap) Process() bool {
+func (p Map) Process() bool {
 	name := p.findProject()
 
 	if name != nil {
@@ -36,7 +36,7 @@ func (p ProjectMap) Process() bool {
 	return false
 }
 
-func (p ProjectMap) findProject() *string {
+func (p Map) findProject() *string {
 	if absPath, _ := filepath.Abs(p.Entity); len(absPath) > 0 {
 		for pattern, newProjName := range p.ConfigItems {
 			re, err := regexp.Compile("(?i)" + pattern)
@@ -61,11 +61,11 @@ func (p ProjectMap) findProject() *string {
 }
 
 // ProjectName ProjectName
-func (p ProjectMap) ProjectName() *string {
+func (p Map) ProjectName() *string {
 	return p.Name
 }
 
 // BranchName BranchName
-func (p ProjectMap) BranchName() *string {
+func (p Map) BranchName() *string {
 	return nil
 }
