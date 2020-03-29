@@ -8,8 +8,10 @@ import (
 )
 
 // GetBooleanOrList Get a boolean or list of regexes from args and configs
-func GetBooleanOrList(section string, key string, cfg *configs.ConfigFile) []string {
+func GetBooleanOrList(section string, key string, alternativeNames []string, cfg *configs.ConfigFile) []string {
 	arr := []string{}
+
+	//todo: implement alternative names
 
 	values, err := cfg.Get(section, key)
 	if err == nil {
