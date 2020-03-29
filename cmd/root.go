@@ -95,7 +95,7 @@ func runLegacy(args legacy.Arguments, obsoleteArgs legacy.ObsoleteArguments, cmd
 
 	if flags.Changed("version") {
 		runVersion()
-		os.Exit(0)
+		os.Exit(constants.Success)
 	}
 
 	//For debugging purposes, might be removed later
@@ -108,12 +108,12 @@ func runLegacy(args legacy.Arguments, obsoleteArgs legacy.ObsoleteArguments, cmd
 
 	if flags.Changed("config-read") {
 		runConfigRead(args.ConfigSection, args.ConfigRead, cfg)
-		os.Exit(0)
+		os.Exit(constants.Success)
 	}
 
 	if flags.Changed("config-write") {
 		runConfigWrite(args.ConfigSection, args.ConfigWrite, cfg)
-		os.Exit(0)
+		os.Exit(constants.Success)
 	}
 
 	// use current unix epoch timestamp by default
