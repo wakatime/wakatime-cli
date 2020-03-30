@@ -43,3 +43,12 @@ func TestEntityType_MarshalJSON(t *testing.T) {
 		})
 	}
 }
+
+func TestEntityType_String(t *testing.T) {
+	for value, entityType := range typeTests {
+		t.Run(value, func(t *testing.T) {
+			s := entityType.String()
+			assert.Equal(t, value, s)
+		})
+	}
+}

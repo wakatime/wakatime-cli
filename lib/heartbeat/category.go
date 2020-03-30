@@ -80,30 +80,40 @@ func (c *Category) UnmarshalJSON(v []byte) error {
 
 // MarshalJSON is a method to implement json.Marshaler interface
 func (c Category) MarshalJSON() ([]byte, error) {
+	s := c.String()
+	if s == "" {
+		return nil, fmt.Errorf("unsupported category %v", c)
+	}
+
+	return []byte(s), nil
+}
+
+// String is a method to implement fmt.Stringer interface
+func (c Category) String() string {
 	switch c {
 	case UnknownCategory:
-		return []byte(unknownCategoryString), nil
+		return unknownCategoryString
 	case BrowsingCategory:
-		return []byte(browsingCategoryString), nil
+		return browsingCategoryString
 	case BuildingCategory:
-		return []byte(buildingCategoryString), nil
+		return buildingCategoryString
 	case CodeReviewingCategory:
-		return []byte(codeReviewingCategoryString), nil
+		return codeReviewingCategoryString
 	case CodingCategory:
-		return []byte(codingCategoryString), nil
+		return codingCategoryString
 	case DebuggingCategory:
-		return []byte(debuggingCategoryString), nil
+		return debuggingCategoryString
 	case DesigningCategory:
-		return []byte(designingCategoryString), nil
+		return designingCategoryString
 	case IndexingCategory:
-		return []byte(indexingCategoryString), nil
+		return indexingCategoryString
 	case ManualTestingCategory:
-		return []byte(manualTestingCategoryString), nil
+		return manualTestingCategoryString
 	case RunningTestsCategory:
-		return []byte(runningTestsCategoryString), nil
+		return runningTestsCategoryString
 	case WritingTestsCategory:
-		return []byte(writingTestsCategoryString), nil
+		return writingTestsCategoryString
 	default:
-		return nil, fmt.Errorf("unsupported category %v", c)
+		return ""
 	}
 }

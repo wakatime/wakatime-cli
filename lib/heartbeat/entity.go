@@ -40,14 +40,24 @@ func (t *EntityType) UnmarshalJSON(v []byte) error {
 
 // MarshalJSON is a method to implement json.Marshaler interface
 func (c EntityType) MarshalJSON() ([]byte, error) {
+	s := c.String()
+	if s == "" {
+		return nil, fmt.Errorf("unsupported entity type %v", c)
+	}
+
+	return []byte(s), nil
+}
+
+// String is a method to implement fmt.Stringer interface
+func (c EntityType) String() string {
 	switch c {
 	case FileType:
-		return []byte(fileTypeString), nil
+		return fileTypeString
 	case DomainType:
-		return []byte(domainTypeString), nil
+		return domainTypeString
 	case AppType:
-		return []byte(appTypeString), nil
+		return appTypeString
 	default:
-		return nil, fmt.Errorf("unsupported entity type %v", c)
+		return ""
 	}
 }

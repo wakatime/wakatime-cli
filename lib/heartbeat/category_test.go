@@ -51,3 +51,12 @@ func TestCategory_MarshalJSON(t *testing.T) {
 		})
 	}
 }
+
+func TestCategory_String(t *testing.T) {
+	for value, category := range categoryTests {
+		t.Run(value, func(t *testing.T) {
+			s := category.String()
+			assert.Equal(t, value, s)
+		})
+	}
+}
