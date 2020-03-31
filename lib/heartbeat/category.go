@@ -36,14 +36,14 @@ const (
 	unknownCategoryString       = "unknown"
 	browsingCategoryString      = "browsing"
 	buildingCategoryString      = "building"
-	codeReviewingCategoryString = "codeReviewing"
+	codeReviewingCategoryString = "code reviewing"
 	codingCategoryString        = "coding"
 	debuggingCategoryString     = "debugging"
 	designingCategoryString     = "designing"
 	indexingCategoryString      = "indexing"
-	manualTestingCategoryString = "manualTesting"
-	runningTestsCategoryString  = "runningTests"
-	writingTestsCategoryString  = "writingTests"
+	manualTestingCategoryString = "manual testing"
+	runningTestsCategoryString  = "running tests"
+	writingTestsCategoryString  = "writing tests"
 )
 
 // UnmarshalJSON is a method to implement json.Unmarshaler interface

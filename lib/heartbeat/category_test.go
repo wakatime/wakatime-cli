@@ -11,17 +11,17 @@ import (
 )
 
 var categoryTests = map[string]heartbeat.Category{
-	"unknown":       heartbeat.UnknownCategory,
-	"browsing":      heartbeat.BrowsingCategory,
-	"building":      heartbeat.BuildingCategory,
-	"codeReviewing": heartbeat.CodeReviewingCategory,
-	"coding":        heartbeat.CodingCategory,
-	"debugging":     heartbeat.DebuggingCategory,
-	"designing":     heartbeat.DesigningCategory,
-	"indexing":      heartbeat.IndexingCategory,
-	"manualTesting": heartbeat.ManualTestingCategory,
-	"runningTests":  heartbeat.RunningTestsCategory,
-	"writingTests":  heartbeat.WritingTestsCategory,
+	"unknown":        heartbeat.UnknownCategory,
+	"browsing":       heartbeat.BrowsingCategory,
+	"building":       heartbeat.BuildingCategory,
+	"code reviewing": heartbeat.CodeReviewingCategory,
+	"coding":         heartbeat.CodingCategory,
+	"debugging":      heartbeat.DebuggingCategory,
+	"designing":      heartbeat.DesigningCategory,
+	"indexing":       heartbeat.IndexingCategory,
+	"manual testing": heartbeat.ManualTestingCategory,
+	"running tests":  heartbeat.RunningTestsCategory,
+	"writing tests":  heartbeat.WritingTestsCategory,
 }
 
 func TestCategory_UnmarshalJSON(t *testing.T) {
