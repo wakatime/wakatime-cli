@@ -49,27 +49,27 @@ const (
 // UnmarshalJSON is a method to implement json.Unmarshaler interface
 func (c *Category) UnmarshalJSON(v []byte) error {
 	switch string(v) {
-	case unknownCategoryString:
+	case `"` + unknownCategoryString + `"`:
 		*c = UnknownCategory
-	case browsingCategoryString:
+	case `"` + browsingCategoryString + `"`:
 		*c = BrowsingCategory
-	case buildingCategoryString:
+	case `"` + buildingCategoryString + `"`:
 		*c = BuildingCategory
-	case codeReviewingCategoryString:
+	case `"` + codeReviewingCategoryString + `"`:
 		*c = CodeReviewingCategory
-	case codingCategoryString:
+	case `"` + codingCategoryString + `"`:
 		*c = CodingCategory
-	case debuggingCategoryString:
+	case `"` + debuggingCategoryString + `"`:
 		*c = DebuggingCategory
-	case designingCategoryString:
+	case `"` + designingCategoryString + `"`:
 		*c = DesigningCategory
-	case indexingCategoryString:
+	case `"` + indexingCategoryString + `"`:
 		*c = IndexingCategory
-	case manualTestingCategoryString:
+	case `"` + manualTestingCategoryString + `"`:
 		*c = ManualTestingCategory
-	case runningTestsCategoryString:
+	case `"` + runningTestsCategoryString + `"`:
 		*c = RunningTestsCategory
-	case writingTestsCategoryString:
+	case `"` + writingTestsCategoryString + `"`:
 		*c = WritingTestsCategory
 	default:
 		return fmt.Errorf("unsupported category %q", v)
@@ -85,7 +85,7 @@ func (c Category) MarshalJSON() ([]byte, error) {
 		return nil, fmt.Errorf("unsupported category %v", c)
 	}
 
-	return []byte(s), nil
+	return []byte(`"` + s + `"`), nil
 }
 
 // String is a method to implement fmt.Stringer interface

@@ -25,11 +25,11 @@ const (
 // Unmarshal is a method to implement json.Unmarshaler interface
 func (t *EntityType) UnmarshalJSON(v []byte) error {
 	switch string(v) {
-	case fileTypeString:
+	case `"` + fileTypeString + `"`:
 		*t = FileType
-	case domainTypeString:
+	case `"` + domainTypeString + `"`:
 		*t = DomainType
-	case appTypeString:
+	case `"` + appTypeString + `"`:
 		*t = AppType
 	default:
 		return fmt.Errorf("unsupported entity type: %q", v)
@@ -45,7 +45,7 @@ func (c EntityType) MarshalJSON() ([]byte, error) {
 		return nil, fmt.Errorf("unsupported entity type %v", c)
 	}
 
-	return []byte(s), nil
+	return []byte(`"` + s + `"`), nil
 }
 
 // String is a method to implement fmt.Stringer interface

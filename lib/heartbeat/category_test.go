@@ -1,6 +1,7 @@
 package heartbeat_test
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/alanhamlett/wakatime-cli/lib/heartbeat"
@@ -27,8 +28,7 @@ func TestCategory_UnmarshalJSON(t *testing.T) {
 	for value, category := range categoryTests {
 		t.Run(value, func(t *testing.T) {
 			var c heartbeat.Category
-			err := c.UnmarshalJSON([]byte(value))
-			require.NoError(t, err)
+			require.NoError(t, json.Unmarshal([]byte(`"`+value+`"`), &c))
 
 			assert.Equal(t, category, c)
 		})
@@ -37,17 +37,15 @@ func TestCategory_UnmarshalJSON(t *testing.T) {
 
 func TestCategory_UnmarshalJSON_Invalid(t *testing.T) {
 	var c heartbeat.Category
-	err := c.UnmarshalJSON([]byte("invalid"))
-	require.Error(t, err)
+	require.Error(t, json.Unmarshal([]byte(`"invalid"`), &c))
 }
 
 func TestCategory_MarshalJSON(t *testing.T) {
 	for value, category := range categoryTests {
 		t.Run(value, func(t *testing.T) {
-			val, err := category.MarshalJSON()
+			data, err := json.Marshal(category)
 			require.NoError(t, err)
-
-			assert.Equal(t, value, string(val))
+			assert.JSONEq(t, `"`+value+`"`, string(data))
 		})
 	}
 }
