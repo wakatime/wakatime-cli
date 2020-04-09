@@ -2,22 +2,21 @@ package heartbeat
 
 import (
 	"fmt"
+	"strings"
 )
 
 // Category represents a heartbeat category
 type Category int
 
 const (
-	// UnknownCategory means category of user activity is unknown
-	UnknownCategory Category = iota
+	// CodingCategory means user is currently coding. This is the default value.
+	CodingCategory Category = iota
 	// BrowsingCategory means user is currently browsing
 	BrowsingCategory
 	// BuildingCategory means user is currently building
 	BuildingCategory
 	// CodeReviewingCategory means user is currently reviewing code
 	CodeReviewingCategory
-	// CodingCategory means user is currently coding
-	CodingCategory
 	// DebuggingCategory means user is currently debugging
 	DebuggingCategory
 	// DesigningCategory means user is currently designing
@@ -33,11 +32,10 @@ const (
 )
 
 const (
-	unknownCategoryString       = "unknown"
+	codingCategoryString        = "coding"
 	browsingCategoryString      = "browsing"
 	buildingCategoryString      = "building"
 	codeReviewingCategoryString = "code reviewing"
-	codingCategoryString        = "coding"
 	debuggingCategoryString     = "debugging"
 	designingCategoryString     = "designing"
 	indexingCategoryString      = "indexing"
@@ -48,28 +46,26 @@ const (
 
 // UnmarshalJSON is a method to implement json.Unmarshaler interface
 func (c *Category) UnmarshalJSON(v []byte) error {
-	switch string(v) {
-	case `"` + unknownCategoryString + `"`:
-		*c = UnknownCategory
-	case `"` + browsingCategoryString + `"`:
-		*c = BrowsingCategory
-	case `"` + buildingCategoryString + `"`:
-		*c = BuildingCategory
-	case `"` + codeReviewingCategoryString + `"`:
-		*c = CodeReviewingCategory
-	case `"` + codingCategoryString + `"`:
+	switch strings.Trim(string(v), "\"") {
+	case codingCategoryString:
 		*c = CodingCategory
-	case `"` + debuggingCategoryString + `"`:
+	case browsingCategoryString:
+		*c = BrowsingCategory
+	case buildingCategoryString:
+		*c = BuildingCategory
+	case codeReviewingCategoryString:
+		*c = CodeReviewingCategory
+	case debuggingCategoryString:
 		*c = DebuggingCategory
-	case `"` + designingCategoryString + `"`:
+	case designingCategoryString:
 		*c = DesigningCategory
-	case `"` + indexingCategoryString + `"`:
+	case indexingCategoryString:
 		*c = IndexingCategory
-	case `"` + manualTestingCategoryString + `"`:
+	case manualTestingCategoryString:
 		*c = ManualTestingCategory
-	case `"` + runningTestsCategoryString + `"`:
+	case runningTestsCategoryString:
 		*c = RunningTestsCategory
-	case `"` + writingTestsCategoryString + `"`:
+	case writingTestsCategoryString:
 		*c = WritingTestsCategory
 	default:
 		return fmt.Errorf("unsupported category %q", v)
@@ -91,16 +87,14 @@ func (c Category) MarshalJSON() ([]byte, error) {
 // String is a method to implement fmt.Stringer interface
 func (c Category) String() string {
 	switch c {
-	case UnknownCategory:
-		return unknownCategoryString
+	case CodingCategory:
+		return codingCategoryString
 	case BrowsingCategory:
 		return browsingCategoryString
 	case BuildingCategory:
 		return buildingCategoryString
 	case CodeReviewingCategory:
 		return codeReviewingCategoryString
-	case CodingCategory:
-		return codingCategoryString
 	case DebuggingCategory:
 		return debuggingCategoryString
 	case DesigningCategory:

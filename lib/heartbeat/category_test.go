@@ -11,11 +11,10 @@ import (
 )
 
 var categoryTests = map[string]heartbeat.Category{
-	"unknown":        heartbeat.UnknownCategory,
+	"coding":         heartbeat.CodingCategory,
 	"browsing":       heartbeat.BrowsingCategory,
 	"building":       heartbeat.BuildingCategory,
 	"code reviewing": heartbeat.CodeReviewingCategory,
-	"coding":         heartbeat.CodingCategory,
 	"debugging":      heartbeat.DebuggingCategory,
 	"designing":      heartbeat.DesigningCategory,
 	"indexing":       heartbeat.IndexingCategory,
@@ -48,6 +47,13 @@ func TestCategory_MarshalJSON(t *testing.T) {
 			assert.JSONEq(t, `"`+value+`"`, string(data))
 		})
 	}
+}
+
+func TestCategory_MarshalJSON_DefaultCategory(t *testing.T) {
+	var c heartbeat.Category
+	data, err := json.Marshal(c)
+	require.NoError(t, err)
+	assert.JSONEq(t, `"coding"`, string(data))
 }
 
 func TestCategory_String(t *testing.T) {
