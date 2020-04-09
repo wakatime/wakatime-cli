@@ -56,3 +56,7 @@
 [[constraint]]
   branch = "master"
   name = "github.com/slongfield/pyfmt"
+
+[[constraint]]
+  name = "github.com/stretchr/testify"
+  version = "1.5.1"

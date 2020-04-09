@@ -1,4 +1,4 @@
-package legacy
+package arguments
 
 // ObsoleteArguments ObsoleteArguments
 type ObsoleteArguments struct {
