@@ -17,6 +17,16 @@ type Heartbeat struct {
 	LineNumber     *int                `json:"lineno"`
 	Lines          *int                `json:"lines"`
 	Project        string              `json:"project"`
-	Time           int64               `json:"time"`
+	Time           float64             `json:"time"`
 	UserAgent      string              `json:"user_agent"`
+}
+
+// Int returns a pointer to the int value passed in.
+func Int(v int) *int {
+	return &v
+}
+
+// String returns a pointer to the string value passed in.
+func String(v string) *string {
+	return &v
 }

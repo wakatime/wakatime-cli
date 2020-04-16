@@ -15,16 +15,16 @@ import (
 
 func TestHeartbeat_JSON(t *testing.T) {
 	h := api.Heartbeat{
-		Branch:         String("heartbeat"),
+		Branch:         api.String("heartbeat"),
 		Category:       subtypes.CodingCategory,
-		CursorPosition: Int(12),
+		CursorPosition: api.Int(12),
 		Dependencies:   []string{"dep1", "dep2"},
 		Entity:         "/tmp/main.go",
 		EntityType:     subtypes.FileType,
 		IsWrite:        true,
 		Language:       "golang",
-		LineNumber:     Int(42),
-		Lines:          Int(100),
+		LineNumber:     api.Int(42),
+		Lines:          api.Int(100),
 		Project:        "wakatime",
 		Time:           1585598060,
 		UserAgent:      "wakatime/13.0.7",
@@ -71,14 +71,4 @@ func TestHeartbeat_JSON_Sanitized(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.JSONEq(t, string(expected), string(jsonEncoded))
-}
-
-// Int returns a pointer to the int value passed in.
-func Int(v int) *int {
-	return &v
-}
-
-// String returns a pointer to the string value passed in.
-func String(v string) *string {
-	return &v
 }

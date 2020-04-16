@@ -35,7 +35,7 @@ func Sanitize(h Heartbeat, obfuscate Obfuscate) api.Heartbeat {
 		LineNumber:     &h.LineNumber,
 		Lines:          &h.Lines,
 		Project:        h.Project,
-		Time:           h.Time,
+		Time:           float64(h.Time),
 		UserAgent:      h.UserAgent,
 	}, obfuscate)
 }
