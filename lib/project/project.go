@@ -3,9 +3,9 @@ package project
 import (
 	"strings"
 
-	"github.com/wakatime/wakatime-cli/lib/configs"
-	"github.com/wakatime/wakatime-cli/lib/scm"
-	"github.com/wakatime/wakatime-cli/lib/utils"
+	"github.com/alanhamlett/wakatime-cli/lib/configs"
+	"github.com/alanhamlett/wakatime-cli/lib/scm"
+	"github.com/alanhamlett/wakatime-cli/lib/utils"
 )
 
 // Project Project interface

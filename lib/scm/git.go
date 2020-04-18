@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/wakatime/wakatime-cli/lib/utils"
+	"github.com/alanhamlett/wakatime-cli/lib/utils"
 )
 
 // Git Information about the git project for a given file.

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/wakatime/wakatime-cli/cmd/commands"
+	"github.com/alanhamlett/wakatime-cli/cmd/commands"
 
 	"github.com/spf13/cobra"
 )

@@ -3,8 +3,9 @@ package version
 import (
 	"fmt"
 
+	"github.com/alanhamlett/wakatime-cli/constants"
+
 	"github.com/spf13/cobra"
-	"github.com/wakatime/wakatime-cli/constants"
 )
 
 // NewVersionCommand returns a cobra command for `version` subcommands

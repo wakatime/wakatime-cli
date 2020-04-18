@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/alanhamlett/wakatime-cli/lib/configs"
+
 	"github.com/spf13/cobra"
-	"github.com/wakatime/wakatime-cli/lib/configs"
 )
 
 type writeOptions struct {
