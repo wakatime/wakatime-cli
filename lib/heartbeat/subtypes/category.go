@@ -1,4 +1,4 @@
-package heartbeat
+package subtypes
 
 import (
 	"fmt"

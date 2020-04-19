@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/alanhamlett/wakatime-cli/lib/heartbeat"
+	"github.com/alanhamlett/wakatime-cli/lib/heartbeat/subtypes"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -15,9 +16,9 @@ import (
 func TestHeartbeat_ID(t *testing.T) {
 	h := heartbeat.Heartbeat{
 		Branch:     "heartbeat",
-		Category:   heartbeat.CodingCategory,
+		Category:   subtypes.CodingCategory,
 		Entity:     "/tmp/main.go",
-		EntityType: heartbeat.FileType,
+		EntityType: subtypes.FileType,
 		IsWrite:    true,
 		Project:    "wakatime",
 		Time:       1585598060,
@@ -28,11 +29,11 @@ func TestHeartbeat_ID(t *testing.T) {
 func TestHeartbeat_JSON(t *testing.T) {
 	h := heartbeat.Heartbeat{
 		Branch:         "heartbeat",
-		Category:       heartbeat.CodingCategory,
+		Category:       subtypes.CodingCategory,
 		CursorPosition: 12,
 		Dependencies:   []string{"dep1", "dep2"},
 		Entity:         "/tmp/main.go",
-		EntityType:     heartbeat.FileType,
+		EntityType:     subtypes.FileType,
 		IsWrite:        true,
 		Language:       "golang",
 		LineNumber:     42,

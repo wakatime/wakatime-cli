@@ -1,25 +1,25 @@
-package heartbeat_test
+package subtypes_test
 
 import (
 	"encoding/json"
 	"testing"
 
-	"github.com/alanhamlett/wakatime-cli/lib/heartbeat"
+	"github.com/alanhamlett/wakatime-cli/lib/heartbeat/subtypes"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-var typeTests = map[string]heartbeat.EntityType{
-	"file":   heartbeat.FileType,
-	"domain": heartbeat.DomainType,
-	"app":    heartbeat.AppType,
+var typeTests = map[string]subtypes.EntityType{
+	"file":   subtypes.FileType,
+	"domain": subtypes.DomainType,
+	"app":    subtypes.AppType,
 }
 
 func TestEntityType_UnmarshalJSON(t *testing.T) {
 	for value, entityType := range typeTests {
 		t.Run(value, func(t *testing.T) {
-			var et heartbeat.EntityType
+			var et subtypes.EntityType
 			require.NoError(t, json.Unmarshal([]byte(`"`+value+`"`), &et))
 
 			assert.Equal(t, entityType, et)
@@ -28,7 +28,7 @@ func TestEntityType_UnmarshalJSON(t *testing.T) {
 }
 
 func TestEntityType_UnmarshalJSON_Invalid(t *testing.T) {
-	var et heartbeat.EntityType
+	var et subtypes.EntityType
 	require.Error(t, json.Unmarshal([]byte(`"invalid"`), &et))
 }
 
