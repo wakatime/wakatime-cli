@@ -2,7 +2,6 @@ package api
 
 import (
 	"bytes"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -11,7 +10,7 @@ import (
 )
 
 type Config struct {
-	APIKey    string
+	Auth      BasicAuth
 	HostName  string
 	UserAgent string
 }
@@ -42,8 +41,13 @@ func (c *Client) SendHeartbeats(heartbeats []Heartbeat, cfg Config) ([]Result, e
 		return nil, fmt.Errorf("failed to create request: %s", err)
 	}
 
+	authHeaderValue, err := cfg.Auth.HeaderValue()
+	if err != nil {
+		return nil, fmt.Errorf("failed retrieve auth header value: %s", err)
+	}
+	req.Header.Set("Authorization", authHeaderValue)
+
 	req.Header.Set("Accept", "application/json")
-	req.Header.Set("Authorization", fmt.Sprintf("Basic %s", base64.StdEncoding.EncodeToString([]byte(cfg.APIKey))))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("User-Agent", cfg.UserAgent)
 	if cfg.HostName != "" {

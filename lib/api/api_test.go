@@ -16,13 +16,28 @@ import (
 )
 
 func TestClient_SendHeartbeats(t *testing.T) {
-	tests := []int{
-		http.StatusCreated,
-		http.StatusAccepted,
+	tests := map[string]struct {
+		Status          int
+		User            string
+		AuthHeaderValue string
+	}{
+		"status created": {
+			Status:          http.StatusCreated,
+			AuthHeaderValue: "Basic c2VjcmV0",
+		},
+		"status accepted": {
+			Status:          http.StatusAccepted,
+			AuthHeaderValue: "Basic c2VjcmV0",
+		},
+		"auth with user": {
+			Status:          http.StatusAccepted,
+			User:            "john",
+			AuthHeaderValue: "Basic am9objpzZWNyZXQ=",
+		},
 	}
 
-	for _, code := range tests {
-		t.Run(http.StatusText(code), func(t *testing.T) {
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
 			url, router, close := setupTestServer()
 			defer close()
 
@@ -33,7 +48,7 @@ func TestClient_SendHeartbeats(t *testing.T) {
 				// check headers
 				assert.Equal(t, http.MethodPost, req.Method)
 				assert.Equal(t, []string{"application/json"}, req.Header["Accept"])
-				assert.Equal(t, []string{"Basic c2VjcmV0"}, req.Header["Authorization"])
+				assert.Equal(t, []string{test.AuthHeaderValue}, req.Header["Authorization"])
 				assert.Equal(t, []string{"application/json"}, req.Header["Content-Type"])
 				assert.Equal(t, []string{"wakatime/13.0.8"}, req.Header["User-Agent"])
 				assert.Equal(t, []string{"MacBook"}, req.Header["X-Machine-Name"])
@@ -51,13 +66,15 @@ func TestClient_SendHeartbeats(t *testing.T) {
 				f, err := os.Open("testdata/api_heartbeats_response.json")
 				require.NoError(t, err)
 
-				w.WriteHeader(code)
+				w.WriteHeader(test.Status)
 				_, err = io.Copy(w, f)
 				require.NoError(t, err)
 			})
 
 			c := api.NewClient(url, http.DefaultClient)
-			results, err := c.SendHeartbeats(testHeartbeats(), testConfig())
+			cfg := testConfig()
+			cfg.Auth.User = test.User
+			results, err := c.SendHeartbeats(testHeartbeats(), cfg)
 			require.NoError(t, err)
 
 			// check via assert.Equal on complete slice here, to assert exact order of results,
@@ -106,6 +123,14 @@ func TestClient_SendHeartbeats(t *testing.T) {
 	}
 }
 
+func TestClient_SendHeartbeats_MissingAuthSecret(t *testing.T) {
+	c := api.NewClient("", http.DefaultClient)
+	cfg := testConfig()
+	cfg.Auth.Secret = ""
+	_, err := c.SendHeartbeats(testHeartbeats(), cfg)
+	assert.Error(t, err)
+}
+
 func TestClient_SendHeartbeats_Err(t *testing.T) {
 	url, router, close := setupTestServer()
 	defer close()
@@ -138,7 +163,9 @@ func TestClient_SendHeartbeats_ErrAuth(t *testing.T) {
 
 func testConfig() api.Config {
 	return api.Config{
-		APIKey:    "secret",
+		Auth: api.BasicAuth{
+			Secret: "secret",
+		},
 		HostName:  "MacBook",
 		UserAgent: "wakatime/13.0.8",
 	}
