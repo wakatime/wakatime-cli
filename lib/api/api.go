@@ -28,18 +28,18 @@ func NewClient(baseURL string, client *http.Client) *Client {
 	}
 }
 
-func (c *Client) SendHeartbeats(heartbeats []Heartbeat, cfg Config) error {
+func (c *Client) SendHeartbeats(heartbeats []Heartbeat, cfg Config) ([]Result, error) {
 	url := c.baseURL + "/users/current/heartbeats.bulk"
 
 	data, err := json.Marshal(heartbeats)
 	if err != nil {
-		return fmt.Errorf("failed to json encode body: %s", err)
+		return nil, fmt.Errorf("failed to json encode body: %s", err)
 	}
 	log.Printf("Sending heartbeats to api at %q. request body: %s", url, string(data))
 
 	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(data))
 	if err != nil {
-		return fmt.Errorf("failed to create request: %s", err)
+		return nil, fmt.Errorf("failed to create request: %s", err)
 	}
 
 	req.Header.Set("Accept", "application/json")
@@ -52,22 +52,22 @@ func (c *Client) SendHeartbeats(heartbeats []Heartbeat, cfg Config) error {
 
 	resp, err := c.client.Do(req)
 	if err != nil {
-		return NewErr("failed making request to %q: %s", url, err)
+		return nil, NewErr("failed making request to %q: %s", url, err)
 	}
 	defer resp.Body.Close()
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return NewErr("failed reading response body from %q: %s", url, err)
+		return nil, NewErr("failed reading response body from %q: %s", url, err)
 	}
 
 	switch resp.StatusCode {
 	case http.StatusCreated, http.StatusAccepted:
 		break
 	case http.StatusUnauthorized:
-		return NewErrAuth("authentication failed at %q", url)
+		return nil, NewErrAuth("authentication failed at %q", url)
 	default:
-		return NewErr(
+		return nil, NewErr(
 			"invalid response status from %q. got: %d, want: %d/%d. body: %q",
 			url,
 			resp.StatusCode,
@@ -77,5 +77,10 @@ func (c *Client) SendHeartbeats(heartbeats []Heartbeat, cfg Config) error {
 		)
 	}
 
-	return nil
+	results, err := parseResults(body)
+	if err != nil {
+		return nil, NewErr("failed parsing results from %q: %s", url, err)
+	}
+
+	return results, nil
 }

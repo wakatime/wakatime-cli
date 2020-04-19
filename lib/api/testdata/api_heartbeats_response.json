@@ -1,0 +1,53 @@
+{
+    "responses": [
+        [
+            {
+                "data": {
+                    "branch": "heartbeat",
+                    "category": "coding",
+                    "created_at": "2020-04-14T21:27:15Z",
+                    "cursorpos": 12,
+                    "dependencies": ["dep1", "dep2"],
+                    "entity": "/tmp/main.go",
+                    "id": "845a922e-9e65-4775-bd68-bb3196d2e06a",
+                    "is_write": true,
+                    "language": "golang",
+                    "lineno": 42,
+                    "lines": 100,
+                    "machine_name_id": null,
+                    "project": "wakatime-cli",
+                    "type": "file",
+                    "time": 1585598059,
+                    "user_agent_id": null,
+                    "user_agent": "wakatime/13.0.6",
+                    "user_id": "9c4a41c0-eb11-4cf5-84b8-d5b7f5e91bea"
+                }
+            },
+            201
+        ],
+        [
+            {
+                "data": {
+                    "branch": null,
+                    "category": "debugging",
+                    "created_at": "2020-04-14T21:27:15Z",
+                    "cursorpos": null,
+                    "dependencies": null,
+                    "entity": "HIDDEN.py",
+                    "id": "604bae69-a7fa-42ff-a38d-8354fd10e601",
+                    "is_write": false,
+                    "language": "python",
+                    "lineno": null,
+                    "lines": null,
+                    "project": "wakatime",
+                    "type": "file",
+                    "time": 1585598060,
+                    "user_agent": "wakatime/13.0.7",
+                    "user_agent_id": null,
+                    "user_id": "9c4a41c0-eb11-4cf5-84b8-d5b7f5e91bea"
+                }
+            },
+            201
+        ]
+    ]
+}

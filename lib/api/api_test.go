@@ -1,9 +1,11 @@
 package api_test
 
 import (
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
 	"github.com/alanhamlett/wakatime-cli/lib/api"
@@ -45,12 +47,59 @@ func TestClient_SendHeartbeats(t *testing.T) {
 
 				assert.JSONEq(t, string(expectedBody), string(body))
 
+				// write response
+				f, err := os.Open("testdata/api_heartbeats_response.json")
+				require.NoError(t, err)
+
 				w.WriteHeader(code)
+				_, err = io.Copy(w, f)
+				require.NoError(t, err)
 			})
 
 			c := api.NewClient(url, http.DefaultClient)
-			err := c.SendHeartbeats(testHeartbeats(), testConfig())
+			results, err := c.SendHeartbeats(testHeartbeats(), testConfig())
 			require.NoError(t, err)
+
+			// check via assert.Equal on complete slice here, to assert exact order of results,
+			// which is assumed to exactly match the request order
+			assert.Equal(t, []api.Result{
+				{
+					Status: http.StatusCreated,
+					Heartbeat: api.Heartbeat{
+						Branch:         api.String("heartbeat"),
+						Category:       subtypes.CodingCategory,
+						CursorPosition: api.Int(12),
+						Dependencies:   []string{"dep1", "dep2"},
+						Entity:         "/tmp/main.go",
+						EntityType:     subtypes.FileType,
+						IsWrite:        true,
+						Language:       "golang",
+						LineNumber:     api.Int(42),
+						Lines:          api.Int(100),
+						Project:        "wakatime-cli",
+						Time:           1585598059,
+						UserAgent:      "wakatime/13.0.6",
+					},
+				},
+				{
+					Status: http.StatusCreated,
+					Heartbeat: api.Heartbeat{
+						Branch:         nil,
+						Category:       subtypes.DebuggingCategory,
+						CursorPosition: nil,
+						Dependencies:   nil,
+						Entity:         "HIDDEN.py",
+						EntityType:     subtypes.FileType,
+						IsWrite:        false,
+						Language:       "python",
+						LineNumber:     nil,
+						Lines:          nil,
+						Project:        "wakatime",
+						Time:           1585598060,
+						UserAgent:      "wakatime/13.0.7",
+					},
+				},
+			}, results)
 
 			assert.Equal(t, 1, numCalls)
 		})
@@ -68,7 +117,7 @@ func TestClient_SendHeartbeats_Err(t *testing.T) {
 	})
 
 	c := api.NewClient(url, http.DefaultClient)
-	err := c.SendHeartbeats(testHeartbeats(), testConfig())
+	_, err := c.SendHeartbeats(testHeartbeats(), testConfig())
 	assert.IsType(t, api.Err{}, err)
 }
 
@@ -83,7 +132,7 @@ func TestClient_SendHeartbeats_ErrAuth(t *testing.T) {
 	})
 
 	c := api.NewClient(url, http.DefaultClient)
-	err := c.SendHeartbeats(testHeartbeats(), testConfig())
+	_, err := c.SendHeartbeats(testHeartbeats(), testConfig())
 	assert.IsType(t, api.ErrAuth{}, err)
 }
 
