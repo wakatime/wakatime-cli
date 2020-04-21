@@ -123,6 +123,42 @@ func TestClient_SendHeartbeats(t *testing.T) {
 	}
 }
 
+func TestClient_SendHeartbeats_ResultsErr(t *testing.T) {
+	url, router, close := setupTestServer()
+	defer close()
+
+	var numCalls int
+	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
+		numCalls++
+
+		// write response
+		f, err := os.Open("testdata/api_heartbeats_response_error.json")
+		require.NoError(t, err)
+
+		w.WriteHeader(http.StatusCreated)
+		_, err = io.Copy(w, f)
+		require.NoError(t, err)
+	})
+
+	c := api.NewClient(url, http.DefaultClient)
+	results, err := c.SendHeartbeats(testHeartbeats(), testConfig())
+	assert.NoError(t, err)
+
+	assert.Equal(t, []api.Result{
+		{
+			Errors: []string{
+				"lineno: Number must be between 1 and 2147483647.",
+				"time: This field is required.",
+			},
+			Status: 400,
+		},
+		{
+			Errors: []string{"Can not log time before user was created."},
+			Status: 400,
+		},
+	}, results)
+}
+
 func TestClient_SendHeartbeats_MissingAuthSecret(t *testing.T) {
 	c := api.NewClient("", http.DefaultClient)
 	cfg := testConfig()
