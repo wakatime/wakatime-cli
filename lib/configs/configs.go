@@ -7,32 +7,12 @@ import (
 
 	"github.com/go-ini/ini"
 	"github.com/mitchellh/go-homedir"
-	"github.com/wakatime/wakatime-cli/constants"
 	"github.com/wakatime/wakatime-cli/lib/system"
 )
 
-// ConfigFile ConfigFile
-type ConfigFile struct {
+type configFile struct {
 	Config *ini.File
 	Path   string
-}
-
-// NewConfig returns a configFile
-func NewConfig(path string) *ConfigFile {
-	if path == "" {
-		path = getConfigFile()
-	}
-
-	cfg, err := ini.Load(path)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(constants.ConfigFileParseError)
-	}
-
-	return &ConfigFile{
-		Config: cfg,
-		Path:   path,
-	}
 }
 
 func getConfigFile() string {
@@ -53,28 +33,28 @@ func getConfigFile() string {
 }
 
 // Get Get an option value for a given section
-func (cf ConfigFile) Get(section string, key string) (*string, error) {
+func (cf configFile) Get(section string, key string) (string, error) {
 	if section == "" {
 		section = "settings"
 	}
 
 	s, err := cf.Config.GetSection(section)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	hasKey := s.HasKey(key)
 	if !hasKey {
-		return nil, fmt.Errorf("The given key '%v' was not found on section '%v'", key, section)
+		return "", fmt.Errorf("The given key '%v' was not found on section '%v'", key, section)
 	}
 
 	v := s.Key(key).Value()
 
-	return &v, nil
+	return v, nil
 }
 
 // GetSectionMap Get a map for a given section
-func (cf ConfigFile) GetSectionMap(section string) (map[string]string, error) {
+func (cf configFile) GetSectionMap(section string) (map[string]string, error) {
 	s, err := cf.Config.GetSection(section)
 	if err != nil {
 		return nil, err
@@ -84,7 +64,7 @@ func (cf ConfigFile) GetSectionMap(section string) (map[string]string, error) {
 }
 
 // Set Set an option
-func (cf ConfigFile) Set(section string, keyValue map[string]string) []string {
+func (cf configFile) Set(section string, keyValue map[string]string) []string {
 	if section == "" {
 		section = "settings"
 	}
@@ -111,4 +91,10 @@ func (cf ConfigFile) Set(section string, keyValue map[string]string) []string {
 	cf.Config.SaveTo(cf.Path)
 
 	return messages
+}
+
+// GetConfigForPlugin GetConfigForPlugin
+func (cf configFile) GetConfigForPlugin(pluginName string) map[string]string {
+	values, _ := cf.GetSectionMap(pluginName)
+	return values
 }

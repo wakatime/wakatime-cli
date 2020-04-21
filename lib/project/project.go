@@ -41,7 +41,7 @@ var (
 // First looks for a .wakatime-project file. Second, uses the --project arg.
 // Third, uses the folder name from a revision control repository. Last, uses
 // the --alternate-project arg.
-func GetProjectInfo(pi ProjectInfo, cfg *configs.ConfigFile) (string, string) {
+func GetProjectInfo(pi ProjectInfo, cfg configs.WakaTimeConfig) (string, string) {
 	projectName, branchName := strings.TrimSpace(pi.Project), strings.TrimSpace(pi.Branch)
 	if pi.EntityType != "file" {
 		if len(projectName) == 0 {

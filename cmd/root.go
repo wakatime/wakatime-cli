@@ -5,31 +5,27 @@ import (
 	"math"
 	"os"
 
+	"github.com/spf13/cobra"
 	"github.com/wakatime/wakatime-cli/cmd/legacy"
 	"github.com/wakatime/wakatime-cli/constants"
-
-	"github.com/spf13/cobra"
+	"github.com/wakatime/wakatime-cli/lib/arguments"
+	"github.com/wakatime/wakatime-cli/lib/configs"
 )
 
-var args = legacy.NewArguments()
-var obsoleteArgs = legacy.NewObsoleteArgs()
+// NewRootCmd New root cobra command
+func NewRootCmd(args *arguments.Arguments, cfg configs.WakaTimeConfig) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "wakatime-cli",
+		Short: "Command line interface used by all WakaTime text editor plugins.",
+		Run: func(cmd *cobra.Command, args2 []string) {
+			legacy.Run(args, cfg, cmd)
+		},
+	}
 
-var rootCmd = &cobra.Command{
-	Use:   "wakatime-cli",
-	Short: "Command line interface used by all WakaTime text editor plugins.",
-	Run: func(cmd *cobra.Command, args2 []string) {
-		legacy.Run(*args, *obsoleteArgs, cmd)
-	},
-}
-
-// Execute adds all child commands to the root command sets flags appropriately.
-// This is called by main.main(). It only needs to happen once to the rootCmd.
-func Execute() {
-
-	flags := rootCmd.Flags()
+	flags := cmd.Flags()
 
 	flags.StringVar(&args.Entity.Entity, "entity", "", "Absolute path to file for the heartbeat. Can also be a url, domain or app when --entity-type is not file.")
-	flags.StringVar(&obsoleteArgs.File, "file", "", "") //help missing
+	flags.StringVar(&args.ObsoleteArgs.File, "file", "", "") //help missing
 	flags.StringVar(&args.Key, "key", "", "Your wakatime api key; uses api_key from ~/.wakatime.cfg by default.")
 	flags.BoolVar(&args.Entity.IsWrite, "write", false, "When set, tells api this heartbeat was triggered from writing to a file.")
 	flags.StringVar(&args.Editor.Plugin, "plugin", "", "Optional text editor plugin name and version for User-Agent header.")
@@ -50,8 +46,8 @@ func Execute() {
 	flags.StringVar(&args.Hostname, "hostname", "", "Hostname of current machine.")
 	flags.BoolVar(&args.DisableOffline, "disable-offline", true, "Disables offline time logging instead of queuing logged time.")
 	flags.BoolVar(&args.Obfuscate.HideFileNames, "hide-file-names", false, "Obfuscate filenames. Will not send file names to api.")
-	flags.BoolVar(&obsoleteArgs.HideFilenames1, "hide-filenames", false, "") //help missing
-	flags.BoolVar(&obsoleteArgs.HideFilenames2, "hidefilenames", false, "")  //help missing
+	flags.BoolVar(&args.ObsoleteArgs.HideFilenames1, "hide-filenames", false, "") //help missing
+	flags.BoolVar(&args.ObsoleteArgs.HideFilenames2, "hidefilenames", false, "")  //help missing
 	flags.BoolVar(&args.Obfuscate.HideProjectNames, "hide-project-names", false, "Obfuscate project names. When a project folder is detected instead of using the folder name as the project, a .wakatime-project file is created with a random project name.")
 	flags.BoolVar(&args.Obfuscate.HideBranchNames, "hide-branch-names", false, "Obfuscate branch names. Will not send revision control branch names to api.")
 	flags.StringSliceVar(&args.Exclude.Exclude, "exclude", []string{}, "Filename patterns to exclude from logging. POSIX regex syntax. Can be used more than once.")
@@ -61,9 +57,9 @@ func Execute() {
 	flags.StringSliceVar(&args.Exclude.Ignore, "ignore", []string{}, "") //help missing
 	flags.BoolVar(&args.ExtraHeartbeats, "extra-heartbeats", false, "Reads extra heartbeats from STDIN as a JSON array until EOF.")
 	flags.StringVar(&args.LogFile, "log-file", "~/.wakatime.log", "") //help missing
-	flags.StringVar(&obsoleteArgs.LogFile, "logfile", "", "")         //help missing
+	flags.StringVar(&args.ObsoleteArgs.LogFile, "logfile", "", "")    //help missing
 	flags.StringVar(&args.APIURL, "api-url", "", "Heartbeats api url. For debugging with a local server.")
-	flags.StringVar(&obsoleteArgs.APIURL, "apiurl", "", "") //help missing
+	flags.StringVar(&args.ObsoleteArgs.APIURL, "apiurl", "", "") //help missing
 	flags.IntVar(&args.Timeout, "timeout", constants.DefaultTimeout, "Number of seconds to wait when sending heartbeats to api.")
 	flags.IntVar(&args.SyncOfflineActivity, "sync-offline-activity", constants.DefaultSyncOfflineActivity, "Amount of offline activity to sync from your local ~/.wakatime.db sqlite3 file to your WakaTime Dashboard before exiting. Can be a positive integer number. It means for every heartbeat sent while online, 100 offline heartbeats are synced. Can be used without --entity to only sync offline activity without generating new heartbeats.") //should be revisited when the 'provider' for local database has already been decided
 	flags.BoolVar(&args.Today, "today", false, "Prints dashboard time for Today, then exits.")
@@ -74,7 +70,15 @@ func Execute() {
 	flags.BoolVar(&args.Verbose, "verbose", false, "Turns on debug messages in log file")
 	flags.BoolVar(&args.Version, "version", false, "") //help missing
 
-	if err := rootCmd.Execute(); err != nil {
+	return cmd
+}
+
+// Execute adds all child commands to the root command sets flags appropriately.
+// This is called by main.main(). It only needs to happen once to the rootCmd.
+func Execute() {
+	args := arguments.NewArguments()
+
+	if err := NewRootCmd(args, nil).Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}

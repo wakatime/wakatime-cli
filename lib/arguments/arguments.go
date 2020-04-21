@@ -32,6 +32,7 @@ type Arguments struct {
 	Include             IncludeArguments
 	Config              ConfigArguments
 	Proxy               ProxyArguments
+	ObsoleteArgs        ObsoleteArguments
 }
 
 // EntityArguments EntityArguments
@@ -94,23 +95,39 @@ type ConfigArguments struct {
 	Write   map[string]string
 }
 
+// ObsoleteArguments ObsoleteArguments
+type ObsoleteArguments struct {
+	File           string //file
+	HideFilenames1 bool   //hide-filenames
+	HideFilenames2 bool   //hidefilenames
+	LogFile        string //log-file
+	APIURL         string //apiurl
+}
+
 // NewArguments NewArguments
 func NewArguments() *Arguments {
 	return &Arguments{
-		Config:    ConfigArguments{},
-		Obfuscate: ObfuscateArguments{},
+		Entity:       EntityArguments{},
+		Editor:       EditorArguments{},
+		Project:      ProjectArguments{},
+		Obfuscate:    ObfuscateArguments{},
+		Exclude:      ExcludeArguments{},
+		Include:      IncludeArguments{},
+		Config:       ConfigArguments{},
+		Proxy:        ProxyArguments{},
+		ObsoleteArgs: ObsoleteArguments{},
 	}
 }
 
 // GetBooleanOrList Get a boolean or list of regexes from args and configs
-func GetBooleanOrList(section string, key string, alternativeNames []string, cfg *configs.ConfigFile) []string {
+func GetBooleanOrList(section string, key string, alternativeNames []string, cfg configs.WakaTimeConfig) []string {
 	arr := []string{}
 
 	//todo: implement alternative names
 
 	values, err := cfg.Get(section, key)
 	if err == nil {
-		b, err := strconv.ParseBool(*values)
+		b, err := strconv.ParseBool(values)
 		if err == nil {
 			if b {
 				arr = append(arr, ".*")
@@ -120,16 +137,16 @@ func GetBooleanOrList(section string, key string, alternativeNames []string, cfg
 			arr = append(arr, "")
 			return arr
 		}
-	}
 
-	// not bool? try parse list
-	parts := strings.Split(*values, "\n")
+		// not bool? try parse list
+		parts := strings.Split(values, "\n")
 
-	for _, part := range parts {
-		part = strings.TrimSpace(part)
+		for _, part := range parts {
+			part = strings.TrimSpace(part)
 
-		if len(part) > 0 {
-			arr = append(arr, part)
+			if len(part) > 0 {
+				arr = append(arr, part)
+			}
 		}
 	}
 

@@ -18,13 +18,16 @@ import (
 )
 
 // Run Run legacy commands
-func Run(args arguments.Arguments, obsoleteArgs arguments.ObsoleteArguments, cmd *cobra.Command) (bool, error) {
+func Run(args *arguments.Arguments, cfg configs.WakaTimeConfig, cmd *cobra.Command) {
+	if cfg == nil {
+		cfg = configs.NewConfig(args.Config.Path)
+	}
 
 	flags := cmd.Flags()
 
 	if flags.Changed("version") {
 		runVersion()
-		os.Exit(0)
+		os.Exit(constants.Success)
 	}
 
 	//For debugging purposes, might be removed later
@@ -32,8 +35,6 @@ func Run(args arguments.Arguments, obsoleteArgs arguments.ObsoleteArguments, cmd
 		json, _ := json.Marshal(args)
 		fmt.Println(string(json))
 	}
-
-	cfg := configs.NewConfig(args.Config.Path)
 
 	if flags.Changed("config-read") {
 		runConfigRead(args.Config.Section, args.Config.Read, cfg)
@@ -45,6 +46,32 @@ func Run(args arguments.Arguments, obsoleteArgs arguments.ObsoleteArguments, cmd
 		os.Exit(constants.Success)
 	}
 
+	runSendHeartbeat(args, cfg, cmd)
+}
+
+func runVersion() {
+	fmt.Println(constants.Version)
+}
+
+func runConfigRead(section string, key string, cfg configs.WakaTimeConfig) {
+	v, err := cfg.Get(section, key)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	fmt.Println(v)
+}
+
+func runConfigWrite(section string, keyValue map[string]string, cfg configs.WakaTimeConfig) {
+	v := cfg.Set(section, keyValue)
+
+	fmt.Println(strings.Join(v, "\n"))
+}
+
+func runSendHeartbeat(args *arguments.Arguments, cfg configs.WakaTimeConfig, cmd *cobra.Command) {
+	flags := cmd.Flags()
+
 	// use current unix epoch timestamp by default
 	if !flags.Changed("time") {
 		args.Time = time.Now().Unix()
@@ -54,7 +81,7 @@ func Run(args arguments.Arguments, obsoleteArgs arguments.ObsoleteArguments, cmd
 	if !flags.Changed("hostname") {
 		hostname, err := cfg.Get("settings", "hostname")
 		if err == nil {
-			args.Hostname = *hostname
+			args.Hostname = hostname
 		}
 	}
 
@@ -66,7 +93,7 @@ func Run(args arguments.Arguments, obsoleteArgs arguments.ObsoleteArguments, cmd
 				panic("Missing api key. Find your api key from wakatime.com/settings/api-key.")
 			}
 		}
-		args.Key = *key
+		args.Key = key
 	}
 
 	// validate the api key
@@ -77,7 +104,7 @@ func Run(args arguments.Arguments, obsoleteArgs arguments.ObsoleteArguments, cmd
 	// validate entity
 	if !flags.Changed("entity") {
 		if flags.Changed("file") {
-			args.Entity.Entity = obsoleteArgs.File
+			args.Entity.Entity = args.ObsoleteArgs.File
 		} else if !flags.Changed("sync-offline-activity") && !flags.Changed("today") {
 			panic("argument --entity is required.")
 		}
@@ -93,7 +120,20 @@ func Run(args arguments.Arguments, obsoleteArgs arguments.ObsoleteArguments, cmd
 
 	ignore, err := cfg.Get("settings", "ignore")
 	if err == nil {
-		parts := strings.Split(*ignore, "\n")
+		parts := strings.Split(ignore, "\n")
+
+		for _, part := range parts {
+			part = strings.TrimSpace(part)
+
+			if len(part) > 0 {
+				args.Exclude.Exclude = append(args.Exclude.Exclude, part)
+			}
+		}
+	}
+
+	exclude, err := cfg.Get("settings", "exclude")
+	if err == nil {
+		parts := strings.Split(exclude, "\n")
 
 		for _, part := range parts {
 			part = strings.TrimSpace(part)
@@ -107,7 +147,7 @@ func Run(args arguments.Arguments, obsoleteArgs arguments.ObsoleteArguments, cmd
 	if !flags.Changed("include-only-with-project-file") {
 		includeOnlyWithProjectFile, err := cfg.Get("settings", "include_only_with_project_file")
 		if err == nil {
-			b, err := strconv.ParseBool(*includeOnlyWithProjectFile)
+			b, err := strconv.ParseBool(includeOnlyWithProjectFile)
 			if err != nil {
 				b = false
 			}
@@ -117,7 +157,7 @@ func Run(args arguments.Arguments, obsoleteArgs arguments.ObsoleteArguments, cmd
 
 	include, err := cfg.Get("settings", "include")
 	if err == nil {
-		parts := strings.Split(*include, "\n")
+		parts := strings.Split(include, "\n")
 
 		for _, part := range parts {
 			part = strings.TrimSpace(part)
@@ -131,7 +171,7 @@ func Run(args arguments.Arguments, obsoleteArgs arguments.ObsoleteArguments, cmd
 	if !flags.Changed("exclude-unknown-project") {
 		excludeUnknownProject, err := cfg.Get("settings", "exclude_unknown_project")
 		if err == nil {
-			b, err := strconv.ParseBool(*excludeUnknownProject)
+			b, err := strconv.ParseBool(excludeUnknownProject)
 			if err != nil {
 				b = false
 			}
@@ -157,10 +197,10 @@ func Run(args arguments.Arguments, obsoleteArgs arguments.ObsoleteArguments, cmd
 		args.Obfuscate.HiddenBranchNames = arguments.GetBooleanOrList("settings", "hide-branch-names", nil, cfg)
 	}
 
-	if flags.Changed("offline") {
+	if flags.Changed("disable-offline") {
 		offline, err := cfg.Get("settings", "offline")
 		if err == nil {
-			b, err := strconv.ParseBool(*offline)
+			b, err := strconv.ParseBool(offline)
 			if err != nil {
 				b = false
 			}
@@ -171,7 +211,7 @@ func Run(args arguments.Arguments, obsoleteArgs arguments.ObsoleteArguments, cmd
 	if !flags.Changed("proxy") {
 		proxy, err := cfg.Get("settings", "proxy")
 		if err == nil {
-			args.Proxy.Address = *proxy
+			args.Proxy.Address = proxy
 		}
 	}
 
@@ -190,7 +230,7 @@ func Run(args arguments.Arguments, obsoleteArgs arguments.ObsoleteArguments, cmd
 
 	noSslVerify, err := cfg.Get("settings", "no_ssl_verify")
 	if err == nil {
-		b, err := strconv.ParseBool(*noSslVerify)
+		b, err := strconv.ParseBool(noSslVerify)
 		if err != nil {
 			b = false
 		}
@@ -199,13 +239,13 @@ func Run(args arguments.Arguments, obsoleteArgs arguments.ObsoleteArguments, cmd
 
 	sslCertsFile, err := cfg.Get("settings", "ssl_certs_file")
 	if err == nil {
-		args.Proxy.SslCertsFile = *sslCertsFile
+		args.Proxy.SslCertsFile = sslCertsFile
 	}
 
 	if !flags.Changed("verbose") {
 		verbose, err := cfg.Get("settings", "verbose")
 		if err == nil {
-			b, err := strconv.ParseBool(*verbose)
+			b, err := strconv.ParseBool(verbose)
 			if err != nil {
 				b = false
 			}
@@ -213,7 +253,7 @@ func Run(args arguments.Arguments, obsoleteArgs arguments.ObsoleteArguments, cmd
 		} else {
 			debug, err := cfg.Get("settings", "debug")
 			if err == nil {
-				b, err := strconv.ParseBool(*debug)
+				b, err := strconv.ParseBool(debug)
 				if err != nil {
 					b = false
 				}
@@ -224,29 +264,28 @@ func Run(args arguments.Arguments, obsoleteArgs arguments.ObsoleteArguments, cmd
 
 	if !flags.Changed("log-file") {
 		if flags.Changed("logfile") {
-			args.LogFile = obsoleteArgs.LogFile
-		} else if len(args.LogFile) == 0 {
+			args.LogFile = args.ObsoleteArgs.LogFile
+		} else {
 			logFile, err := cfg.Get("settings", "log_file")
-			if err == nil {
-				args.LogFile = *logFile
-			} else {
+			if err != nil {
 				home, err := os.LookupEnv("WAKATIME_HOME")
-
 				if !err {
 					// Should find a way to 'expanduser'
 					args.LogFile = path.Join(home, ".wakatime.log")
 				}
+			} else {
+				args.LogFile = logFile
 			}
 		}
 	}
 
 	if !flags.Changed("api-url") {
 		if flags.Changed("apiurl") {
-			args.APIURL = obsoleteArgs.APIURL
-		} else if len(args.APIURL) == 0 {
+			args.APIURL = args.ObsoleteArgs.APIURL
+		} else {
 			apiURL, err := cfg.Get("settings", "api_url")
 			if err == nil {
-				args.APIURL = *apiURL
+				args.APIURL = apiURL
 			}
 		}
 	}
@@ -254,7 +293,7 @@ func Run(args arguments.Arguments, obsoleteArgs arguments.ObsoleteArguments, cmd
 	if !flags.Changed("timeout") {
 		timeout, err := cfg.Get("settings", "timeout")
 		if err == nil {
-			t, err := strconv.Atoi(*timeout)
+			t, err := strconv.Atoi(timeout)
 			if err != nil {
 				fmt.Printf("Error converting to integer the timeout value '%v'", timeout)
 			} else {
@@ -262,26 +301,4 @@ func Run(args arguments.Arguments, obsoleteArgs arguments.ObsoleteArguments, cmd
 			}
 		}
 	}
-
-	return true, nil
-}
-
-func runVersion() {
-	fmt.Println(constants.Version)
-}
-
-func runConfigRead(section string, key string, cfg *configs.ConfigFile) {
-	v, err := cfg.Get(section, key)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	fmt.Println(*v)
-}
-
-func runConfigWrite(section string, keyValue map[string]string, cfg *configs.ConfigFile) {
-	v := cfg.Set(section, keyValue)
-
-	fmt.Println(strings.Join(v, "\n"))
 }
