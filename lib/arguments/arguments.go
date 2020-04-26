@@ -4,7 +4,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/wakatime/wakatime-cli/lib/configs"
+	"github.com/alanhamlett/wakatime-cli/lib/configs"
 )
 
 // GetBooleanOrList Get a boolean or list of regexes from args and configs

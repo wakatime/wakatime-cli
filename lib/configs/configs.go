@@ -5,10 +5,11 @@ import (
 	"os"
 	"path"
 
+	"github.com/alanhamlett/wakatime-cli/constants"
+	"github.com/alanhamlett/wakatime-cli/lib/system"
+
 	"github.com/go-ini/ini"
 	"github.com/mitchellh/go-homedir"
-	"github.com/wakatime/wakatime-cli/constants"
-	"github.com/wakatime/wakatime-cli/lib/system"
 )
 
 // ConfigFile ConfigFile

@@ -7,8 +7,8 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/wakatime/wakatime-cli/constants"
-	"github.com/wakatime/wakatime-cli/lib/system"
+	"github.com/alanhamlett/wakatime-cli/constants"
+	"github.com/alanhamlett/wakatime-cli/lib/system"
 )
 
 // GetUserAgent Get user agent

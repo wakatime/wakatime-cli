@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/wakatime/wakatime-cli/lib/utils"
+	"github.com/alanhamlett/wakatime-cli/lib/utils"
 )
 
 // Heartbeat Heartbeat structure

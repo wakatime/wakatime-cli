@@ -11,11 +11,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/alanhamlett/wakatime-cli/constants"
+	"github.com/alanhamlett/wakatime-cli/lib/arguments"
+	"github.com/alanhamlett/wakatime-cli/lib/configs"
+
 	"github.com/beevik/guid"
 	"github.com/spf13/cobra"
-	"github.com/wakatime/wakatime-cli/constants"
-	"github.com/wakatime/wakatime-cli/lib/arguments"
-	"github.com/wakatime/wakatime-cli/lib/configs"
 )
 
 // NewHeartbeatCommand returns a cobra command for `heartbeat` subcommands

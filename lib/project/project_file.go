@@ -4,7 +4,7 @@ import (
 	"log"
 	"strings"
 
-	"github.com/wakatime/wakatime-cli/lib/utils"
+	"github.com/alanhamlett/wakatime-cli/lib/utils"
 )
 
 // ProjectFile Information from a .wakatime-project file about the project for
