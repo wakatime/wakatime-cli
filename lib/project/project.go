@@ -4,7 +4,6 @@ import (
 	"strings"
 
 	"github.com/wakatime/wakatime-cli/lib/configs"
-	"github.com/wakatime/wakatime-cli/lib/scm"
 	"github.com/wakatime/wakatime-cli/lib/utils"
 )
 
@@ -13,6 +12,8 @@ type Project interface {
 	Process() bool
 	ProjectName() *string
 	BranchName() *string
+	SetEntity(string)
+	SetConfigItems(map[string]string)
 }
 
 // ProjectInfo ProjectInfo
@@ -26,14 +27,14 @@ type ProjectInfo struct {
 }
 
 var (
-	configPlugins []string = []string{
-		"file",
-		"map",
+	configPlugins map[string]Project = map[string]Project{
+		"file": ProjectFile{},
+		"map":  ProjectMap{},
 	}
-	revControlPlugins []string = []string{
-		"git",
-		"mercurial",
-		"subversion",
+	revControlPlugins map[string]Project = map[string]Project{
+		"git":         Git{},
+		"mercurial":   Mercurial{},
+		"subversions": Subversion{},
 	}
 )
 
@@ -51,13 +52,14 @@ func GetProjectInfo(pi ProjectInfo, cfg configs.WakaTimeConfig) (string, string)
 	}
 
 	if len(projectName) == 0 || len(branchName) == 0 {
-		for _, pluginCls := range configPlugins {
-			pluginConfigs := cfg.GetConfigForPlugin(pluginCls)
-			project := GetProjectPlugin(pluginCls, pi.Entity, pluginConfigs)
+		for key, p := range configPlugins {
+			pluginConfigs := cfg.GetConfigForPlugin(key)
+			p.SetEntity(pi.Entity)
+			p.SetConfigItems(pluginConfigs)
 
-			if project.Process() {
-				projectName = *project.ProjectName()
-				branchName = *project.BranchName()
+			if p.Process() {
+				projectName = *p.ProjectName()
+				branchName = *p.BranchName()
 				break
 			}
 		}
@@ -66,15 +68,16 @@ func GetProjectInfo(pi ProjectInfo, cfg configs.WakaTimeConfig) (string, string)
 	hideProject := utils.ShouldObfuscateProject(pi.Entity, pi.HideProjectNames)
 
 	if len(projectName) == 0 || len(branchName) == 0 {
-		for _, pluginCls := range revControlPlugins {
-			pluginConfigs := cfg.GetConfigForPlugin(pluginCls)
-			project := scm.GetScmPlugin(pluginCls, pi.Entity, pluginConfigs)
+		for key, p := range revControlPlugins {
+			pluginConfigs := cfg.GetConfigForPlugin(key)
+			p.SetEntity(pi.Entity)
+			p.SetConfigItems(pluginConfigs)
 
-			if project.Process() {
+			if p.Process() {
 				if !hideProject {
-					projectName = *project.ProjectName()
+					projectName = *p.ProjectName()
 				}
-				branchName = *project.BranchName()
+				branchName = *p.BranchName()
 				break
 			}
 		}

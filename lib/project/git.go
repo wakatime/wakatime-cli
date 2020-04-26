@@ -1,4 +1,4 @@
-package scm
+package project
 
 import (
 	"log"
@@ -20,33 +20,33 @@ type Git struct {
 }
 
 // Process Process
-func (s Git) Process() bool {
-	return s.findGitConfigFile()
+func (p Git) Process() bool {
+	return p.findGitConfigFile()
 }
 
-func (s Git) findGitConfigFile() bool {
-	absPath, err := filepath.Abs(s.Entity)
+func (p Git) findGitConfigFile() bool {
+	absPath, err := filepath.Abs(p.Entity)
 	if err == nil {
 		if utils.FileExists(absPath) {
-			path_, filename := path.Split(absPath)
-			if utils.FileExists(path.Join(path_, ".git", "config")) {
-				*s.Name = filepath.Base(path_)
-				s.Branch = getBranch(path.Join(path_, ".git", "HEAD"))
+			pat, filename := path.Split(absPath)
+			if utils.FileExists(path.Join(pat, ".git", "config")) {
+				*p.Name = filepath.Base(pat)
+				p.Branch = getBranch(path.Join(pat, ".git", "HEAD"))
 				return true
 			}
 
-			if linkPath := getPathFromGitdirLinkFile(path_); linkPath != nil {
+			if linkPath := getPathFromGitdirLinkFile(pat); linkPath != nil {
 				//first check if this is a worktree
-				if isWortree(*linkPath) {
-					s.Name = getProjectFromWorktree(*linkPath)
-					s.Branch = getBranch(path.Join(*linkPath, "HEAD"))
+				if isWorktree(*linkPath) {
+					p.Name = getProjectFromWorktree(*linkPath)
+					p.Branch = getBranch(path.Join(*linkPath, "HEAD"))
 					return true
 				}
 
 				//next check if this is a submodule
-				if isSubmodulesSupportedForPath(path_, s.ConfigItems) {
-					*s.Name = filepath.Base(path_)
-					s.Branch = getBranch(path.Join(*linkPath, "HEAD"))
+				if isSubmodulesSupportedForPath(pat, p.ConfigItems) {
+					*p.Name = filepath.Base(pat)
+					p.Branch = getBranch(path.Join(*linkPath, "HEAD"))
 					return true
 				}
 			}
@@ -57,17 +57,27 @@ func (s Git) findGitConfigFile() bool {
 		}
 	}
 
-	return s.findGitConfigFile()
+	return p.findGitConfigFile()
+}
+
+// SetEntity SetEntity
+func (p Git) SetEntity(entity string) {
+	p.Entity = entity
+}
+
+// SetConfigItems SetConfigItems
+func (p Git) SetConfigItems(ci map[string]string) {
+	p.ConfigItems = ci
 }
 
 // ProjectName ProjectName
-func (s Git) ProjectName() *string {
-	return s.Name
+func (p Git) ProjectName() *string {
+	return p.Name
 }
 
 // BranchName BranchName
-func (s Git) BranchName() *string {
-	return s.Branch
+func (p Git) BranchName() *string {
+	return p.Branch
 }
 
 func getBranch(headFile string) *string {
@@ -91,25 +101,25 @@ func getBranchFromHeadFile(line string) *string {
 	return nil
 }
 
-func getPathFromGitdirLinkFile(path_ string) *string {
-	link := path.Join(path_, ".git")
+func getPathFromGitdirLinkFile(pat string) *string {
+	link := path.Join(pat, ".git")
 	if !utils.FileExists(link) {
 		return nil
 	}
 
 	if lines, err := utils.ReadFile(link); err == nil {
 		if !utils.Isset(lines, 0) {
-			return getPathfromGitdirString(path_, lines[0])
+			return getPathfromGitdirString(pat, lines[0])
 		}
 	}
 	return nil
 }
 
-func getPathfromGitdirString(path_ string, line string) *string {
+func getPathfromGitdirString(pat string, line string) *string {
 	if strings.HasPrefix(line, "gitdir: ") {
 		subpath := strings.TrimSpace(line[len("gitdir: "):])
-		if utils.FileExists(path.Join(path_, subpath, "HEAD")) {
-			if absPath, err := filepath.Abs(path.Join(path_, subpath)); err == nil {
+		if utils.FileExists(path.Join(pat, subpath, "HEAD")) {
+			if absPath, err := filepath.Abs(path.Join(pat, subpath)); err == nil {
 				return &absPath
 			}
 		}
@@ -117,7 +127,7 @@ func getPathfromGitdirString(path_ string, line string) *string {
 	return nil
 }
 
-func isWortree(linkPath string) bool {
+func isWorktree(linkPath string) bool {
 	dir, _ := path.Split(linkPath)
 	return filepath.Base(dir) == "worktrees"
 }
@@ -140,7 +150,7 @@ func getProjectFromWorktree(linkPath string) *string {
 	return nil
 }
 
-func isSubmodulesSupportedForPath(path_ string, configItems map[string]string) bool {
+func isSubmodulesSupportedForPath(pat string, configItems map[string]string) bool {
 	if rawValue, ok := configItems["submodules_disabled"]; ok {
 		if disabled, err := strconv.ParseBool(rawValue); err == nil {
 			return !disabled
@@ -154,7 +164,7 @@ func isSubmodulesSupportedForPath(path_ string, configItems map[string]string) b
 					continue
 				}
 
-				if re.MatchString(path_) {
+				if re.MatchString(pat) {
 					return false
 				}
 			}

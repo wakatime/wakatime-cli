@@ -39,6 +39,16 @@ func (p ProjectFile) Process() bool {
 	return false
 }
 
+// SetEntity SetEntity
+func (p ProjectFile) SetEntity(entity string) {
+	p.Entity = entity
+}
+
+// SetConfigItems SetConfigItems
+func (p ProjectFile) SetConfigItems(ci map[string]string) {
+
+}
+
 // ProjectName ProjectName
 func (p ProjectFile) ProjectName() *string {
 	return p.Name

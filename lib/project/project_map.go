@@ -60,6 +60,16 @@ func (p ProjectMap) findProject() *string {
 	return nil
 }
 
+// SetEntity SetEntity
+func (p ProjectMap) SetEntity(entity string) {
+	p.Entity = entity
+}
+
+// SetConfigItems SetConfigItems
+func (p ProjectMap) SetConfigItems(ci map[string]string) {
+	p.ConfigItems = ci
+}
+
 // ProjectName ProjectName
 func (p ProjectMap) ProjectName() *string {
 	return p.Name
