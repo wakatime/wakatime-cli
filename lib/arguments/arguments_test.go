@@ -100,6 +100,23 @@ func TestArgument_HostnameShouldPass(t *testing.T) {
 	assert.Equal(t, expected, a.Hostname)
 }
 
+func TestArgument_HostnameFailingShouldPass(t *testing.T) {
+	expected := ""
+
+	a := arguments.NewArguments()
+	cfg := configs.ConfigFileMockFail{}
+	cmd := cmd.NewRootCmd(a, cfg)
+
+	cmd.SetArgs([]string{
+		"--entity", "/etc/file.txt",
+		"--key", "cc3939f6-000b-4756-ba33-966e29e66485",
+	})
+
+	cmd.Execute()
+
+	assert.Equal(t, expected, a.Hostname)
+}
+
 func TestArgument_KeyShouldBeValidGuid(t *testing.T) {
 	expected := "4b5fcb49-4f9e-408f-bf17-dae28f0eccd1"
 
@@ -224,11 +241,60 @@ func TestArgument_IgnoredPatternShouldPass(t *testing.T) {
 	assert.Equal(t, expected, a.Exclude.Exclude)
 }
 
+func TestArgument_IgnoredPatternFailingShouldPass(t *testing.T) {
+	expected := []string{}
+
+	a := arguments.NewArguments()
+	cfg := configs.ConfigFileMockFail{}
+	cmd := cmd.NewRootCmd(a, cfg)
+
+	cmd.SetArgs([]string{
+		"--entity", "/etc/file.txt",
+	})
+
+	cmd.Execute()
+
+	assert.Equal(t, expected, a.Exclude.Exclude)
+}
+
 func TestArgument_IncludeOnlyWithProjectFileShouldPass(t *testing.T) {
 	expected := true
 
 	a := arguments.NewArguments()
 	cfg := configs.ConfigFileMock{}
+	cmd := cmd.NewRootCmd(a, cfg)
+
+	cmd.SetArgs([]string{
+		"--entity", "/etc/file.txt",
+		"--include-only-with-project-file",
+	})
+
+	cmd.Execute()
+
+	assert.Equal(t, expected, a.Include.IncludeOnlyWithProjectFile)
+}
+
+func TestArgument_IncludeOnlyWithProjectFileMissingShouldPass(t *testing.T) {
+	expected := true
+
+	a := arguments.NewArguments()
+	cfg := configs.ConfigFileMock{}
+	cmd := cmd.NewRootCmd(a, cfg)
+
+	cmd.SetArgs([]string{
+		"--entity", "/etc/file.txt",
+	})
+
+	cmd.Execute()
+
+	assert.Equal(t, expected, a.Include.IncludeOnlyWithProjectFile)
+}
+
+func TestArgument_IncludeOnlyWithProjectFileFailingShouldPass(t *testing.T) {
+	expected := false
+
+	a := arguments.NewArguments()
+	cfg := configs.ConfigFileMockFail{}
 	cmd := cmd.NewRootCmd(a, cfg)
 
 	cmd.SetArgs([]string{
@@ -256,11 +322,44 @@ func TestArgument_IncludedPatternShouldPass(t *testing.T) {
 	assert.Equal(t, expected, a.Include.Include)
 }
 
+func TestArgument_ExcludeUnknownProjectMisingShouldPass(t *testing.T) {
+	expected := true
+
+	a := arguments.NewArguments()
+	cfg := configs.ConfigFileMock{}
+	cmd := cmd.NewRootCmd(a, cfg)
+
+	cmd.SetArgs([]string{
+		"--entity", "/etc/file.txt",
+	})
+
+	cmd.Execute()
+
+	assert.Equal(t, expected, a.Exclude.ExcludeUnknownProject)
+}
+
 func TestArgument_ExcludeUnknownProjectShouldPass(t *testing.T) {
 	expected := true
 
 	a := arguments.NewArguments()
 	cfg := configs.ConfigFileMock{}
+	cmd := cmd.NewRootCmd(a, cfg)
+
+	cmd.SetArgs([]string{
+		"--entity", "/etc/file.txt",
+		"--exclude-unknown-project",
+	})
+
+	cmd.Execute()
+
+	assert.Equal(t, expected, a.Exclude.ExcludeUnknownProject)
+}
+
+func TestArgument_ExcludeUnknownProjectFailingShouldPass(t *testing.T) {
+	expected := false
+
+	a := arguments.NewArguments()
+	cfg := configs.ConfigFileMockFail{}
 	cmd := cmd.NewRootCmd(a, cfg)
 
 	cmd.SetArgs([]string{
@@ -404,6 +503,23 @@ func TestArgument_OfflineMissingShouldPass(t *testing.T) {
 	assert.Equal(t, expected, a.DisableOffline)
 }
 
+func TestArgument_OfflineFailingShouldPass(t *testing.T) {
+	expected := false
+
+	a := arguments.NewArguments()
+	cfg := configs.ConfigFileMockFail{}
+	cmd := cmd.NewRootCmd(a, cfg)
+
+	cmd.SetArgs([]string{
+		"--entity", "/etc/file.txt",
+		"--disable-offline",
+	})
+
+	cmd.Execute()
+
+	assert.Equal(t, expected, a.DisableOffline)
+}
+
 func TestArgument_ProxyShouldPass(t *testing.T) {
 	expected := "https://waka:time@domain.be:8080"
 
@@ -426,6 +542,22 @@ func TestArgument_ProxyMissingShouldPass(t *testing.T) {
 
 	a := arguments.NewArguments()
 	cfg := configs.ConfigFileMock{}
+	cmd := cmd.NewRootCmd(a, cfg)
+
+	cmd.SetArgs([]string{
+		"--entity", "/etc/file.txt",
+	})
+
+	cmd.Execute()
+
+	assert.Equal(t, expected, a.Proxy.Address)
+}
+
+func TestArgument_ProxyFailingShouldPass(t *testing.T) {
+	expected := ""
+
+	a := arguments.NewArguments()
+	cfg := configs.ConfigFileMockFail{}
 	cmd := cmd.NewRootCmd(a, cfg)
 
 	cmd.SetArgs([]string{
@@ -468,6 +600,22 @@ func TestArgument_NoSslVerifyShouldPass(t *testing.T) {
 	assert.Equal(t, expected, a.Proxy.NoSslVerify)
 }
 
+func TestArgument_NoSslVerifyFailingShouldPass(t *testing.T) {
+	expected := false
+
+	a := arguments.NewArguments()
+	cfg := configs.ConfigFileMockFail{}
+	cmd := cmd.NewRootCmd(a, cfg)
+
+	cmd.SetArgs([]string{
+		"--entity", "/etc/file.txt",
+	})
+
+	cmd.Execute()
+
+	assert.Equal(t, expected, a.Proxy.NoSslVerify)
+}
+
 func TestArgument_SslCertsFileShouldPass(t *testing.T) {
 	expected := "ssl_certs_file"
 
@@ -484,8 +632,24 @@ func TestArgument_SslCertsFileShouldPass(t *testing.T) {
 	assert.Equal(t, expected, a.Proxy.SslCertsFile)
 }
 
-func TestArgument_VerboseShouldPass(t *testing.T) {
-	expected := false
+func TestArgument_SslCertsFileFailingShouldPass(t *testing.T) {
+	expected := ""
+
+	a := arguments.NewArguments()
+	cfg := configs.ConfigFileMockFail{}
+	cmd := cmd.NewRootCmd(a, cfg)
+
+	cmd.SetArgs([]string{
+		"--entity", "/etc/file.txt",
+	})
+
+	cmd.Execute()
+
+	assert.Equal(t, expected, a.Proxy.SslCertsFile)
+}
+
+func TestArgument_VerboseMissingShouldPass(t *testing.T) {
+	expected := true
 
 	a := arguments.NewArguments()
 	cfg := configs.ConfigFileMock{}
@@ -500,7 +664,7 @@ func TestArgument_VerboseShouldPass(t *testing.T) {
 	assert.Equal(t, expected, a.Verbose)
 }
 
-func TestArgument_VerboseMissingShouldPass(t *testing.T) {
+func TestArgument_VerboseShouldPass(t *testing.T) {
 	expected := true
 
 	a := arguments.NewArguments()
@@ -606,6 +770,22 @@ func TestArgument_ApiUrlMissingShouldPass(t *testing.T) {
 
 	a := arguments.NewArguments()
 	cfg := configs.ConfigFileMock{}
+	cmd := cmd.NewRootCmd(a, cfg)
+
+	cmd.SetArgs([]string{
+		"--entity", "/etc/file.txt",
+	})
+
+	cmd.Execute()
+
+	assert.Equal(t, expected, a.APIURL)
+}
+
+func TestArgument_ApiUrlFailingShouldPass(t *testing.T) {
+	expected := ""
+
+	a := arguments.NewArguments()
+	cfg := configs.ConfigFileMockFail{}
 	cmd := cmd.NewRootCmd(a, cfg)
 
 	cmd.SetArgs([]string{
