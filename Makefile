@@ -9,9 +9,6 @@ GOGET=$(GOCMD) get
 # Binary name
 BINARY_NAME=wakatime-cli
 
-ensure: dep
-	dep ensure
-
 build-all: build-darwin build-linux build-windows
 
 build-darwin:
@@ -22,8 +19,3 @@ build-linux:
 
 build-windows:
 	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 $(GOBUILD) -o ./build/windows/amd64/$(BINARY_NAME).exe -v
-
-dep:
-ifeq (, $(shell which dep))
-	go get github.com/golang/dep/cmd/dep
-endif
