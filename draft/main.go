@@ -1,19 +1,26 @@
 import (
-f	"net/http"
+	"net/http"
 	"time"
 
 	"github.com/alanhamlett/wakatime-cli/pkg/api"
-	"github.com/alanhamlett/wakatime-cli/pkg/file"
-	"github.com/alanhamlett/wakatime-cli/pkg/log"
+	"github.com/alanhamlett/wakatime-cli/pkg/filestats"
+	"github.com/alanhamlett/wakatime-cli/pkg/deps"
 	"github.com/alanhamlett/wakatime-cli/pkg/heartbeat"
-	"github.com/alanhamlett/wakatime-cli/pkg/project"
+	"github.com/alanhamlett/wakatime-cli/pkg/language"
+	"github.com/alanhamlett/wakatime-cli/pkg/log"
 	"github.com/alanhamlett/wakatime-cli/pkg/offline"
+	"github.com/alanhamlett/wakatime-cli/pkg/project"
+	"github.com/alanhamlett/wakatime-cli/pkg/sanitize"
 	"github.com/alanhamlett/wakatime-cli/pkg/validate"
 )
 
+const (
+	queueDBFile = ".wakatime.db"
+	queueDBTable = "heartbeat_2"
+)
+
 func main() {
-	// initialize api client
-	opts := []api.Option{
+	clientOpts := []api.Option{
 		api.Auth("", args.APIKey)
 	}
 
@@ -25,64 +32,51 @@ func main() {
 		opts = append(options, api.SSL(args.SSLCert))
 	}
 
-	var client heartbeat.Sender
 	client = api.NewClient(baseURL, http.DefaultClient, ...opts)
-	client = offline.WithQueue(client, offline.Config{})
 
-	// detect project info and file stats
-	var (
-		branch string
-		project string
-		stats file.Stats
-		err error
-	)
-	if args.EntityType = "file" {
-		branch, project, err = project.Info(args.Entity, args.AlternativeProjectName)
-		if err != nil {
-			log.Fatalf(err)
-		}
-		stats, err = file.Info(args.Entity)
-		if err != nil {
-			log.Fatalf(err)
-		}
+	senderOpts := []heartbeat.SenderOption{
+		heartbeat.Sanitize(heartbeat.SanitizeConfig{
+			HideBranchNames: args.HideBranchNames,
+			HideFileNames: args.HideFileNames,
+			HideProjectNames: args.HideProjectNames,
+		}),
+		offline.Queue(queueDBFile, queueDBTable),
+		language.Detect(language.Config{
+			Alternative: args.AlternativeLanguage,
+			Overwrite: args.Language,
+			LocalFile: args.LocalFile,
+		}),
+		deps.Detect(dep.Config{
+			LocalFile: args.Localfile,
+		}),
+		filestats.Detect(filestats.Config{
+			LocalFile: args.Localfile,
+		}),
+		project.Detect(language.Config{
+			Alternative: args.AlternativeProject,
+			Overwrite: args.Project,
+			LocalFile: args.LocalFile,
+		}),
+		heartbeat.Validate(heartbeat.ValidateConfig{
+			Exclude: args.Exclude,
+			ExcludeUnknownProject: args.ExcludeUnknownProject,
+			Include: args.Include,
+			IncludeOnlyWithProjectFile: args.IncludeOnlyWithProjectFile,
+		),
 	}
+	sender := NewSender(client, senderOpts)
 
-	// validate data
-	if args.ExcludeUnknownProject && args.Project == "" {
-		log.Debugf("skipping heartbeat: project file missing")
-		return
-	}
-
-	if err := validate.ByPattern(args.Entity, args.Include, args.Exclude); err != nil {
-		log.Debugf("skipping heartbeat: %s", err)
-	}
-
-	if args.EntityType == "file" {
-		if err := validate.File(args.Entity, args.IncludeOnlyWithProjectFile); err != nil {
-			log.Debugf("skipping heartbeat: %s", err)
-			return
-		}
-	}
-
-	// send heartbeat
 	hh := []Heartbeat{
 		{
-			Branch:         branch,
 			Category:       args.Category,
-			CursorPosition: stats.CursorPosition,
-			Dependencies:   stats.Dependencies,
 			Entity:         args.Entity,
 			EntityType:     args.EntityType,
 			IsWrite:        args.IsWrite,
-			Language:       stats.Language,
-			LineNumber:     stats.LineNumber,
-			Lines:          stats.Lines,
-			Project:        project,
 			Time:           args.Time,
 			UserAgent:      arg.UserAgent,
 		}
-	}	
-	_, err := client.Send(hh, heartbeat.SendConfig{})
+	}
+	_, err := sender.Send(hh, heartbeat.SendConfig{})
 	if err != nil {
 		log.Fatalf(err)
 	}
