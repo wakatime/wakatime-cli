@@ -3,7 +3,7 @@ wakatime-cli/
         legacy/
             config.go
             heartbeat.go
-            legacy.go
+            run.go
             today.go
             version.go
         root.go
@@ -29,64 +29,51 @@ wakatime-cli/
                 func (c *Client) Summaries(startDate, endDate time.Time) ([]summary.Summary, error)
         deps/
             deps.go
-                type Config stuct {
-                    LocalFile string
-                }
-                Detect(c Config) heartbeat.SenderOption
+                WithDetection() heartbeat.SenderOption
+                WithDetectionOnFile(filepath string) heartbeat.SenderOption
                 func detect(filepath, language string) (deps []string, err error)
-                type sender struct {}
-                func (s *sender) Send(hh []heartbeat.Heartbeat) ([]heartbeat.SendResult, error)
         filestats/
             filestats.go
-                type Config stuct {
-                    LocalFile string
-                }
-                Detect(c Config) heartbeat.SenderOption
+                WithDetection() heartbeat.HandleOption
+                WithDetectionOnFile(filepath string) heartbeat.SenderOption
                 func detect(filepath string) (lines int, err error)
-                type sender struct {}
-                func (s *sender) Send(hh []heartbeat.Heartbeat) ([]heartbeat.SendResult, error)
         heartbeat/
             heartbeat.go
                 type Heartbeat struct {}
-                type SendResult struct {}
+                type Result struct {}
                 type Sender interface {
-                    Send(hh []Heartbeat) ([]SendResult, error)
+                    Send(hh []Heartbeat) ([]Result, error)
                 }
-                SenderOption func(Sender) Sender
-                func NewSender(sender, ...SenderOption) Sender
+                type Handle func(hh []Heartbeat) ([]Result, error)
+                HandleOption func(Handle) Handle
+                func NewHandle(Sender, ...HandleOption) Handle
             sanitize.go
-                type SanitizeConfig stuct {
+                type SanitizeConfig struct {
                     HideBranchNames []*regexp.Regexp
                     HideFileNames []*regexp.Regexp
                     HideProjectNames []*regexp.Regexp
                 }
-                Sanitize(c SanitizeConfig) heartbeat.SenderOption
+                WithSanitization(c SanitizeConfig) heartbeat.SenderOption
                 func sanitize(h Heartbeat, obfuscate Obfuscate) Heartbeat
-                type sanitizeSender struct {}
-                func (s *sanitizeSender) Send(hh []heartbeat.Heartbeat) ([]heartbeat.SendResult, error)
             validate.go
-                type ValidateConfig stuct {
+                type ValidateConfig struct {
                     Exclude []*regexp.Regexp
                     ExcludeUnknownProject bool
                     Include []*regexp.Regexp
                     IncludeOnlyWithProjectFile bool
                 }
-                Validate(c ValidateConfig) heartbeat.SenderOption
+                WithValidation(c ValidateConfig) heartbeat.SenderOption
                 func validateByPattern(entity string, include, exclude []*regexp.Regexp) error
                 func validateFile(filepath string, includeOnlyWithProjectFile bool) error
-                type validateSender struct {}
-                func (s *validateSender) Send(hh []heartbeat.Heartbeat) ([]heartbeat.SendResult, error)
         language/
             language.go
-                type Config stuct {
+                type Config struct {
                     Alternative string
                     Overwrite string
                     LocalFile string
                 }
-                Detect(c Config) heartbeat.SenderOption
+                WithDetection(c Config) heartbeat.SenderOption
                 func detect(filepath string) (language string, err error)
-                type sender struct {}
-                func (s *sender) Send(hh []heartbeat.Heartbeat) ([]heartbeat.SendResult, error)
         log/
             log.go
                 type LogLevel int32
@@ -95,21 +82,17 @@ wakatime-cli/
                 func Fatalf(msg string, args ...interface{})
         offline/
             offline.go
-                func Queue(filepath, table string) heartbeat.SenderOption
-                type sender struct {}
-                func (s *sender) Send(hh []heartbeat.Heartbeat) ([]heartbeat.SendResult, error)
+                func WithQueue(filepath, table string) heartbeat.SenderOption
         project/
             project.go
-                type Config stuct {
+                type Config struct {
                     Alternative string
                     Overwrite string
                     LocalFile string
                 }
-                Detect(c Config) heartbeat.SenderOption
+                WithDetection(c Config) heartbeat.SenderOption
                 func detect(filepath string) (project, branch string, err error)
                 func detectWithPlugin(filepath string, plugin Plugin) (project, branch string, err error)
-                type sender struct {}
-                func (s *sender) Send(hh []heartbeat.Heartbeat) ([]heartbeat.SendResult, error)
         summary/
             summary.go
                 type Summary struct {}

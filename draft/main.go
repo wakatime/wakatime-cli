@@ -31,52 +31,62 @@ func main() {
 	}
 
 	if args.SSLCert != nil {
-		opts = append(options, api.WithSSL(args.SSLCert))
+		clientOpts = append(options, api.WithSSL(args.SSLCert))
 	}
 
 	if args.Timeout != nil {
-		opts = append(options, api.WithTimeout(args.Timeout * time.Second))
+		clientOpts = append(options, api.WithTimeout(args.Timeout * time.Second))
 	}
 
 	if args.Plugin != nil {
-		opts = append(options, api.WithUserAgentFromPlugin(args.Plugin))
+		clientOpts = append(options, api.WithUserAgentFromPlugin(args.Plugin))
 	} else {
-		opts = append(options, api.WithUserAgent())
+		clientOpts = append(options, api.WithUserAgent())
 	}
 
-	client = api.NewClient(baseURL, http.DefaultClient, clientOpts...)
+	client := api.NewClient(baseURL, http.DefaultClient, clientOpts...)
 
-	senderOpts := []heartbeat.SenderOption{
-		heartbeat.Sanitize(heartbeat.SanitizeConfig{
+	var withDepsDetection heartbeat.HandleOption
+	if args.Localfile == "" {
+		withDepsDetection = deps.WithDetection()
+	} else
+		withDepsDetection = deps.WithDetectionOnFile(args.Localfile)
+	}
+
+	var withFilestatsDetection heartbeat.HandleOption
+	if args.Localfile == "" {
+		withFilestatsDetection = filestats.WithDetection()
+	} else
+		withFilestatsDetection = filestats.WithDetectionOnFile(args.Localfile)
+	}
+
+	handleOpts := []heartbeat.HandleOption{
+		heartbeat.WithSanitization(heartbeat.SanitizeConfig{
 			HideBranchNames: args.HideBranchNames,
 			HideFileNames: args.HideFileNames,
 			HideProjectNames: args.HideProjectNames,
 		}),
-		offline.Queue(queueDBFile, queueDBTable),
-		language.Detect(language.Config{
+		offline.WithQueue(queueDBFile, queueDBTable),
+		language.WithDetection(language.Config{
 			Alternative: args.AlternativeLanguage,
 			Overwrite: args.Language,
 			LocalFile: args.LocalFile,
 		}),
-		deps.Detect(dep.Config{
-			LocalFile: args.Localfile,
-		}),
-		filestats.Detect(filestats.Config{
-			LocalFile: args.Localfile,
-		}),
-		project.Detect(language.Config{
+		withDepsDetection,
+		withFilestatsDetection,
+		project.WithDetection(language.Config{
 			Alternative: args.AlternativeProject,
 			Overwrite: args.Project,
 			LocalFile: args.LocalFile,
 		}),
-		heartbeat.Validate(heartbeat.ValidateConfig{
+		heartbeat.WithValidation(heartbeat.ValidateConfig{
 			Exclude: args.Exclude,
 			ExcludeUnknownProject: args.ExcludeUnknownProject,
 			Include: args.Include,
 			IncludeOnlyWithProjectFile: args.IncludeOnlyWithProjectFile,
 		),
 	}
-	sender := NewSender(client, senderOpts...)
+	handle := heartbeat.NewHandle(client, handleOpts...)
 
 	hh := []Heartbeat{
 		{
@@ -88,7 +98,7 @@ func main() {
 			UserAgent:      arg.UserAgent,
 		}
 	}
-	_, err := sender.Send(hh)
+	_, err := handle(hh)
 	if err != nil {
 		log.Fatalf(err)
 	}
