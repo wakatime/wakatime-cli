@@ -23,7 +23,6 @@ func NewRootCMD() *cobra.Command {
 
 	//set flags
 	flags := cmd.Flags()
-	flags.String("config", "", "Optional config file. Defaults to '~/.wakatime.cfg'.")
 	flags.Bool("version", false, "") //help missing
 	v.BindPFlags(flags)
 
