@@ -1,27 +1,15 @@
 package legacy
 
 import (
-	"fmt"
 	"os"
 
-	"github.com/alanhamlett/wakatime-cli/constants"
-	"github.com/alanhamlett/wakatime-cli/lib/configs"
 	"github.com/spf13/viper"
 )
 
-// Run Run legacy commands
-func Run(cfg configs.WakaTimeConfig, v *viper.Viper) {
-	if cfg == nil {
-		configPath := v.GetString("config")
-		cfg = configs.NewConfig(configPath, v)
-	}
-
+// Run Executes legacy commands following the interface of the old python implementation of the WakaTime script.
+func Run(v *viper.Viper) {
 	if v.GetBool("version") {
 		runVersion()
-		os.Exit(constants.Success)
+		os.Exit(0)
 	}
-}
-
-func runVersion() {
-	fmt.Println(constants.Version)
 }
