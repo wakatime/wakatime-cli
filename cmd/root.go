@@ -21,9 +21,9 @@ func NewRootCMD() *cobra.Command {
 		},
 	}
 
-	//set flags
+	// set flags
 	flags := cmd.Flags()
-	flags.Bool("version", false, "") //help missing
+	flags.Bool("version", false, "") // help missing
 	v.BindPFlags(flags)
 
 	return cmd

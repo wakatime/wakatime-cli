@@ -6,7 +6,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-// Run Executes legacy commands following the interface of the old python implementation of the WakaTime script.
+// Run executes legacy commands following the interface of the old python implementation of the WakaTime script.
 func Run(v *viper.Viper) {
 	if v.GetBool("version") {
 		runVersion()
