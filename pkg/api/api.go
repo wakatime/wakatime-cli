@@ -13,12 +13,6 @@ import (
 
 const summaryDateFormat = "2006-01-02"
 
-// SummaryConfig contains parameters for making a summaries request.
-type SummaryConfig struct {
-	Auth      BasicAuth
-	UserAgent string
-}
-
 var (
 	// Err represents a general api error.
 	Err = errors.New("api error")
@@ -28,20 +22,28 @@ var (
 
 // Client communicates with the wakatime api.
 type Client struct {
-	baseURL string
-	client  *http.Client
+	baseURL    string
+	client     *http.Client
+	userAgent  string
+	authHeader string
 }
 
-// NewClient creates a new Client.
-func NewClient(baseURL string, client *http.Client) *Client {
-	return &Client{
+// NewClient creates a new Client. Any number of Options can be provided.
+func NewClient(baseURL string, client *http.Client, opts ...Option) *Client {
+	c := &Client{
 		baseURL: baseURL,
 		client:  client,
 	}
+
+	for _, option := range opts {
+		option(c)
+	}
+
+	return c
 }
 
 // Summaries fetches summaries for the defined date range.
-func (c *Client) Summaries(startDate, endDate time.Time, cfg SummaryConfig) ([]summary.Summary, error) {
+func (c *Client) Summaries(startDate, endDate time.Time) ([]summary.Summary, error) {
 	url := c.baseURL + "/api/v1/users/current/summaries"
 
 	req, err := http.NewRequest(http.MethodGet, url, nil)
@@ -49,17 +51,7 @@ func (c *Client) Summaries(startDate, endDate time.Time, cfg SummaryConfig) ([]s
 		return nil, fmt.Errorf("failed to create request: %s", err)
 	}
 
-	authHeaderValue, err := cfg.Auth.HeaderValue()
-	if err != nil {
-		return nil, fmt.Errorf("failed to retrieve auth header value: %s", err)
-	}
-
-	req.Header.Set("Authorization", authHeaderValue)
-
-	req.Header.Set("Accept", "application/json")
-	req.Header.Set("User-Agent", cfg.UserAgent)
-
-	resp, err := c.client.Do(req)
+	resp, err := c.do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to make request to %q: %w: %s", url, Err, err)
 	}
@@ -92,6 +84,22 @@ func (c *Client) Summaries(startDate, endDate time.Time, cfg SummaryConfig) ([]s
 	}
 
 	return summaries, nil
+}
+
+// do wraps c.client.Do() and sets default headers and headers, which are set
+// via Option.
+func (c *Client) do(req *http.Request) (*http.Response, error) {
+	req.Header.Set("Accept", "application/json")
+
+	if c.authHeader != "" {
+		req.Header.Set("Authorization", c.authHeader)
+	}
+
+	if c.userAgent != "" {
+		req.Header.Set("User-Agent", c.userAgent)
+	}
+
+	return c.client.Do(req)
 }
 
 // parseSummariesResponse parses the wakatime api response into summary.Summary.
