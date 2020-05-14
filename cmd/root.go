@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/alanhamlett/wakatime-cli/cmd/legacy"
+	"github.com/wakatime/wakatime-cli/cmd/legacy"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
