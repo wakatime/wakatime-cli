@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/alanhamlett/wakatime-cli/cmd"
+	"github.com/wakatime/wakatime-cli/cmd"
 )
 
 func main() {
