@@ -2,14 +2,14 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/alanhamlett/wakatime-cli/pkg/api"
-	"github.com/alanhamlett/wakatime-cli/pkg/filestats"
-	"github.com/alanhamlett/wakatime-cli/pkg/deps"
-	"github.com/alanhamlett/wakatime-cli/pkg/heartbeat"
-	"github.com/alanhamlett/wakatime-cli/pkg/language"
-	"github.com/alanhamlett/wakatime-cli/pkg/log"
-	"github.com/alanhamlett/wakatime-cli/pkg/offline"
-	"github.com/alanhamlett/wakatime-cli/pkg/project"
+	"github.com/wakatime/wakatime-cli/pkg/api"
+	"github.com/wakatime/wakatime-cli/pkg/filestats"
+	"github.com/wakatime/wakatime-cli/pkg/deps"
+	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/language"
+	"github.com/wakatime/wakatime-cli/pkg/log"
+	"github.com/wakatime/wakatime-cli/pkg/offline"
+	"github.com/wakatime/wakatime-cli/pkg/project"
 )
 
 const (
