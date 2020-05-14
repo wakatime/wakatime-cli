@@ -6,10 +6,12 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 
+	"github.com/Azure/go-ntlmssp"
 	"github.com/mitchellh/go-homedir"
 )
 
@@ -51,6 +53,41 @@ func WithDisableSSLVerify() Option {
 		transport.TLSClientConfig = tlsConfig
 		c.client.Transport = transport
 	}
+}
+
+// WithNTLM allows authentication via ntlm protocol.
+func WithNTLM(creds string) (Option, error) {
+	if !strings.Contains(creds, `\\`) {
+		return Option(func(*Client) {}), fmt.Errorf("invalid ntlm creds format %q", creds)
+	}
+
+	splitted := strings.Split(creds, ":")
+	if len(splitted) != 2 {
+		return Option(func(*Client) {}), fmt.Errorf("invalid ntlm creds format %q", creds)
+	}
+
+	withAuth, err := WithAuth(BasicAuth{
+		User:   splitted[0],
+		Secret: splitted[1],
+	})
+	if err != nil {
+		return Option(func(*Client) {}), err
+	}
+
+	return func(c *Client) {
+		withAuth(c)
+
+		var transport http.RoundTripper
+		if c.client.Transport == nil {
+			transport = http.DefaultTransport
+		} else {
+			transport = c.client.Transport.(*http.Transport).Clone()
+		}
+
+		c.client.Transport = ntlmssp.Negotiator{
+			RoundTripper: transport,
+		}
+	}, nil
 }
 
 // WithProxy configures the client to proxy outgoing requests to the specified url.

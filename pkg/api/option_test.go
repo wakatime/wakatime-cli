@@ -1,15 +1,18 @@
 package api_test
 
 import (
+	"encoding/base64"
 	"fmt"
 	"net/http"
 	"runtime"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/wakatime/wakatime-cli/pkg/api"
 	"github.com/wakatime/wakatime-cli/pkg/version"
 
+	"github.com/Azure/go-ntlmssp"
 	"github.com/matishsiao/goInfo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -106,6 +109,47 @@ func TestOption_WithProxy(t *testing.T) {
 	require.NoError(t, err)
 
 	c := api.NewClient("", httpClient(), opts...)
+	resp, err := c.Do(req)
+	require.NoError(t, err)
+
+	defer resp.Body.Close()
+
+	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+}
+
+func TestOption_WithNTLM(t *testing.T) {
+	url, router, close := setupTestServer()
+	defer close()
+
+	var numCalls int
+
+	router.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
+		authHeader, ok := req.Header["Authorization"]
+		if !ok {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		if strings.HasPrefix(authHeader[0], "Basic ") {
+			w.Header().Set("Www-Authenticate", "NTLM xyxyxyx")
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		msg, err := ntlmssp.NewNegotiateMessage("domain", "")
+		require.NoError(t, err)
+
+		numCalls++
+		assert.Equal(t, []string{"NTLM " + base64.StdEncoding.EncodeToString(msg)}, authHeader)
+	})
+
+	withNTLM, err := api.WithNTLM(`domain\\john:secret`)
+	require.NoError(t, err)
+
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	require.NoError(t, err)
+
+	c := api.NewClient("", http.DefaultClient, []api.Option{withNTLM}...)
 	resp, err := c.Do(req)
 	require.NoError(t, err)
 

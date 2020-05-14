@@ -3,6 +3,7 @@ module github.com/wakatime/wakatime-cli
 go 1.15
 
 require (
+	github.com/Azure/go-ntlmssp v0.0.0-20200615164410-66371956d46c
 	github.com/PuerkitoBio/goquery v1.6.0 // indirect
 	github.com/alecthomas/chroma v0.8.1
 	github.com/armon/consul-api v0.0.0-20180202201655-eb2c6b5be1b6 // indirect
