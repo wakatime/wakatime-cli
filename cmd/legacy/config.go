@@ -2,68 +2,39 @@ package legacy
 
 import (
 	"fmt"
-	"os"
-	"path"
 
-	"github.com/mitchellh/go-homedir"
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
 )
 
-const (
-	configFileParseError int = 103
-)
+// ConfigReadParams contains config read parameters
+type ConfigReadParams struct {
+	Section string
+	Key     string
+}
 
 func runConfigRead(v *viper.Viper) {
-	loadConfigFile(v)
+	params, _ := LoadConfigReadParams(v)
 
+	value := v.GetString(params.ViperKey())
+	fmt.Println(value)
+}
+
+// LoadConfigReadParams loads needed data from the configuration file
+func LoadConfigReadParams(v *viper.Viper) (ConfigReadParams, error) {
 	section := v.GetString("config-section")
 	key := v.GetString("config-read")
 
 	jww.DEBUG.Println("section:", section)
 	jww.DEBUG.Println("key:", key)
 
-	value := v.GetString(section + "." + key)
-	fmt.Println(value)
+	return ConfigReadParams{
+		Section: section,
+		Key:     key,
+	}, nil
 }
 
-func loadConfigFile(v *viper.Viper) {
-	p := v.GetString("config")
-
-	if p == "" {
-		p = getConfigFile()
-	}
-
-	jww.DEBUG.Println("wakatime path:", p)
-
-	v.SetConfigType("ini")
-	v.SetConfigFile(p)
-	if err := v.ReadInConfig(); err != nil {
-		jww.CRITICAL.Panicf("Error reading config file, %s", err)
-	}
-}
-
-func getConfigFile() string {
-	fileName := ".wakatime.cfg"
-	home, exists := os.LookupEnv("WAKATIME_HOME")
-
-	if exists {
-		p, err := homedir.Expand(home)
-		if err != nil {
-			panic(err)
-		}
-		return path.Join(p, fileName)
-	}
-	home = getHomeDirectory()
-
-	return path.Join(home, fileName)
-}
-
-func getHomeDirectory() string {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		panic(err)
-	}
-
-	return home
+// ViperKey formats to a string [section].[key]
+func (c *ConfigReadParams) ViperKey() string {
+	return fmt.Sprintf("%s.%s", c.Section, c.Key)
 }
