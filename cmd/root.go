@@ -58,15 +58,15 @@ func NewRootCMD() *cobra.Command {
 
 func setFlags(cmd *cobra.Command, v *viper.Viper) {
 	flags := cmd.Flags()
-	flags.Bool("version", false, "") // help missing
 	flags.String("config", "", "Optional config file. Defaults to '~/.wakatime.cfg'.")
-	flags.String("config-section", "settings", "Optional config section when reading or writing a config key. Defaults to [settings].")
 	flags.String("config-read", "", "Prints value for the given config key, then exits.")
+	flags.String("config-section", "settings", "Optional config section when reading or writing a config key. Defaults to [settings].")
 	flags.Bool("verbose", false, "Turns on debug messages in log file")
+	flags.Bool("version", false, "") // help missing
 	err := v.BindPFlags(flags)
 	if err != nil {
 		fmt.Printf("failed to bind cobra flags to viper: %s", err)
-		os.Exit(1)
+		os.Exit(errCodeDefault)
 	}
 }
 
@@ -99,7 +99,6 @@ func loadConfigFile(v *viper.Viper) error {
 func getConfigFilePath() (string, error) {
 	fileName := ".wakatime.cfg"
 	home, exists := os.LookupEnv("WAKATIME_HOME")
-
 	if exists {
 		p, err := homedir.Expand(home)
 		if err != nil {
