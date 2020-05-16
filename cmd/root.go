@@ -21,7 +21,7 @@ const (
 	successCode                = 0
 )
 
-// ErrConfigFileParse handles a custom error while parsing wakatime config file
+// ErrConfigFileParse handles a custom error while parsing wakatime config file.
 type ErrConfigFileParse string
 
 func (e ErrConfigFileParse) Error() string {
