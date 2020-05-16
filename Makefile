@@ -6,6 +6,8 @@ GOBUILD=$(GOCMD) build
 GOCLEAN=$(GOCMD) clean
 GOTEST=$(GOCMD) test
 GOGET=$(GOCMD) get
+GOPATH=$(shell go env GOPATH)
+
 # Binary name
 BINARY_NAME=wakatime-cli
 
@@ -19,3 +21,17 @@ build-linux:
 
 build-windows:
 	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 $(GOBUILD) -o ./build/windows/amd64/$(BINARY_NAME).exe -v
+
+# Install linter
+.PHONY: install-linter
+install-linter:
+	hash golangci-lint 2>/dev/null || curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(GOPATH)/bin v1.26.0
+
+# Run static analysis tools, configuration in ./.golangci.yml file
+.PHONY: lint
+lint: install-linter
+	golangci-lint run ./...
+
+.PHONY: test
+test:
+	go test -cover -race ./...
