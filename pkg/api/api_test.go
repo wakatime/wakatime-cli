@@ -250,7 +250,9 @@ func TestClient_Summaries_Err(t *testing.T) {
 		time.Date(2020, time.April, 1, 0, 0, 0, 0, time.UTC),
 		time.Date(2020, time.April, 2, 0, 0, 0, 0, time.UTC),
 	)
-	assert.True(t, errors.Is(err, api.Err))
+
+	var apierr api.Err
+	assert.True(t, errors.As(err, &apierr))
 	assert.Equal(t, 1, numCalls)
 }
 
@@ -270,7 +272,9 @@ func TestClient_Summaries_ErrAuth(t *testing.T) {
 		time.Date(2020, time.April, 1, 0, 0, 0, 0, time.UTC),
 		time.Date(2020, time.April, 2, 0, 0, 0, 0, time.UTC),
 	)
-	assert.True(t, errors.Is(err, api.ErrAuth))
+
+	var autherr api.ErrAuth
+	assert.True(t, errors.As(err, &autherr))
 	assert.Equal(t, 1, numCalls)
 }
 

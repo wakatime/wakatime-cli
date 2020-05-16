@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -12,13 +11,6 @@ import (
 )
 
 const summaryDateFormat = "2006-01-02"
-
-var (
-	// Err represents a general api error.
-	Err = errors.New("api error")
-	// ErrAuth represents an authentication error.
-	ErrAuth = errors.New("auth error")
-)
 
 // Client communicates with the wakatime api.
 type Client struct {
@@ -53,34 +45,33 @@ func (c *Client) Summaries(startDate, endDate time.Time) ([]summary.Summary, err
 
 	resp, err := c.do(req)
 	if err != nil {
-		return nil, fmt.Errorf("failed to make request to %q: %w: %s", url, Err, err)
+		return nil, Err(fmt.Sprintf("failed to make request to %q: %s", url, err))
 	}
 	defer resp.Body.Close()
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read response body from %q: %w: %s", url, Err, err)
+		return nil, Err(fmt.Sprintf("failed to read response body from %q: %s", url, err))
 	}
 
 	switch resp.StatusCode {
 	case http.StatusOK:
 		break
 	case http.StatusUnauthorized:
-		return nil, fmt.Errorf("authentication failed at %q: %w", url, ErrAuth)
+		return nil, ErrAuth(fmt.Sprintf("authentication failed at %q", url))
 	default:
-		return nil, fmt.Errorf(
-			"invalid response status from %q. got: %d, want: %d. body: %q: %w",
+		return nil, Err(fmt.Sprintf(
+			"invalid response status from %q. got: %d, want: %d. body: %q",
 			url,
 			resp.StatusCode,
 			http.StatusOK,
 			string(body),
-			Err,
-		)
+		))
 	}
 
 	summaries, err := parseSummariesResponse(body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse results from %q: %w: %s", url, Err, err)
+		return nil, Err(fmt.Sprintf("failed to parse results from %q: %s", url, err))
 	}
 
 	return summaries, nil
