@@ -7,6 +7,9 @@ import (
 	"github.com/spf13/viper"
 )
 
+// ErrCodeConfigFileRead error number when reading wakatime config file
+const ErrCodeConfigFileRead = 110
+
 // ConfigReadParams contains config read parameters
 type ConfigReadParams struct {
 	Section string
@@ -14,14 +17,14 @@ type ConfigReadParams struct {
 }
 
 func runConfigRead(v *viper.Viper) {
-	params, _ := LoadConfigReadParams(v)
+	params := LoadConfigReadParams(v)
 
 	value := v.GetString(params.ViperKey())
 	fmt.Println(value)
 }
 
 // LoadConfigReadParams loads needed data from the configuration file
-func LoadConfigReadParams(v *viper.Viper) (ConfigReadParams, error) {
+func LoadConfigReadParams(v *viper.Viper) ConfigReadParams {
 	section := v.GetString("config-section")
 	key := v.GetString("config-read")
 
@@ -31,7 +34,7 @@ func LoadConfigReadParams(v *viper.Viper) (ConfigReadParams, error) {
 	return ConfigReadParams{
 		Section: section,
 		Key:     key,
-	}, nil
+	}
 }
 
 // ViperKey formats to a string [section].[key]

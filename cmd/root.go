@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -13,7 +14,18 @@ import (
 	"github.com/spf13/viper"
 )
 
-const configFileParseError int = 103
+const (
+	errCodeConfigFileParse int = 103
+	errCodeDefault         int = 1
+	successCode                = 0
+)
+
+// ErrConfigFileParse handles a custom error while parsing wakatime config file
+type ErrConfigFileParse string
+
+func (e ErrConfigFileParse) Error() string {
+	return string(e)
+}
 
 // NewRootCMD creates a rootCmd, which represents the base command when called without any subcommands.
 func NewRootCMD() *cobra.Command {
@@ -22,8 +34,20 @@ func NewRootCMD() *cobra.Command {
 		Use:   "wakatime-cli",
 		Short: "Command line interface used by all WakaTime text editor plugins.",
 		Run: func(cmd *cobra.Command, args []string) {
-			loadConfigFile(v)
-			legacy.Run(v)
+			if err := loadConfigFile(v); err != nil {
+				jww.CRITICAL.Printf("err: %s", err)
+				var cfperr ErrConfigFileParse
+				if errors.As(err, &cfperr) {
+					os.Exit(errCodeConfigFileParse)
+				}
+				os.Exit(errCodeDefault)
+			}
+			if err := legacy.Run(v); err != nil {
+				jww.CRITICAL.Printf("err: %s", err)
+				os.Exit(errCodeDefault)
+			}
+
+			os.Exit(successCode)
 		},
 	}
 
@@ -46,17 +70,18 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 	}
 }
 
-func loadConfigFile(v *viper.Viper) {
-	var configFilepath string
-	var err error
+func loadConfigFile(v *viper.Viper) error {
+	var (
+		configFilepath string
+		err            error
+	)
 
 	configFilepath = v.GetString("config")
 
 	if configFilepath == "" {
 		configFilepath, err = getConfigFile()
 		if err != nil {
-			jww.CRITICAL.Panicf("Error loading config file, %s", err)
-			os.Exit(configFileParseError)
+			return ErrConfigFileParse(err.Error())
 		}
 	}
 
@@ -65,9 +90,10 @@ func loadConfigFile(v *viper.Viper) {
 	v.SetConfigType("ini")
 	v.SetConfigFile(configFilepath)
 	if err := v.ReadInConfig(); err != nil {
-		jww.CRITICAL.Panicf("Error reading config file, %s", err)
-		os.Exit(configFileParseError)
+		return ErrConfigFileParse(err.Error())
 	}
+
+	return nil
 }
 
 func getConfigFile() (string, error) {
@@ -77,14 +103,14 @@ func getConfigFile() (string, error) {
 	if exists {
 		p, err := homedir.Expand(home)
 		if err != nil {
-			return "", err
+			return "", fmt.Errorf("failed parsing WAKATIME_HOME environment variable: %s", err)
 		}
 		return path.Join(p, fileName), nil
 	}
 
 	home, err := os.UserHomeDir()
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed getting user's home directory: %s", err)
 	}
 
 	return path.Join(home, fileName), nil
@@ -95,6 +121,6 @@ func getConfigFile() (string, error) {
 func Execute() {
 	if err := NewRootCMD().Execute(); err != nil {
 		jww.CRITICAL.Fatalln(err)
-		os.Exit(1)
+		os.Exit(errCodeDefault)
 	}
 }
