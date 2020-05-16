@@ -252,6 +252,7 @@ func TestClient_Summaries_Err(t *testing.T) {
 	)
 
 	var apierr api.Err
+
 	assert.True(t, errors.As(err, &apierr))
 	assert.Equal(t, 1, numCalls)
 }
@@ -274,6 +275,7 @@ func TestClient_Summaries_ErrAuth(t *testing.T) {
 	)
 
 	var autherr api.ErrAuth
+
 	assert.True(t, errors.As(err, &autherr))
 	assert.Equal(t, 1, numCalls)
 }
