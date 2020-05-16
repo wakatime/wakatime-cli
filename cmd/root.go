@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-// NewRootCMD creates a rootCmd, which represents the base command when called without any subcommands
+// NewRootCMD creates a rootCmd, which represents the base command when called without any subcommands.
 func NewRootCMD() *cobra.Command {
 	v := viper.GetViper()
 	cmd := &cobra.Command{
@@ -24,7 +24,12 @@ func NewRootCMD() *cobra.Command {
 	// set flags
 	flags := cmd.Flags()
 	flags.Bool("version", false, "") // help missing
-	v.BindPFlags(flags)
+
+	err := v.BindPFlags(flags)
+	if err != nil {
+		fmt.Printf("failed to bind cobra flags to viper: %s", err)
+		os.Exit(1)
+	}
 
 	return cmd
 }
