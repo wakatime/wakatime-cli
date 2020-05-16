@@ -79,7 +79,7 @@ func loadConfigFile(v *viper.Viper) error {
 	configFilepath = v.GetString("config")
 
 	if configFilepath == "" {
-		configFilepath, err = getConfigFile()
+		configFilepath, err = getConfigFilePath()
 		if err != nil {
 			return ErrConfigFileParse(err.Error())
 		}
@@ -96,7 +96,7 @@ func loadConfigFile(v *viper.Viper) error {
 	return nil
 }
 
-func getConfigFile() (string, error) {
+func getConfigFilePath() (string, error) {
 	fileName := ".wakatime.cfg"
 	home, exists := os.LookupEnv("WAKATIME_HOME")
 
