@@ -15,6 +15,7 @@ import (
 )
 
 const (
+	defaultConfigFile          = ".wakatime.cfg"
 	errCodeConfigFileParse int = 103
 	errCodeDefault         int = 1
 	successCode                = 0
@@ -97,14 +98,13 @@ func loadConfigFile(v *viper.Viper) error {
 }
 
 func getConfigFilePath() (string, error) {
-	fileName := ".wakatime.cfg"
 	home, exists := os.LookupEnv("WAKATIME_HOME")
 	if exists {
 		p, err := homedir.Expand(home)
 		if err != nil {
 			return "", fmt.Errorf("failed parsing WAKATIME_HOME environment variable: %s", err)
 		}
-		return path.Join(p, fileName), nil
+		return path.Join(p, defaultConfigFile), nil
 	}
 
 	home, err := os.UserHomeDir()
@@ -112,7 +112,7 @@ func getConfigFilePath() (string, error) {
 		return "", fmt.Errorf("failed getting user's home directory: %s", err)
 	}
 
-	return path.Join(home, fileName), nil
+	return path.Join(home, defaultConfigFile), nil
 }
 
 // Execute adds all child commands to the root command sets flags appropriately.
