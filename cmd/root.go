@@ -120,7 +120,7 @@ func getConfigFilePath() (string, error) {
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
 	if err := NewRootCMD().Execute(); err != nil {
-		jww.CRITICAL.Fatalln(err)
+		jww.CRITICAL.Fatalf("failed to run wakatime-cli: %s", err)
 		os.Exit(errCodeDefault)
 	}
 }
