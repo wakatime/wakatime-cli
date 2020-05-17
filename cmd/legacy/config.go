@@ -10,13 +10,6 @@ import (
 
 const errCodeConfigFileRead = 110
 
-// ErrConfigFileRead handles a custom error while reading wakatime config file.
-type ErrConfigFileRead string
-
-func (e ErrConfigFileRead) Error() string {
-	return string(e)
-}
-
 // ConfigReadParams contains config read parameters.
 type ConfigReadParams struct {
 	Section string

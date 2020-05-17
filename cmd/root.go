@@ -21,13 +21,6 @@ const (
 	successCode            = 0
 )
 
-// ErrConfigFileParse handles a custom error while parsing wakatime config file.
-type ErrConfigFileParse string
-
-func (e ErrConfigFileParse) Error() string {
-	return string(e)
-}
-
 // NewRootCMD creates a rootCmd, which represents the base command when called without any subcommands.
 func NewRootCMD() *cobra.Command {
 	v := viper.GetViper()
@@ -35,7 +28,7 @@ func NewRootCMD() *cobra.Command {
 		Use:   "wakatime-cli",
 		Short: "Command line interface used by all WakaTime text editor plugins.",
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := ReadInConfig(v); err != nil {
+			if err := ReadInConfig(v, ConfigFilePath); err != nil {
 				jww.CRITICAL.Printf("err: %s", err)
 				var cfperr ErrConfigFileParse
 				if errors.As(err, &cfperr) {
@@ -66,22 +59,12 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 	}
 }
 
-// ReadInConfig reads wakatime config file in memory
-func ReadInConfig(v *viper.Viper) error {
-	var (
-		configFilepath string
-		err            error
-	)
-
-	configFilepath = v.GetString("config")
-
-	if configFilepath == "" {
-		configFilepath, err = configFilePath()
-		if err != nil {
-			return ErrConfigFileParse(err.Error())
-		}
+// ReadInConfig reads wakatime config file in memory.
+func ReadInConfig(v *viper.Viper, filepathFn func(v *viper.Viper) (string, error)) error {
+	configFilepath, err := filepathFn(v)
+	if err != nil {
+		return ErrConfigFileParse(err.Error())
 	}
-
 	jww.DEBUG.Println("wakatime path:", configFilepath)
 
 	v.SetConfigType("ini")
@@ -93,9 +76,19 @@ func ReadInConfig(v *viper.Viper) error {
 	return nil
 }
 
-func configFilePath() (string, error) {
+// ConfigFilePath returns the path for wakatime config file.
+func ConfigFilePath(v *viper.Viper) (string, error) {
+	configFilepath := v.GetString("config")
+	if configFilepath != "" {
+		p, err := homedir.Expand(configFilepath)
+		if err != nil {
+			return "", fmt.Errorf("failed parsing config flag variable: %s", err)
+		}
+		return p, nil
+	}
+
 	home, exists := os.LookupEnv("WAKATIME_HOME")
-	if exists {
+	if exists && home != "" {
 		p, err := homedir.Expand(home)
 		if err != nil {
 			return "", fmt.Errorf("failed parsing WAKATIME_HOME environment variable: %s", err)
