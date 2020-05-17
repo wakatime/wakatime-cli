@@ -1,12 +1,20 @@
 package legacy
 
 import (
+	"errors"
+	"os"
+
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
 )
 
+const (
+	errCodeDefault = 1
+	successCode    = 0
+)
+
 // Run executes legacy commands following the interface of the old python implementation of the WakaTime script.
-func Run(v *viper.Viper) error {
+func Run(v *viper.Viper) {
 	setVerbose(v)
 
 	if v.GetBool("version") {
@@ -16,10 +24,17 @@ func Run(v *viper.Viper) error {
 
 	if v.GetString("config-read") != "" {
 		jww.DEBUG.Println("command: config-read")
-		runConfigRead(v)
+		if err := runConfigRead(v); err != nil {
+			jww.ERROR.Printf("err: %s", err)
+			var cfrerr ErrConfigFileRead
+			if errors.As(err, &cfrerr) {
+				os.Exit(errCodeConfigFileRead)
+			}
+			os.Exit(errCodeDefault)
+		}
 	}
 
-	return nil
+	os.Exit(successCode)
 }
 
 func setVerbose(v *viper.Viper) {

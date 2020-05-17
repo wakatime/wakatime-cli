@@ -2,13 +2,20 @@ package legacy
 
 import (
 	"fmt"
+	"strings"
 
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
 )
 
-// ErrCodeConfigFileRead error number when reading wakatime config file.
-const ErrCodeConfigFileRead = 110
+const errCodeConfigFileRead = 110
+
+// ErrConfigFileRead handles a custom error while reading wakatime config file.
+type ErrConfigFileRead string
+
+func (e ErrConfigFileRead) Error() string {
+	return string(e)
+}
 
 // ConfigReadParams contains config read parameters.
 type ConfigReadParams struct {
@@ -16,25 +23,35 @@ type ConfigReadParams struct {
 	Key     string
 }
 
-func runConfigRead(v *viper.Viper) {
-	params := LoadConfigReadParams(v)
+func runConfigRead(v *viper.Viper) error {
+	params, err := LoadConfigReadParams(v)
+	if err != nil {
+		return err
+	}
 
 	value := v.GetString(params.ViperKey())
 	fmt.Println(value)
+
+	return nil
 }
 
 // LoadConfigReadParams loads needed data from the configuration file.
-func LoadConfigReadParams(v *viper.Viper) ConfigReadParams {
-	section := v.GetString("config-section")
-	key := v.GetString("config-read")
+func LoadConfigReadParams(v *viper.Viper) (ConfigReadParams, error) {
+	section := strings.TrimSpace(v.GetString("config-section"))
+	key := strings.TrimSpace(v.GetString("config-read"))
 
 	jww.DEBUG.Println("section:", section)
 	jww.DEBUG.Println("key:", key)
 
+	if section == "" || key == "" {
+		return ConfigReadParams{},
+			ErrConfigFileRead(fmt.Errorf("failed reading wakatime config file. neither section nor key can be empty").Error())
+	}
+
 	return ConfigReadParams{
 		Section: section,
 		Key:     key,
-	}
+	}, nil
 }
 
 // ViperKey formats to a string [section].[key].

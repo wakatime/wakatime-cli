@@ -15,10 +15,10 @@ import (
 )
 
 const (
-	defaultConfigFile          = ".wakatime.cfg"
-	errCodeConfigFileParse int = 103
-	errCodeDefault         int = 1
-	successCode                = 0
+	defaultConfigFile      = ".wakatime.cfg"
+	errCodeConfigFileParse = 103
+	errCodeDefault         = 1
+	successCode            = 0
 )
 
 // ErrConfigFileParse handles a custom error while parsing wakatime config file.
@@ -35,7 +35,7 @@ func NewRootCMD() *cobra.Command {
 		Use:   "wakatime-cli",
 		Short: "Command line interface used by all WakaTime text editor plugins.",
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := loadConfigFile(v); err != nil {
+			if err := ReadInConfig(v); err != nil {
 				jww.CRITICAL.Printf("err: %s", err)
 				var cfperr ErrConfigFileParse
 				if errors.As(err, &cfperr) {
@@ -43,12 +43,7 @@ func NewRootCMD() *cobra.Command {
 				}
 				os.Exit(errCodeDefault)
 			}
-			if err := legacy.Run(v); err != nil {
-				jww.CRITICAL.Printf("err: %s", err)
-				os.Exit(errCodeDefault)
-			}
-
-			os.Exit(successCode)
+			legacy.Run(v)
 		},
 	}
 
@@ -71,7 +66,8 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 	}
 }
 
-func loadConfigFile(v *viper.Viper) error {
+// ReadInConfig reads wakatime config file in memory
+func ReadInConfig(v *viper.Viper) error {
 	var (
 		configFilepath string
 		err            error
@@ -80,7 +76,7 @@ func loadConfigFile(v *viper.Viper) error {
 	configFilepath = v.GetString("config")
 
 	if configFilepath == "" {
-		configFilepath, err = getConfigFilePath()
+		configFilepath, err = configFilePath()
 		if err != nil {
 			return ErrConfigFileParse(err.Error())
 		}
@@ -97,7 +93,7 @@ func loadConfigFile(v *viper.Viper) error {
 	return nil
 }
 
-func getConfigFilePath() (string, error) {
+func configFilePath() (string, error) {
 	home, exists := os.LookupEnv("WAKATIME_HOME")
 	if exists {
 		p, err := homedir.Expand(home)
