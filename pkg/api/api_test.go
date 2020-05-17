@@ -8,7 +8,6 @@ import (
 	"net/http/httptest"
 	"os"
 	"runtime"
-	"strings"
 	"testing"
 	"time"
 
@@ -61,7 +60,7 @@ func TestClient_Summaries(t *testing.T) {
 		Date:       time.Date(2020, time.April, 2, 0, 0, 0, 0, time.UTC),
 	})
 
-	assert.Equal(t, 1, numCalls)
+	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
 
 func TestClient_SummariesByCategory(t *testing.T) {
@@ -105,7 +104,7 @@ func TestClient_SummariesByCategory(t *testing.T) {
 		GrandTotal: "50 secs",
 	})
 
-	assert.Equal(t, 1, numCalls)
+	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
 
 func TestClient_SummariesWithAuth(t *testing.T) {
@@ -128,6 +127,7 @@ func TestClient_SummariesWithAuth(t *testing.T) {
 			defer tearDown()
 
 			var numCalls int
+
 			router.HandleFunc("/api/v1/users/current/summaries", func(w http.ResponseWriter, req *http.Request) {
 				numCalls++
 				assert.Equal(t, []string{test.AuthHeaderValue}, req.Header["Authorization"])
@@ -145,34 +145,9 @@ func TestClient_SummariesWithAuth(t *testing.T) {
 				time.Date(2020, time.April, 2, 0, 0, 0, 0, time.UTC),
 			)
 
-			assert.Equal(t, 1, numCalls)
+			assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 		})
 	}
-}
-
-func TestClient_SummariesWithTimeout(t *testing.T) {
-	url, router, tearDown := setupTestServer()
-	defer tearDown()
-
-	ch := make(chan struct{})
-	defer close(ch)
-
-	router.HandleFunc("/api/v1/users/current/summaries", func(w http.ResponseWriter, req *http.Request) {
-		<-ch
-	})
-
-	opts := []api.Option{api.WithTimeout(time.Millisecond)}
-	c := api.NewClient(url, http.DefaultClient, opts...)
-	_, err := c.Summaries(
-		time.Date(2020, time.April, 1, 0, 0, 0, 0, time.UTC),
-		time.Date(2020, time.April, 2, 0, 0, 0, 0, time.UTC),
-	)
-	require.Error(t, err)
-	assert.True(
-		t,
-		strings.Contains(err.Error(), "Timeout"),
-		fmt.Sprintf("error %q does not contain string 'Timeout'", err),
-	)
 }
 
 func TestClient_SummariesWithUserAgent(t *testing.T) {
@@ -211,6 +186,7 @@ func TestClient_SummariesWithUserAgent(t *testing.T) {
 			defer tearDown()
 
 			var numCalls int
+
 			router.HandleFunc("/api/v1/users/current/summaries", func(w http.ResponseWriter, req *http.Request) {
 				numCalls++
 				assert.Equal(t, []string{test.Expected}, req.Header["User-Agent"])
@@ -229,7 +205,7 @@ func TestClient_SummariesWithUserAgent(t *testing.T) {
 				time.Date(2020, time.April, 2, 0, 0, 0, 0, time.UTC),
 			)
 
-			assert.Equal(t, 1, numCalls)
+			assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 		})
 	}
 }
@@ -254,7 +230,7 @@ func TestClient_Summaries_Err(t *testing.T) {
 	var apierr api.Err
 
 	assert.True(t, errors.As(err, &apierr))
-	assert.Equal(t, 1, numCalls)
+	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
 
 func TestClient_Summaries_ErrAuth(t *testing.T) {
@@ -277,7 +253,7 @@ func TestClient_Summaries_ErrAuth(t *testing.T) {
 	var autherr api.ErrAuth
 
 	assert.True(t, errors.As(err, &autherr))
-	assert.Equal(t, 1, numCalls)
+	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
 
 func setupTestServer() (string, *http.ServeMux, func()) {
