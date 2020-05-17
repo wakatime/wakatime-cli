@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"runtime"
+	"strings"
 	"testing"
 	"time"
 
@@ -147,6 +148,40 @@ func TestClient_SummariesWithAuth(t *testing.T) {
 
 			assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 		})
+	}
+}
+
+func TestClient_SummariesWithTimeout(t *testing.T) {
+	url, router, tearDown := setupTestServer()
+	defer tearDown()
+
+	block := make(chan struct{})
+
+	called := make(chan struct{})
+	defer close(called)
+
+	router.HandleFunc("/api/v1/users/current/summaries", func(w http.ResponseWriter, req *http.Request) {
+		<-block
+		called <- struct{}{}
+	})
+
+	opts := []api.Option{api.WithTimeout(20 * time.Millisecond)}
+	c := api.NewClient(url, http.DefaultClient, opts...)
+	_, err := c.Summaries(
+		time.Date(2020, time.April, 1, 0, 0, 0, 0, time.UTC),
+		time.Date(2020, time.April, 2, 0, 0, 0, 0, time.UTC),
+	)
+	require.Error(t, err)
+
+	errMsg := fmt.Sprintf("error %q does not contain string 'Timeout'", err)
+	assert.True(t, strings.Contains(err.Error(), "Timeout"), errMsg)
+
+	close(block)
+	select {
+	case <-called:
+		break
+	case <-time.After(50 * time.Millisecond):
+		t.Fatal("failed")
 	}
 }
 
