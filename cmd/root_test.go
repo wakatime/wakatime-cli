@@ -34,6 +34,7 @@ func TestReadInConfigErr(t *testing.T) {
 	})
 
 	var cfperr cmd.ErrConfigFileParse
+
 	assert.True(t, errors.As(err, &cfperr))
 }
 

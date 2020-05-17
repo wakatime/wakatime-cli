@@ -14,12 +14,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-const (
-	defaultConfigFile      = ".wakatime.cfg"
-	errCodeConfigFileParse = 103
-	errCodeDefault         = 1
-	successCode            = 0
-)
+const defaultConfigFile = ".wakatime.cfg"
 
 // NewRootCMD creates a rootCmd, which represents the base command when called without any subcommands.
 func NewRootCMD() *cobra.Command {
@@ -49,9 +44,14 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 	flags := cmd.Flags()
 	flags.String("config", "", "Optional config file. Defaults to '~/.wakatime.cfg'.")
 	flags.String("config-read", "", "Prints value for the given config key, then exits.")
-	flags.String("config-section", "settings", "Optional config section when reading or writing a config key. Defaults to [settings].")
+	flags.String(
+		"config-section",
+		"settings",
+		"Optional config section when reading or writing a config key. Defaults to [settings].",
+	)
 	flags.Bool("verbose", false, "Turns on debug messages in log file")
 	flags.Bool("version", false, "") // help missing
+
 	err := v.BindPFlags(flags)
 	if err != nil {
 		fmt.Printf("failed to bind cobra flags to viper: %s", err)
@@ -65,10 +65,12 @@ func ReadInConfig(v *viper.Viper, filepathFn func(v *viper.Viper) (string, error
 	if err != nil {
 		return ErrConfigFileParse(err.Error())
 	}
+
 	jww.DEBUG.Println("wakatime path:", configFilepath)
 
 	v.SetConfigType("ini")
 	v.SetConfigFile(configFilepath)
+
 	if err := v.ReadInConfig(); err != nil {
 		return ErrConfigFileParse(err.Error())
 	}
@@ -84,6 +86,7 @@ func ConfigFilePath(v *viper.Viper) (string, error) {
 		if err != nil {
 			return "", fmt.Errorf("failed parsing config flag variable: %s", err)
 		}
+
 		return p, nil
 	}
 
@@ -93,6 +96,7 @@ func ConfigFilePath(v *viper.Viper) (string, error) {
 		if err != nil {
 			return "", fmt.Errorf("failed parsing WAKATIME_HOME environment variable: %s", err)
 		}
+
 		return path.Join(p, defaultConfigFile), nil
 	}
 
