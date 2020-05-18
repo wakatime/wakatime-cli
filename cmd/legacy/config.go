@@ -22,13 +22,20 @@ type ConfigReadParams struct {
 	Key     string
 }
 
-func runConfigRead(v *viper.Viper) error {
+// RunConfigRead prints value for the given config key.
+func RunConfigRead(v *viper.Viper) error {
 	params, err := LoadConfigReadParams(v)
 	if err != nil {
 		return err
 	}
 
-	value := v.GetString(params.ViperKey())
+	value := strings.TrimSpace(v.GetString(params.ViperKey()))
+	if value == "" {
+		return ErrConfigFileRead(
+			fmt.Errorf("given section and key \"%s\" returned an empty string", params.ViperKey()).Error(),
+		)
+	}
+
 	fmt.Println(value)
 
 	return nil
