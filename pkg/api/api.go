@@ -111,7 +111,7 @@ func parseSummariesResponse(data []byte) ([]summary.Summary, error) {
 	}
 
 	if err := json.Unmarshal(data, &body); err != nil {
-		return nil, fmt.Errorf("failed to json unmarshal response body: %s. body: %q", err, data)
+		return nil, fmt.Errorf("failed to parse json response body: %s. body: %q", err, data)
 	}
 
 	var summaries []summary.Summary
