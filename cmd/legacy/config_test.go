@@ -120,3 +120,25 @@ func TestConfig_LoadConfigReadParamsErr(t *testing.T) {
 		})
 	}
 }
+
+func TestConfig_RunConfigRead(t *testing.T) {
+	v := viper.New()
+	v.Set("config-section", "settings")
+	v.Set("config-read", "api_key")
+	v.Set("settings.api_key", "b9485572-74bf-419a-916b-22056ca3a24c")
+
+	err := legacy.RunConfigRead(v)
+	require.NoError(t, err)
+}
+
+func TestConfig_RunConfigReadErr(t *testing.T) {
+	v := viper.New()
+	v.Set("config-section", "settings")
+	v.Set("config-read", "unset_key")
+
+	err := legacy.RunConfigRead(v)
+
+	var cfrerr legacy.ErrConfigFileRead
+
+	assert.True(t, errors.As(err, &cfrerr))
+}
