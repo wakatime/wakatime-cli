@@ -1,6 +1,3 @@
 package cmd
 
-const (
-	errCodeDefault         = 1
-	errCodeConfigFileParse = 103
-)
+const errCodeDefault = 1

@@ -17,6 +17,15 @@ func Run(v *viper.Viper) {
 		runVersion()
 	}
 
+	if err := ReadInConfig(v, ConfigFilePath); err != nil {
+		jww.CRITICAL.Printf("err: %s", err)
+		var cfperr ErrConfigFileParse
+		if errors.As(err, &cfperr) {
+			os.Exit(errCodeConfigFileParse)
+		}
+		os.Exit(errCodeDefault)
+	}
+
 	if v.GetString("config-read") != "" {
 		jww.DEBUG.Println("command: config-read")
 
