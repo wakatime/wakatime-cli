@@ -1,0 +1,36 @@
+{
+    "data": [
+        {
+            "categories": [
+                {
+                    "name": "coding",
+                    "text": "30 secs"
+                },
+                {
+                    "name": "debugging",
+                    "text": "40 secs"
+                }
+            ],
+            "grand_total": {
+                "text": "10 secs"
+            },
+            "range": {
+                "date": "2020-04-01"
+            }
+        },
+        {
+            "categories": [
+                {
+                    "name": "coding",
+                    "text": "50 secs"
+                }
+            ],
+            "grand_total": {
+                "text": "20 secs"
+            },
+            "range": {
+                "date": "2020-04-02"
+            }
+        }
+    ]
+}
