@@ -15,6 +15,8 @@ func Run(v *viper.Viper) {
 	if v.GetBool("version") {
 		jww.DEBUG.Println("command: version")
 		runVersion()
+
+		os.Exit(successCode)
 	}
 
 	if err := ReadInConfig(v, ConfigFilePath); err != nil {
