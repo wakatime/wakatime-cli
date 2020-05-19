@@ -44,7 +44,7 @@ const (
 	writingTestsCategoryString  = "writing tests"
 )
 
-// UnmarshalJSON is a method to implement json.Unmarshaler interface.
+// UnmarshalJSON implements json.Unmarshaler interface.
 func (c *Category) UnmarshalJSON(v []byte) error {
 	switch strings.Trim(string(v), "\"") {
 	case codingCategoryString:
@@ -74,7 +74,7 @@ func (c *Category) UnmarshalJSON(v []byte) error {
 	return nil
 }
 
-// MarshalJSON is a method to implement json.Marshaler interface.
+// MarshalJSON implements json.Marshaler interface.
 func (c Category) MarshalJSON() ([]byte, error) {
 	s := c.String()
 	if s == "" {
@@ -84,7 +84,7 @@ func (c Category) MarshalJSON() ([]byte, error) {
 	return []byte(`"` + s + `"`), nil
 }
 
-// String is a method to implement fmt.Stringer interface.
+// String implements fmt.Stringer interface.
 func (c Category) String() string {
 	switch c {
 	case CodingCategory:

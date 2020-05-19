@@ -21,7 +21,7 @@ type Heartbeat struct {
 	UserAgent      string     `json:"user_agent"`
 }
 
-// ID returns an ID generated drom the heartbeat data.
+// ID returns an ID generated from the heartbeat data.
 func (h Heartbeat) ID() string {
 	return fmt.Sprintf("%d-%s-%s-%s-%s-%s-%t",
 		h.Time,
