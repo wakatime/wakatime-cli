@@ -10,7 +10,11 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/summary"
 )
 
-const summaryDateFormat = "2006-01-02"
+const (
+	// BaseURL is the base url of the wakatime api.
+	BaseURL    = "https://api.wakatime.com/api"
+	dateFormat = "2006-01-02"
+)
 
 // Client communicates with the wakatime api.
 type Client struct {
@@ -36,12 +40,17 @@ func NewClient(baseURL string, client *http.Client, opts ...Option) *Client {
 
 // Summaries fetches summaries for the defined date range.
 func (c *Client) Summaries(startDate, endDate time.Time) ([]summary.Summary, error) {
-	url := c.baseURL + "/api/v1/users/current/summaries"
+	url := c.baseURL + "/v1/users/current/summaries"
 
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %s", err)
 	}
+
+	q := req.URL.Query()
+	q.Add("start", startDate.Format(dateFormat))
+	q.Add("end", endDate.Format(dateFormat))
+	req.URL.RawQuery = q.Encode()
 
 	resp, err := c.do(req)
 	if err != nil {
@@ -58,7 +67,7 @@ func (c *Client) Summaries(startDate, endDate time.Time) ([]summary.Summary, err
 	case http.StatusOK:
 		break
 	case http.StatusUnauthorized:
-		return nil, ErrAuth(fmt.Sprintf("authentication failed at %q", url))
+		return nil, ErrAuth(fmt.Sprintf("authentication failed at %q. body: %q", url, string(body)))
 	default:
 		return nil, Err(fmt.Sprintf(
 			"invalid response status from %q. got: %d, want: %d. body: %q",
@@ -117,7 +126,7 @@ func parseSummariesResponse(data []byte) ([]summary.Summary, error) {
 	var summaries []summary.Summary
 
 	for _, sum := range body.Data {
-		date, err := time.Parse(summaryDateFormat, sum.Range.Date)
+		date, err := time.Parse(dateFormat, sum.Range.Date)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse date from string %q: %s", sum.Range.Date, err)
 		}
