@@ -12,6 +12,13 @@ import (
 	"github.com/spf13/viper"
 )
 
+const (
+	// defaultConfigSection is the default section in the wakatime ini config file
+	defaultConfigSection = "settings"
+	// defaultTimeoutSecs is the default timeout used for requests to the wakatime api
+	defaultTimeoutSecs = 60
+)
+
 // NewRootCMD creates a rootCmd, which represents the base command when called without any subcommands.
 func NewRootCMD() *cobra.Command {
 	v := viper.GetViper()
@@ -30,15 +37,25 @@ func NewRootCMD() *cobra.Command {
 
 func setFlags(cmd *cobra.Command, v *viper.Viper) {
 	flags := cmd.Flags()
+	flags.String("api-url", "", "Heartbeats api url. For debugging with a local server.")
+	flags.String("apiurl", "", "(deprecated) Heartbeats api url. For debugging with a local server.")
 	flags.String("config", "", "Optional config file. Defaults to '~/.wakatime.cfg'.")
 	flags.String("config-read", "", "Prints value for the given config key, then exits.")
 	flags.String(
 		"config-section",
-		"settings",
+		defaultConfigSection,
 		"Optional config section when reading or writing a config key. Defaults to [settings].",
 	)
-	flags.Bool("verbose", false, "Turns on debug messages in log file")
-	flags.Bool("version", false, "") // help missing
+	flags.String("key", "", "Your wakatime api key; uses api_key from ~/.wakatime.cfg by default.")
+	flags.String("plugin", "", "Optional text editor plugin name and version for User-Agent header.")
+	flags.Int(
+		"timeout",
+		defaultTimeoutSecs,
+		"Number of seconds to wait when sending heartbeats to api. Defaults to 60 seconds.",
+	)
+	flags.Bool("today", false, "Prints dashboard time for Today, then exits.")
+	flags.Bool("verbose", false, "Turns on debug messages in log file.")
+	flags.Bool("version", false, "Prints the wakatime-cli version number, then exits.")
 
 	err := v.BindPFlags(flags)
 	if err != nil {

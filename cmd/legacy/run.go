@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/wakatime/wakatime-cli/cmd/legacy/config"
+	"github.com/wakatime/wakatime-cli/cmd/legacy/today"
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
 
 	jww "github.com/spf13/jwalterweatherman"
@@ -46,6 +47,10 @@ func Run(v *viper.Viper) {
 
 			os.Exit(exitcode.ErrDefault)
 		}
+	}
+
+	if v.GetBool("today") {
+		today.Run(v)
 	}
 
 	os.Exit(exitcode.Success)
