@@ -4,6 +4,9 @@ import (
 	"errors"
 	"os"
 
+	"github.com/wakatime/wakatime-cli/cmd/legacy/config"
+	"github.com/wakatime/wakatime-cli/pkg/exitcode"
+
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
 )
@@ -16,7 +19,7 @@ func Run(v *viper.Viper) {
 		jww.DEBUG.Println("command: version")
 		runVersion()
 
-		os.Exit(successCode)
+		os.Exit(exitcode.Success)
 	}
 
 	if err := ReadInConfig(v, ConfigFilePath); err != nil {
@@ -24,28 +27,28 @@ func Run(v *viper.Viper) {
 
 		var cfperr ErrConfigFileParse
 		if errors.As(err, &cfperr) {
-			os.Exit(errCodeConfigFileParse)
+			os.Exit(exitcode.ErrConfigFileParse)
 		}
 
-		os.Exit(errCodeDefault)
+		os.Exit(exitcode.ErrDefault)
 	}
 
 	if v.GetString("config-read") != "" {
 		jww.DEBUG.Println("command: config-read")
 
-		if err := RunConfigRead(v); err != nil {
+		if err := config.RunRead(v); err != nil {
 			jww.ERROR.Printf("err: %s", err)
 
-			var cfrerr ErrConfigFileRead
+			var cfrerr config.ErrFileRead
 			if errors.As(err, &cfrerr) {
-				os.Exit(errCodeConfigFileRead)
+				os.Exit(exitcode.ErrConfigFileRead)
 			}
 
-			os.Exit(errCodeDefault)
+			os.Exit(exitcode.ErrDefault)
 		}
 	}
 
-	os.Exit(successCode)
+	os.Exit(exitcode.Success)
 }
 
 func setVerbose(v *viper.Viper) {

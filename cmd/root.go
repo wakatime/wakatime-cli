@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/wakatime/wakatime-cli/cmd/legacy"
+	"github.com/wakatime/wakatime-cli/pkg/exitcode"
 
 	"github.com/spf13/cobra"
 	jww "github.com/spf13/jwalterweatherman"
@@ -42,7 +43,7 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 	err := v.BindPFlags(flags)
 	if err != nil {
 		fmt.Printf("failed to bind cobra flags to viper: %s", err)
-		os.Exit(errCodeDefault)
+		os.Exit(exitcode.ErrDefault)
 	}
 }
 
@@ -51,6 +52,6 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 func Execute() {
 	if err := NewRootCMD().Execute(); err != nil {
 		jww.CRITICAL.Fatalf("failed to run wakatime-cli: %s", err)
-		os.Exit(errCodeDefault)
+		os.Exit(exitcode.ErrDefault)
 	}
 }
