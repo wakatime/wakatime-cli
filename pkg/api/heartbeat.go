@@ -1,14 +1,67 @@
 package api
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"strings"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 )
+
+// SendHeartbeats sends a bulk of heartbeats to the wakatime api.
+func (c *Client) SendHeartbeats(heartbeats []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+	url := c.baseURL + "/v1/users/current/heartbeats.bulk"
+
+	data, err := json.Marshal(heartbeats)
+	if err != nil {
+		return nil, fmt.Errorf("failed to json encode body: %s", err)
+	}
+
+	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(data))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %s", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.do(req)
+	if err != nil {
+		return nil, Err(fmt.Sprintf("failed making request to %q: %s", url, err))
+	}
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, Err(fmt.Sprintf("failed reading response body from %q: %s", url, err))
+	}
+
+	switch resp.StatusCode {
+	case http.StatusCreated, http.StatusAccepted:
+		break
+	case http.StatusUnauthorized:
+		return nil, ErrAuth(fmt.Sprintf("authentication failed at %q", url))
+	default:
+		return nil, Err(fmt.Sprintf(
+			"invalid response status from %q. got: %d, want: %d/%d. body: %q",
+			url,
+			resp.StatusCode,
+			http.StatusCreated,
+			http.StatusAccepted,
+			string(body),
+		))
+	}
+
+	results, err := ParseHeartbeatResponses(body)
+	if err != nil {
+		return nil, Err(fmt.Sprintf("failed parsing results from %q: %s", url, err))
+	}
+
+	return results, nil
+}
 
 // ParseHeartbeatResponses parses the aggregated responses returned by the heartbeat bulk endpoint.
 func ParseHeartbeatResponses(data []byte) ([]heartbeat.Result, error) {

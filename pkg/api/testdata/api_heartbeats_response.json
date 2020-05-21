@@ -17,7 +17,7 @@
                     "machine_name_id": null,
                     "project": "wakatime-cli",
                     "type": "file",
-                    "time": 1585598059,
+                    "time": 1585598059.0,
                     "user_agent_id": null,
                     "user_agent": "wakatime/13.0.6",
                     "user_id": "9c4a41c0-eb11-4cf5-84b8-d5b7f5e91bea"
@@ -41,7 +41,7 @@
                     "lines": null,
                     "project": null,
                     "type": "file",
-                    "time": 1585598060,
+                    "time": 1585598060.0,
                     "user_agent": "wakatime/13.0.7",
                     "user_agent_id": null,
                     "user_id": "9c4a41c0-eb11-4cf5-84b8-d5b7f5e91bea"
