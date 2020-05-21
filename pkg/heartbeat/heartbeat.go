@@ -1,35 +1,33 @@
 package heartbeat
 
-import (
-	"fmt"
-)
-
 // Heartbeat is a structure representing activity for a user on a some entity.
 type Heartbeat struct {
-	Branch         string     `json:"branch"`
+	Branch         *string    `json:"branch"`
 	Category       Category   `json:"category"`
-	CursorPosition int        `json:"cursorpos"`
+	CursorPosition *int       `json:"cursorpos"`
 	Dependencies   []string   `json:"dependencies"`
 	Entity         string     `json:"entity"`
 	EntityType     EntityType `json:"type"`
-	IsWrite        bool       `json:"is_write"`
-	Language       string     `json:"language"`
-	LineNumber     int        `json:"lineno"`
-	Lines          int        `json:"lines"`
-	Project        string     `json:"project"`
-	Time           int64      `json:"time"`
+	IsWrite        *bool      `json:"is_write"`
+	Language       *string    `json:"language"`
+	LineNumber     *int       `json:"lineno"`
+	Lines          *int       `json:"lines"`
+	Project        *string    `json:"project"`
+	Time           float64    `json:"time"`
 	UserAgent      string     `json:"user_agent"`
 }
 
-// ID returns an ID generated from the heartbeat data.
-func (h Heartbeat) ID() string {
-	return fmt.Sprintf("%d-%s-%s-%s-%s-%s-%t",
-		h.Time,
-		h.EntityType,
-		h.Category,
-		h.Project,
-		h.Branch,
-		h.Entity,
-		h.IsWrite,
-	)
+// Bool returns a pointer to the bool value passed in.
+func Bool(v bool) *bool {
+	return &v
+}
+
+// Int returns a pointer to the int value passed in.
+func Int(v int) *int {
+	return &v
+}
+
+// String returns a pointer to the string value passed in.
+func String(v string) *string {
+	return &v
 }
