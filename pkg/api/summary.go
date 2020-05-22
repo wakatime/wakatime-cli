@@ -52,7 +52,7 @@ func (c *Client) Summaries(startDate, endDate time.Time) ([]summary.Summary, err
 		))
 	}
 
-	summaries, err := parseSummariesResponse(body)
+	summaries, err := ParseSummariesResponse(body)
 	if err != nil {
 		return nil, Err(fmt.Sprintf("failed to parse results from %q: %s", url, err))
 	}
@@ -60,8 +60,8 @@ func (c *Client) Summaries(startDate, endDate time.Time) ([]summary.Summary, err
 	return summaries, nil
 }
 
-// parseSummariesResponse parses the wakatime api response into summary.Summary.
-func parseSummariesResponse(data []byte) ([]summary.Summary, error) {
+// ParseSummariesResponse parses the wakatime api response into summary.Summary.
+func ParseSummariesResponse(data []byte) ([]summary.Summary, error) {
 	var body struct {
 		Data []struct {
 			Categories []struct {
