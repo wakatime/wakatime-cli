@@ -62,12 +62,12 @@ func TestClient_Summaries(t *testing.T) {
 
 	assert.Len(t, summaries, 2)
 	assert.Contains(t, summaries, summary.Summary{
-		GrandTotal: "10 secs",
-		Date:       time.Date(2020, time.April, 1, 0, 0, 0, 0, time.UTC),
+		Date:  time.Date(2020, time.April, 1, 0, 0, 0, 0, time.UTC),
+		Total: "10 secs",
 	})
 	assert.Contains(t, summaries, summary.Summary{
-		GrandTotal: "20 secs",
-		Date:       time.Date(2020, time.April, 2, 0, 0, 0, 0, time.UTC),
+		Date:  time.Date(2020, time.April, 2, 0, 0, 0, 0, time.UTC),
+		Total: "20 secs",
 	})
 
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
@@ -97,21 +97,30 @@ func TestClient_SummariesByCategory(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	assert.Len(t, summaries, 3)
+	assert.Len(t, summaries, 2)
 	assert.Contains(t, summaries, summary.Summary{
-		Category:   "coding",
-		Date:       time.Date(2020, time.April, 1, 0, 0, 0, 0, time.UTC),
-		GrandTotal: "30 secs",
+		Date:  time.Date(2020, time.April, 1, 0, 0, 0, 0, time.UTC),
+		Total: "50 secs",
+		ByCategory: []summary.Category{
+			{
+				Category: "coding",
+				Total:    "30 secs",
+			},
+			{
+				Category: "debugging",
+				Total:    "20 secs",
+			},
+		},
 	})
 	assert.Contains(t, summaries, summary.Summary{
-		Category:   "debugging",
-		Date:       time.Date(2020, time.April, 1, 0, 0, 0, 0, time.UTC),
-		GrandTotal: "40 secs",
-	})
-	assert.Contains(t, summaries, summary.Summary{
-		Category:   "coding",
-		Date:       time.Date(2020, time.April, 2, 0, 0, 0, 0, time.UTC),
-		GrandTotal: "50 secs",
+		Date:  time.Date(2020, time.April, 2, 0, 0, 0, 0, time.UTC),
+		Total: "50 secs",
+		ByCategory: []summary.Category{
+			{
+				Category: "coding",
+				Total:    "50 secs",
+			},
+		},
 	})
 
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)

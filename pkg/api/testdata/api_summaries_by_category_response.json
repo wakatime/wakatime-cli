@@ -8,11 +8,11 @@
                 },
                 {
                     "name": "debugging",
-                    "text": "40 secs"
+                    "text": "20 secs"
                 }
             ],
             "grand_total": {
-                "text": "10 secs"
+                "text": "50 secs"
             },
             "range": {
                 "date": "2020-04-01"
@@ -26,7 +26,7 @@
                 }
             ],
             "grand_total": {
-                "text": "20 secs"
+                "text": "50 secs"
             },
             "range": {
                 "date": "2020-04-02"

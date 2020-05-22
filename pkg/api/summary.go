@@ -89,22 +89,21 @@ func parseSummariesResponse(data []byte) ([]summary.Summary, error) {
 			return nil, fmt.Errorf("failed to parse date from string %q: %s", sum.Range.Date, err)
 		}
 
-		if len(sum.Categories) > 0 {
-			for _, category := range sum.Categories {
-				summaries = append(summaries, summary.Summary{
-					Category:   category.Name,
-					GrandTotal: category.Text,
-					Date:       date,
-				})
-			}
-
-			continue
+		parsed := summary.Summary{
+			Date:  date,
+			Total: sum.GrandTotal.Text,
 		}
 
-		summaries = append(summaries, summary.Summary{
-			GrandTotal: sum.GrandTotal.Text,
-			Date:       date,
-		})
+		if len(sum.Categories) > 0 {
+			for _, category := range sum.Categories {
+				parsed.ByCategory = append(parsed.ByCategory, summary.Category{
+					Category: category.Name,
+					Total:    category.Text,
+				})
+			}
+		}
+
+		summaries = append(summaries, parsed)
 	}
 
 	return summaries, nil
