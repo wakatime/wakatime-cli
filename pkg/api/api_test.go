@@ -103,11 +103,11 @@ func TestClient_SummariesByCategory(t *testing.T) {
 		Total: "50 secs",
 		ByCategory: []summary.Category{
 			{
-				Category: "coding",
+				Category: "Coding",
 				Total:    "30 secs",
 			},
 			{
-				Category: "debugging",
+				Category: "Debugging",
 				Total:    "20 secs",
 			},
 		},
@@ -117,7 +117,7 @@ func TestClient_SummariesByCategory(t *testing.T) {
 		Total: "50 secs",
 		ByCategory: []summary.Category{
 			{
-				Category: "coding",
+				Category: "Coding",
 				Total:    "50 secs",
 			},
 		},

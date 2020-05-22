@@ -3,11 +3,11 @@
         {
             "categories": [
                 {
-                    "name": "coding",
+                    "name": "Coding",
                     "text": "30 secs"
                 },
                 {
-                    "name": "debugging",
+                    "name": "Debugging",
                     "text": "20 secs"
                 }
             ],
@@ -21,7 +21,7 @@
         {
             "categories": [
                 {
-                    "name": "coding",
+                    "name": "Coding",
                     "text": "50 secs"
                 }
             ],
