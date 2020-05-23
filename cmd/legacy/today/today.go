@@ -29,30 +29,43 @@ type Params struct {
 
 // Run executes the today command.
 func Run(v *viper.Viper) {
-	params, err := LoadParams(v)
+	output, err := Summary(v)
 	if err != nil {
 		var errauth api.ErrAuth
 		if errors.As(err, &errauth) {
 			jww.CRITICAL.Printf(
-				"error loading api key: %s. Find your api key from wakatime.com/settings/api-key",
-				err,
+				"%s. Find your api key from wakatime.com/settings/api-key",
+				errauth,
 			)
 			os.Exit(exitcode.ErrAuth)
 		}
 
-		jww.CRITICAL.Printf("failed loading params: %s", err)
+		var errapi api.Err
+		if errors.As(err, &errapi) {
+			jww.CRITICAL.Println(err)
+			os.Exit(exitcode.ErrAPI)
+		}
+
+		jww.CRITICAL.Println(err)
 		os.Exit(exitcode.ErrDefault)
+	}
+
+	fmt.Println(output)
+	os.Exit(exitcode.Success)
+}
+
+// Summary returns a rendered summary of todays coding activity.
+func Summary(v *viper.Viper) (string, error) {
+	params, err := LoadParams(v)
+	if err != nil {
+		return "", fmt.Errorf("failed to load command parameters: %w", err)
 	}
 
 	auth, err := api.WithAuth(api.BasicAuth{
 		Secret: params.APIKey,
 	})
 	if err != nil {
-		jww.CRITICAL.Printf(
-			"error setting up auth option on api client: %s. Find your api key from wakatime.com/settings/api-key",
-			err,
-		)
-		os.Exit(exitcode.ErrAuth)
+		return "", fmt.Errorf("error setting up auth option on api client: %w", err)
 	}
 
 	opts := []api.Option{
@@ -79,30 +92,15 @@ func Run(v *viper.Viper) {
 
 	summaries, err := c.Summaries(todayStart, todayEnd)
 	if err != nil {
-		var errapi api.Err
-		if errors.As(err, &errapi) {
-			jww.CRITICAL.Printf("failed fetching summaries from api: %s", err)
-			os.Exit(exitcode.ErrAPI)
-		}
-
-		var errauth api.ErrAuth
-		if errors.As(err, &errauth) {
-			jww.CRITICAL.Printf("authentication error: %s. Find your api key from wakatime.com/settings/api-key", err)
-			os.Exit(exitcode.ErrAuth)
-		}
-
-		jww.CRITICAL.Printf("failed fetching summaries from api: %s", err)
-		os.Exit(exitcode.ErrDefault)
+		return "", fmt.Errorf("failed fetching summaries from api: %w", err)
 	}
 
 	output, err := summary.RenderToday(summaries)
 	if err != nil {
-		jww.CRITICAL.Printf("failed generating today summary output: %s", err)
-		os.Exit(exitcode.ErrDefault)
+		return "", fmt.Errorf("failed generating today summary output: %s", err)
 	}
 
-	fmt.Println(output)
-	os.Exit(exitcode.Success)
+	return output, nil
 }
 
 // LoadParams loads needed data from the configuration file. Returns ErrAuth on problems with api key.
@@ -129,6 +127,8 @@ func LoadParams(v *viper.Viper) (Params, error) {
 	}, nil
 }
 
+// firstNonEmptyInt accepts multiple keys and returns the first non empty int value
+// it is able to retrieve from viper.Viper via these keys.
 func firstNonEmptyInt(v *viper.Viper, keys ...string) int {
 	for _, key := range keys {
 		if value := v.GetInt(key); value != 0 {
@@ -138,6 +138,9 @@ func firstNonEmptyInt(v *viper.Viper, keys ...string) int {
 
 	return 0
 }
+
+// firstNonEmptyString accepts multiple keys and returns the first non empty string value
+// it is able to retrieve from viper.Viper via these keys.
 func firstNonEmptyString(v *viper.Viper, keys ...string) string {
 	for _, key := range keys {
 		if value := v.GetString(key); value != "" {
