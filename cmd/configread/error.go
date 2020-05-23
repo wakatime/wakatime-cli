@@ -1,4 +1,4 @@
-package config
+package configread
 
 // ErrFileRead handles a custom error while reading wakatime config file.
 type ErrFileRead string

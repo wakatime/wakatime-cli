@@ -1,4 +1,4 @@
-package config
+package configread
 
 import (
 	"fmt"
@@ -8,15 +8,15 @@ import (
 	"github.com/spf13/viper"
 )
 
-// ReadParams contains config read parameters.
-type ReadParams struct {
+// Params contains config read parameters.
+type Params struct {
 	Section string
 	Key     string
 }
 
-// RunRead prints value for the given config key.
-func RunRead(v *viper.Viper) error {
-	params, err := LoadReadParams(v)
+// Run prints value for the given config key.
+func Run(v *viper.Viper) error {
+	params, err := LoadParams(v)
 	if err != nil {
 		return err
 	}
@@ -33,8 +33,8 @@ func RunRead(v *viper.Viper) error {
 	return nil
 }
 
-// LoadReadParams loads needed data from the configuration file.
-func LoadReadParams(v *viper.Viper) (ReadParams, error) {
+// LoadParams loads needed data from the configuration file.
+func LoadParams(v *viper.Viper) (Params, error) {
 	section := strings.TrimSpace(v.GetString("config-section"))
 	key := strings.TrimSpace(v.GetString("config-read"))
 
@@ -42,17 +42,17 @@ func LoadReadParams(v *viper.Viper) (ReadParams, error) {
 	jww.DEBUG.Println("key:", key)
 
 	if section == "" || key == "" {
-		return ReadParams{},
+		return Params{},
 			ErrFileRead(fmt.Errorf("failed reading wakatime config file. neither section nor key can be empty").Error())
 	}
 
-	return ReadParams{
+	return Params{
 		Section: section,
 		Key:     key,
 	}, nil
 }
 
 // ViperKey formats to a string [section].[key].
-func (c *ReadParams) ViperKey() string {
+func (c *Params) ViperKey() string {
 	return fmt.Sprintf("%s.%s", c.Section, c.Key)
 }

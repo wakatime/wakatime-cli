@@ -4,7 +4,7 @@ import (
 	"errors"
 	"os"
 
-	"github.com/wakatime/wakatime-cli/cmd/legacy/config"
+	"github.com/wakatime/wakatime-cli/cmd/configread"
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
 
 	jww "github.com/spf13/jwalterweatherman"
@@ -36,10 +36,10 @@ func Run(v *viper.Viper) {
 	if v.GetString("config-read") != "" {
 		jww.DEBUG.Println("command: config-read")
 
-		if err := config.RunRead(v); err != nil {
+		if err := configread.Run(v); err != nil {
 			jww.ERROR.Printf("err: %s", err)
 
-			var cfrerr config.ErrFileRead
+			var cfrerr configread.ErrFileRead
 			if errors.As(err, &cfrerr) {
 				os.Exit(exitcode.ErrConfigFileRead)
 			}

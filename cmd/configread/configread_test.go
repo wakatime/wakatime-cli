@@ -1,31 +1,31 @@
-package config_test
+package configread_test
 
 import (
 	"errors"
 	"testing"
 
-	"github.com/wakatime/wakatime-cli/cmd/legacy/config"
+	"github.com/wakatime/wakatime-cli/cmd/configread"
 
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestConfig_LoadReadParams(t *testing.T) {
+func TestLoadParams(t *testing.T) {
 	v := viper.New()
 	v.Set("config-section", "settings")
 	v.Set("config-read", "api_key")
 
-	params, err := config.LoadReadParams(v)
+	params, err := configread.LoadParams(v)
 	require.NoError(t, err)
 
-	assert.Equal(t, config.ReadParams{
+	assert.Equal(t, configread.Params{
 		Key:     "api_key",
 		Section: "settings",
 	}, params)
 }
 
-func TestConfig_LoadReadParamsErr(t *testing.T) {
+func TestLoadParamsErr(t *testing.T) {
 	tests := map[string]struct {
 		Key     string
 		Section string
@@ -45,32 +45,32 @@ func TestConfig_LoadReadParamsErr(t *testing.T) {
 			v.Set("config-section", test.Section)
 			v.Set("config-read", test.Key)
 
-			_, err := config.LoadReadParams(v)
+			_, err := configread.LoadParams(v)
 
-			var cfrerr config.ErrFileRead
+			var cfrerr configread.ErrFileRead
 			assert.True(t, errors.As(err, &cfrerr))
 		})
 	}
 }
 
-func TestConfig_RunRead(t *testing.T) {
+func TestRun(t *testing.T) {
 	v := viper.New()
 	v.Set("config-section", "settings")
 	v.Set("config-read", "api_key")
 	v.Set("settings.api_key", "b9485572-74bf-419a-916b-22056ca3a24c")
 
-	err := config.RunRead(v)
+	err := configread.Run(v)
 	require.NoError(t, err)
 }
 
-func TestConfig_RunReadErr(t *testing.T) {
+func TestRunErr(t *testing.T) {
 	v := viper.New()
 	v.Set("config-section", "settings")
 	v.Set("config-read", "unset_key")
 
-	err := config.RunRead(v)
+	err := configread.Run(v)
 
-	var cfrerr config.ErrFileRead
+	var cfrerr configread.ErrFileRead
 
 	assert.True(t, errors.As(err, &cfrerr))
 }
