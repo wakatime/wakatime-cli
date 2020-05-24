@@ -1,4 +1,4 @@
-package legacy_test
+package config_test
 
 import (
 	"errors"
@@ -6,7 +6,7 @@ import (
 	"path"
 	"testing"
 
-	"github.com/wakatime/wakatime-cli/cmd/legacy"
+	"github.com/wakatime/wakatime-cli/pkg/config"
 
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
@@ -15,7 +15,7 @@ import (
 
 func TestReadInConfig(t *testing.T) {
 	v := viper.New()
-	err := legacy.ReadInConfig(v, func(vp *viper.Viper) (string, error) {
+	err := config.ReadInConfig(v, func(vp *viper.Viper) (string, error) {
 		assert.Equal(t, v, vp)
 		return "testdata/wakatime.cfg", nil
 	})
@@ -28,17 +28,17 @@ func TestReadInConfig(t *testing.T) {
 
 func TestReadInConfigErr(t *testing.T) {
 	v := viper.New()
-	err := legacy.ReadInConfig(v, func(vp *viper.Viper) (string, error) {
+	err := config.ReadInConfig(v, func(vp *viper.Viper) (string, error) {
 		assert.Equal(t, v, vp)
 		return "", errors.New("error")
 	})
 
-	var cfperr legacy.ErrConfigFileParse
+	var cfperr config.ErrFileParse
 
 	assert.True(t, errors.As(err, &cfperr))
 }
 
-func TestConfigFilePath(t *testing.T) {
+func TestFilePath(t *testing.T) {
 	home, err := os.UserHomeDir()
 	require.NoError(t, err)
 
@@ -71,10 +71,36 @@ func TestConfigFilePath(t *testing.T) {
 			err := os.Setenv("WAKATIME_HOME", test.EnvVar)
 			require.NoError(t, err)
 
-			configFilepath, err := legacy.ConfigFilePath(v)
+			configFilepath, err := config.FilePath(v)
 			require.NoError(t, err)
 
 			assert.Equal(t, test.Expected, configFilepath)
 		})
 	}
+}
+
+func TestLoadIni(t *testing.T) {
+	v := viper.New()
+	cfg, err := config.LoadIni(v, func(vp *viper.Viper) (string, error) {
+		assert.Equal(t, v, vp)
+		return "testdata/wakatime.cfg", nil
+	})
+	require.NoError(t, err)
+	require.NotNil(t, cfg)
+
+	assert.Equal(t, "b9485572-74bf-419a-916b-22056ca3a24c", cfg.Section("settings").Key("api_key").String())
+	assert.Equal(t, "true", cfg.Section("settings").Key("debug").String())
+	assert.Equal(t, "true", cfg.Section("test").Key("pandemia").String())
+}
+
+func TestLoadIniErr(t *testing.T) {
+	v := viper.New()
+	_, err := config.LoadIni(v, func(vp *viper.Viper) (string, error) {
+		assert.Equal(t, v, vp)
+		return "", errors.New("error")
+	})
+
+	var cfperr config.ErrFileParse
+
+	assert.True(t, errors.As(err, &cfperr))
 }
