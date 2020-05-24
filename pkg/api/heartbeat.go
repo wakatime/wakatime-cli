@@ -1,0 +1,116 @@
+package api
+
+import (
+	"encoding/json"
+	"errors"
+	"fmt"
+	"net/http"
+	"strings"
+
+	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+)
+
+// ParseHeartbeatResponses parses the aggregated responses returned by the heartbeat bulk endpoint.
+func ParseHeartbeatResponses(data []byte) ([]heartbeat.Result, error) {
+	var responsesBody struct {
+		Responses [][]json.RawMessage `json:"responses"`
+	}
+
+	err := json.Unmarshal(data, &responsesBody)
+	if err != nil {
+		return nil, fmt.Errorf("failed unmarshal response body: %s", err)
+	}
+
+	var results []heartbeat.Result
+
+	for _, r := range responsesBody.Responses {
+		result, err := parseHeartbeatResponse(r)
+		if err != nil {
+			return nil, fmt.Errorf("failed parsing result: %s", err)
+		}
+
+		results = append(results, result)
+	}
+
+	return results, nil
+}
+
+// parseHeartbeatResponse parses one response of the aggregated responses returned by the heartbeat bulk endpoint.
+func parseHeartbeatResponse(data []json.RawMessage) (heartbeat.Result, error) {
+	var result heartbeat.Result
+
+	type responseBody struct {
+		Data *heartbeat.Heartbeat `json:"data"`
+	}
+
+	err := json.Unmarshal(data[1], &result.Status)
+	if err != nil {
+		return heartbeat.Result{}, fmt.Errorf("failed parse json status: %s", err)
+	}
+
+	if result.Status == http.StatusBadRequest {
+		resultErrors, err := parseHeartbeatResponseError(data[0])
+		if err != nil {
+			return heartbeat.Result{}, fmt.Errorf("failed to parse result errors: %s", err)
+		}
+
+		result.Errors = resultErrors
+
+		return heartbeat.Result{
+			Errors: result.Errors,
+			Status: result.Status,
+		}, nil
+	}
+
+	err = json.Unmarshal(data[0], &responseBody{Data: &result.Heartbeat})
+	if err != nil {
+		return heartbeat.Result{}, fmt.Errorf("failed parse json heartbeat: %s", err)
+	}
+
+	return result, nil
+}
+
+// parseHeartbeatResponseError parses one error of the aggregated responses returned by the heartbeat bulk endpoint.
+func parseHeartbeatResponseError(data json.RawMessage) ([]string, error) {
+	var errs []string
+
+	type responseBodyErr struct {
+		Error  *string              `json:"error"`
+		Errors *map[string][]string `json:"errors"`
+	}
+
+	// 1. try "error" key
+	var resultError string
+
+	err := json.Unmarshal(data, &responseBodyErr{Error: &resultError})
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse json heartbeat error: %s", err)
+	}
+
+	if resultError != "" {
+		errs = append(errs, resultError)
+		return errs, nil
+	}
+
+	// 2. try "errors" key
+	var resultErrors map[string][]string
+
+	err = json.Unmarshal(data, &responseBodyErr{Errors: &resultErrors})
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse json heartbeat errors: %s", err)
+	}
+
+	if resultErrors == nil {
+		return nil, errors.New("failed to detect any errors despite invalid response status")
+	}
+
+	for field, messages := range resultErrors {
+		errs = append(errs, fmt.Sprintf(
+			"%s: %s",
+			field,
+			strings.Join(messages, " "),
+		))
+	}
+
+	return errs, nil
+}

@@ -31,3 +31,10 @@ func Int(v int) *int {
 func String(v string) *string {
 	return &v
 }
+
+// Result represents a response from the wakatime api.
+type Result struct {
+	Errors    []string
+	Status    int
+	Heartbeat Heartbeat
+}
