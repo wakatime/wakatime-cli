@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
 )
 
@@ -37,9 +36,6 @@ func RunRead(v *viper.Viper) error {
 func LoadReadParams(v *viper.Viper) (ReadParams, error) {
 	section := strings.TrimSpace(v.GetString("config-section"))
 	key := strings.TrimSpace(v.GetString("config-read"))
-
-	jww.DEBUG.Println("section:", section)
-	jww.DEBUG.Println("key:", key)
 
 	if section == "" || key == "" {
 		return ReadParams{},

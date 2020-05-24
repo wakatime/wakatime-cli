@@ -16,7 +16,6 @@ func Run(v *viper.Viper) {
 	setVerbose(v)
 
 	if v.GetBool("version") {
-		jww.DEBUG.Println("command: version")
 		runVersion()
 
 		os.Exit(exitcode.Success)
@@ -34,8 +33,6 @@ func Run(v *viper.Viper) {
 	}
 
 	if v.GetString("config-read") != "" {
-		jww.DEBUG.Println("command: config-read")
-
 		if err := config.RunRead(v); err != nil {
 			jww.ERROR.Printf("err: %s", err)
 

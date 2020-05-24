@@ -8,7 +8,6 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/config"
 
 	"github.com/mitchellh/go-homedir"
-	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
 )
 
@@ -18,8 +17,6 @@ func ReadInConfig(v *viper.Viper, filepathFn func(v *viper.Viper) (string, error
 	if err != nil {
 		return ErrConfigFileParse(err.Error())
 	}
-
-	jww.DEBUG.Println("wakatime path:", configFilepath)
 
 	v.SetConfigType("ini")
 	v.SetConfigFile(configFilepath)
