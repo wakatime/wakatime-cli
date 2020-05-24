@@ -1,11 +1,14 @@
 package configread
 
 import (
+	"errors"
 	"fmt"
+	"os"
 	"strings"
 
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
+	"github.com/wakatime/wakatime-cli/pkg/exitcode"
 )
 
 // Params contains config read parameters.
@@ -14,23 +17,39 @@ type Params struct {
 	Key     string
 }
 
-// Run prints value for the given config key.
-func Run(v *viper.Viper) error {
+// Run prints the value for the given config key.
+func Run(v *viper.Viper) {
+	output, err := Read(v)
+	if err != nil {
+		jww.ERROR.Printf("err: %s", err)
+
+		var cfrerr ErrFileRead
+		if errors.As(err, &cfrerr) {
+			os.Exit(exitcode.ErrConfigFileRead)
+		}
+
+		os.Exit(exitcode.ErrDefault)
+	}
+
+	fmt.Println(output)
+	os.Exit(exitcode.Success)
+}
+
+// Read returns the value for the given config key.
+func Read(v *viper.Viper) (string, error) {
 	params, err := LoadParams(v)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	value := strings.TrimSpace(v.GetString(params.ViperKey()))
 	if value == "" {
-		return ErrFileRead(
+		return "", ErrFileRead(
 			fmt.Errorf("given section and key \"%s\" returned an empty string", params.ViperKey()).Error(),
 		)
 	}
 
-	fmt.Println(value)
-
-	return nil
+	return value, nil
 }
 
 // LoadParams loads needed data from the configuration file.

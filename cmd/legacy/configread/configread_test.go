@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/wakatime/wakatime-cli/cmd/configread"
+	"github.com/wakatime/wakatime-cli/cmd/legacy/configread"
 
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
@@ -53,24 +53,53 @@ func TestLoadParamsErr(t *testing.T) {
 	}
 }
 
-func TestRun(t *testing.T) {
+func TestRead(t *testing.T) {
 	v := viper.New()
+	v.Set("settings.api_key", "b9485572-74bf-419a-916b-22056ca3a24c")
 	v.Set("config-section", "settings")
 	v.Set("config-read", "api_key")
-	v.Set("settings.api_key", "b9485572-74bf-419a-916b-22056ca3a24c")
 
-	err := configread.Run(v)
+	output, err := configread.Read(v)
 	require.NoError(t, err)
+
+	assert.Equal(t, "b9485572-74bf-419a-916b-22056ca3a24c", output)
 }
 
-func TestRunErr(t *testing.T) {
-	v := viper.New()
-	v.Set("config-section", "settings")
-	v.Set("config-read", "unset_key")
+func TestReadErr(t *testing.T) {
+	tests := map[string]struct {
+		Key     string
+		Section string
+		Value   string
+	}{
+		"empty_value": {
+			Key:     "api_key",
+			Section: "settings",
+			Value:   "",
+		},
+		"section_missing": {
+			Key:   "api_key",
+			Value: "b9485572-74bf-419a-916b-22056ca3a24c",
+		},
+		"key_missing": {
+			Section: "settings",
+			Value:   "b9485572-74bf-419a-916b-22056ca3a24c",
+		},
+		"all_missing": {},
+	}
 
-	err := configread.Run(v)
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			v := viper.New()
+			v.Set(test.Section+"."+test.Key, test.Value)
+			v.Set("config-section", test.Section)
+			v.Set("config-read", test.Key)
 
-	var cfrerr configread.ErrFileRead
+			output, err := configread.Read(v)
 
-	assert.True(t, errors.As(err, &cfrerr))
+			var cfrerr configread.ErrFileRead
+			assert.True(t, errors.As(err, &cfrerr))
+
+			assert.Empty(t, output)
+		})
+	}
 }
