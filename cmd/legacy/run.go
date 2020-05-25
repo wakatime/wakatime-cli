@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/wakatime/wakatime-cli/cmd/legacy/configread"
+	"github.com/wakatime/wakatime-cli/cmd/legacy/today"
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
 
 	jww "github.com/spf13/jwalterweatherman"
@@ -37,6 +38,10 @@ func Run(v *viper.Viper) {
 		jww.DEBUG.Println("command: config-read")
 
 		configread.Run(v)
+	}
+
+	if v.GetBool("today") {
+		today.Run(v)
 	}
 
 	os.Exit(exitcode.Success)
