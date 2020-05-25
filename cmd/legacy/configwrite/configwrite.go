@@ -11,7 +11,6 @@ import (
 
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
-	"gopkg.in/ini.v1"
 )
 
 // Params contains config write parameters.
@@ -22,7 +21,7 @@ type Params struct {
 
 // Run loads wakatime config file and call Write().
 func Run(v *viper.Viper) {
-	cfg, err := config.LoadIni(v, config.FilePath)
+	w, err := config.NewIniWriter(v, config.FilePath)
 	if err != nil {
 		jww.FATAL.Fatalln(err)
 
@@ -34,10 +33,10 @@ func Run(v *viper.Viper) {
 		os.Exit(exitcode.ErrDefault)
 	}
 
-	if err := Write(v, cfg); err != nil {
+	if err := Write(v, w); err != nil {
 		jww.ERROR.Println(err)
 
-		var cfwerr ErrFileWrite
+		var cfwerr config.ErrFileWrite
 		if errors.As(err, &cfwerr) {
 			os.Exit(exitcode.ErrConfigFileWrite)
 		}
@@ -49,16 +48,14 @@ func Run(v *viper.Viper) {
 }
 
 // Write writes value(s) to given config key(s) and persist on disk.
-func Write(v *viper.Viper, cfg *ini.File) error {
+func Write(v *viper.Viper, w config.Writer) error {
 	params, err := LoadParams(v)
 	if err != nil {
 		return err
 	}
 
-	params.SetValue(cfg)
-
-	if err := cfg.SaveTo(v.ConfigFileUsed()); err != nil {
-		return ErrFileWrite(fmt.Errorf("error saving wakatime config: %s", err).Error())
+	if err := w.Write(params.Section, params.KeyValue); err != nil {
+		return err
 	}
 
 	return nil
@@ -74,7 +71,7 @@ func LoadParams(v *viper.Viper) (Params, error) {
 
 	if section == "" || len(kv) == 0 {
 		return Params{},
-			ErrFileWrite(
+			config.ErrFileWrite(
 				fmt.Errorf("failed to write on wakatime config file. neither section nor key/value can be empty").Error(),
 			)
 	}
@@ -92,11 +89,4 @@ func flattenKeyValue(kv map[string]string) string {
 	}
 
 	return strings.Join(ret, ",")
-}
-
-// SetValue sets the value for the key in the override register.
-func (c *Params) SetValue(cfg *ini.File) {
-	for key, value := range c.KeyValue {
-		cfg.Section(c.Section).Key(key).SetValue(value)
-	}
 }

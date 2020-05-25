@@ -14,6 +14,48 @@ import (
 // defaultFile is the name of the default wakatime config file.
 const defaultFile = ".wakatime.cfg"
 
+// Writer defines the methods to write to config file.
+type Writer interface {
+	Write(section string, keyValue map[string]string) error
+}
+
+// IniWriter stores the configuration necessary to write to config file.
+type IniWriter struct {
+	File           *ini.File
+	ConfigFilepath string
+}
+
+// NewIniWriter creates a new IniWriter instance.
+func NewIniWriter(v *viper.Viper, filepathFn func(v *viper.Viper) (string, error)) (*IniWriter, error) {
+	configFilepath, err := filepathFn(v)
+	if err != nil {
+		return nil, ErrFileParse(err.Error())
+	}
+
+	ini, err := ini.Load(configFilepath)
+	if err != nil {
+		return nil, ErrFileParse(fmt.Errorf("error parsing config file: %s", err).Error())
+	}
+
+	return &IniWriter{
+		File:           ini,
+		ConfigFilepath: configFilepath,
+	}, nil
+}
+
+// Write persists key(s) and value(s) on disk.
+func (w *IniWriter) Write(section string, keyValue map[string]string) error {
+	for key, value := range keyValue {
+		w.File.Section(section).Key(key).SetValue(value)
+	}
+
+	if err := w.File.SaveTo(w.ConfigFilepath); err != nil {
+		return ErrFileWrite(fmt.Errorf("error saving wakatime config: %s", err).Error())
+	}
+
+	return nil
+}
+
 // ReadInConfig reads wakatime config file in memory.
 func ReadInConfig(v *viper.Viper, filepathFn func(v *viper.Viper) (string, error)) error {
 	configFilepath, err := filepathFn(v)
@@ -61,20 +103,4 @@ func FilePath(v *viper.Viper) (string, error) {
 	}
 
 	return path.Join(home, defaultFile), nil
-}
-
-// LoadIni is an alternative solution for viper `WriteConfig()`.
-// see issue https://github.com/spf13/viper/issues/858
-func LoadIni(v *viper.Viper, filepathFn func(v *viper.Viper) (string, error)) (*ini.File, error) {
-	configFilepath, err := filepathFn(v)
-	if err != nil {
-		return nil, ErrFileParse(err.Error())
-	}
-
-	cfg, err := ini.Load(configFilepath)
-	if err != nil {
-		return nil, ErrFileParse(fmt.Errorf("error parsing config file: %s", err).Error())
-	}
-
-	return cfg, nil
 }

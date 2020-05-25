@@ -2,17 +2,26 @@ package configwrite_test
 
 import (
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"testing"
 
 	"github.com/wakatime/wakatime-cli/cmd/legacy/configwrite"
+	"github.com/wakatime/wakatime-cli/pkg/config"
 
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gopkg.in/ini.v1"
 )
+
+type writerMock struct {
+	WriteFn func(section string, keyValue map[string]string) error
+}
+
+func (m *writerMock) Write(section string, keyValue map[string]string) error {
+	return m.WriteFn(section, keyValue)
+}
 
 func TestLoadParams(t *testing.T) {
 	tests := map[string]struct {
@@ -62,26 +71,29 @@ func TestLoadParamsErr(t *testing.T) {
 
 			_, err := configwrite.LoadParams(v)
 
-			var fwerr configwrite.ErrFileWrite
+			var fwerr config.ErrFileWrite
 			assert.True(t, errors.As(err, &fwerr))
 		})
 	}
 }
 
 func TestWrite(t *testing.T) {
-	v := viper.New()
-	cfg := ini.Empty()
 	tmpFile, err := ioutil.TempFile(os.TempDir(), "wakatime")
 	require.NoError(t, err)
 
 	defer os.Remove(tmpFile.Name())
 
-	v.SetConfigFile(tmpFile.Name())
+	v := viper.New()
+	ini, err := config.NewIniWriter(v, func(vp *viper.Viper) (string, error) {
+		assert.Equal(t, v, vp)
+		return tmpFile.Name(), nil
+	})
+	require.NoError(t, err)
 
 	v.Set("config-section", "settings")
 	v.Set("config-write", map[string]string{"debug": "false"})
 
-	err = configwrite.Write(v, cfg)
+	err = configwrite.Write(v, ini)
 	require.NoError(t, err)
 }
 
@@ -106,15 +118,43 @@ func TestWriteErr(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			v := viper.New()
-			cfg := ini.Empty()
+			w := &config.IniWriter{}
+
 			v.Set("config-section", test.Section)
 			v.Set("config-write", test.Value)
 
-			err := configwrite.Write(v, cfg)
+			err := configwrite.Write(v, w)
 
-			var fwerr configwrite.ErrFileWrite
+			var fwerr config.ErrFileWrite
+			errMsg := fmt.Sprintf("error %q differs from the string set", err)
 
 			assert.True(t, errors.As(err, &fwerr))
+			assert.Equal(
+				t,
+				err.Error(),
+				"failed to write on wakatime config file. neither section nor key/value can be empty",
+				errMsg,
+			)
 		})
 	}
+}
+
+func TestWriteSaveErr(t *testing.T) {
+	v := viper.New()
+	w := &writerMock{
+		WriteFn: func(section string, keyValue map[string]string) error {
+			assert.Equal(t, "settings", section)
+			assert.Equal(t, map[string]string{"debug": "false"}, keyValue)
+			return config.ErrFileWrite("error")
+		},
+	}
+
+	v.Set("config-section", "settings")
+	v.Set("config-write", map[string]string{"debug": "false"})
+
+	err := configwrite.Write(v, w)
+
+	var fwerr config.ErrFileWrite
+
+	assert.True(t, errors.As(err, &fwerr))
 }

@@ -2,11 +2,13 @@ package config_test
 
 import (
 	"errors"
+	"io/ioutil"
 	"os"
 	"path"
 	"testing"
 
 	"github.com/wakatime/wakatime-cli/pkg/config"
+	"gopkg.in/ini.v1"
 
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
@@ -79,23 +81,21 @@ func TestFilePath(t *testing.T) {
 	}
 }
 
-func TestLoadIni(t *testing.T) {
+func TestNewIniWriter(t *testing.T) {
 	v := viper.New()
-	cfg, err := config.LoadIni(v, func(vp *viper.Viper) (string, error) {
+	w, err := config.NewIniWriter(v, func(vp *viper.Viper) (string, error) {
 		assert.Equal(t, v, vp)
 		return "testdata/wakatime.cfg", nil
 	})
 	require.NoError(t, err)
-	require.NotNil(t, cfg)
 
-	assert.Equal(t, "b9485572-74bf-419a-916b-22056ca3a24c", cfg.Section("settings").Key("api_key").String())
-	assert.Equal(t, "true", cfg.Section("settings").Key("debug").String())
-	assert.Equal(t, "true", cfg.Section("test").Key("pandemia").String())
+	assert.Equal(t, "testdata/wakatime.cfg", w.ConfigFilepath)
+	assert.NotNil(t, w.File)
 }
 
-func TestLoadIniErr(t *testing.T) {
+func TestNewIniWriterErr(t *testing.T) {
 	v := viper.New()
-	_, err := config.LoadIni(v, func(vp *viper.Viper) (string, error) {
+	_, err := config.NewIniWriter(v, func(vp *viper.Viper) (string, error) {
 		assert.Equal(t, v, vp)
 		return "", errors.New("error")
 	})
@@ -103,4 +103,53 @@ func TestLoadIniErr(t *testing.T) {
 	var cfperr config.ErrFileParse
 
 	assert.True(t, errors.As(err, &cfperr))
+	assert.Equal(t, "error", err.Error())
+}
+
+func TestWrite(t *testing.T) {
+	tmpFile, err := ioutil.TempFile(os.TempDir(), "wakatime")
+	require.NoError(t, err)
+
+	defer os.Remove(tmpFile.Name())
+
+	tests := map[string]struct {
+		Value   map[string]string
+		Section string
+	}{
+		"single_value": {
+			Value: map[string]string{
+				"debug": "true",
+			},
+			Section: "settings",
+		},
+		"double_value": {
+			Value: map[string]string{
+				"debug":   "true",
+				"api_key": "b9485572-74bf-419a-916b-22056ca3a24c",
+			},
+			Section: "settings",
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			w := config.IniWriter{
+				File:           ini.Empty(),
+				ConfigFilepath: tmpFile.Name(),
+			}
+
+			err := w.Write(test.Section, test.Value)
+
+			require.NoError(t, err)
+		})
+	}
+}
+
+func TestWritePanic(t *testing.T) {
+	w := config.IniWriter{}
+
+	//nolint:errcheck
+	require.Panics(t,
+		func() { w.Write("settings", map[string]string{"debug": "true"}) },
+	)
 }
