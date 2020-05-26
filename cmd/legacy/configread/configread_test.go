@@ -2,6 +2,7 @@ package configread_test
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/wakatime/wakatime-cli/cmd/legacy/configread"
@@ -67,24 +68,30 @@ func TestRead(t *testing.T) {
 
 func TestReadErr(t *testing.T) {
 	tests := map[string]struct {
-		Key     string
-		Section string
-		Value   string
+		Key      string
+		Section  string
+		Value    string
+		ErrorMsg string
 	}{
 		"empty_value": {
-			Key:     "api_key",
-			Section: "settings",
-			Value:   "",
+			Key:      "api_key",
+			Section:  "settings",
+			Value:    "",
+			ErrorMsg: fmt.Sprintf("given section and key \"%s.%s\" returned an empty string", "settings", "api_key"),
 		},
 		"section_missing": {
-			Key:   "api_key",
-			Value: "b9485572-74bf-419a-916b-22056ca3a24c",
+			Key:      "api_key",
+			Value:    "b9485572-74bf-419a-916b-22056ca3a24c",
+			ErrorMsg: "failed reading wakatime config file. neither section nor key can be empty",
 		},
 		"key_missing": {
-			Section: "settings",
-			Value:   "b9485572-74bf-419a-916b-22056ca3a24c",
+			Section:  "settings",
+			Value:    "b9485572-74bf-419a-916b-22056ca3a24c",
+			ErrorMsg: "failed reading wakatime config file. neither section nor key can be empty",
 		},
-		"all_missing": {},
+		"all_missing": {
+			ErrorMsg: "failed reading wakatime config file. neither section nor key can be empty",
+		},
 	}
 
 	for name, test := range tests {
@@ -97,7 +104,15 @@ func TestReadErr(t *testing.T) {
 			output, err := configread.Read(v)
 
 			var cfrerr configread.ErrFileRead
+			errMsg := fmt.Sprintf("error %q differs from the string set", err)
+
 			assert.True(t, errors.As(err, &cfrerr))
+			assert.Equal(
+				t,
+				err.Error(),
+				test.ErrorMsg,
+				errMsg,
+			)
 
 			assert.Empty(t, output)
 		})
