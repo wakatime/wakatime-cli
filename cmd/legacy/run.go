@@ -6,10 +6,7 @@ import (
 
 	"github.com/wakatime/wakatime-cli/cmd/legacy/configread"
 	"github.com/wakatime/wakatime-cli/cmd/legacy/configwrite"
-<<<<<<< HEAD
 	"github.com/wakatime/wakatime-cli/cmd/legacy/today"
-=======
->>>>>>> 7b81186... add config-write flag
 	"github.com/wakatime/wakatime-cli/pkg/config"
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
 
