@@ -71,15 +71,15 @@ func ParseHeartbeatResponses(data []byte) ([]heartbeat.Result, error) {
 
 	err := json.Unmarshal(data, &responsesBody)
 	if err != nil {
-		return nil, fmt.Errorf("failed unmarshal response body: %s", err)
+		return nil, fmt.Errorf("failed to parse json response body: %s. body: %q", err, string(data))
 	}
 
 	var results []heartbeat.Result
 
-	for _, r := range responsesBody.Responses {
+	for n, r := range responsesBody.Responses {
 		result, err := parseHeartbeatResponse(r)
 		if err != nil {
-			return nil, fmt.Errorf("failed parsing result: %s", err)
+			return nil, fmt.Errorf("failed parsing result #%d: %s. body: %q", n, err, string(data))
 		}
 
 		results = append(results, result)
@@ -98,7 +98,7 @@ func parseHeartbeatResponse(data []json.RawMessage) (heartbeat.Result, error) {
 
 	err := json.Unmarshal(data[1], &result.Status)
 	if err != nil {
-		return heartbeat.Result{}, fmt.Errorf("failed parse json status: %s", err)
+		return heartbeat.Result{}, fmt.Errorf("failed to parse json status: %s", err)
 	}
 
 	if result.Status == http.StatusBadRequest {
@@ -117,7 +117,7 @@ func parseHeartbeatResponse(data []json.RawMessage) (heartbeat.Result, error) {
 
 	err = json.Unmarshal(data[0], &responseBody{Data: &result.Heartbeat})
 	if err != nil {
-		return heartbeat.Result{}, fmt.Errorf("failed parse json heartbeat: %s", err)
+		return heartbeat.Result{}, fmt.Errorf("failed to parse json heartbeat: %s", err)
 	}
 
 	return result, nil
