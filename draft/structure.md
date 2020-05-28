@@ -1,11 +1,16 @@
 wakatime-cli/
     cmd/
         legacy/
-            config.go
-            heartbeat.go
-            run.go
-            today.go
+            configread/
+                configread.go
+            configwrite/
+                configwrite.go
+            heartbeat/
+                heartbeat.go
+            today/
+                today.go
             version.go
+            run.go
         root.go
     pkg/
         api/
@@ -20,8 +25,8 @@ wakatime-cli/
                 func WithNTLM(proxy string) Option
                 func WithSSL(cert string) Option
                 func WithTimeout(timeout time.Duration) Option
-                func WithUserAgent() (Option, error)
-                func WithUserAgentFromPlugin(plugin string) (Option, error)
+                func WithUserAgent(plugin string) (Option, error)
+                func WithUserAgentUnknownPlugin() (Option, error)
 
                 type Client struct {}
                 func NewClient(baseURL string, client *http.Client, opts ...Option)
@@ -29,13 +34,13 @@ wakatime-cli/
                 func (c *Client) Summaries(startDate, endDate time.Time) ([]summary.Summary, error)
         deps/
             deps.go
-                WithDetection() heartbeat.SenderOption
-                WithDetectionOnFile(filepath string) heartbeat.SenderOption
+                WithDetection() heartbeat.HandleOption
+                WithDetectionOnFile(filepath string) heartbeat.HandleOption
                 func detect(filepath, language string) (deps []string, err error)
         filestats/
             filestats.go
                 WithDetection() heartbeat.HandleOption
-                WithDetectionOnFile(filepath string) heartbeat.SenderOption
+                WithDetectionOnFile(filepath string) heartbeat.HandleOption
                 func detect(filepath string) (lines int, err error)
         heartbeat/
             heartbeat.go
@@ -53,7 +58,7 @@ wakatime-cli/
                     HideFileNames []*regexp.Regexp
                     HideProjectNames []*regexp.Regexp
                 }
-                WithSanitization(c SanitizeConfig) heartbeat.SenderOption
+                WithSanitization(c SanitizeConfig) heartbeat.HandleOption
                 func sanitize(h Heartbeat, obfuscate Obfuscate) Heartbeat
             validate.go
                 type ValidateConfig struct {
@@ -62,7 +67,7 @@ wakatime-cli/
                     Include []*regexp.Regexp
                     IncludeOnlyWithProjectFile bool
                 }
-                WithValidation(c ValidateConfig) heartbeat.SenderOption
+                WithValidation(c ValidateConfig) heartbeat.HandleOption
                 func validateByPattern(entity string, include, exclude []*regexp.Regexp) error
                 func validateFile(filepath string, includeOnlyWithProjectFile bool) error
         language/
@@ -72,17 +77,11 @@ wakatime-cli/
                     Overwrite string
                     LocalFile string
                 }
-                WithDetection(c Config) heartbeat.SenderOption
+                WithDetection(c Config) heartbeat.HandleOption
                 func detect(filepath string) (language string, err error)
-        log/
-            log.go
-                type LogLevel int32
-                func Infof(msg string, args ...interface{})
-                func Debugf(msg string, args ...interface{})
-                func Fatalf(msg string, args ...interface{})
         offline/
             offline.go
-                func WithQueue(filepath, table string) heartbeat.SenderOption
+                func WithQueue(filepath, table string) heartbeat.HandleOption
         project/
             project.go
                 type Config struct {
@@ -90,7 +89,7 @@ wakatime-cli/
                     Overwrite string
                     LocalFile string
                 }
-                WithDetection(c Config) heartbeat.SenderOption
+                WithDetection(c Config) heartbeat.HandleOption
                 func detect(filepath string) (project, branch string, err error)
                 func detectWithPlugin(filepath string, plugin Plugin) (project, branch string, err error)
         summary/
