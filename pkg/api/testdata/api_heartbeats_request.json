@@ -1,0 +1,32 @@
+[
+	{
+		"branch": "heartbeat",
+		"category": "coding",
+		"cursorpos": 12,
+		"dependencies": ["dep1", "dep2"],
+		"entity": "/tmp/main.go",
+		"is_write": true,
+		"language": "golang",
+		"lineno": 42,
+		"lines": 100,
+		"project": "wakatime-cli",
+		"type": "file",
+		"time": 1585598059,
+		"user_agent": "wakatime/13.0.6"
+	},
+	{
+		"branch": null,
+		"category": "debugging",
+		"cursorpos": null,
+		"dependencies": null,
+		"entity": "HIDDEN.py",
+		"is_write": null,
+		"language": null,
+		"lineno": null,
+		"lines": null,
+		"project": null,
+		"type": "file",
+		"time": 1585598060,
+		"user_agent": "wakatime/13.0.7"
+	}
+]

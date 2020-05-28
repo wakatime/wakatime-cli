@@ -31,17 +31,17 @@ func main() {
 	}
 
 	if args.SSLCert != nil {
-		clientOpts = append(options, api.WithSSL(args.SSLCert))
+		clientOpts = append(clientOpts, api.WithSSL(args.SSLCert))
 	}
 
 	if args.Timeout != nil {
-		clientOpts = append(options, api.WithTimeout(args.Timeout * time.Second))
+		clientOpts = append(clientOpts, api.WithTimeout(args.Timeout * time.Second))
 	}
 
 	if args.Plugin != nil {
-		clientOpts = append(options, api.WithUserAgentFromPlugin(args.Plugin))
+		clientOpts = append(clientOpts, api.WithUserAgentFromPlugin(args.Plugin))
 	} else {
-		clientOpts = append(options, api.WithUserAgent())
+		clientOpts = append(clientOpts, api.WithUserAgent())
 	}
 
 	client := api.NewClient(baseURL, http.DefaultClient, clientOpts...)

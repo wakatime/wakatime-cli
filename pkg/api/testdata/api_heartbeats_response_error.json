@@ -1,0 +1,23 @@
+{
+    "responses": [
+        [
+            {
+                "errors": {
+                    "lineno": [
+                        "Number must be between 1 and 2147483647."
+                    ],
+                    "time": [
+                        "This field is required."
+                    ]
+                }
+            },
+            400
+        ],
+        [
+            {
+                "error": "Can not log time before user was created."
+            },
+            400
+        ]
+    ]
+}
