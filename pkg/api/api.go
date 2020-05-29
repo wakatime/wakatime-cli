@@ -27,9 +27,9 @@ func NewClient(baseURL string, client *http.Client, opts ...Option) *Client {
 	return c
 }
 
-// do wraps c.client.Do() and sets default headers and headers, which are set
+// Do wraps c.client.Do() and sets default headers and headers, which are set
 // via Option.
-func (c *Client) do(req *http.Request) (*http.Response, error) {
+func (c *Client) Do(req *http.Request) (*http.Response, error) {
 	req.Header.Set("Accept", "application/json")
 
 	if c.authHeader != "" {

@@ -26,7 +26,7 @@ func (c *Client) Summaries(startDate, endDate time.Time) ([]summary.Summary, err
 	q.Add("end", endDate.Format(dateFormat))
 	req.URL.RawQuery = q.Encode()
 
-	resp, err := c.do(req)
+	resp, err := c.Do(req)
 	if err != nil {
 		return nil, Err(fmt.Sprintf("failed to make request to %q: %s", url, err))
 	}
