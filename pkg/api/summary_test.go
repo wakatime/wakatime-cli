@@ -6,7 +6,6 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-	"net/http/httptest"
 	"net/url"
 	"os"
 	"runtime"
@@ -19,7 +18,6 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/version"
 
 	"github.com/matishsiao/goInfo"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -361,11 +359,4 @@ func TestParseSummariesResponse_TotalsByCategory(t *testing.T) {
 			},
 		},
 	})
-}
-
-func setupTestServer() (string, *http.ServeMux, func()) {
-	router := http.NewServeMux()
-	srv := httptest.NewServer(router)
-
-	return srv.URL, router, func() { srv.Close() }
 }
