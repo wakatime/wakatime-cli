@@ -25,6 +25,13 @@ func WithAuth(auth BasicAuth) (Option, error) {
 	}, nil
 }
 
+// WithHostName sets the X-Machine-Name header to the passed in hostname.
+func WithHostName(hostname string) Option {
+	return func(c *Client) {
+		c.machineNameHeader = hostname
+	}
+}
+
 // WithTimeout configures a timeout for all requests.
 func WithTimeout(timeout time.Duration) Option {
 	return func(c *Client) {
@@ -53,6 +60,6 @@ func WithUserAgent(plugin string) Option {
 	)
 
 	return func(c *Client) {
-		c.userAgent = userAgent
+		c.userAgentHeader = userAgent
 	}
 }
