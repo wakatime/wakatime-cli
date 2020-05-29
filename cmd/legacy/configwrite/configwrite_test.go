@@ -15,14 +15,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type writerMock struct {
-	WriteFn func(section string, keyValue map[string]string) error
-}
-
-func (m *writerMock) Write(section string, keyValue map[string]string) error {
-	return m.WriteFn(section, keyValue)
-}
-
 func TestLoadParams(t *testing.T) {
 	tests := map[string]struct {
 		Value   map[string]string
@@ -95,6 +87,11 @@ func TestWrite(t *testing.T) {
 
 	err = configwrite.Write(v, ini)
 	require.NoError(t, err)
+
+	err = ini.File.Reload()
+	require.NoError(t, err)
+
+	assert.Equal(t, "false", ini.File.Section("settings").Key("debug").String())
 }
 
 func TestWriteErr(t *testing.T) {
@@ -132,7 +129,7 @@ func TestWriteErr(t *testing.T) {
 			assert.Equal(
 				t,
 				err.Error(),
-				"failed to write on wakatime config file. neither section nor key/value can be empty",
+				"failed loading params: neither section nor key/value can be empty",
 				errMsg,
 			)
 		})
@@ -157,4 +154,12 @@ func TestWriteSaveErr(t *testing.T) {
 	var fwerr config.ErrFileWrite
 
 	assert.True(t, errors.As(err, &fwerr))
+}
+
+type writerMock struct {
+	WriteFn func(section string, keyValue map[string]string) error
+}
+
+func (m *writerMock) Write(section string, keyValue map[string]string) error {
+	return m.WriteFn(section, keyValue)
 }

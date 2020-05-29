@@ -145,11 +145,13 @@ func TestWrite(t *testing.T) {
 	}
 }
 
-func TestWritePanic(t *testing.T) {
+func TestWriteErr(t *testing.T) {
 	w := config.IniWriter{}
 
-	//nolint:errcheck
-	require.Panics(t,
-		func() { w.Write("settings", map[string]string{"debug": "true"}) },
-	)
+	err := w.Write("settings", map[string]string{"debug": "true"})
+
+	var cfwerr config.ErrFileWrite
+
+	assert.True(t, errors.As(err, &cfwerr))
+	assert.Equal(t, "got undefined wakatime config file instance", err.Error())
 }

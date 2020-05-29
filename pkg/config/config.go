@@ -34,7 +34,7 @@ func NewIniWriter(v *viper.Viper, filepathFn func(v *viper.Viper) (string, error
 
 	ini, err := ini.Load(configFilepath)
 	if err != nil {
-		return nil, ErrFileParse(fmt.Errorf("error parsing config file: %s", err).Error())
+		return nil, ErrFileParse(fmt.Sprintf("error parsing config file: %s", err))
 	}
 
 	return &IniWriter{
@@ -45,6 +45,10 @@ func NewIniWriter(v *viper.Viper, filepathFn func(v *viper.Viper) (string, error
 
 // Write persists key(s) and value(s) on disk.
 func (w *IniWriter) Write(section string, keyValue map[string]string) error {
+	if w.File == nil || w.ConfigFilepath == "" {
+		return ErrFileWrite(fmt.Errorf("got undefined wakatime config file instance").Error())
+	}
+
 	for key, value := range keyValue {
 		w.File.Section(section).Key(key).SetValue(value)
 	}

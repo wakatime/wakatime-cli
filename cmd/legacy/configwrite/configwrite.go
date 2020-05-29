@@ -34,7 +34,7 @@ func Run(v *viper.Viper) {
 	}
 
 	if err := Write(v, w); err != nil {
-		jww.ERROR.Println(err)
+		jww.FATAL.Printf("failed to write on config file: %s", err)
 
 		var cfwerr config.ErrFileWrite
 		if errors.As(err, &cfwerr) {
@@ -51,7 +51,7 @@ func Run(v *viper.Viper) {
 func Write(v *viper.Viper, w config.Writer) error {
 	params, err := LoadParams(v)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed loading params: %w", err)
 	}
 
 	if err := w.Write(params.Section, params.KeyValue); err != nil {
@@ -72,7 +72,7 @@ func LoadParams(v *viper.Viper) (Params, error) {
 	if section == "" || len(kv) == 0 {
 		return Params{},
 			config.ErrFileWrite(
-				fmt.Errorf("failed to write on wakatime config file. neither section nor key/value can be empty").Error(),
+				fmt.Sprintf("neither section nor key/value can be empty"),
 			)
 	}
 
