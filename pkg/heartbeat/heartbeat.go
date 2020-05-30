@@ -26,6 +26,37 @@ type Heartbeat struct {
 	UserAgent      string     `json:"user_agent"`
 }
 
+// Result represents a response from the wakatime api.
+type Result struct {
+	Errors    []string
+	Status    int
+	Heartbeat Heartbeat
+}
+
+// Sender sends heartbeats to the wakatime api.
+type Sender interface {
+	Send(hh []Heartbeat) ([]Result, error)
+}
+
+// Handle does processing of heartbeats.
+type Handle func(hh []Heartbeat) ([]Result, error)
+
+// HandleOption is a function, which allows chaining multiple Handles.
+type HandleOption func(next Handle) Handle
+
+// NewHandle creates a new Handle, which acts like a processing pipeline,
+// with a sender eventually sending the heartbeats.
+func NewHandle(sender Sender, opts ...HandleOption) Handle {
+	return func(hh []Heartbeat) ([]Result, error) {
+		var h Handle = sender.Send
+		for i := len(opts) - 1; i >= 0; i-- {
+			h = opts[i](h)
+		}
+
+		return h(hh)
+	}
+}
+
 // UserAgentUnknownPlugin generates a user agent from various system infos, including
 // a default value for plugin.
 func UserAgentUnknownPlugin() string {
@@ -61,11 +92,4 @@ func Int(v int) *int {
 // String returns a pointer to the string value passed in.
 func String(v string) *string {
 	return &v
-}
-
-// Result represents a response from the wakatime api.
-type Result struct {
-	Errors    []string
-	Status    int
-	Heartbeat Heartbeat
 }
