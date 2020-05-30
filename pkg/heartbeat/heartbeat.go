@@ -1,5 +1,14 @@
 package heartbeat
 
+import (
+	"fmt"
+	"runtime"
+
+	"github.com/wakatime/wakatime-cli/pkg/version"
+
+	"github.com/matishsiao/goInfo"
+)
+
 // Heartbeat is a structure representing activity for a user on a some entity.
 type Heartbeat struct {
 	Branch         *string    `json:"branch"`
@@ -15,6 +24,28 @@ type Heartbeat struct {
 	Project        *string    `json:"project"`
 	Time           float64    `json:"time"`
 	UserAgent      string     `json:"user_agent"`
+}
+
+// UserAgentUnknownPlugin generates a user agent from various system infos, including
+// a default value for plugin.
+func UserAgentUnknownPlugin() string {
+	return UserAgent("Unknown/0")
+}
+
+// UserAgent generates a user agent from various system infos, including a
+// a passed in value for plugin.
+func UserAgent(plugin string) string {
+	info := goInfo.GetInfo()
+
+	return fmt.Sprintf(
+		"wakatime/%s (%s-%s-%s) %s %s",
+		version.Version,
+		runtime.GOOS,
+		info.Core,
+		info.Platform,
+		runtime.Version(),
+		plugin,
+	)
 }
 
 // Bool returns a pointer to the bool value passed in.
