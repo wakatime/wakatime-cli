@@ -50,7 +50,7 @@ wakatime-cli/
                     Send(hh []Heartbeat) ([]Result, error)
                 }
                 type Handle func(hh []Heartbeat) ([]Result, error)
-                HandleOption func(Handle) Handle
+                type HandleOption func(hh []Heartbeat)
                 func NewHandle(Sender, ...HandleOption) Handle
             sanitize.go
                 type SanitizeConfig struct {

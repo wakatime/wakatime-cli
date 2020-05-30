@@ -16,7 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestClient_SendHeartbeats(t *testing.T) {
+func TestClient_Send(t *testing.T) {
 	tests := []int{
 		http.StatusCreated,
 		http.StatusAccepted,
@@ -56,7 +56,7 @@ func TestClient_SendHeartbeats(t *testing.T) {
 			})
 
 			c := api.NewClient(url, http.DefaultClient)
-			results, err := c.SendHeartbeats(testHeartbeats())
+			results, err := c.Send(testHeartbeats())
 			require.NoError(t, err)
 
 			// check via assert.Equal on complete slice here, to assert exact order of results,
@@ -105,7 +105,7 @@ func TestClient_SendHeartbeats(t *testing.T) {
 	}
 }
 
-func TestClient_SendHeartbeats_Err(t *testing.T) {
+func TestClient_Send_Err(t *testing.T) {
 	url, router, close := setupTestServer()
 	defer close()
 
@@ -117,7 +117,7 @@ func TestClient_SendHeartbeats_Err(t *testing.T) {
 	})
 
 	c := api.NewClient(url, http.DefaultClient)
-	_, err := c.SendHeartbeats(testHeartbeats())
+	_, err := c.Send(testHeartbeats())
 
 	var errapi api.Err
 
@@ -126,7 +126,7 @@ func TestClient_SendHeartbeats_Err(t *testing.T) {
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
 
-func TestClient_SendHeartbeats_ErrAuth(t *testing.T) {
+func TestClient_Send_ErrAuth(t *testing.T) {
 	url, router, close := setupTestServer()
 	defer close()
 
@@ -138,7 +138,7 @@ func TestClient_SendHeartbeats_ErrAuth(t *testing.T) {
 	})
 
 	c := api.NewClient(url, http.DefaultClient)
-	_, err := c.SendHeartbeats(testHeartbeats())
+	_, err := c.Send(testHeartbeats())
 
 	var errauth api.ErrAuth
 
