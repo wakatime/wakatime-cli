@@ -1,0 +1,17 @@
+[
+    {
+        "branch": null,
+        "category": "debugging",
+        "cursorpos": null,
+        "dependencies": null,
+        "entity": "/tmp/main.go",
+        "is_write": true,
+        "language": null,
+        "lineno": null,
+        "lines": null,
+        "project": null,
+        "type": "app",
+        "time": 1585598059.1,
+        "user_agent": "%s"
+    }
+]
