@@ -44,32 +44,44 @@ const (
 	writingTestsCategoryString  = "writing tests"
 )
 
+// ParseCategory parses a category from a string.
+func ParseCategory(s string) (Category, error) {
+	switch s {
+	case codingCategoryString:
+		return CodingCategory, nil
+	case browsingCategoryString:
+		return BrowsingCategory, nil
+	case buildingCategoryString:
+		return BuildingCategory, nil
+	case codeReviewingCategoryString:
+		return CodeReviewingCategory, nil
+	case debuggingCategoryString:
+		return DebuggingCategory, nil
+	case designingCategoryString:
+		return DesigningCategory, nil
+	case indexingCategoryString:
+		return IndexingCategory, nil
+	case manualTestingCategoryString:
+		return ManualTestingCategory, nil
+	case runningTestsCategoryString:
+		return RunningTestsCategory, nil
+	case writingTestsCategoryString:
+		return WritingTestsCategory, nil
+	default:
+		return 0, fmt.Errorf("invalid category %q", s)
+	}
+}
+
 // UnmarshalJSON implements json.Unmarshaler interface.
 func (c *Category) UnmarshalJSON(v []byte) error {
-	switch strings.Trim(string(v), "\"") {
-	case codingCategoryString:
-		*c = CodingCategory
-	case browsingCategoryString:
-		*c = BrowsingCategory
-	case buildingCategoryString:
-		*c = BuildingCategory
-	case codeReviewingCategoryString:
-		*c = CodeReviewingCategory
-	case debuggingCategoryString:
-		*c = DebuggingCategory
-	case designingCategoryString:
-		*c = DesigningCategory
-	case indexingCategoryString:
-		*c = IndexingCategory
-	case manualTestingCategoryString:
-		*c = ManualTestingCategory
-	case runningTestsCategoryString:
-		*c = RunningTestsCategory
-	case writingTestsCategoryString:
-		*c = WritingTestsCategory
-	default:
-		return fmt.Errorf("unsupported category %q", v)
+	trimmed := strings.Trim(string(v), "\"")
+
+	category, err := ParseCategory(trimmed)
+	if err != nil {
+		return err
 	}
+
+	*c = category
 
 	return nil
 }
@@ -78,7 +90,7 @@ func (c *Category) UnmarshalJSON(v []byte) error {
 func (c Category) MarshalJSON() ([]byte, error) {
 	s := c.String()
 	if s == "" {
-		return nil, fmt.Errorf("unsupported category %v", c)
+		return nil, fmt.Errorf("invalid category %v", c)
 	}
 
 	return []byte(`"` + s + `"`), nil
