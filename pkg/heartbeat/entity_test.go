@@ -18,6 +18,22 @@ func typeTests() map[string]heartbeat.EntityType {
 	}
 }
 
+func TestParseEntityType(t *testing.T) {
+	for value, entityType := range typeTests() {
+		t.Run(value, func(t *testing.T) {
+			parsed, err := heartbeat.ParseEntityType(value)
+			require.NoError(t, err)
+
+			assert.Equal(t, entityType, parsed)
+		})
+	}
+}
+
+func TestParseEntityType_Invalid(t *testing.T) {
+	_, err := heartbeat.ParseEntityType("invalid")
+	require.Error(t, err)
+}
+
 func TestEntityType_UnmarshalJSON(t *testing.T) {
 	for value, entityType := range typeTests() {
 		t.Run(value, func(t *testing.T) {

@@ -2,6 +2,7 @@ package heartbeat
 
 import (
 	"fmt"
+	"strings"
 )
 
 // EntityType defines the type of an entity.
@@ -22,18 +23,30 @@ const (
 	appTypeString    = "app"
 )
 
+// ParseEntityType parses an entity type from a string.
+func ParseEntityType(s string) (EntityType, error) {
+	switch s {
+	case fileTypeString:
+		return FileType, nil
+	case domainTypeString:
+		return DomainType, nil
+	case appTypeString:
+		return AppType, nil
+	default:
+		return 0, fmt.Errorf("invalid entity type %q", s)
+	}
+}
+
 // UnmarshalJSON implements json.Unmarshaler interface.
 func (t *EntityType) UnmarshalJSON(v []byte) error {
-	switch string(v) {
-	case `"` + fileTypeString + `"`:
-		*t = FileType
-	case `"` + domainTypeString + `"`:
-		*t = DomainType
-	case `"` + appTypeString + `"`:
-		*t = AppType
-	default:
-		return fmt.Errorf("unsupported entity type: %q", v)
+	trimmed := strings.Trim(string(v), "\"")
+
+	entityType, err := ParseEntityType(trimmed)
+	if err != nil {
+		return err
 	}
+
+	*t = entityType
 
 	return nil
 }
@@ -42,7 +55,7 @@ func (t *EntityType) UnmarshalJSON(v []byte) error {
 func (t EntityType) MarshalJSON() ([]byte, error) {
 	s := t.String()
 	if s == "" {
-		return nil, fmt.Errorf("unsupported entity type %v", t)
+		return nil, fmt.Errorf("invalid entity type %v", t)
 	}
 
 	return []byte(`"` + s + `"`), nil
