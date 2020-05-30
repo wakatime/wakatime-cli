@@ -71,9 +71,7 @@ func LoadParams(v *viper.Viper) (Params, error) {
 
 	if section == "" || len(kv) == 0 {
 		return Params{},
-			config.ErrFileWrite(
-				fmt.Sprintf("neither section nor key/value can be empty"),
-			)
+			config.ErrFileWrite("neither section nor key/value can be empty")
 	}
 
 	return Params{

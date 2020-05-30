@@ -29,12 +29,12 @@ type IniWriter struct {
 func NewIniWriter(v *viper.Viper, filepathFn func(v *viper.Viper) (string, error)) (*IniWriter, error) {
 	configFilepath, err := filepathFn(v)
 	if err != nil {
-		return nil, ErrFileParse(err.Error())
+		return nil, ErrFileParse(fmt.Sprintf("error getting filepath: %s", err))
 	}
 
 	ini, err := ini.Load(configFilepath)
 	if err != nil {
-		return nil, ErrFileParse(fmt.Sprintf("error parsing config file: %s", err))
+		return nil, ErrFileParse(fmt.Sprintf("error loading config file: %s", err))
 	}
 
 	return &IniWriter{
@@ -46,7 +46,7 @@ func NewIniWriter(v *viper.Viper, filepathFn func(v *viper.Viper) (string, error
 // Write persists key(s) and value(s) on disk.
 func (w *IniWriter) Write(section string, keyValue map[string]string) error {
 	if w.File == nil || w.ConfigFilepath == "" {
-		return ErrFileWrite(fmt.Errorf("got undefined wakatime config file instance").Error())
+		return ErrFileWrite("got undefined wakatime config file instance")
 	}
 
 	for key, value := range keyValue {
@@ -54,7 +54,7 @@ func (w *IniWriter) Write(section string, keyValue map[string]string) error {
 	}
 
 	if err := w.File.SaveTo(w.ConfigFilepath); err != nil {
-		return ErrFileWrite(fmt.Errorf("error saving wakatime config: %s", err).Error())
+		return ErrFileWrite(fmt.Sprintf("error saving wakatime config: %s", err))
 	}
 
 	return nil
@@ -64,7 +64,7 @@ func (w *IniWriter) Write(section string, keyValue map[string]string) error {
 func ReadInConfig(v *viper.Viper, filepathFn func(v *viper.Viper) (string, error)) error {
 	configFilepath, err := filepathFn(v)
 	if err != nil {
-		return ErrFileParse(err.Error())
+		return ErrFileParse(fmt.Sprintf("error getting filepath: %s", err))
 	}
 
 	jww.DEBUG.Println("wakatime path:", configFilepath)

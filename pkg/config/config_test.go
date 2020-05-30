@@ -103,7 +103,7 @@ func TestNewIniWriterErr(t *testing.T) {
 	var cfperr config.ErrFileParse
 
 	assert.True(t, errors.As(err, &cfperr))
-	assert.Equal(t, "error", err.Error())
+	assert.Contains(t, err.Error(), "error getting filepath")
 }
 
 func TestWrite(t *testing.T) {
