@@ -140,7 +140,7 @@ func TestSummary_ErrAuth_UnsetAPIKey(t *testing.T) {
 	var errauth api.ErrAuth
 
 	assert.True(t, errors.As(err, &errauth))
-	assert.Equal(t, "failed to load command parameters: api key unset", err.Error())
+	assert.Equal(t, "failed to load command parameters: failed to load api key", err.Error())
 }
 
 func TestLoadParams_APIKey(t *testing.T) {
@@ -249,41 +249,27 @@ func TestLoadParams_Plugin(t *testing.T) {
 	}, params)
 }
 
-func TestLoadParams_Timeout(t *testing.T) {
-	tests := map[string]struct {
-		ViperTimeout       int
-		ViperTimeoutConfig int
-		Expected           today.Params
-	}{
-		"timeout flag takes preceedence": {
-			ViperTimeout:       5,
-			ViperTimeoutConfig: 10,
-			Expected: today.Params{
-				Timeout: 5 * time.Second,
-			},
-		},
-		"timeout from config": {
-			ViperTimeoutConfig: 10,
-			Expected: today.Params{
-				Timeout: 10 * time.Second,
-			},
-		},
-	}
+func TestLoadParams_Timeout_FlagTakesPreceedence(t *testing.T) {
+	v := viper.New()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("timeout", 5)
+	v.Set("settings.timeout", 10)
 
-	for name, test := range tests {
-		t.Run(name, func(t *testing.T) {
-			v := viper.New()
-			v.Set("key", "00000000-0000-4000-8000-000000000000")
-			v.Set("timeout", test.ViperTimeout)
-			v.Set("settings.timeout", test.ViperTimeoutConfig)
+	params, err := today.LoadParams(v)
+	require.NoError(t, err)
 
-			params, err := today.LoadParams(v)
-			require.NoError(t, err)
+	assert.Equal(t, 5*time.Second, params.Timeout)
+}
 
-			test.Expected.APIKey = "00000000-0000-4000-8000-000000000000"
-			assert.Equal(t, test.Expected, params)
-		})
-	}
+func TestLoadParams_Timeout_FromConfig(t *testing.T) {
+	v := viper.New()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("settings.timeout", 10)
+
+	params, err := today.LoadParams(v)
+	require.NoError(t, err)
+
+	assert.Equal(t, 10*time.Second, params.Timeout)
 }
 
 func TestLoadParamsErr_InvalidAPIKey(t *testing.T) {

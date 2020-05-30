@@ -11,6 +11,7 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/api"
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
 	"github.com/wakatime/wakatime-cli/pkg/summary"
+	"github.com/wakatime/wakatime-cli/pkg/vipertools"
 
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
@@ -103,50 +104,32 @@ func Summary(v *viper.Viper) (string, error) {
 	return output, nil
 }
 
-// LoadParams loads needed data from the configuration file. Returns ErrAuth on problems with api key.
+// LoadParams loads today config params from viper.Viper instance. Returns ErrAuth
+// if failed to retrieve api key.
 func LoadParams(v *viper.Viper) (Params, error) {
-	apiKey := firstNonEmptyString(v, "key", "settings.api_key", "settings.apikey")
-	if apiKey == "" {
-		return Params{}, api.ErrAuth("api key unset")
+	apiKey, ok := vipertools.FirstNonEmptyString(v, "key", "settings.api_key", "settings.apikey")
+	if !ok {
+		return Params{}, api.ErrAuth("failed to load api key")
 	}
 
 	if !apiKeyRegex.Match([]byte(apiKey)) {
 		return Params{}, api.ErrAuth("api key invalid")
 	}
 
-	var (
-		apiURL      = firstNonEmptyString(v, "api-url", "apiurl", "settings.api_url")
-		timeoutSecs = firstNonEmptyInt(v, "timeout", "settings.timeout")
-	)
-
-	return Params{
-		APIKey:  apiKey,
-		APIUrl:  apiURL,
-		Plugin:  v.GetString("plugin"),
-		Timeout: time.Duration(timeoutSecs) * time.Second,
-	}, nil
-}
-
-// firstNonEmptyInt accepts multiple keys and returns the first non empty int value
-// it is able to retrieve from viper.Viper via these keys.
-func firstNonEmptyInt(v *viper.Viper, keys ...string) int {
-	for _, key := range keys {
-		if value := v.GetInt(key); value != 0 {
-			return value
-		}
+	params := Params{
+		APIKey: apiKey,
+		Plugin: v.GetString("plugin"),
 	}
 
-	return 0
-}
-
-// firstNonEmptyString accepts multiple keys and returns the first non empty string value
-// it is able to retrieve from viper.Viper via these keys.
-func firstNonEmptyString(v *viper.Viper, keys ...string) string {
-	for _, key := range keys {
-		if value := v.GetString(key); value != "" {
-			return value
-		}
+	apiURL, ok := vipertools.FirstNonEmptyString(v, "api-url", "apiurl", "settings.api_url")
+	if ok {
+		params.APIUrl = apiURL
 	}
 
-	return ""
+	timeoutSecs, ok := vipertools.FirstNonEmptyInt(v, "timeout", "settings.timeout")
+	if ok {
+		params.Timeout = time.Duration(timeoutSecs) * time.Second
+	}
+
+	return params, nil
 }
