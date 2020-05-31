@@ -6,9 +6,10 @@ import (
 	"os"
 	"strings"
 
+	"github.com/wakatime/wakatime-cli/pkg/exitcode"
+
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
-	"github.com/wakatime/wakatime-cli/pkg/exitcode"
 )
 
 // Params contains config read parameters.
@@ -45,7 +46,7 @@ func Read(v *viper.Viper) (string, error) {
 	value := strings.TrimSpace(v.GetString(params.ViperKey()))
 	if value == "" {
 		return "", ErrFileRead(
-			fmt.Errorf("given section and key \"%s\" returned an empty string", params.ViperKey()).Error(),
+			fmt.Sprintf("given section and key %q returned an empty string", params.ViperKey()),
 		)
 	}
 
@@ -62,7 +63,7 @@ func LoadParams(v *viper.Viper) (Params, error) {
 
 	if section == "" || key == "" {
 		return Params{},
-			ErrFileRead(fmt.Errorf("failed reading wakatime config file. neither section nor key can be empty").Error())
+			ErrFileRead("failed reading wakatime config file. neither section nor key can be empty")
 	}
 
 	return Params{
