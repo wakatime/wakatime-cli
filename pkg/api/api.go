@@ -7,10 +7,11 @@ const BaseURL = "https://api.wakatime.com/api"
 
 // Client communicates with the wakatime api.
 type Client struct {
-	baseURL    string
-	client     *http.Client
-	userAgent  string
-	authHeader string
+	baseURL           string
+	client            *http.Client
+	authHeader        string
+	machineNameHeader string
+	userAgentHeader   string
 }
 
 // NewClient creates a new Client. Any number of Options can be provided.
@@ -27,17 +28,21 @@ func NewClient(baseURL string, client *http.Client, opts ...Option) *Client {
 	return c
 }
 
-// do wraps c.client.Do() and sets default headers and headers, which are set
+// Do wraps c.client.Do() and sets default headers and headers, which are set
 // via Option.
-func (c *Client) do(req *http.Request) (*http.Response, error) {
+func (c *Client) Do(req *http.Request) (*http.Response, error) {
 	req.Header.Set("Accept", "application/json")
 
 	if c.authHeader != "" {
 		req.Header.Set("Authorization", c.authHeader)
 	}
 
-	if c.userAgent != "" {
-		req.Header.Set("User-Agent", c.userAgent)
+	if c.machineNameHeader != "" {
+		req.Header.Set("X-Machine-Name", c.machineNameHeader)
+	}
+
+	if c.userAgentHeader != "" {
+		req.Header.Set("User-Agent", c.userAgentHeader)
 	}
 
 	return c.client.Do(req)

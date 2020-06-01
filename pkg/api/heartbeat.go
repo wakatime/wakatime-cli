@@ -28,7 +28,7 @@ func (c *Client) SendHeartbeats(heartbeats []heartbeat.Heartbeat) ([]heartbeat.R
 
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := c.do(req)
+	resp, err := c.Do(req)
 	if err != nil {
 		return nil, Err(fmt.Sprintf("failed making request to %q: %s", url, err))
 	}
