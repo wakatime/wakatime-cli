@@ -5,7 +5,9 @@ import (
 	"os"
 
 	"github.com/wakatime/wakatime-cli/cmd/legacy/configread"
+	"github.com/wakatime/wakatime-cli/cmd/legacy/configwrite"
 	"github.com/wakatime/wakatime-cli/cmd/legacy/today"
+	"github.com/wakatime/wakatime-cli/pkg/config"
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
 
 	jww "github.com/spf13/jwalterweatherman"
@@ -23,7 +25,7 @@ func Run(v *viper.Viper) {
 		os.Exit(exitcode.Success)
 	}
 
-	if err := ReadInConfig(v, ConfigFilePath); err != nil {
+	if err := config.ReadInConfig(v, config.FilePath); err != nil {
 		jww.CRITICAL.Printf("err: %s", err)
 
 		var cfperr ErrConfigFileParse
@@ -38,6 +40,12 @@ func Run(v *viper.Viper) {
 		jww.DEBUG.Println("command: config-read")
 
 		configread.Run(v)
+	}
+
+	if v.GetStringMapString("config-write") != nil {
+		jww.DEBUG.Println("command: config-write")
+
+		configwrite.Run(v)
 	}
 
 	if v.GetBool("today") {

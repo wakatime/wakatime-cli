@@ -13,4 +13,6 @@ const (
 	ErrConfigFileParse = 103
 	// ErrConfigFileRead is used for errors of config read command.
 	ErrConfigFileRead = 110
+	// ErrConfigFileWrite is used for errors of config write command.
+	ErrConfigFileWrite = 111
 )

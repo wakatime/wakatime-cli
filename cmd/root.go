@@ -46,6 +46,11 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 		defaultConfigSection,
 		"Optional config section when reading or writing a config key. Defaults to [settings].",
 	)
+	flags.StringToString(
+		"config-write",
+		nil,
+		"Writes value to a config key, then exits. Expects two arguments, key and value.",
+	)
 	flags.String("key", "", "Your wakatime api key; uses api_key from ~/.wakatime.cfg by default.")
 	flags.String("plugin", "", "Optional text editor plugin name and version for User-Agent header.")
 	flags.Int(
