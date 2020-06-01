@@ -61,7 +61,7 @@ func TestOption_WithAuth(t *testing.T) {
 	}
 }
 
-func TestOption_WithHostName(t *testing.T) {
+func TestOption_WithHostname(t *testing.T) {
 	url, router, tearDown := setupTestServer()
 	defer tearDown()
 
@@ -73,7 +73,7 @@ func TestOption_WithHostName(t *testing.T) {
 		numCalls++
 	})
 
-	opts := []api.Option{api.WithHostName("my-computer")}
+	opts := []api.Option{api.WithHostname("my-computer")}
 
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	require.NoError(t, err)

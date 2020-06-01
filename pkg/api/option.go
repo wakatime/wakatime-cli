@@ -25,8 +25,8 @@ func WithAuth(auth BasicAuth) (Option, error) {
 	}, nil
 }
 
-// WithHostName sets the X-Machine-Name header to the passed in hostname.
-func WithHostName(hostname string) Option {
+// WithHostname sets the X-Machine-Name header to the passed in hostname.
+func WithHostname(hostname string) Option {
 	return func(c *Client) {
 		c.machineNameHeader = hostname
 	}
