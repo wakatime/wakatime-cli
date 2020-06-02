@@ -21,7 +21,7 @@ type Params struct {
 func Set(v *viper.Viper) {
 	params, err := LoadParams(v)
 	if err != nil {
-		jww.WARN.Printf("error setting up log file: %s", err)
+		jww.WARN.Printf("error loading log file params: %s", err)
 	}
 
 	f, err := os.OpenFile(params.File, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)

@@ -94,10 +94,8 @@ func TestSet(t *testing.T) {
 
 	jww.DEBUG.Println("some log")
 
-	f, err := ioutil.ReadFile(tmpFile.Name())
+	data, err := ioutil.ReadFile(tmpFile.Name())
 	require.NoError(t, err)
 
-	content := string(f)
-
-	assert.Contains(t, "some log", content)
+	assert.Contains(t, "some log", string(data))
 }
