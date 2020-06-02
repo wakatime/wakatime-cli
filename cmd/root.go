@@ -52,6 +52,8 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 		"Writes value to a config key, then exits. Expects two arguments, key and value.",
 	)
 	flags.String("key", "", "Your wakatime api key; uses api_key from ~/.wakatime.cfg by default.")
+	flags.String("log-file", "", "Optional log file. Defaults to '~/.wakatime.log'.")
+	flags.String("logfile", "", "(deprecated) Optional log file. Defaults to '~/.wakatime.log'.")
 	flags.String("plugin", "", "Optional text editor plugin name and version for User-Agent header.")
 	flags.Int(
 		"timeout",

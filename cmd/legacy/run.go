@@ -6,6 +6,7 @@ import (
 
 	"github.com/wakatime/wakatime-cli/cmd/legacy/configread"
 	"github.com/wakatime/wakatime-cli/cmd/legacy/configwrite"
+	"github.com/wakatime/wakatime-cli/cmd/legacy/logfile"
 	"github.com/wakatime/wakatime-cli/cmd/legacy/today"
 	"github.com/wakatime/wakatime-cli/pkg/config"
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
@@ -16,6 +17,7 @@ import (
 
 // Run executes legacy commands following the interface of the old python implementation of the WakaTime script.
 func Run(v *viper.Viper) {
+	logfile.Set(v)
 	setVerbose(v)
 
 	if v.GetBool("version") {
