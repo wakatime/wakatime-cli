@@ -27,6 +27,9 @@ func TestLoadParams(t *testing.T) {
 
 	defer os.Remove(filepath.Join(dir, ".wakatime.log"))
 
+	home, err := os.UserHomeDir()
+	require.NoError(t, err)
+
 	tests := map[string]struct {
 		ViperLogFile       string
 		ViperLogFileConfig string
@@ -59,6 +62,11 @@ func TestLoadParams(t *testing.T) {
 			EnvVar: dir,
 			Expected: logfile.Params{
 				File: filepath.Join(dir, ".wakatime.log"),
+			},
+		},
+		"log file from home dir": {
+			Expected: logfile.Params{
+				File: filepath.Join(home, ".wakatime.log"),
 			},
 		},
 	}
