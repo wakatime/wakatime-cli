@@ -25,6 +25,22 @@ func categoryTests() map[string]heartbeat.Category {
 	}
 }
 
+func TestParseCategory(t *testing.T) {
+	for value, category := range categoryTests() {
+		t.Run(value, func(t *testing.T) {
+			parsed, err := heartbeat.ParseCategory(value)
+			require.NoError(t, err)
+
+			assert.Equal(t, category, parsed)
+		})
+	}
+}
+
+func TestParseCategory_Invalid(t *testing.T) {
+	_, err := heartbeat.ParseCategory("invalid")
+	require.Error(t, err)
+}
+
 func TestCategory_UnmarshalJSON(t *testing.T) {
 	for value, category := range categoryTests() {
 		t.Run(value, func(t *testing.T) {
