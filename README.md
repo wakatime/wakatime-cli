@@ -4,7 +4,7 @@ Command line interface to [WakaTime](https://wakatime.com) used by all WakaTime 
 
 Go to <http://wakatime.com/editors> to install the plugin for your text editor or IDE.
 
-### How to run
+### Contributing
 
 * you first need to setup Go in your machine https://golang.org/doc/install#install
 * check if you have make installed.
