@@ -51,7 +51,7 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 		nil,
 		"Writes value to a config key, then exits. Expects two arguments, key and value.",
 	)
-	flags.String("key", "", "Your wakatime api key; uses api_key from ~/.wakatime.cfg by default.")
+	flags.StringP("key", "k", "", "Your wakatime api key; uses api_key from ~/.wakatime.cfg by default.")
 	flags.String("log-file", "", "Optional log file. Defaults to '~/.wakatime.log'.")
 	flags.String("logfile", "", "(deprecated) Optional log file. Defaults to '~/.wakatime.log'.")
 	flags.String("plugin", "", "Optional text editor plugin name and version for User-Agent header.")
@@ -60,9 +60,9 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 		defaultTimeoutSecs,
 		"Number of seconds to wait when sending heartbeats to api. Defaults to 60 seconds.",
 	)
-	flags.Bool("today", false, "Prints dashboard time for Today, then exits.")
+	flags.BoolP("today", "t", false, "Prints dashboard time for Today, then exits.")
 	flags.Bool("verbose", false, "Turns on debug messages in log file.")
-	flags.Bool("version", false, "Prints the wakatime-cli version number, then exits.")
+	flags.BoolP("version", "v", false, "Prints the wakatime-cli version number, then exits.")
 
 	err := v.BindPFlags(flags)
 	if err != nil {
