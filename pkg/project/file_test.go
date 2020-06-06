@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"path"
 	"testing"
 
 	"github.com/wakatime/wakatime-cli/pkg/project"
@@ -14,7 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestFileDetect_FileExists(t *testing.T) {
+func TestFile_Detect_FileExists(t *testing.T) {
 	f := project.File{
 		Filepath: "testdata/.wakatime-project",
 	}
@@ -27,32 +26,33 @@ func TestFileDetect_FileExists(t *testing.T) {
 	assert.Equal(t, "master", result.Branch)
 }
 
-func TestFileDetect_AnyFileFound(t *testing.T) {
+func TestFile_Detect_AnyFileFound(t *testing.T) {
 	tmpFile, err := ioutil.TempFile(os.TempDir(), "wakatime-project")
 	require.NoError(t, err)
-
-	dir, _ := path.Split(tmpFile.Name())
 
 	defer os.Remove(tmpFile.Name())
 
 	f := project.File{
-		Filepath: dir,
+		Filepath: os.TempDir(),
 	}
 
-	_, detected, err := f.Detect()
+	result, detected, err := f.Detect()
 	require.NoError(t, err)
 
+	expected := project.Result{}
+
 	assert.False(t, detected)
+	assert.Equal(t, expected, result)
 }
 
-func TestFileDetect_WrongPath(t *testing.T) {
+func TestFile_Detect_WrongPath(t *testing.T) {
 	f := project.File{
 		Filepath: "path/to/non-file",
 	}
 
 	_, detected, err := f.Detect()
 
-	var pferr project.ErrProject
+	var pferr project.Err
 
 	errMsg := fmt.Sprintf("error %q differs from the string set", err)
 

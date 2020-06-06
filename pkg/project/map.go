@@ -33,7 +33,7 @@ func (m Map) Detect() (Result, bool, error) {
 	result, ok, err := matchPattern(m.Filepath, m.Patterns)
 	if err != nil {
 		return Result{}, false,
-			ErrProject(fmt.Sprintf("error matching pattern: %s", err))
+			Err(fmt.Sprintf("error matching pattern: %s", err))
 	} else if !ok {
 		return Result{}, false, nil
 	}
@@ -48,7 +48,7 @@ func matchPattern(fp string, patterns []Pattern) (string, bool, error) {
 	fp, err := realpath.Realpath(fp)
 	if err != nil {
 		return "", false,
-			ErrProject(fmt.Errorf("failed to get the real path: %w", err).Error())
+			Err(fmt.Errorf("failed to get the real path: %w", err).Error())
 	}
 
 	for _, pattern := range patterns {

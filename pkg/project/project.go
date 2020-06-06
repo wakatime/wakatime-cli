@@ -20,7 +20,7 @@ type Result struct {
 	Branch  string
 }
 
-// Config contains project data.
+// Config contains project detection configurations.
 type Config struct {
 	// Override sets an optional project name.
 	Override string
@@ -51,10 +51,12 @@ func WithDetection(c Config) heartbeat.HandleOption {
 
 					hh[n].Branch = &branch
 					hh[n].Project = &project
-				} else {
-					project := firstNonEmptyString(c.Override, c.Alternative)
-					hh[n].Project = &project
+
+					break
 				}
+
+				project := firstNonEmptyString(c.Override, c.Alternative)
+				hh[n].Project = &project
 			}
 
 			return next(hh)

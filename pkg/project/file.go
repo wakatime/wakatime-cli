@@ -24,7 +24,7 @@ func (f File) Detect() (Result, bool, error) {
 	fp, ok, err := findProjectFile(f.Filepath)
 	if err != nil {
 		return Result{}, false,
-			ErrProject(fmt.Sprintf("error finding project file: %s", err))
+			Err(fmt.Sprintf("error finding project file: %s", err))
 	} else if !ok {
 		return Result{}, false, nil
 	}
@@ -32,16 +32,16 @@ func (f File) Detect() (Result, bool, error) {
 	lines, err := readFile(fp)
 	if err != nil {
 		return Result{}, false,
-			ErrProject(fmt.Sprintf("error reading file: %s", err))
+			Err(fmt.Sprintf("error reading file: %s", err))
 	}
 
 	result := Result{}
 
-	if isset(lines, 0) {
+	if len(lines) > 0 {
 		result.Project = strings.TrimSpace(lines[0])
 	}
 
-	if isset(lines, 1) {
+	if len(lines) > 1 {
 		result.Branch = strings.TrimSpace(lines[1])
 	}
 
@@ -52,7 +52,7 @@ func (f File) Detect() (Result, bool, error) {
 func findProjectFile(fp string) (string, bool, error) {
 	fp, err := realpath.Realpath(fp)
 	if err != nil {
-		return "", false, ErrProject(fmt.Errorf("failed to get the real path: %w", err).Error())
+		return "", false, Err(fmt.Errorf("failed to get the real path: %w", err).Error())
 	}
 
 	dir, _ := path.Split(fp)
@@ -82,12 +82,12 @@ func fileExists(fp string) bool {
 // readFile reads a file and return an array of lines.
 func readFile(fp string) ([]string, error) {
 	if fp == "" {
-		return nil, ErrProject("filepath cannot be empty")
+		return nil, Err("filepath cannot be empty")
 	}
 
 	file, err := os.Open(fp)
 	if err != nil {
-		return nil, ErrProject(fmt.Errorf("failed while opening file %q: %w", fp, err).Error())
+		return nil, Err(fmt.Errorf("failed while opening file %q: %w", fp, err).Error())
 	}
 
 	defer file.Close()
@@ -102,11 +102,6 @@ func readFile(fp string) ([]string, error) {
 	}
 
 	return lines, nil
-}
-
-// isset check if index is present on given array.
-func isset(arr []string, index int) bool {
-	return len(arr) > index
 }
 
 // String returns its name.

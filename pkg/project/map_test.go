@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestMapDetect(t *testing.T) {
+func TestMap_Detect(t *testing.T) {
 	wd, err := os.Getwd()
 	require.NoError(t, err)
 
@@ -37,7 +37,7 @@ func TestMapDetect(t *testing.T) {
 	assert.Equal(t, "my-project-1", result.Project)
 }
 
-func TestMapDetect_RegexReplace(t *testing.T) {
+func TestMap_Detect_RegexReplace(t *testing.T) {
 	wd, err := os.Getwd()
 	require.NoError(t, err)
 
@@ -70,7 +70,7 @@ func TestMapDetect_RegexReplace(t *testing.T) {
 	assert.Equal(t, "my-project-2-data", result.Project)
 }
 
-func TestMapDetect_NoMatch(t *testing.T) {
+func TestMap_Detect_NoMatch(t *testing.T) {
 	wd, err := os.Getwd()
 	require.NoError(t, err)
 
@@ -103,7 +103,7 @@ func TestMapDetect_NoMatch(t *testing.T) {
 	assert.Equal(t, "", result.Project)
 }
 
-func TestMapDetect_ZeroPatterns(t *testing.T) {
+func TestMap_Detect_ZeroPatterns(t *testing.T) {
 	m := project.Map{
 		Patterns: []project.Pattern{},
 	}
