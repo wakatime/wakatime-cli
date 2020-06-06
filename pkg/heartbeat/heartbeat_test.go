@@ -45,19 +45,11 @@ func TestHeartbeat_JSON(t *testing.T) {
 
 func TestHeartbeat_JSON_NilFields(t *testing.T) {
 	h := heartbeat.Heartbeat{
-		Branch:         nil,
-		Category:       heartbeat.CodingCategory,
-		CursorPosition: nil,
-		Dependencies:   nil,
-		Entity:         "/tmp/main.go",
-		EntityType:     heartbeat.FileType,
-		IsWrite:        nil,
-		Language:       nil,
-		LineNumber:     nil,
-		Lines:          nil,
-		Project:        nil,
-		Time:           1585598060,
-		UserAgent:      "wakatime/13.0.7",
+		Category:   heartbeat.CodingCategory,
+		Entity:     "/tmp/main.go",
+		EntityType: heartbeat.FileType,
+		Time:       1585598060,
+		UserAgent:  "wakatime/13.0.7",
 	}
 
 	jsonEncoded, err := json.Marshal(h)
@@ -72,4 +64,61 @@ func TestHeartbeat_JSON_NilFields(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.JSONEq(t, string(expected), string(jsonEncoded))
+}
+
+func TestNewHandle(t *testing.T) {
+	sender := mockSender{
+		SendFn: func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+			assert.Equal(t, []heartbeat.Heartbeat{
+				{
+					Branch:     heartbeat.String("test"),
+					Category:   heartbeat.CodingCategory,
+					Entity:     "/tmp/main.go",
+					EntityType: heartbeat.FileType,
+					Time:       1585598060,
+					UserAgent:  "wakatime/13.0.7",
+				},
+			}, hh)
+			return []heartbeat.Result{
+				{
+					Status:    201,
+					Heartbeat: heartbeat.Heartbeat{},
+				},
+			}, nil
+		},
+	}
+
+	opts := []heartbeat.HandleOption{
+		func(next heartbeat.Handle) heartbeat.Handle {
+			return func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+				for i := range hh {
+					hh[i].Branch = heartbeat.String("test")
+				}
+
+				return next(hh)
+			}
+		},
+	}
+
+	handle := heartbeat.NewHandle(&sender, opts...)
+	_, err := handle([]heartbeat.Heartbeat{
+		{
+			Category:   heartbeat.CodingCategory,
+			Entity:     "/tmp/main.go",
+			EntityType: heartbeat.FileType,
+			Time:       1585598060,
+			UserAgent:  "wakatime/13.0.7",
+		},
+	})
+	require.NoError(t, err)
+}
+
+type mockSender struct {
+	SendFn        func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error)
+	SendFnInvoked bool
+}
+
+func (m *mockSender) Send(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+	m.SendFnInvoked = true
+	return m.SendFn(hh)
 }

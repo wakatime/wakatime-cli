@@ -39,6 +39,14 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 	flags := cmd.Flags()
 	flags.String("api-url", "", "Heartbeats api url. For debugging with a local server.")
 	flags.String("apiurl", "", "(deprecated) Heartbeats api url. For debugging with a local server.")
+	flags.String(
+		"category",
+		"",
+		"Category of this heartbeat activity. Can be \"coding\","+
+			" \"building\", \"indexing\", \"debugging\", \"running tests\","+
+			" \"writing tests\", \"manual testing\", \"code reviewing\","+
+			" \"browsing\", or \"designing\". Defaults to \"coding\".",
+	)
 	flags.String("config", "", "Optional config file. Defaults to '~/.wakatime.cfg'.")
 	flags.String("config-read", "", "Prints value for the given config key, then exits.")
 	flags.String(
@@ -51,6 +59,18 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 		nil,
 		"Writes value to a config key, then exits. Expects two arguments, key and value.",
 	)
+	flags.String(
+		"entity",
+		"",
+		"Absolute path to file for the heartbeat. Can also be a url, domain or app when --entity-type is not file.",
+	)
+	flags.String(
+		"entity-type",
+		"",
+		"Entity type for this heartbeat. Can be \"file\", \"domain\" or \"app\". Defaults to \"file\".",
+	)
+	flags.String("file", "", "(deprecated) Absolute path to file for the heartbeat.")
+	flags.String("hostname", "", "Optional name of local machine. Defaults to local machine name read from system")
 	flags.String("key", "", "Your wakatime api key; uses api_key from ~/.wakatime.cfg by default.")
 	flags.String("log-file", "", "Optional log file. Defaults to '~/.wakatime.log'.")
 	flags.String("logfile", "", "(deprecated) Optional log file. Defaults to '~/.wakatime.log'.")
@@ -60,9 +80,11 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 		defaultTimeoutSecs,
 		"Number of seconds to wait when sending heartbeats to api. Defaults to 60 seconds.",
 	)
+	flags.Float64("time", 0, "Optional floating-point unix epoch timestamp. Uses current time by default.")
 	flags.Bool("today", false, "Prints dashboard time for Today, then exits.")
 	flags.Bool("verbose", false, "Turns on debug messages in log file.")
 	flags.Bool("version", false, "Prints the wakatime-cli version number, then exits.")
+	flags.Bool("write", false, "When set, tells api this heartbeat was triggered from writing to a file.")
 
 	err := v.BindPFlags(flags)
 	if err != nil {

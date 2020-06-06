@@ -2,12 +2,9 @@ package api
 
 import (
 	"fmt"
-	"runtime"
 	"time"
 
-	"github.com/wakatime/wakatime-cli/pkg/version"
-
-	"github.com/matishsiao/goInfo"
+	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 )
 
 // Option is a functional option for Client.
@@ -48,16 +45,7 @@ func WithUserAgentUnknownPlugin() Option {
 // WithUserAgent sets the User-Agent header on all requests, including the passed
 // in value for plugin.
 func WithUserAgent(plugin string) Option {
-	info := goInfo.GetInfo()
-	userAgent := fmt.Sprintf(
-		"wakatime/%s (%s-%s-%s) %s %s",
-		version.Version,
-		runtime.GOOS,
-		info.Core,
-		info.Platform,
-		runtime.Version(),
-		plugin,
-	)
+	userAgent := heartbeat.UserAgent(plugin)
 
 	return func(c *Client) {
 		c.userAgentHeader = userAgent

@@ -6,6 +6,7 @@ import (
 
 	"github.com/wakatime/wakatime-cli/cmd/legacy/configread"
 	"github.com/wakatime/wakatime-cli/cmd/legacy/configwrite"
+	"github.com/wakatime/wakatime-cli/cmd/legacy/heartbeat"
 	"github.com/wakatime/wakatime-cli/cmd/legacy/logfile"
 	"github.com/wakatime/wakatime-cli/cmd/legacy/today"
 	"github.com/wakatime/wakatime-cli/pkg/config"
@@ -54,7 +55,7 @@ func Run(v *viper.Viper) {
 		today.Run(v)
 	}
 
-	os.Exit(exitcode.Success)
+	heartbeat.Run(v)
 }
 
 func setVerbose(v *viper.Viper) {

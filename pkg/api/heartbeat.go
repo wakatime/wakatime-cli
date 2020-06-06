@@ -12,8 +12,8 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 )
 
-// SendHeartbeats sends a bulk of heartbeats to the wakatime api.
-func (c *Client) SendHeartbeats(heartbeats []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+// Send sends a bulk of heartbeats to the wakatime api.
+func (c *Client) Send(heartbeats []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 	url := c.baseURL + "/v1/users/current/heartbeats.bulk"
 
 	data, err := json.Marshal(heartbeats)

@@ -50,8 +50,8 @@ wakatime-cli/
                     Send(hh []Heartbeat) ([]Result, error)
                 }
                 type Handle func(hh []Heartbeat) ([]Result, error)
-                HandleOption func(Handle) Handle
-                func NewHandle(Sender, ...HandleOption) Handle
+                type HandleOption func(next Handle) Handle
+                func NewHandle(sender Sender, opts ...HandleOption) Handle {}
             sanitize.go
                 type SanitizeConfig struct {
                     HideBranchNames []*regexp.Regexp
