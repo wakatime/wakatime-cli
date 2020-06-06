@@ -39,21 +39,25 @@ func Run(v *viper.Viper) {
 		os.Exit(exitcode.ErrDefault)
 	}
 
-	if v.GetString("config-read") != "" {
+	if v.IsSet("config-read") {
 		jww.DEBUG.Println("command: config-read")
 
 		configread.Run(v)
 	}
 
-	if v.GetStringMapString("config-write") != nil {
+	if v.IsSet("config-write") {
 		jww.DEBUG.Println("command: config-write")
 
 		configwrite.Run(v)
 	}
 
 	if v.GetBool("today") {
+		jww.DEBUG.Println("command: today")
+
 		today.Run(v)
 	}
+
+	jww.DEBUG.Println("command: heartbeat")
 
 	heartbeat.Run(v)
 }
