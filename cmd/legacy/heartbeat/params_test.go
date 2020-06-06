@@ -3,6 +3,7 @@ package heartbeat_test
 import (
 	"errors"
 	"os"
+	"regexp"
 	"testing"
 	"time"
 
@@ -393,9 +394,9 @@ func TestLoadParams_Time_Default(t *testing.T) {
 	params, err := cmd.LoadParams(v)
 	require.NoError(t, err)
 
-	now := time.Now().Unix()
-	assert.GreaterOrEqual(t, float64(now), params.Time)
-	assert.GreaterOrEqual(t, params.Time, float64(now-60))
+	now := float64(time.Now().UnixNano()) / 1000000000
+	assert.GreaterOrEqual(t, now, params.Time)
+	assert.GreaterOrEqual(t, params.Time, now-60)
 }
 
 func TestLoadParams_Network_DisableSSLVerify_FlagTakesPrecedence(t *testing.T) {
@@ -515,4 +516,527 @@ func TestLoadParams_Network_SSLCertFilepath_FromConfig(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, "/path/to/cert.pem", params.Network.SSLCertFilepath)
+}
+
+func TestLoadParams_SanitizeParams_HideBranchNames_True(t *testing.T) {
+	tests := map[string]string{
+		"lowercase":       "true",
+		"uppercase":       "TRUE",
+		"first uppercase": "True",
+	}
+
+	for name, viperValue := range tests {
+		t.Run(name, func(t *testing.T) {
+			v := viper.New()
+			v.Set("key", "00000000-0000-4000-8000-000000000000")
+			v.Set("entity", "/path/to/file")
+			v.Set("hide-branch-names", viperValue)
+
+			params, err := cmd.LoadParams(v)
+			require.NoError(t, err)
+
+			assert.Equal(t, cmd.SanitizeParams{
+				HideBranchNames: []*regexp.Regexp{regexp.MustCompile(".*")},
+			}, params.Sanitize)
+		})
+	}
+}
+
+func TestLoadParams_SanitizeParams_HideBranchNames_False(t *testing.T) {
+	tests := map[string]string{
+		"lowercase":       "false",
+		"uppercase":       "FALSE",
+		"first uppercase": "False",
+	}
+
+	for name, viperValue := range tests {
+		t.Run(name, func(t *testing.T) {
+			v := viper.New()
+			v.Set("key", "00000000-0000-4000-8000-000000000000")
+			v.Set("entity", "/path/to/file")
+			v.Set("hide-branch-names", viperValue)
+
+			params, err := cmd.LoadParams(v)
+			require.NoError(t, err)
+
+			assert.Equal(t, cmd.SanitizeParams{}, params.Sanitize)
+		})
+	}
+}
+
+func TestLoadParams_SanitizeParams_HideBranchNames_List(t *testing.T) {
+	tests := map[string]struct {
+		ViperValue string
+		Expected   []*regexp.Regexp
+	}{
+		"regex": {
+			ViperValue: "fix.*",
+			Expected: []*regexp.Regexp{
+				regexp.MustCompile("fix.*"),
+			},
+		},
+		"regex list": {
+			ViperValue: ".*secret.*\nfix.*",
+			Expected: []*regexp.Regexp{
+				regexp.MustCompile(".*secret.*"),
+				regexp.MustCompile("fix.*"),
+			},
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			v := viper.New()
+			v.Set("key", "00000000-0000-4000-8000-000000000000")
+			v.Set("entity", "/path/to/file")
+			v.Set("hide-branch-names", test.ViperValue)
+
+			params, err := cmd.LoadParams(v)
+			require.NoError(t, err)
+
+			assert.Equal(t, cmd.SanitizeParams{
+				HideBranchNames: test.Expected,
+			}, params.Sanitize)
+		})
+	}
+}
+
+func TestLoadParams_SanitizeParams_HideBranchNames_FlagTakesPrecedence(t *testing.T) {
+	v := viper.New()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("entity", "/path/to/file")
+	v.Set("hide-branch-names", "true")
+	v.Set("settings.hide_branch_names", "ignored")
+	v.Set("settings.hide_branchnames", "ignored")
+	v.Set("settings.hidebranchnames", "ignored")
+
+	params, err := cmd.LoadParams(v)
+	require.NoError(t, err)
+
+	assert.Equal(t, cmd.SanitizeParams{
+		HideBranchNames: []*regexp.Regexp{regexp.MustCompile(".*")},
+	}, params.Sanitize)
+}
+
+func TestLoadParams_SanitizeParams_HideBranchNames_ConfigTakesPrecedence(t *testing.T) {
+	v := viper.New()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("entity", "/path/to/file")
+	v.Set("settings.hide_branch_names", "true")
+	v.Set("settings.hide_branchnames", "ignored")
+	v.Set("settings.hidebranchnames", "ignored")
+
+	params, err := cmd.LoadParams(v)
+	require.NoError(t, err)
+
+	assert.Equal(t, cmd.SanitizeParams{
+		HideBranchNames: []*regexp.Regexp{regexp.MustCompile(".*")},
+	}, params.Sanitize)
+}
+
+func TestLoadParams_SanitizeParams_HideBranchNames_ConfigDeprecatedOneTakesPrecedence(t *testing.T) {
+	v := viper.New()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("entity", "/path/to/file")
+	v.Set("settings.hide_branchnames", "true")
+	v.Set("settings.hidebranchnames", "ignored")
+
+	params, err := cmd.LoadParams(v)
+	require.NoError(t, err)
+
+	assert.Equal(t, cmd.SanitizeParams{
+		HideBranchNames: []*regexp.Regexp{regexp.MustCompile(".*")},
+	}, params.Sanitize)
+}
+
+func TestLoadParams_SanitizeParams_HideBranchNames_ConfigDeprecatedTwo(t *testing.T) {
+	v := viper.New()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("entity", "/path/to/file")
+	v.Set("settings.hidebranchnames", "true")
+
+	params, err := cmd.LoadParams(v)
+	require.NoError(t, err)
+
+	assert.Equal(t, cmd.SanitizeParams{
+		HideBranchNames: []*regexp.Regexp{regexp.MustCompile(".*")},
+	}, params.Sanitize)
+}
+
+func TestLoadParams_SanitizeParams_HideBranchNames_InvalidRegex(t *testing.T) {
+	v := viper.New()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("entity", "/path/to/file")
+	v.Set("hide-branch-names", ".*secret.*\n[0-9+")
+
+	_, err := cmd.LoadParams(v)
+	require.Error(t, err)
+
+	assert.Equal(t, errors.New(
+		"failed to load sanitize params:"+
+			" failed to parse regex hide branch names param \".*secret.*\\n[0-9+\":"+
+			" failed to compile regex \"[0-9+\":"+
+			" error parsing regexp: missing closing ]: `[0-9+`",
+	), err)
+}
+
+func TestLoadParams_SanitizeParams_HideProjectNames_True(t *testing.T) {
+	tests := map[string]string{
+		"lowercase":       "true",
+		"uppercase":       "TRUE",
+		"first uppercase": "True",
+	}
+
+	for name, viperValue := range tests {
+		t.Run(name, func(t *testing.T) {
+			v := viper.New()
+			v.Set("key", "00000000-0000-4000-8000-000000000000")
+			v.Set("entity", "/path/to/file")
+			v.Set("hide-project-names", viperValue)
+
+			params, err := cmd.LoadParams(v)
+			require.NoError(t, err)
+
+			assert.Equal(t, cmd.SanitizeParams{
+				HideProjectNames: []*regexp.Regexp{regexp.MustCompile(".*")},
+			}, params.Sanitize)
+		})
+	}
+}
+
+func TestLoadParams_SanitizeParams_HideProjectNames_False(t *testing.T) {
+	tests := map[string]string{
+		"lowercase":       "false",
+		"uppercase":       "FALSE",
+		"first uppercase": "False",
+	}
+
+	for name, viperValue := range tests {
+		t.Run(name, func(t *testing.T) {
+			v := viper.New()
+			v.Set("key", "00000000-0000-4000-8000-000000000000")
+			v.Set("entity", "/path/to/file")
+			v.Set("hide-project-names", viperValue)
+
+			params, err := cmd.LoadParams(v)
+			require.NoError(t, err)
+
+			assert.Equal(t, cmd.SanitizeParams{}, params.Sanitize)
+		})
+	}
+}
+
+func TestLoadParams_SanitizeParams_HideProjecthNames_List(t *testing.T) {
+	tests := map[string]struct {
+		ViperValue string
+		Expected   []*regexp.Regexp
+	}{
+		"regex": {
+			ViperValue: "fix.*",
+			Expected: []*regexp.Regexp{
+				regexp.MustCompile("fix.*"),
+			},
+		},
+		"regex list": {
+			ViperValue: ".*secret.*\nfix.*",
+			Expected: []*regexp.Regexp{
+				regexp.MustCompile(".*secret.*"),
+				regexp.MustCompile("fix.*"),
+			},
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			v := viper.New()
+			v.Set("key", "00000000-0000-4000-8000-000000000000")
+			v.Set("entity", "/path/to/file")
+			v.Set("hide-project-names", test.ViperValue)
+
+			params, err := cmd.LoadParams(v)
+			require.NoError(t, err)
+
+			assert.Equal(t, cmd.SanitizeParams{
+				HideProjectNames: test.Expected,
+			}, params.Sanitize)
+		})
+	}
+}
+
+func TestLoadParams_SanitizeParams_HideProjectNames_FlagTakesPrecedence(t *testing.T) {
+	v := viper.New()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("entity", "/path/to/file")
+	v.Set("hide-project-names", "true")
+	v.Set("settings.hide_project_names", "ignored")
+	v.Set("settings.hide_projectnames", "ignored")
+	v.Set("settings.hideprojectnames", "ignored")
+
+	params, err := cmd.LoadParams(v)
+	require.NoError(t, err)
+
+	assert.Equal(t, cmd.SanitizeParams{
+		HideProjectNames: []*regexp.Regexp{regexp.MustCompile(".*")},
+	}, params.Sanitize)
+}
+
+func TestLoadParams_SanitizeParams_HideProjectNames_ConfigTakesPrecedence(t *testing.T) {
+	v := viper.New()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("entity", "/path/to/file")
+	v.Set("settings.hide_project_names", "true")
+	v.Set("settings.hide_projectnames", "ignored")
+	v.Set("settings.hideprojectnames", "ignored")
+
+	params, err := cmd.LoadParams(v)
+	require.NoError(t, err)
+
+	assert.Equal(t, cmd.SanitizeParams{
+		HideProjectNames: []*regexp.Regexp{regexp.MustCompile(".*")},
+	}, params.Sanitize)
+}
+
+func TestLoadParams_SanitizeParams_HideProjectNames_ConfigDeprecatedOneTakesPrecedence(t *testing.T) {
+	v := viper.New()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("entity", "/path/to/file")
+	v.Set("settings.hide_projectnames", "true")
+	v.Set("settings.hideprojectnames", "ignored")
+
+	params, err := cmd.LoadParams(v)
+	require.NoError(t, err)
+
+	assert.Equal(t, cmd.SanitizeParams{
+		HideProjectNames: []*regexp.Regexp{regexp.MustCompile(".*")},
+	}, params.Sanitize)
+}
+
+func TestLoadParams_SanitizeParams_HideProjectNames_ConfigDeprecatedTwo(t *testing.T) {
+	v := viper.New()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("entity", "/path/to/file")
+	v.Set("settings.hideprojectnames", "true")
+
+	params, err := cmd.LoadParams(v)
+	require.NoError(t, err)
+
+	assert.Equal(t, cmd.SanitizeParams{
+		HideProjectNames: []*regexp.Regexp{regexp.MustCompile(".*")},
+	}, params.Sanitize)
+}
+
+func TestLoadParams_SanitizeParams_HideProjectNames_InvalidRegex(t *testing.T) {
+	v := viper.New()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("entity", "/path/to/file")
+	v.Set("hide-project-names", ".*secret.*\n[0-9+")
+
+	_, err := cmd.LoadParams(v)
+	require.Error(t, err)
+
+	assert.Equal(t, errors.New(
+		"failed to load sanitize params:"+
+			" failed to parse regex hide project names param \".*secret.*\\n[0-9+\":"+
+			" failed to compile regex \"[0-9+\":"+
+			" error parsing regexp: missing closing ]: `[0-9+`",
+	), err)
+}
+
+func TestLoadParams_SanitizeParams_HideFileNames_True(t *testing.T) {
+	tests := map[string]string{
+		"lowercase":       "true",
+		"uppercase":       "TRUE",
+		"first uppercase": "True",
+	}
+
+	for name, viperValue := range tests {
+		t.Run(name, func(t *testing.T) {
+			v := viper.New()
+			v.Set("key", "00000000-0000-4000-8000-000000000000")
+			v.Set("entity", "/path/to/file")
+			v.Set("hide-file-names", viperValue)
+
+			params, err := cmd.LoadParams(v)
+			require.NoError(t, err)
+
+			assert.Equal(t, cmd.SanitizeParams{
+				HideFileNames: []*regexp.Regexp{regexp.MustCompile(".*")},
+			}, params.Sanitize)
+		})
+	}
+}
+
+func TestLoadParams_SanitizeParams_HideFileNames_False(t *testing.T) {
+	tests := map[string]string{
+		"lowercase":       "false",
+		"uppercase":       "FALSE",
+		"first uppercase": "False",
+	}
+
+	for name, viperValue := range tests {
+		t.Run(name, func(t *testing.T) {
+			v := viper.New()
+			v.Set("key", "00000000-0000-4000-8000-000000000000")
+			v.Set("entity", "/path/to/file")
+			v.Set("hide-file-names", viperValue)
+
+			params, err := cmd.LoadParams(v)
+			require.NoError(t, err)
+
+			assert.Equal(t, cmd.SanitizeParams{}, params.Sanitize)
+		})
+	}
+}
+
+func TestLoadParams_SanitizeParams_HideFilehNames_List(t *testing.T) {
+	tests := map[string]struct {
+		ViperValue string
+		Expected   []*regexp.Regexp
+	}{
+		"regex": {
+			ViperValue: "fix.*",
+			Expected: []*regexp.Regexp{
+				regexp.MustCompile("fix.*"),
+			},
+		},
+		"regex list": {
+			ViperValue: ".*secret.*\nfix.*",
+			Expected: []*regexp.Regexp{
+				regexp.MustCompile(".*secret.*"),
+				regexp.MustCompile("fix.*"),
+			},
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			v := viper.New()
+			v.Set("key", "00000000-0000-4000-8000-000000000000")
+			v.Set("entity", "/path/to/file")
+			v.Set("hide-file-names", test.ViperValue)
+
+			params, err := cmd.LoadParams(v)
+			require.NoError(t, err)
+
+			assert.Equal(t, cmd.SanitizeParams{
+				HideFileNames: test.Expected,
+			}, params.Sanitize)
+		})
+	}
+}
+
+func TestLoadParams_SanitizeParams_HideFileNames_FlagTakesPrecedence(t *testing.T) {
+	v := viper.New()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("entity", "/path/to/file")
+	v.Set("hide-file-names", "true")
+	v.Set("hide-filenames", "ignored")
+	v.Set("hidefilenames", "ignored")
+	v.Set("settings.hide_file_names", "ignored")
+	v.Set("settings.hide_filenames", "ignored")
+	v.Set("settings.hidefilenames", "ignored")
+
+	params, err := cmd.LoadParams(v)
+	require.NoError(t, err)
+
+	assert.Equal(t, cmd.SanitizeParams{
+		HideFileNames: []*regexp.Regexp{regexp.MustCompile(".*")},
+	}, params.Sanitize)
+}
+
+func TestLoadParams_SanitizeParams_HideFileNames_FlagDeprecatedOneTakesPrecedence(t *testing.T) {
+	v := viper.New()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("entity", "/path/to/file")
+	v.Set("hide-filenames", "true")
+	v.Set("hidefilenames", "ignored")
+	v.Set("settings.hide_file_names", "ignored")
+	v.Set("settings.hide_filenames", "ignored")
+	v.Set("settings.hidefilenames", "ignored")
+
+	params, err := cmd.LoadParams(v)
+	require.NoError(t, err)
+
+	assert.Equal(t, cmd.SanitizeParams{
+		HideFileNames: []*regexp.Regexp{regexp.MustCompile(".*")},
+	}, params.Sanitize)
+}
+
+func TestLoadParams_SanitizeParams_HideFileNames_FlagDeprecatedTwoTakesPrecedence(t *testing.T) {
+	v := viper.New()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("entity", "/path/to/file")
+	v.Set("hidefilenames", "true")
+	v.Set("settings.hide_file_names", "ignored")
+	v.Set("settings.hide_filenames", "ignored")
+	v.Set("settings.hidefilenames", "ignored")
+
+	params, err := cmd.LoadParams(v)
+	require.NoError(t, err)
+
+	assert.Equal(t, cmd.SanitizeParams{
+		HideFileNames: []*regexp.Regexp{regexp.MustCompile(".*")},
+	}, params.Sanitize)
+}
+
+func TestLoadParams_SanitizeParams_HideFileNames_ConfigTakesPrecedence(t *testing.T) {
+	v := viper.New()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("entity", "/path/to/file")
+	v.Set("settings.hide_file_names", "true")
+	v.Set("settings.hide_filenames", "ignored")
+	v.Set("settings.hidefilenames", "ignored")
+
+	params, err := cmd.LoadParams(v)
+	require.NoError(t, err)
+
+	assert.Equal(t, cmd.SanitizeParams{
+		HideFileNames: []*regexp.Regexp{regexp.MustCompile(".*")},
+	}, params.Sanitize)
+}
+
+func TestLoadParams_SanitizeParams_HideFileNames_ConfigDeprecatedOneTakesPrecedence(t *testing.T) {
+	v := viper.New()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("entity", "/path/to/file")
+	v.Set("settings.hide_filenames", "true")
+	v.Set("settings.hidefilenames", "ignored")
+
+	params, err := cmd.LoadParams(v)
+	require.NoError(t, err)
+
+	assert.Equal(t, cmd.SanitizeParams{
+		HideFileNames: []*regexp.Regexp{regexp.MustCompile(".*")},
+	}, params.Sanitize)
+}
+
+func TestLoadParams_SanitizeParams_HideFileNames_ConfigDeprecatedTwo(t *testing.T) {
+	v := viper.New()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("entity", "/path/to/file")
+	v.Set("settings.hidefilenames", "true")
+
+	params, err := cmd.LoadParams(v)
+	require.NoError(t, err)
+
+	assert.Equal(t, cmd.SanitizeParams{
+		HideFileNames: []*regexp.Regexp{regexp.MustCompile(".*")},
+	}, params.Sanitize)
+}
+
+func TestLoadParams_SanitizeParams_HideFileNames_InvalidRegex(t *testing.T) {
+	v := viper.New()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("entity", "/path/to/file")
+	v.Set("hide-file-names", ".*secret.*\n[0-9+")
+
+	_, err := cmd.LoadParams(v)
+	require.Error(t, err)
+
+	assert.Equal(t, errors.New(
+		"failed to load sanitize params:"+
+			" failed to parse regex hide file names param \".*secret.*\\n[0-9+\":"+
+			" failed to compile regex \"[0-9+\":"+
+			" error parsing regexp: missing closing ]: `[0-9+`",
+	), err)
 }
