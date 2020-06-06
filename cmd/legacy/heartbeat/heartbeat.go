@@ -101,7 +101,14 @@ func SendHeartbeat(v *viper.Viper) error {
 		IsWrite:    params.IsWrite,
 	}
 
-	handleOpts := []heartbeat.HandleOption{}
+	handleOpts := []heartbeat.HandleOption{
+		heartbeat.WithSanitization(heartbeat.SanitizeConfig{
+			BranchPatterns:  params.Sanitize.HideBranchNames,
+			FilePatterns:    params.Sanitize.HideFileNames,
+			ProjectPatterns: params.Sanitize.HideProjectNames,
+		}),
+	}
+
 	handle := heartbeat.NewHandle(c, handleOpts...)
 
 	_, err = handle([]heartbeat.Heartbeat{h})

@@ -70,6 +70,17 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 		"Entity type for this heartbeat. Can be \"file\", \"domain\" or \"app\". Defaults to \"file\".",
 	)
 	flags.String("file", "", "(deprecated) Absolute path to file for the heartbeat.")
+	flags.String("hide-branch-names", "", "Obfuscate branch names. Will not send revision control branch names to api.")
+	flags.String("hide-file-names", "", "Obfuscate filenames. Will not send file names to api.")
+	flags.String("hide-filenames", "", "(deprecated) Obfuscate filenames. Will not send file names to api.")
+	flags.String("hidefilenames", "", "(deprecated) Obfuscate filenames. Will not send file names to api.")
+	flags.String(
+		"hide-project-names",
+		"",
+		"Obfuscate project names. When a project folder is detected instead of"+
+			" using the folder name as the project, a .wakatime-project file is"+
+			" created with a random project name.",
+	)
 	flags.String("hostname", "", "Optional name of local machine. Defaults to local machine name read from system")
 	flags.String("key", "", "Your wakatime api key; uses api_key from ~/.wakatime.cfg by default.")
 	flags.String("log-file", "", "Optional log file. Defaults to '~/.wakatime.log'.")
