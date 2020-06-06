@@ -42,15 +42,15 @@ func Sanitize(h Heartbeat, config SanitizeConfig) Heartbeat {
 		h.Entity = "HIDDEN" + filepath.Ext(h.Entity)
 		h = santizeMetaData(h)
 
-		if len(config.HideBranchNames) == 0 || shouldSanitize(*h.Branch, config.HideBranchNames) {
+		if h.Branch != nil && (len(config.HideBranchNames) == 0 || shouldSanitize(*h.Branch, config.HideBranchNames)) {
 			h.Branch = nil
 		}
-	case shouldSanitize(*h.Project, config.HideProjectNames):
+	case h.Project != nil && shouldSanitize(*h.Project, config.HideProjectNames):
 		h = santizeMetaData(h)
-		if len(config.HideBranchNames) == 0 || shouldSanitize(*h.Branch, config.HideBranchNames) {
+		if h.Branch != nil && (len(config.HideBranchNames) == 0 || shouldSanitize(*h.Branch, config.HideBranchNames)) {
 			h.Branch = nil
 		}
-	case shouldSanitize(*h.Branch, config.HideBranchNames):
+	case h.Branch != nil && shouldSanitize(*h.Branch, config.HideBranchNames):
 		h.Branch = nil
 	}
 

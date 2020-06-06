@@ -96,6 +96,27 @@ func TestSanitize_ObfuscateFile_SkipBranchIfNotMatching(t *testing.T) {
 	}, r)
 }
 
+func TestSanitize_ObfuscateFile_NilFields(t *testing.T) {
+	h := testHeartbeat()
+	h.Branch = nil
+
+	r := heartbeat.Sanitize(h, heartbeat.SanitizeConfig{
+		HideFileNames:   []*regexp.Regexp{regexp.MustCompile(".*")},
+		HideBranchNames: []*regexp.Regexp{regexp.MustCompile(".*")},
+	})
+
+	assert.Equal(t, heartbeat.Heartbeat{
+		Category:   heartbeat.CodingCategory,
+		Entity:     "HIDDEN.go",
+		EntityType: heartbeat.FileType,
+		IsWrite:    heartbeat.Bool(true),
+		Language:   heartbeat.String("golang"),
+		Project:    heartbeat.String("wakatime"),
+		Time:       1585598060,
+		UserAgent:  "wakatime/13.0.7",
+	}, r)
+}
+
 func TestSanitize_ObfuscateProject(t *testing.T) {
 	r := heartbeat.Sanitize(testHeartbeat(), heartbeat.SanitizeConfig{
 		HideProjectNames: []*regexp.Regexp{regexp.MustCompile(".*")},
@@ -141,6 +162,28 @@ func TestSanitize_ObfuscateProject_SkipBranchIfNotMatching(t *testing.T) {
 	}, r)
 }
 
+func TestSanitize_ObfuscateProject_NilFields(t *testing.T) {
+	h := testHeartbeat()
+	h.Branch = nil
+
+	r := heartbeat.Sanitize(h, heartbeat.SanitizeConfig{
+		HideProjectNames: []*regexp.Regexp{regexp.MustCompile(".*")},
+		HideBranchNames:  []*regexp.Regexp{regexp.MustCompile(".*")},
+	})
+
+	assert.Equal(t, heartbeat.Heartbeat{
+		Category:     heartbeat.CodingCategory,
+		Dependencies: nil,
+		Entity:       "/tmp/main.go",
+		EntityType:   heartbeat.FileType,
+		IsWrite:      heartbeat.Bool(true),
+		Language:     heartbeat.String("golang"),
+		Project:      heartbeat.String("wakatime"),
+		Time:         1585598060,
+		UserAgent:    "wakatime/13.0.7",
+	}, r)
+}
+
 func TestSanitize_ObfuscateBranch(t *testing.T) {
 	r := heartbeat.Sanitize(testHeartbeat(), heartbeat.SanitizeConfig{
 		HideBranchNames: []*regexp.Regexp{regexp.MustCompile(".*")},
@@ -158,6 +201,30 @@ func TestSanitize_ObfuscateBranch(t *testing.T) {
 		LineNumber:     heartbeat.Int(42),
 		Lines:          heartbeat.Int(100),
 		Project:        heartbeat.String("wakatime"),
+		Time:           1585598060,
+		UserAgent:      "wakatime/13.0.7",
+	}, r)
+}
+
+func TestSanitize_ObfuscateBranch_NilFields(t *testing.T) {
+	h := testHeartbeat()
+	h.Branch = nil
+	h.Project = nil
+
+	r := heartbeat.Sanitize(h, heartbeat.SanitizeConfig{
+		HideBranchNames: []*regexp.Regexp{regexp.MustCompile(".*")},
+	})
+
+	assert.Equal(t, heartbeat.Heartbeat{
+		Category:       heartbeat.CodingCategory,
+		CursorPosition: heartbeat.Int(12),
+		Dependencies:   []string{"dep1", "dep2"},
+		Entity:         "/tmp/main.go",
+		EntityType:     heartbeat.FileType,
+		IsWrite:        heartbeat.Bool(true),
+		Language:       heartbeat.String("golang"),
+		LineNumber:     heartbeat.Int(42),
+		Lines:          heartbeat.Int(100),
 		Time:           1585598060,
 		UserAgent:      "wakatime/13.0.7",
 	}, r)
