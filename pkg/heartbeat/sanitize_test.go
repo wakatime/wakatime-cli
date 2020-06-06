@@ -18,19 +18,14 @@ func TestWithSanitization_ObfuscateFile(t *testing.T) {
 	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		assert.Equal(t, []heartbeat.Heartbeat{
 			{
-				Branch:         nil,
-				Category:       heartbeat.CodingCategory,
-				CursorPosition: nil,
-				Dependencies:   nil,
-				Entity:         "HIDDEN.go",
-				EntityType:     heartbeat.FileType,
-				IsWrite:        heartbeat.Bool(true),
-				Language:       heartbeat.String("golang"),
-				LineNumber:     nil,
-				Lines:          nil,
-				Project:        heartbeat.String("wakatime"),
-				Time:           1585598060,
-				UserAgent:      "wakatime/13.0.7",
+				Category:   heartbeat.CodingCategory,
+				Entity:     "HIDDEN.go",
+				EntityType: heartbeat.FileType,
+				IsWrite:    heartbeat.Bool(true),
+				Language:   heartbeat.String("golang"),
+				Project:    heartbeat.String("wakatime"),
+				Time:       1585598060,
+				UserAgent:  "wakatime/13.0.7",
 			},
 		}, hh)
 
@@ -57,19 +52,14 @@ func TestSanitize_ObfuscateFile(t *testing.T) {
 	})
 
 	assert.Equal(t, heartbeat.Heartbeat{
-		Branch:         nil,
-		Category:       heartbeat.CodingCategory,
-		CursorPosition: nil,
-		Dependencies:   nil,
-		Entity:         "HIDDEN.go",
-		EntityType:     heartbeat.FileType,
-		IsWrite:        heartbeat.Bool(true),
-		Language:       heartbeat.String("golang"),
-		LineNumber:     nil,
-		Lines:          nil,
-		Project:        heartbeat.String("wakatime"),
-		Time:           1585598060,
-		UserAgent:      "wakatime/13.0.7",
+		Category:   heartbeat.CodingCategory,
+		Entity:     "HIDDEN.go",
+		EntityType: heartbeat.FileType,
+		IsWrite:    heartbeat.Bool(true),
+		Language:   heartbeat.String("golang"),
+		Project:    heartbeat.String("wakatime"),
+		Time:       1585598060,
+		UserAgent:  "wakatime/13.0.7",
 	}, r)
 }
 
@@ -80,19 +70,15 @@ func TestSanitize_ObfuscateFile_SkipBranchIfNotMatching(t *testing.T) {
 	})
 
 	assert.Equal(t, heartbeat.Heartbeat{
-		Branch:         heartbeat.String("heartbeat"),
-		Category:       heartbeat.CodingCategory,
-		CursorPosition: nil,
-		Dependencies:   nil,
-		Entity:         "HIDDEN.go",
-		EntityType:     heartbeat.FileType,
-		IsWrite:        heartbeat.Bool(true),
-		Language:       heartbeat.String("golang"),
-		LineNumber:     nil,
-		Lines:          nil,
-		Project:        heartbeat.String("wakatime"),
-		Time:           1585598060,
-		UserAgent:      "wakatime/13.0.7",
+		Branch:     heartbeat.String("heartbeat"),
+		Category:   heartbeat.CodingCategory,
+		Entity:     "HIDDEN.go",
+		EntityType: heartbeat.FileType,
+		IsWrite:    heartbeat.Bool(true),
+		Language:   heartbeat.String("golang"),
+		Project:    heartbeat.String("wakatime"),
+		Time:       1585598060,
+		UserAgent:  "wakatime/13.0.7",
 	}, r)
 }
 
@@ -123,19 +109,14 @@ func TestSanitize_ObfuscateProject(t *testing.T) {
 	})
 
 	assert.Equal(t, heartbeat.Heartbeat{
-		Branch:         nil,
-		Category:       heartbeat.CodingCategory,
-		CursorPosition: nil,
-		Dependencies:   nil,
-		Entity:         "/tmp/main.go",
-		EntityType:     heartbeat.FileType,
-		IsWrite:        heartbeat.Bool(true),
-		Language:       heartbeat.String("golang"),
-		LineNumber:     nil,
-		Lines:          nil,
-		Project:        heartbeat.String("wakatime"),
-		Time:           1585598060,
-		UserAgent:      "wakatime/13.0.7",
+		Category:   heartbeat.CodingCategory,
+		Entity:     "/tmp/main.go",
+		EntityType: heartbeat.FileType,
+		IsWrite:    heartbeat.Bool(true),
+		Language:   heartbeat.String("golang"),
+		Project:    heartbeat.String("wakatime"),
+		Time:       1585598060,
+		UserAgent:  "wakatime/13.0.7",
 	}, r)
 }
 
@@ -146,19 +127,15 @@ func TestSanitize_ObfuscateProject_SkipBranchIfNotMatching(t *testing.T) {
 	})
 
 	assert.Equal(t, heartbeat.Heartbeat{
-		Branch:         heartbeat.String("heartbeat"),
-		Category:       heartbeat.CodingCategory,
-		CursorPosition: nil,
-		Dependencies:   nil,
-		Entity:         "/tmp/main.go",
-		EntityType:     heartbeat.FileType,
-		IsWrite:        heartbeat.Bool(true),
-		Language:       heartbeat.String("golang"),
-		LineNumber:     nil,
-		Lines:          nil,
-		Project:        heartbeat.String("wakatime"),
-		Time:           1585598060,
-		UserAgent:      "wakatime/13.0.7",
+		Branch:     heartbeat.String("heartbeat"),
+		Category:   heartbeat.CodingCategory,
+		Entity:     "/tmp/main.go",
+		EntityType: heartbeat.FileType,
+		IsWrite:    heartbeat.Bool(true),
+		Language:   heartbeat.String("golang"),
+		Project:    heartbeat.String("wakatime"),
+		Time:       1585598060,
+		UserAgent:  "wakatime/13.0.7",
 	}, r)
 }
 
@@ -172,15 +149,14 @@ func TestSanitize_ObfuscateProject_NilFields(t *testing.T) {
 	})
 
 	assert.Equal(t, heartbeat.Heartbeat{
-		Category:     heartbeat.CodingCategory,
-		Dependencies: nil,
-		Entity:       "/tmp/main.go",
-		EntityType:   heartbeat.FileType,
-		IsWrite:      heartbeat.Bool(true),
-		Language:     heartbeat.String("golang"),
-		Project:      heartbeat.String("wakatime"),
-		Time:         1585598060,
-		UserAgent:    "wakatime/13.0.7",
+		Category:   heartbeat.CodingCategory,
+		Entity:     "/tmp/main.go",
+		EntityType: heartbeat.FileType,
+		IsWrite:    heartbeat.Bool(true),
+		Language:   heartbeat.String("golang"),
+		Project:    heartbeat.String("wakatime"),
+		Time:       1585598060,
+		UserAgent:  "wakatime/13.0.7",
 	}, r)
 }
 
@@ -190,7 +166,6 @@ func TestSanitize_ObfuscateBranch(t *testing.T) {
 	})
 
 	assert.Equal(t, heartbeat.Heartbeat{
-		Branch:         nil,
 		Category:       heartbeat.CodingCategory,
 		CursorPosition: heartbeat.Int(12),
 		Dependencies:   []string{"dep1", "dep2"},
@@ -314,7 +289,6 @@ func TestSanitize_EmptyConfigDoNothing_EmptyDependencies(t *testing.T) {
 		Branch:         heartbeat.String("heartbeat"),
 		Category:       heartbeat.CodingCategory,
 		CursorPosition: heartbeat.Int(12),
-		Dependencies:   nil,
 		Entity:         "/tmp/main.go",
 		EntityType:     heartbeat.FileType,
 		IsWrite:        heartbeat.Bool(true),
