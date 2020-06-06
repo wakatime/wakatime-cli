@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
@@ -78,6 +79,25 @@ func WithSSLCert(filepath string) (Option, error) {
 		tlsConfig := transport.TLSClientConfig
 		tlsConfig.RootCAs = caCertPool
 		transport.TLSClientConfig = tlsConfig
+
+		c.client.Transport = transport
+	}, nil
+}
+
+// WithProxy configures the client to proxy outgoing requests to the specified url.
+func WithProxy(proxyURL string) (Option, error) {
+	u, err := url.Parse(proxyURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse proxy url %q: %s", proxyURL, err)
+	}
+
+	return func(c *Client) {
+		transport := http.DefaultTransport.(*http.Transport).Clone()
+		if c.client.Transport != nil {
+			transport = c.client.Transport.(*http.Transport).Clone()
+		}
+
+		transport.Proxy = http.ProxyURL(u)
 
 		c.client.Transport = transport
 	}, nil
