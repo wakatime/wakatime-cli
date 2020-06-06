@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path"
 	"testing"
 
 	"github.com/wakatime/wakatime-cli/pkg/project"
@@ -21,9 +22,49 @@ func TestFile_Detect_FileExists(t *testing.T) {
 	result, detected, err := f.Detect()
 	require.NoError(t, err)
 
+	expected := project.Result{
+		Project: "wakatime-cli",
+		Branch:  "master",
+	}
+
 	assert.True(t, detected)
-	assert.Equal(t, "wakatime-cli", result.Project)
-	assert.Equal(t, "master", result.Branch)
+	assert.Equal(t, expected, result)
+}
+
+func TestFile_Detect_ParentFolderExists(t *testing.T) {
+	wd, err := os.Getwd()
+	require.NoError(t, err)
+
+	tmpDir, err := ioutil.TempDir(os.TempDir(), "wakatime")
+	require.NoError(t, err)
+
+	defer os.RemoveAll(tmpDir)
+
+	dir := path.Join(tmpDir, "src", "otherfolder")
+
+	err = os.MkdirAll(dir, os.FileMode(int(0700)))
+	require.NoError(t, err)
+
+	err = copyFile(
+		path.Join(wd, "testdata/.wakatime-project"),
+		path.Join(tmpDir, "src", ".wakatime-project"),
+	)
+	require.NoError(t, err)
+
+	f := project.File{
+		Filepath: dir,
+	}
+
+	result, detected, err := f.Detect()
+	require.NoError(t, err)
+
+	expected := project.Result{
+		Project: "wakatime-cli",
+		Branch:  "master",
+	}
+
+	assert.True(t, detected)
+	assert.Equal(t, expected, result)
 }
 
 func TestFile_Detect_AnyFileFound(t *testing.T) {
@@ -70,4 +111,18 @@ func TestFile_String(t *testing.T) {
 	f := project.File{}
 
 	assert.Equal(t, "project-file-detector", f.String())
+}
+
+func copyFile(source, destination string) error {
+	input, err := ioutil.ReadFile(source)
+	if err != nil {
+		return err
+	}
+
+	err = ioutil.WriteFile(destination, input, 0600)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
