@@ -45,11 +45,11 @@ func TestFile_Detect_ParentFolderExists(t *testing.T) {
 	err = os.MkdirAll(dir, os.FileMode(int(0700)))
 	require.NoError(t, err)
 
-	err = copyFile(
+	copyFile(
+		t,
 		path.Join(wd, "testdata/.wakatime-project"),
-		path.Join(tmpDir, "src", ".wakatime-project"),
+		path.Join(tmpDir, ".wakatime-project"),
 	)
-	require.NoError(t, err)
 
 	f := project.File{
 		Filepath: dir,
@@ -113,16 +113,10 @@ func TestFile_String(t *testing.T) {
 	assert.Equal(t, "project-file-detector", f.String())
 }
 
-func copyFile(source, destination string) error {
+func copyFile(t *testing.T, source, destination string) {
 	input, err := ioutil.ReadFile(source)
-	if err != nil {
-		return err
-	}
+	require.NoError(t, err)
 
 	err = ioutil.WriteFile(destination, input, 0600)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	require.NoError(t, err)
 }

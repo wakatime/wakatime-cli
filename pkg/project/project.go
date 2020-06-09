@@ -38,7 +38,7 @@ type Pattern struct {
 	Regex *regexp.Regexp
 }
 
-// WithDetection find the current project and branch.
+// WithDetection finds the current project and branch.
 // First looks for a .wakatime-project file. Second, uses the --project arg.
 // Third, uses the folder name from a revision control repository. Last, uses
 // the --alternate-project arg.
@@ -46,16 +46,16 @@ func WithDetection(c Config) heartbeat.HandleOption {
 	return func(next heartbeat.Handle) heartbeat.Handle {
 		return func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 			for n, h := range hh {
-				if h.EntityType == heartbeat.FileType {
-					project, branch := detect(h.Entity, c.Patterns)
-
-					hh[n].Branch = &branch
+				if h.EntityType != heartbeat.FileType {
+					project := firstNonEmptyString(c.Override, c.Alternative)
 					hh[n].Project = &project
 
-					break
+					continue
 				}
 
-				project := firstNonEmptyString(c.Override, c.Alternative)
+				project, branch := Detect(h.Entity, c.Patterns)
+
+				hh[n].Branch = &branch
 				hh[n].Project = &project
 			}
 
@@ -64,7 +64,8 @@ func WithDetection(c Config) heartbeat.HandleOption {
 	}
 }
 
-func detect(entity string, patterns []Pattern) (project, branch string) {
+// Detect finds the current project and branch.
+func Detect(entity string, patterns []Pattern) (project, branch string) {
 	var configPlugins []Detecter = []Detecter{
 		File{
 			Filepath: entity,
