@@ -7,9 +7,14 @@ import (
 
 // SanitizeConfig defines how a heartbeat should be sanitized.
 type SanitizeConfig struct {
-	HideBranchNames  []*regexp.Regexp
-	HideFileNames    []*regexp.Regexp
-	HideProjectNames []*regexp.Regexp
+	// BranchPatterns will be matched against the branch and if matching, will obfuscate it.
+	BranchPatterns []*regexp.Regexp
+	// FilePatterns will be matched against a file entities name and if matching, will obfuscate
+	// the file name and common heartbeat meta data (cursor position, dependencies, line number and lines).
+	FilePatterns []*regexp.Regexp
+	// ProjectPatterns will be matched against the project name and if matching, will obfuscate
+	// common heartbeat meta data (cursor position, dependencies, line number and lines).
+	ProjectPatterns []*regexp.Regexp
 }
 
 // WithSanitization initializes and returns a heartbeat handle option, which
@@ -38,26 +43,26 @@ func Sanitize(h Heartbeat, config SanitizeConfig) Heartbeat {
 	}
 
 	switch {
-	case shouldSanitize(h.Entity, config.HideFileNames):
+	case shouldSanitize(h.Entity, config.FilePatterns):
 		h.Entity = "HIDDEN" + filepath.Ext(h.Entity)
 		h = santizeMetaData(h)
 
-		if h.Branch != nil && (len(config.HideBranchNames) == 0 || shouldSanitize(*h.Branch, config.HideBranchNames)) {
+		if h.Branch != nil && (len(config.BranchPatterns) == 0 || shouldSanitize(*h.Branch, config.BranchPatterns)) {
 			h.Branch = nil
 		}
-	case h.Project != nil && shouldSanitize(*h.Project, config.HideProjectNames):
+	case h.Project != nil && shouldSanitize(*h.Project, config.ProjectPatterns):
 		h = santizeMetaData(h)
-		if h.Branch != nil && (len(config.HideBranchNames) == 0 || shouldSanitize(*h.Branch, config.HideBranchNames)) {
+		if h.Branch != nil && (len(config.BranchPatterns) == 0 || shouldSanitize(*h.Branch, config.BranchPatterns)) {
 			h.Branch = nil
 		}
-	case h.Branch != nil && shouldSanitize(*h.Branch, config.HideBranchNames):
+	case h.Branch != nil && shouldSanitize(*h.Branch, config.BranchPatterns):
 		h.Branch = nil
 	}
 
 	return h
 }
 
-// santizeMetaData sanitizes metadata (curser position, dependencies, line number and lines).
+// santizeMetaData sanitizes metadata (cursor position, dependencies, line number and lines).
 func santizeMetaData(h Heartbeat) Heartbeat {
 	h.CursorPosition = nil
 	h.Dependencies = nil

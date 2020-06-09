@@ -12,7 +12,7 @@ import (
 
 func TestWithSanitization_ObfuscateFile(t *testing.T) {
 	opt := heartbeat.WithSanitization(heartbeat.SanitizeConfig{
-		HideFileNames: []*regexp.Regexp{regexp.MustCompile(".*")},
+		FilePatterns: []*regexp.Regexp{regexp.MustCompile(".*")},
 	})
 
 	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
@@ -48,7 +48,7 @@ func TestWithSanitization_ObfuscateFile(t *testing.T) {
 
 func TestSanitize_ObfuscateFile(t *testing.T) {
 	r := heartbeat.Sanitize(testHeartbeat(), heartbeat.SanitizeConfig{
-		HideFileNames: []*regexp.Regexp{regexp.MustCompile(".*")},
+		FilePatterns: []*regexp.Regexp{regexp.MustCompile(".*")},
 	})
 
 	assert.Equal(t, heartbeat.Heartbeat{
@@ -65,8 +65,8 @@ func TestSanitize_ObfuscateFile(t *testing.T) {
 
 func TestSanitize_ObfuscateFile_SkipBranchIfNotMatching(t *testing.T) {
 	r := heartbeat.Sanitize(testHeartbeat(), heartbeat.SanitizeConfig{
-		HideFileNames:   []*regexp.Regexp{regexp.MustCompile(".*")},
-		HideBranchNames: []*regexp.Regexp{regexp.MustCompile("not_matching")},
+		FilePatterns:   []*regexp.Regexp{regexp.MustCompile(".*")},
+		BranchPatterns: []*regexp.Regexp{regexp.MustCompile("not_matching")},
 	})
 
 	assert.Equal(t, heartbeat.Heartbeat{
@@ -87,8 +87,8 @@ func TestSanitize_ObfuscateFile_NilFields(t *testing.T) {
 	h.Branch = nil
 
 	r := heartbeat.Sanitize(h, heartbeat.SanitizeConfig{
-		HideFileNames:   []*regexp.Regexp{regexp.MustCompile(".*")},
-		HideBranchNames: []*regexp.Regexp{regexp.MustCompile(".*")},
+		FilePatterns:   []*regexp.Regexp{regexp.MustCompile(".*")},
+		BranchPatterns: []*regexp.Regexp{regexp.MustCompile(".*")},
 	})
 
 	assert.Equal(t, heartbeat.Heartbeat{
@@ -105,7 +105,7 @@ func TestSanitize_ObfuscateFile_NilFields(t *testing.T) {
 
 func TestSanitize_ObfuscateProject(t *testing.T) {
 	r := heartbeat.Sanitize(testHeartbeat(), heartbeat.SanitizeConfig{
-		HideProjectNames: []*regexp.Regexp{regexp.MustCompile(".*")},
+		ProjectPatterns: []*regexp.Regexp{regexp.MustCompile(".*")},
 	})
 
 	assert.Equal(t, heartbeat.Heartbeat{
@@ -122,8 +122,8 @@ func TestSanitize_ObfuscateProject(t *testing.T) {
 
 func TestSanitize_ObfuscateProject_SkipBranchIfNotMatching(t *testing.T) {
 	r := heartbeat.Sanitize(testHeartbeat(), heartbeat.SanitizeConfig{
-		HideProjectNames: []*regexp.Regexp{regexp.MustCompile(".*")},
-		HideBranchNames:  []*regexp.Regexp{regexp.MustCompile("not_matching")},
+		ProjectPatterns: []*regexp.Regexp{regexp.MustCompile(".*")},
+		BranchPatterns:  []*regexp.Regexp{regexp.MustCompile("not_matching")},
 	})
 
 	assert.Equal(t, heartbeat.Heartbeat{
@@ -144,8 +144,8 @@ func TestSanitize_ObfuscateProject_NilFields(t *testing.T) {
 	h.Branch = nil
 
 	r := heartbeat.Sanitize(h, heartbeat.SanitizeConfig{
-		HideProjectNames: []*regexp.Regexp{regexp.MustCompile(".*")},
-		HideBranchNames:  []*regexp.Regexp{regexp.MustCompile(".*")},
+		ProjectPatterns: []*regexp.Regexp{regexp.MustCompile(".*")},
+		BranchPatterns:  []*regexp.Regexp{regexp.MustCompile(".*")},
 	})
 
 	assert.Equal(t, heartbeat.Heartbeat{
@@ -162,7 +162,7 @@ func TestSanitize_ObfuscateProject_NilFields(t *testing.T) {
 
 func TestSanitize_ObfuscateBranch(t *testing.T) {
 	r := heartbeat.Sanitize(testHeartbeat(), heartbeat.SanitizeConfig{
-		HideBranchNames: []*regexp.Regexp{regexp.MustCompile(".*")},
+		BranchPatterns: []*regexp.Regexp{regexp.MustCompile(".*")},
 	})
 
 	assert.Equal(t, heartbeat.Heartbeat{
@@ -187,7 +187,7 @@ func TestSanitize_ObfuscateBranch_NilFields(t *testing.T) {
 	h.Project = nil
 
 	r := heartbeat.Sanitize(h, heartbeat.SanitizeConfig{
-		HideBranchNames: []*regexp.Regexp{regexp.MustCompile(".*")},
+		BranchPatterns: []*regexp.Regexp{regexp.MustCompile(".*")},
 	})
 
 	assert.Equal(t, heartbeat.Heartbeat{
@@ -217,9 +217,9 @@ func TestSanitize_EntityTypeNotFile_DoesNothing(t *testing.T) {
 			h.EntityType = entityType
 
 			r := heartbeat.Sanitize(h, heartbeat.SanitizeConfig{
-				HideBranchNames:  []*regexp.Regexp{regexp.MustCompile(".*")},
-				HideFileNames:    []*regexp.Regexp{regexp.MustCompile(".*")},
-				HideProjectNames: []*regexp.Regexp{regexp.MustCompile(".*")},
+				BranchPatterns:  []*regexp.Regexp{regexp.MustCompile(".*")},
+				FilePatterns:    []*regexp.Regexp{regexp.MustCompile(".*")},
+				ProjectPatterns: []*regexp.Regexp{regexp.MustCompile(".*")},
 			})
 
 			assert.Equal(t, heartbeat.Heartbeat{
