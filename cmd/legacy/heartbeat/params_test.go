@@ -397,3 +397,122 @@ func TestLoadParams_Time_Default(t *testing.T) {
 	assert.GreaterOrEqual(t, float64(now), params.Time)
 	assert.GreaterOrEqual(t, params.Time, float64(now-60))
 }
+
+func TestLoadParams_Network_DisableSSLVerify_FlagTakesPrecedence(t *testing.T) {
+	v := viper.New()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("entity", "/path/to/file")
+	v.Set("no-ssl-verify", true)
+	v.Set("settings.no_ssl_verify", false)
+
+	params, err := cmd.LoadParams(v)
+	require.NoError(t, err)
+
+	assert.True(t, params.Network.DisableSSLVerify)
+}
+
+func TestLoadParams_Network_DisableSSLVerify_FromConfig(t *testing.T) {
+	v := viper.New()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("entity", "/path/to/file")
+	v.Set("settings.no_ssl_verify", true)
+
+	params, err := cmd.LoadParams(v)
+	require.NoError(t, err)
+
+	assert.True(t, params.Network.DisableSSLVerify)
+}
+
+func TestLoadParams_Network_DisableSSLVerify_Default(t *testing.T) {
+	v := viper.New()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("entity", "/path/to/file")
+
+	params, err := cmd.LoadParams(v)
+	require.NoError(t, err)
+
+	assert.False(t, params.Network.DisableSSLVerify)
+}
+
+func TestLoadParams_Network_ProxyURL(t *testing.T) {
+	tests := map[string]string{
+		"https":  "https://john:secret@example.org:8888",
+		"http":   "http://john:secret@example.org:8888",
+		"socks5": "socks5://john:secret@example.org:8888",
+	}
+
+	for name, proxyURL := range tests {
+		t.Run(name, func(t *testing.T) {
+			v := viper.New()
+			v.Set("key", "00000000-0000-4000-8000-000000000000")
+			v.Set("entity", "/path/to/file")
+			v.Set("proxy", proxyURL)
+
+			params, err := cmd.LoadParams(v)
+			require.NoError(t, err)
+
+			assert.Equal(t, proxyURL, params.Network.ProxyURL)
+		})
+	}
+}
+
+func TestLoadParams_Network_ProxyURL_FlagTakesPrecedence(t *testing.T) {
+	v := viper.New()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("entity", "/path/to/file")
+	v.Set("proxy", "https://john:secret@example.org:8888")
+	v.Set("settings.proxy", "ignored")
+
+	params, err := cmd.LoadParams(v)
+	require.NoError(t, err)
+
+	assert.Equal(t, "https://john:secret@example.org:8888", params.Network.ProxyURL)
+}
+
+func TestLoadParams_Network_ProxyURL_FromConfig(t *testing.T) {
+	v := viper.New()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("entity", "/path/to/file")
+	v.Set("settings.proxy", "https://john:secret@example.org:8888")
+
+	params, err := cmd.LoadParams(v)
+	require.NoError(t, err)
+
+	assert.Equal(t, "https://john:secret@example.org:8888", params.Network.ProxyURL)
+}
+
+func TestLoadParams_Network_ProxyURL_InvalidFormat(t *testing.T) {
+	proxyURL := "ftp://john:secret@example.org:8888"
+
+	v := viper.New()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("entity", "/path/to/file")
+	v.Set("proxy", proxyURL)
+
+	_, err := cmd.LoadParams(v)
+	require.Error(t, err)
+}
+
+func TestLoadParams_Network_SSLCertFilepath_FlagTakesPrecedence(t *testing.T) {
+	v := viper.New()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("entity", "/path/to/file")
+	v.Set("ssl-certs-file", "/path/to/cert.pem")
+
+	params, err := cmd.LoadParams(v)
+	require.NoError(t, err)
+
+	assert.Equal(t, "/path/to/cert.pem", params.Network.SSLCertFilepath)
+}
+
+func TestLoadParams_Network_SSLCertFilepath_FromConfig(t *testing.T) {
+	v := viper.New()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("entity", "/path/to/file")
+	v.Set("settings.ssl_certs_file", "/path/to/cert.pem")
+
+	params, err := cmd.LoadParams(v)
+	require.NoError(t, err)
+
+	assert.Equal(t, "/path/to/cert.pem", params.Network.SSLCertFilepath)
+}

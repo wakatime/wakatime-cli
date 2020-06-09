@@ -74,7 +74,26 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 	flags.String("key", "", "Your wakatime api key; uses api_key from ~/.wakatime.cfg by default.")
 	flags.String("log-file", "", "Optional log file. Defaults to '~/.wakatime.log'.")
 	flags.String("logfile", "", "(deprecated) Optional log file. Defaults to '~/.wakatime.log'.")
+	flags.Bool(
+		"no-ssl-verify",
+		false,
+		"Disables SSL certificate verification for HTTPS requests. By default,"+
+			" SSL certificates are verified.",
+	)
 	flags.String("plugin", "", "Optional text editor plugin name and version for User-Agent header.")
+	flags.String(
+		"proxy",
+		"",
+		"Optional proxy configuration. Supports HTTPS and SOCKS proxies."+
+			" For example: 'https://user:pass@host:port' or 'socks5://user:pass@host:port'"+
+			" or 'domain\\user:pass'",
+	)
+	flags.String(
+		"ssl-certs-file",
+		"",
+		"Override the bundled Python Requests CA certs file. By default, uses"+
+			"system ca certs.",
+	)
 	flags.Int(
 		"timeout",
 		defaultTimeoutSecs,
