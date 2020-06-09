@@ -3,7 +3,6 @@ package project_test
 import (
 	"io/ioutil"
 	"os"
-	"path"
 	"path/filepath"
 	"regexp"
 	"testing"
@@ -80,12 +79,7 @@ func TestWithDetection_EntityNotFile(t *testing.T) {
 }
 
 func TestDetect_FileDetected(t *testing.T) {
-	wd, err := os.Getwd()
-	require.NoError(t, err)
-
-	entity := path.Join(wd, "testdata/entity.any")
-
-	project, branch := project.Detect(entity, []project.Pattern{})
+	project, branch := project.Detect("testdata/entity.any", []project.Pattern{})
 
 	assert.Equal(t, "wakatime-cli", project)
 	assert.Equal(t, "master", branch)
@@ -125,7 +119,7 @@ func TestDetect_MapDetected(t *testing.T) {
 	assert.Equal(t, "", branch)
 }
 
-func TestDetect_NoneDetected(t *testing.T) {
+func TestDetect_NoProjectDetected(t *testing.T) {
 	tmpFile, err := ioutil.TempFile(os.TempDir(), "wakatime")
 	require.NoError(t, err)
 

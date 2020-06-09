@@ -32,9 +32,6 @@ func TestFile_Detect_FileExists(t *testing.T) {
 }
 
 func TestFile_Detect_ParentFolderExists(t *testing.T) {
-	wd, err := os.Getwd()
-	require.NoError(t, err)
-
 	tmpDir, err := ioutil.TempDir(os.TempDir(), "wakatime")
 	require.NoError(t, err)
 
@@ -47,7 +44,7 @@ func TestFile_Detect_ParentFolderExists(t *testing.T) {
 
 	copyFile(
 		t,
-		path.Join(wd, "testdata/.wakatime-project"),
+		"testdata/.wakatime-project",
 		path.Join(tmpDir, ".wakatime-project"),
 	)
 
