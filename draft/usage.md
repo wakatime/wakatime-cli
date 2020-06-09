@@ -74,7 +74,7 @@ func main() {
 		}),
 		withDepsDetection,
 		withFilestatsDetection,
-		project.WithDetection(language.Config{
+		project.WithDetection(project.Config{
 			Alternative: args.AlternativeProject,
 			Overwrite: args.Project,
 			LocalFile: args.LocalFile,
