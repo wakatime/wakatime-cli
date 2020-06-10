@@ -110,6 +110,30 @@ func TestFile_String(t *testing.T) {
 	assert.Equal(t, "project-file-detector", f.String())
 }
 
+func TestFindFile(t *testing.T) {
+	tmpDir, err := ioutil.TempDir(os.TempDir(), "wakatime")
+	require.NoError(t, err)
+
+	defer os.RemoveAll(tmpDir)
+
+	dir := path.Join(tmpDir, "src", "otherfolder")
+
+	err = os.MkdirAll(dir, os.FileMode(int(0700)))
+	require.NoError(t, err)
+
+	copyFile(
+		t,
+		"testdata/.wakatime-project",
+		path.Join(tmpDir, ".wakatime-project"),
+	)
+
+	filepath, ok, err := project.FindFile(dir)
+	require.NoError(t, err)
+	require.True(t, ok)
+
+	assert.Equal(t, path.Join(tmpDir, ".wakatime-project"), filepath)
+}
+
 func copyFile(t *testing.T, source, destination string) {
 	input, err := ioutil.ReadFile(source)
 	require.NoError(t, err)
