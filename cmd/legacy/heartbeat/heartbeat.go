@@ -47,7 +47,7 @@ func SendHeartbeat(v *viper.Viper) error {
 		return fmt.Errorf("failed to load command parameters: %w", err)
 	}
 
-	auth, err := api.WithAuth(api.BasicAuth{
+	withAuth, err := api.WithAuth(api.BasicAuth{
 		Secret: params.APIKey,
 	})
 	if err != nil {
@@ -55,8 +55,30 @@ func SendHeartbeat(v *viper.Viper) error {
 	}
 
 	clientOpts := []api.Option{
-		auth,
+		withAuth,
 		api.WithTimeout(params.Timeout),
+	}
+
+	if params.Network.DisableSSLVerify {
+		clientOpts = append(clientOpts, api.WithDisableSSLVerify())
+	}
+
+	if params.Network.ProxyURL != "" {
+		withProxy, err := api.WithProxy(params.Network.ProxyURL)
+		if err != nil {
+			return fmt.Errorf("failed to set up proxy option on api client: %w", err)
+		}
+
+		clientOpts = append(clientOpts, withProxy)
+	}
+
+	if params.Network.SSLCertFilepath != "" {
+		withSSLCert, err := api.WithSSLCert(params.Network.SSLCertFilepath)
+		if err != nil {
+			return fmt.Errorf("failed to set up ssl cert option on api client: %w", err)
+		}
+
+		clientOpts = append(clientOpts, withSSLCert)
 	}
 
 	var userAgent string

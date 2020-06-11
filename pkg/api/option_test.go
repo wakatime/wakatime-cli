@@ -50,7 +50,7 @@ func TestOption_WithAuth(t *testing.T) {
 			req, err := http.NewRequest(http.MethodGet, url, nil)
 			require.NoError(t, err)
 
-			c := api.NewClient("", http.DefaultClient, []api.Option{withAuth}...)
+			c := api.NewClient("", httpClient(), []api.Option{withAuth}...)
 			resp, err := c.Do(req)
 			require.NoError(t, err)
 
@@ -78,7 +78,34 @@ func TestOption_WithHostname(t *testing.T) {
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	require.NoError(t, err)
 
-	c := api.NewClient("", http.DefaultClient, opts...)
+	c := api.NewClient("", httpClient(), opts...)
+	resp, err := c.Do(req)
+	require.NoError(t, err)
+
+	defer resp.Body.Close()
+
+	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+}
+
+func TestOption_WithProxy(t *testing.T) {
+	url, router, tearDown := setupTestServer()
+	defer tearDown()
+
+	var numCalls int
+
+	router.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
+		numCalls++
+	})
+
+	withProxy, err := api.WithProxy(url)
+	require.NoError(t, err)
+
+	opts := []api.Option{withProxy}
+
+	req, err := http.NewRequest(http.MethodGet, "http://example.org", nil)
+	require.NoError(t, err)
+
+	c := api.NewClient("", httpClient(), opts...)
 	resp, err := c.Do(req)
 	require.NoError(t, err)
 
@@ -113,7 +140,7 @@ func TestOption_WithUserAgent(t *testing.T) {
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	require.NoError(t, err)
 
-	c := api.NewClient("", http.DefaultClient, opts...)
+	c := api.NewClient("", httpClient(), opts...)
 	resp, err := c.Do(req)
 	require.NoError(t, err)
 
@@ -148,11 +175,20 @@ func TestOption_WithUserAgentUnknownPlugin(t *testing.T) {
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	require.NoError(t, err)
 
-	c := api.NewClient("", http.DefaultClient, opts...)
+	c := api.NewClient("", httpClient(), opts...)
 	resp, err := c.Do(req)
 	require.NoError(t, err)
 
 	defer resp.Body.Close()
 
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+}
+
+func httpClient() *http.Client {
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.DisableKeepAlives = true
+
+	return &http.Client{
+		Transport: transport,
+	}
 }

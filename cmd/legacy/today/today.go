@@ -17,8 +17,12 @@ import (
 	"github.com/spf13/viper"
 )
 
-// nolint
-var apiKeyRegex = regexp.MustCompile("^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$")
+var (
+	// nolint
+	apiKeyRegex = regexp.MustCompile("^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$")
+	// nolint
+	proxyRegex = regexp.MustCompile(`^((https?|socks5)://)?([^:@]+(:([^:@])+)?@)?[^:]+(:\d+)?$`)
+)
 
 // Params contains today command parameters.
 type Params struct {
@@ -26,6 +30,14 @@ type Params struct {
 	APIUrl  string
 	Plugin  string
 	Timeout time.Duration
+	Network NetworkParams
+}
+
+// NetworkParams contains network related command parameters.
+type NetworkParams struct {
+	DisableSSLVerify bool
+	ProxyURL         string
+	SSLCertFilepath  string
 }
 
 // Run executes the today command.
@@ -72,6 +84,28 @@ func Summary(v *viper.Viper) (string, error) {
 	opts := []api.Option{
 		auth,
 		api.WithTimeout(params.Timeout),
+	}
+
+	if params.Network.DisableSSLVerify {
+		opts = append(opts, api.WithDisableSSLVerify())
+	}
+
+	if params.Network.ProxyURL != "" {
+		withProxy, err := api.WithProxy(params.Network.ProxyURL)
+		if err != nil {
+			return "", fmt.Errorf("failed to set up proxy option on api client: %w", err)
+		}
+
+		opts = append(opts, withProxy)
+	}
+
+	if params.Network.SSLCertFilepath != "" {
+		withSSLCert, err := api.WithSSLCert(params.Network.SSLCertFilepath)
+		if err != nil {
+			return "", fmt.Errorf("failed to set up ssl cert option on api client: %w", err)
+		}
+
+		opts = append(opts, withSSLCert)
 	}
 
 	if params.Plugin != "" {
@@ -131,5 +165,36 @@ func LoadParams(v *viper.Viper) (Params, error) {
 		params.Timeout = time.Duration(timeoutSecs) * time.Second
 	}
 
+	networkParams, err := loadNetworkParams(v)
+	if err != nil {
+		return Params{}, fmt.Errorf("failed to parse network params: %s", err)
+	}
+
+	params.Network = networkParams
+
 	return params, nil
+}
+
+func loadNetworkParams(v *viper.Viper) (NetworkParams, error) {
+	if v == nil {
+		return NetworkParams{}, errors.New("viper instance unset")
+	}
+
+	errMsgTemplate := "Invalid url %%q. Must be in format" +
+		"'https://user:pass@host:port' or " +
+		"'socks5://user:pass@host:port' or " +
+		"'domain\\user:pass.'"
+
+	proxyURL, _ := vipertools.FirstNonEmptyString(v, "proxy", "settings.proxy")
+	if proxyURL != "" && !proxyRegex.MatchString(proxyURL) {
+		return NetworkParams{}, fmt.Errorf(errMsgTemplate, proxyURL)
+	}
+
+	sslCertFilepath, _ := vipertools.FirstNonEmptyString(v, "ssl-certs-file", "settings.ssl_certs_file")
+
+	return NetworkParams{
+		DisableSSLVerify: vipertools.FirstNonEmptyBool(v, "no-ssl-verify", "settings.no_ssl_verify"),
+		ProxyURL:         proxyURL,
+		SSLCertFilepath:  sslCertFilepath,
+	}, nil
 }

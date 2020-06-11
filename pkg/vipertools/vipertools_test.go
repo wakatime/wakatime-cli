@@ -10,6 +10,31 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestFirstNonEmptyBool(t *testing.T) {
+	v := viper.New()
+	v.Set("second", true)
+	v.Set("third", false)
+
+	value := vipertools.FirstNonEmptyBool(v, "first", "second", "third")
+	assert.True(t, value)
+}
+
+func TestFirstNonEmptyBool_NilPointer(t *testing.T) {
+	value := vipertools.FirstNonEmptyBool(nil, "first")
+	assert.False(t, value)
+}
+
+func TestFirstNonEmptyBool_EmptyKeys(t *testing.T) {
+	v := viper.New()
+	value := vipertools.FirstNonEmptyBool(v)
+	assert.False(t, value)
+}
+
+func TestFirstNonEmptyBool_NotFound(t *testing.T) {
+	value := vipertools.FirstNonEmptyBool(viper.New(), "key")
+	assert.False(t, value)
+}
+
 func TestFirstNonEmptyInt(t *testing.T) {
 	v := viper.New()
 	v.Set("second", 42)

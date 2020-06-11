@@ -4,6 +4,22 @@ import (
 	"github.com/spf13/viper"
 )
 
+// FirstNonEmptyBool accepts multiple keys and returns the first non empty bool value
+// from viper.Viper via these keys. Non-empty meaning false value will not be accepted.
+func FirstNonEmptyBool(v *viper.Viper, keys ...string) bool {
+	if v == nil {
+		return false
+	}
+
+	for _, key := range keys {
+		if value := v.GetBool(key); value {
+			return value
+		}
+	}
+
+	return false
+}
+
 // FirstNonEmptyInt accepts multiple keys and returns the first non empty int value
 // from viper.Viper via these keys. Non-empty meaning 0 value will not be accepted.
 // Will return false as second parameter, if non-empty int value could not be retrieved.
