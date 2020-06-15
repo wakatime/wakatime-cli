@@ -8,11 +8,6 @@
 # 2.           : Option to be called (basic, worktree, submodule, git_file)
 ################################################################################
 
-if ! [[ -d "$1" ]]; then
-    echo "$1 not a directory"
-    exit 1
-fi
-
 path=$1
 option=$2
 
