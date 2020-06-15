@@ -42,6 +42,18 @@ wakatime-cli/
                 WithDetection() heartbeat.HandleOption
                 WithDetectionOnFile(filepath string) heartbeat.HandleOption
                 func detect(filepath string) (lines int, err error)
+        filter/
+            filter.go
+                type Config struct {
+                    Exclude []*regexp.Regexp
+                    ExcludeUnknownProject bool
+                    Include []*regexp.Regexp
+                    IncludeOnlyWithProjectFile bool
+                }
+                WithFiltering(c Config) heartbeat.HandleOption
+                func filterByPattern(entity string, include, exclude []*regexp.Regexp) error
+                func filterFile(filepath string, includeOnlyWithProjectFile bool) error
+
         heartbeat/
             heartbeat.go
                 type Heartbeat struct {}
@@ -60,16 +72,6 @@ wakatime-cli/
                 }
                 WithSanitization(c SanitizeConfig) heartbeat.HandleOption
                 func sanitize(h Heartbeat, obfuscate Obfuscate) Heartbeat
-            validate.go
-                type ValidateConfig struct {
-                    Exclude []*regexp.Regexp
-                    ExcludeUnknownProject bool
-                    Include []*regexp.Regexp
-                    IncludeOnlyWithProjectFile bool
-                }
-                WithValidation(c ValidateConfig) heartbeat.HandleOption
-                func validateByPattern(entity string, include, exclude []*regexp.Regexp) error
-                func validateFile(filepath string, includeOnlyWithProjectFile bool) error
         language/
             language.go
                 type Config struct {
