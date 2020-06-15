@@ -18,7 +18,7 @@ func TestMap_Detect(t *testing.T) {
 
 	m := project.Map{
 		Filepath: "testdata/entity.any",
-		Patterns: []project.Pattern{
+		Patterns: []project.MapPattern{
 			{
 				Name: "my-project-1",
 				Regex: func() *regexp.Regexp {
@@ -43,7 +43,7 @@ func TestMap_Detect_RegexReplace(t *testing.T) {
 
 	m := project.Map{
 		Filepath: "testdata/entity.any",
-		Patterns: []project.Pattern{
+		Patterns: []project.MapPattern{
 			{
 				Name: "my-project-1",
 				Regex: func() *regexp.Regexp {
@@ -76,7 +76,7 @@ func TestMap_Detect_NoMatch(t *testing.T) {
 
 	m := project.Map{
 		Filepath: "testdata/entity.any",
-		Patterns: []project.Pattern{
+		Patterns: []project.MapPattern{
 			{
 				Name: "my_project_1",
 				Regex: func() *regexp.Regexp {
@@ -105,7 +105,7 @@ func TestMap_Detect_NoMatch(t *testing.T) {
 
 func TestMap_Detect_ZeroPatterns(t *testing.T) {
 	m := project.Map{
-		Patterns: []project.Pattern{},
+		Patterns: []project.MapPattern{},
 	}
 
 	_, detected, err := m.Detect()
