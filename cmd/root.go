@@ -69,6 +69,17 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 		"",
 		"Entity type for this heartbeat. Can be \"file\", \"domain\" or \"app\". Defaults to \"file\".",
 	)
+	flags.StringSlice(
+		"exclude",
+		nil,
+		"Filename patterns to exclude from logging. POSIX regex syntax."+
+			" Can be used more than once.",
+	)
+	flags.Bool(
+		"exclude-unknown-project",
+		false,
+		"When set, any activity where the project cannot be detected will be ignored.",
+	)
 	flags.String("file", "", "(deprecated) Absolute path to file for the heartbeat.")
 	flags.String("hide-branch-names", "", "Obfuscate branch names. Will not send revision control branch names to api.")
 	flags.String("hide-file-names", "", "Obfuscate filenames. Will not send file names to api.")
@@ -82,6 +93,18 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 			" created with a random project name.",
 	)
 	flags.String("hostname", "", "Optional name of local machine. Defaults to local machine name read from system")
+	flags.StringSlice(
+		"include",
+		nil,
+		"Filename patterns to log. When used in combination with"+
+			" --exclude, files matching include will still be logged."+
+			" POSIX regex syntax. Can be used more than once.",
+	)
+	flags.Bool(
+		"include-only-with-project-file",
+		false,
+		"Disables tracking folders unless they contain a .wakatime-project file. Defaults to false.",
+	)
 	flags.String("key", "", "Your wakatime api key; uses api_key from ~/.wakatime.cfg by default.")
 	flags.String("log-file", "", "Optional log file. Defaults to '~/.wakatime.log'.")
 	flags.String("logfile", "", "(deprecated) Optional log file. Defaults to '~/.wakatime.log'.")
