@@ -11,7 +11,7 @@ import (
 // Map contains map data.
 type Map struct {
 	Filepath string
-	Patterns []Pattern
+	Patterns []MapPattern
 }
 
 // Detect use the ~/.wakatime.cfg file to set custom project names by matching files
@@ -44,7 +44,7 @@ func (m Map) Detect() (Result, bool, error) {
 }
 
 // matchPattern matches regex against entity's path to find project name.
-func matchPattern(fp string, patterns []Pattern) (string, bool, error) {
+func matchPattern(fp string, patterns []MapPattern) (string, bool, error) {
 	fp, err := realpath.Realpath(fp)
 	if err != nil {
 		return "", false,

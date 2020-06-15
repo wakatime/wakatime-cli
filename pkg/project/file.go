@@ -71,12 +71,8 @@ func findProjectFile(fp string) (string, bool, error) {
 
 // fileExists checks if a file exist and is not a directory.
 func fileExists(fp string) bool {
-	info, err := os.Stat(fp)
-	if err != nil && os.IsNotExist(err) {
-		return false
-	}
-
-	return !info.IsDir()
+	_, err := os.Stat(fp)
+	return err == nil || os.IsExist(err)
 }
 
 // readFile reads a file and return an array of lines.
