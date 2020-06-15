@@ -64,6 +64,18 @@ func TestWithFiltering(t *testing.T) {
 	}, result)
 }
 
+func TestWithFiltering_AbortAllFiltered(t *testing.T) {
+	opt := filter.WithFiltering(filter.Config{})
+	h := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		return []heartbeat.Result{}, errors.New("this will should never be called")
+	})
+
+	result, err := h([]heartbeat.Heartbeat{testHeartbeat()})
+	require.NoError(t, err)
+
+	assert.Equal(t, result, []heartbeat.Result{})
+}
+
 func TestFilter(t *testing.T) {
 	tmpFile, err := ioutil.TempFile(os.TempDir(), "")
 	require.NoError(t, err)
