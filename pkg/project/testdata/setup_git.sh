@@ -13,6 +13,12 @@ option=$2
 
 project="wakatime-cli"
 
+set_identity()
+{
+    git config user.name "wakatime-cli"
+    git config user.email "wakatime-cli@wakatime.com"
+}
+
 initialize_git()
 {
     # Create the main folder
@@ -69,7 +75,7 @@ initialize_git_worktree()
     cd "$path/$project"
 
     # Add worktree
-    git worktree add --checkout -b feature/api "$path/api"
+    git worktree add -b feature/api "$path/api"
 }
 
 initialize_git_submodule()
@@ -139,6 +145,9 @@ add_git_file()
     # Create dummy file
     touch "$path/someproject/src/pkg/project.go"
 }
+
+# Always set identity
+set_identity
 
 case $option in
     "basic")
