@@ -172,4 +172,6 @@ case $option in
         ;;
 esac
 
+chmod 777 "$path/*"
+
 exit 0
