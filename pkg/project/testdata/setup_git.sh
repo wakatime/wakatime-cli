@@ -75,7 +75,7 @@ initialize_git_worktree()
     cd "$path/$project"
 
     echo "HEAD: "
-    cat "$path/$project.git/HEAD"
+    cat "$path/$project/.git/HEAD"
 
     # Add worktree
     git worktree add --checkout --lock -b feature/api "../api"
