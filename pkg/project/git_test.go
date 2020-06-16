@@ -126,6 +126,12 @@ func setupTestGitFolder(t *testing.T, args ...string) (fp string, tearDown func(
 	dir, err := ioutil.TempDir(os.TempDir(), "wakatime-git")
 	require.NoError(t, err)
 
+	fmt.Printf("commad: %s\n;%s", args[0], dir)
+	out, err := exec.Command("git", "version", dir).CombinedOutput()
+	require.NoError(t, err)
+
+	fmt.Printf("git version: %s", string(out))
+
 	args = append([]string{dir}, args...)
 	cmd := exec.Command("testdata/setup_git.sh", args...)
 
