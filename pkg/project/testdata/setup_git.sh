@@ -4,7 +4,7 @@
 # Script Name  : setup_git.sh 
 # Description  : Create a git repository to the given path
 # Args
-# 1.           : Path to the main directory 
+# 1.           : Path to the main directory
 # 2.           : Option to be called (basic, worktree, submodule, git_file)
 ################################################################################
 
@@ -140,50 +140,35 @@ add_git_file()
     touch "$path/someproject/src/pkg/project.go"
 }
 
-create_branches()
-{
-    # Change directory to git repo
-    cd $1
-
-    # Create branches
-    git branch feature/detection
-    git branch bugfix/log
-}
-
 case $option in
     "basic")
         initialize_git
-        create_branches "$path/$project"
-        
         # Checkout to branch
-        git checkout feature/detection
+        git checkout -b feature/detection
         ;;
     "worktree")
         initialize_git
         initialize_git_worktree
-        create_branches "$path/$project"
-
+        cd "$path/$project"
         # Checkout to branch
-        git checkout bugfix/log
+        git checkout -b bugfix/log
         ;;
     "submodule")
         initialize_git
         initialize_git_submodule
-        create_branches "$path/$project"
-
+        cd "$path/$project"
         # Checkout to branch
-        git checkout bugfix/log
+        git checkout -b bugfix/log
         ;;
     "git_file")
         initialize_git
         add_git_file
-        create_branches "$path/otherproject"
-
+        cd "$path/otherproject"
         # Checkout to branch
-        git checkout feature/detection
+        git checkout -b feature/detection
         ;;
     *)
-        echo "wrong option"
+        echo "invalid option"
         ;;
 esac
 
