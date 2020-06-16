@@ -74,11 +74,8 @@ initialize_git_worktree()
     # Change directory
     cd "$path/$project"
 
-    # Fetch origin
-    git fetch origin
-
     # Add worktree
-    git worktree add -b feature/api "$path/api"
+    git worktree add -b feature/api "../api"
 }
 
 initialize_git_submodule()
