@@ -74,11 +74,8 @@ initialize_git_worktree()
     # Change directory
     cd "$path/$project"
 
-    # list all
-    ls "$path/$project/.git" -lsa
-
     # Add worktree
-    git worktree add -b feature/api "../api"
+    git worktree add --checkout --lock -b feature/api "../api"
 }
 
 initialize_git_submodule()
