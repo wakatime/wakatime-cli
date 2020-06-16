@@ -68,11 +68,8 @@ initialize_git_worktree()
     # Change directory
     cd "$path/$project"
 
-    # Create branch
-    git branch feature/api
-
     # Add worktree
-    git worktree add feature/api "$path/project_api"
+    git worktree add --checkout -b feature/api "$path/api"
 }
 
 initialize_git_submodule()

@@ -71,7 +71,7 @@ func TestGit_Detect_Worktree(t *testing.T) {
 	defer tearDown()
 
 	g := project.Git{
-		Filepath: path.Join(fp, "project_api/src/pkg/project.go"),
+		Filepath: path.Join(fp, "api/src/pkg/project.go"),
 	}
 
 	result, detected, err := g.Detect()
@@ -126,7 +126,7 @@ func setupTestGitFolder(t *testing.T, args ...string) (fp string, tearDown func(
 	dir, err := ioutil.TempDir(os.TempDir(), "wakatime-git")
 	require.NoError(t, err)
 
-	fmt.Printf("commad: %s\n;%s", args[0], dir)
+	fmt.Printf("commad: %s;%s\n", args[0], dir)
 	out, err := exec.Command("git", "version", dir).CombinedOutput()
 	require.NoError(t, err)
 
