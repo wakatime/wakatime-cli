@@ -74,7 +74,6 @@ initialize_git_worktree()
     # Change directory
     cd "$path/$project"
 
-
     # Add worktree
     git worktree add --checkout --lock -b feature/api "../api"
 }
