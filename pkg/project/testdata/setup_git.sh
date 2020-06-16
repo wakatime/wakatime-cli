@@ -66,7 +66,7 @@ initialize_git_worktree()
     # Create by git worktree  #
     ###########################
     # Create worktree directory
-    mkdir "$path/project_api"
+    mkdir -p "$path/project_api"
 
     # Add worktree
     git worktree add -b feature/api "$path/project_api"
