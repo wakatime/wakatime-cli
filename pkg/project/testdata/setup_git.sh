@@ -65,6 +65,9 @@ initialize_git_worktree()
     ###########################
     # Create by git worktree  #
     ###########################
+    # Create worktree directory
+    mkdir "$path/project_api"
+
     # Add worktree
     git worktree add -b feature/api "$path/project_api"
 }
@@ -72,16 +75,13 @@ initialize_git_worktree()
 initialize_git_submodule()
 {
     # Create submodule directory
-    mkdir -p "${path}/otherproject/module_a"
+    mkdir -p "${path}/otherproject/module_a/src/lib"
 
     # Change directory
     cd "$path/otherproject/module_a"
 
     # Initialize empty git repository
     git init -q
-
-    # Create directory
-    mkdir -p "src/lib"
 
     # Create file
     touch "src/lib/lib.cpp"
