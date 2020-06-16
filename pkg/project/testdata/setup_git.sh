@@ -28,7 +28,7 @@ initialize_git()
     cd "$path/$project"
     
     # Initialize empty git repository
-    git init -q
+    git init
 
     # Create directory
     mkdir -p "$path/$project/src/pkg"
@@ -74,6 +74,9 @@ initialize_git_worktree()
     # Change directory
     cd "$path/$project"
 
+    # Fetch origin
+    git fetch origin
+
     # Add worktree
     git worktree add -b feature/api "$path/api"
 }
@@ -87,7 +90,7 @@ initialize_git_submodule()
     cd "$path/otherproject/module_a"
 
     # Initialize empty git repository
-    git init -q
+    git init
 
     # Create file
     touch "src/lib/lib.cpp"
