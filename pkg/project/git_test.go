@@ -1,6 +1,7 @@
 package project_test
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -130,6 +131,11 @@ func setupTestGitFolder(t *testing.T, args ...string) (fp string, tearDown func(
 
 	err = cmd.Run()
 	require.NoError(t, err)
+
+	out, err := exec.Command("tree", ".").CombinedOutput()
+	require.NoError(t, err)
+
+	fmt.Println(string(out))
 
 	return dir, func() { os.RemoveAll(dir) }
 }

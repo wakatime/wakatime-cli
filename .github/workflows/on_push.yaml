@@ -18,6 +18,3 @@ jobs:
         run: make test
       - name: "Linter"
         run: make lint
-      - name: "tree"
-        uses: srt32/git-actions@v0.0.3
-        run: tree .
