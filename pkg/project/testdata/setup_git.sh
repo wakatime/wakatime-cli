@@ -74,6 +74,9 @@ initialize_git_worktree()
     # Change directory
     cd "$path/$project"
 
+    # list all
+    ls "$path/$project/.git" -lsa
+
     # Add worktree
     git worktree add -b feature/api "../api"
 }
