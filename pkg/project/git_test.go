@@ -130,7 +130,7 @@ func setupTestGitFolder(t *testing.T, args ...string) (fp string, tearDown func(
 	out, err := exec.Command("git", "version", dir).CombinedOutput()
 	require.NoError(t, err)
 
-	fmt.Printf("git version: %s", string(out))
+	fmt.Printf("git version: %s\n", string(out))
 
 	args = append([]string{dir}, args...)
 	cmd := exec.Command("testdata/setup_git.sh", args...)

@@ -65,11 +65,14 @@ initialize_git_worktree()
     ###########################
     # Create by git worktree  #
     ###########################
-    # Create worktree directory
-    mkdir -p "$path/project_api"
+    # Change directory
+    cd "$path/$project"
+
+    # Create branch
+    git branch feature/api
 
     # Add worktree
-    git worktree add -b feature/api "$path/project_api"
+    git worktree add feature/api "$path/project_api"
 }
 
 initialize_git_submodule()
