@@ -132,7 +132,7 @@ func setupTestGitFolder(t *testing.T, args ...string) (fp string, tearDown func(
 	err = cmd.Run()
 	require.NoError(t, err)
 
-	out, err := exec.Command("tree", ".").CombinedOutput()
+	out, err := exec.Command("ls", "-lsa").CombinedOutput()
 	require.NoError(t, err)
 
 	fmt.Println(string(out))
