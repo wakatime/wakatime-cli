@@ -15,7 +15,7 @@ import (
 )
 
 func TestGit_Detect_GitConfigFile_Directory(t *testing.T) {
-	fp, tearDown := setupTestGitFolder(t, "basic")
+	fp, tearDown := setupTestGitProject(t, "basic")
 	defer tearDown()
 
 	g := project.Git{
@@ -33,17 +33,20 @@ func TestGit_Detect_GitConfigFile_Directory(t *testing.T) {
 }
 
 func TestGit_Detect_GitConfigFile_File(t *testing.T) {
-	fp, tearDown := setupTestGitFolder(t, "git_file")
+	fp, tearDown := setupTestGitProject(t, "git_file")
 	defer tearDown()
 
 	tests := map[string]struct {
 		Filepath string
 	}{
+		"main_repo": {
+			Filepath: path.Join(fp, "wakatime-cli/src/pkg/project.go"),
+		},
 		"relative_path": {
-			Filepath: path.Join(fp, "otherproject/src/pkg/project.go"),
+			Filepath: path.Join(fp, "feed/src/pkg/project.go"),
 		},
 		"absolute_pasth": {
-			Filepath: path.Join(fp, "someproject/src/pkg/project.go"),
+			Filepath: path.Join(fp, "mobile/src/pkg/project.go"),
 		},
 	}
 
@@ -59,18 +62,18 @@ func TestGit_Detect_GitConfigFile_File(t *testing.T) {
 			assert.True(t, detected)
 			assert.Equal(t, project.Result{
 				Project: "wakatime-cli",
-				Branch:  "feature/detection",
+				Branch:  "feature/list-elements",
 			}, result)
 		})
 	}
 }
 
 func TestGit_Detect_Worktree(t *testing.T) {
-	fp, tearDown := setupTestGitFolder(t, "worktree")
+	fp, tearDown := setupTestGitProject(t, "worktree")
 	defer tearDown()
 
 	g := project.Git{
-		Filepath: path.Join(fp, "project_api/src/pkg/project.go"),
+		Filepath: path.Join(fp, "api/src/pkg/project.go"),
 	}
 
 	result, detected, err := g.Detect()
@@ -84,11 +87,11 @@ func TestGit_Detect_Worktree(t *testing.T) {
 }
 
 func TestGit_Detect_Submodule(t *testing.T) {
-	fp, tearDown := setupTestGitFolder(t, "submodule")
+	fp, tearDown := setupTestGitProject(t, "submodule")
 	defer tearDown()
 
 	g := project.Git{
-		Filepath:          path.Join(fp, "wakatime-cli/lib/module_a/src/lib/lib.cpp"),
+		Filepath:          path.Join(fp, "wakatime-cli/lib/billing/src/lib/lib.cpp"),
 		SubmodulePatterns: []*regexp.Regexp{regexp.MustCompile("not_matching")},
 	}
 
@@ -97,18 +100,18 @@ func TestGit_Detect_Submodule(t *testing.T) {
 
 	assert.True(t, detected)
 	assert.Equal(t, project.Result{
-		Project: "module_a",
+		Project: "billing",
 		Branch:  "master",
 	}, result)
 }
 
 func TestGit_Detect_SubmoduleDisabled(t *testing.T) {
-	fp, tearDown := setupTestGitFolder(t, "submodule")
+	fp, tearDown := setupTestGitProject(t, "submodule")
 	defer tearDown()
 
 	g := project.Git{
-		Filepath:          path.Join(fp, "wakatime-cli/lib/module_a/src/lib/lib.cpp"),
-		SubmodulePatterns: []*regexp.Regexp{regexp.MustCompile(".*module_a.*")},
+		Filepath:          path.Join(fp, "wakatime-cli/lib/billing/src/lib/lib.cpp"),
+		SubmodulePatterns: []*regexp.Regexp{regexp.MustCompile(".*billing.*")},
 	}
 
 	result, detected, err := g.Detect()
@@ -117,11 +120,11 @@ func TestGit_Detect_SubmoduleDisabled(t *testing.T) {
 	assert.True(t, detected)
 	assert.Equal(t, project.Result{
 		Project: "wakatime-cli",
-		Branch:  "bugfix/log",
+		Branch:  "feature/billing",
 	}, result)
 }
 
-func setupTestGitFolder(t *testing.T, args ...string) (fp string, tearDown func()) {
+func setupTestGitProject(t *testing.T, args ...string) (fp string, tearDown func()) {
 	dir, err := ioutil.TempDir(os.TempDir(), "wakatime-git")
 	require.NoError(t, err)
 

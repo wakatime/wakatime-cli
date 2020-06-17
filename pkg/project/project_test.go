@@ -70,7 +70,7 @@ func TestWithDetection_EntityNotFile(t *testing.T) {
 }
 
 func TestDetectWithDetection_OverrideTakesPrecedence(t *testing.T) {
-	fp, tearDown := setupTestGitFolder(t, "basic")
+	fp, tearDown := setupTestGitProject(t, "basic")
 	defer tearDown()
 
 	opt := project.WithDetection(project.Config{
@@ -100,7 +100,7 @@ func TestDetectWithDetection_OverrideTakesPrecedence(t *testing.T) {
 }
 
 func TestDetectWithDetection_ObfuscateProject(t *testing.T) {
-	fp, tearDown := setupTestGitFolder(t, "basic")
+	fp, tearDown := setupTestGitProject(t, "basic")
 	defer tearDown()
 
 	opt := project.WithDetection(project.Config{
@@ -171,7 +171,7 @@ func TestDetect_MapDetected(t *testing.T) {
 }
 
 func TestDetectWithRevControl_GitDetected(t *testing.T) {
-	fp, tearDown := setupTestGitFolder(t, "basic")
+	fp, tearDown := setupTestGitProject(t, "basic")
 	defer tearDown()
 
 	project, branch := project.DetectWithRevControl(
