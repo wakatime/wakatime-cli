@@ -12,14 +12,6 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 )
 
-// Err is a heartbeat filtering error, signaling to skip the heartbeat.
-type Err string
-
-// Error implements error interface.
-func (e Err) Error() string {
-	return string(e)
-}
-
 // Config contains filtering configurations.
 type Config struct {
 	Exclude                    []*regexp.Regexp
@@ -29,7 +21,8 @@ type Config struct {
 }
 
 // WithFiltering initializes and returns a heartbeat handle option, which
-// can be used in a heartbeat processing pipeline.
+// can be used in a heartbeat processing pipeline to filter heartbeats following
+// the provided configurations.
 func WithFiltering(config Config) heartbeat.HandleOption {
 	return func(next heartbeat.Handle) heartbeat.Handle {
 		return func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
@@ -44,7 +37,7 @@ func WithFiltering(config Config) heartbeat.HandleOption {
 						continue
 					}
 
-					return nil, fmt.Errorf("error filtergin heartbeat: %w", err)
+					return nil, fmt.Errorf("error filtering heartbeat: %w", err)
 				}
 
 				filtered = append(filtered, h)
@@ -55,8 +48,9 @@ func WithFiltering(config Config) heartbeat.HandleOption {
 	}
 }
 
-// Filter filters a heartbeat following the passed in configuration.
-// Will return Err to signaling to the caller to skip the heartbeat.
+// Filter determines, following the passed in configurations, if a heartbeat
+// should be skipped.
+// Returns Err to signal to the caller to skip the heartbeat.
 func Filter(h heartbeat.Heartbeat, config Config) error {
 	// unknown language
 	if h.Language == nil || *h.Language == "" {
@@ -84,9 +78,9 @@ func Filter(h heartbeat.Heartbeat, config Config) error {
 	return nil
 }
 
-// filterByPattern filters an entity by include and exclude pattern. Include
-// will overwrite exclude.
-// Will return Err to signaling to the caller to skip the heartbeat.
+// filterByPattern determines if a heartbeat should be skipped by checking an
+// entity against include and exclude patterns. Include will override exclude.
+// Returns Err to signal to the caller to skip the heartbeat.
 func filterByPattern(entity string, include, exclude []*regexp.Regexp) error {
 	if entity == "" {
 		return nil
@@ -102,16 +96,17 @@ func filterByPattern(entity string, include, exclude []*regexp.Regexp) error {
 	// filter by  exclude pattern
 	for _, pattern := range exclude {
 		if pattern.MatchString(entity) {
-			return Err(fmt.Sprintf("skipping because matching exclude pattern %q", pattern.String()))
+			return Err(fmt.Sprintf("skipping because matches exclude pattern %q", pattern.String()))
 		}
 	}
 
 	return nil
 }
 
-// filterFileEntity filters a filepath by verifying existence of file, and optionally
-// checking if wakatime project file exists.
-// Will return Err to signaling to the caller to skip the heartbeat.
+// filterFileEntity determines if a heartbeat should be skipped, by verifying
+// the existence of the passed in filepath, and optionally by checking if a
+// wakatime project file can be detected in the filepath directory tree.
+// Returns Err to signal to the caller to skip the heartbeat.
 func filterFileEntity(filepath string, includeOnlyWithProjectFile bool) error {
 	// check if file exists
 	if _, err := os.Stat(filepath); os.IsNotExist(err) {
@@ -126,7 +121,7 @@ func filterFileEntity(filepath string, includeOnlyWithProjectFile bool) error {
 		}
 
 		if !ok {
-			return Err("skipping because of non-existing project file in parent path")
+			return Err("skipping because of missing .wakatime-project file in parent path")
 		}
 	}
 

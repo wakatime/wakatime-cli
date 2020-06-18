@@ -126,7 +126,7 @@ func TestFilter_ErrMatchesExcludePattern(t *testing.T) {
 	var errv filter.Err
 
 	assert.True(t, errors.As(err, &errv))
-	assert.Equal(t, filter.Err(fmt.Sprintf("skipping because matching exclude pattern \"^%s$\"", tmpFile.Name())), errv)
+	assert.Equal(t, filter.Err(fmt.Sprintf("skipping because matches exclude pattern \"^%s$\"", tmpFile.Name())), errv)
 }
 
 func TestFilter_ErrUnknownLanguage(t *testing.T) {
@@ -232,7 +232,7 @@ func TestFilter_ErrNonExistingProjectFile(t *testing.T) {
 	var errv filter.Err
 
 	assert.True(t, errors.As(err, &errv))
-	assert.Equal(t, filter.Err("skipping because of non-existing project file in parent path"), errv)
+	assert.Equal(t, filter.Err("skipping because of missing .wakatime-project file in parent path"), errv)
 }
 
 func testHeartbeat() heartbeat.Heartbeat {
