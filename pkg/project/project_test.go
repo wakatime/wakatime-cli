@@ -70,7 +70,7 @@ func TestWithDetection_EntityNotFile(t *testing.T) {
 }
 
 func TestDetectWithDetection_OverrideTakesPrecedence(t *testing.T) {
-	fp, tearDown := setupTestGitProject(t, "basic")
+	fp, tearDown := setupTestGitBasic(t)
 	defer tearDown()
 
 	opt := project.WithDetection(project.Config{
@@ -80,7 +80,7 @@ func TestDetectWithDetection_OverrideTakesPrecedence(t *testing.T) {
 	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		assert.Equal(t, []heartbeat.Heartbeat{
 			{
-				Entity:     path.Join(fp, "wakatime-cli/src/pkg/project.go"),
+				Entity:     path.Join(fp, "wakatime-cli/src/pkg/file.go"),
 				EntityType: heartbeat.FileType,
 				Project:    heartbeat.String("billing"),
 				Branch:     heartbeat.String("feature/detection"),
@@ -93,14 +93,14 @@ func TestDetectWithDetection_OverrideTakesPrecedence(t *testing.T) {
 	_, err := handle([]heartbeat.Heartbeat{
 		{
 			EntityType: heartbeat.FileType,
-			Entity:     path.Join(fp, "wakatime-cli/src/pkg/project.go"),
+			Entity:     path.Join(fp, "wakatime-cli/src/pkg/file.go"),
 		},
 	})
 	require.NoError(t, err)
 }
 
 func TestDetectWithDetection_ObfuscateProject(t *testing.T) {
-	fp, tearDown := setupTestGitProject(t, "basic")
+	fp, tearDown := setupTestGitBasic(t)
 	defer tearDown()
 
 	opt := project.WithDetection(project.Config{
@@ -110,7 +110,7 @@ func TestDetectWithDetection_ObfuscateProject(t *testing.T) {
 	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		assert.Equal(t, []heartbeat.Heartbeat{
 			{
-				Entity:     path.Join(fp, "wakatime-cli/src/pkg/project.go"),
+				Entity:     path.Join(fp, "wakatime-cli/src/pkg/file.go"),
 				EntityType: heartbeat.FileType,
 				Project:    heartbeat.String(""),
 				Branch:     heartbeat.String("feature/detection"),
@@ -123,7 +123,7 @@ func TestDetectWithDetection_ObfuscateProject(t *testing.T) {
 	_, err := handle([]heartbeat.Heartbeat{
 		{
 			EntityType: heartbeat.FileType,
-			Entity:     path.Join(fp, "wakatime-cli/src/pkg/project.go"),
+			Entity:     path.Join(fp, "wakatime-cli/src/pkg/file.go"),
 		},
 	})
 	require.NoError(t, err)
@@ -171,11 +171,11 @@ func TestDetect_MapDetected(t *testing.T) {
 }
 
 func TestDetectWithRevControl_GitDetected(t *testing.T) {
-	fp, tearDown := setupTestGitProject(t, "basic")
+	fp, tearDown := setupTestGitBasic(t)
 	defer tearDown()
 
 	project, branch := project.DetectWithRevControl(
-		path.Join(fp, "wakatime-cli/src/pkg/project.go"),
+		path.Join(fp, "wakatime-cli/src/pkg/file.go"),
 		[]*regexp.Regexp{}, "", "")
 
 	assert.Equal(t, "wakatime-cli", project)
