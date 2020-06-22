@@ -26,6 +26,34 @@ type Heartbeat struct {
 	UserAgent      string     `json:"user_agent"`
 }
 
+// ID returns an ID generated from the heartbeat data.
+func (h Heartbeat) ID() string {
+	var branch string
+	if h.Branch != nil {
+		branch = *h.Branch
+	}
+
+	var project string
+	if h.Project != nil {
+		project = *h.Project
+	}
+
+	var isWrite bool
+	if h.IsWrite != nil {
+		isWrite = *h.IsWrite
+	}
+
+	return fmt.Sprintf("%f-%s-%s-%s-%s-%s-%t",
+		h.Time,
+		h.EntityType,
+		h.Category,
+		project,
+		branch,
+		h.Entity,
+		isWrite,
+	)
+}
+
 // Result represents a response from the wakatime api.
 type Result struct {
 	Errors    []string
