@@ -55,3 +55,54 @@ func (q *Queue) PushMany(hh []heartbeat.Heartbeat) error {
 
 	return nil
 }
+
+// PopMany takes multiple heartbeats from the queue.
+func (q *Queue) PopMany(limit int) ([]heartbeat.Heartbeat, error) {
+	rows, err := q.conn.Query(fmt.Sprintf("SELECT id, heartbeat FROM %s LIMIT $1;", tableName), limit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute select db query: %s", err)
+	}
+
+	var (
+		ids        []string
+		heartbeats []heartbeat.Heartbeat
+	)
+
+	for rows.Next() {
+		var (
+			id   string
+			data string
+		)
+
+		err := rows.Scan(
+			&id,
+			&data,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan row: %s", err)
+		}
+
+		ids = append(ids, id)
+
+		var h heartbeat.Heartbeat
+		err = json.Unmarshal([]byte(data), &h)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse heartbeat json data: %s", err)
+		}
+
+		heartbeats = append(heartbeats, h)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("row error: %s", err)
+	}
+
+	for _, id := range ids {
+		_, err = q.conn.Exec(fmt.Sprintf("DELETE FROM %s WHERE id = $1", tableName), id)
+		if err != nil {
+			return nil, fmt.Errorf("failed to execute delete db query: %s", err)
+		}
+	}
+
+	return heartbeats, nil
+}
