@@ -8,6 +8,7 @@ import (
 
 	"github.com/wakatime/wakatime-cli/pkg/api"
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
+	"github.com/wakatime/wakatime-cli/pkg/filter"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 
 	jww "github.com/spf13/jwalterweatherman"
@@ -102,6 +103,12 @@ func SendHeartbeat(v *viper.Viper) error {
 	}
 
 	handleOpts := []heartbeat.HandleOption{
+		filter.WithFiltering(filter.Config{
+			Exclude:                    params.Filter.Exclude,
+			ExcludeUnknownProject:      params.Filter.ExcludeUnknownProject,
+			Include:                    params.Filter.Include,
+			IncludeOnlyWithProjectFile: params.Filter.IncludeOnlyWithProjectFile,
+		}),
 		heartbeat.WithSanitization(heartbeat.SanitizeConfig{
 			BranchPatterns:  params.Sanitize.HideBranchNames,
 			FilePatterns:    params.Sanitize.HideFileNames,
