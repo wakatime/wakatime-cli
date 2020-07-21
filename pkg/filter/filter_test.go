@@ -129,34 +129,6 @@ func TestFilter_ErrMatchesExcludePattern(t *testing.T) {
 	assert.Equal(t, filter.Err(fmt.Sprintf("skipping because matches exclude pattern \"^%s$\"", tmpFile.Name())), errv)
 }
 
-func TestFilter_ErrUnknownLanguage(t *testing.T) {
-	tests := map[string]*string{
-		"nil":          nil,
-		"empty string": heartbeat.String(""),
-	}
-
-	for name, languageValue := range tests {
-		t.Run(name, func(t *testing.T) {
-			tmpFile, err := ioutil.TempFile(os.TempDir(), "")
-			require.NoError(t, err)
-
-			defer os.Remove(tmpFile.Name())
-
-			h := testHeartbeat()
-			h.Entity = tmpFile.Name()
-			h.Language = languageValue
-
-			err = filter.Filter(h, filter.Config{
-				ExcludeUnknownProject: true,
-			})
-			var errv filter.Err
-			assert.True(t, errors.As(err, &errv))
-
-			assert.Equal(t, filter.Err("skipping because of unknown language"), errv)
-		})
-	}
-}
-
 func TestFilter_ErrUnknownProject(t *testing.T) {
 	tests := map[string]*string{
 		"nil":          nil,

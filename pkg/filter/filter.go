@@ -52,11 +52,6 @@ func WithFiltering(config Config) heartbeat.HandleOption {
 // should be skipped.
 // Returns Err to signal to the caller to skip the heartbeat.
 func Filter(h heartbeat.Heartbeat, config Config) error {
-	// unknown language
-	if h.Language == nil || *h.Language == "" {
-		return Err("skipping because of unknown language")
-	}
-
 	// unknown project
 	if config.ExcludeUnknownProject && (h.Project == nil || *h.Project == "") {
 		return Err("skipping because of unknown project")
