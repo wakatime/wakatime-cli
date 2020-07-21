@@ -12,6 +12,7 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/vipertools"
 
+	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
 )
 
@@ -36,8 +37,17 @@ type Params struct {
 	Plugin     string
 	Time       float64
 	Timeout    time.Duration
+	Filter     FilterParams
 	Network    NetworkParams
 	Sanitize   SanitizeParams
+}
+
+// FilterParams contains heartbeat filtering related command parameters.
+type FilterParams struct {
+	Exclude                    []*regexp.Regexp
+	ExcludeUnknownProject      bool
+	Include                    []*regexp.Regexp
+	IncludeOnlyWithProjectFile bool
 }
 
 // NetworkParams contains network related command parameters.
@@ -148,7 +158,56 @@ func LoadParams(v *viper.Viper) (Params, error) {
 		Timeout:    timeout,
 		Network:    networkParams,
 		Sanitize:   sanitizeParams,
+		Filter:     loadFilterParams(v),
 	}, nil
+}
+
+func loadFilterParams(v *viper.Viper) FilterParams {
+	exclude := v.GetStringSlice("exclude")
+	exclude = append(exclude, v.GetStringSlice("settings.exclude")...)
+	exclude = append(exclude, v.GetStringSlice("settings.ignore")...)
+
+	var excludePatterns []*regexp.Regexp
+
+	for _, s := range exclude {
+		compiled, err := regexp.Compile(s)
+		if err != nil {
+			jww.DEBUG.Printf("failed to compile exclude regex pattern %q", s)
+			continue
+		}
+
+		excludePatterns = append(excludePatterns, compiled)
+	}
+
+	include := v.GetStringSlice("include")
+	include = append(include, v.GetStringSlice("settings.include")...)
+
+	var includePatterns []*regexp.Regexp
+
+	for _, s := range include {
+		compiled, err := regexp.Compile(s)
+		if err != nil {
+			jww.DEBUG.Printf("failed to compile include regex pattern %q", s)
+			continue
+		}
+
+		includePatterns = append(includePatterns, compiled)
+	}
+
+	return FilterParams{
+		Exclude: excludePatterns,
+		ExcludeUnknownProject: vipertools.FirstNonEmptyBool(
+			v,
+			"exclude-unknown-project",
+			"settings.exclude_unknown_project",
+		),
+		Include: includePatterns,
+		IncludeOnlyWithProjectFile: vipertools.FirstNonEmptyBool(
+			v,
+			"include-only-with-project-file",
+			"settings.include_only_with_project_file",
+		),
+	}
 }
 
 func loadNetworkParams(v *viper.Viper) (NetworkParams, error) {

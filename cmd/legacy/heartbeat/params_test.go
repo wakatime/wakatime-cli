@@ -399,6 +399,119 @@ func TestLoadParams_Time_Default(t *testing.T) {
 	assert.GreaterOrEqual(t, params.Time, now-60)
 }
 
+func TestLoadParams_Filter_Exclude(t *testing.T) {
+	v := viper.New()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("entity", "/path/to/file")
+	v.Set("exclude", []string{".*", "wakatime.*"})
+	v.Set("settings.exclude", []string{".+", "wakatime.+"})
+	v.Set("settings.ignore", []string{".?", "wakatime.?"})
+
+	params, err := cmd.LoadParams(v)
+	require.NoError(t, err)
+
+	assert.Equal(t, []*regexp.Regexp{
+		regexp.MustCompile(".*"),
+		regexp.MustCompile("wakatime.*"),
+		regexp.MustCompile(".+"),
+		regexp.MustCompile("wakatime.+"),
+		regexp.MustCompile(".?"),
+		regexp.MustCompile("wakatime.?"),
+	}, params.Filter.Exclude)
+}
+
+func TestLoadParams_Filter_Exclude_IgnoresInvalidRegex(t *testing.T) {
+	v := viper.New()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("entity", "/path/to/file")
+	v.Set("exclude", []string{".*", "["})
+
+	params, err := cmd.LoadParams(v)
+	require.NoError(t, err)
+
+	assert.Equal(t, []*regexp.Regexp{regexp.MustCompile(".*")}, params.Filter.Exclude)
+}
+
+func TestLoadParams_Filter_ExcludeUnknownProject(t *testing.T) {
+	v := viper.New()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("entity", "/path/to/file")
+	v.Set("exclude-unknown-project", true)
+
+	params, err := cmd.LoadParams(v)
+	require.NoError(t, err)
+
+	assert.Equal(t, true, params.Filter.ExcludeUnknownProject)
+}
+
+func TestLoadParams_Filter_ExcludeUnknownProject_FromConfig(t *testing.T) {
+	v := viper.New()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("entity", "/path/to/file")
+	v.Set("exclude-unknown-project", false)
+	v.Set("settings.exclude_unknown_project", true)
+
+	params, err := cmd.LoadParams(v)
+	require.NoError(t, err)
+
+	assert.Equal(t, true, params.Filter.ExcludeUnknownProject)
+}
+
+func TestLoadParams_Filter_Include(t *testing.T) {
+	v := viper.New()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("entity", "/path/to/file")
+	v.Set("include", []string{".*", "wakatime.*"})
+	v.Set("settings.include", []string{".+", "wakatime.+"})
+
+	params, err := cmd.LoadParams(v)
+	require.NoError(t, err)
+
+	assert.Equal(t, []*regexp.Regexp{
+		regexp.MustCompile(".*"),
+		regexp.MustCompile("wakatime.*"),
+		regexp.MustCompile(".+"),
+		regexp.MustCompile("wakatime.+"),
+	}, params.Filter.Include)
+}
+
+func TestLoadParams_Filter_Include_IgnoresInvalidRegex(t *testing.T) {
+	v := viper.New()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("entity", "/path/to/file")
+	v.Set("include", []string{".*", "["})
+
+	params, err := cmd.LoadParams(v)
+	require.NoError(t, err)
+
+	assert.Equal(t, []*regexp.Regexp{regexp.MustCompile(".*")}, params.Filter.Include)
+}
+
+func TestLoadParams_Filter_IncludeOnlyWithProjectFile(t *testing.T) {
+	v := viper.New()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("entity", "/path/to/file")
+	v.Set("include-only-with-project-file", true)
+
+	params, err := cmd.LoadParams(v)
+	require.NoError(t, err)
+
+	assert.Equal(t, true, params.Filter.IncludeOnlyWithProjectFile)
+}
+
+func TestLoadParams_Filter_IncludeOnlyWithProjectFile_FromConfig(t *testing.T) {
+	v := viper.New()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("entity", "/path/to/file")
+	v.Set("include-only-with-project-file", false)
+	v.Set("settings.include_only_with_project_file", true)
+
+	params, err := cmd.LoadParams(v)
+	require.NoError(t, err)
+
+	assert.Equal(t, true, params.Filter.IncludeOnlyWithProjectFile)
+}
+
 func TestLoadParams_Network_DisableSSLVerify_FlagTakesPrecedence(t *testing.T) {
 	v := viper.New()
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
