@@ -45,7 +45,7 @@ func (g Git) Detect() (Result, bool, error) {
 	if ok {
 		result.Project = path.Base(gitdirSubmodule)
 
-		branch, err := findBranch(path.Join(gitdirSubmodule, "HEAD"))
+		branch, err := findGitBranch(path.Join(gitdirSubmodule, "HEAD"))
 		if err != nil {
 			jww.ERROR.Printf(
 				"error finding for branch name from %q: %s",
@@ -65,7 +65,7 @@ func (g Git) Detect() (Result, bool, error) {
 	if ok {
 		result.Project = path.Base(path.Join(gitConfigFile, ".."))
 
-		branch, err := findBranch(path.Join(gitConfigFile, "HEAD"))
+		branch, err := findGitBranch(path.Join(gitConfigFile, "HEAD"))
 		if err != nil {
 			jww.ERROR.Printf(
 				"error finding for branch name from %q: %s",
@@ -103,7 +103,7 @@ func (g Git) Detect() (Result, bool, error) {
 	if ok {
 		result.Project = path.Base(path.Dir(commondir))
 
-		branch, err := findBranch(path.Join(gitdir, "HEAD"))
+		branch, err := findGitBranch(path.Join(gitdir, "HEAD"))
 		if err != nil {
 			jww.ERROR.Printf(
 				"error finding for branch name from %q: %s",
@@ -119,9 +119,9 @@ func (g Git) Detect() (Result, bool, error) {
 
 	if gitdir != "" {
 		// Otherwise it's only a plain .git file
-		result.Project = path.Base(path.Join(gitdir, ".."))
+		result.Project = path.Base(gitConfigFile)
 
-		branch, err := findBranch(path.Join(gitdir, "HEAD"))
+		branch, err := findGitBranch(path.Join(gitdir, "HEAD"))
 		if err != nil {
 			jww.ERROR.Printf(
 				"error finding for branch name from %q: %s",
@@ -254,7 +254,11 @@ func resolveCommondir(fp string) (string, bool, error) {
 	return "", false, nil
 }
 
-func findBranch(fp string) (string, error) {
+func findGitBranch(fp string) (string, error) {
+	if !fileExists(fp) {
+		return "master", nil
+	}
+
 	lines, err := readFile(fp)
 	if err != nil {
 		return "", Err(fmt.Errorf("failed while opening file %q: %w", fp, err).Error())
@@ -264,7 +268,7 @@ func findBranch(fp string) (string, error) {
 		return strings.TrimSpace(strings.SplitN(lines[0], "/", 3)[2]), nil
 	}
 
-	return "master", nil
+	return "", nil
 }
 
 // String returns its name.

@@ -83,7 +83,7 @@ func TestDetectWithDetection_OverrideTakesPrecedence(t *testing.T) {
 				Entity:     path.Join(fp, "wakatime-cli/src/pkg/file.go"),
 				EntityType: heartbeat.FileType,
 				Project:    heartbeat.String("billing"),
-				Branch:     heartbeat.String("feature/detection"),
+				Branch:     heartbeat.String("master"),
 			},
 		}, hh)
 
@@ -113,7 +113,7 @@ func TestDetectWithDetection_ObfuscateProject(t *testing.T) {
 				Entity:     path.Join(fp, "wakatime-cli/src/pkg/file.go"),
 				EntityType: heartbeat.FileType,
 				Project:    heartbeat.String(""),
-				Branch:     heartbeat.String("feature/detection"),
+				Branch:     heartbeat.String("master"),
 			},
 		}, hh)
 
@@ -179,7 +179,7 @@ func TestDetectWithRevControl_GitDetected(t *testing.T) {
 		[]*regexp.Regexp{}, "", "")
 
 	assert.Equal(t, "wakatime-cli", project)
-	assert.Equal(t, "feature/detection", branch)
+	assert.Equal(t, "master", branch)
 }
 
 func TestDetect_NoProjectDetected(t *testing.T) {
