@@ -12,6 +12,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/yookoala/realpath"
 )
 
 func TestFile_Detect_FileExists(t *testing.T) {
@@ -108,6 +109,33 @@ func TestFile_String(t *testing.T) {
 	f := project.File{}
 
 	assert.Equal(t, "project-file-detector", f.String())
+}
+
+func TestFindFile(t *testing.T) {
+	tmpDir, err := ioutil.TempDir(os.TempDir(), "wakatime")
+	require.NoError(t, err)
+
+	defer os.RemoveAll(tmpDir)
+
+	dir := path.Join(tmpDir, "src", "otherfolder")
+
+	err = os.MkdirAll(dir, os.FileMode(int(0700)))
+	require.NoError(t, err)
+
+	copyFile(
+		t,
+		"testdata/.wakatime-project",
+		path.Join(tmpDir, ".wakatime-project"),
+	)
+
+	filepath, ok, err := project.FindFile(dir)
+	require.NoError(t, err)
+	require.True(t, ok)
+
+	realpathTmpDir, err := realpath.Realpath(tmpDir)
+	require.NoError(t, err)
+
+	assert.Equal(t, path.Join(realpathTmpDir, ".wakatime-project"), filepath)
 }
 
 func copyFile(t *testing.T, source, destination string) {

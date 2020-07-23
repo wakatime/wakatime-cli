@@ -21,7 +21,7 @@ type File struct {
 // a given file. First line of .wakatime-project sets the project
 // name. Second line sets the current branch name.
 func (f File) Detect() (Result, bool, error) {
-	fp, ok, err := findProjectFile(f.Filepath)
+	fp, ok, err := FindFile(f.Filepath)
 	if err != nil {
 		return Result{}, false,
 			Err(fmt.Sprintf("error finding project file: %s", err))
@@ -48,8 +48,8 @@ func (f File) Detect() (Result, bool, error) {
 	return result, true, nil
 }
 
-// findProjectFile find for .wakatime-project file in the given path.
-func findProjectFile(fp string) (string, bool, error) {
+// FindFile find for .wakatime-project file in the given path.
+func FindFile(fp string) (string, bool, error) {
 	fp, err := realpath.Realpath(fp)
 	if err != nil {
 		return "", false, Err(fmt.Errorf("failed to get the real path: %w", err).Error())
@@ -66,7 +66,7 @@ func findProjectFile(fp string) (string, bool, error) {
 		return "", false, nil
 	}
 
-	return findProjectFile(dir)
+	return FindFile(dir)
 }
 
 // fileExists checks if a file exist and is not a directory.
