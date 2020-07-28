@@ -11,6 +11,7 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/api"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 
+	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -394,6 +395,138 @@ func TestLoadParams_LineNumber_Unset(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Nil(t, params.LineNumber)
+}
+
+func TestLoadParams_OfflineDisabled_ConfigTakesPrecedence(t *testing.T) {
+	v := viper.New()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("entity", "/path/to/file")
+	v.Set("disable-offline", false)
+	v.Set("disableoffline", false)
+	v.Set("settings.offline", false)
+
+	params, err := cmd.LoadParams(v)
+	require.NoError(t, err)
+
+	assert.True(t, params.OfflineDisabled)
+}
+
+func TestLoadParams_OfflineDisabled_FlagDeprecatedTakesPrecedence(t *testing.T) {
+	v := viper.New()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("entity", "/path/to/file")
+	v.Set("disable-offline", false)
+	v.Set("disableoffline", true)
+
+	params, err := cmd.LoadParams(v)
+	require.NoError(t, err)
+
+	assert.True(t, params.OfflineDisabled)
+}
+
+func TestLoadParams_OfflineDisabled_FromFlag(t *testing.T) {
+	v := viper.New()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("entity", "/path/to/file")
+	v.Set("disable-offline", true)
+
+	params, err := cmd.LoadParams(v)
+	require.NoError(t, err)
+
+	assert.True(t, params.OfflineDisabled)
+}
+
+func TestLoadParams_OfflineSyncMax(t *testing.T) {
+	v := viper.New()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("entity", "/path/to/file")
+	v.Set("sync-offline-activity", 42)
+	v.SetDefault("sync-offline-activity", 100)
+
+	params, err := cmd.LoadParams(v)
+	require.NoError(t, err)
+
+	assert.Equal(t, 42, params.OfflineSyncMax)
+}
+
+func TestLoadParams_OfflineSyncMax_NoEntity(t *testing.T) {
+	v := viper.New()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("sync-offline-activity", 42)
+	v.SetDefault("sync-offline-activity", 100)
+
+	params, err := cmd.LoadParams(v)
+	require.NoError(t, err)
+
+	assert.Equal(t, 42, params.OfflineSyncMax)
+}
+
+func TestLoadParams_OfflineSyncMax_NoEntity_DefaultNotAccepted(t *testing.T) {
+	v := viper.New()
+
+	flags := pflag.FlagSet{}
+	flags.String("sync-offline-activity", "100", "")
+
+	err := v.BindPFlags(&flags)
+	require.NoError(t, err)
+
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+
+	_, err = cmd.LoadParams(v)
+	require.Error(t, err)
+
+	assert.Equal(t, "failed to retrieve entity", err.Error())
+}
+
+func TestLoadParams_OfflineSyncMax_None(t *testing.T) {
+	v := viper.New()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("entity", "/path/to/file")
+	v.Set("sync-offline-activity", "none")
+	v.SetDefault("sync-offline-activity", 100)
+
+	params, err := cmd.LoadParams(v)
+	require.NoError(t, err)
+
+	assert.Equal(t, 0, params.OfflineSyncMax)
+}
+
+func TestLoadParams_OfflineSyncMax_Default(t *testing.T) {
+	v := viper.New()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("entity", "/path/to/file")
+	v.SetDefault("sync-offline-activity", 100)
+
+	params, err := cmd.LoadParams(v)
+	require.NoError(t, err)
+
+	assert.Equal(t, 100, params.OfflineSyncMax)
+}
+
+func TestLoadParams_OfflineSyncMax_NegativeNumber(t *testing.T) {
+	v := viper.New()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("entity", "/path/to/file")
+	v.Set("sync-offline-activity", -1)
+	v.SetDefault("sync-offline-activity", 100)
+
+	_, err := cmd.LoadParams(v)
+	require.Error(t, err)
+
+	assert.Contains(t, err.Error(), "--sync-offline-activity")
+}
+
+func TestLoadParams_OfflineSyncMax_NonIntegerValue(t *testing.T) {
+	v := viper.New()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("entity", "/path/to/file")
+	v.Set("sync-offline-activity", "invalid")
+	v.SetDefault("sync-offline-activity", 100)
+
+	_, err := cmd.LoadParams(v)
+	require.Error(t, err)
+
+	assert.Contains(t, err.Error(), "--sync-offline-activity")
 }
 
 func TestLoadParams_Plugin(t *testing.T) {
