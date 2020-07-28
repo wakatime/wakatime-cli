@@ -25,7 +25,7 @@ func (g Git) Detect() (Result, bool, error) {
 	fp, err := realpath.Realpath(g.Filepath)
 	if err != nil {
 		return Result{}, false,
-			Err(fmt.Errorf("failed to get the real path: %w", err).Error())
+			Err(fmt.Sprintf("failed to get the real path: %s", err))
 	}
 
 	// Take only the directory
@@ -40,10 +40,8 @@ func (g Git) Detect() (Result, bool, error) {
 			Err(fmt.Sprintf("failed to validate submodule: %s", err))
 	}
 
-	result := Result{}
-
 	if ok {
-		result.Project = path.Base(gitdirSubmodule)
+		project := path.Base(gitdirSubmodule)
 
 		branch, err := findGitBranch(path.Join(gitdirSubmodule, "HEAD"))
 		if err != nil {
@@ -54,16 +52,17 @@ func (g Git) Detect() (Result, bool, error) {
 			)
 		}
 
-		result.Branch = branch
-
-		return result, true, nil
+		return Result{
+			Project: project,
+			Branch:  branch,
+		}, true, nil
 	}
 
 	// Find for .git/config file
 	gitConfigFile, ok := findGitConfigFile(fp, ".git", "config")
 
 	if ok {
-		result.Project = path.Base(path.Join(gitConfigFile, ".."))
+		project := path.Base(path.Join(gitConfigFile, ".."))
 
 		branch, err := findGitBranch(path.Join(gitConfigFile, "HEAD"))
 		if err != nil {
@@ -74,9 +73,10 @@ func (g Git) Detect() (Result, bool, error) {
 			)
 		}
 
-		result.Branch = branch
-
-		return result, true, nil
+		return Result{
+			Project: project,
+			Branch:  branch,
+		}, true, nil
 	}
 
 	// Find for .git file
@@ -101,7 +101,7 @@ func (g Git) Detect() (Result, bool, error) {
 	}
 
 	if ok {
-		result.Project = path.Base(path.Dir(commondir))
+		project := path.Base(path.Dir(commondir))
 
 		branch, err := findGitBranch(path.Join(gitdir, "HEAD"))
 		if err != nil {
@@ -112,14 +112,15 @@ func (g Git) Detect() (Result, bool, error) {
 			)
 		}
 
-		result.Branch = branch
-
-		return result, true, nil
+		return Result{
+			Project: project,
+			Branch:  branch,
+		}, true, nil
 	}
 
 	if gitdir != "" {
 		// Otherwise it's only a plain .git file
-		result.Project = path.Base(gitConfigFile)
+		project := path.Base(gitConfigFile)
 
 		branch, err := findGitBranch(path.Join(gitdir, "HEAD"))
 		if err != nil {
@@ -130,9 +131,10 @@ func (g Git) Detect() (Result, bool, error) {
 			)
 		}
 
-		result.Branch = branch
-
-		return result, true, nil
+		return Result{
+			Project: project,
+			Branch:  branch,
+		}, true, nil
 	}
 
 	return Result{}, false, nil
@@ -189,7 +191,7 @@ func shouldTakeSubmodule(fp string, patterns []*regexp.Regexp) bool {
 func findGitdir(fp string) (string, error) {
 	lines, err := readFile(fp)
 	if err != nil {
-		return "", Err(fmt.Errorf("failed while opening file %q: %w", fp, err).Error())
+		return "", Err(fmt.Sprintf("failed while opening file %q: %s", fp, err))
 	}
 
 	if len(lines) > 0 && strings.HasPrefix(lines[0], "gitdir: ") {
@@ -234,7 +236,7 @@ func resolveCommondir(fp string) (string, bool, error) {
 	lines, err := readFile(path.Join(fp, "commondir"))
 	if err != nil {
 		return "", false,
-			Err(fmt.Errorf("failed while opening file %q: %w", fp, err).Error())
+			Err(fmt.Sprintf("failed while opening file %q: %s", fp, err))
 	}
 
 	if len(lines) == 0 {
@@ -244,7 +246,7 @@ func resolveCommondir(fp string) (string, bool, error) {
 	gitdir, err := filepath.Abs(path.Join(fp, lines[0]))
 	if err != nil {
 		return "", false,
-			Err(fmt.Errorf("failed to get absolute path: %w", err).Error())
+			Err(fmt.Sprintf("failed to get absolute path: %s", err))
 	}
 
 	if path.Base(gitdir) == ".git" {
@@ -261,7 +263,7 @@ func findGitBranch(fp string) (string, error) {
 
 	lines, err := readFile(fp)
 	if err != nil {
-		return "", Err(fmt.Errorf("failed while opening file %q: %w", fp, err).Error())
+		return "", Err(fmt.Sprintf("failed while opening file %q: %s", fp, err))
 	}
 
 	if len(lines) > 0 && strings.HasPrefix(strings.TrimSpace(lines[0]), "ref: ") {
