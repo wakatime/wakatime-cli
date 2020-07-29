@@ -5,15 +5,39 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
+	"path"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 
+	_ "github.com/mattn/go-sqlite3" // not used directly
+	"github.com/mitchellh/go-homedir"
 	jww "github.com/spf13/jwalterweatherman"
 )
 
 const (
 	tableName = "heartbeat_2"
 )
+
+// QueueFilepath returns the path to the offline queue db file.
+func QueueFilepath() (string, error) {
+	dir := os.Getenv("WAKATIME_HOME")
+
+	var err error
+	if dir == "" {
+		dir, err = os.UserHomeDir()
+		if err != nil {
+			return "", fmt.Errorf("failed to retrieve user's home dir: %s", err)
+		}
+	}
+
+	expanded, err := homedir.Expand(dir)
+	if err != nil {
+		return "", fmt.Errorf("failed to expand offline queue folder path: %s", err)
+	}
+
+	return path.Join(expanded, ".wakatime.db"), nil
+}
 
 // WithQueue initializes and returns a heartbeat handle option, which can be
 // used in a heartbeat processing pipeline for automatic handling of failures

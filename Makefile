@@ -14,13 +14,13 @@ BINARY_NAME=wakatime-cli
 build-all: build-darwin build-linux build-windows
 
 build-darwin:
-	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 $(GOBUILD) -o ./build/darwin/amd64/$(BINARY_NAME) -v
+	CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 $(GOBUILD) -o ./build/darwin/amd64/$(BINARY_NAME) -v
 
 build-linux:
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GOBUILD) -o ./build/linux/amd64/$(BINARY_NAME) -v
+	CGO_ENABLED=1 GOOS=linux GOARCH=amd64 $(GOBUILD) -o ./build/linux/amd64/$(BINARY_NAME) -v
 
 build-windows:
-	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 $(GOBUILD) -o ./build/windows/amd64/$(BINARY_NAME).exe -v
+	CGO_ENABLED=1 GOOS=windows GOARCH=amd64 $(GOBUILD) -o ./build/windows/amd64/$(BINARY_NAME).exe -v
 
 # Install linter
 .PHONY: install-linter
