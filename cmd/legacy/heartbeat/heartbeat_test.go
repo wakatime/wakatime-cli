@@ -78,6 +78,36 @@ func TestSendHeartbeat(t *testing.T) {
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
 
+func TestSendHeartbeat_WithFiltering_Exclude(t *testing.T) {
+	testServerURL, router, tearDown := setupTestServer()
+	defer tearDown()
+
+	var numCalls int
+
+	router.HandleFunc("/v1/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
+		w.WriteHeader(500)
+
+		numCalls++
+	})
+
+	v := viper.New()
+	v.Set("api-url", testServerURL)
+	v.Set("category", "debugging")
+	v.Set("entity", "/tmp/main.go")
+	v.Set("exclude", ".*")
+	v.Set("entity-type", "app")
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("plugin", "plugin")
+	v.Set("time", 1585598059.1)
+	v.Set("timeout", 5)
+	v.Set("write", true)
+
+	err := cmd.SendHeartbeat(v)
+	require.NoError(t, err)
+
+	assert.Equal(t, 0, numCalls)
+}
+
 func setupTestServer() (string, *http.ServeMux, func()) {
 	router := http.NewServeMux()
 	srv := httptest.NewServer(router)
