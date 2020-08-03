@@ -27,11 +27,15 @@ type Config struct {
 	// Alternative sets an alternate project name. Auto-discovered project takes priority.
 	Alternative string
 	// Patterns contains the overridden project name per path.
-	Patterns []Pattern
+	MapPatterns []MapPattern
+	// SubmodulePatterns contains the paths to validate for submodules.
+	SubmodulePatterns []*regexp.Regexp
+	// ShouldObfuscateProject if true will take Alternative string, otherwise will be ignored.
+	ShouldObfuscateProject bool
 }
 
-// Pattern contains [projectmap] data.
-type Pattern struct {
+// MapPattern contains [projectmap] data.
+type MapPattern struct {
 	// Name is the project name.
 	Name string
 	// Regex is the regular expression for a specific path.
@@ -53,7 +57,18 @@ func WithDetection(c Config) heartbeat.HandleOption {
 					continue
 				}
 
-				project, branch := Detect(h.Entity, c.Patterns)
+				project, branch := Detect(h.Entity, c.MapPatterns)
+
+				if project == "" {
+					project = c.Override
+				}
+
+				if project == "" || branch == "" {
+					project, branch = DetectWithRevControl(h.Entity, c.SubmodulePatterns, project, branch)
+					if c.ShouldObfuscateProject {
+						project = ""
+					}
+				}
 
 				hh[n].Branch = &branch
 				hh[n].Project = &project
@@ -64,8 +79,8 @@ func WithDetection(c Config) heartbeat.HandleOption {
 	}
 }
 
-// Detect finds the current project and branch.
-func Detect(entity string, patterns []Pattern) (project, branch string) {
+// Detect finds the current project and branch from config plugins.
+func Detect(entity string, patterns []MapPattern) (project, branch string) {
 	var configPlugins []Detecter = []Detecter{
 		File{
 			Filepath: entity,
@@ -83,6 +98,30 @@ func Detect(entity string, patterns []Pattern) (project, branch string) {
 			continue
 		} else if detected {
 			return result.Project, result.Branch
+		}
+	}
+
+	return "", ""
+}
+
+// DetectWithRevControl finds the current project and branch from rev control.
+func DetectWithRevControl(entity string, submodulePatterns []*regexp.Regexp,
+	project string, branch string) (string, string) {
+	var revControlPlugins []Detecter = []Detecter{
+		Git{
+			Filepath:          entity,
+			SubmodulePatterns: submodulePatterns,
+		},
+	}
+
+	for _, p := range revControlPlugins {
+		result, detected, err := p.Detect()
+		if err != nil {
+			jww.ERROR.Printf("unexpected error occurred at %q: %s", p.String(), err)
+			continue
+		} else if detected {
+			return firstNonEmptyString(project, result.Project),
+				firstNonEmptyString(branch, result.Branch)
 		}
 	}
 
