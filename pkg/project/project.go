@@ -112,6 +112,9 @@ func DetectWithRevControl(entity string, submodulePatterns []*regexp.Regexp,
 			Filepath:          entity,
 			SubmodulePatterns: submodulePatterns,
 		},
+		Mercurial{
+			Filepath: entity,
+		},
 	}
 
 	for _, p := range revControlPlugins {

@@ -29,13 +29,11 @@ func (m Mercurial) Detect() (Result, bool, error) {
 		fp = path.Dir(fp)
 	}
 
-	result := Result{}
-
 	// Find for .hg folder
 	hgDirectory, ok := findHgConfigDir(fp)
 
 	if ok {
-		result.Project = path.Base(path.Join(hgDirectory, ".."))
+		project := path.Base(path.Join(hgDirectory, ".."))
 
 		branch, err := findHgBranch(hgDirectory)
 		if err != nil {
@@ -46,17 +44,19 @@ func (m Mercurial) Detect() (Result, bool, error) {
 			)
 		}
 
-		result.Branch = branch
-
-		return result, true, nil
+		return Result{
+			Project: project,
+			Branch:  branch,
+		}, true, nil
 	}
 
 	return Result{}, false, nil
 }
 
 func findHgConfigDir(fp string) (string, bool) {
-	if fileExists(path.Join(fp, ".hg")) {
-		return path.Join(fp, ".hg"), true
+	p := path.Join(fp, ".hg")
+	if fileExists(p) {
+		return p, true
 	}
 
 	dir := filepath.Clean(path.Join(fp, ".."))
@@ -68,11 +68,12 @@ func findHgConfigDir(fp string) (string, bool) {
 }
 
 func findHgBranch(fp string) (string, error) {
-	if !fileExists(path.Join(fp, "branch")) {
+	p := path.Join(fp, "branch")
+	if !fileExists(p) {
 		return "default", nil
 	}
 
-	lines, err := readFile(path.Join(fp, "branch"))
+	lines, err := readFile(p)
 	if err != nil {
 		return "", Err(fmt.Sprintf("failed while opening file %q: %s", fp, err))
 	}
