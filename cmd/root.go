@@ -59,6 +59,7 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 		nil,
 		"Writes value to a config key, then exits. Expects two arguments, key and value.",
 	)
+	flags.Int("cursorpos", 0, "Optional cursor position in the current file.")
 	flags.String(
 		"entity",
 		"",
@@ -106,6 +107,7 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 		"Disables tracking folders unless they contain a .wakatime-project file. Defaults to false.",
 	)
 	flags.String("key", "", "Your wakatime api key; uses api_key from ~/.wakatime.cfg by default.")
+	flags.Int("lineno", 0, "Optional line number. This is the current line being edited.")
 	flags.String("log-file", "", "Optional log file. Defaults to '~/.wakatime.log'.")
 	flags.String("logfile", "", "(deprecated) Optional log file. Defaults to '~/.wakatime.log'.")
 	flags.Bool(
