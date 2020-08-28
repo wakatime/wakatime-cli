@@ -12,6 +12,29 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestHeartbeat_ID(t *testing.T) {
+	h := heartbeat.Heartbeat{
+		Branch:     heartbeat.String("heartbeat"),
+		Category:   heartbeat.CodingCategory,
+		Entity:     "/tmp/main.go",
+		EntityType: heartbeat.FileType,
+		IsWrite:    heartbeat.Bool(true),
+		Project:    heartbeat.String("wakatime"),
+		Time:       1592868313.541149,
+	}
+	assert.Equal(t, "1592868313.541149-file-coding-wakatime-heartbeat-/tmp/main.go-true", h.ID())
+}
+
+func TestHeartbeat_ID_NilFields(t *testing.T) {
+	h := heartbeat.Heartbeat{
+		Category:   heartbeat.CodingCategory,
+		Entity:     "/tmp/main.go",
+		EntityType: heartbeat.FileType,
+		Time:       1592868313.541149,
+	}
+	assert.Equal(t, "1592868313.541149-file-coding---/tmp/main.go-false", h.ID())
+}
+
 func TestHeartbeat_JSON(t *testing.T) {
 	h := heartbeat.Heartbeat{
 		Branch:         heartbeat.String("heartbeat"),
