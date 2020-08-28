@@ -2,15 +2,15 @@
     {
         "branch": null,
         "category": "debugging",
-        "cursorpos": null,
+        "cursorpos": 42,
         "dependencies": null,
-        "entity": "/tmp/main.go",
+        "entity": "testdata/main.go",
         "is_write": true,
         "language": null,
-        "lineno": null,
-        "lines": null,
+        "lineno": 13,
+        "lines": 2,
         "project": null,
-        "type": "app",
+        "type": "file",
         "time": 1585598059.1,
         "user_agent": "%s"
     }

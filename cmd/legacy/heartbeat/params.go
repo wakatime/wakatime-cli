@@ -27,19 +27,21 @@ var (
 
 // Params contains heartbeat command parameters.
 type Params struct {
-	APIKey     string
-	APIUrl     string
-	Category   heartbeat.Category
-	Entity     string
-	EntityType heartbeat.EntityType
-	Hostname   string
-	IsWrite    *bool
-	Plugin     string
-	Time       float64
-	Timeout    time.Duration
-	Filter     FilterParams
-	Network    NetworkParams
-	Sanitize   SanitizeParams
+	APIKey         string
+	APIUrl         string
+	Category       heartbeat.Category
+	CursorPosition *int
+	Entity         string
+	EntityType     heartbeat.EntityType
+	Hostname       string
+	IsWrite        *bool
+	LineNumber     *int
+	Plugin         string
+	Time           float64
+	Timeout        time.Duration
+	Filter         FilterParams
+	Network        NetworkParams
+	Sanitize       SanitizeParams
 }
 
 // FilterParams contains heartbeat filtering related command parameters.
@@ -92,6 +94,11 @@ func LoadParams(v *viper.Viper) (Params, error) {
 		category = parsed
 	}
 
+	var cursorPosition *int
+	if pos := v.GetInt("cursorpos"); v.IsSet("cursorpos") {
+		cursorPosition = heartbeat.Int(pos)
+	}
+
 	entity, ok := vipertools.FirstNonEmptyString(v, "entity", "file")
 	if !ok {
 		return Params{}, errors.New("failed to retrieve entity")
@@ -123,6 +130,11 @@ func LoadParams(v *viper.Viper) (Params, error) {
 		isWrite = heartbeat.Bool(b)
 	}
 
+	var lineNumber *int
+	if num := v.GetInt("lineno"); v.IsSet("lineno") {
+		lineNumber = heartbeat.Int(num)
+	}
+
 	timeSecs := v.GetFloat64("time")
 	if timeSecs == 0 {
 		timeSecs = float64(time.Now().UnixNano()) / 1000000000
@@ -146,19 +158,21 @@ func LoadParams(v *viper.Viper) (Params, error) {
 	}
 
 	return Params{
-		APIKey:     apiKey,
-		APIUrl:     apiURL,
-		Category:   category,
-		Entity:     entity,
-		EntityType: entityType,
-		Hostname:   hostname,
-		IsWrite:    isWrite,
-		Plugin:     v.GetString("plugin"),
-		Time:       timeSecs,
-		Timeout:    timeout,
-		Network:    networkParams,
-		Sanitize:   sanitizeParams,
-		Filter:     loadFilterParams(v),
+		APIKey:         apiKey,
+		APIUrl:         apiURL,
+		Category:       category,
+		CursorPosition: cursorPosition,
+		Entity:         entity,
+		EntityType:     entityType,
+		Hostname:       hostname,
+		IsWrite:        isWrite,
+		LineNumber:     lineNumber,
+		Plugin:         v.GetString("plugin"),
+		Time:           timeSecs,
+		Timeout:        timeout,
+		Filter:         loadFilterParams(v),
+		Network:        networkParams,
+		Sanitize:       sanitizeParams,
 	}, nil
 }
 

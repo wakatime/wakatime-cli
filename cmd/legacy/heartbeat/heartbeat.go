@@ -8,6 +8,7 @@ import (
 
 	"github.com/wakatime/wakatime-cli/pkg/api"
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
+	"github.com/wakatime/wakatime-cli/pkg/filestats"
 	"github.com/wakatime/wakatime-cli/pkg/filter"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 
@@ -94,12 +95,14 @@ func SendHeartbeat(v *viper.Viper) error {
 	c := api.NewClient(params.APIUrl, http.DefaultClient, clientOpts...)
 
 	h := heartbeat.Heartbeat{
-		Entity:     params.Entity,
-		EntityType: params.EntityType,
-		Category:   params.Category,
-		Time:       params.Time,
-		UserAgent:  userAgent,
-		IsWrite:    params.IsWrite,
+		Entity:         params.Entity,
+		EntityType:     params.EntityType,
+		Category:       params.Category,
+		CursorPosition: params.CursorPosition,
+		IsWrite:        params.IsWrite,
+		LineNumber:     params.LineNumber,
+		Time:           params.Time,
+		UserAgent:      userAgent,
 	}
 
 	handleOpts := []heartbeat.HandleOption{
@@ -109,6 +112,7 @@ func SendHeartbeat(v *viper.Viper) error {
 			Include:                    params.Filter.Include,
 			IncludeOnlyWithProjectFile: params.Filter.IncludeOnlyWithProjectFile,
 		}),
+		filestats.WithDetection(),
 		heartbeat.WithSanitization(heartbeat.SanitizeConfig{
 			BranchPatterns:  params.Sanitize.HideBranchNames,
 			FilePatterns:    params.Sanitize.HideFileNames,
