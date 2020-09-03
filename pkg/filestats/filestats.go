@@ -11,6 +11,10 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 )
 
+// Max file size supporting line number count stats. Files larger than this in
+// bytes will not have a line count stat for performance. Default is 2MB (2*1024*1014).
+const maxFileSizeSupported = 2097152
+
 // WithDetection initializes and returns a heartbeat handle option, which
 // can be used in a heartbeat processing pipeline to detect filestats. At the
 // moment only the total number of lines in a file is detected.
@@ -19,6 +23,16 @@ func WithDetection() heartbeat.HandleOption {
 		return func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 			for n, h := range hh {
 				if h.EntityType == heartbeat.FileType {
+					fileInfo, err := os.Stat(h.Entity)
+					if err != nil {
+						jww.ERROR.Printf("failed to retrieve file stats of file %q: %s", h.Entity, err)
+						continue
+					}
+
+					if fileInfo.Size() > maxFileSizeSupported {
+						continue
+					}
+
 					lines, err := countLineNumbers(h.Entity)
 					if err != nil {
 						jww.ERROR.Printf("failed to detect the total number of lines in file %q: %s", h.Entity, err)
