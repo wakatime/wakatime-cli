@@ -13,9 +13,9 @@ import (
 )
 
 const (
-	// defaultConfigSection is the default section in the wakatime ini config file
+	// defaultConfigSection is the default section in the wakatime ini config file.
 	defaultConfigSection = "settings"
-	// defaultTimeoutSecs is the default timeout used for requests to the wakatime api
+	// defaultTimeoutSecs is the default timeout used for requests to the wakatime api.
 	defaultTimeoutSecs = 60
 	// defaultOfflineSync is the default maximum number of heartbeats from the
 	// offline queue, which will be synced upon sending heartbeats to the API.
