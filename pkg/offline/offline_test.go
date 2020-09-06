@@ -321,6 +321,95 @@ func TestWithQueue_InvalidResults(t *testing.T) {
 	})
 }
 
+func TestWithQueue_HandleLeftovers(t *testing.T) {
+	f, err := ioutil.TempFile(os.TempDir(), "")
+	if err != nil {
+		panic(err)
+	}
+
+	defer os.Remove(f.Name())
+
+	conn := openDB(t, f.Name())
+
+	_, err = conn.Exec("CREATE TABLE heartbeat_2 (id TEXT, heartbeat TEXT)")
+	require.NoError(t, err)
+
+	defer func() {
+		_, err := conn.Exec(`DROP TABLE heartbeat_2;`)
+		if err != nil {
+			panic(err)
+		}
+	}()
+
+	opt, err := offline.WithQueue(f.Name(), 10)
+	require.NoError(t, err)
+
+	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		assert.Equal(t, hh, testHeartbeats())
+
+		return []heartbeat.Result{
+			{
+				Status:    201,
+				Heartbeat: testHeartbeats()[0],
+			},
+		}, nil
+	})
+
+	results, err := handle(testHeartbeats())
+	require.NoError(t, err)
+
+	assert.Equal(t, []heartbeat.Result{
+		{
+			Status:    201,
+			Heartbeat: testHeartbeats()[0],
+		},
+	}, results)
+
+	rows, err := conn.Query("SELECT id, heartbeat FROM heartbeat_2;")
+	require.NoError(t, err)
+
+	var heartbeats []heartbeat.Heartbeat
+
+	for rows.Next() {
+		var (
+			id   string
+			data string
+		)
+
+		err := rows.Scan(
+			&id,
+			&data,
+		)
+		require.NoError(t, err)
+
+		var h heartbeat.Heartbeat
+		err = json.Unmarshal([]byte(data), &h)
+		require.NoError(t, err)
+
+		assert.Equal(t, h.ID(), id)
+
+		heartbeats = append(heartbeats, h)
+	}
+	require.NoError(t, rows.Err())
+	assert.Equal(t, []heartbeat.Heartbeat{
+		{
+			Branch:         heartbeat.String("summary"),
+			Category:       heartbeat.DebuggingCategory,
+			CursorPosition: heartbeat.Int(13),
+			Dependencies:   []string{"dep3", "dep4"},
+			Entity:         "/tmp/main.py",
+			EntityType:     heartbeat.FileType,
+			IsWrite:        heartbeat.Bool(false),
+			Language:       heartbeat.String("python"),
+			LineNumber:     heartbeat.Int(43),
+			Lines:          heartbeat.Int(101),
+			Project:        heartbeat.String("wakatime"),
+			Time:           1592868386.079084,
+			UserAgent:      "wakatime/13.0.7",
+		},
+	}, heartbeats)
+}
+
 func TestQueue_PushMany(t *testing.T) {
 	conn, cleanup := initDB(t)
 	defer cleanup()

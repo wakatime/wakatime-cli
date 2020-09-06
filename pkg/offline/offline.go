@@ -98,7 +98,12 @@ func WithQueue(filepath string, syncLimit int) (heartbeat.HandleOption, error) {
 				return nil, err
 			}
 
-			for _, result := range results {
+			for n, result := range results {
+				if n >= len(hh) {
+					jww.WARN.Println("results from api not matching heartbeats sent")
+					break
+				}
+
 				// push to queue on invalid result status codes
 				if result.Status != http.StatusCreated &&
 					result.Status != http.StatusAccepted &&
@@ -107,6 +112,19 @@ func WithQueue(filepath string, syncLimit int) (heartbeat.HandleOption, error) {
 					if queueErr != nil {
 						jww.ERROR.Fatalf("failed to push invalid result heartbeat to queue: %s", queueErr)
 					}
+				}
+			}
+
+			// handle leftovers
+			leftovers := len(hh) - len(results)
+			if leftovers > 0 {
+				jww.WARN.Printf("Missing %d results from api.", leftovers)
+
+				start := len(hh) - leftovers
+
+				queueErr := queue.PushMany(hh[start:])
+				if queueErr != nil {
+					jww.ERROR.Fatalf("failed to push leftover heartbeat to queue: %s", queueErr)
 				}
 			}
 
