@@ -14,7 +14,7 @@ import (
 
 // Subversion contains svn data.
 type Subversion struct {
-	// Filepath conaints the entity path.
+	// Filepath contains the entity path.
 	Filepath string
 }
 
@@ -22,14 +22,12 @@ type Subversion struct {
 func (s Subversion) Detect() (Result, bool, error) {
 	binary, ok := findSvnBinary()
 	if !ok {
-		return Result{}, false,
-			Err("svn binary not found")
+		return Result{}, false, Err("svn binary not found")
 	}
 
 	fp, err := realpath.Realpath(s.Filepath)
 	if err != nil {
-		return Result{}, false,
-			Err(fmt.Errorf("failed to get the real path: %w", err).Error())
+		return Result{}, false, Err(fmt.Errorf("failed to get the real path: %w", err).Error())
 	}
 
 	// Take only the directory
@@ -45,8 +43,7 @@ func (s Subversion) Detect() (Result, bool, error) {
 
 	info, ok, err := svnInfo(path.Join(svnConfigFile, ".."), binary)
 	if err != nil {
-		return Result{}, false,
-			Err(fmt.Errorf("failed to get svn info: %w", err).Error())
+		return Result{}, false, Err(fmt.Errorf("failed to get svn info: %w", err).Error())
 	}
 
 	if ok {
@@ -81,8 +78,7 @@ func svnInfo(fp string, binary string) (map[string]string, bool, error) {
 	out, err := cmd.Output()
 
 	if err != nil {
-		return nil, false,
-			Err(fmt.Sprintf("error getting svn info: %s", err))
+		return nil, false, Err(fmt.Sprintf("error getting svn info: %s", err))
 	}
 
 	result := map[string]string{}
