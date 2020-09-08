@@ -3,17 +3,21 @@ package project_test
 import (
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path"
 	"path/filepath"
 	"testing"
 
 	"github.com/wakatime/wakatime-cli/pkg/project"
 
+	jww "github.com/spf13/jwalterweatherman"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestSubversion_Detect(t *testing.T) {
+	skipIfBinaryNotFound(t)
+
 	fp, tearDown := setupTestSvn(t)
 	defer tearDown()
 
@@ -32,6 +36,8 @@ func TestSubversion_Detect(t *testing.T) {
 }
 
 func TestSubversion_Detect_Branch(t *testing.T) {
+	skipIfBinaryNotFound(t)
+
 	fp, tearDown := setupTestSvnBranch(t)
 	defer tearDown()
 
@@ -123,5 +129,34 @@ func copyDir(t *testing.T, src string, dst string) {
 
 			copyFile(t, srcPath, dstPath)
 		}
+	}
+}
+
+func findSvnBinary() (string, bool) {
+	locations := []string{
+		"svn",
+		"/usr/bin/svn",
+		"/usr/local/bin/svn",
+	}
+
+	for _, loc := range locations {
+		cmd := exec.Command(loc, "--version")
+
+		err := cmd.Run()
+		if err != nil {
+			jww.ERROR.Printf("failed while calling %s --version: %s", loc, err)
+			continue
+		}
+
+		return loc, true
+	}
+
+	return "", false
+}
+
+func skipIfBinaryNotFound(t *testing.T) {
+	_, found := findSvnBinary()
+	if !found {
+		t.Skip("Skipping because the lack of svn binary in this machine.")
 	}
 }
