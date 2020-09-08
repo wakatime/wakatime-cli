@@ -1,6 +1,9 @@
 package filestats_test
 
 import (
+	"bytes"
+	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/wakatime/wakatime-cli/pkg/filestats"
@@ -49,4 +52,36 @@ func TestWithDetection(t *testing.T) {
 			Status: 42,
 		},
 	}, result)
+}
+
+func TestWithDetection_MaxFileSizeExceeded(t *testing.T) {
+	f, err := ioutil.TempFile(os.TempDir(), "")
+	require.NoError(t, err)
+
+	defer os.Remove(f.Name())
+
+	b := bytes.NewBuffer(make([]byte, 2*1024*1024+1))
+	_, err = f.Write(b.Bytes())
+	require.NoError(t, err)
+
+	opt := filestats.WithDetection()
+	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		assert.Equal(t, hh, []heartbeat.Heartbeat{
+			{
+				EntityType: heartbeat.FileType,
+				Entity:     f.Name(),
+				Lines:      nil,
+			},
+		})
+
+		return []heartbeat.Result{}, nil
+	})
+
+	_, err = handle([]heartbeat.Heartbeat{
+		{
+			EntityType: heartbeat.FileType,
+			Entity:     f.Name(),
+		},
+	})
+	require.NoError(t, err)
 }

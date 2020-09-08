@@ -30,6 +30,12 @@ func WithDetection() heartbeat.HandleOption {
 					}
 
 					if fileInfo.Size() > maxFileSizeSupported {
+						jww.DEBUG.Printf(
+							"file %q exceeds max file size of %d bytes. Lines won't be counted",
+							h.Entity,
+							maxFileSizeSupported,
+						)
+
 						continue
 					}
 
