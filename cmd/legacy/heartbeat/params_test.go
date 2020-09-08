@@ -177,6 +177,41 @@ func TestLoadParams_Category_Invalid(t *testing.T) {
 	assert.Equal(t, "failed to parse category: invalid category \"invalid\"", err.Error())
 }
 
+func TestLoadParams_CursorPosition(t *testing.T) {
+	v := viper.New()
+	v.Set("entity", "/path/to/file")
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("cursorpos", 42)
+
+	params, err := cmd.LoadParams(v)
+	require.NoError(t, err)
+
+	assert.Equal(t, 42, *params.CursorPosition)
+}
+
+func TestLoadParams_CursorPosition_Zero(t *testing.T) {
+	v := viper.New()
+	v.Set("entity", "/path/to/file")
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("cursorpos", 0)
+
+	params, err := cmd.LoadParams(v)
+	require.NoError(t, err)
+
+	assert.Equal(t, 0, *params.CursorPosition)
+}
+
+func TestLoadParams_CursorPosition_Unset(t *testing.T) {
+	v := viper.New()
+	v.Set("entity", "/path/to/file")
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+
+	params, err := cmd.LoadParams(v)
+	require.NoError(t, err)
+
+	assert.Nil(t, params.CursorPosition)
+}
+
 func TestLoadParams_Entity_EntityFlagTakesPrecedence(t *testing.T) {
 	v := viper.New()
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
@@ -324,6 +359,41 @@ func TestLoadParams_IsWrite_Unset(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Nil(t, params.IsWrite)
+}
+
+func TestLoadParams_LineNumber(t *testing.T) {
+	v := viper.New()
+	v.Set("entity", "/path/to/file")
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("lineno", 42)
+
+	params, err := cmd.LoadParams(v)
+	require.NoError(t, err)
+
+	assert.Equal(t, 42, *params.LineNumber)
+}
+
+func TestLoadParams_LineNumber_Zero(t *testing.T) {
+	v := viper.New()
+	v.Set("entity", "/path/to/file")
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("lineno", 0)
+
+	params, err := cmd.LoadParams(v)
+	require.NoError(t, err)
+
+	assert.Equal(t, 0, *params.LineNumber)
+}
+
+func TestLoadParams_LineNumber_Unset(t *testing.T) {
+	v := viper.New()
+	v.Set("entity", "/path/to/file")
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+
+	params, err := cmd.LoadParams(v)
+	require.NoError(t, err)
+
+	assert.Nil(t, params.LineNumber)
 }
 
 func TestLoadParams_Plugin(t *testing.T) {
