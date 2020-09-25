@@ -140,6 +140,10 @@ func TestDetect_ByFileExtension(t *testing.T) {
 			Filepaths: []string{"testdata/codefiles/file.mustache"},
 			Expected:  "Mustache",
 		},
+		"objective c": {
+			Filepaths: []string{"testdata/codefiles/objective-c.m"},
+			Expected:  "Objective-C",
+		},
 		"perl not prolog": {
 			Filepaths: []string{"testdata/codefiles/perl.pl"},
 			Expected:  "Perl",
@@ -200,4 +204,80 @@ func TestDetect_ByFileExtension(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestDetect_HeaderFile_C_FilesInFolder(t *testing.T) {
+	lang, err := language.Detect("testdata/codefiles/c_only/see.h")
+	require.NoError(t, err)
+	assert.Equal(t, "C", lang)
+}
+
+func TestDetect_HeaderFile_C_And_CPP_FilesInFolder(t *testing.T) {
+	lang, err := language.Detect("testdata/codefiles/c_and_cpp/cpp.h")
+	require.NoError(t, err)
+
+	assert.Equal(t, "C++", lang)
+}
+
+func TestDetect_HeaderFile_C_And_CXX_FilesInFolder(t *testing.T) {
+	lang, err := language.Detect("testdata/codefiles/c_and_cxx/cpp.h")
+	require.NoError(t, err)
+
+	assert.Equal(t, "C++", lang)
+}
+
+func TestDetect_Matlab_Over_ObjectiveC_Mat_FileInFolder(t *testing.T) {
+	lang, err := language.Detect("testdata/codefiles/matlab/with_mat_files/empty.m")
+	require.NoError(t, err)
+
+	assert.Equal(t, "Matlab", lang)
+}
+
+func TestDetect_ObjectiveC_Over_Matlab_MatchingHeader(t *testing.T) {
+	lang, err := language.Detect("testdata/codefiles/matlab/with_mat_files/objective-c.m")
+	require.NoError(t, err)
+
+	assert.Equal(t, "Objective-C", lang)
+}
+
+func TestDetect_ObjectiveC_Over_Matlab_NonMatchingHeader(t *testing.T) {
+	lang, err := language.Detect("testdata/codefiles/matlab/with_headers/empty.m")
+	require.NoError(t, err)
+
+	assert.Equal(t, "Objective-C", lang)
+}
+
+func TestDetect_NonHeaderFile_C_FilesInFolder(t *testing.T) {
+	lang, err := language.Detect("testdata/codefiles/c_and_python/see.py")
+	require.NoError(t, err)
+
+	assert.Equal(t, "Python", lang)
+}
+
+func TestDetect_ObjectiveC_Header_FilesInFolder(t *testing.T) {
+	lang, err := language.Detect("testdata/codefiles/c_and_cpp/empty.m")
+	require.NoError(t, err)
+
+	assert.Equal(t, "Objective-C", lang)
+}
+
+func TestDetect_ObjectiveC_M_FilesInFolder(t *testing.T) {
+	lang, err := language.Detect("testdata/codefiles/c_and_cpp/objective-c.h")
+	require.NoError(t, err)
+
+	assert.Equal(t, "Objective-C", lang)
+}
+
+func TestDetect_ObjectiveCPP_Header_FilesInFolder(t *testing.T) {
+	lang, err := language.Detect("testdata/codefiles/c_and_cpp/empty.mm")
+	require.NoError(t, err)
+
+	assert.Equal(t, "Objective-C++", lang)
+}
+
+func TestDetect_ObjectiveCPP_M_FilesInFolder(t *testing.T) {
+	lang, err := language.Detect("testdata/codefiles/c_and_cpp/objective-cpp.h")
+	require.NoError(t, err)
+
+	assert.Equal(t, "Objective-C++", lang)
 }
