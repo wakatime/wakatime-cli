@@ -5,15 +5,39 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
+	"path"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 
+	_ "github.com/mattn/go-sqlite3" // not used directly
+	"github.com/mitchellh/go-homedir"
 	jww "github.com/spf13/jwalterweatherman"
 )
 
 const (
 	tableName = "heartbeat_2"
 )
+
+// QueueFilepath returns the path to the offline queue db file.
+func QueueFilepath() (string, error) {
+	dir := os.Getenv("WAKATIME_HOME")
+
+	var err error
+	if dir == "" {
+		dir, err = os.UserHomeDir()
+		if err != nil {
+			return "", fmt.Errorf("failed to retrieve user's home dir: %s", err)
+		}
+	}
+
+	expanded, err := homedir.Expand(dir)
+	if err != nil {
+		return "", fmt.Errorf("failed to expand offline queue folder path: %s", err)
+	}
+
+	return path.Join(expanded, ".wakatime.db"), nil
+}
 
 // WithQueue initializes and returns a heartbeat handle option, which can be
 // used in a heartbeat processing pipeline for automatic handling of failures
@@ -74,7 +98,12 @@ func WithQueue(filepath string, syncLimit int) (heartbeat.HandleOption, error) {
 				return nil, err
 			}
 
-			for _, result := range results {
+			for n, result := range results {
+				if n >= len(hh) {
+					jww.WARN.Println("results from api not matching heartbeats sent")
+					break
+				}
+
 				// push to queue on invalid result status codes
 				if result.Status != http.StatusCreated &&
 					result.Status != http.StatusAccepted &&
@@ -83,6 +112,19 @@ func WithQueue(filepath string, syncLimit int) (heartbeat.HandleOption, error) {
 					if queueErr != nil {
 						jww.ERROR.Fatalf("failed to push invalid result heartbeat to queue: %s", queueErr)
 					}
+				}
+			}
+
+			// handle leftovers
+			leftovers := len(hh) - len(results)
+			if leftovers > 0 {
+				jww.WARN.Printf("Missing %d results from api.", leftovers)
+
+				start := len(hh) - leftovers
+
+				queueErr := queue.PushMany(hh[start:])
+				if queueErr != nil {
+					jww.ERROR.Fatalf("failed to push leftover heartbeat to queue: %s", queueErr)
 				}
 			}
 

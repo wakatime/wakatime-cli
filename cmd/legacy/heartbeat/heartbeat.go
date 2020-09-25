@@ -11,14 +11,16 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/filestats"
 	"github.com/wakatime/wakatime-cli/pkg/filter"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/offline"
 
+	_ "github.com/mattn/go-sqlite3" // not used directly
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
 )
 
 // Run executes the heartbeat command.
 func Run(v *viper.Viper) {
-	err := SendHeartbeat(v)
+	err := SendHeartbeats(v)
 	if err != nil {
 		var errauth api.ErrAuth
 		if errors.As(err, &errauth) {
@@ -31,19 +33,22 @@ func Run(v *viper.Viper) {
 
 		var errapi api.Err
 		if errors.As(err, &errapi) {
-			jww.CRITICAL.Printf("failed to send heartbeat: %s", err)
+			jww.CRITICAL.Printf("failed to send heartbeat(s): %s", err)
 			os.Exit(exitcode.ErrAPI)
 		}
 
-		jww.CRITICAL.Printf("failed to send heartbeat: %s", err)
+		jww.CRITICAL.Printf("failed to send heartbeat(s): %s", err)
 		os.Exit(exitcode.ErrDefault)
 	}
 
+	jww.DEBUG.Println("successfully handled heartbeat(s)")
 	os.Exit(exitcode.Success)
 }
 
-// SendHeartbeat sends a heartbeat to the wakatime api.
-func SendHeartbeat(v *viper.Viper) error {
+// SendHeartbeats sends a heartbeat to the wakatime api and includes additional
+// heartbeats from the offline queue, if available and offline sync is not
+// explicitly disabled.
+func SendHeartbeats(v *viper.Viper) error {
 	params, err := LoadParams(v)
 	if err != nil {
 		return fmt.Errorf("failed to load command parameters: %w", err)
@@ -118,6 +123,20 @@ func SendHeartbeat(v *viper.Viper) error {
 			FilePatterns:    params.Sanitize.HideFileNames,
 			ProjectPatterns: params.Sanitize.HideProjectNames,
 		}),
+	}
+
+	if !params.OfflineDisabled {
+		filepath, err := offline.QueueFilepath()
+		if err != nil {
+			return fmt.Errorf("failed to load offline queue filepath: %w", err)
+		}
+
+		offlineHandleOpt, err := offline.WithQueue(filepath, params.OfflineSyncMax)
+		if err != nil {
+			return fmt.Errorf("failed to initialize offline queue handle option: %w", err)
+		}
+
+		handleOpts = append(handleOpts, offlineHandleOpt)
 	}
 
 	handle := heartbeat.NewHandle(c, handleOpts...)

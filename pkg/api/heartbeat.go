@@ -10,11 +10,15 @@ import (
 	"strings"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+
+	jww "github.com/spf13/jwalterweatherman"
 )
 
 // Send sends a bulk of heartbeats to the wakatime api.
 func (c *Client) Send(heartbeats []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 	url := c.baseURL + "/v1/users/current/heartbeats.bulk"
+
+	jww.DEBUG.Printf("sending %d heartbeat(s) to api at %q", len(heartbeats), url)
 
 	data, err := json.Marshal(heartbeats)
 	if err != nil {
