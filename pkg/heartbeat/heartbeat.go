@@ -18,7 +18,7 @@ type Heartbeat struct {
 	Entity         string     `json:"entity"`
 	EntityType     EntityType `json:"type"`
 	IsWrite        *bool      `json:"is_write"`
-	Language       *string    `json:"language"`
+	Language       Language   `json:"language"`
 	LineNumber     *int       `json:"lineno"`
 	Lines          *int       `json:"lines"`
 	Project        *string    `json:"project"`
