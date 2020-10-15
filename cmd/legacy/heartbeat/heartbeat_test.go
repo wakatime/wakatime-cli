@@ -41,13 +41,13 @@ func TestSendHeartbeats(t *testing.T) {
 			plugin,
 		))
 
-		expectedBodyTpl, err := ioutil.ReadFile("testdata/api_heartbeats_request_template.json")
+		expectedBody, err := ioutil.ReadFile("testdata/api_heartbeats_request.json")
 		require.NoError(t, err)
 
 		body, err := ioutil.ReadAll(req.Body)
 		require.NoError(t, err)
 
-		assert.JSONEq(t, fmt.Sprintf(string(expectedBodyTpl), heartbeat.UserAgent(plugin)), string(body))
+		assert.JSONEq(t, fmt.Sprintf(string(expectedBody), heartbeat.UserAgent(plugin)), string(body))
 
 		// send response
 		w.WriteHeader(http.StatusCreated)
@@ -109,6 +109,82 @@ func TestSendHeartbeats_WithFiltering_Exclude(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, 0, numCalls)
+}
+
+func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
+	testServerURL, router, tearDown := setupTestServer()
+	defer tearDown()
+
+	var (
+		plugin   = "plugin/0.0.1"
+		numCalls int
+	)
+
+	router.HandleFunc("/v1/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
+		// check request
+		expectedBody, err := ioutil.ReadFile("testdata/api_heartbeats_request_extra_heartbeats.json")
+		require.NoError(t, err)
+
+		body, err := ioutil.ReadAll(req.Body)
+		require.NoError(t, err)
+
+		assert.JSONEq(t, fmt.Sprintf(string(expectedBody), heartbeat.UserAgent(plugin)), string(body))
+
+		// send response
+		w.WriteHeader(http.StatusCreated)
+
+		f, err := os.Open("testdata/api_heartbeats_response.json")
+		require.NoError(t, err)
+		defer f.Close()
+
+		_, err = io.Copy(w, f)
+		require.NoError(t, err)
+
+		numCalls++
+	})
+
+	r, w, err := os.Pipe()
+	require.NoError(t, err)
+
+	defer func() {
+		r.Close()
+		w.Close()
+	}()
+
+	origStdin := os.Stdin
+
+	defer func() { os.Stdin = origStdin }()
+
+	os.Stdin = r
+
+	data, err := ioutil.ReadFile("testdata/extra_heartbeats.json")
+	require.NoError(t, err)
+
+	go func() {
+		_, err := w.Write(data)
+		require.NoError(t, err)
+
+		w.Close()
+	}()
+
+	v := viper.New()
+	v.Set("api-url", testServerURL)
+	v.Set("category", "debugging")
+	v.Set("cursorpos", 42)
+	v.Set("entity", "testdata/main.go")
+	v.Set("entity-type", "file")
+	v.Set("extra-heartbeats", true)
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("lineno", 13)
+	v.Set("plugin", plugin)
+	v.Set("time", 1585598059.1)
+	v.Set("timeout", 5)
+	v.Set("write", true)
+
+	err = cmd.SendHeartbeats(v)
+	require.NoError(t, err)
+
+	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
 
 func setupTestServer() (string, *http.ServeMux, func()) {
