@@ -69,6 +69,7 @@ func TestSendHeartbeats(t *testing.T) {
 	v.Set("entity", "testdata/main.go")
 	v.Set("entity-type", "file")
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("language", "Go")
 	v.Set("lineno", 13)
 	v.Set("plugin", plugin)
 	v.Set("time", 1585598059.1)
