@@ -118,9 +118,19 @@ func languageTests() map[string]heartbeat.Language {
 func TestParseLanguage(t *testing.T) {
 	for value, language := range languageTests() {
 		t.Run(value, func(t *testing.T) {
-			assert.Equal(t, language, heartbeat.ParseLanguage(value))
+			parsed, ok := heartbeat.ParseLanguage(value)
+
+			assert.True(t, ok)
+			assert.Equal(t, language, parsed)
 		})
 	}
+}
+
+func TestParseLanguage_Unknown(t *testing.T) {
+	parsed, ok := heartbeat.ParseLanguage("invalid")
+
+	assert.False(t, ok)
+	assert.Equal(t, heartbeat.LanguageUnknown, parsed)
 }
 
 func TestParseLanguageFromChroma(t *testing.T) {
@@ -197,11 +207,22 @@ func TestParseLanguageFromChroma(t *testing.T) {
 		"YAML":             heartbeat.LanguageYAML,
 		"Zig":              heartbeat.LanguageZig,
 	}
-	for lexerName, lang := range tests {
+
+	for lexerName, language := range tests {
 		t.Run(lexerName, func(t *testing.T) {
-			assert.Equal(t, lang, heartbeat.ParseLanguageFromChroma(lexerName))
+			parsed, ok := heartbeat.ParseLanguageFromChroma(lexerName)
+
+			assert.True(t, ok)
+			assert.Equal(t, language, parsed)
 		})
 	}
+}
+
+func TestParseLanguageFromChroma_Unknown(t *testing.T) {
+	parsed, ok := heartbeat.ParseLanguageFromChroma("invalid")
+
+	assert.False(t, ok)
+	assert.Equal(t, heartbeat.LanguageUnknown, parsed)
 }
 
 func TestLanguage_MarshalJSON(t *testing.T) {

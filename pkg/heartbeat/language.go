@@ -3,8 +3,6 @@ package heartbeat
 import (
 	"fmt"
 	"strings"
-
-	jww "github.com/spf13/jwalterweatherman"
 )
 
 // Language represents a programming language.
@@ -327,364 +325,365 @@ const (
 	languageTextChromaStr      = "plaintext"
 )
 
-// ParseLanguage parses a language from a string.
+// ParseLanguage parses a language from a string. Will return false
+// as second parameter, if language could not be parsed.
 // nolint:gocyclo
-func ParseLanguage(s string) Language {
+func ParseLanguage(s string) (Language, bool) {
 	switch s {
 	case languageAppleScriptStr:
-		return LanguageAppleScript
+		return LanguageAppleScript, true
 	case languageApacheConfStr:
-		return LanguageApacheConf
+		return LanguageApacheConf, true
 	case languageAssemblyStr:
-		return LanguageAssembly
+		return LanguageAssembly, true
 	case languageAwkStr:
-		return LanguageAwk
+		return LanguageAwk, true
 	case languageBashStr:
-		return LanguageBash
+		return LanguageBash, true
 	case languageCStr:
-		return LanguageC
+		return LanguageC, true
 	case languageCPPStr:
-		return LanguageCPP
+		return LanguageCPP, true
 	case languageCSharpStr:
-		return LanguageCSharp
+		return LanguageCSharp, true
 	case languageClojureStr:
-		return LanguageClojure
+		return LanguageClojure, true
 	case languageCMakeStr:
-		return LanguageCMake
+		return LanguageCMake, true
 	case languageCoffeeScriptStr:
-		return LanguageCoffeeScript
+		return LanguageCoffeeScript, true
 	case languageColdfusionHTMLStr:
-		return LanguageColdfusionHTML
+		return LanguageColdfusionHTML, true
 	case languageCommonLispStr:
-		return LanguageCommonLisp
+		return LanguageCommonLisp, true
 	case languageCrontabStr:
-		return LanguageCrontab
+		return LanguageCrontab, true
 	case languageCrystalStr:
-		return LanguageCrystal
+		return LanguageCrystal, true
 	case languageCSSStr:
-		return LanguageCSS
+		return LanguageCSS, true
 	case languageDartStr:
-		return LanguageDart
+		return LanguageDart, true
 	case languageDelphiStr:
-		return LanguageDelphi
+		return LanguageDelphi, true
 	case languageDockerStr:
-		return LanguageDocker
+		return LanguageDocker, true
 	case languageElixirStr:
-		return LanguageElixir
+		return LanguageElixir, true
 	case languageElmStr:
-		return LanguageElm
+		return LanguageElm, true
 	case languageEmacsLispStr:
-		return LanguageEmacsLisp
+		return LanguageEmacsLisp, true
 	case languageErlangStr:
-		return LanguageErlang
+		return LanguageErlang, true
 	case languageFSharpStr:
-		return LanguageFSharp
+		return LanguageFSharp, true
 	case languageFortranStr:
-		return LanguageFortran
+		return LanguageFortran, true
 	case languageGoStr:
-		return LanguageGo
+		return LanguageGo, true
 	case languageGosuStr:
-		return LanguageGosu
+		return LanguageGosu, true
 	case languageGroovyStr:
-		return LanguageGroovy
+		return LanguageGroovy, true
 	case languageHaskellStr:
-		return LanguageHaskell
+		return LanguageHaskell, true
 	case languageHaxeStr:
-		return LanguageHaxe
+		return LanguageHaxe, true
 	case languageHTMLStr:
-		return LanguageHTML
+		return LanguageHTML, true
 	case languageINIStr:
-		return LanguageINI
+		return LanguageINI, true
 	case languageJavaStr:
-		return LanguageJava
+		return LanguageJava, true
 	case languageJavaScriptStr:
-		return LanguageJavaScript
+		return LanguageJavaScript, true
 	case languageJSONStr:
-		return LanguageJSON
+		return LanguageJSON, true
 	case languageJSXStr:
-		return LanguageJSX
+		return LanguageJSX, true
 	case languageKotlinStr:
-		return LanguageKotlin
+		return LanguageKotlin, true
 	case languageLassoStr:
-		return LanguageLasso
+		return LanguageLasso, true
 	case languageTexStr:
-		return LanguageTex
+		return LanguageTex, true
 	case languageLessStr:
-		return LanguageLess
+		return LanguageLess, true
 	case languageLiquidStr:
-		return LanguageLiquid
+		return LanguageLiquid, true
 	case languageLuaStr:
-		return LanguageLua
+		return LanguageLua, true
 	case languageMakoStr:
-		return LanguageMako
+		return LanguageMako, true
 	case languageMarkdownStr:
-		return LanguageMarkdown
+		return LanguageMarkdown, true
 	case languageMarkoStr:
-		return LanguageMarko
+		return LanguageMarko, true
 	case languageModelicaStr:
-		return LanguageModelica
+		return LanguageModelica, true
 	case languageModulaStr:
-		return LanguageModula
+		return LanguageModula, true
 	case languageMustacheStr:
-		return LanguageMustache
+		return LanguageMustache, true
 	case languageNewLispStr:
-		return LanguageNewLisp
+		return LanguageNewLisp, true
 	case languageNixStr:
-		return LanguageNix
+		return LanguageNix, true
 	case languageObjectiveJStr:
-		return LanguageObjectiveJ
+		return LanguageObjectiveJ, true
 	case languageOCamlStr:
-		return LanguageOCaml
+		return LanguageOCaml, true
 	case languagePawnStr:
-		return LanguagePawn
+		return LanguagePawn, true
 	case languagePerlStr:
-		return LanguagePerl
+		return LanguagePerl, true
 	case languagePHPStr:
-		return LanguagePHP
+		return LanguagePHP, true
 	case languagePostScriptStr:
-		return LanguagePostScript
+		return LanguagePostScript, true
 	case languagePOVRayStr:
-		return LanguagePOVRay
+		return LanguagePOVRay, true
 	case languagePowerShellStr:
-		return LanguagePowerShell
+		return LanguagePowerShell, true
 	case languagePrologStr:
-		return LanguageProlog
+		return LanguageProlog, true
 	case languageProtocolBufferStr:
-		return LanguageProtocolBuffer
+		return LanguageProtocolBuffer, true
 	case languagePugStr:
-		return LanguagePug
+		return LanguagePug, true
 	case languagePuppetStr:
-		return LanguagePuppet
+		return LanguagePuppet, true
 	case languagePythonStr:
-		return LanguagePython
+		return LanguagePython, true
 	case languageQMLStr:
-		return LanguageQML
+		return LanguageQML, true
 	case languageRStr:
-		return LanguageR
+		return LanguageR, true
 	case languageReasonMLStr:
-		return LanguageReasonML
+		return LanguageReasonML, true
 	case languageReStructuredTextStr:
-		return LanguageReStructuredText
+		return LanguageReStructuredText, true
 	case languageRPMSpecStr:
-		return LanguageRPMSpec
+		return LanguageRPMSpec, true
 	case languageRubyStr:
-		return LanguageRuby
+		return LanguageRuby, true
 	case languageRustStr:
-		return LanguageRust
+		return LanguageRust, true
 	case languageSassStr:
-		return LanguageSass
+		return LanguageSass, true
 	case languageScalaStr:
-		return LanguageScala
+		return LanguageScala, true
 	case languageSchemeStr:
-		return LanguageScheme
+		return LanguageScheme, true
 	case languageSCSSStr:
-		return LanguageSCSS
+		return LanguageSCSS, true
 	case languageSketchDrawingStr:
-		return LanguageSketchDrawing
+		return LanguageSketchDrawing, true
 	case languageSlimStr:
-		return LanguageSlim
+		return LanguageSlim, true
 	case languageSmaliStr:
-		return LanguageSmali
+		return LanguageSmali, true
 	case languageSmalltalkStr:
-		return LanguageSmalltalk
+		return LanguageSmalltalk, true
 	case languageSourcePawnStr:
-		return LanguageSourcePawn
+		return LanguageSourcePawn, true
 	case languageSQLStr:
-		return LanguageSQL
+		return LanguageSQL, true
 	case languageSublimeTextConfigStr:
-		return LanguageSublimeTextConfig
+		return LanguageSublimeTextConfig, true
 	case languageSvelteStr:
-		return LanguageSvelte
+		return LanguageSvelte, true
 	case languageSwiftStr:
-		return LanguageSwift
+		return LanguageSwift, true
 	case languageSWIGStr:
-		return LanguageSWIG
+		return LanguageSWIG, true
 	case languagesystemverilogStr:
-		return Languagesystemverilog
+		return Languagesystemverilog, true
 	case languageTextStr:
-		return LanguageText
+		return LanguageText, true
 	case languageThriftStr:
-		return LanguageThrift
+		return LanguageThrift, true
 	case languageTOMLStr:
-		return LanguageTOML
+		return LanguageTOML, true
 	case languageTwigStr:
-		return LanguageTwig
+		return LanguageTwig, true
 	case languageTypeScriptStr:
-		return LanguageTypeScript
+		return LanguageTypeScript, true
 	case languageVBStr:
-		return LanguageVB
+		return LanguageVB, true
 	case languageVCLStr:
-		return LanguageVCL
+		return LanguageVCL, true
 	case languageVelocityStr:
-		return LanguageVelocity
+		return LanguageVelocity, true
 	case languageVimLStr:
-		return LanguageVimL
+		return LanguageVimL, true
 	case languageVueJSStr:
-		return LanguageVueJS
+		return LanguageVueJS, true
 	case languageXAMLStr:
-		return LanguageXAML
+		return LanguageXAML, true
 	case languageXMLStr:
-		return LanguageXML
+		return LanguageXML, true
 	case languageXSLTStr:
-		return LanguageXSLT
+		return LanguageXSLT, true
 	case languageYAMLStr:
-		return LanguageYAML
+		return LanguageYAML, true
 	case languageZigStr:
-		return LanguageZig
+		return LanguageZig, true
 	default:
-		return LanguageUnknown
+		return LanguageUnknown, false
 	}
 }
 
 // ParseLanguageFromChroma parses a language from a chroma lexer name.
+// Will return false as second parameter, if language could not be parsed.
 // nolint:gocyclo
-func ParseLanguageFromChroma(lexerName string) Language {
+func ParseLanguageFromChroma(lexerName string) (Language, bool) {
 	switch lexerName {
 	case languageAppleScriptStr:
-		return LanguageAppleScript
+		return LanguageAppleScript, true
 	case languageApacheConfStr:
-		return LanguageApacheConf
+		return LanguageApacheConf, true
 	case languageAssemblyChromaStr:
-		return LanguageAssembly
+		return LanguageAssembly, true
 	case languageAwkStr:
-		return LanguageAwk
+		return LanguageAwk, true
 	case languageBashStr:
-		return LanguageBash
+		return LanguageBash, true
 	case languageCStr:
-		return LanguageC
+		return LanguageC, true
 	case languageCPPStr:
-		return LanguageCPP
+		return LanguageCPP, true
 	case languageCSharpStr:
-		return LanguageCSharp
+		return LanguageCSharp, true
 	case languageClojureStr:
-		return LanguageClojure
+		return LanguageClojure, true
 	case languageCMakeStr:
-		return LanguageCMake
+		return LanguageCMake, true
 	case languageCoffeeScriptStr:
-		return LanguageCoffeeScript
+		return LanguageCoffeeScript, true
 	case languageCommonLispStr:
-		return LanguageCommonLisp
+		return LanguageCommonLisp, true
 	case languageCrystalStr:
-		return LanguageCrystal
+		return LanguageCrystal, true
 	case languageCSSStr:
-		return LanguageCSS
+		return LanguageCSS, true
 	case languageDartStr:
-		return LanguageDart
+		return LanguageDart, true
 	case languageDockerStr:
-		return LanguageDocker
+		return LanguageDocker, true
 	case languageElixirStr:
-		return LanguageElixir
+		return LanguageElixir, true
 	case languageElmStr:
-		return LanguageElm
+		return LanguageElm, true
 	case languageEmacsLispChromaStr:
-		return LanguageEmacsLisp
+		return LanguageEmacsLisp, true
 	case languageErlangStr:
-		return LanguageErlang
+		return LanguageErlang, true
 	case languageFSharpChromaStr:
-		return LanguageFSharp
+		return LanguageFSharp, true
 	case languageFortranStr:
-		return LanguageFortran
+		return LanguageFortran, true
 	case languageGoStr:
-		return LanguageGo
+		return LanguageGo, true
 	case languageGroovyStr:
-		return LanguageGroovy
+		return LanguageGroovy, true
 	case languageHaskellStr:
-		return LanguageHaskell
+		return LanguageHaskell, true
 	case languageHaxeStr:
-		return LanguageHaxe
+		return LanguageHaxe, true
 	case languageHTMLStr:
-		return LanguageHTML
+		return LanguageHTML, true
 	case languageINIStr:
-		return LanguageINI
+		return LanguageINI, true
 	case languageJavaStr:
-		return LanguageJava
+		return LanguageJava, true
 	case languageJavaScriptStr:
-		return LanguageJavaScript
+		return LanguageJavaScript, true
 	case languageJSONStr:
-		return LanguageJSON
+		return LanguageJSON, true
 	case languageKotlinStr:
-		return LanguageKotlin
+		return LanguageKotlin, true
 	case languageTexStr:
-		return LanguageTex
+		return LanguageTex, true
 	case languageLuaStr:
-		return LanguageLua
+		return LanguageLua, true
 	case languageMakoStr:
-		return LanguageMako
+		return LanguageMako, true
 	case languageMarkdownChromaStr:
-		return LanguageMarkdown
+		return LanguageMarkdown, true
 	case languageModulaStr:
-		return LanguageModula
+		return LanguageModula, true
 	case languageNixStr:
-		return LanguageNix
+		return LanguageNix, true
 	case languageOCamlStr:
-		return LanguageOCaml
+		return LanguageOCaml, true
 	case languagePerlStr:
-		return LanguagePerl
+		return LanguagePerl, true
 	case languagePHPStr:
-		return LanguagePHP
+		return LanguagePHP, true
 	case languagePostScriptStr:
-		return LanguagePostScript
+		return LanguagePostScript, true
 	case languagePOVRayStr:
-		return LanguagePOVRay
+		return LanguagePOVRay, true
 	case languagePowerShellStr:
-		return LanguagePowerShell
+		return LanguagePowerShell, true
 	case languagePrologStr:
-		return LanguageProlog
+		return LanguageProlog, true
 	case languageProtocolBufferStr:
-		return LanguageProtocolBuffer
+		return LanguageProtocolBuffer, true
 	case languagePuppetStr:
-		return LanguagePuppet
+		return LanguagePuppet, true
 	case languagePythonStr:
-		return LanguagePython
+		return LanguagePython, true
 	case languageRStr:
-		return LanguageR
+		return LanguageR, true
 	case languageReasonMLStr:
-		return LanguageReasonML
+		return LanguageReasonML, true
 	case languageReStructuredTextStr:
-		return LanguageReStructuredText
+		return LanguageReStructuredText, true
 	case languageRubyStr:
-		return LanguageRuby
+		return LanguageRuby, true
 	case languageRustStr:
-		return LanguageRust
+		return LanguageRust, true
 	case languageSassStr:
-		return LanguageSass
+		return LanguageSass, true
 	case languageScalaStr:
-		return LanguageScala
+		return LanguageScala, true
 	case languageSchemeStr:
-		return LanguageScheme
+		return LanguageScheme, true
 	case languageSCSSStr:
-		return LanguageSCSS
+		return LanguageSCSS, true
 	case languageSmalltalkStr:
-		return LanguageSmalltalk
+		return LanguageSmalltalk, true
 	case languageSQLStr:
-		return LanguageSQL
+		return LanguageSQL, true
 	case languageSwiftStr:
-		return LanguageSwift
+		return LanguageSwift, true
 	case languagesystemverilogStr:
-		return Languagesystemverilog
+		return Languagesystemverilog, true
 	case languageTextChromaStr:
-		return LanguageText
+		return LanguageText, true
 	case languageThriftStr:
-		return LanguageThrift
+		return LanguageThrift, true
 	case languageTOMLStr:
-		return LanguageTOML
+		return LanguageTOML, true
 	case languageTwigStr:
-		return LanguageTwig
+		return LanguageTwig, true
 	case languageTypeScriptStr:
-		return LanguageTypeScript
+		return LanguageTypeScript, true
 	case languageVBStr:
-		return LanguageVB
+		return LanguageVB, true
 	case languageVimLStr:
-		return LanguageVimL
+		return LanguageVimL, true
 	case languageXMLStr:
-		return LanguageXML
+		return LanguageXML, true
 	case languageYAMLStr:
-		return LanguageYAML
+		return LanguageYAML, true
 	case languageZigStr:
-		return LanguageZig
+		return LanguageZig, true
 	default:
-		jww.WARN.Printf("Could not detect language. Unknown lexer name: %q", lexerName)
-		return LanguageUnknown
+		return LanguageUnknown, false
 	}
 }
 
@@ -706,7 +705,7 @@ func (l Language) MarshalJSON() ([]byte, error) {
 func (l *Language) UnmarshalJSON(v []byte) error {
 	trimmed := strings.Trim(string(v), "\"")
 
-	lang := ParseLanguage(trimmed)
+	lang, _ := ParseLanguage(trimmed)
 
 	*l = lang
 
