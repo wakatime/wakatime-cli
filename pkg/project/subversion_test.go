@@ -32,6 +32,7 @@ func TestSubversion_Detect(t *testing.T) {
 	assert.Equal(t, project.Result{
 		Project: "wakatime-cli",
 		Branch:  "trunk",
+		Folder:  "file:///D:/temp/SVN/wakatime-cli",
 	}, result)
 }
 
@@ -52,6 +53,7 @@ func TestSubversion_Detect_Branch(t *testing.T) {
 	assert.Equal(t, project.Result{
 		Project: "wakatime-cli",
 		Branch:  "billing",
+		Folder:  "file:///D:/temp/SVN/wakatime-cli",
 	}, result)
 }
 

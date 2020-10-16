@@ -18,6 +18,7 @@ type Detecter interface {
 type Result struct {
 	Project string
 	Branch  string
+	Folder  string
 }
 
 // Config contains project detection configurations.
@@ -57,21 +58,21 @@ func WithDetection(c Config) heartbeat.HandleOption {
 					continue
 				}
 
-				project, branch := Detect(h.Entity, c.MapPatterns)
+				result := Detect(h.Entity, c.MapPatterns)
 
-				if project == "" {
-					project = c.Override
+				if result.Project == "" {
+					result.Project = c.Override
 				}
 
-				if project == "" || branch == "" {
-					project, branch = DetectWithRevControl(h.Entity, c.SubmodulePatterns, project, branch)
+				if result.Project == "" || result.Branch == "" {
+					result = DetectWithRevControl(h.Entity, c.SubmodulePatterns, result.Project, result.Branch)
 					if c.ShouldObfuscateProject {
-						project = ""
+						result.Project = ""
 					}
 				}
 
-				hh[n].Branch = &branch
-				hh[n].Project = &project
+				hh[n].Branch = &result.Branch
+				hh[n].Project = &result.Project
 			}
 
 			return next(hh)
@@ -80,7 +81,7 @@ func WithDetection(c Config) heartbeat.HandleOption {
 }
 
 // Detect finds the current project and branch from config plugins.
-func Detect(entity string, patterns []MapPattern) (project, branch string) {
+func Detect(entity string, patterns []MapPattern) Result {
 	var configPlugins []Detecter = []Detecter{
 		File{
 			Filepath: entity,
@@ -97,16 +98,16 @@ func Detect(entity string, patterns []MapPattern) (project, branch string) {
 			jww.ERROR.Printf("unexpected error occurred at %q: %s", p.String(), err)
 			continue
 		} else if detected {
-			return result.Project, result.Branch
+			return result
 		}
 	}
 
-	return "", ""
+	return Result{}
 }
 
 // DetectWithRevControl finds the current project and branch from rev control.
 func DetectWithRevControl(entity string, submodulePatterns []*regexp.Regexp,
-	project string, branch string) (string, string) {
+	project string, branch string) Result {
 	var revControlPlugins []Detecter = []Detecter{
 		Git{
 			Filepath:          entity,
@@ -126,12 +127,15 @@ func DetectWithRevControl(entity string, submodulePatterns []*regexp.Regexp,
 			jww.ERROR.Printf("unexpected error occurred at %q: %s", p.String(), err)
 			continue
 		} else if detected {
-			return firstNonEmptyString(project, result.Project),
-				firstNonEmptyString(branch, result.Branch)
+			return Result{
+				Project: firstNonEmptyString(project, result.Project),
+				Branch:  firstNonEmptyString(branch, result.Branch),
+				Folder:  result.Folder,
+			}
 		}
 	}
 
-	return "", ""
+	return Result{}
 }
 
 // firstNonEmptyString accepts multiple values and return the first non empty string value.

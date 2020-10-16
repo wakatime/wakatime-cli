@@ -100,7 +100,7 @@ func TestMap_Detect_NoMatch(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.False(t, detected)
-	assert.Equal(t, "", result.Project)
+	assert.Empty(t, result.Project)
 }
 
 func TestMap_Detect_ZeroPatterns(t *testing.T) {
