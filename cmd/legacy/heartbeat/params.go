@@ -45,6 +45,7 @@ type Params struct {
 	Time            float64
 	Timeout         time.Duration
 	Filter          FilterParams
+	Language        LanguageParams
 	Network         NetworkParams
 	Sanitize        SanitizeParams
 }
@@ -55,6 +56,12 @@ type FilterParams struct {
 	ExcludeUnknownProject      bool
 	Include                    []*regexp.Regexp
 	IncludeOnlyWithProjectFile bool
+}
+
+// LanguageParams contains language detection related command parameters.
+type LanguageParams struct {
+	Alternate string
+	Override  string
 }
 
 // NetworkParams contains network related command parameters.
@@ -186,6 +193,11 @@ func LoadParams(v *viper.Viper) (Params, error) {
 		timeout = time.Duration(timeoutSecs) * time.Second
 	}
 
+	languageParams, err := loadLanguageParams(v)
+	if err != nil {
+		return Params{}, fmt.Errorf("failed to parse language params: %s", err)
+	}
+
 	networkParams, err := loadNetworkParams(v)
 	if err != nil {
 		return Params{}, fmt.Errorf("failed to parse network params: %s", err)
@@ -213,6 +225,7 @@ func LoadParams(v *viper.Viper) (Params, error) {
 		Time:            timeSecs,
 		Timeout:         timeout,
 		Filter:          loadFilterParams(v),
+		Language:        languageParams,
 		Network:         networkParams,
 		Sanitize:        sanitizeParams,
 	}, nil
@@ -275,6 +288,17 @@ func loadFilterParams(v *viper.Viper) FilterParams {
 			"settings.include_only_with_project_file",
 		),
 	}
+}
+
+func loadLanguageParams(v *viper.Viper) (LanguageParams, error) {
+	if v == nil {
+		return LanguageParams{}, errors.New("viper instance unset")
+	}
+
+	return LanguageParams{
+		Alternate: v.GetString("alternate-language"),
+		Override:  v.GetString("language"),
+	}, nil
 }
 
 func loadNetworkParams(v *viper.Viper) (NetworkParams, error) {

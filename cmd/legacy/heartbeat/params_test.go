@@ -18,6 +18,18 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestLoadParams_AlternateLanguage(t *testing.T) {
+	v := viper.New()
+	v.Set("entity", "/path/to/file")
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("alternate-language", "Go")
+
+	params, err := cmd.LoadParams(v)
+	require.NoError(t, err)
+
+	assert.Equal(t, "Go", params.Language.Alternate)
+}
+
 func TestLoadParams_APIKey_FlagTakesPrecedence(t *testing.T) {
 	v := viper.New()
 	v.Set("entity", "/path/to/file")
@@ -418,6 +430,18 @@ func TestLoadParams_IsWrite_Unset(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Nil(t, params.IsWrite)
+}
+
+func TestLoadParams_Language(t *testing.T) {
+	v := viper.New()
+	v.Set("entity", "/path/to/file")
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("language", "Go")
+
+	params, err := cmd.LoadParams(v)
+	require.NoError(t, err)
+
+	assert.Equal(t, "Go", params.Language.Override)
 }
 
 func TestLoadParams_LineNumber(t *testing.T) {
