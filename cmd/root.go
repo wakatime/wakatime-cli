@@ -86,6 +86,7 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 		false,
 		"When set, any activity where the project cannot be detected will be ignored.",
 	)
+	flags.Bool("extra-heartbeats", false, "Reads extra heartbeats from STDIN as a JSON array until EOF.")
 	flags.String("file", "", "(deprecated) Absolute path to file for the heartbeat.")
 	flags.String("hide-branch-names", "", "Obfuscate branch names. Will not send revision control branch names to api.")
 	flags.String("hide-file-names", "", "Obfuscate filenames. Will not send file names to api.")

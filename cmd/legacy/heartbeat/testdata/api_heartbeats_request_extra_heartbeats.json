@@ -1,0 +1,47 @@
+[
+    {
+        "branch": null,
+        "category": "debugging",
+        "cursorpos": 42,
+        "dependencies": null,
+        "entity": "testdata/main.go",
+        "is_write": true,
+        "language": null,
+        "lineno": 13,
+        "lines": 2,
+        "project": null,
+        "type": "file",
+        "time": 1585598059.1,
+        "user_agent": "%s"
+    },
+    {
+        "branch": null,
+        "category": "coding",
+        "cursorpos": 12,
+        "dependencies": null,
+        "entity": "testdata/main.go",
+        "is_write": true,
+        "language": null,
+        "lineno": 42,
+        "lines": 2,
+        "project": null,
+        "type": "file",
+        "time": 1585598059,
+        "user_agent": "wakatime/13.0.6"
+    },
+    {
+        "branch": null,
+        "category": "debugging",
+        "cursorpos": null,
+        "dependencies": null,
+        "entity": "testdata/main.go",
+        "is_write": null,
+        "language": null,
+        "lineno": null,
+        "lines": 2,
+        "project": null,
+        "type": "file",
+        "time": 1585598060,
+        "user_agent": "wakatime/13.0.7"
+    }
+]

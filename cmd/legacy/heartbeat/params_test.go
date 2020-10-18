@@ -2,6 +2,7 @@ package heartbeat_test
 
 import (
 	"errors"
+	"io/ioutil"
 	"os"
 	"regexp"
 	"testing"
@@ -289,6 +290,63 @@ func TestLoadParams_EntityType_Invalid(t *testing.T) {
 	require.Error(t, err)
 
 	assert.Equal(t, "failed to parse entity type: invalid entity type \"invalid\"", err.Error())
+}
+
+func TestLoadParams_ExtraHeartbeats(t *testing.T) {
+	r, w, err := os.Pipe()
+	require.NoError(t, err)
+
+	defer func() {
+		r.Close()
+		w.Close()
+	}()
+
+	origStdin := os.Stdin
+
+	defer func() { os.Stdin = origStdin }()
+
+	os.Stdin = r
+
+	data, err := ioutil.ReadFile("testdata/extra_heartbeats.json")
+	require.NoError(t, err)
+
+	go func() {
+		_, err := w.Write(data)
+		require.NoError(t, err)
+
+		w.Close()
+	}()
+
+	v := viper.New()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("entity", "/path/to/file")
+	v.Set("extra-heartbeats", true)
+
+	params, err := cmd.LoadParams(v)
+	require.NoError(t, err)
+
+	assert.Len(t, params.ExtraHeartbeats, 2)
+	assert.Equal(t, []heartbeat.Heartbeat{
+		{
+			Category:       heartbeat.CodingCategory,
+			CursorPosition: heartbeat.Int(12),
+			Entity:         "testdata/main.go",
+			EntityType:     heartbeat.FileType,
+			IsWrite:        heartbeat.Bool(true),
+			LineNumber:     heartbeat.Int(42),
+			Time:           1585598059,
+			UserAgent:      "wakatime/13.0.6",
+		},
+		{
+			Category:   heartbeat.DebuggingCategory,
+			Entity:     "testdata/main.go",
+			EntityType: heartbeat.FileType,
+			IsWrite:    nil,
+			LineNumber: nil,
+			Time:       1585598060,
+			UserAgent:  "wakatime/13.0.7",
+		},
+	}, params.ExtraHeartbeats)
 }
 
 func TestLoadParams_Hostname_FlagTakesPrecedence(t *testing.T) {

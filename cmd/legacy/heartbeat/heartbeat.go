@@ -99,15 +99,22 @@ func SendHeartbeats(v *viper.Viper) error {
 
 	c := api.NewClient(params.APIUrl, http.DefaultClient, clientOpts...)
 
-	h := heartbeat.Heartbeat{
-		Entity:         params.Entity,
-		EntityType:     params.EntityType,
-		Category:       params.Category,
-		CursorPosition: params.CursorPosition,
-		IsWrite:        params.IsWrite,
-		LineNumber:     params.LineNumber,
-		Time:           params.Time,
-		UserAgent:      userAgent,
+	heartbeats := []heartbeat.Heartbeat{
+		{
+			Entity:         params.Entity,
+			EntityType:     params.EntityType,
+			Category:       params.Category,
+			CursorPosition: params.CursorPosition,
+			IsWrite:        params.IsWrite,
+			LineNumber:     params.LineNumber,
+			Time:           params.Time,
+			UserAgent:      userAgent,
+		},
+	}
+
+	if len(params.ExtraHeartbeats) > 0 {
+		jww.DEBUG.Printf("include %d extra heartbeat(s) from stdin", len(params.ExtraHeartbeats))
+		heartbeats = append(heartbeats, params.ExtraHeartbeats...)
 	}
 
 	handleOpts := []heartbeat.HandleOption{
@@ -141,7 +148,7 @@ func SendHeartbeats(v *viper.Viper) error {
 
 	handle := heartbeat.NewHandle(c, handleOpts...)
 
-	_, err = handle([]heartbeat.Heartbeat{h})
+	_, err = handle(heartbeats)
 	if err != nil {
 		return fmt.Errorf("failed to send heartbeats via api client: %w", err)
 	}

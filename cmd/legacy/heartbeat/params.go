@@ -1,6 +1,7 @@
 package heartbeat
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -34,6 +35,7 @@ type Params struct {
 	CursorPosition  *int
 	Entity          string
 	EntityType      heartbeat.EntityType
+	ExtraHeartbeats []heartbeat.Heartbeat
 	Hostname        string
 	IsWrite         *bool
 	LineNumber      *int
@@ -118,7 +120,17 @@ func LoadParams(v *viper.Viper) (Params, error) {
 		entityType = parsed
 	}
 
-	var err error
+	var (
+		extraHeartbeats []heartbeat.Heartbeat
+		err             error
+	)
+
+	if v.GetBool("extra-heartbeats") {
+		extraHeartbeats, err = readExtraHeartbeats()
+		if err != nil {
+			jww.ERROR.Printf("failed to read extra heartbeats: %s", err)
+		}
+	}
 
 	hostname, ok := vipertools.FirstNonEmptyString(v, "hostname", "settings.hostname")
 	if !ok {
@@ -190,6 +202,7 @@ func LoadParams(v *viper.Viper) (Params, error) {
 		Category:        category,
 		CursorPosition:  cursorPosition,
 		Entity:          entity,
+		ExtraHeartbeats: extraHeartbeats,
 		EntityType:      entityType,
 		Hostname:        hostname,
 		IsWrite:         isWrite,
@@ -203,6 +216,17 @@ func LoadParams(v *viper.Viper) (Params, error) {
 		Network:         networkParams,
 		Sanitize:        sanitizeParams,
 	}, nil
+}
+
+func readExtraHeartbeats() ([]heartbeat.Heartbeat, error) {
+	var heartbeats []heartbeat.Heartbeat
+
+	err := json.NewDecoder(os.Stdin).Decode(&heartbeats)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read and json decode: %s", err)
+	}
+
+	return heartbeats, nil
 }
 
 func loadFilterParams(v *viper.Viper) FilterParams {
