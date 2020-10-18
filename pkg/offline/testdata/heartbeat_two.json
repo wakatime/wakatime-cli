@@ -5,7 +5,7 @@
     "dependencies": ["dep3", "dep4"],
     "entity": "/tmp/main.py",
     "is_write": false,
-    "language": "python",
+    "language": "Python",
     "lineno": 43,
     "lines": 101,
     "project": "wakatime",

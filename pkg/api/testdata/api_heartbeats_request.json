@@ -6,7 +6,7 @@
 		"dependencies": ["dep1", "dep2"],
 		"entity": "/tmp/main.go",
 		"is_write": true,
-		"language": "golang",
+		"language": "Go",
 		"lineno": 42,
 		"lines": 100,
 		"project": "wakatime-cli",
