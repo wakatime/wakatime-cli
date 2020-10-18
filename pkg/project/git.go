@@ -137,7 +137,7 @@ func (g Git) Detect() (Result, bool, error) {
 		return Result{
 			Project: project,
 			Branch:  branch,
-			Folder:  path.Dir(gitConfigFile),
+			Folder:  gitdir,
 		}, true, nil
 	}
 

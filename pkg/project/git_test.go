@@ -26,9 +26,12 @@ func TestGit_Detect(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.True(t, detected)
-	assert.Equal(t, "wakatime-cli", result.Project)
-	assert.Equal(t, "master", result.Branch)
-	assert.Contains(t, result.Folder, fp)
+	assert.Contains(t, result.Folder, path.Join(fp, "wakatime-cli"))
+	assert.Equal(t, project.Result{
+		Project: "wakatime-cli",
+		Branch:  "master",
+		Folder:  result.Folder,
+	}, result)
 }
 
 func TestGit_Detect_BranchWithSlash(t *testing.T) {
@@ -43,9 +46,12 @@ func TestGit_Detect_BranchWithSlash(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.True(t, detected)
-	assert.Equal(t, "wakatime-cli", result.Project)
-	assert.Equal(t, "feature/detection", result.Branch)
-	assert.Contains(t, result.Folder, fp)
+	assert.Contains(t, result.Folder, path.Join(fp, "wakatime-cli"))
+	assert.Equal(t, project.Result{
+		Project: "wakatime-cli",
+		Branch:  "feature/detection",
+		Folder:  result.Folder,
+	}, result)
 }
 
 func TestGit_Detect_DetachedHead(t *testing.T) {
@@ -60,9 +66,12 @@ func TestGit_Detect_DetachedHead(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.True(t, detected)
-	assert.Equal(t, "wakatime-cli", result.Project)
-	assert.Empty(t, result.Branch)
-	assert.Contains(t, result.Folder, fp)
+	assert.Contains(t, result.Folder, path.Join(fp, "wakatime-cli"))
+	assert.Equal(t, project.Result{
+		Project: "wakatime-cli",
+		Branch:  "",
+		Folder:  result.Folder,
+	}, result)
 }
 
 func TestGit_Detect_GitConfigFile_File(t *testing.T) {
@@ -97,9 +106,12 @@ func TestGit_Detect_GitConfigFile_File(t *testing.T) {
 			require.NoError(t, err)
 
 			assert.True(t, detected)
-			assert.Equal(t, test.Project, result.Project)
-			assert.Equal(t, "feature/list-elements", result.Branch)
-			assert.Contains(t, result.Folder, fp)
+			assert.Contains(t, result.Folder, path.Join(fp, "wakatime-cli"))
+			assert.Equal(t, project.Result{
+				Project: test.Project,
+				Branch:  "feature/list-elements",
+				Folder:  result.Folder,
+			}, result)
 		})
 	}
 }
@@ -116,9 +128,12 @@ func TestGit_Detect_Worktree(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.True(t, detected)
-	assert.Equal(t, "wakatime-cli", result.Project)
-	assert.Equal(t, "feature/api", result.Branch)
-	assert.Contains(t, result.Folder, fp)
+	assert.Contains(t, result.Folder, path.Join(fp, "wakatime-cli"))
+	assert.Equal(t, project.Result{
+		Project: "wakatime-cli",
+		Branch:  "feature/api",
+		Folder:  result.Folder,
+	}, result)
 }
 
 func TestGit_Detect_Submodule(t *testing.T) {
@@ -134,9 +149,12 @@ func TestGit_Detect_Submodule(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.True(t, detected)
-	assert.Equal(t, "billing", result.Project)
-	assert.Equal(t, "master", result.Branch)
-	assert.Contains(t, result.Folder, fp)
+	assert.Contains(t, result.Folder, path.Join(fp, "wakatime-cli"))
+	assert.Equal(t, project.Result{
+		Project: "billing",
+		Branch:  "master",
+		Folder:  result.Folder,
+	}, result)
 }
 
 func TestGit_Detect_SubmoduleDisabled(t *testing.T) {
@@ -152,9 +170,12 @@ func TestGit_Detect_SubmoduleDisabled(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.True(t, detected)
-	assert.Equal(t, "wakatime-cli", result.Project)
-	assert.Equal(t, "feature/billing", result.Branch)
-	assert.Contains(t, result.Folder, fp)
+	assert.Contains(t, result.Folder, path.Join(fp, "wakatime-cli"))
+	assert.Equal(t, project.Result{
+		Project: "wakatime-cli",
+		Branch:  "feature/billing",
+		Folder:  result.Folder,
+	}, result)
 }
 
 func setupTestGitBasic(t *testing.T) (fp string, tearDown func()) {
