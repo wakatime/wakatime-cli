@@ -24,9 +24,12 @@ func TestMercurial_Detect(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.True(t, detected)
-	assert.Equal(t, "wakatime-cli", result.Project)
-	assert.Equal(t, "billing", result.Branch)
 	assert.Contains(t, result.Folder, fp)
+	assert.Equal(t, project.Result{
+		Project: "wakatime-cli",
+		Branch:  "billing",
+		Folder:  result.Folder,
+	}, result)
 }
 
 func TestMercurial_Detect_BranchWithSlash(t *testing.T) {
@@ -41,9 +44,12 @@ func TestMercurial_Detect_BranchWithSlash(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.True(t, detected)
-	assert.Equal(t, "wakatime-cli", result.Project)
-	assert.Equal(t, "feature/billing", result.Branch)
 	assert.Contains(t, result.Folder, fp)
+	assert.Equal(t, project.Result{
+		Project: "wakatime-cli",
+		Branch:  "feature/billing",
+		Folder:  result.Folder,
+	}, result)
 }
 
 func TestMercurial_Detect_NoBranch(t *testing.T) {
@@ -58,9 +64,12 @@ func TestMercurial_Detect_NoBranch(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.True(t, detected)
-	assert.Equal(t, "wakatime-cli", result.Project)
-	assert.Equal(t, "default", result.Branch)
 	assert.Contains(t, result.Folder, fp)
+	assert.Equal(t, project.Result{
+		Project: "wakatime-cli",
+		Branch:  "default",
+		Folder:  result.Folder,
+	}, result)
 }
 
 func setupTestMercurial(t *testing.T) (fp string, tearDown func()) {

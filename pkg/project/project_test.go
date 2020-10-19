@@ -181,9 +181,12 @@ func TestDetectWithRevControl_GitDetected(t *testing.T) {
 		path.Join(fp, "wakatime-cli/src/pkg/file.go"),
 		[]*regexp.Regexp{}, "", "")
 
-	assert.Equal(t, "wakatime-cli", result.Project)
-	assert.Equal(t, "master", result.Branch)
 	assert.Contains(t, result.Folder, path.Join(fp, "wakatime-cli"))
+	assert.Equal(t, project.Result{
+		Project: "wakatime-cli",
+		Branch:  "master",
+		Folder:  result.Folder,
+	}, result)
 }
 
 func TestDetect_NoProjectDetected(t *testing.T) {
