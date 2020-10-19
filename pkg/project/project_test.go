@@ -51,8 +51,8 @@ func TestWithDetection_EntityNotFile(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			opt := project.WithDetection(project.Config{
-				Override:    test.Override,
-				Alternative: test.Alternative,
+				Override:  test.Override,
+				Alternate: test.Alternative,
 			})
 
 			handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
@@ -108,11 +108,12 @@ func TestDetectWithDetection_ObfuscateProject(t *testing.T) {
 	})
 
 	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		assert.NotEmpty(t, hh[0].Project)
 		assert.Equal(t, []heartbeat.Heartbeat{
 			{
 				Entity:     path.Join(fp, "wakatime-cli/src/pkg/file.go"),
 				EntityType: heartbeat.FileType,
-				Project:    heartbeat.String(""),
+				Project:    hh[0].Project,
 				Branch:     heartbeat.String("master"),
 			},
 		}, hh)
@@ -179,7 +180,7 @@ func TestDetectWithRevControl_GitDetected(t *testing.T) {
 
 	result := project.DetectWithRevControl(
 		path.Join(fp, "wakatime-cli/src/pkg/file.go"),
-		[]*regexp.Regexp{}, "", "")
+		[]*regexp.Regexp{}, false, "", "")
 
 	assert.Contains(t, result.Folder, path.Join(fp, "wakatime-cli"))
 	assert.Equal(t, project.Result{

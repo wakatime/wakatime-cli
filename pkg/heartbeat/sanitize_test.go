@@ -300,3 +300,43 @@ func TestSanitize_EmptyConfigDoNothing_EmptyDependencies(t *testing.T) {
 		UserAgent:      "wakatime/13.0.7",
 	}, r)
 }
+
+func TestSouldSanitize(t *testing.T) {
+	tests := map[string]struct {
+		Subject  string
+		Regex    []*regexp.Regexp
+		Expected bool
+	}{
+		"match_single": {
+			Subject: "fix.123",
+			Regex: []*regexp.Regexp{
+				regexp.MustCompile("fix.*"),
+			},
+			Expected: true,
+		},
+		"match_multiple": {
+			Subject: "fix.456",
+			Regex: []*regexp.Regexp{
+				regexp.MustCompile("bar.*"),
+				regexp.MustCompile("fix.*"),
+			},
+			Expected: true,
+		},
+		"not_match": {
+			Subject: "foo",
+			Regex: []*regexp.Regexp{
+				regexp.MustCompile("bar.*"),
+				regexp.MustCompile("fix.*"),
+			},
+			Expected: false,
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			souldSanitize := heartbeat.ShouldSanitize(test.Subject, test.Regex)
+
+			assert.Equal(t, test.Expected, souldSanitize)
+		})
+	}
+}

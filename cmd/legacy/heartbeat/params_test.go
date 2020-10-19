@@ -2,6 +2,7 @@ package heartbeat_test
 
 import (
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"regexp"
@@ -11,6 +12,7 @@ import (
 	cmd "github.com/wakatime/wakatime-cli/cmd/legacy/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/api"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/project"
 
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
@@ -28,6 +30,29 @@ func TestLoadParams_AlternateLanguage(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, "Go", params.Language.Alternate)
+}
+
+func TestLoadParams_AlternateProject(t *testing.T) {
+	v := viper.New()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("entity", "/path/to/file")
+	v.Set("alternate-project", "web")
+
+	params, err := cmd.LoadParams(v)
+	require.NoError(t, err)
+
+	assert.Equal(t, "web", params.AlternateProject)
+}
+
+func TestLoadParams_AlternateProject_Unset(t *testing.T) {
+	v := viper.New()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("entity", "/path/to/file")
+
+	params, err := cmd.LoadParams(v)
+	require.NoError(t, err)
+
+	assert.Empty(t, params.AlternateProject)
 }
 
 func TestLoadParams_APIKey_FlagTakesPrecedence(t *testing.T) {
@@ -632,6 +657,75 @@ func TestLoadParams_Plugin_Unset(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Empty(t, params.Plugin)
+}
+
+func TestLoadParams_Project(t *testing.T) {
+	v := viper.New()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("entity", "/path/to/file")
+	v.Set("project", "billing")
+
+	params, err := cmd.LoadParams(v)
+	require.NoError(t, err)
+
+	assert.Equal(t, "billing", params.Project)
+}
+
+func TestLoadParams_Project_Unset(t *testing.T) {
+	v := viper.New()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("entity", "/path/to/file")
+
+	params, err := cmd.LoadParams(v)
+	require.NoError(t, err)
+
+	assert.Empty(t, params.Project)
+}
+
+func TestLoadParams_ProjectMap(t *testing.T) {
+	tests := map[string]struct {
+		Entity   string
+		Regex    *regexp.Regexp
+		Project  string
+		Expected []project.MapPattern
+	}{
+		"project_1": {
+			Entity:  "/home/user/projects/foo/file",
+			Regex:   regexp.MustCompile("projects/foo"),
+			Project: "My Awesome Project",
+			Expected: []project.MapPattern{
+				{
+					Name:  "My Awesome Project",
+					Regex: regexp.MustCompile("projects/foo"),
+				},
+			},
+		},
+		"project_2": {
+			Entity:  "/home/user/projects/bar123/file",
+			Regex:   regexp.MustCompile(`^/home/user/projects/bar(\\d+)/`),
+			Project: "project{0}",
+			Expected: []project.MapPattern{
+				{
+					Name:  "project{0}",
+					Regex: regexp.MustCompile(`^/home/user/projects/bar(\\d+)/`),
+				},
+			},
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			v := viper.New()
+			v.Set("key", "00000000-0000-4000-8000-000000000000")
+			v.Set("entity", test.Entity)
+			v.Set(fmt.Sprintf("projectmap.%s", test.Regex.String()), test.Project)
+
+			params, err := cmd.LoadParams(v)
+			require.NoError(t, err)
+
+			assert.Equal(t, test.Expected, params.ProjectMaps)
+		})
+	}
 }
 
 func TestLoadParams_Timeout_FlagTakesPreceedence(t *testing.T) {
@@ -1437,4 +1531,85 @@ func TestLoadParams_SanitizeParams_HideFileNames_InvalidRegex(t *testing.T) {
 			" failed to compile regex \"[0-9+\":"+
 			" error parsing regexp: missing closing ]: `[0-9+`",
 	), err)
+}
+
+func TestLoadParams_DisableSubmodule_True(t *testing.T) {
+	tests := map[string]string{
+		"lowercase":       "true",
+		"uppercase":       "TRUE",
+		"first uppercase": "True",
+	}
+
+	for name, viperValue := range tests {
+		t.Run(name, func(t *testing.T) {
+			v := viper.New()
+			v.Set("key", "00000000-0000-4000-8000-000000000000")
+			v.Set("entity", "/path/to/file")
+			v.Set("git.submodules_disabled", viperValue)
+
+			params, err := cmd.LoadParams(v)
+			require.NoError(t, err)
+
+			assert.Equal(t, []*regexp.Regexp{regexp.MustCompile(".*")}, params.DisableSubmodule)
+		})
+	}
+}
+
+func TestLoadParams_DisableSubmodule_False(t *testing.T) {
+	tests := map[string]string{
+		"lowercase":       "false",
+		"uppercase":       "FALSE",
+		"first uppercase": "False",
+	}
+
+	for name, viperValue := range tests {
+		t.Run(name, func(t *testing.T) {
+			v := viper.New()
+			v.Set("key", "00000000-0000-4000-8000-000000000000")
+			v.Set("entity", "/path/to/file")
+			v.Set("git.submodules_disabled", viperValue)
+
+			params, err := cmd.LoadParams(v)
+			require.NoError(t, err)
+
+			assert.Equal(t, []*regexp.Regexp(nil), params.DisableSubmodule)
+		})
+	}
+}
+
+func TestLoadParams_DisableSubmodule_List(t *testing.T) {
+	t.Skip("Skipping because ini parser does not support parsing multiple lines yet")
+
+	tests := map[string]struct {
+		ViperValue string
+		Expected   []*regexp.Regexp
+	}{
+		"regex": {
+			ViperValue: "fix.*",
+			Expected: []*regexp.Regexp{
+				regexp.MustCompile("fix.*"),
+			},
+		},
+		"regex_list": {
+			ViperValue: "\n.*secret.*\nfix.*",
+			Expected: []*regexp.Regexp{
+				regexp.MustCompile(".*secret.*"),
+				regexp.MustCompile("fix.*"),
+			},
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			v := viper.New()
+			v.Set("key", "00000000-0000-4000-8000-000000000000")
+			v.Set("entity", "/path/to/file")
+			v.Set("git.submodules_disabled", test.ViperValue)
+
+			params, err := cmd.LoadParams(v)
+			require.NoError(t, err)
+
+			assert.Equal(t, test.Expected, params.DisableSubmodule)
+		})
+	}
 }

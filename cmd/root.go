@@ -41,6 +41,7 @@ func NewRootCMD() *cobra.Command {
 func setFlags(cmd *cobra.Command, v *viper.Viper) {
 	flags := cmd.Flags()
 	flags.String("alternate-language", "", "(deprecated)")
+	flags.String("alternate-project", "", "Optional alternate project name. Auto-discovered project takes priority.")
 	flags.String("api-url", "", "Heartbeats api url. For debugging with a local server.")
 	flags.String("apiurl", "", "(deprecated) Heartbeats api url. For debugging with a local server.")
 	flags.String(
@@ -125,6 +126,7 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 			" SSL certificates are verified.",
 	)
 	flags.String("plugin", "", "Optional text editor plugin name and version for User-Agent header.")
+	flags.String("project", "", "Optional project name.")
 	flags.String(
 		"proxy",
 		"",
