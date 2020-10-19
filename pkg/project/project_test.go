@@ -130,10 +130,12 @@ func TestDetectWithDetection_ObfuscateProject(t *testing.T) {
 }
 
 func TestDetect_FileDetected(t *testing.T) {
-	project, branch := project.Detect("testdata/entity.any", []project.MapPattern{})
+	result := project.Detect("testdata/entity.any", []project.MapPattern{})
 
-	assert.Equal(t, "wakatime-cli", project)
-	assert.Equal(t, "master", branch)
+	assert.Equal(t, project.Result{
+		Project: "wakatime-cli",
+		Branch:  "master",
+	}, result)
 }
 
 func TestDetect_MapDetected(t *testing.T) {
@@ -164,22 +166,27 @@ func TestDetect_MapDetected(t *testing.T) {
 		},
 	}
 
-	project, branch := project.Detect(tmpFile.Name(), patterns)
+	result := project.Detect(tmpFile.Name(), patterns)
 
-	assert.Equal(t, "my-billing-project", project)
-	assert.Equal(t, "", branch)
+	assert.Equal(t, project.Result{
+		Project: "my-billing-project",
+	}, result)
 }
 
 func TestDetectWithRevControl_GitDetected(t *testing.T) {
 	fp, tearDown := setupTestGitBasic(t)
 	defer tearDown()
 
-	project, branch := project.DetectWithRevControl(
+	result := project.DetectWithRevControl(
 		path.Join(fp, "wakatime-cli/src/pkg/file.go"),
 		[]*regexp.Regexp{}, "", "")
 
-	assert.Equal(t, "wakatime-cli", project)
-	assert.Equal(t, "master", branch)
+	assert.Contains(t, result.Folder, path.Join(fp, "wakatime-cli"))
+	assert.Equal(t, project.Result{
+		Project: "wakatime-cli",
+		Branch:  "master",
+		Folder:  result.Folder,
+	}, result)
 }
 
 func TestDetect_NoProjectDetected(t *testing.T) {
@@ -188,10 +195,9 @@ func TestDetect_NoProjectDetected(t *testing.T) {
 
 	defer os.Remove(tmpFile.Name())
 
-	project, branch := project.Detect(tmpFile.Name(), []project.MapPattern{})
+	result := project.Detect(tmpFile.Name(), []project.MapPattern{})
 
-	assert.Equal(t, "", project)
-	assert.Equal(t, "", branch)
+	assert.Equal(t, project.Result{}, result)
 }
 
 func testHeartbeat() heartbeat.Heartbeat {

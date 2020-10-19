@@ -55,6 +55,7 @@ func (g Git) Detect() (Result, bool, error) {
 		return Result{
 			Project: project,
 			Branch:  branch,
+			Folder:  path.Dir(gitdirSubmodule),
 		}, true, nil
 	}
 
@@ -76,6 +77,7 @@ func (g Git) Detect() (Result, bool, error) {
 		return Result{
 			Project: project,
 			Branch:  branch,
+			Folder:  path.Join(gitConfigFile, ".."),
 		}, true, nil
 	}
 
@@ -115,6 +117,7 @@ func (g Git) Detect() (Result, bool, error) {
 		return Result{
 			Project: project,
 			Branch:  branch,
+			Folder:  path.Dir(commondir),
 		}, true, nil
 	}
 
@@ -134,6 +137,7 @@ func (g Git) Detect() (Result, bool, error) {
 		return Result{
 			Project: project,
 			Branch:  branch,
+			Folder:  gitdir,
 		}, true, nil
 	}
 

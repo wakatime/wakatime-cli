@@ -47,6 +47,7 @@ func (m Mercurial) Detect() (Result, bool, error) {
 		return Result{
 			Project: project,
 			Branch:  branch,
+			Folder:  path.Dir(path.Join(hgDirectory, "..")),
 		}, true, nil
 	}
 

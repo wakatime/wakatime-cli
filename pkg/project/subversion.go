@@ -50,6 +50,7 @@ func (s Subversion) Detect() (Result, bool, error) {
 		return Result{
 			Project: resolveSvnInfo(info, "Repository Root"),
 			Branch:  resolveSvnInfo(info, "URL"),
+			Folder:  info["Repository Root"],
 		}, true, nil
 	}
 
@@ -70,7 +71,7 @@ func findSvnConfigFile(fp string, directory string, match string) (string, bool)
 }
 
 func svnInfo(fp string, binary string) (map[string]string, bool, error) {
-	if runtime.GOOS == "darwin" && !checkXcodeTools() {
+	if runtime.GOOS == "darwin" && !hasXcodeTools() {
 		return nil, false, nil
 	}
 
@@ -115,12 +116,10 @@ func findSvnBinary() (string, bool) {
 	return "", false
 }
 
-func checkXcodeTools() bool {
+func hasXcodeTools() bool {
 	cmd := exec.Command("/usr/bin/xcode-select", "-p")
 
-	err := cmd.Run()
-
-	return err == nil
+	return cmd.Run() == nil
 }
 
 func resolveSvnInfo(info map[string]string, key string) string {
