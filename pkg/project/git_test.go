@@ -117,7 +117,7 @@ func TestGit_Detect_GitConfigFile_File(t *testing.T) {
 }
 
 func TestGit_Detect_Worktree(t *testing.T) {
-	fp, tearDown := setupTestGiWorktree(t)
+	fp, tearDown := setupTestGitWorktree(t)
 	defer tearDown()
 
 	g := project.Git{
@@ -137,7 +137,7 @@ func TestGit_Detect_Worktree(t *testing.T) {
 }
 
 func TestGit_Detect_Submodule(t *testing.T) {
-	fp, tearDown := setupTestGiSubmodule(t)
+	fp, tearDown := setupTestGitSubmodule(t)
 	defer tearDown()
 
 	g := project.Git{
@@ -158,7 +158,7 @@ func TestGit_Detect_Submodule(t *testing.T) {
 }
 
 func TestGit_Detect_SubmoduleDisabled(t *testing.T) {
-	fp, tearDown := setupTestGiSubmodule(t)
+	fp, tearDown := setupTestGitSubmodule(t)
 	defer tearDown()
 
 	g := project.Git{
@@ -293,7 +293,7 @@ func setupTestGitFile(t *testing.T) (fp string, tearDown func()) {
 	return tmpDir, func() { os.RemoveAll(tmpDir) }
 }
 
-func setupTestGiWorktree(t *testing.T) (fp string, tearDown func()) {
+func setupTestGitWorktree(t *testing.T) (fp string, tearDown func()) {
 	tmpDir, err := ioutil.TempDir(os.TempDir(), "wakatime-git")
 	require.NoError(t, err)
 
@@ -337,7 +337,7 @@ func setupTestGiWorktree(t *testing.T) (fp string, tearDown func()) {
 	return tmpDir, func() { os.RemoveAll(tmpDir) }
 }
 
-func setupTestGiSubmodule(t *testing.T) (fp string, tearDown func()) {
+func setupTestGitSubmodule(t *testing.T) (fp string, tearDown func()) {
 	tmpDir, err := ioutil.TempDir(os.TempDir(), "wakatime-git")
 	require.NoError(t, err)
 
