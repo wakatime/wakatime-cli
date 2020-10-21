@@ -126,7 +126,8 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 			" SSL certificates are verified.",
 	)
 	flags.String("plugin", "", "Optional text editor plugin name and version for User-Agent header.")
-	flags.String("project", "", "Optional project name.")
+	flags.String("project", "", "Override auto-detected project."+
+		" Use --alternate-project to supply a fallback project if one can't be auto-detected.")
 	flags.String(
 		"proxy",
 		"",

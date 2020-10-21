@@ -41,7 +41,7 @@ func TestLoadParams_AlternateProject(t *testing.T) {
 	params, err := cmd.LoadParams(v)
 	require.NoError(t, err)
 
-	assert.Equal(t, "web", params.AlternateProject)
+	assert.Equal(t, "web", params.Project.Alternate)
 }
 
 func TestLoadParams_AlternateProject_Unset(t *testing.T) {
@@ -52,7 +52,7 @@ func TestLoadParams_AlternateProject_Unset(t *testing.T) {
 	params, err := cmd.LoadParams(v)
 	require.NoError(t, err)
 
-	assert.Empty(t, params.AlternateProject)
+	assert.Empty(t, params.Project.Alternate)
 }
 
 func TestLoadParams_APIKey_FlagTakesPrecedence(t *testing.T) {
@@ -668,7 +668,7 @@ func TestLoadParams_Project(t *testing.T) {
 	params, err := cmd.LoadParams(v)
 	require.NoError(t, err)
 
-	assert.Equal(t, "billing", params.Project)
+	assert.Equal(t, "billing", params.Project.Override)
 }
 
 func TestLoadParams_Project_Unset(t *testing.T) {
@@ -679,7 +679,7 @@ func TestLoadParams_Project_Unset(t *testing.T) {
 	params, err := cmd.LoadParams(v)
 	require.NoError(t, err)
 
-	assert.Empty(t, params.Project)
+	assert.Empty(t, params.Project.Override)
 }
 
 func TestLoadParams_ProjectMap(t *testing.T) {
@@ -723,7 +723,7 @@ func TestLoadParams_ProjectMap(t *testing.T) {
 			params, err := cmd.LoadParams(v)
 			require.NoError(t, err)
 
-			assert.Equal(t, test.Expected, params.ProjectMaps)
+			assert.Equal(t, test.Expected, params.Project.MapPattern)
 		})
 	}
 }
@@ -1578,6 +1578,7 @@ func TestLoadParams_DisableSubmodule_False(t *testing.T) {
 }
 
 func TestLoadParams_DisableSubmodule_List(t *testing.T) {
+	// https://github.com/go-ini/ini/issues/270
 	t.Skip("Skipping because ini parser does not support parsing multiple lines yet")
 
 	tests := map[string]struct {

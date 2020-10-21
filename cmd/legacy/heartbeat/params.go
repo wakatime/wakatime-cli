@@ -30,7 +30,6 @@ var (
 
 // Params contains heartbeat command parameters.
 type Params struct {
-	AlternateProject string
 	APIKey           string
 	APIUrl           string
 	Category         heartbeat.Category
@@ -44,8 +43,7 @@ type Params struct {
 	OfflineDisabled  bool
 	OfflineSyncMax   int
 	Plugin           string
-	Project          string
-	ProjectMaps      []project.MapPattern
+	Project          ProjectParams
 	Time             float64
 	Timeout          time.Duration
 	Filter           FilterParams
@@ -74,6 +72,13 @@ type NetworkParams struct {
 	DisableSSLVerify bool
 	ProxyURL         string
 	SSLCertFilepath  string
+}
+
+// ProjectParams params for project name sanitization.
+type ProjectParams struct {
+	Override   string
+	Alternate  string
+	MapPattern []project.MapPattern
 }
 
 // SanitizeParams params for heartbeat sanitization.
@@ -208,6 +213,11 @@ func LoadParams(v *viper.Viper) (Params, error) {
 		return Params{}, fmt.Errorf("failed to parse network params: %s", err)
 	}
 
+	projectParams, err := loadProjectParams(v)
+	if err != nil {
+		return Params{}, fmt.Errorf("failed to parse project params: %s", err)
+	}
+
 	sanitizeParams, err := loadSanitizeParams(v)
 	if err != nil {
 		return Params{}, fmt.Errorf("failed to load sanitize params: %s", err)
@@ -219,7 +229,6 @@ func LoadParams(v *viper.Viper) (Params, error) {
 	}
 
 	return Params{
-		AlternateProject: v.GetString("alternate-project"),
 		APIKey:           apiKey,
 		APIUrl:           apiURL,
 		Category:         category,
@@ -233,8 +242,7 @@ func LoadParams(v *viper.Viper) (Params, error) {
 		OfflineDisabled:  offlineDisabled,
 		OfflineSyncMax:   offlineSyncMax,
 		Plugin:           v.GetString("plugin"),
-		Project:          v.GetString("project"),
-		ProjectMaps:      loadProjectMaps(v),
+		Project:          projectParams,
 		Time:             timeSecs,
 		Timeout:          timeout,
 		Filter:           loadFilterParams(v),
@@ -407,10 +415,17 @@ func loadSanitizeParams(v *viper.Viper) (SanitizeParams, error) {
 	return params, nil
 }
 
-func loadProjectMaps(v *viper.Viper) []project.MapPattern {
-	projectMap := v.GetStringMapString("projectmap")
+func loadProjectParams(v *viper.Viper) (ProjectParams, error) {
+	if v == nil {
+		return ProjectParams{}, errors.New("viper instance unset")
+	}
 
-	var projectMapPatterns []project.MapPattern
+	var params ProjectParams
+
+	params.Alternate = v.GetString("alternate-project")
+	params.Override = v.GetString("project")
+
+	projectMap := v.GetStringMapString("projectmap")
 
 	for k, s := range projectMap {
 		compiled, err := regexp.Compile(k)
@@ -419,13 +434,13 @@ func loadProjectMaps(v *viper.Viper) []project.MapPattern {
 			continue
 		}
 
-		projectMapPatterns = append(projectMapPatterns, project.MapPattern{
+		params.MapPattern = append(params.MapPattern, project.MapPattern{
 			Name:  s,
 			Regex: compiled,
 		})
 	}
 
-	return projectMapPatterns
+	return params, nil
 }
 
 func parseBoolOrRegexList(s string) ([]*regexp.Regexp, error) {

@@ -69,7 +69,7 @@ func TestWithDetection_EntityNotFile(t *testing.T) {
 	}
 }
 
-func TestDetectWithDetection_OverrideTakesPrecedence(t *testing.T) {
+func TestWithDetection_OverrideTakesPrecedence(t *testing.T) {
 	fp, tearDown := setupTestGitBasic(t)
 	defer tearDown()
 
@@ -99,7 +99,7 @@ func TestDetectWithDetection_OverrideTakesPrecedence(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestDetectWithDetection_ObfuscateProject(t *testing.T) {
+func TestWithDetection_ObfuscateProject(t *testing.T) {
 	fp, tearDown := setupTestGitBasic(t)
 	defer tearDown()
 
@@ -128,15 +128,15 @@ func TestDetectWithDetection_ObfuscateProject(t *testing.T) {
 		},
 	})
 	require.NoError(t, err)
+
+	assert.FileExists(t, path.Join(fp, "wakatime-cli/.wakatime-project"))
 }
 
 func TestDetect_FileDetected(t *testing.T) {
-	result := project.Detect("testdata/entity.any", []project.MapPattern{})
+	project, branch := project.Detect("testdata/entity.any", []project.MapPattern{})
 
-	assert.Equal(t, project.Result{
-		Project: "wakatime-cli",
-		Branch:  "master",
-	}, result)
+	assert.Equal(t, "wakatime-cli", project)
+	assert.Equal(t, "master", branch)
 }
 
 func TestDetect_MapDetected(t *testing.T) {
@@ -167,11 +167,10 @@ func TestDetect_MapDetected(t *testing.T) {
 		},
 	}
 
-	result := project.Detect(tmpFile.Name(), patterns)
+	project, branch := project.Detect(tmpFile.Name(), patterns)
 
-	assert.Equal(t, project.Result{
-		Project: "my-billing-project",
-	}, result)
+	assert.Equal(t, "my-billing-project", project)
+	assert.Empty(t, branch)
 }
 
 func TestDetectWithRevControl_GitDetected(t *testing.T) {
@@ -180,7 +179,7 @@ func TestDetectWithRevControl_GitDetected(t *testing.T) {
 
 	result := project.DetectWithRevControl(
 		path.Join(fp, "wakatime-cli/src/pkg/file.go"),
-		[]*regexp.Regexp{}, false, "", "")
+		[]*regexp.Regexp{}, false)
 
 	assert.Contains(t, result.Folder, path.Join(fp, "wakatime-cli"))
 	assert.Equal(t, project.Result{
@@ -190,16 +189,17 @@ func TestDetectWithRevControl_GitDetected(t *testing.T) {
 	}, result)
 }
 
-func TestDetect_NoProjectDetected(t *testing.T) {
-	tmpFile, err := ioutil.TempFile(os.TempDir(), "wakatime")
-	require.NoError(t, err)
+// func TestDetect_NoProjectDetected(t *testing.T) {
+// 	tmpFile, err := ioutil.TempFile(os.TempDir(), "wakatime")
+// 	require.NoError(t, err)
 
-	defer os.Remove(tmpFile.Name())
+// 	defer os.Remove(tmpFile.Name())
 
-	result := project.Detect(tmpFile.Name(), []project.MapPattern{})
+// 	project, branch := project.Detect(tmpFile.Name(), []project.MapPattern{})
 
-	assert.Equal(t, project.Result{}, result)
-}
+// 	assert.Empty(t, project)
+// 	assert.Empty(t, branch)
+// }
 
 func testHeartbeat() heartbeat.Heartbeat {
 	return heartbeat.Heartbeat{

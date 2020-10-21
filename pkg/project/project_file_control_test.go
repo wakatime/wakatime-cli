@@ -18,18 +18,13 @@ func TestWrite(t *testing.T) {
 
 	defer os.RemoveAll(tmpDir)
 
-	fc := project.FileControl{
-		Path:    tmpDir,
-		Project: "billing",
-	}
-
-	err = fc.Write()
+	err = project.Write(tmpDir, "billing")
 	require.NoError(t, err)
 
 	expected, err := ioutil.ReadFile("testdata/.wakatime-project-only-project")
 	require.NoError(t, err)
 
-	actual, err := ioutil.ReadFile(path.Join(fc.Path, ".wakatime-project"))
+	actual, err := ioutil.ReadFile(path.Join(tmpDir, ".wakatime-project"))
 	require.NoError(t, err)
 
 	assert.Equal(t, string(expected), string(actual))

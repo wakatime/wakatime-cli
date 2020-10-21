@@ -35,7 +35,7 @@ type Config struct {
 	MapPatterns []MapPattern
 	// SubmodulePatterns contains the paths to validate for submodules.
 	SubmodulePatterns []*regexp.Regexp
-	// ShouldObfuscateProject determines if project should be obfuscated according some rules.
+	// ShouldObfuscateProject determines if the project name should be obfuscated according some rules.
 	ShouldObfuscateProject bool
 }
 
@@ -62,22 +62,27 @@ func WithDetection(c Config) heartbeat.HandleOption {
 					continue
 				}
 
-				result := Detect(h.Entity, c.MapPatterns)
+				var result Result
+
+				result.Project, result.Branch = Detect(h.Entity, c.MapPatterns)
 
 				if result.Project == "" {
 					result.Project = c.Override
 				}
 
 				if result.Project == "" || result.Branch == "" {
-					result = DetectWithRevControl(h.Entity, c.SubmodulePatterns,
-						c.ShouldObfuscateProject, result.Project, result.Branch)
+					result2 := DetectWithRevControl(h.Entity, c.SubmodulePatterns, c.ShouldObfuscateProject)
+
+					result.Project = firstNonEmptyString(result.Project, result2.Project)
+					result.Branch = firstNonEmptyString(result.Branch, result2.Branch)
+
 					if result.Project == "" {
-						result.Project = setProjectName(c.Alternate, c.ShouldObfuscateProject, result.Folder)
+						result.Project = setProjectName(c.Alternate, c.ShouldObfuscateProject, result2.Folder)
 					}
 				}
 
-				hh[n].Branch = &result.Branch
 				hh[n].Project = &result.Project
+				hh[n].Branch = &result.Branch
 			}
 
 			return next(hh)
@@ -86,7 +91,7 @@ func WithDetection(c Config) heartbeat.HandleOption {
 }
 
 // Detect finds the current project and branch from config plugins.
-func Detect(entity string, patterns []MapPattern) Result {
+func Detect(entity string, patterns []MapPattern) (project, branch string) {
 	var configPlugins []Detecter = []Detecter{
 		File{
 			Filepath: entity,
@@ -103,16 +108,15 @@ func Detect(entity string, patterns []MapPattern) Result {
 			jww.ERROR.Printf("unexpected error occurred at %q: %s", p.String(), err)
 			continue
 		} else if detected {
-			return result
+			return result.Project, result.Branch
 		}
 	}
 
-	return Result{}
+	return "", ""
 }
 
 // DetectWithRevControl finds the current project and branch from rev control.
-func DetectWithRevControl(entity string, submodulePatterns []*regexp.Regexp,
-	shouldObfuscateProject bool, project string, branch string) Result {
+func DetectWithRevControl(entity string, submodulePatterns []*regexp.Regexp, shouldObfuscate bool) Result {
 	var revControlPlugins []Detecter = []Detecter{
 		Git{
 			Filepath:          entity,
@@ -131,14 +135,16 @@ func DetectWithRevControl(entity string, submodulePatterns []*regexp.Regexp,
 		if err != nil {
 			jww.ERROR.Printf("unexpected error occurred at %q: %s", p.String(), err)
 			continue
-		} else if detected {
+		}
+
+		if detected {
 			result := Result{
-				Project: firstNonEmptyString(project, result.Project),
-				Branch:  firstNonEmptyString(branch, result.Branch),
+				Project: result.Project,
+				Branch:  result.Branch,
 				Folder:  result.Folder,
 			}
 
-			if shouldObfuscateProject {
+			if shouldObfuscate {
 				result.Project = ""
 			}
 
@@ -156,12 +162,7 @@ func setProjectName(alternate string, shouldObfuscateProject bool, folder string
 
 	project := generateProjectName()
 
-	fc := FileControl{
-		Path:    folder,
-		Project: project,
-	}
-
-	err := fc.Write()
+	err := Write(folder, project)
 	if err != nil {
 		jww.WARN.Printf("failed to write: %s", err)
 	}

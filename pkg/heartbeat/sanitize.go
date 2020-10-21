@@ -72,8 +72,9 @@ func santizeMetaData(h Heartbeat) Heartbeat {
 	return h
 }
 
-// ShouldSanitize checks a subject against the passed in regex patterns
-// to determine if it should be sanitized.
+// ShouldSanitize checks a subject (entity, project, branch) of a heartbeat and
+// checks it against the passed in regex patterns to determine, if this heartbeat
+// should be sanitized.
 func ShouldSanitize(subject string, patterns []*regexp.Regexp) bool {
 	for _, p := range patterns {
 		if p.MatchString(subject) {
