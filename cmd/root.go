@@ -40,6 +40,7 @@ func NewRootCMD() *cobra.Command {
 
 func setFlags(cmd *cobra.Command, v *viper.Viper) {
 	flags := cmd.Flags()
+	flags.String("alternate-language", "", "(deprecated)")
 	flags.String("api-url", "", "Heartbeats api url. For debugging with a local server.")
 	flags.String("apiurl", "", "(deprecated) Heartbeats api url. For debugging with a local server.")
 	flags.String(
@@ -113,6 +114,7 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 		"Disables tracking folders unless they contain a .wakatime-project file. Defaults to false.",
 	)
 	flags.String("key", "", "Your wakatime api key; uses api_key from ~/.wakatime.cfg by default.")
+	flags.String("language", "", "Optional language name. If valid, takes priority over auto-detected language.")
 	flags.Int("lineno", 0, "Optional line number. This is the current line being edited.")
 	flags.String("log-file", "", "Optional log file. Defaults to '~/.wakatime.log'.")
 	flags.String("logfile", "", "(deprecated) Optional log file. Defaults to '~/.wakatime.log'.")

@@ -11,6 +11,7 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/filestats"
 	"github.com/wakatime/wakatime-cli/pkg/filter"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/language"
 	"github.com/wakatime/wakatime-cli/pkg/offline"
 
 	_ "github.com/mattn/go-sqlite3" // not used directly
@@ -125,6 +126,10 @@ func SendHeartbeats(v *viper.Viper) error {
 			IncludeOnlyWithProjectFile: params.Filter.IncludeOnlyWithProjectFile,
 		}),
 		filestats.WithDetection(),
+		language.WithDetection(language.Config{
+			Alternate: params.Language.Alternate,
+			Override:  params.Language.Override,
+		}),
 		heartbeat.WithSanitization(heartbeat.SanitizeConfig{
 			BranchPatterns:  params.Sanitize.HideBranchNames,
 			FilePatterns:    params.Sanitize.HideFileNames,

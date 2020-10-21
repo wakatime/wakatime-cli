@@ -75,8 +75,8 @@ wakatime-cli/
         language/
             language.go
                 type Config struct {
-                    Alternative string
-                    Overwrite string
+                    Alternate string
+                    Override string
                     LocalFile string
                 }
                 WithDetection(c Config) heartbeat.HandleOption
@@ -88,7 +88,7 @@ wakatime-cli/
             project.go
                 type Config struct {
                     Alternative string
-                    Overwrite string
+                    Overrwrite string
                     LocalFile string
                 }
                 WithDetection(c Config) heartbeat.HandleOption

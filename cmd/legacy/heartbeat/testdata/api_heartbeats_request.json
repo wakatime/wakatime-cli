@@ -6,7 +6,7 @@
         "dependencies": null,
         "entity": "testdata/main.go",
         "is_write": true,
-        "language": null,
+        "language": "Go",
         "lineno": 13,
         "lines": 2,
         "project": null,
