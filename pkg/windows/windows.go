@@ -15,7 +15,7 @@ type commander interface {
 	Command(name string, args ...string) *exec.Cmd
 }
 
-// realCommander is used everywhere but in tests.
+// realCommander implements commander interface and is used by default.
 type realCommander struct{}
 
 // Command calls exec.Command function.

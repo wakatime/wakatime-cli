@@ -30,10 +30,13 @@ Status       Local     Remote                    Network
 The command completed successfully.`
 )
 
+// testCommander implements commander interface.
 type testCommander struct{}
 
+// Command uses the test executable (taken from os.Args[0]), to execute
+// TestNetUseOutput test to emulate `net use` command execution.
 func (c testCommander) Command(name string, args ...string) *exec.Cmd {
-	cs := []string{"-test.run=TestOutput", "--"}
+	cs := []string{"-test.run=TestNetUseOutput", "--"}
 	cs = append(cs, args...)
 	// nolint:gosec
 	cmd := exec.Command(os.Args[0], cs...)
@@ -42,7 +45,11 @@ func (c testCommander) Command(name string, args ...string) *exec.Cmd {
 	return cmd
 }
 
-func TestOutput(*testing.T) {
+// TestNetUseOutput is only used to be triggered by testCommander.Command.
+// If trigger by testCommander.Command is detected via set GO_WANT_TEST_OUTPUT
+// environment variable, it will emulates `net use` command usage by writing
+// mocked `net use` output to stdout.
+func TestNetUseOutput(*testing.T) {
 	if os.Getenv("GO_WANT_TEST_OUTPUT") != "1" {
 		return
 	}
