@@ -77,7 +77,7 @@ type NetworkParams struct {
 type ProjectParams struct {
 	Alternate        string
 	DisableSubmodule []*regexp.Regexp
-	MapPattern       []project.MapPattern
+	MapPatterns      []project.MapPattern
 	Override         string
 }
 
@@ -422,7 +422,7 @@ func loadProjectParams(v *viper.Viper) (ProjectParams, error) {
 		)
 	}
 
-	var mapPattern []project.MapPattern
+	var mapPatterns []project.MapPattern
 
 	projectMap := v.GetStringMapString("projectmap")
 
@@ -433,7 +433,7 @@ func loadProjectParams(v *viper.Viper) (ProjectParams, error) {
 			continue
 		}
 
-		mapPattern = append(mapPattern, project.MapPattern{
+		mapPatterns = append(mapPatterns, project.MapPattern{
 			Name:  s,
 			Regex: compiled,
 		})
@@ -442,7 +442,7 @@ func loadProjectParams(v *viper.Viper) (ProjectParams, error) {
 	return ProjectParams{
 		Alternate:        v.GetString("alternate-project"),
 		DisableSubmodule: disableSubmodule,
-		MapPattern:       mapPattern,
+		MapPatterns:      mapPatterns,
 		Override:         v.GetString("project"),
 	}, nil
 }

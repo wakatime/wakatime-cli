@@ -723,7 +723,7 @@ func TestLoadParams_ProjectMap(t *testing.T) {
 			params, err := cmd.LoadParams(v)
 			require.NoError(t, err)
 
-			assert.Equal(t, test.Expected, params.Project.MapPattern)
+			assert.Equal(t, test.Expected, params.Project.MapPatterns)
 		})
 	}
 }

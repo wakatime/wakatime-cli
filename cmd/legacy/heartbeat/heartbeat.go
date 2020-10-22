@@ -135,7 +135,7 @@ func SendHeartbeats(v *viper.Viper) error {
 			Alternate:              params.Project.Alternate,
 			Override:               params.Project.Override,
 			ShouldObfuscateProject: heartbeat.ShouldSanitize(params.Entity, params.Sanitize.HideProjectNames),
-			MapPatterns:            params.Project.MapPattern,
+			MapPatterns:            params.Project.MapPatterns,
 			SubmodulePatterns:      params.Project.DisableSubmodule,
 		}),
 		heartbeat.WithSanitization(heartbeat.SanitizeConfig{
