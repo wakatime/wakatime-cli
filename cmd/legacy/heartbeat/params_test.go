@@ -689,7 +689,7 @@ func TestLoadParams_ProjectMap(t *testing.T) {
 		Project  string
 		Expected []project.MapPattern
 	}{
-		"project_1": {
+		"simple regex": {
 			Entity:  "/home/user/projects/foo/file",
 			Regex:   regexp.MustCompile("projects/foo"),
 			Project: "My Awesome Project",
@@ -700,7 +700,7 @@ func TestLoadParams_ProjectMap(t *testing.T) {
 				},
 			},
 		},
-		"project_2": {
+		"regex with group replacement": {
 			Entity:  "/home/user/projects/bar123/file",
 			Regex:   regexp.MustCompile(`^/home/user/projects/bar(\\d+)/`),
 			Project: "project{0}",
@@ -1550,7 +1550,7 @@ func TestLoadParams_DisableSubmodule_True(t *testing.T) {
 			params, err := cmd.LoadParams(v)
 			require.NoError(t, err)
 
-			assert.Equal(t, []*regexp.Regexp{regexp.MustCompile(".*")}, params.DisableSubmodule)
+			assert.Equal(t, []*regexp.Regexp{regexp.MustCompile(".*")}, params.Project.DisableSubmodule)
 		})
 	}
 }
@@ -1572,7 +1572,7 @@ func TestLoadParams_DisableSubmodule_False(t *testing.T) {
 			params, err := cmd.LoadParams(v)
 			require.NoError(t, err)
 
-			assert.Equal(t, []*regexp.Regexp(nil), params.DisableSubmodule)
+			assert.Equal(t, []*regexp.Regexp(nil), params.Project.DisableSubmodule)
 		})
 	}
 }
@@ -1610,7 +1610,7 @@ func TestLoadParams_DisableSubmodule_List(t *testing.T) {
 			params, err := cmd.LoadParams(v)
 			require.NoError(t, err)
 
-			assert.Equal(t, test.Expected, params.DisableSubmodule)
+			assert.Equal(t, test.Expected, params.Project.DisableSubmodule)
 		})
 	}
 }

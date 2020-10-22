@@ -189,17 +189,17 @@ func TestDetectWithRevControl_GitDetected(t *testing.T) {
 	}, result)
 }
 
-// func TestDetect_NoProjectDetected(t *testing.T) {
-// 	tmpFile, err := ioutil.TempFile(os.TempDir(), "wakatime")
-// 	require.NoError(t, err)
+func TestDetect_NoProjectDetected(t *testing.T) {
+	tmpFile, err := ioutil.TempFile(os.TempDir(), "wakatime")
+	require.NoError(t, err)
 
-// 	defer os.Remove(tmpFile.Name())
+	defer os.Remove(tmpFile.Name())
 
-// 	project, branch := project.Detect(tmpFile.Name(), []project.MapPattern{})
+	project, branch := project.Detect(tmpFile.Name(), []project.MapPattern{})
 
-// 	assert.Empty(t, project)
-// 	assert.Empty(t, branch)
-// }
+	assert.Empty(t, project)
+	assert.Empty(t, branch)
+}
 
 func testHeartbeat() heartbeat.Heartbeat {
 	return heartbeat.Heartbeat{

@@ -71,13 +71,13 @@ func WithDetection(c Config) heartbeat.HandleOption {
 				}
 
 				if result.Project == "" || result.Branch == "" {
-					result2 := DetectWithRevControl(h.Entity, c.SubmodulePatterns, c.ShouldObfuscateProject)
+					revControlResult := DetectWithRevControl(h.Entity, c.SubmodulePatterns, c.ShouldObfuscateProject)
 
-					result.Project = firstNonEmptyString(result.Project, result2.Project)
-					result.Branch = firstNonEmptyString(result.Branch, result2.Branch)
+					result.Project = firstNonEmptyString(result.Project, revControlResult.Project)
+					result.Branch = firstNonEmptyString(result.Branch, revControlResult.Branch)
 
 					if result.Project == "" {
-						result.Project = setProjectName(c.Alternate, c.ShouldObfuscateProject, result2.Folder)
+						result.Project = setProjectName(c.Alternate, c.ShouldObfuscateProject, revControlResult.Folder)
 					}
 				}
 

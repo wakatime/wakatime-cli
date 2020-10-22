@@ -30,27 +30,26 @@ var (
 
 // Params contains heartbeat command parameters.
 type Params struct {
-	APIKey           string
-	APIUrl           string
-	Category         heartbeat.Category
-	CursorPosition   *int
-	Entity           string
-	EntityType       heartbeat.EntityType
-	ExtraHeartbeats  []heartbeat.Heartbeat
-	Hostname         string
-	IsWrite          *bool
-	LineNumber       *int
-	OfflineDisabled  bool
-	OfflineSyncMax   int
-	Plugin           string
-	Project          ProjectParams
-	Time             float64
-	Timeout          time.Duration
-	Filter           FilterParams
-	Language         LanguageParams
-	Network          NetworkParams
-	Sanitize         SanitizeParams
-	DisableSubmodule []*regexp.Regexp
+	APIKey          string
+	APIUrl          string
+	Category        heartbeat.Category
+	CursorPosition  *int
+	Entity          string
+	EntityType      heartbeat.EntityType
+	ExtraHeartbeats []heartbeat.Heartbeat
+	Hostname        string
+	IsWrite         *bool
+	LineNumber      *int
+	OfflineDisabled bool
+	OfflineSyncMax  int
+	Plugin          string
+	Time            float64
+	Timeout         time.Duration
+	Filter          FilterParams
+	Language        LanguageParams
+	Network         NetworkParams
+	Project         ProjectParams
+	Sanitize        SanitizeParams
 }
 
 // FilterParams contains heartbeat filtering related command parameters.
@@ -76,9 +75,10 @@ type NetworkParams struct {
 
 // ProjectParams params for project name sanitization.
 type ProjectParams struct {
-	Override   string
-	Alternate  string
-	MapPattern []project.MapPattern
+	Alternate        string
+	DisableSubmodule []*regexp.Regexp
+	MapPattern       []project.MapPattern
+	Override         string
 }
 
 // SanitizeParams params for heartbeat sanitization.
@@ -223,33 +223,27 @@ func LoadParams(v *viper.Viper) (Params, error) {
 		return Params{}, fmt.Errorf("failed to load sanitize params: %s", err)
 	}
 
-	disableSubmodule, err := parseBoolOrRegexList(v.GetString("git.submodules_disabled"))
-	if err != nil {
-		return Params{}, fmt.Errorf("failed to parse regex submodules disabled param: %s", err)
-	}
-
 	return Params{
-		APIKey:           apiKey,
-		APIUrl:           apiURL,
-		Category:         category,
-		CursorPosition:   cursorPosition,
-		Entity:           entity,
-		ExtraHeartbeats:  extraHeartbeats,
-		EntityType:       entityType,
-		Hostname:         hostname,
-		IsWrite:          isWrite,
-		LineNumber:       lineNumber,
-		OfflineDisabled:  offlineDisabled,
-		OfflineSyncMax:   offlineSyncMax,
-		Plugin:           v.GetString("plugin"),
-		Project:          projectParams,
-		Time:             timeSecs,
-		Timeout:          timeout,
-		Filter:           loadFilterParams(v),
-		Language:         languageParams,
-		Network:          networkParams,
-		Sanitize:         sanitizeParams,
-		DisableSubmodule: disableSubmodule,
+		APIKey:          apiKey,
+		APIUrl:          apiURL,
+		Category:        category,
+		CursorPosition:  cursorPosition,
+		Entity:          entity,
+		ExtraHeartbeats: extraHeartbeats,
+		EntityType:      entityType,
+		Hostname:        hostname,
+		IsWrite:         isWrite,
+		LineNumber:      lineNumber,
+		OfflineDisabled: offlineDisabled,
+		OfflineSyncMax:  offlineSyncMax,
+		Plugin:          v.GetString("plugin"),
+		Time:            timeSecs,
+		Timeout:         timeout,
+		Filter:          loadFilterParams(v),
+		Language:        languageParams,
+		Network:         networkParams,
+		Project:         projectParams,
+		Sanitize:        sanitizeParams,
 	}, nil
 }
 
@@ -420,10 +414,15 @@ func loadProjectParams(v *viper.Viper) (ProjectParams, error) {
 		return ProjectParams{}, errors.New("viper instance unset")
 	}
 
-	var params ProjectParams
+	disableSubmodule, err := parseBoolOrRegexList(v.GetString("git.submodules_disabled"))
+	if err != nil {
+		return ProjectParams{}, fmt.Errorf(
+			"failed to parse regex submodules disabled param: %s",
+			err,
+		)
+	}
 
-	params.Alternate = v.GetString("alternate-project")
-	params.Override = v.GetString("project")
+	var mapPattern []project.MapPattern
 
 	projectMap := v.GetStringMapString("projectmap")
 
@@ -434,13 +433,18 @@ func loadProjectParams(v *viper.Viper) (ProjectParams, error) {
 			continue
 		}
 
-		params.MapPattern = append(params.MapPattern, project.MapPattern{
+		mapPattern = append(mapPattern, project.MapPattern{
 			Name:  s,
 			Regex: compiled,
 		})
 	}
 
-	return params, nil
+	return ProjectParams{
+		Alternate:        v.GetString("alternate-project"),
+		DisableSubmodule: disableSubmodule,
+		MapPattern:       mapPattern,
+		Override:         v.GetString("project"),
+	}, nil
 }
 
 func parseBoolOrRegexList(s string) ([]*regexp.Regexp, error) {

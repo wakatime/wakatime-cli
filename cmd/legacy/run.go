@@ -22,6 +22,8 @@ func Run(v *viper.Viper) {
 	setVerbose(v)
 
 	if v.GetBool("version") {
+		jww.DEBUG.Println("command: version")
+
 		runVersion()
 
 		os.Exit(exitcode.Success)
@@ -39,16 +41,24 @@ func Run(v *viper.Viper) {
 	}
 
 	if v.IsSet("config-read") {
+		jww.DEBUG.Println("command: config-read")
+
 		configread.Run(v)
 	}
 
 	if v.IsSet("config-write") {
+		jww.DEBUG.Println("command: config-write")
+
 		configwrite.Run(v)
 	}
 
 	if v.GetBool("today") {
+		jww.DEBUG.Println("command: today")
+
 		today.Run(v)
 	}
+
+	jww.DEBUG.Println("command: heartbeat")
 
 	heartbeat.Run(v)
 }
