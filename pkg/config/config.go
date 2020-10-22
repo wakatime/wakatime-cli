@@ -67,10 +67,17 @@ func ReadInConfig(v *viper.Viper, filepathFn func(v *viper.Viper) (string, error
 		return ErrFileParse(fmt.Sprintf("error getting filepath: %s", err))
 	}
 
-	jww.DEBUG.Println("wakatime path:", configFilepath)
+	jww.DEBUG.Println("wakatime path: ", configFilepath)
 
 	v.SetConfigType("ini")
 	v.SetConfigFile(configFilepath)
+
+	// check if file exists
+	if _, err := os.Stat(configFilepath); os.IsNotExist(err) {
+		jww.WARN.Printf("config file not present or not accessible")
+
+		return nil
+	}
 
 	if err := v.ReadInConfig(); err != nil {
 		return ErrFileParse(fmt.Sprintf("error parsing config file: %s", err))
