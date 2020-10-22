@@ -28,6 +28,15 @@ func TestReadInConfig(t *testing.T) {
 	assert.Equal(t, "true", v.GetString("test.pandemia"))
 }
 
+func TestReadInConfig_DoesNotExit_NoError(t *testing.T) {
+	v := viper.New()
+	err := config.ReadInConfig(v, func(vp *viper.Viper) (string, error) {
+		assert.Equal(t, v, vp)
+		return "testdata/any.cfg", nil
+	})
+	require.NoError(t, err)
+}
+
 func TestReadInConfigErr(t *testing.T) {
 	v := viper.New()
 	err := config.ReadInConfig(v, func(vp *viper.Viper) (string, error) {
