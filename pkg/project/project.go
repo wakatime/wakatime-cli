@@ -1,7 +1,11 @@
 package project
 
 import (
+	"math/rand"
 	"regexp"
+	"strconv"
+	"strings"
+	"time"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 
@@ -25,13 +29,13 @@ type Result struct {
 type Config struct {
 	// Override sets an optional project name.
 	Override string
-	// Alternative sets an alternate project name. Auto-discovered project takes priority.
-	Alternative string
+	// Alternate sets an alternate project name. Auto-discovered project takes priority.
+	Alternate string
 	// Patterns contains the overridden project name per path.
 	MapPatterns []MapPattern
 	// SubmodulePatterns contains the paths to validate for submodules.
 	SubmodulePatterns []*regexp.Regexp
-	// ShouldObfuscateProject if true will take Alternative string, otherwise will be ignored.
+	// ShouldObfuscateProject determines if the project name should be obfuscated according some rules.
 	ShouldObfuscateProject bool
 }
 
@@ -52,27 +56,33 @@ func WithDetection(c Config) heartbeat.HandleOption {
 		return func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 			for n, h := range hh {
 				if h.EntityType != heartbeat.FileType {
-					project := firstNonEmptyString(c.Override, c.Alternative)
+					project := firstNonEmptyString(c.Override, c.Alternate)
 					hh[n].Project = &project
 
 					continue
 				}
 
-				result := Detect(h.Entity, c.MapPatterns)
+				var result Result
+
+				result.Project, result.Branch = Detect(h.Entity, c.MapPatterns)
 
 				if result.Project == "" {
 					result.Project = c.Override
 				}
 
 				if result.Project == "" || result.Branch == "" {
-					result = DetectWithRevControl(h.Entity, c.SubmodulePatterns, result.Project, result.Branch)
-					if c.ShouldObfuscateProject {
-						result.Project = ""
+					revControlResult := DetectWithRevControl(h.Entity, c.SubmodulePatterns, c.ShouldObfuscateProject)
+
+					result.Project = firstNonEmptyString(result.Project, revControlResult.Project)
+					result.Branch = firstNonEmptyString(result.Branch, revControlResult.Branch)
+
+					if result.Project == "" {
+						result.Project = setProjectName(c.Alternate, c.ShouldObfuscateProject, revControlResult.Folder)
 					}
 				}
 
-				hh[n].Branch = &result.Branch
 				hh[n].Project = &result.Project
+				hh[n].Branch = &result.Branch
 			}
 
 			return next(hh)
@@ -81,7 +91,7 @@ func WithDetection(c Config) heartbeat.HandleOption {
 }
 
 // Detect finds the current project and branch from config plugins.
-func Detect(entity string, patterns []MapPattern) Result {
+func Detect(entity string, patterns []MapPattern) (project, branch string) {
 	var configPlugins []Detecter = []Detecter{
 		File{
 			Filepath: entity,
@@ -98,16 +108,15 @@ func Detect(entity string, patterns []MapPattern) Result {
 			jww.ERROR.Printf("unexpected error occurred at %q: %s", p.String(), err)
 			continue
 		} else if detected {
-			return result
+			return result.Project, result.Branch
 		}
 	}
 
-	return Result{}
+	return "", ""
 }
 
 // DetectWithRevControl finds the current project and branch from rev control.
-func DetectWithRevControl(entity string, submodulePatterns []*regexp.Regexp,
-	project string, branch string) Result {
+func DetectWithRevControl(entity string, submodulePatterns []*regexp.Regexp, shouldObfuscate bool) Result {
 	var revControlPlugins []Detecter = []Detecter{
 		Git{
 			Filepath:          entity,
@@ -126,16 +135,80 @@ func DetectWithRevControl(entity string, submodulePatterns []*regexp.Regexp,
 		if err != nil {
 			jww.ERROR.Printf("unexpected error occurred at %q: %s", p.String(), err)
 			continue
-		} else if detected {
-			return Result{
-				Project: firstNonEmptyString(project, result.Project),
-				Branch:  firstNonEmptyString(branch, result.Branch),
+		}
+
+		if detected {
+			result := Result{
+				Project: result.Project,
+				Branch:  result.Branch,
 				Folder:  result.Folder,
 			}
+
+			if shouldObfuscate {
+				result.Project = ""
+			}
+
+			return result
 		}
 	}
 
 	return Result{}
+}
+
+func setProjectName(alternate string, shouldObfuscateProject bool, folder string) string {
+	if !shouldObfuscateProject {
+		return alternate
+	}
+
+	project := generateProjectName()
+
+	err := Write(folder, project)
+	if err != nil {
+		jww.WARN.Printf("failed to write: %s", err)
+	}
+
+	return project
+}
+
+func generateProjectName() string {
+	adjectives := []string{
+		"aged", "ancient", "autumn", "billowing", "bitter", "black", "blue", "bold",
+		"broad", "broken", "calm", "cold", "cool", "crimson", "curly", "damp",
+		"dark", "dawn", "delicate", "divine", "dry", "empty", "falling", "fancy",
+		"flat", "floral", "fragrant", "frosty", "gentle", "green", "hidden", "holy",
+		"icy", "jolly", "late", "lingering", "little", "lively", "long", "lucky",
+		"misty", "morning", "muddy", "mute", "nameless", "noisy", "odd", "old",
+		"orange", "patient", "plain", "polished", "proud", "purple", "quiet", "rapid",
+		"raspy", "red", "restless", "rough", "round", "royal", "shiny", "shrill",
+		"shy", "silent", "small", "snowy", "soft", "solitary", "sparkling", "spring",
+		"square", "steep", "still", "summer", "super", "sweet", "throbbing", "tight",
+		"tiny", "twilight", "wandering", "weathered", "white", "wild", "winter", "wispy",
+		"withered", "yellow", "young"}
+
+	nouns := []string{
+		"art", "band", "bar", "base", "bird", "block", "boat", "bonus",
+		"bread", "breeze", "brook", "bush", "butterfly", "cake", "cell", "cherry",
+		"cloud", "credit", "darkness", "dawn", "dew", "disk", "dream", "dust",
+		"feather", "field", "fire", "firefly", "flower", "fog", "forest", "frog",
+		"frost", "glade", "glitter", "grass", "hall", "hat", "haze", "heart",
+		"hill", "king", "lab", "lake", "leaf", "limit", "math", "meadow",
+		"mode", "moon", "morning", "mountain", "mouse", "mud", "night", "paper",
+		"pine", "poetry", "pond", "queen", "rain", "recipe", "resonance", "rice",
+		"river", "salad", "scene", "sea", "shadow", "shape", "silence", "sky",
+		"smoke", "snow", "snowflake", "sound", "star", "sun", "sun", "sunset",
+		"surf", "term", "thunder", "tooth", "tree", "truth", "union", "unit",
+		"violet", "voice", "water", "waterfall", "wave", "wildflower", "wind", "wood"}
+
+	str := []string{}
+
+	rand.Seed(time.Now().UnixNano())
+	str = append(str, strings.Title(adjectives[rand.Intn(len(adjectives))]))
+	rand.Seed(time.Now().UnixNano())
+	str = append(str, strings.Title(nouns[rand.Intn(len(nouns))]))
+	rand.Seed(time.Now().UnixNano())
+	str = append(str, strconv.Itoa(rand.Intn(100)))
+
+	return strings.Join(str, " ")
 }
 
 // firstNonEmptyString accepts multiple values and return the first non empty string value.

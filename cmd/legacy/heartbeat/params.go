@@ -12,6 +12,7 @@ import (
 
 	"github.com/wakatime/wakatime-cli/pkg/api"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/project"
 	"github.com/wakatime/wakatime-cli/pkg/vipertools"
 
 	jww "github.com/spf13/jwalterweatherman"
@@ -47,6 +48,7 @@ type Params struct {
 	Filter          FilterParams
 	Language        LanguageParams
 	Network         NetworkParams
+	Project         ProjectParams
 	Sanitize        SanitizeParams
 }
 
@@ -69,6 +71,14 @@ type NetworkParams struct {
 	DisableSSLVerify bool
 	ProxyURL         string
 	SSLCertFilepath  string
+}
+
+// ProjectParams params for project name sanitization.
+type ProjectParams struct {
+	Alternate        string
+	DisableSubmodule []*regexp.Regexp
+	MapPatterns      []project.MapPattern
+	Override         string
 }
 
 // SanitizeParams params for heartbeat sanitization.
@@ -203,6 +213,11 @@ func LoadParams(v *viper.Viper) (Params, error) {
 		return Params{}, fmt.Errorf("failed to parse network params: %s", err)
 	}
 
+	projectParams, err := loadProjectParams(v)
+	if err != nil {
+		return Params{}, fmt.Errorf("failed to parse project params: %s", err)
+	}
+
 	sanitizeParams, err := loadSanitizeParams(v)
 	if err != nil {
 		return Params{}, fmt.Errorf("failed to load sanitize params: %s", err)
@@ -227,6 +242,7 @@ func LoadParams(v *viper.Viper) (Params, error) {
 		Filter:          loadFilterParams(v),
 		Language:        languageParams,
 		Network:         networkParams,
+		Project:         projectParams,
 		Sanitize:        sanitizeParams,
 	}, nil
 }
@@ -252,7 +268,7 @@ func loadFilterParams(v *viper.Viper) FilterParams {
 	for _, s := range exclude {
 		compiled, err := regexp.Compile(s)
 		if err != nil {
-			jww.DEBUG.Printf("failed to compile exclude regex pattern %q", s)
+			jww.WARN.Printf("failed to compile exclude regex pattern %q", s)
 			continue
 		}
 
@@ -267,7 +283,7 @@ func loadFilterParams(v *viper.Viper) FilterParams {
 	for _, s := range include {
 		compiled, err := regexp.Compile(s)
 		if err != nil {
-			jww.DEBUG.Printf("failed to compile include regex pattern %q", s)
+			jww.WARN.Printf("failed to compile include regex pattern %q", s)
 			continue
 		}
 
@@ -391,6 +407,44 @@ func loadSanitizeParams(v *viper.Viper) (SanitizeParams, error) {
 	params.HideFileNames = hideFileNamesPatterns
 
 	return params, nil
+}
+
+func loadProjectParams(v *viper.Viper) (ProjectParams, error) {
+	if v == nil {
+		return ProjectParams{}, errors.New("viper instance unset")
+	}
+
+	disableSubmodule, err := parseBoolOrRegexList(v.GetString("git.submodules_disabled"))
+	if err != nil {
+		return ProjectParams{}, fmt.Errorf(
+			"failed to parse regex submodules disabled param: %s",
+			err,
+		)
+	}
+
+	var mapPatterns []project.MapPattern
+
+	projectMap := v.GetStringMapString("projectmap")
+
+	for k, s := range projectMap {
+		compiled, err := regexp.Compile(k)
+		if err != nil {
+			jww.WARN.Printf("failed to compile projectmap regex pattern %q", k)
+			continue
+		}
+
+		mapPatterns = append(mapPatterns, project.MapPattern{
+			Name:  s,
+			Regex: compiled,
+		})
+	}
+
+	return ProjectParams{
+		Alternate:        v.GetString("alternate-project"),
+		DisableSubmodule: disableSubmodule,
+		MapPatterns:      mapPatterns,
+		Override:         v.GetString("project"),
+	}, nil
 }
 
 func parseBoolOrRegexList(s string) ([]*regexp.Regexp, error) {

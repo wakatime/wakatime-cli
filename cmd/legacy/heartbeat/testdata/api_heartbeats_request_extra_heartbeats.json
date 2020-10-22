@@ -9,7 +9,7 @@
         "language": null,
         "lineno": 13,
         "lines": 2,
-        "project": null,
+        "project": "wakatime-cli",
         "type": "file",
         "time": 1585598059.1,
         "user_agent": "%s"
@@ -24,7 +24,7 @@
         "language": null,
         "lineno": 42,
         "lines": 2,
-        "project": null,
+        "project": "wakatime-cli",
         "type": "file",
         "time": 1585598059,
         "user_agent": "wakatime/13.0.6"
@@ -39,7 +39,7 @@
         "language": null,
         "lineno": null,
         "lines": 2,
-        "project": null,
+        "project": "wakatime-cli",
         "type": "file",
         "time": 1585598060,
         "user_agent": "wakatime/13.0.7"

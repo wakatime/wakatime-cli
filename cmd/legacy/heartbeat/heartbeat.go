@@ -13,6 +13,7 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/language"
 	"github.com/wakatime/wakatime-cli/pkg/offline"
+	"github.com/wakatime/wakatime-cli/pkg/project"
 
 	_ "github.com/mattn/go-sqlite3" // not used directly
 	jww "github.com/spf13/jwalterweatherman"
@@ -129,6 +130,13 @@ func SendHeartbeats(v *viper.Viper) error {
 		language.WithDetection(language.Config{
 			Alternate: params.Language.Alternate,
 			Override:  params.Language.Override,
+		}),
+		project.WithDetection(project.Config{
+			Alternate:              params.Project.Alternate,
+			Override:               params.Project.Override,
+			ShouldObfuscateProject: heartbeat.ShouldSanitize(params.Entity, params.Sanitize.HideProjectNames),
+			MapPatterns:            params.Project.MapPatterns,
+			SubmodulePatterns:      params.Project.DisableSubmodule,
 		}),
 		heartbeat.WithSanitization(heartbeat.SanitizeConfig{
 			BranchPatterns:  params.Sanitize.HideBranchNames,

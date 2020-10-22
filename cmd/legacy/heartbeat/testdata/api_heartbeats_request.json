@@ -9,7 +9,7 @@
         "language": "Go",
         "lineno": 13,
         "lines": 2,
-        "project": null,
+        "project": "wakatime-cli",
         "type": "file",
         "time": 1585598059.1,
         "user_agent": "%s"
