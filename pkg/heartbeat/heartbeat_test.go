@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
@@ -11,6 +12,34 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestNew(t *testing.T) {
+	h := heartbeat.New(
+		heartbeat.CodingCategory,
+		heartbeat.Int(12),
+		"testdata/main.go",
+		heartbeat.FileType,
+		heartbeat.Bool(true),
+		heartbeat.Int(42),
+		"/path/to/file",
+		1592868313.541149,
+		"wakatime/13.0.7",
+	)
+
+	assert.True(t, strings.HasSuffix(h.Entity, "testdata/main.go"))
+
+	assert.Equal(t, heartbeat.Heartbeat{
+		Category:       heartbeat.CodingCategory,
+		CursorPosition: heartbeat.Int(12),
+		EntityType:     heartbeat.FileType,
+		IsWrite:        heartbeat.Bool(true),
+		LineNumber:     heartbeat.Int(42),
+		LocalFile:      "/path/to/file",
+		Time:           1592868313.541149,
+		UserAgent:      "wakatime/13.0.7",
+		Entity:         h.Entity,
+	}, h)
+}
 
 func TestHeartbeat_ID(t *testing.T) {
 	h := heartbeat.Heartbeat{
