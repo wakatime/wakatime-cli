@@ -10,6 +10,33 @@ import (
 	"unicode"
 )
 
+// nolint
+var (
+	backslashReplaceRgx    = regexp.MustCompile(`[\\/]+`)
+	windowsDriveRgx        = regexp.MustCompile("^[a-z]:/")
+	windowsNetworkMountRgx = regexp.MustCompile(`(?i)^\\\\[a-z]+`)
+)
+
+// FormatFilePath formats a windows filepath by converting backslash to
+// frontslash and ensuring that drive letter is upper case.
+func FormatFilePath(fp string) (string, error) {
+	isWindowsNetworkMount := windowsNetworkMountRgx.MatchString(fp)
+
+	fp = backslashReplaceRgx.ReplaceAllString(fp, "/")
+
+	if windowsDriveRgx.MatchString(fp) {
+		fp = strings.ToUpper(fp[:1]) + fp[1:]
+	}
+
+	if isWindowsNetworkMount {
+		// Add back a / to the front, since the previous modifications
+		// will have replaced any double slashes with single
+		fp = "/" + fp
+	}
+
+	return fp, nil
+}
+
 // commander is an interface for exec.Command function.
 type commander interface {
 	Command(name string, args ...string) *exec.Cmd
