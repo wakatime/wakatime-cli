@@ -102,21 +102,35 @@ func SendHeartbeats(v *viper.Viper) error {
 	c := api.NewClient(params.APIUrl, http.DefaultClient, clientOpts...)
 
 	heartbeats := []heartbeat.Heartbeat{
-		{
-			Entity:         params.Entity,
-			EntityType:     params.EntityType,
-			Category:       params.Category,
-			CursorPosition: params.CursorPosition,
-			IsWrite:        params.IsWrite,
-			LineNumber:     params.LineNumber,
-			Time:           params.Time,
-			UserAgent:      userAgent,
-		},
+		heartbeat.New(
+			params.Category,
+			params.CursorPosition,
+			params.Entity,
+			params.EntityType,
+			params.IsWrite,
+			params.LineNumber,
+			params.LocalFile,
+			params.Time,
+			userAgent,
+		),
 	}
 
 	if len(params.ExtraHeartbeats) > 0 {
 		jww.DEBUG.Printf("include %d extra heartbeat(s) from stdin", len(params.ExtraHeartbeats))
-		heartbeats = append(heartbeats, params.ExtraHeartbeats...)
+
+		for _, h := range params.ExtraHeartbeats {
+			heartbeats = append(heartbeats, heartbeat.New(
+				h.Category,
+				h.CursorPosition,
+				h.Entity,
+				h.EntityType,
+				h.IsWrite,
+				h.LineNumber,
+				h.LocalFile,
+				h.Time,
+				userAgent,
+			))
+		}
 	}
 
 	handleOpts := []heartbeat.HandleOption{

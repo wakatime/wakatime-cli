@@ -1,6 +1,7 @@
 package heartbeat_test
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -41,13 +42,23 @@ func TestSendHeartbeats(t *testing.T) {
 			plugin,
 		))
 
-		expectedBody, err := ioutil.ReadFile("testdata/api_heartbeats_request.json")
+		expectedBody, err := ioutil.ReadFile("testdata/api_heartbeats_request_template.json")
 		require.NoError(t, err)
 
 		body, err := ioutil.ReadAll(req.Body)
 		require.NoError(t, err)
 
-		assert.JSONEq(t, fmt.Sprintf(string(expectedBody), heartbeat.UserAgent(plugin)), string(body))
+		var entity struct {
+			Entity string `json:"entity"`
+		}
+
+		err = json.Unmarshal(body, &[]interface{}{&entity})
+		require.NoError(t, err)
+
+		expectedBodyStr := fmt.Sprintf(string(expectedBody), entity.Entity, heartbeat.UserAgent(plugin))
+
+		assert.True(t, strings.HasSuffix(entity.Entity, "testdata/main.go"))
+		assert.JSONEq(t, expectedBodyStr, string(body))
 
 		// send response
 		w.WriteHeader(http.StatusCreated)
@@ -73,6 +84,7 @@ func TestSendHeartbeats(t *testing.T) {
 	v.Set("hide-branch-names", "true")
 	v.Set("project", "wakatime-cli")
 	v.Set("lineno", 13)
+	v.Set("local-file", "testdata/localfile.go")
 	v.Set("plugin", plugin)
 	v.Set("time", 1585598059.1)
 	v.Set("timeout", 5)
@@ -125,13 +137,31 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 
 	router.HandleFunc("/v1/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
 		// check request
-		expectedBody, err := ioutil.ReadFile("testdata/api_heartbeats_request_extra_heartbeats.json")
+		expectedBody, err := ioutil.ReadFile("testdata/api_heartbeats_request_extra_heartbeats_template.json")
 		require.NoError(t, err)
 
 		body, err := ioutil.ReadAll(req.Body)
 		require.NoError(t, err)
 
-		assert.JSONEq(t, fmt.Sprintf(string(expectedBody), heartbeat.UserAgent(plugin)), string(body))
+		var entity struct {
+			Entity string `json:"entity"`
+		}
+
+		err = json.Unmarshal(body, &[]interface{}{&entity})
+		require.NoError(t, err)
+
+		expectedBodyStr := fmt.Sprintf(
+			string(expectedBody),
+			entity.Entity,
+			heartbeat.UserAgent(plugin),
+			entity.Entity,
+			heartbeat.UserAgent(plugin),
+			entity.Entity,
+			heartbeat.UserAgent(plugin),
+		)
+
+		assert.True(t, strings.HasSuffix(entity.Entity, "testdata/main.go"))
+		assert.JSONEq(t, expectedBodyStr, string(body))
 
 		// send response
 		w.WriteHeader(http.StatusCreated)

@@ -4,7 +4,7 @@
         "category": "debugging",
         "cursorpos": 42,
         "dependencies": null,
-        "entity": "testdata/main.go",
+        "entity": "%s",
         "is_write": true,
         "language": "Go",
         "lineno": 13,

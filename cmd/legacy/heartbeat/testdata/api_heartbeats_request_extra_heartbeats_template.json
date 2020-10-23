@@ -4,7 +4,7 @@
         "category": "debugging",
         "cursorpos": 42,
         "dependencies": null,
-        "entity": "testdata/main.go",
+        "entity": "%s",
         "is_write": true,
         "language": null,
         "lineno": 13,
@@ -19,7 +19,7 @@
         "category": "coding",
         "cursorpos": 12,
         "dependencies": null,
-        "entity": "testdata/main.go",
+        "entity": "%s",
         "is_write": true,
         "language": null,
         "lineno": 42,
@@ -27,14 +27,14 @@
         "project": "wakatime-cli",
         "type": "file",
         "time": 1585598059,
-        "user_agent": "wakatime/13.0.6"
+        "user_agent": "%s"
     },
     {
         "branch": null,
         "category": "debugging",
         "cursorpos": null,
         "dependencies": null,
-        "entity": "testdata/main.go",
+        "entity": "%s",
         "is_write": null,
         "language": null,
         "lineno": null,
@@ -42,6 +42,6 @@
         "project": "wakatime-cli",
         "type": "file",
         "time": 1585598060,
-        "user_agent": "wakatime/13.0.7"
+        "user_agent": "%s"
     }
 ]
