@@ -23,9 +23,14 @@ func WithDetection() heartbeat.HandleOption {
 		return func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 			for n, h := range hh {
 				if h.EntityType == heartbeat.FileType {
-					fileInfo, err := os.Stat(h.Entity)
+					filepath := h.Entity
+					if h.LocalFile != "" {
+						filepath = h.LocalFile
+					}
+
+					fileInfo, err := os.Stat(filepath)
 					if err != nil {
-						jww.ERROR.Printf("failed to retrieve file stats of file %q: %s", h.Entity, err)
+						jww.WARN.Printf("failed to retrieve file stats of file %q: %s", filepath, err)
 						continue
 					}
 
@@ -39,9 +44,9 @@ func WithDetection() heartbeat.HandleOption {
 						continue
 					}
 
-					lines, err := countLineNumbers(h.Entity)
+					lines, err := countLineNumbers(filepath)
 					if err != nil {
-						jww.ERROR.Printf("failed to detect the total number of lines in file %q: %s", h.Entity, err)
+						jww.WARN.Printf("failed to detect the total number of lines in file %q: %s", filepath, err)
 						continue
 					}
 
