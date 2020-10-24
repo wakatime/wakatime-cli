@@ -38,13 +38,14 @@ func Sanitize(h Heartbeat, config SanitizeConfig) Heartbeat {
 		h.Dependencies = nil
 	}
 
-	if h.EntityType != FileType {
-		return h
-	}
-
 	switch {
 	case ShouldSanitize(h.Entity, config.FilePatterns):
-		h.Entity = "HIDDEN" + filepath.Ext(h.Entity)
+		if h.EntityType == FileType {
+			h.Entity = "HIDDEN" + filepath.Ext(h.Entity)
+		} else {
+			h.Entity = "HIDDEN"
+		}
+
 		h = santizeMetaData(h)
 
 		if h.Branch != nil && (len(config.BranchPatterns) == 0 || ShouldSanitize(*h.Branch, config.BranchPatterns)) {

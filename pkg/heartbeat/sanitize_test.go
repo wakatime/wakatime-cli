@@ -46,21 +46,81 @@ func TestWithSanitization_ObfuscateFile(t *testing.T) {
 	}, result)
 }
 
-func TestSanitize_ObfuscateFile(t *testing.T) {
-	r := heartbeat.Sanitize(testHeartbeat(), heartbeat.SanitizeConfig{
-		FilePatterns: []*regexp.Regexp{regexp.MustCompile(".*")},
-	})
+func TestSanitize_Obfuscate(t *testing.T) {
+	tests := map[string]struct {
+		Heartbeat heartbeat.Heartbeat
+		Expected  heartbeat.Heartbeat
+	}{
+		"file": {
+			Heartbeat: heartbeat.Heartbeat{
+				Branch:         heartbeat.String("heartbeat"),
+				Category:       heartbeat.CodingCategory,
+				CursorPosition: heartbeat.Int(12),
+				Dependencies:   []string{"dep1", "dep2"},
+				Entity:         "/tmp/main.go",
+				EntityType:     heartbeat.FileType,
+				IsWrite:        heartbeat.Bool(true),
+				Language:       heartbeat.LanguageGo,
+				LineNumber:     heartbeat.Int(42),
+				Lines:          heartbeat.Int(100),
+				Project:        heartbeat.String("wakatime"),
+				Time:           1585598060,
+				UserAgent:      "wakatime/13.0.7",
+			},
+			Expected: heartbeat.Heartbeat{
+				Category:   heartbeat.CodingCategory,
+				Entity:     "HIDDEN.go",
+				EntityType: heartbeat.FileType,
+				IsWrite:    heartbeat.Bool(true),
+				Language:   heartbeat.LanguageGo,
+				Project:    heartbeat.String("wakatime"),
+				Time:       1585598060,
+				UserAgent:  "wakatime/13.0.7",
+			},
+		},
+		"app": {
+			Heartbeat: heartbeat.Heartbeat{
+				Category:   heartbeat.CodingCategory,
+				Entity:     "Slack",
+				EntityType: heartbeat.AppType,
+				Time:       1585598060,
+				UserAgent:  "wakatime/13.0.7",
+			},
+			Expected: heartbeat.Heartbeat{
+				Category:   heartbeat.CodingCategory,
+				Entity:     "HIDDEN",
+				EntityType: heartbeat.AppType,
+				Time:       1585598060,
+				UserAgent:  "wakatime/13.0.7",
+			},
+		},
+		"domain": {
+			Heartbeat: heartbeat.Heartbeat{
+				Category:   heartbeat.BrowsingCategory,
+				Entity:     "wakatime.com",
+				EntityType: heartbeat.DomainType,
+				Time:       1585598060,
+				UserAgent:  "wakatime/13.0.7",
+			},
+			Expected: heartbeat.Heartbeat{
+				Category:   heartbeat.BrowsingCategory,
+				Entity:     "HIDDEN",
+				EntityType: heartbeat.DomainType,
+				Time:       1585598060,
+				UserAgent:  "wakatime/13.0.7",
+			},
+		},
+	}
 
-	assert.Equal(t, heartbeat.Heartbeat{
-		Category:   heartbeat.CodingCategory,
-		Entity:     "HIDDEN.go",
-		EntityType: heartbeat.FileType,
-		IsWrite:    heartbeat.Bool(true),
-		Language:   heartbeat.LanguageGo,
-		Project:    heartbeat.String("wakatime"),
-		Time:       1585598060,
-		UserAgent:  "wakatime/13.0.7",
-	}, r)
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			r := heartbeat.Sanitize(test.Heartbeat, heartbeat.SanitizeConfig{
+				FilePatterns: []*regexp.Regexp{regexp.MustCompile(".*")},
+			})
+
+			assert.Equal(t, test.Expected, r)
+		})
+	}
 }
 
 func TestSanitize_ObfuscateFile_SkipBranchIfNotMatching(t *testing.T) {
@@ -205,60 +265,6 @@ func TestSanitize_ObfuscateBranch_NilFields(t *testing.T) {
 	}, r)
 }
 
-func TestSanitize_EntityTypeNotFile_DoesNothing(t *testing.T) {
-	tests := map[string]heartbeat.EntityType{
-		"domain": heartbeat.DomainType,
-		"app":    heartbeat.AppType,
-	}
-
-	for name, entityType := range tests {
-		t.Run(name, func(t *testing.T) {
-			h := testHeartbeat()
-			h.EntityType = entityType
-
-			r := heartbeat.Sanitize(h, heartbeat.SanitizeConfig{
-				BranchPatterns:  []*regexp.Regexp{regexp.MustCompile(".*")},
-				FilePatterns:    []*regexp.Regexp{regexp.MustCompile(".*")},
-				ProjectPatterns: []*regexp.Regexp{regexp.MustCompile(".*")},
-			})
-
-			assert.Equal(t, heartbeat.Heartbeat{
-				Branch:         heartbeat.String("heartbeat"),
-				Category:       heartbeat.CodingCategory,
-				CursorPosition: heartbeat.Int(12),
-				Dependencies:   []string{"dep1", "dep2"},
-				Entity:         "/tmp/main.go",
-				EntityType:     entityType,
-				IsWrite:        heartbeat.Bool(true),
-				Language:       heartbeat.LanguageGo,
-				LineNumber:     heartbeat.Int(42),
-				Lines:          heartbeat.Int(100),
-				Project:        heartbeat.String("wakatime"),
-				Time:           1585598060,
-				UserAgent:      "wakatime/13.0.7",
-			}, r)
-		})
-	}
-}
-
-func testHeartbeat() heartbeat.Heartbeat {
-	return heartbeat.Heartbeat{
-		Branch:         heartbeat.String("heartbeat"),
-		Category:       heartbeat.CodingCategory,
-		CursorPosition: heartbeat.Int(12),
-		Dependencies:   []string{"dep1", "dep2"},
-		Entity:         "/tmp/main.go",
-		EntityType:     heartbeat.FileType,
-		IsWrite:        heartbeat.Bool(true),
-		Language:       heartbeat.LanguageGo,
-		LineNumber:     heartbeat.Int(42),
-		Lines:          heartbeat.Int(100),
-		Project:        heartbeat.String("wakatime"),
-		Time:           1585598060,
-		UserAgent:      "wakatime/13.0.7",
-	}
-}
-
 func TestSanitize_EmptyConfigDoNothing(t *testing.T) {
 	r := heartbeat.Sanitize(testHeartbeat(), heartbeat.SanitizeConfig{})
 
@@ -338,5 +344,23 @@ func TestSouldSanitize(t *testing.T) {
 
 			assert.Equal(t, test.Expected, souldSanitize)
 		})
+	}
+}
+
+func testHeartbeat() heartbeat.Heartbeat {
+	return heartbeat.Heartbeat{
+		Branch:         heartbeat.String("heartbeat"),
+		Category:       heartbeat.CodingCategory,
+		CursorPosition: heartbeat.Int(12),
+		Dependencies:   []string{"dep1", "dep2"},
+		Entity:         "/tmp/main.go",
+		EntityType:     heartbeat.FileType,
+		IsWrite:        heartbeat.Bool(true),
+		Language:       heartbeat.LanguageGo,
+		LineNumber:     heartbeat.Int(42),
+		Lines:          heartbeat.Int(100),
+		Project:        heartbeat.String("wakatime"),
+		Time:           1585598060,
+		UserAgent:      "wakatime/13.0.7",
 	}
 }
