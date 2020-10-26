@@ -111,6 +111,10 @@ const (
 	LanguageNewLisp
 	// LanguageNix represents the Nix programming language.
 	LanguageNix
+	// LanguageObjectiveC represents the ObjectiveC programming language.
+	LanguageObjectiveC
+	// LanguageObjectiveCPP represents the ObjectiveC++ programming language.
+	LanguageObjectiveCPP
 	// LanguageObjectiveJ represents the ObjectiveJ programming language.
 	LanguageObjectiveJ
 	// LanguageOCaml represents the OCaml programming language.
@@ -265,6 +269,8 @@ const (
 	languageMustacheStr          = "Mustache"
 	languageNewLispStr           = "NewLisp"
 	languageNixStr               = "Nix"
+	languageObjectiveCStr        = "Objective-C"
+	languageObjectiveCPPStr      = "Objective-C++"
 	languageObjectiveJStr        = "Objective-J"
 	languageOCamlStr             = "OCaml"
 	languagePawnStr              = "Pawn"
@@ -430,6 +436,10 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageNewLisp, true
 	case languageNixStr:
 		return LanguageNix, true
+	case languageObjectiveCStr:
+		return LanguageObjectiveC, true
+	case languageObjectiveCPPStr:
+		return LanguageObjectiveCPP, true
 	case languageObjectiveJStr:
 		return LanguageObjectiveJ, true
 	case languageOCamlStr:
@@ -618,6 +628,8 @@ func ParseLanguageFromChroma(lexerName string) (Language, bool) {
 		return LanguageNix, true
 	case languageOCamlStr:
 		return LanguageOCaml, true
+	case languageObjectiveCStr:
+		return LanguageObjectiveC, true
 	case languagePerlStr:
 		return LanguagePerl, true
 	case languagePHPStr:
@@ -816,6 +828,10 @@ func (l Language) String() string {
 		return languageNewLispStr
 	case LanguageNix:
 		return languageNixStr
+	case LanguageObjectiveC:
+		return languageObjectiveCStr
+	case LanguageObjectiveCPP:
+		return languageObjectiveCPPStr
 	case LanguageObjectiveJ:
 		return languageObjectiveJStr
 	case LanguageOCaml:
