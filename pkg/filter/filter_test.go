@@ -2,7 +2,6 @@ package filter_test
 
 import (
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
@@ -121,7 +120,7 @@ func TestFilter_IncludeMatchOverwritesExcludeMatch(t *testing.T) {
 }
 
 func TestFilter_ErrMatchesExcludePattern(t *testing.T) {
-	tmpFile, err := ioutil.TempFile(os.TempDir(), "")
+	tmpFile, err := ioutil.TempFile(os.TempDir(), "exclude-this-file")
 	require.NoError(t, err)
 
 	defer os.Remove(tmpFile.Name())
@@ -131,14 +130,14 @@ func TestFilter_ErrMatchesExcludePattern(t *testing.T) {
 
 	err = filter.Filter(h, filter.Config{
 		Exclude: []*regexp.Regexp{
-			regexp.MustCompile("^" + tmpFile.Name() + "$"),
+			regexp.MustCompile("^.*exclude-this-file.*$"),
 		},
 	})
 
 	var errv filter.Err
 
 	assert.True(t, errors.As(err, &errv))
-	assert.Equal(t, filter.Err(fmt.Sprintf("skipping because matches exclude pattern \"^%s$\"", tmpFile.Name())), errv)
+	assert.Equal(t, filter.Err("skipping because matches exclude pattern \"^.*exclude-this-file.*$\""), errv)
 }
 
 func TestFilter_ErrUnknownProject(t *testing.T) {
