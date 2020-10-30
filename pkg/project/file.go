@@ -50,10 +50,11 @@ func (f File) Detect() (Result, bool, error) {
 
 // FindFile find for .wakatime-project file in the given path.
 func FindFile(fp string) (string, bool, error) {
-	fp, err := realpath.Realpath(fp)
+	resolved, err := realpath.Realpath(fp)
 	if err != nil {
-		return "", false, Err(fmt.Errorf("failed to get the real path: %w", err).Error())
+		return "", false, Err(fmt.Sprintf("failed to get the real path for file %q: %s", fp, err))
 	}
+	fp = resolved
 
 	dir, _ := path.Split(fp)
 	if fileExists(path.Join(dir, defaultProjectFile)) {
