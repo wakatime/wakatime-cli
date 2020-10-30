@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"os"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -18,6 +19,38 @@ func TestNew(t *testing.T) {
 		heartbeat.CodingCategory,
 		heartbeat.Int(12),
 		"testdata/main.go",
+		heartbeat.FileType,
+		heartbeat.Bool(true),
+		heartbeat.Int(42),
+		"/path/to/file",
+		1592868313.541149,
+		"wakatime/13.0.7",
+	)
+
+	assert.True(t, strings.HasSuffix(h.Entity, "testdata/main.go"))
+
+	assert.Equal(t, heartbeat.Heartbeat{
+		Category:       heartbeat.CodingCategory,
+		CursorPosition: heartbeat.Int(12),
+		EntityType:     heartbeat.FileType,
+		IsWrite:        heartbeat.Bool(true),
+		LineNumber:     heartbeat.Int(42),
+		LocalFile:      "/path/to/file",
+		Time:           1592868313.541149,
+		UserAgent:      "wakatime/13.0.7",
+		Entity:         h.Entity,
+	}, h)
+}
+
+func TestNew_Windows(t *testing.T) {
+	if runtime.GOOS != "windows" {
+		t.Skip("Skipping because the OS is not windows.")
+	}
+
+	h := heartbeat.New(
+		heartbeat.CodingCategory,
+		heartbeat.Int(12),
+		`testdata\\main.go`,
 		heartbeat.FileType,
 		heartbeat.Bool(true),
 		heartbeat.Int(42),
