@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"regexp"
 	"strconv"
@@ -252,9 +253,81 @@ func LoadParams(v *viper.Viper) (Params, error) {
 func readExtraHeartbeats() ([]heartbeat.Heartbeat, error) {
 	var heartbeats []heartbeat.Heartbeat
 
-	err := json.NewDecoder(os.Stdin).Decode(&heartbeats)
+	data, err := ioutil.ReadAll(os.Stdin)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read and json decode: %s", err)
+		return nil, fmt.Errorf("failed to read data from stdin: %s", err)
+	}
+
+	errFirst := json.Unmarshal(data, &heartbeats)
+	if errFirst == nil {
+		return heartbeats, nil
+	}
+
+	// try again accepting string properties for int values
+	heartbeats, errSecond := parseExtraHeartbeatWithStringValues(data)
+	if errSecond != nil {
+		return nil, fmt.Errorf(
+			"failed to json decode: %s: failed to json decode again, accepting string values: %s",
+			errFirst,
+			errSecond,
+		)
+	}
+
+	return heartbeats, nil
+}
+
+func parseExtraHeartbeatWithStringValues(data []byte) ([]heartbeat.Heartbeat, error) {
+	var incoming []struct {
+		Category       heartbeat.Category   `json:"category"`
+		CursorPosition *string              `json:"cursorpos"`
+		Entity         string               `json:"entity"`
+		EntityType     heartbeat.EntityType `json:"type"`
+		IsWrite        *bool                `json:"is_write"`
+		LineNumber     *string              `json:"lineno"`
+		Time           float64              `json:"time"`
+		UserAgent      string               `json:"user_agent"`
+	}
+
+	err := json.Unmarshal(data, &incoming)
+	if err != nil {
+		return nil, fmt.Errorf("failed to json decode from data %q: %s", string(data), err)
+	}
+
+	var heartbeats []heartbeat.Heartbeat
+
+	for _, h := range incoming {
+		var cursorPosition *int
+
+		if h.CursorPosition != nil {
+			parsed, err := strconv.Atoi(*h.CursorPosition)
+			if err != nil {
+				return nil, fmt.Errorf("failed to convert cursor position to int: %s", err)
+			}
+
+			cursorPosition = &parsed
+		}
+
+		var lineNumber *int
+
+		if h.LineNumber != nil {
+			parsed, err := strconv.Atoi(*h.LineNumber)
+			if err != nil {
+				return nil, fmt.Errorf("failed to convert line number to int: %s", err)
+			}
+
+			lineNumber = &parsed
+		}
+
+		heartbeats = append(heartbeats, heartbeat.Heartbeat{
+			Category:       h.Category,
+			CursorPosition: cursorPosition,
+			Entity:         h.Entity,
+			EntityType:     h.EntityType,
+			IsWrite:        h.IsWrite,
+			LineNumber:     lineNumber,
+			Time:           h.Time,
+			UserAgent:      h.UserAgent,
+		})
 	}
 
 	return heartbeats, nil
