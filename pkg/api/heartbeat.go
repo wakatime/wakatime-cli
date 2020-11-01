@@ -14,7 +14,9 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 )
 
-// Send sends a bulk of heartbeats to the wakatime api.
+// Send sends a bulk of heartbeats to the wakatime api and returns the result.
+// The API does not guarantuee the setting of the Heartbeat property of the result.
+// On certain errors, like 429/too many heartbeats, this is omitted and not set.
 func (c *Client) Send(heartbeats []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 	url := c.baseURL + "/v1/users/current/heartbeats.bulk"
 
