@@ -14,6 +14,7 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/api"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/project"
+	"github.com/wakatime/wakatime-cli/pkg/regex"
 	"github.com/wakatime/wakatime-cli/pkg/vipertools"
 
 	jww "github.com/spf13/jwalterweatherman"
@@ -56,9 +57,9 @@ type Params struct {
 
 // FilterParams contains heartbeat filtering related command parameters.
 type FilterParams struct {
-	Exclude                    []*regexp.Regexp
+	Exclude                    []regex.Regex
 	ExcludeUnknownProject      bool
-	Include                    []*regexp.Regexp
+	Include                    []regex.Regex
 	IncludeOnlyWithProjectFile bool
 }
 
@@ -338,10 +339,10 @@ func loadFilterParams(v *viper.Viper) FilterParams {
 	exclude = append(exclude, v.GetStringSlice("settings.exclude")...)
 	exclude = append(exclude, v.GetStringSlice("settings.ignore")...)
 
-	var excludePatterns []*regexp.Regexp
+	var excludePatterns []regex.Regex
 
 	for _, s := range exclude {
-		compiled, err := regexp.Compile(s)
+		compiled, err := regex.Compile(s)
 		if err != nil {
 			jww.WARN.Printf("failed to compile exclude regex pattern %q", s)
 			continue
@@ -353,10 +354,10 @@ func loadFilterParams(v *viper.Viper) FilterParams {
 	include := v.GetStringSlice("include")
 	include = append(include, v.GetStringSlice("settings.include")...)
 
-	var includePatterns []*regexp.Regexp
+	var includePatterns []regex.Regex
 
 	for _, s := range include {
-		compiled, err := regexp.Compile(s)
+		compiled, err := regex.Compile(s)
 		if err != nil {
 			jww.WARN.Printf("failed to compile include regex pattern %q", s)
 			continue

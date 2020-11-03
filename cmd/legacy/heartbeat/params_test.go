@@ -859,14 +859,13 @@ func TestLoadParams_Filter_Exclude(t *testing.T) {
 	params, err := cmd.LoadParams(v)
 	require.NoError(t, err)
 
-	assert.Equal(t, []*regexp.Regexp{
-		regexp.MustCompile(".*"),
-		regexp.MustCompile("wakatime.*"),
-		regexp.MustCompile(".+"),
-		regexp.MustCompile("wakatime.+"),
-		regexp.MustCompile(".?"),
-		regexp.MustCompile("wakatime.?"),
-	}, params.Filter.Exclude)
+	require.Len(t, params.Filter.Exclude, 6)
+	assert.Equal(t, ".*", params.Filter.Exclude[0].String())
+	assert.Equal(t, "wakatime.*", params.Filter.Exclude[1].String())
+	assert.Equal(t, ".+", params.Filter.Exclude[2].String())
+	assert.Equal(t, "wakatime.+", params.Filter.Exclude[3].String())
+	assert.Equal(t, ".?", params.Filter.Exclude[4].String())
+	assert.Equal(t, "wakatime.?", params.Filter.Exclude[5].String())
 }
 
 func TestLoadParams_Filter_Exclude_IgnoresInvalidRegex(t *testing.T) {
@@ -878,7 +877,30 @@ func TestLoadParams_Filter_Exclude_IgnoresInvalidRegex(t *testing.T) {
 	params, err := cmd.LoadParams(v)
 	require.NoError(t, err)
 
-	assert.Equal(t, []*regexp.Regexp{regexp.MustCompile(".*")}, params.Filter.Exclude)
+	require.Len(t, params.Filter.Exclude, 1)
+	assert.Equal(t, ".*", params.Filter.Exclude[0].String())
+}
+
+func TestLoadParams_Filter_Exclude_PerlRegexPatterns(t *testing.T) {
+	tests := map[string]string{
+		"negative lookahead": `^/var/(?!www/).*`,
+		"positive lookahead": `^/var/(?=www/).*`,
+	}
+
+	for name, pattern := range tests {
+		t.Run(name, func(t *testing.T) {
+			v := viper.New()
+			v.Set("key", "00000000-0000-4000-8000-000000000000")
+			v.Set("entity", "/path/to/file")
+			v.Set("exclude", []string{pattern})
+
+			params, err := cmd.LoadParams(v)
+			require.NoError(t, err)
+
+			require.Len(t, params.Filter.Exclude, 1)
+			assert.Equal(t, pattern, params.Filter.Exclude[0].String())
+		})
+	}
 }
 
 func TestLoadParams_Filter_ExcludeUnknownProject(t *testing.T) {
@@ -916,12 +938,11 @@ func TestLoadParams_Filter_Include(t *testing.T) {
 	params, err := cmd.LoadParams(v)
 	require.NoError(t, err)
 
-	assert.Equal(t, []*regexp.Regexp{
-		regexp.MustCompile(".*"),
-		regexp.MustCompile("wakatime.*"),
-		regexp.MustCompile(".+"),
-		regexp.MustCompile("wakatime.+"),
-	}, params.Filter.Include)
+	require.Len(t, params.Filter.Include, 4)
+	assert.Equal(t, ".*", params.Filter.Include[0].String())
+	assert.Equal(t, "wakatime.*", params.Filter.Include[1].String())
+	assert.Equal(t, ".+", params.Filter.Include[2].String())
+	assert.Equal(t, "wakatime.+", params.Filter.Include[3].String())
 }
 
 func TestLoadParams_Filter_Include_IgnoresInvalidRegex(t *testing.T) {
@@ -933,7 +954,30 @@ func TestLoadParams_Filter_Include_IgnoresInvalidRegex(t *testing.T) {
 	params, err := cmd.LoadParams(v)
 	require.NoError(t, err)
 
-	assert.Equal(t, []*regexp.Regexp{regexp.MustCompile(".*")}, params.Filter.Include)
+	require.Len(t, params.Filter.Include, 1)
+	assert.Equal(t, ".*", params.Filter.Include[0].String())
+}
+
+func TestLoadParams_Filter_Include_PerlRegexPatterns(t *testing.T) {
+	tests := map[string]string{
+		"negative lookahead": `^/var/(?!www/).*`,
+		"positive lookahead": `^/var/(?=www/).*`,
+	}
+
+	for name, pattern := range tests {
+		t.Run(name, func(t *testing.T) {
+			v := viper.New()
+			v.Set("key", "00000000-0000-4000-8000-000000000000")
+			v.Set("entity", "/path/to/file")
+			v.Set("include", []string{pattern})
+
+			params, err := cmd.LoadParams(v)
+			require.NoError(t, err)
+
+			require.Len(t, params.Filter.Include, 1)
+			assert.Equal(t, pattern, params.Filter.Include[0].String())
+		})
+	}
 }
 
 func TestLoadParams_Filter_IncludeOnlyWithProjectFile(t *testing.T) {
