@@ -40,6 +40,7 @@ type Params struct {
 	Hostname        string
 	IsWrite         *bool
 	LineNumber      *int
+	LocalFile       string
 	OfflineDisabled bool
 	OfflineSyncMax  int
 	Plugin          string
@@ -234,6 +235,7 @@ func LoadParams(v *viper.Viper) (Params, error) {
 		Hostname:        hostname,
 		IsWrite:         isWrite,
 		LineNumber:      lineNumber,
+		LocalFile:       v.GetString("local-file"),
 		OfflineDisabled: offlineDisabled,
 		OfflineSyncMax:  offlineSyncMax,
 		Plugin:          v.GetString("plugin"),

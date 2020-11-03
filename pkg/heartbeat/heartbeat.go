@@ -2,11 +2,15 @@ package heartbeat
 
 import (
 	"fmt"
+	"path/filepath"
 	"runtime"
 
 	"github.com/wakatime/wakatime-cli/pkg/version"
+	"github.com/wakatime/wakatime-cli/pkg/windows"
 
 	"github.com/matishsiao/goInfo"
+	jww "github.com/spf13/jwalterweatherman"
+	"github.com/yookoala/realpath"
 )
 
 // Heartbeat is a structure representing activity for a user on a some entity.
@@ -21,9 +25,66 @@ type Heartbeat struct {
 	Language       Language   `json:"language"`
 	LineNumber     *int       `json:"lineno"`
 	Lines          *int       `json:"lines"`
+	LocalFile      string     `json:"-"`
 	Project        *string    `json:"project"`
 	Time           float64    `json:"time"`
 	UserAgent      string     `json:"user_agent"`
+}
+
+// New creates a new instance of Heartbeat with formatted entity
+// and local file paths for file type heartbeats.
+func New(
+	category Category,
+	cursorPosition *int,
+	entity string,
+	entityType EntityType,
+	isWrite *bool,
+	lineNumber *int,
+	localFile string,
+	time float64,
+	userAgent string,
+) Heartbeat {
+	if entityType == FileType {
+		formatted, err := filepath.Abs(entity)
+		if err != nil {
+			jww.WARN.Printf("failed to resolve the absolute path of %q: %s", entity, err)
+		} else {
+			entity = formatted
+		}
+
+		formatted, err = realpath.Realpath(entity)
+		if err != nil {
+			jww.WARN.Printf("failed to resolve the real path of %q: %s", entity, err)
+		} else {
+			entity = formatted
+		}
+	}
+
+	if entityType == FileType && runtime.GOOS == "windows" {
+		formatted, err := windows.FormatFilePath(entity)
+		if err != nil {
+			jww.WARN.Printf("failed to format windows file path: %q: %s", entity, err)
+		} else {
+			entity = formatted
+		}
+
+		localFile, err = windows.FormatLocalFilePath(localFile, entity)
+		if err != nil {
+			jww.WARN.Printf("failed to format local file path: %s", err)
+		}
+	}
+
+	return Heartbeat{
+		Category:       category,
+		CursorPosition: cursorPosition,
+		Entity:         entity,
+		EntityType:     entityType,
+		IsWrite:        isWrite,
+		LineNumber:     lineNumber,
+		LocalFile:      localFile,
+		Time:           time,
+		UserAgent:      userAgent,
+	}
 }
 
 // ID returns an ID generated from the heartbeat data.

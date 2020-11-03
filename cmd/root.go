@@ -117,6 +117,13 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 	flags.String("key", "", "Your wakatime api key; uses api_key from ~/.wakatime.cfg by default.")
 	flags.String("language", "", "Optional language name. If valid, takes priority over auto-detected language.")
 	flags.Int("lineno", 0, "Optional line number. This is the current line being edited.")
+	flags.String(
+		"local-file",
+		"",
+		"Absolute path to local file for the heartbeat. When --entity is a"+
+			" remote file, this local file will be used for stats and just"+
+			" the value of --entity is sent with the heartbeat.",
+	)
 	flags.String("log-file", "", "Optional log file. Defaults to '~/.wakatime.log'.")
 	flags.String("logfile", "", "(deprecated) Optional log file. Defaults to '~/.wakatime.log'.")
 	flags.Bool(

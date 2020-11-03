@@ -504,6 +504,18 @@ func TestLoadParams_LineNumber_Unset(t *testing.T) {
 	assert.Nil(t, params.LineNumber)
 }
 
+func TestLoadParams_LocalFile(t *testing.T) {
+	v := viper.New()
+	v.Set("entity", "/path/to/file")
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("local-file", "/path/to/file")
+
+	params, err := cmd.LoadParams(v)
+	require.NoError(t, err)
+
+	assert.Equal(t, "/path/to/file", params.LocalFile)
+}
+
 func TestLoadParams_OfflineDisabled_ConfigTakesPrecedence(t *testing.T) {
 	v := viper.New()
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
