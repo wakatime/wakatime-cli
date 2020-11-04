@@ -6,6 +6,8 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/wakatime/wakatime-cli/pkg/regex"
+
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/yookoala/realpath"
 )
@@ -18,7 +20,7 @@ type Git struct {
 	// Filepath conaints the entity path.
 	Filepath string
 	// SubmodulePatterns will be matched against the submodule path and if matching, will skip it.
-	SubmodulePatterns []*regexp.Regexp
+	SubmodulePatterns []regex.Regex
 }
 
 // Detect gets information about the git project for a given file.
@@ -159,7 +161,7 @@ func findGitConfigFile(fp string, directory string, match string) (string, bool)
 	return findGitConfigFile(dir, directory, match)
 }
 
-func findSubmodule(fp string, patterns []*regexp.Regexp) (string, bool, error) {
+func findSubmodule(fp string, patterns []regex.Regex) (string, bool, error) {
 	if !shouldTakeSubmodule(fp, patterns) {
 		return "", false, nil
 	}
@@ -184,7 +186,7 @@ func findSubmodule(fp string, patterns []*regexp.Regexp) (string, bool, error) {
 
 // shouldTakeSubmodule checks a filepath against the passed in regex patterns to determine,
 // if submodule filepath should be taken.
-func shouldTakeSubmodule(fp string, patterns []*regexp.Regexp) bool {
+func shouldTakeSubmodule(fp string, patterns []regex.Regex) bool {
 	for _, p := range patterns {
 		if p.MatchString(fp) {
 			return false

@@ -79,16 +79,16 @@ type NetworkParams struct {
 // ProjectParams params for project name sanitization.
 type ProjectParams struct {
 	Alternate        string
-	DisableSubmodule []*regexp.Regexp
+	DisableSubmodule []regex.Regex
 	MapPatterns      []project.MapPattern
 	Override         string
 }
 
 // SanitizeParams params for heartbeat sanitization.
 type SanitizeParams struct {
-	HideBranchNames  []*regexp.Regexp
-	HideFileNames    []*regexp.Regexp
-	HideProjectNames []*regexp.Regexp
+	HideBranchNames  []regex.Regex
+	HideFileNames    []regex.Regex
+	HideProjectNames []regex.Regex
 }
 
 // LoadParams loads heartbeat config params from viper.Viper instance. Returns ErrAuth
@@ -523,8 +523,8 @@ func loadProjectParams(v *viper.Viper) (ProjectParams, error) {
 	}, nil
 }
 
-func parseBoolOrRegexList(s string) ([]*regexp.Regexp, error) {
-	var patterns []*regexp.Regexp
+func parseBoolOrRegexList(s string) ([]regex.Regex, error) {
+	var patterns []regex.Regex
 
 	switch {
 	case s == "":
@@ -532,11 +532,11 @@ func parseBoolOrRegexList(s string) ([]*regexp.Regexp, error) {
 	case strings.ToLower(s) == "false":
 		break
 	case strings.ToLower(s) == "true":
-		patterns = []*regexp.Regexp{matchAllRegex}
+		patterns = []regex.Regex{matchAllRegex}
 	default:
 		splitted := strings.Split(s, "\n")
 		for _, s := range splitted {
-			compiled, err := regexp.Compile(s)
+			compiled, err := regex.Compile(s)
 			if err != nil {
 				return nil, fmt.Errorf("failed to compile regex %q: %s", s, err)
 			}
