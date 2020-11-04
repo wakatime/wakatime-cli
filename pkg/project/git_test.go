@@ -281,7 +281,7 @@ func setupTestGitFile(t *testing.T) (fp string, tearDown func()) {
 	// Setup git file (relative)
 	copyFile(t, "testdata/git_file/git_relative", filepath.Join(tmpDir, "feed/.git"))
 
-	//Setup git file (absolute)
+	// Setup git file (absolute)
 	tmpFile, err = os.Create(filepath.Join(tmpDir, "mobile/.git"))
 	require.NoError(t, err)
 

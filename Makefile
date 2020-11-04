@@ -7,6 +7,12 @@ GOCLEAN=$(GOCMD) clean
 GOTEST=$(GOCMD) test
 GOGET=$(GOCMD) get
 
+ifeq ($(OS),Windows_NT) # is Windows_NT on XP, 2000, 7, Vista, 10...
+    GOPATH=$(go env GOPATH)
+else
+    GOPATH=$(shell go env GOPATH)
+endif
+
 # Binary name
 BINARY_NAME=wakatime-cli
 
@@ -24,7 +30,7 @@ build-windows:
 # Install linter
 .PHONY: install-linter
 install-linter:
-	hash golangci-lint 2>/dev/null || curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.32.2
+	hash golangci-lint 2>/dev/null || curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(GOPATH)/bin v1.32.2
 
 # Run static analysis tools, configuration in ./.golangci.yml file
 .PHONY: lint

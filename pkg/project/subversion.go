@@ -49,7 +49,7 @@ func (s Subversion) Detect() (Result, bool, error) {
 		return Result{
 			Project: resolveSvnInfo(info, "Repository Root"),
 			Branch:  resolveSvnInfo(info, "URL"),
-			Folder:  strings.Replace(info["Repository Root"], "\r", "", -1),
+			Folder:  strings.ReplaceAll(info["Repository Root"], "\r", ""),
 		}, true, nil
 	}
 
@@ -128,7 +128,7 @@ func resolveSvnInfo(info map[string]string, key string) string {
 		parts2 := strings.Split(last, "\\")
 		last2 := parts2[len(parts2)-1]
 
-		return strings.Replace(last2, "\r", "", -1)
+		return strings.ReplaceAll(last2, "\r", "")
 	}
 
 	return ""
