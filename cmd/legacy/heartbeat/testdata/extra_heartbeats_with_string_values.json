@@ -1,0 +1,22 @@
+[
+	{
+		"category": "coding",
+		"cursorpos": "12",
+		"entity": "testdata/main.go",
+		"is_write": true,
+		"lineno": "42",
+		"type": "file",
+		"time": 1585598059,
+		"user_agent": "wakatime/13.0.6"
+	},
+	{
+		"category": "coding",
+		"cursorpos": "13",
+		"entity": "testdata/main.go",
+		"is_write": true,
+		"lineno": "43",
+		"type": "file",
+		"time": 1585598060,
+		"user_agent": "wakatime/13.0.7"
+	}
+]
