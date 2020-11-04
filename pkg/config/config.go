@@ -3,7 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
-	"path"
+	"path/filepath"
 
 	"github.com/mitchellh/go-homedir"
 	jww "github.com/spf13/jwalterweatherman"
@@ -105,7 +105,7 @@ func FilePath(v *viper.Viper) (string, error) {
 			return "", fmt.Errorf("failed parsing WAKATIME_HOME environment variable: %s", err)
 		}
 
-		return path.Join(p, defaultFile), nil
+		return filepath.Join(p, defaultFile), nil
 	}
 
 	home, err := os.UserHomeDir()
@@ -113,5 +113,5 @@ func FilePath(v *viper.Viper) (string, error) {
 		return "", fmt.Errorf("failed getting user's home directory: %s", err)
 	}
 
-	return path.Join(home, defaultFile), nil
+	return filepath.Join(home, defaultFile), nil
 }

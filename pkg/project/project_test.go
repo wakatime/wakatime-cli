@@ -3,9 +3,10 @@ package project_test
 import (
 	"io/ioutil"
 	"os"
-	"path"
 	"path/filepath"
 	"regexp"
+	"runtime"
+	"strings"
 	"testing"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
@@ -80,7 +81,7 @@ func TestWithDetection_OverrideTakesPrecedence(t *testing.T) {
 	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		assert.Equal(t, []heartbeat.Heartbeat{
 			{
-				Entity:     path.Join(fp, "wakatime-cli/src/pkg/file.go"),
+				Entity:     filepath.Join(fp, "wakatime-cli/src/pkg/file.go"),
 				EntityType: heartbeat.FileType,
 				Project:    heartbeat.String("billing"),
 				Branch:     heartbeat.String("master"),
@@ -93,7 +94,7 @@ func TestWithDetection_OverrideTakesPrecedence(t *testing.T) {
 	_, err := handle([]heartbeat.Heartbeat{
 		{
 			EntityType: heartbeat.FileType,
-			Entity:     path.Join(fp, "wakatime-cli/src/pkg/file.go"),
+			Entity:     filepath.Join(fp, "wakatime-cli/src/pkg/file.go"),
 		},
 	})
 	require.NoError(t, err)
@@ -111,7 +112,7 @@ func TestWithDetection_ObfuscateProject(t *testing.T) {
 		assert.NotEmpty(t, hh[0].Project)
 		assert.Equal(t, []heartbeat.Heartbeat{
 			{
-				Entity:     path.Join(fp, "wakatime-cli/src/pkg/file.go"),
+				Entity:     filepath.Join(fp, "wakatime-cli/src/pkg/file.go"),
 				EntityType: heartbeat.FileType,
 				Project:    hh[0].Project,
 				Branch:     heartbeat.String("master"),
@@ -124,12 +125,12 @@ func TestWithDetection_ObfuscateProject(t *testing.T) {
 	_, err := handle([]heartbeat.Heartbeat{
 		{
 			EntityType: heartbeat.FileType,
-			Entity:     path.Join(fp, "wakatime-cli/src/pkg/file.go"),
+			Entity:     filepath.Join(fp, "wakatime-cli/src/pkg/file.go"),
 		},
 	})
 	require.NoError(t, err)
 
-	assert.FileExists(t, path.Join(fp, "wakatime-cli/.wakatime-project"))
+	assert.FileExists(t, filepath.Join(fp, "wakatime-cli/.wakatime-project"))
 }
 
 func TestDetect_FileDetected(t *testing.T) {
@@ -150,20 +151,12 @@ func TestDetect_MapDetected(t *testing.T) {
 
 	patterns := []project.MapPattern{
 		{
-			Name: "my-project-1",
-			Regex: func() *regexp.Regexp {
-				r, err := regexp.Compile(filepath.Join(tmpDir, "path/to/otherfolder"))
-				require.NoError(t, err)
-				return r
-			}(),
+			Name:  "my-project-1",
+			Regex: regexp.MustCompile(formatRegex(filepath.Join(tmpDir, "path", "to", "otherfolder"))),
 		},
 		{
-			Name: "my-{0}-project",
-			Regex: func() *regexp.Regexp {
-				r, err := regexp.Compile(filepath.Join(tmpDir, "waka-([a-z]+)"))
-				require.NoError(t, err)
-				return r
-			}(),
+			Name:  "my-{0}-project",
+			Regex: regexp.MustCompile(formatRegex(filepath.Join(tmpDir, "waka-([a-z]+)"))),
 		},
 	}
 
@@ -178,10 +171,10 @@ func TestDetectWithRevControl_GitDetected(t *testing.T) {
 	defer tearDown()
 
 	result := project.DetectWithRevControl(
-		path.Join(fp, "wakatime-cli/src/pkg/file.go"),
+		filepath.Join(fp, "wakatime-cli/src/pkg/file.go"),
 		[]*regexp.Regexp{}, false)
 
-	assert.Contains(t, result.Folder, path.Join(fp, "wakatime-cli"))
+	assert.Contains(t, result.Folder, filepath.Join(fp, "wakatime-cli"))
 	assert.Equal(t, project.Result{
 		Project: "wakatime-cli",
 		Branch:  "master",
@@ -205,4 +198,12 @@ func testHeartbeat() heartbeat.Heartbeat {
 	return heartbeat.Heartbeat{
 		EntityType: heartbeat.AppType,
 	}
+}
+
+func formatRegex(fp string) string {
+	if runtime.GOOS != "windows" {
+		return fp
+	}
+
+	return strings.ReplaceAll(fp, `\`, `\\`)
 }

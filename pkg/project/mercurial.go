@@ -2,7 +2,6 @@ package project
 
 import (
 	"fmt"
-	"path"
 	"path/filepath"
 	"strings"
 
@@ -26,14 +25,14 @@ func (m Mercurial) Detect() (Result, bool, error) {
 
 	// Take only the directory
 	if fileExists(fp) {
-		fp = path.Dir(fp)
+		fp = filepath.Dir(fp)
 	}
 
 	// Find for .hg folder
 	hgDirectory, ok := findHgConfigDir(fp)
 
 	if ok {
-		project := path.Base(path.Join(hgDirectory, ".."))
+		project := filepath.Base(filepath.Join(hgDirectory, ".."))
 
 		branch, err := findHgBranch(hgDirectory)
 		if err != nil {
@@ -47,7 +46,7 @@ func (m Mercurial) Detect() (Result, bool, error) {
 		return Result{
 			Project: project,
 			Branch:  branch,
-			Folder:  path.Dir(path.Join(hgDirectory, "..")),
+			Folder:  filepath.Dir(filepath.Join(hgDirectory, "..")),
 		}, true, nil
 	}
 
@@ -55,12 +54,12 @@ func (m Mercurial) Detect() (Result, bool, error) {
 }
 
 func findHgConfigDir(fp string) (string, bool) {
-	p := path.Join(fp, ".hg")
+	p := filepath.Join(fp, ".hg")
 	if fileExists(p) {
 		return p, true
 	}
 
-	dir := filepath.Clean(path.Join(fp, ".."))
+	dir := filepath.Clean(filepath.Join(fp, ".."))
 	if dir == "/" {
 		return "", false
 	}
@@ -69,7 +68,7 @@ func findHgConfigDir(fp string) (string, bool) {
 }
 
 func findHgBranch(fp string) (string, error) {
-	p := path.Join(fp, "branch")
+	p := filepath.Join(fp, "branch")
 	if !fileExists(p) {
 		return "default", nil
 	}

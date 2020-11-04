@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"path"
+	"path/filepath"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 
@@ -36,7 +36,7 @@ func QueueFilepath() (string, error) {
 		return "", fmt.Errorf("failed to expand offline queue folder path: %s", err)
 	}
 
-	return path.Join(expanded, ".wakatime.db"), nil
+	return filepath.Join(expanded, ".wakatime.db"), nil
 }
 
 // WithQueue initializes and returns a heartbeat handle option, which can be

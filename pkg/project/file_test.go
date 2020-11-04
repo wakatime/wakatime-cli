@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"path"
+	"path/filepath"
 	"testing"
 
 	"github.com/wakatime/wakatime-cli/pkg/project"
@@ -38,7 +38,7 @@ func TestFile_Detect_ParentFolderExists(t *testing.T) {
 
 	defer os.RemoveAll(tmpDir)
 
-	dir := path.Join(tmpDir, "src", "otherfolder")
+	dir := filepath.Join(tmpDir, "src", "otherfolder")
 
 	err = os.MkdirAll(dir, os.FileMode(int(0700)))
 	require.NoError(t, err)
@@ -46,7 +46,7 @@ func TestFile_Detect_ParentFolderExists(t *testing.T) {
 	copyFile(
 		t,
 		"testdata/.wakatime-project",
-		path.Join(tmpDir, ".wakatime-project"),
+		filepath.Join(tmpDir, ".wakatime-project"),
 	)
 
 	f := project.File{
@@ -117,7 +117,7 @@ func TestFindFile(t *testing.T) {
 
 	defer os.RemoveAll(tmpDir)
 
-	dir := path.Join(tmpDir, "src", "otherfolder")
+	dir := filepath.Join(tmpDir, "src", "otherfolder")
 
 	err = os.MkdirAll(dir, os.FileMode(int(0700)))
 	require.NoError(t, err)
@@ -125,17 +125,17 @@ func TestFindFile(t *testing.T) {
 	copyFile(
 		t,
 		"testdata/.wakatime-project",
-		path.Join(tmpDir, ".wakatime-project"),
+		filepath.Join(tmpDir, ".wakatime-project"),
 	)
 
-	filepath, ok, err := project.FindFile(dir)
+	fp, ok, err := project.FindFile(dir)
 	require.NoError(t, err)
 	require.True(t, ok)
 
 	realpathTmpDir, err := realpath.Realpath(tmpDir)
 	require.NoError(t, err)
 
-	assert.Equal(t, path.Join(realpathTmpDir, ".wakatime-project"), filepath)
+	assert.Equal(t, filepath.Join(realpathTmpDir, ".wakatime-project"), fp)
 }
 
 func copyFile(t *testing.T, source, destination string) {

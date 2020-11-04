@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/yookoala/realpath"
@@ -54,15 +54,16 @@ func FindFile(fp string) (string, bool, error) {
 	if err != nil {
 		return "", false, Err(fmt.Sprintf("failed to get the real path for file %q: %s", fp, err))
 	}
+
 	fp = resolved
 
-	dir, _ := path.Split(fp)
-	if fileExists(path.Join(dir, defaultProjectFile)) {
-		fp = path.Join(dir, defaultProjectFile)
+	dir, _ := filepath.Split(fp)
+	if fileExists(filepath.Join(dir, defaultProjectFile)) {
+		fp = filepath.Join(dir, defaultProjectFile)
 		return fp, true, nil
 	}
 
-	dir, file := path.Split(fp)
+	dir, file := filepath.Split(fp)
 	if len(file) == 0 {
 		return "", false, nil
 	}

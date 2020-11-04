@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"path"
+	"path/filepath"
 	"regexp"
 	"testing"
 
@@ -19,14 +19,14 @@ func TestGit_Detect(t *testing.T) {
 	defer tearDown()
 
 	g := project.Git{
-		Filepath: path.Join(fp, "wakatime-cli/src/pkg/file.go"),
+		Filepath: filepath.Join(fp, "wakatime-cli/src/pkg/file.go"),
 	}
 
 	result, detected, err := g.Detect()
 	require.NoError(t, err)
 
 	assert.True(t, detected)
-	assert.Contains(t, result.Folder, path.Join(fp, "wakatime-cli"))
+	assert.Contains(t, result.Folder, filepath.Join(fp, "wakatime-cli"))
 	assert.Equal(t, project.Result{
 		Project: "wakatime-cli",
 		Branch:  "master",
@@ -39,14 +39,14 @@ func TestGit_Detect_BranchWithSlash(t *testing.T) {
 	defer tearDown()
 
 	g := project.Git{
-		Filepath: path.Join(fp, "wakatime-cli/src/pkg/file.go"),
+		Filepath: filepath.Join(fp, "wakatime-cli/src/pkg/file.go"),
 	}
 
 	result, detected, err := g.Detect()
 	require.NoError(t, err)
 
 	assert.True(t, detected)
-	assert.Contains(t, result.Folder, path.Join(fp, "wakatime-cli"))
+	assert.Contains(t, result.Folder, filepath.Join(fp, "wakatime-cli"))
 	assert.Equal(t, project.Result{
 		Project: "wakatime-cli",
 		Branch:  "feature/detection",
@@ -59,14 +59,14 @@ func TestGit_Detect_DetachedHead(t *testing.T) {
 	defer tearDown()
 
 	g := project.Git{
-		Filepath: path.Join(fp, "wakatime-cli/src/pkg/file.go"),
+		Filepath: filepath.Join(fp, "wakatime-cli/src/pkg/file.go"),
 	}
 
 	result, detected, err := g.Detect()
 	require.NoError(t, err)
 
 	assert.True(t, detected)
-	assert.Contains(t, result.Folder, path.Join(fp, "wakatime-cli"))
+	assert.Contains(t, result.Folder, filepath.Join(fp, "wakatime-cli"))
 	assert.Equal(t, project.Result{
 		Project: "wakatime-cli",
 		Branch:  "",
@@ -83,15 +83,15 @@ func TestGit_Detect_GitConfigFile_File(t *testing.T) {
 		Project  string
 	}{
 		"main_repo": {
-			Filepath: path.Join(fp, "wakatime-cli/src/pkg/file.go"),
+			Filepath: filepath.Join(fp, "wakatime-cli/src/pkg/file.go"),
 			Project:  "wakatime-cli",
 		},
 		"relative_path": {
-			Filepath: path.Join(fp, "feed/src/pkg/file.go"),
+			Filepath: filepath.Join(fp, "feed/src/pkg/file.go"),
 			Project:  "feed",
 		},
 		"absolute_path": {
-			Filepath: path.Join(fp, "mobile/src/pkg/file.go"),
+			Filepath: filepath.Join(fp, "mobile/src/pkg/file.go"),
 			Project:  "mobile",
 		},
 	}
@@ -106,7 +106,7 @@ func TestGit_Detect_GitConfigFile_File(t *testing.T) {
 			require.NoError(t, err)
 
 			assert.True(t, detected)
-			assert.Contains(t, result.Folder, path.Join(fp, "wakatime-cli"))
+			assert.Contains(t, result.Folder, filepath.Join(fp, "wakatime-cli"))
 			assert.Equal(t, project.Result{
 				Project: test.Project,
 				Branch:  "feature/list-elements",
@@ -121,14 +121,14 @@ func TestGit_Detect_Worktree(t *testing.T) {
 	defer tearDown()
 
 	g := project.Git{
-		Filepath: path.Join(fp, "api/src/pkg/file.go"),
+		Filepath: filepath.Join(fp, "api/src/pkg/file.go"),
 	}
 
 	result, detected, err := g.Detect()
 	require.NoError(t, err)
 
 	assert.True(t, detected)
-	assert.Contains(t, result.Folder, path.Join(fp, "wakatime-cli"))
+	assert.Contains(t, result.Folder, filepath.Join(fp, "wakatime-cli"))
 	assert.Equal(t, project.Result{
 		Project: "wakatime-cli",
 		Branch:  "feature/api",
@@ -141,7 +141,7 @@ func TestGit_Detect_Submodule(t *testing.T) {
 	defer tearDown()
 
 	g := project.Git{
-		Filepath:          path.Join(fp, "wakatime-cli/lib/billing/src/lib/lib.cpp"),
+		Filepath:          filepath.Join(fp, "wakatime-cli/lib/billing/src/lib/lib.cpp"),
 		SubmodulePatterns: []*regexp.Regexp{regexp.MustCompile("not_matching")},
 	}
 
@@ -149,7 +149,7 @@ func TestGit_Detect_Submodule(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.True(t, detected)
-	assert.Contains(t, result.Folder, path.Join(fp, "wakatime-cli"))
+	assert.Contains(t, result.Folder, filepath.Join(fp, "wakatime-cli"))
 	assert.Equal(t, project.Result{
 		Project: "billing",
 		Branch:  "master",
@@ -162,7 +162,7 @@ func TestGit_Detect_SubmoduleDisabled(t *testing.T) {
 	defer tearDown()
 
 	g := project.Git{
-		Filepath:          path.Join(fp, "wakatime-cli/lib/billing/src/lib/lib.cpp"),
+		Filepath:          filepath.Join(fp, "wakatime-cli/lib/billing/src/lib/lib.cpp"),
 		SubmodulePatterns: []*regexp.Regexp{regexp.MustCompile(".*billing.*")},
 	}
 
@@ -170,7 +170,7 @@ func TestGit_Detect_SubmoduleDisabled(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.True(t, detected)
-	assert.Contains(t, result.Folder, path.Join(fp, "wakatime-cli"))
+	assert.Contains(t, result.Folder, filepath.Join(fp, "wakatime-cli"))
 	assert.Equal(t, project.Result{
 		Project: "wakatime-cli",
 		Branch:  "feature/billing",
@@ -182,19 +182,19 @@ func setupTestGitBasic(t *testing.T) (fp string, tearDown func()) {
 	tmpDir, err := ioutil.TempDir(os.TempDir(), "wakatime-git")
 	require.NoError(t, err)
 
-	err = os.MkdirAll(path.Join(tmpDir, "wakatime-cli/src/pkg"), os.FileMode(int(0700)))
+	err = os.MkdirAll(filepath.Join(tmpDir, "wakatime-cli/src/pkg"), os.FileMode(int(0700)))
 	require.NoError(t, err)
 
-	tmpFile, err := os.Create(path.Join(tmpDir, "wakatime-cli/src/pkg/file.go"))
+	tmpFile, err := os.Create(filepath.Join(tmpDir, "wakatime-cli/src/pkg/file.go"))
 	require.NoError(t, err)
 
 	tmpFile.Close()
 
-	err = os.Mkdir(path.Join(tmpDir, "wakatime-cli/.git"), os.FileMode(int(0700)))
+	err = os.Mkdir(filepath.Join(tmpDir, "wakatime-cli/.git"), os.FileMode(int(0700)))
 	require.NoError(t, err)
 
-	copyFile(t, "testdata/git_basic/config", path.Join(tmpDir, "wakatime-cli/.git/config"))
-	copyFile(t, "testdata/git_basic/HEAD", path.Join(tmpDir, "wakatime-cli/.git/HEAD"))
+	copyFile(t, "testdata/git_basic/config", filepath.Join(tmpDir, "wakatime-cli/.git/config"))
+	copyFile(t, "testdata/git_basic/HEAD", filepath.Join(tmpDir, "wakatime-cli/.git/HEAD"))
 
 	return tmpDir, func() { os.RemoveAll(tmpDir) }
 }
@@ -203,19 +203,19 @@ func setupTestGitBasicBranchWithSlash(t *testing.T) (fp string, tearDown func())
 	tmpDir, err := ioutil.TempDir(os.TempDir(), "wakatime-git")
 	require.NoError(t, err)
 
-	err = os.MkdirAll(path.Join(tmpDir, "wakatime-cli/src/pkg"), os.FileMode(int(0700)))
+	err = os.MkdirAll(filepath.Join(tmpDir, "wakatime-cli/src/pkg"), os.FileMode(int(0700)))
 	require.NoError(t, err)
 
-	tmpFile, err := os.Create(path.Join(tmpDir, "wakatime-cli/src/pkg/file.go"))
+	tmpFile, err := os.Create(filepath.Join(tmpDir, "wakatime-cli/src/pkg/file.go"))
 	require.NoError(t, err)
 
 	tmpFile.Close()
 
-	err = os.Mkdir(path.Join(tmpDir, "wakatime-cli/.git"), os.FileMode(int(0700)))
+	err = os.Mkdir(filepath.Join(tmpDir, "wakatime-cli/.git"), os.FileMode(int(0700)))
 	require.NoError(t, err)
 
-	copyFile(t, "testdata/git_basic/config", path.Join(tmpDir, "wakatime-cli/.git/config"))
-	copyFile(t, "testdata/git_basic/HEAD_WITH_SLASH", path.Join(tmpDir, "wakatime-cli/.git/HEAD"))
+	copyFile(t, "testdata/git_basic/config", filepath.Join(tmpDir, "wakatime-cli/.git/config"))
+	copyFile(t, "testdata/git_basic/HEAD_WITH_SLASH", filepath.Join(tmpDir, "wakatime-cli/.git/HEAD"))
 
 	return tmpDir, func() { os.RemoveAll(tmpDir) }
 }
@@ -224,19 +224,19 @@ func setupTestGitBasicDetachedHead(t *testing.T) (fp string, tearDown func()) {
 	tmpDir, err := ioutil.TempDir(os.TempDir(), "wakatime-git")
 	require.NoError(t, err)
 
-	err = os.MkdirAll(path.Join(tmpDir, "wakatime-cli/src/pkg"), os.FileMode(int(0700)))
+	err = os.MkdirAll(filepath.Join(tmpDir, "wakatime-cli/src/pkg"), os.FileMode(int(0700)))
 	require.NoError(t, err)
 
-	tmpFile, err := os.Create(path.Join(tmpDir, "wakatime-cli/src/pkg/file.go"))
+	tmpFile, err := os.Create(filepath.Join(tmpDir, "wakatime-cli/src/pkg/file.go"))
 	require.NoError(t, err)
 
 	tmpFile.Close()
 
-	err = os.Mkdir(path.Join(tmpDir, "wakatime-cli/.git"), os.FileMode(int(0700)))
+	err = os.Mkdir(filepath.Join(tmpDir, "wakatime-cli/.git"), os.FileMode(int(0700)))
 	require.NoError(t, err)
 
-	copyFile(t, "testdata/git_basic/config", path.Join(tmpDir, "wakatime-cli/.git/config"))
-	copyFile(t, "testdata/git_basic/HEAD_DETACHED", path.Join(tmpDir, "wakatime-cli/.git/HEAD"))
+	copyFile(t, "testdata/git_basic/config", filepath.Join(tmpDir, "wakatime-cli/.git/config"))
+	copyFile(t, "testdata/git_basic/HEAD_DETACHED", filepath.Join(tmpDir, "wakatime-cli/.git/HEAD"))
 
 	return tmpDir, func() { os.RemoveAll(tmpDir) }
 }
@@ -246,48 +246,50 @@ func setupTestGitFile(t *testing.T) (fp string, tearDown func()) {
 	require.NoError(t, err)
 
 	// Create directories
-	err = os.MkdirAll(path.Join(tmpDir, "wakatime-cli/src/pkg"), os.FileMode(int(0700)))
+	err = os.MkdirAll(filepath.Join(tmpDir, "wakatime-cli/src/pkg"), os.FileMode(int(0700)))
 	require.NoError(t, err)
 
-	err = os.MkdirAll(path.Join(tmpDir, "feed/src/pkg"), os.FileMode(int(0700)))
+	err = os.MkdirAll(filepath.Join(tmpDir, "feed/src/pkg"), os.FileMode(int(0700)))
 	require.NoError(t, err)
 
-	err = os.MkdirAll(path.Join(tmpDir, "mobile/src/pkg"), os.FileMode(int(0700)))
+	err = os.MkdirAll(filepath.Join(tmpDir, "mobile/src/pkg"), os.FileMode(int(0700)))
 	require.NoError(t, err)
 
 	// Create fake files
-	tmpFile, err := os.Create(path.Join(tmpDir, "wakatime-cli/src/pkg/file.go"))
+	tmpFile, err := os.Create(filepath.Join(tmpDir, "wakatime-cli/src/pkg/file.go"))
 	require.NoError(t, err)
 
 	tmpFile.Close()
 
-	tmpFile, err = os.Create(path.Join(tmpDir, "feed/src/pkg/file.go"))
+	tmpFile, err = os.Create(filepath.Join(tmpDir, "feed/src/pkg/file.go"))
 	require.NoError(t, err)
 
 	tmpFile.Close()
 
-	tmpFile, err = os.Create(path.Join(tmpDir, "mobile/src/pkg/file.go"))
+	tmpFile, err = os.Create(filepath.Join(tmpDir, "mobile/src/pkg/file.go"))
 	require.NoError(t, err)
 
 	tmpFile.Close()
 
 	// Setup basic git
-	err = os.Mkdir(path.Join(tmpDir, "wakatime-cli/.git"), os.FileMode(int(0700)))
+	err = os.Mkdir(filepath.Join(tmpDir, "wakatime-cli/.git"), os.FileMode(int(0700)))
 	require.NoError(t, err)
 
-	copyFile(t, "testdata/git_basic/config", path.Join(tmpDir, "wakatime-cli/.git/config"))
-	copyFile(t, "testdata/git_file/HEAD", path.Join(tmpDir, "wakatime-cli/.git/HEAD"))
+	copyFile(t, "testdata/git_basic/config", filepath.Join(tmpDir, "wakatime-cli/.git/config"))
+	copyFile(t, "testdata/git_file/HEAD", filepath.Join(tmpDir, "wakatime-cli/.git/HEAD"))
 
 	// Setup git file (relative)
-	copyFile(t, "testdata/git_file/git_relative", path.Join(tmpDir, "feed/.git"))
+	copyFile(t, "testdata/git_file/git_relative", filepath.Join(tmpDir, "feed/.git"))
 
 	//Setup git file (absolute)
-	tmpFile, err = os.Create(path.Join(tmpDir, "mobile/.git"))
+	tmpFile, err = os.Create(filepath.Join(tmpDir, "mobile/.git"))
 	require.NoError(t, err)
 
 	defer tmpFile.Close()
 
-	_, err = tmpFile.WriteString(fmt.Sprintf("gitdir: %s/wakatime-cli/.git", tmpDir))
+	gitdir := filepath.Join(tmpDir, "wakatime-cli", ".git")
+
+	_, err = tmpFile.WriteString(fmt.Sprintf("gitdir: %s", gitdir))
 	require.NoError(t, err)
 
 	return tmpDir, func() { os.RemoveAll(tmpDir) }
@@ -298,35 +300,35 @@ func setupTestGitWorktree(t *testing.T) (fp string, tearDown func()) {
 	require.NoError(t, err)
 
 	// Create directories
-	err = os.MkdirAll(path.Join(tmpDir, "wakatime-cli/src/pkg"), os.FileMode(int(0700)))
+	err = os.MkdirAll(filepath.Join(tmpDir, "wakatime-cli/src/pkg"), os.FileMode(int(0700)))
 	require.NoError(t, err)
 
-	err = os.MkdirAll(path.Join(tmpDir, "wakatime-cli/.git/worktrees/api"), os.FileMode(int(0700)))
+	err = os.MkdirAll(filepath.Join(tmpDir, "wakatime-cli/.git/worktrees/api"), os.FileMode(int(0700)))
 	require.NoError(t, err)
 
-	err = os.MkdirAll(path.Join(tmpDir, "api/src/pkg"), os.FileMode(int(0700)))
+	err = os.MkdirAll(filepath.Join(tmpDir, "api/src/pkg"), os.FileMode(int(0700)))
 	require.NoError(t, err)
 
 	// Create fake files
-	tmpFile, err := os.Create(path.Join(tmpDir, "wakatime-cli/src/pkg/file.go"))
+	tmpFile, err := os.Create(filepath.Join(tmpDir, "wakatime-cli/src/pkg/file.go"))
 	require.NoError(t, err)
 
 	tmpFile.Close()
 
-	tmpFile, err = os.Create(path.Join(tmpDir, "api/src/pkg/file.go"))
+	tmpFile, err = os.Create(filepath.Join(tmpDir, "api/src/pkg/file.go"))
 	require.NoError(t, err)
 
 	tmpFile.Close()
 
 	// Setup basic git
-	copyFile(t, "testdata/git_basic/config", path.Join(tmpDir, "wakatime-cli/.git/config"))
-	copyFile(t, "testdata/git_worktree/HEAD", path.Join(tmpDir, "wakatime-cli/.git/HEAD"))
+	copyFile(t, "testdata/git_basic/config", filepath.Join(tmpDir, "wakatime-cli/.git/config"))
+	copyFile(t, "testdata/git_worktree/HEAD", filepath.Join(tmpDir, "wakatime-cli/.git/HEAD"))
 
 	// Setup git worktree
-	copyFile(t, "testdata/git_worktree/HEAD2", path.Join(tmpDir, "wakatime-cli/.git/worktrees/api/HEAD"))
-	copyFile(t, "testdata/git_worktree/commondir", path.Join(tmpDir, "wakatime-cli/.git/worktrees/api/commondir"))
+	copyFile(t, "testdata/git_worktree/HEAD2", filepath.Join(tmpDir, "wakatime-cli/.git/worktrees/api/HEAD"))
+	copyFile(t, "testdata/git_worktree/commondir", filepath.Join(tmpDir, "wakatime-cli/.git/worktrees/api/commondir"))
 
-	tmpFile, err = os.Create(path.Join(tmpDir, "api/.git"))
+	tmpFile, err = os.Create(filepath.Join(tmpDir, "api/.git"))
 	require.NoError(t, err)
 
 	defer tmpFile.Close()
@@ -342,47 +344,47 @@ func setupTestGitSubmodule(t *testing.T) (fp string, tearDown func()) {
 	require.NoError(t, err)
 
 	// Create directories
-	err = os.MkdirAll(path.Join(tmpDir, "wakatime-cli/.git/modules/lib/billing"), os.FileMode(int(0700)))
+	err = os.MkdirAll(filepath.Join(tmpDir, "wakatime-cli/.git/modules/lib/billing"), os.FileMode(int(0700)))
 	require.NoError(t, err)
 
-	err = os.MkdirAll(path.Join(tmpDir, "wakatime-cli/src/pkg"), os.FileMode(int(0700)))
+	err = os.MkdirAll(filepath.Join(tmpDir, "wakatime-cli/src/pkg"), os.FileMode(int(0700)))
 	require.NoError(t, err)
 
-	err = os.MkdirAll(path.Join(tmpDir, "wakatime-cli/lib/billing/src/lib"), os.FileMode(int(0700)))
+	err = os.MkdirAll(filepath.Join(tmpDir, "wakatime-cli/lib/billing/src/lib"), os.FileMode(int(0700)))
 	require.NoError(t, err)
 
-	err = os.MkdirAll(path.Join(tmpDir, "billing/.git"), os.FileMode(int(0700)))
+	err = os.MkdirAll(filepath.Join(tmpDir, "billing/.git"), os.FileMode(int(0700)))
 	require.NoError(t, err)
 
-	err = os.MkdirAll(path.Join(tmpDir, "billing/src/lib"), os.FileMode(int(0700)))
+	err = os.MkdirAll(filepath.Join(tmpDir, "billing/src/lib"), os.FileMode(int(0700)))
 	require.NoError(t, err)
 
 	// Create fake files
-	tmpFile, err := os.Create(path.Join(tmpDir, "wakatime-cli/src/pkg/file.go"))
+	tmpFile, err := os.Create(filepath.Join(tmpDir, "wakatime-cli/src/pkg/file.go"))
 	require.NoError(t, err)
 
 	tmpFile.Close()
 
-	tmpFile, err = os.Create(path.Join(tmpDir, "wakatime-cli/lib/billing/src/lib/lib.cpp"))
+	tmpFile, err = os.Create(filepath.Join(tmpDir, "wakatime-cli/lib/billing/src/lib/lib.cpp"))
 	require.NoError(t, err)
 
 	tmpFile.Close()
 
-	tmpFile, err = os.Create(path.Join(tmpDir, "billing/src/lib/lib.cpp"))
+	tmpFile, err = os.Create(filepath.Join(tmpDir, "billing/src/lib/lib.cpp"))
 	require.NoError(t, err)
 
 	tmpFile.Close()
 
 	// Setup basic git
-	copyFile(t, "testdata/git_basic/config", path.Join(tmpDir, "wakatime-cli/.git/config"))
-	copyFile(t, "testdata/git_submodule/HEAD", path.Join(tmpDir, "wakatime-cli/.git/HEAD"))
+	copyFile(t, "testdata/git_basic/config", filepath.Join(tmpDir, "wakatime-cli/.git/config"))
+	copyFile(t, "testdata/git_submodule/HEAD", filepath.Join(tmpDir, "wakatime-cli/.git/HEAD"))
 
 	// Setup git submodule
-	copyFile(t, "testdata/git_basic/config", path.Join(tmpDir, "wakatime-cli/.git/modules/lib/billing/config"))
-	copyFile(t, "testdata/git_submodule/HEAD2", path.Join(tmpDir, "wakatime-cli/.git/modules/lib/billing/HEAD"))
-	copyFile(t, "testdata/git_basic/config", path.Join(tmpDir, "billing/.git/config"))
-	copyFile(t, "testdata/git_submodule/HEAD2", path.Join(tmpDir, "billing/.git/HEAD"))
-	copyFile(t, "testdata/git_submodule/git", path.Join(tmpDir, "wakatime-cli/lib/billing/.git"))
+	copyFile(t, "testdata/git_basic/config", filepath.Join(tmpDir, "wakatime-cli/.git/modules/lib/billing/config"))
+	copyFile(t, "testdata/git_submodule/HEAD2", filepath.Join(tmpDir, "wakatime-cli/.git/modules/lib/billing/HEAD"))
+	copyFile(t, "testdata/git_basic/config", filepath.Join(tmpDir, "billing/.git/config"))
+	copyFile(t, "testdata/git_submodule/HEAD2", filepath.Join(tmpDir, "billing/.git/HEAD"))
+	copyFile(t, "testdata/git_submodule/git", filepath.Join(tmpDir, "wakatime-cli/lib/billing/.git"))
 
 	return tmpDir, func() { os.RemoveAll(tmpDir) }
 }

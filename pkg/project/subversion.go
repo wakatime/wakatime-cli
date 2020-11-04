@@ -3,7 +3,6 @@ package project
 import (
 	"fmt"
 	"os/exec"
-	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -32,7 +31,7 @@ func (s Subversion) Detect() (Result, bool, error) {
 
 	// Take only the directory
 	if fileExists(fp) {
-		fp = path.Dir(fp)
+		fp = filepath.Dir(fp)
 	}
 
 	// Find for .svn/wc.db file
@@ -41,7 +40,7 @@ func (s Subversion) Detect() (Result, bool, error) {
 		return Result{}, false, nil
 	}
 
-	info, ok, err := svnInfo(path.Join(svnConfigFile, ".."), binary)
+	info, ok, err := svnInfo(filepath.Join(svnConfigFile, ".."), binary)
 	if err != nil {
 		return Result{}, false, Err(fmt.Errorf("failed to get svn info: %w", err).Error())
 	}
@@ -50,7 +49,7 @@ func (s Subversion) Detect() (Result, bool, error) {
 		return Result{
 			Project: resolveSvnInfo(info, "Repository Root"),
 			Branch:  resolveSvnInfo(info, "URL"),
-			Folder:  info["Repository Root"],
+			Folder:  strings.Replace(info["Repository Root"], "\r", "", -1),
 		}, true, nil
 	}
 
@@ -58,11 +57,11 @@ func (s Subversion) Detect() (Result, bool, error) {
 }
 
 func findSvnConfigFile(fp string, directory string, match string) (string, bool) {
-	if fileExists(path.Join(fp, directory, match)) {
-		return path.Join(fp, directory), true
+	if fileExists(filepath.Join(fp, directory, match)) {
+		return filepath.Join(fp, directory), true
 	}
 
-	dir := filepath.Clean(path.Join(fp, ".."))
+	dir := filepath.Clean(filepath.Join(fp, ".."))
 	if dir == "/" {
 		return "", false
 	}
@@ -129,7 +128,7 @@ func resolveSvnInfo(info map[string]string, key string) string {
 		parts2 := strings.Split(last, "\\")
 		last2 := parts2[len(parts2)-1]
 
-		return last2
+		return strings.Replace(last2, "\r", "", -1)
 	}
 
 	return ""

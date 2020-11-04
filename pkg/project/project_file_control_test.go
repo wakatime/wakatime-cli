@@ -3,7 +3,7 @@ package project_test
 import (
 	"io/ioutil"
 	"os"
-	"path"
+	"path/filepath"
 	"testing"
 
 	"github.com/wakatime/wakatime-cli/pkg/project"
@@ -21,11 +21,8 @@ func TestWrite(t *testing.T) {
 	err = project.Write(tmpDir, "billing")
 	require.NoError(t, err)
 
-	expected, err := ioutil.ReadFile("testdata/.wakatime-project-only-project")
+	actual, err := ioutil.ReadFile(filepath.Join(tmpDir, ".wakatime-project"))
 	require.NoError(t, err)
 
-	actual, err := ioutil.ReadFile(path.Join(tmpDir, ".wakatime-project"))
-	require.NoError(t, err)
-
-	assert.Equal(t, string(expected), string(actual))
+	assert.Equal(t, string([]byte("billing\n")), string(actual))
 }
