@@ -1,0 +1,18 @@
+on: push
+
+jobs:
+  test:
+    name: Test windows
+    runs-on: windows-latest
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+        with:
+          go-version: "1.14"
+      - name: "Pull dependencies"
+        run: go mod vendor
+      - name: "Unit tests"
+        run: make test
+      - name: "Linter"
+        run: make lint

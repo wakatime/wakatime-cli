@@ -2,10 +2,9 @@ package filter_test
 
 import (
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"os"
-	"path"
+	"path/filepath"
 	"regexp"
 	"testing"
 
@@ -17,10 +16,13 @@ import (
 )
 
 func TestWithFiltering(t *testing.T) {
-	tmpFile, err := ioutil.TempFile(os.TempDir(), "")
+	tmpDir, err := ioutil.TempDir(os.TempDir(), "wakatime")
 	require.NoError(t, err)
 
-	defer os.Remove(tmpFile.Name())
+	defer os.RemoveAll(tmpDir)
+
+	tmpFile, err := ioutil.TempFile(tmpDir, "")
+	require.NoError(t, err)
 
 	first := testHeartbeat()
 	first.Entity = tmpFile.Name()
@@ -77,10 +79,13 @@ func TestWithFiltering_AbortAllFiltered(t *testing.T) {
 }
 
 func TestFilter(t *testing.T) {
-	tmpFile, err := ioutil.TempFile(os.TempDir(), "")
+	tmpDir, err := ioutil.TempDir(os.TempDir(), "wakatime")
 	require.NoError(t, err)
 
-	defer os.Remove(tmpFile.Name())
+	defer os.RemoveAll(tmpDir)
+
+	tmpFile, err := ioutil.TempFile(tmpDir, "")
+	require.NoError(t, err)
 
 	h := testHeartbeat()
 	h.Entity = tmpFile.Name()
@@ -101,10 +106,13 @@ func TestFilter_NonFileTypeEmptyEntity(t *testing.T) {
 }
 
 func TestFilter_IncludeMatchOverwritesExcludeMatch(t *testing.T) {
-	tmpFile, err := ioutil.TempFile(os.TempDir(), "")
+	tmpDir, err := ioutil.TempDir(os.TempDir(), "wakatime")
 	require.NoError(t, err)
 
-	defer os.Remove(tmpFile.Name())
+	defer os.RemoveAll(tmpDir)
+
+	tmpFile, err := ioutil.TempFile(tmpDir, "")
+	require.NoError(t, err)
 
 	h := testHeartbeat()
 	h.Entity = tmpFile.Name()
@@ -121,24 +129,27 @@ func TestFilter_IncludeMatchOverwritesExcludeMatch(t *testing.T) {
 }
 
 func TestFilter_ErrMatchesExcludePattern(t *testing.T) {
-	tmpFile, err := ioutil.TempFile(os.TempDir(), "")
+	tmpDir, err := ioutil.TempDir(os.TempDir(), "wakatime")
 	require.NoError(t, err)
 
-	defer os.Remove(tmpFile.Name())
+	defer os.RemoveAll(tmpDir)
+
+	tmpFile, err := ioutil.TempFile(tmpDir, "exclude-this-file")
+	require.NoError(t, err)
 
 	h := testHeartbeat()
 	h.Entity = tmpFile.Name()
 
 	err = filter.Filter(h, filter.Config{
 		Exclude: []*regexp.Regexp{
-			regexp.MustCompile("^" + tmpFile.Name() + "$"),
+			regexp.MustCompile("^.*exclude-this-file.*$"),
 		},
 	})
 
 	var errv filter.Err
 
 	assert.True(t, errors.As(err, &errv))
-	assert.Equal(t, filter.Err(fmt.Sprintf("skipping because matches exclude pattern \"^%s$\"", tmpFile.Name())), errv)
+	assert.Equal(t, filter.Err("skipping because matches exclude pattern \"^.*exclude-this-file.*$\""), errv)
 }
 
 func TestFilter_ErrUnknownProject(t *testing.T) {
@@ -149,10 +160,13 @@ func TestFilter_ErrUnknownProject(t *testing.T) {
 
 	for name, projectValue := range tests {
 		t.Run(name, func(t *testing.T) {
-			tmpFile, err := ioutil.TempFile(os.TempDir(), "")
+			tmpDir, err := ioutil.TempDir(os.TempDir(), "wakatime")
 			require.NoError(t, err)
 
-			defer os.Remove(tmpFile.Name())
+			defer os.RemoveAll(tmpDir)
+
+			tmpFile, err := ioutil.TempFile(tmpDir, "")
+			require.NoError(t, err)
 
 			h := testHeartbeat()
 			h.Entity = tmpFile.Name()
@@ -181,15 +195,16 @@ func TestFilter_ErrNonExistingFile(t *testing.T) {
 }
 
 func TestFilter_ExistingProjectFile(t *testing.T) {
-	tmpFile, err := ioutil.TempFile(os.TempDir(), "")
+	tmpDir, err := ioutil.TempDir(os.TempDir(), "wakatime")
 	require.NoError(t, err)
 
-	defer os.Remove(tmpFile.Name())
+	defer os.RemoveAll(tmpDir)
 
-	projectFile, err := os.Create(path.Join(os.TempDir(), ".wakatime-project"))
+	tmpFile, err := ioutil.TempFile(tmpDir, "")
 	require.NoError(t, err)
 
-	defer os.Remove(projectFile.Name())
+	_, err = os.Create(filepath.Join(tmpDir, ".wakatime-project"))
+	require.NoError(t, err)
 
 	h := testHeartbeat()
 	h.Entity = tmpFile.Name()
@@ -201,10 +216,13 @@ func TestFilter_ExistingProjectFile(t *testing.T) {
 }
 
 func TestFilter_ErrNonExistingProjectFile(t *testing.T) {
-	tmpFile, err := ioutil.TempFile(os.TempDir(), "")
+	tmpDir, err := ioutil.TempDir(os.TempDir(), "wakatime")
 	require.NoError(t, err)
 
-	defer os.Remove(tmpFile.Name())
+	defer os.RemoveAll(tmpDir)
+
+	tmpFile, err := ioutil.TempFile(tmpDir, "")
+	require.NoError(t, err)
 
 	h := testHeartbeat()
 	h.Entity = tmpFile.Name()

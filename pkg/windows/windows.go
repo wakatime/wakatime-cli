@@ -122,7 +122,7 @@ func parseNetUseOutput(text string) (remoteDrives, error) {
 		err  error
 	)
 
-	lines := strings.Split(strings.Replace(text, "\r\n", "\n", -1), "\n")
+	lines := strings.Split(strings.ReplaceAll(text, "\r\n", "\n"), "\n")
 
 	drives := make(remoteDrives)
 

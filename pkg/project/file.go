@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/yookoala/realpath"
@@ -50,18 +50,20 @@ func (f File) Detect() (Result, bool, error) {
 
 // FindFile find for .wakatime-project file in the given path.
 func FindFile(fp string) (string, bool, error) {
-	fp, err := realpath.Realpath(fp)
+	resolved, err := realpath.Realpath(fp)
 	if err != nil {
-		return "", false, Err(fmt.Errorf("failed to get the real path: %w", err).Error())
+		return "", false, Err(fmt.Sprintf("failed to get the real path for file %q: %s", fp, err))
 	}
 
-	dir, _ := path.Split(fp)
-	if fileExists(path.Join(dir, defaultProjectFile)) {
-		fp = path.Join(dir, defaultProjectFile)
+	fp = resolved
+
+	dir, _ := filepath.Split(fp)
+	if fileExists(filepath.Join(dir, defaultProjectFile)) {
+		fp = filepath.Join(dir, defaultProjectFile)
 		return fp, true, nil
 	}
 
-	dir, file := path.Split(fp)
+	dir, file := filepath.Split(fp)
 	if len(file) == 0 {
 		return "", false, nil
 	}

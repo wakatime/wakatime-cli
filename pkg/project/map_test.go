@@ -20,12 +20,8 @@ func TestMap_Detect(t *testing.T) {
 		Filepath: "testdata/entity.any",
 		Patterns: []project.MapPattern{
 			{
-				Name: "my-project-1",
-				Regex: func() *regexp.Regexp {
-					r, err := regexp.Compile(filepath.Join(wd, "testdata"))
-					require.NoError(t, err)
-					return r
-				}(),
+				Name:  "my-project-1",
+				Regex: regexp.MustCompile(formatRegex(filepath.Join(wd, "testdata"))),
 			},
 		},
 	}
@@ -42,23 +38,15 @@ func TestMap_Detect_RegexReplace(t *testing.T) {
 	require.NoError(t, err)
 
 	m := project.Map{
-		Filepath: "testdata/entity.any",
+		Filepath: filepath.Join("testdata", "entity.any"),
 		Patterns: []project.MapPattern{
 			{
-				Name: "my-project-1",
-				Regex: func() *regexp.Regexp {
-					r, err := regexp.Compile(filepath.Join(wd, "path/to/otherfolder"))
-					require.NoError(t, err)
-					return r
-				}(),
+				Name:  "my-project-1",
+				Regex: regexp.MustCompile(formatRegex(filepath.Join(wd, "path", "to", "otherfolder"))),
 			},
 			{
-				Name: "my-project-2-{0}",
-				Regex: func() *regexp.Regexp {
-					r, err := regexp.Compile(filepath.Join(wd, "test(\\w+)"))
-					require.NoError(t, err)
-					return r
-				}(),
+				Name:  "my-project-2-{0}",
+				Regex: regexp.MustCompile(formatRegex(filepath.Join(wd, `test([a-zA-Z]+)`))),
 			},
 		},
 	}
@@ -78,20 +66,12 @@ func TestMap_Detect_NoMatch(t *testing.T) {
 		Filepath: "testdata/entity.any",
 		Patterns: []project.MapPattern{
 			{
-				Name: "my_project_1",
-				Regex: func() *regexp.Regexp {
-					r, err := regexp.Compile(filepath.Join(wd, "path/to/otherfolder"))
-					require.NoError(t, err)
-					return r
-				}(),
+				Name:  "my_project_1",
+				Regex: regexp.MustCompile(formatRegex(filepath.Join(wd, "path", "to", "otherfolder"))),
 			},
 			{
-				Name: "my_project_2",
-				Regex: func() *regexp.Regexp {
-					r, err := regexp.Compile(filepath.Join(wd, "path/to/temp"))
-					require.NoError(t, err)
-					return r
-				}(),
+				Name:  "my_project_2",
+				Regex: regexp.MustCompile(formatRegex(filepath.Join(wd, "path", "to", "temp"))),
 			},
 		},
 	}

@@ -4,7 +4,7 @@ import (
 	"errors"
 	"io/ioutil"
 	"os"
-	"path"
+	"path/filepath"
 	"testing"
 
 	"github.com/wakatime/wakatime-cli/pkg/config"
@@ -59,19 +59,19 @@ func TestFilePath(t *testing.T) {
 		Expected   string
 	}{
 		"default": {
-			Expected: path.Join(home, ".wakatime.cfg"),
+			Expected: filepath.Join(home, ".wakatime.cfg"),
 		},
 		"viper": {
 			ViperValue: "~/path/.wakatime.cfg",
-			Expected:   path.Join(home, "/path/.wakatime.cfg"),
+			Expected:   filepath.Join(home, "path", ".wakatime.cfg"),
 		},
 		"env_trailling_slash": {
 			EnvVar:   "~/path2/",
-			Expected: path.Join(home, "/path2/.wakatime.cfg"),
+			Expected: filepath.Join(home, "path2", ".wakatime.cfg"),
 		},
 		"env_without_trailling_slash": {
 			EnvVar:   "~/path2",
-			Expected: path.Join(home, "/path2/.wakatime.cfg"),
+			Expected: filepath.Join(home, "path2", ".wakatime.cfg"),
 		},
 	}
 
