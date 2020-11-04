@@ -241,8 +241,8 @@ func TestWithQueue_InvalidResults(t *testing.T) {
 				Heartbeat: testHeartbeats()[0],
 			},
 			{
-				Status:    403,
-				Heartbeat: testHeartbeats()[1],
+				Status: 429,
+				Errors: []string{"Too many heartbeats"},
 			},
 		}, nil
 	})
@@ -256,8 +256,8 @@ func TestWithQueue_InvalidResults(t *testing.T) {
 			Heartbeat: testHeartbeats()[0],
 		},
 		{
-			Status:    403,
-			Heartbeat: testHeartbeats()[1],
+			Status: 429,
+			Errors: []string{"Too many heartbeats"},
 		},
 	}, results)
 
