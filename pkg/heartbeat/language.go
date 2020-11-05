@@ -101,6 +101,8 @@ const (
 	LanguageMarkdown
 	// LanguageMarko represents the Marko programming language.
 	LanguageMarko
+	// LanguageMatlab represents the Matlab programming language.
+	LanguageMatlab
 	// LanguageModelica represents the Modelica programming language.
 	LanguageModelica
 	// LanguageModula represents the Modula programming language.
@@ -264,6 +266,7 @@ const (
 	languageMakoStr              = "Mako"
 	languageMarkdownStr          = "Markdown"
 	languageMarkoStr             = "Marko"
+	languageMatlabStr            = "Matlab"
 	languageModelicaStr          = "Modelica"
 	languageModulaStr            = "Modula-2"
 	languageMustacheStr          = "Mustache"
@@ -426,6 +429,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageMarkdown, true
 	case languageMarkoStr:
 		return LanguageMarko, true
+	case languageMatlabStr:
+		return LanguageMatlab, true
 	case languageModelicaStr:
 		return LanguageModelica, true
 	case languageModulaStr:
@@ -622,6 +627,8 @@ func ParseLanguageFromChroma(lexerName string) (Language, bool) {
 		return LanguageMako, true
 	case languageMarkdownChromaStr:
 		return LanguageMarkdown, true
+	case languageMatlabStr:
+		return LanguageMatlab, true
 	case languageModulaStr:
 		return LanguageModula, true
 	case languageNixStr:
@@ -818,6 +825,8 @@ func (l Language) String() string {
 		return languageMarkdownStr
 	case LanguageMarko:
 		return languageMarkoStr
+	case LanguageMatlab:
+		return languageMatlabStr
 	case LanguageModelica:
 		return languageModelicaStr
 	case LanguageModula:
