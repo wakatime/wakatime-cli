@@ -252,14 +252,12 @@ func LoadParams(v *viper.Viper) (Params, error) {
 }
 
 func readExtraHeartbeats() ([]heartbeat.Heartbeat, error) {
-	var heartbeats []heartbeat.Heartbeat
-
 	data, err := ioutil.ReadAll(os.Stdin)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read data from stdin: %s", err)
 	}
 
-	errFirst := json.Unmarshal(data, &heartbeats)
+	heartbeats, errFirst := parseExtraHeartbeat(data)
 	if errFirst == nil {
 		return heartbeats, nil
 	}
@@ -277,6 +275,53 @@ func readExtraHeartbeats() ([]heartbeat.Heartbeat, error) {
 	return heartbeats, nil
 }
 
+func parseExtraHeartbeat(data []byte) ([]heartbeat.Heartbeat, error) {
+	var incoming []struct {
+		Category       heartbeat.Category   `json:"category"`
+		CursorPosition *int                 `json:"cursorpos"`
+		Entity         string               `json:"entity"`
+		EntityType     heartbeat.EntityType `json:"type"`
+		IsWrite        *bool                `json:"is_write"`
+		LineNumber     *int                 `json:"lineno"`
+		Time           float64              `json:"time"`
+		Timestamp      float64              `json:"timestamp"`
+		UserAgent      string               `json:"user_agent"`
+	}
+
+	err := json.Unmarshal(data, &incoming)
+	if err != nil {
+		return nil, fmt.Errorf("failed to json decode from data %q: %s", string(data), err)
+	}
+
+	var heartbeats []heartbeat.Heartbeat
+
+	for _, h := range incoming {
+		var timestamp float64
+
+		switch {
+		case h.Time != 0:
+			timestamp = h.Time
+		case h.Timestamp != 0:
+			timestamp = h.Timestamp
+		default:
+			return nil, fmt.Errorf("skipping extra heartbeat, as no valid timestamp was defined")
+		}
+
+		heartbeats = append(heartbeats, heartbeat.Heartbeat{
+			Category:       h.Category,
+			CursorPosition: h.CursorPosition,
+			Entity:         h.Entity,
+			EntityType:     h.EntityType,
+			IsWrite:        h.IsWrite,
+			LineNumber:     h.LineNumber,
+			Time:           timestamp,
+			UserAgent:      h.UserAgent,
+		})
+	}
+
+	return heartbeats, nil
+}
+
 func parseExtraHeartbeatWithStringValues(data []byte) ([]heartbeat.Heartbeat, error) {
 	var incoming []struct {
 		Category       heartbeat.Category   `json:"category"`
@@ -286,6 +331,7 @@ func parseExtraHeartbeatWithStringValues(data []byte) ([]heartbeat.Heartbeat, er
 		IsWrite        *bool                `json:"is_write"`
 		LineNumber     *string              `json:"lineno"`
 		Time           float64              `json:"time"`
+		Timestamp      float64              `json:"timestamp"`
 		UserAgent      string               `json:"user_agent"`
 	}
 
@@ -319,6 +365,17 @@ func parseExtraHeartbeatWithStringValues(data []byte) ([]heartbeat.Heartbeat, er
 			lineNumber = &parsed
 		}
 
+		var timestamp float64
+
+		switch {
+		case h.Time != 0:
+			timestamp = h.Time
+		case h.Timestamp != 0:
+			timestamp = h.Timestamp
+		default:
+			return nil, fmt.Errorf("skipping extra heartbeat, as no valid timestamp was defined")
+		}
+
 		heartbeats = append(heartbeats, heartbeat.Heartbeat{
 			Category:       h.Category,
 			CursorPosition: cursorPosition,
@@ -326,7 +383,7 @@ func parseExtraHeartbeatWithStringValues(data []byte) ([]heartbeat.Heartbeat, er
 			EntityType:     h.EntityType,
 			IsWrite:        h.IsWrite,
 			LineNumber:     lineNumber,
-			Time:           h.Time,
+			Time:           timestamp,
 			UserAgent:      h.UserAgent,
 		})
 	}
