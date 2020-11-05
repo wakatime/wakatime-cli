@@ -5,11 +5,11 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"regexp"
 	"testing"
 
 	"github.com/wakatime/wakatime-cli/pkg/filter"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/regex"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -118,11 +118,11 @@ func TestFilter_IncludeMatchOverwritesExcludeMatch(t *testing.T) {
 	h.Entity = tmpFile.Name()
 
 	err = filter.Filter(h, filter.Config{
-		Exclude: []*regexp.Regexp{
-			regexp.MustCompile(".*main.go$"),
+		Exclude: []regex.Regex{
+			regex.MustCompile(".*main.go$"),
 		},
-		Include: []*regexp.Regexp{
-			regexp.MustCompile(".*/tmp/.*"),
+		Include: []regex.Regex{
+			regex.MustCompile(".*/tmp/.*"),
 		},
 	})
 	require.NoError(t, err)
@@ -141,8 +141,8 @@ func TestFilter_ErrMatchesExcludePattern(t *testing.T) {
 	h.Entity = tmpFile.Name()
 
 	err = filter.Filter(h, filter.Config{
-		Exclude: []*regexp.Regexp{
-			regexp.MustCompile("^.*exclude-this-file.*$"),
+		Exclude: []regex.Regex{
+			regex.MustCompile("^.*exclude-this-file.*$"),
 		},
 	})
 

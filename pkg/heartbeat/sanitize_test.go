@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/regex"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -12,7 +13,7 @@ import (
 
 func TestWithSanitization_ObfuscateFile(t *testing.T) {
 	opt := heartbeat.WithSanitization(heartbeat.SanitizeConfig{
-		FilePatterns: []*regexp.Regexp{regexp.MustCompile(".*")},
+		FilePatterns: []regex.Regex{regexp.MustCompile(".*")},
 	})
 
 	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
@@ -115,7 +116,7 @@ func TestSanitize_Obfuscate(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			r := heartbeat.Sanitize(test.Heartbeat, heartbeat.SanitizeConfig{
-				FilePatterns: []*regexp.Regexp{regexp.MustCompile(".*")},
+				FilePatterns: []regex.Regex{regexp.MustCompile(".*")},
 			})
 
 			assert.Equal(t, test.Expected, r)
@@ -125,8 +126,8 @@ func TestSanitize_Obfuscate(t *testing.T) {
 
 func TestSanitize_ObfuscateFile_SkipBranchIfNotMatching(t *testing.T) {
 	r := heartbeat.Sanitize(testHeartbeat(), heartbeat.SanitizeConfig{
-		FilePatterns:   []*regexp.Regexp{regexp.MustCompile(".*")},
-		BranchPatterns: []*regexp.Regexp{regexp.MustCompile("not_matching")},
+		FilePatterns:   []regex.Regex{regexp.MustCompile(".*")},
+		BranchPatterns: []regex.Regex{regexp.MustCompile("not_matching")},
 	})
 
 	assert.Equal(t, heartbeat.Heartbeat{
@@ -147,8 +148,8 @@ func TestSanitize_ObfuscateFile_NilFields(t *testing.T) {
 	h.Branch = nil
 
 	r := heartbeat.Sanitize(h, heartbeat.SanitizeConfig{
-		FilePatterns:   []*regexp.Regexp{regexp.MustCompile(".*")},
-		BranchPatterns: []*regexp.Regexp{regexp.MustCompile(".*")},
+		FilePatterns:   []regex.Regex{regexp.MustCompile(".*")},
+		BranchPatterns: []regex.Regex{regexp.MustCompile(".*")},
 	})
 
 	assert.Equal(t, heartbeat.Heartbeat{
@@ -165,7 +166,7 @@ func TestSanitize_ObfuscateFile_NilFields(t *testing.T) {
 
 func TestSanitize_ObfuscateProject(t *testing.T) {
 	r := heartbeat.Sanitize(testHeartbeat(), heartbeat.SanitizeConfig{
-		ProjectPatterns: []*regexp.Regexp{regexp.MustCompile(".*")},
+		ProjectPatterns: []regex.Regex{regexp.MustCompile(".*")},
 	})
 
 	assert.Equal(t, heartbeat.Heartbeat{
@@ -182,8 +183,8 @@ func TestSanitize_ObfuscateProject(t *testing.T) {
 
 func TestSanitize_ObfuscateProject_SkipBranchIfNotMatching(t *testing.T) {
 	r := heartbeat.Sanitize(testHeartbeat(), heartbeat.SanitizeConfig{
-		ProjectPatterns: []*regexp.Regexp{regexp.MustCompile(".*")},
-		BranchPatterns:  []*regexp.Regexp{regexp.MustCompile("not_matching")},
+		ProjectPatterns: []regex.Regex{regexp.MustCompile(".*")},
+		BranchPatterns:  []regex.Regex{regexp.MustCompile("not_matching")},
 	})
 
 	assert.Equal(t, heartbeat.Heartbeat{
@@ -204,8 +205,8 @@ func TestSanitize_ObfuscateProject_NilFields(t *testing.T) {
 	h.Branch = nil
 
 	r := heartbeat.Sanitize(h, heartbeat.SanitizeConfig{
-		ProjectPatterns: []*regexp.Regexp{regexp.MustCompile(".*")},
-		BranchPatterns:  []*regexp.Regexp{regexp.MustCompile(".*")},
+		ProjectPatterns: []regex.Regex{regexp.MustCompile(".*")},
+		BranchPatterns:  []regex.Regex{regexp.MustCompile(".*")},
 	})
 
 	assert.Equal(t, heartbeat.Heartbeat{
@@ -222,7 +223,7 @@ func TestSanitize_ObfuscateProject_NilFields(t *testing.T) {
 
 func TestSanitize_ObfuscateBranch(t *testing.T) {
 	r := heartbeat.Sanitize(testHeartbeat(), heartbeat.SanitizeConfig{
-		BranchPatterns: []*regexp.Regexp{regexp.MustCompile(".*")},
+		BranchPatterns: []regex.Regex{regexp.MustCompile(".*")},
 	})
 
 	assert.Equal(t, heartbeat.Heartbeat{
@@ -247,7 +248,7 @@ func TestSanitize_ObfuscateBranch_NilFields(t *testing.T) {
 	h.Project = nil
 
 	r := heartbeat.Sanitize(h, heartbeat.SanitizeConfig{
-		BranchPatterns: []*regexp.Regexp{regexp.MustCompile(".*")},
+		BranchPatterns: []regex.Regex{regexp.MustCompile(".*")},
 	})
 
 	assert.Equal(t, heartbeat.Heartbeat{
@@ -310,19 +311,19 @@ func TestSanitize_EmptyConfigDoNothing_EmptyDependencies(t *testing.T) {
 func TestSouldSanitize(t *testing.T) {
 	tests := map[string]struct {
 		Subject  string
-		Regex    []*regexp.Regexp
+		Regex    []regex.Regex
 		Expected bool
 	}{
 		"match_single": {
 			Subject: "fix.123",
-			Regex: []*regexp.Regexp{
+			Regex: []regex.Regex{
 				regexp.MustCompile("fix.*"),
 			},
 			Expected: true,
 		},
 		"match_multiple": {
 			Subject: "fix.456",
-			Regex: []*regexp.Regexp{
+			Regex: []regex.Regex{
 				regexp.MustCompile("bar.*"),
 				regexp.MustCompile("fix.*"),
 			},
@@ -330,7 +331,7 @@ func TestSouldSanitize(t *testing.T) {
 		},
 		"not_match": {
 			Subject: "foo",
-			Regex: []*regexp.Regexp{
+			Regex: []regex.Regex{
 				regexp.MustCompile("bar.*"),
 				regexp.MustCompile("fix.*"),
 			},

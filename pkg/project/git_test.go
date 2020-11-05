@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/wakatime/wakatime-cli/pkg/project"
+	"github.com/wakatime/wakatime-cli/pkg/regex"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -142,7 +143,7 @@ func TestGit_Detect_Submodule(t *testing.T) {
 
 	g := project.Git{
 		Filepath:          filepath.Join(fp, "wakatime-cli/lib/billing/src/lib/lib.cpp"),
-		SubmodulePatterns: []*regexp.Regexp{regexp.MustCompile("not_matching")},
+		SubmodulePatterns: []regex.Regex{regexp.MustCompile("not_matching")},
 	}
 
 	result, detected, err := g.Detect()
@@ -163,7 +164,7 @@ func TestGit_Detect_SubmoduleDisabled(t *testing.T) {
 
 	g := project.Git{
 		Filepath:          filepath.Join(fp, "wakatime-cli/lib/billing/src/lib/lib.cpp"),
-		SubmodulePatterns: []*regexp.Regexp{regexp.MustCompile(".*billing.*")},
+		SubmodulePatterns: []regex.Regex{regexp.MustCompile(".*billing.*")},
 	}
 
 	result, detected, err := g.Detect()

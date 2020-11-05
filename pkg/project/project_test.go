@@ -4,13 +4,13 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"regexp"
 	"runtime"
 	"strings"
 	"testing"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/project"
+	"github.com/wakatime/wakatime-cli/pkg/regex"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -152,11 +152,11 @@ func TestDetect_MapDetected(t *testing.T) {
 	patterns := []project.MapPattern{
 		{
 			Name:  "my-project-1",
-			Regex: regexp.MustCompile(formatRegex(filepath.Join(tmpDir, "path", "to", "otherfolder"))),
+			Regex: regex.MustCompile(formatRegex(filepath.Join(tmpDir, "path", "to", "otherfolder"))),
 		},
 		{
 			Name:  "my-{0}-project",
-			Regex: regexp.MustCompile(formatRegex(filepath.Join(tmpDir, "waka-([a-z]+)"))),
+			Regex: regex.MustCompile(formatRegex(filepath.Join(tmpDir, "waka-([a-z]+)"))),
 		},
 	}
 
@@ -172,7 +172,9 @@ func TestDetectWithRevControl_GitDetected(t *testing.T) {
 
 	result := project.DetectWithRevControl(
 		filepath.Join(fp, "wakatime-cli/src/pkg/file.go"),
-		[]*regexp.Regexp{}, false)
+		[]regex.Regex{},
+		false,
+	)
 
 	assert.Contains(t, result.Folder, filepath.Join(fp, "wakatime-cli"))
 	assert.Equal(t, project.Result{

@@ -14,6 +14,7 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/api"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/project"
+	"github.com/wakatime/wakatime-cli/pkg/regex"
 	"github.com/wakatime/wakatime-cli/pkg/vipertools"
 
 	jww "github.com/spf13/jwalterweatherman"
@@ -56,9 +57,9 @@ type Params struct {
 
 // FilterParams contains heartbeat filtering related command parameters.
 type FilterParams struct {
-	Exclude                    []*regexp.Regexp
+	Exclude                    []regex.Regex
 	ExcludeUnknownProject      bool
-	Include                    []*regexp.Regexp
+	Include                    []regex.Regex
 	IncludeOnlyWithProjectFile bool
 }
 
@@ -78,16 +79,16 @@ type NetworkParams struct {
 // ProjectParams params for project name sanitization.
 type ProjectParams struct {
 	Alternate        string
-	DisableSubmodule []*regexp.Regexp
+	DisableSubmodule []regex.Regex
 	MapPatterns      []project.MapPattern
 	Override         string
 }
 
 // SanitizeParams params for heartbeat sanitization.
 type SanitizeParams struct {
-	HideBranchNames  []*regexp.Regexp
-	HideFileNames    []*regexp.Regexp
-	HideProjectNames []*regexp.Regexp
+	HideBranchNames  []regex.Regex
+	HideFileNames    []regex.Regex
+	HideProjectNames []regex.Regex
 }
 
 // LoadParams loads heartbeat config params from viper.Viper instance. Returns ErrAuth
@@ -338,10 +339,10 @@ func loadFilterParams(v *viper.Viper) FilterParams {
 	exclude = append(exclude, v.GetStringSlice("settings.exclude")...)
 	exclude = append(exclude, v.GetStringSlice("settings.ignore")...)
 
-	var excludePatterns []*regexp.Regexp
+	var excludePatterns []regex.Regex
 
 	for _, s := range exclude {
-		compiled, err := regexp.Compile(s)
+		compiled, err := regex.Compile(s)
 		if err != nil {
 			jww.WARN.Printf("failed to compile exclude regex pattern %q", s)
 			continue
@@ -353,10 +354,10 @@ func loadFilterParams(v *viper.Viper) FilterParams {
 	include := v.GetStringSlice("include")
 	include = append(include, v.GetStringSlice("settings.include")...)
 
-	var includePatterns []*regexp.Regexp
+	var includePatterns []regex.Regex
 
 	for _, s := range include {
-		compiled, err := regexp.Compile(s)
+		compiled, err := regex.Compile(s)
 		if err != nil {
 			jww.WARN.Printf("failed to compile include regex pattern %q", s)
 			continue
@@ -522,8 +523,8 @@ func loadProjectParams(v *viper.Viper) (ProjectParams, error) {
 	}, nil
 }
 
-func parseBoolOrRegexList(s string) ([]*regexp.Regexp, error) {
-	var patterns []*regexp.Regexp
+func parseBoolOrRegexList(s string) ([]regex.Regex, error) {
+	var patterns []regex.Regex
 
 	switch {
 	case s == "":
@@ -531,11 +532,11 @@ func parseBoolOrRegexList(s string) ([]*regexp.Regexp, error) {
 	case strings.ToLower(s) == "false":
 		break
 	case strings.ToLower(s) == "true":
-		patterns = []*regexp.Regexp{matchAllRegex}
+		patterns = []regex.Regex{matchAllRegex}
 	default:
 		splitted := strings.Split(s, "\n")
 		for _, s := range splitted {
-			compiled, err := regexp.Compile(s)
+			compiled, err := regex.Compile(s)
 			if err != nil {
 				return nil, fmt.Errorf("failed to compile regex %q: %s", s, err)
 			}

@@ -2,19 +2,20 @@ package heartbeat
 
 import (
 	"path/filepath"
-	"regexp"
+
+	"github.com/wakatime/wakatime-cli/pkg/regex"
 )
 
 // SanitizeConfig defines how a heartbeat should be sanitized.
 type SanitizeConfig struct {
 	// BranchPatterns will be matched against the branch and if matching, will obfuscate it.
-	BranchPatterns []*regexp.Regexp
+	BranchPatterns []regex.Regex
 	// FilePatterns will be matched against a file entities name and if matching, will obfuscate
 	// the file name and common heartbeat meta data (cursor position, dependencies, line number and lines).
-	FilePatterns []*regexp.Regexp
+	FilePatterns []regex.Regex
 	// ProjectPatterns will be matched against the project name and if matching, will obfuscate
 	// common heartbeat meta data (cursor position, dependencies, line number and lines).
-	ProjectPatterns []*regexp.Regexp
+	ProjectPatterns []regex.Regex
 }
 
 // WithSanitization initializes and returns a heartbeat handle option, which
@@ -76,7 +77,7 @@ func santizeMetaData(h Heartbeat) Heartbeat {
 // ShouldSanitize checks a subject (entity, project, branch) of a heartbeat and
 // checks it against the passed in regex patterns to determine, if this heartbeat
 // should be sanitized.
-func ShouldSanitize(subject string, patterns []*regexp.Regexp) bool {
+func ShouldSanitize(subject string, patterns []regex.Regex) bool {
 	for _, p := range patterns {
 		if p.MatchString(subject) {
 			return true

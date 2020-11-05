@@ -4,19 +4,19 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"regexp"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/project"
+	"github.com/wakatime/wakatime-cli/pkg/regex"
 
 	jww "github.com/spf13/jwalterweatherman"
 )
 
 // Config contains filtering configurations.
 type Config struct {
-	Exclude                    []*regexp.Regexp
+	Exclude                    []regex.Regex
 	ExcludeUnknownProject      bool
-	Include                    []*regexp.Regexp
+	Include                    []regex.Regex
 	IncludeOnlyWithProjectFile bool
 }
 
@@ -81,7 +81,7 @@ func Filter(h heartbeat.Heartbeat, config Config) error {
 // filterByPattern determines if a heartbeat should be skipped by checking an
 // entity against include and exclude patterns. Include will override exclude.
 // Returns Err to signal to the caller to skip the heartbeat.
-func filterByPattern(entity string, include, exclude []*regexp.Regexp) error {
+func filterByPattern(entity string, include, exclude []regex.Regex) error {
 	if entity == "" {
 		return nil
 	}

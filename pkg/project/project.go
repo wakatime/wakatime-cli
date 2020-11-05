@@ -2,12 +2,12 @@ package project
 
 import (
 	"math/rand"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/regex"
 
 	jww "github.com/spf13/jwalterweatherman"
 )
@@ -34,7 +34,7 @@ type Config struct {
 	// Patterns contains the overridden project name per path.
 	MapPatterns []MapPattern
 	// SubmodulePatterns contains the paths to validate for submodules.
-	SubmodulePatterns []*regexp.Regexp
+	SubmodulePatterns []regex.Regex
 	// ShouldObfuscateProject determines if the project name should be obfuscated according some rules.
 	ShouldObfuscateProject bool
 }
@@ -44,7 +44,7 @@ type MapPattern struct {
 	// Name is the project name.
 	Name string
 	// Regex is the regular expression for a specific path.
-	Regex *regexp.Regexp
+	Regex regex.Regex
 }
 
 // WithDetection finds the current project and branch.
@@ -116,7 +116,7 @@ func Detect(entity string, patterns []MapPattern) (project, branch string) {
 }
 
 // DetectWithRevControl finds the current project and branch from rev control.
-func DetectWithRevControl(entity string, submodulePatterns []*regexp.Regexp, shouldObfuscate bool) Result {
+func DetectWithRevControl(entity string, submodulePatterns []regex.Regex, shouldObfuscate bool) Result {
 	var revControlPlugins []Detecter = []Detecter{
 		Git{
 			Filepath:          entity,

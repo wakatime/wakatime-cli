@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"regexp"
+	"strings"
 	"testing"
 	"time"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/api"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/project"
+	"github.com/wakatime/wakatime-cli/pkg/regex"
 
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
@@ -755,7 +757,7 @@ func TestLoadParams_Project_Unset(t *testing.T) {
 func TestLoadParams_ProjectMap(t *testing.T) {
 	tests := map[string]struct {
 		Entity   string
-		Regex    *regexp.Regexp
+		Regex    regex.Regex
 		Project  string
 		Expected []project.MapPattern
 	}{
@@ -859,14 +861,13 @@ func TestLoadParams_Filter_Exclude(t *testing.T) {
 	params, err := cmd.LoadParams(v)
 	require.NoError(t, err)
 
-	assert.Equal(t, []*regexp.Regexp{
-		regexp.MustCompile(".*"),
-		regexp.MustCompile("wakatime.*"),
-		regexp.MustCompile(".+"),
-		regexp.MustCompile("wakatime.+"),
-		regexp.MustCompile(".?"),
-		regexp.MustCompile("wakatime.?"),
-	}, params.Filter.Exclude)
+	require.Len(t, params.Filter.Exclude, 6)
+	assert.Equal(t, ".*", params.Filter.Exclude[0].String())
+	assert.Equal(t, "wakatime.*", params.Filter.Exclude[1].String())
+	assert.Equal(t, ".+", params.Filter.Exclude[2].String())
+	assert.Equal(t, "wakatime.+", params.Filter.Exclude[3].String())
+	assert.Equal(t, ".?", params.Filter.Exclude[4].String())
+	assert.Equal(t, "wakatime.?", params.Filter.Exclude[5].String())
 }
 
 func TestLoadParams_Filter_Exclude_IgnoresInvalidRegex(t *testing.T) {
@@ -878,7 +879,30 @@ func TestLoadParams_Filter_Exclude_IgnoresInvalidRegex(t *testing.T) {
 	params, err := cmd.LoadParams(v)
 	require.NoError(t, err)
 
-	assert.Equal(t, []*regexp.Regexp{regexp.MustCompile(".*")}, params.Filter.Exclude)
+	require.Len(t, params.Filter.Exclude, 1)
+	assert.Equal(t, ".*", params.Filter.Exclude[0].String())
+}
+
+func TestLoadParams_Filter_Exclude_PerlRegexPatterns(t *testing.T) {
+	tests := map[string]string{
+		"negative lookahead": `^/var/(?!www/).*`,
+		"positive lookahead": `^/var/(?=www/).*`,
+	}
+
+	for name, pattern := range tests {
+		t.Run(name, func(t *testing.T) {
+			v := viper.New()
+			v.Set("key", "00000000-0000-4000-8000-000000000000")
+			v.Set("entity", "/path/to/file")
+			v.Set("exclude", []string{pattern})
+
+			params, err := cmd.LoadParams(v)
+			require.NoError(t, err)
+
+			require.Len(t, params.Filter.Exclude, 1)
+			assert.Equal(t, pattern, params.Filter.Exclude[0].String())
+		})
+	}
 }
 
 func TestLoadParams_Filter_ExcludeUnknownProject(t *testing.T) {
@@ -916,12 +940,11 @@ func TestLoadParams_Filter_Include(t *testing.T) {
 	params, err := cmd.LoadParams(v)
 	require.NoError(t, err)
 
-	assert.Equal(t, []*regexp.Regexp{
-		regexp.MustCompile(".*"),
-		regexp.MustCompile("wakatime.*"),
-		regexp.MustCompile(".+"),
-		regexp.MustCompile("wakatime.+"),
-	}, params.Filter.Include)
+	require.Len(t, params.Filter.Include, 4)
+	assert.Equal(t, ".*", params.Filter.Include[0].String())
+	assert.Equal(t, "wakatime.*", params.Filter.Include[1].String())
+	assert.Equal(t, ".+", params.Filter.Include[2].String())
+	assert.Equal(t, "wakatime.+", params.Filter.Include[3].String())
 }
 
 func TestLoadParams_Filter_Include_IgnoresInvalidRegex(t *testing.T) {
@@ -933,7 +956,30 @@ func TestLoadParams_Filter_Include_IgnoresInvalidRegex(t *testing.T) {
 	params, err := cmd.LoadParams(v)
 	require.NoError(t, err)
 
-	assert.Equal(t, []*regexp.Regexp{regexp.MustCompile(".*")}, params.Filter.Include)
+	require.Len(t, params.Filter.Include, 1)
+	assert.Equal(t, ".*", params.Filter.Include[0].String())
+}
+
+func TestLoadParams_Filter_Include_PerlRegexPatterns(t *testing.T) {
+	tests := map[string]string{
+		"negative lookahead": `^/var/(?!www/).*`,
+		"positive lookahead": `^/var/(?=www/).*`,
+	}
+
+	for name, pattern := range tests {
+		t.Run(name, func(t *testing.T) {
+			v := viper.New()
+			v.Set("key", "00000000-0000-4000-8000-000000000000")
+			v.Set("entity", "/path/to/file")
+			v.Set("include", []string{pattern})
+
+			params, err := cmd.LoadParams(v)
+			require.NoError(t, err)
+
+			require.Len(t, params.Filter.Include, 1)
+			assert.Equal(t, pattern, params.Filter.Include[0].String())
+		})
+	}
 }
 
 func TestLoadParams_Filter_IncludeOnlyWithProjectFile(t *testing.T) {
@@ -1098,7 +1144,7 @@ func TestLoadParams_SanitizeParams_HideBranchNames_True(t *testing.T) {
 			require.NoError(t, err)
 
 			assert.Equal(t, cmd.SanitizeParams{
-				HideBranchNames: []*regexp.Regexp{regexp.MustCompile(".*")},
+				HideBranchNames: []regex.Regex{regex.MustCompile(".*")},
 			}, params.Sanitize)
 		})
 	}
@@ -1129,17 +1175,17 @@ func TestLoadParams_SanitizeParams_HideBranchNames_False(t *testing.T) {
 func TestLoadParams_SanitizeParams_HideBranchNames_List(t *testing.T) {
 	tests := map[string]struct {
 		ViperValue string
-		Expected   []*regexp.Regexp
+		Expected   []regex.Regex
 	}{
 		"regex": {
 			ViperValue: "fix.*",
-			Expected: []*regexp.Regexp{
+			Expected: []regex.Regex{
 				regexp.MustCompile("fix.*"),
 			},
 		},
 		"regex list": {
 			ViperValue: ".*secret.*\nfix.*",
-			Expected: []*regexp.Regexp{
+			Expected: []regex.Regex{
 				regexp.MustCompile(".*secret.*"),
 				regexp.MustCompile("fix.*"),
 			},
@@ -1176,7 +1222,7 @@ func TestLoadParams_SanitizeParams_HideBranchNames_FlagTakesPrecedence(t *testin
 	require.NoError(t, err)
 
 	assert.Equal(t, cmd.SanitizeParams{
-		HideBranchNames: []*regexp.Regexp{regexp.MustCompile(".*")},
+		HideBranchNames: []regex.Regex{regexp.MustCompile(".*")},
 	}, params.Sanitize)
 }
 
@@ -1192,7 +1238,7 @@ func TestLoadParams_SanitizeParams_HideBranchNames_ConfigTakesPrecedence(t *test
 	require.NoError(t, err)
 
 	assert.Equal(t, cmd.SanitizeParams{
-		HideBranchNames: []*regexp.Regexp{regexp.MustCompile(".*")},
+		HideBranchNames: []regex.Regex{regexp.MustCompile(".*")},
 	}, params.Sanitize)
 }
 
@@ -1207,7 +1253,7 @@ func TestLoadParams_SanitizeParams_HideBranchNames_ConfigDeprecatedOneTakesPrece
 	require.NoError(t, err)
 
 	assert.Equal(t, cmd.SanitizeParams{
-		HideBranchNames: []*regexp.Regexp{regexp.MustCompile(".*")},
+		HideBranchNames: []regex.Regex{regexp.MustCompile(".*")},
 	}, params.Sanitize)
 }
 
@@ -1221,7 +1267,7 @@ func TestLoadParams_SanitizeParams_HideBranchNames_ConfigDeprecatedTwo(t *testin
 	require.NoError(t, err)
 
 	assert.Equal(t, cmd.SanitizeParams{
-		HideBranchNames: []*regexp.Regexp{regexp.MustCompile(".*")},
+		HideBranchNames: []regex.Regex{regexp.MustCompile(".*")},
 	}, params.Sanitize)
 }
 
@@ -1234,12 +1280,12 @@ func TestLoadParams_SanitizeParams_HideBranchNames_InvalidRegex(t *testing.T) {
 	_, err := cmd.LoadParams(v)
 	require.Error(t, err)
 
-	assert.Equal(t, errors.New(
+	assert.True(t, strings.HasPrefix(
+		err.Error(),
 		"failed to load sanitize params:"+
 			" failed to parse regex hide branch names param \".*secret.*\\n[0-9+\":"+
-			" failed to compile regex \"[0-9+\":"+
-			" error parsing regexp: missing closing ]: `[0-9+`",
-	), err)
+			" failed to compile regex \"[0-9+\":",
+	))
 }
 
 func TestLoadParams_SanitizeParams_HideProjectNames_True(t *testing.T) {
@@ -1260,7 +1306,7 @@ func TestLoadParams_SanitizeParams_HideProjectNames_True(t *testing.T) {
 			require.NoError(t, err)
 
 			assert.Equal(t, cmd.SanitizeParams{
-				HideProjectNames: []*regexp.Regexp{regexp.MustCompile(".*")},
+				HideProjectNames: []regex.Regex{regexp.MustCompile(".*")},
 			}, params.Sanitize)
 		})
 	}
@@ -1291,17 +1337,17 @@ func TestLoadParams_SanitizeParams_HideProjectNames_False(t *testing.T) {
 func TestLoadParams_SanitizeParams_HideProjecthNames_List(t *testing.T) {
 	tests := map[string]struct {
 		ViperValue string
-		Expected   []*regexp.Regexp
+		Expected   []regex.Regex
 	}{
 		"regex": {
 			ViperValue: "fix.*",
-			Expected: []*regexp.Regexp{
+			Expected: []regex.Regex{
 				regexp.MustCompile("fix.*"),
 			},
 		},
 		"regex list": {
 			ViperValue: ".*secret.*\nfix.*",
-			Expected: []*regexp.Regexp{
+			Expected: []regex.Regex{
 				regexp.MustCompile(".*secret.*"),
 				regexp.MustCompile("fix.*"),
 			},
@@ -1338,7 +1384,7 @@ func TestLoadParams_SanitizeParams_HideProjectNames_FlagTakesPrecedence(t *testi
 	require.NoError(t, err)
 
 	assert.Equal(t, cmd.SanitizeParams{
-		HideProjectNames: []*regexp.Regexp{regexp.MustCompile(".*")},
+		HideProjectNames: []regex.Regex{regexp.MustCompile(".*")},
 	}, params.Sanitize)
 }
 
@@ -1354,7 +1400,7 @@ func TestLoadParams_SanitizeParams_HideProjectNames_ConfigTakesPrecedence(t *tes
 	require.NoError(t, err)
 
 	assert.Equal(t, cmd.SanitizeParams{
-		HideProjectNames: []*regexp.Regexp{regexp.MustCompile(".*")},
+		HideProjectNames: []regex.Regex{regexp.MustCompile(".*")},
 	}, params.Sanitize)
 }
 
@@ -1369,7 +1415,7 @@ func TestLoadParams_SanitizeParams_HideProjectNames_ConfigDeprecatedOneTakesPrec
 	require.NoError(t, err)
 
 	assert.Equal(t, cmd.SanitizeParams{
-		HideProjectNames: []*regexp.Regexp{regexp.MustCompile(".*")},
+		HideProjectNames: []regex.Regex{regexp.MustCompile(".*")},
 	}, params.Sanitize)
 }
 
@@ -1383,7 +1429,7 @@ func TestLoadParams_SanitizeParams_HideProjectNames_ConfigDeprecatedTwo(t *testi
 	require.NoError(t, err)
 
 	assert.Equal(t, cmd.SanitizeParams{
-		HideProjectNames: []*regexp.Regexp{regexp.MustCompile(".*")},
+		HideProjectNames: []regex.Regex{regexp.MustCompile(".*")},
 	}, params.Sanitize)
 }
 
@@ -1396,12 +1442,12 @@ func TestLoadParams_SanitizeParams_HideProjectNames_InvalidRegex(t *testing.T) {
 	_, err := cmd.LoadParams(v)
 	require.Error(t, err)
 
-	assert.Equal(t, errors.New(
+	assert.True(t, strings.HasPrefix(
+		err.Error(),
 		"failed to load sanitize params:"+
 			" failed to parse regex hide project names param \".*secret.*\\n[0-9+\":"+
-			" failed to compile regex \"[0-9+\":"+
-			" error parsing regexp: missing closing ]: `[0-9+`",
-	), err)
+			" failed to compile regex \"[0-9+\":",
+	))
 }
 
 func TestLoadParams_SanitizeParams_HideFileNames_True(t *testing.T) {
@@ -1422,7 +1468,7 @@ func TestLoadParams_SanitizeParams_HideFileNames_True(t *testing.T) {
 			require.NoError(t, err)
 
 			assert.Equal(t, cmd.SanitizeParams{
-				HideFileNames: []*regexp.Regexp{regexp.MustCompile(".*")},
+				HideFileNames: []regex.Regex{regexp.MustCompile(".*")},
 			}, params.Sanitize)
 		})
 	}
@@ -1453,17 +1499,17 @@ func TestLoadParams_SanitizeParams_HideFileNames_False(t *testing.T) {
 func TestLoadParams_SanitizeParams_HideFilehNames_List(t *testing.T) {
 	tests := map[string]struct {
 		ViperValue string
-		Expected   []*regexp.Regexp
+		Expected   []regex.Regex
 	}{
 		"regex": {
 			ViperValue: "fix.*",
-			Expected: []*regexp.Regexp{
+			Expected: []regex.Regex{
 				regexp.MustCompile("fix.*"),
 			},
 		},
 		"regex list": {
 			ViperValue: ".*secret.*\nfix.*",
-			Expected: []*regexp.Regexp{
+			Expected: []regex.Regex{
 				regexp.MustCompile(".*secret.*"),
 				regexp.MustCompile("fix.*"),
 			},
@@ -1502,7 +1548,7 @@ func TestLoadParams_SanitizeParams_HideFileNames_FlagTakesPrecedence(t *testing.
 	require.NoError(t, err)
 
 	assert.Equal(t, cmd.SanitizeParams{
-		HideFileNames: []*regexp.Regexp{regexp.MustCompile(".*")},
+		HideFileNames: []regex.Regex{regexp.MustCompile(".*")},
 	}, params.Sanitize)
 }
 
@@ -1520,7 +1566,7 @@ func TestLoadParams_SanitizeParams_HideFileNames_FlagDeprecatedOneTakesPrecedenc
 	require.NoError(t, err)
 
 	assert.Equal(t, cmd.SanitizeParams{
-		HideFileNames: []*regexp.Regexp{regexp.MustCompile(".*")},
+		HideFileNames: []regex.Regex{regexp.MustCompile(".*")},
 	}, params.Sanitize)
 }
 
@@ -1537,7 +1583,7 @@ func TestLoadParams_SanitizeParams_HideFileNames_FlagDeprecatedTwoTakesPrecedenc
 	require.NoError(t, err)
 
 	assert.Equal(t, cmd.SanitizeParams{
-		HideFileNames: []*regexp.Regexp{regexp.MustCompile(".*")},
+		HideFileNames: []regex.Regex{regexp.MustCompile(".*")},
 	}, params.Sanitize)
 }
 
@@ -1553,7 +1599,7 @@ func TestLoadParams_SanitizeParams_HideFileNames_ConfigTakesPrecedence(t *testin
 	require.NoError(t, err)
 
 	assert.Equal(t, cmd.SanitizeParams{
-		HideFileNames: []*regexp.Regexp{regexp.MustCompile(".*")},
+		HideFileNames: []regex.Regex{regexp.MustCompile(".*")},
 	}, params.Sanitize)
 }
 
@@ -1568,7 +1614,7 @@ func TestLoadParams_SanitizeParams_HideFileNames_ConfigDeprecatedOneTakesPrecede
 	require.NoError(t, err)
 
 	assert.Equal(t, cmd.SanitizeParams{
-		HideFileNames: []*regexp.Regexp{regexp.MustCompile(".*")},
+		HideFileNames: []regex.Regex{regexp.MustCompile(".*")},
 	}, params.Sanitize)
 }
 
@@ -1582,7 +1628,7 @@ func TestLoadParams_SanitizeParams_HideFileNames_ConfigDeprecatedTwo(t *testing.
 	require.NoError(t, err)
 
 	assert.Equal(t, cmd.SanitizeParams{
-		HideFileNames: []*regexp.Regexp{regexp.MustCompile(".*")},
+		HideFileNames: []regex.Regex{regexp.MustCompile(".*")},
 	}, params.Sanitize)
 }
 
@@ -1595,12 +1641,12 @@ func TestLoadParams_SanitizeParams_HideFileNames_InvalidRegex(t *testing.T) {
 	_, err := cmd.LoadParams(v)
 	require.Error(t, err)
 
-	assert.Equal(t, errors.New(
+	assert.True(t, strings.HasPrefix(
+		err.Error(),
 		"failed to load sanitize params:"+
 			" failed to parse regex hide file names param \".*secret.*\\n[0-9+\":"+
-			" failed to compile regex \"[0-9+\":"+
-			" error parsing regexp: missing closing ]: `[0-9+`",
-	), err)
+			" failed to compile regex \"[0-9+\":",
+	))
 }
 
 func TestLoadParams_DisableSubmodule_True(t *testing.T) {
@@ -1620,7 +1666,7 @@ func TestLoadParams_DisableSubmodule_True(t *testing.T) {
 			params, err := cmd.LoadParams(v)
 			require.NoError(t, err)
 
-			assert.Equal(t, []*regexp.Regexp{regexp.MustCompile(".*")}, params.Project.DisableSubmodule)
+			assert.Equal(t, []regex.Regex{regexp.MustCompile(".*")}, params.Project.DisableSubmodule)
 		})
 	}
 }
@@ -1642,7 +1688,7 @@ func TestLoadParams_DisableSubmodule_False(t *testing.T) {
 			params, err := cmd.LoadParams(v)
 			require.NoError(t, err)
 
-			assert.Equal(t, []*regexp.Regexp(nil), params.Project.DisableSubmodule)
+			assert.Equal(t, []regex.Regex(nil), params.Project.DisableSubmodule)
 		})
 	}
 }
@@ -1653,17 +1699,17 @@ func TestLoadParams_DisableSubmodule_List(t *testing.T) {
 
 	tests := map[string]struct {
 		ViperValue string
-		Expected   []*regexp.Regexp
+		Expected   []regex.Regex
 	}{
 		"regex": {
 			ViperValue: "fix.*",
-			Expected: []*regexp.Regexp{
+			Expected: []regex.Regex{
 				regexp.MustCompile("fix.*"),
 			},
 		},
 		"regex_list": {
 			ViperValue: "\n.*secret.*\nfix.*",
-			Expected: []*regexp.Regexp{
+			Expected: []regex.Regex{
 				regexp.MustCompile(".*secret.*"),
 				regexp.MustCompile("fix.*"),
 			},
