@@ -61,3 +61,57 @@ func TestWithDetection(t *testing.T) {
 		})
 	}
 }
+
+func TestDetect_HeaderFile_Corresponding_C_File(t *testing.T) {
+	lang, err := language.Detect("testdata/codefiles/h_with_c_file/empty.h")
+	require.NoError(t, err)
+	assert.Equal(t, heartbeat.LanguageC, lang)
+}
+
+func TestDetect_HeaderFile_With_C_Files(t *testing.T) {
+	lang, err := language.Detect("testdata/codefiles/h_with_any_c_file/empty.h")
+	require.NoError(t, err)
+	assert.Equal(t, heartbeat.LanguageC, lang)
+}
+
+func TestDetect_HeaderFile_With_C_And_CPP_Files(t *testing.T) {
+	lang, err := language.Detect("testdata/codefiles/h_with_any_c_and_cpp_files/cpp.h")
+	require.NoError(t, err)
+
+	assert.Equal(t, heartbeat.LanguageCPP, lang)
+}
+
+func TestDetect_HeaderFile_With_C_And_CXX_Files(t *testing.T) {
+	lang, err := language.Detect("testdata/codefiles/h_with_any_c_and_cxx_files/cpp.h")
+	require.NoError(t, err)
+
+	assert.Equal(t, heartbeat.LanguageCPP, lang)
+}
+
+func TestDetect_ObjectiveC_Over_Matlab_MatchingHeader(t *testing.T) {
+	lang, err := language.Detect("testdata/codefiles/h_with_m_file/objective-c.m")
+	require.NoError(t, err)
+
+	assert.Equal(t, heartbeat.LanguageObjectiveC, lang)
+}
+
+func TestDetect_ObjectiveC_M_FileInFolder(t *testing.T) {
+	lang, err := language.Detect("testdata/codefiles/h_with_m_file/objective-c.h")
+	require.NoError(t, err)
+
+	assert.Equal(t, heartbeat.LanguageObjectiveC, lang)
+}
+
+func TestDetect_ObjectiveCPP_MatchingHeader(t *testing.T) {
+	lang, err := language.Detect("testdata/codefiles/h_with_mm_file/objective-cpp.mm")
+	require.NoError(t, err)
+
+	assert.Equal(t, heartbeat.LanguageObjectiveCPP, lang)
+}
+
+func TestDetect_ObjectiveCPP_MM_FileInFolder(t *testing.T) {
+	lang, err := language.Detect("testdata/codefiles/h_with_mm_file/objective-cpp.h")
+	require.NoError(t, err)
+
+	assert.Equal(t, heartbeat.LanguageObjectiveCPP, lang)
+}
