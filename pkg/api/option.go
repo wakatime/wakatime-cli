@@ -13,6 +13,7 @@ import (
 
 	"github.com/Azure/go-ntlmssp"
 	"github.com/mitchellh/go-homedir"
+	jww "github.com/spf13/jwalterweatherman"
 )
 
 // Option is a functional option for Client.
@@ -94,6 +95,31 @@ func WithNTLM(creds string) (Option, error) {
 
 		c.client.Transport = ntlmssp.Negotiator{
 			RoundTripper: transport,
+		}
+	}, nil
+}
+
+// WithNTLMRequestRetry will, upon request failure, retry with ntlm authentication.
+func WithNTLMRequestRetry(creds string) (Option, error) {
+	withNTLM, err := WithNTLM(creds)
+	if err != nil {
+		return Option(func(*Client) {}), err
+	}
+
+	return func(c *Client) {
+		next := c.doFunc
+		c.doFunc = func(cl *Client, req *http.Request) (*http.Response, error) {
+			resp, err := next(c, req)
+			if err != nil {
+				jww.ERROR.Printf("request to api failed with error %q. Will retry with ntlm auth", err)
+
+				clCopy := cl
+				withNTLM(clCopy)
+
+				return clCopy.Do(req)
+			}
+
+			return resp, nil
 		}
 	}, nil
 }

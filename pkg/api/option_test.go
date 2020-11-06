@@ -90,33 +90,6 @@ func TestOption_WithHostname(t *testing.T) {
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
 
-func TestOption_WithProxy(t *testing.T) {
-	url, router, tearDown := setupTestServer()
-	defer tearDown()
-
-	var numCalls int
-
-	router.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
-		numCalls++
-	})
-
-	withProxy, err := api.WithProxy(url)
-	require.NoError(t, err)
-
-	opts := []api.Option{withProxy}
-
-	req, err := http.NewRequest(http.MethodGet, "http://example.org", nil)
-	require.NoError(t, err)
-
-	c := api.NewClient("", httpClient(), opts...)
-	resp, err := c.Do(req)
-	require.NoError(t, err)
-
-	defer resp.Body.Close()
-
-	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
-}
-
 func TestOption_WithNTLM(t *testing.T) {
 	url, router, close := setupTestServer()
 	defer close()
@@ -149,7 +122,89 @@ func TestOption_WithNTLM(t *testing.T) {
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	require.NoError(t, err)
 
-	c := api.NewClient("", http.DefaultClient, []api.Option{withNTLM}...)
+	c := api.NewClient("", &http.Client{}, []api.Option{withNTLM}...)
+	resp, err := c.Do(req)
+	require.NoError(t, err)
+
+	defer resp.Body.Close()
+
+	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+}
+
+func TestOption_WithNTLMRequestRetry(t *testing.T) {
+	url, router, close := setupTestServer()
+	defer close()
+
+	var numCalls int
+
+	router.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
+		// provoking a request error on first request to trigger ntlm retry
+		if numCalls == 0 {
+			numCalls++
+
+			hj, ok := w.(http.Hijacker)
+			require.True(t, ok)
+
+			conn, _, err := hj.Hijack()
+			require.NoError(t, err)
+			conn.Close()
+
+			return
+		}
+
+		authHeader, ok := req.Header["Authorization"]
+		if !ok {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		if strings.HasPrefix(authHeader[0], "Basic ") {
+			w.Header().Set("Www-Authenticate", "NTLM xyxyxyx")
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		msg, err := ntlmssp.NewNegotiateMessage("domain", "")
+		require.NoError(t, err)
+
+		numCalls++
+		assert.Equal(t, []string{"NTLM " + base64.StdEncoding.EncodeToString(msg)}, authHeader)
+	})
+
+	withNTLMRetry, err := api.WithNTLMRequestRetry(`domain\\john:secret`)
+	require.NoError(t, err)
+
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	require.NoError(t, err)
+
+	c := api.NewClient("", &http.Client{}, []api.Option{withNTLMRetry}...)
+	resp, err := c.Do(req)
+	require.NoError(t, err)
+
+	defer resp.Body.Close()
+
+	assert.Eventually(t, func() bool { return numCalls == 2 }, time.Second, 50*time.Millisecond)
+}
+
+func TestOption_WithProxy(t *testing.T) {
+	url, router, tearDown := setupTestServer()
+	defer tearDown()
+
+	var numCalls int
+
+	router.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
+		numCalls++
+	})
+
+	withProxy, err := api.WithProxy(url)
+	require.NoError(t, err)
+
+	opts := []api.Option{withProxy}
+
+	req, err := http.NewRequest(http.MethodGet, "http://example.org", nil)
+	require.NoError(t, err)
+
+	c := api.NewClient("", httpClient(), opts...)
 	resp, err := c.Do(req)
 	require.NoError(t, err)
 
