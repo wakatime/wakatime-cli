@@ -13,6 +13,10 @@ import (
 const dateFormat = "2006-01-02"
 
 // Summaries fetches summaries for the defined date range.
+//
+// ErrRequest is returned upon request failure with no received response from api.
+// ErrAuth is returned upon receiving a 401 Unauthorized api response.
+// Err is returned on any other api response related error.
 func (c *Client) Summaries(startDate, endDate time.Time) ([]summary.Summary, error) {
 	url := c.baseURL + "/v1/users/current/summaries"
 
@@ -28,7 +32,7 @@ func (c *Client) Summaries(startDate, endDate time.Time) ([]summary.Summary, err
 
 	resp, err := c.Do(req)
 	if err != nil {
-		return nil, Err(fmt.Sprintf("failed to make request to %q: %s", url, err))
+		return nil, ErrRequest(fmt.Sprintf("failed to make request to %q: %s", url, err))
 	}
 	defer resp.Body.Close()
 

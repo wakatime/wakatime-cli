@@ -147,6 +147,15 @@ func TestClient_Send_ErrAuth(t *testing.T) {
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
 
+func TestClient_Send_ErrRequest(t *testing.T) {
+	c := api.NewClient("invalid-url", http.DefaultClient)
+	_, err := c.Send(testHeartbeats())
+
+	var errreq api.ErrRequest
+
+	assert.True(t, errors.As(err, &errreq))
+}
+
 func TestParseHeartbeatResponses(t *testing.T) {
 	data, err := ioutil.ReadFile("testdata/api_heartbeats_response.json")
 	require.NoError(t, err)

@@ -17,6 +17,10 @@ import (
 // Send sends a bulk of heartbeats to the wakatime api and returns the result.
 // The API does not guarantuee the setting of the Heartbeat property of the result.
 // On certain errors, like 429/too many heartbeats, this is omitted and not set.
+//
+// ErrRequest is returned upon request failure with no received response from api.
+// ErrAuth is returned upon receiving a 401 Unauthorized api response.
+// Err is returned on any other api response related error.
 func (c *Client) Send(heartbeats []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 	url := c.baseURL + "/v1/users/current/heartbeats.bulk"
 
@@ -36,7 +40,7 @@ func (c *Client) Send(heartbeats []heartbeat.Heartbeat) ([]heartbeat.Result, err
 
 	resp, err := c.Do(req)
 	if err != nil {
-		return nil, Err(fmt.Sprintf("failed making request to %q: %s", url, err))
+		return nil, ErrRequest(fmt.Sprintf("failed making request to %q: %s", url, err))
 	}
 	defer resp.Body.Close()
 
