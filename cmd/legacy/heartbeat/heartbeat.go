@@ -56,6 +56,8 @@ func SendHeartbeats(v *viper.Viper) error {
 		return fmt.Errorf("failed to load command parameters: %w", err)
 	}
 
+	jww.DEBUG.Printf("heartbeat params: %s", params)
+
 	withAuth, err := api.WithAuth(api.BasicAuth{
 		Secret: params.APIKey,
 	})
