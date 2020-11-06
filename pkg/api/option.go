@@ -26,14 +26,22 @@ func WithAuth(auth BasicAuth) (Option, error) {
 	}
 
 	return func(c *Client) {
-		c.authHeader = authHeaderValue
+		next := c.doFunc
+		c.doFunc = func(c *Client, req *http.Request) (*http.Response, error) {
+			req.Header.Set("Authorization", authHeaderValue)
+			return next(c, req)
+		}
 	}, nil
 }
 
 // WithHostname sets the X-Machine-Name header to the passed in hostname.
 func WithHostname(hostname string) Option {
 	return func(c *Client) {
-		c.machineNameHeader = hostname
+		next := c.doFunc
+		c.doFunc = func(c *Client, req *http.Request) (*http.Response, error) {
+			req.Header.Set("X-Machine-Name", hostname)
+			return next(c, req)
+		}
 	}
 }
 
@@ -164,6 +172,10 @@ func WithUserAgent(plugin string) Option {
 	userAgent := heartbeat.UserAgent(plugin)
 
 	return func(c *Client) {
-		c.userAgentHeader = userAgent
+		next := c.doFunc
+		c.doFunc = func(c *Client, req *http.Request) (*http.Response, error) {
+			req.Header.Set("User-Agent", userAgent)
+			return next(c, req)
+		}
 	}
 }
