@@ -67,12 +67,12 @@ func WithDisableSSLVerify() Option {
 // WithNTLM allows authentication via ntlm protocol.
 func WithNTLM(creds string) (Option, error) {
 	if !strings.Contains(creds, `\\`) {
-		return Option(func(*Client) {}), fmt.Errorf("invalid ntlm creds format %q", creds)
+		return Option(func(*Client) {}), fmt.Errorf("invalid ntlm credentials format %q. does not contain '\\\\'", creds)
 	}
 
 	splitted := strings.Split(creds, ":")
 	if len(splitted) != 2 {
-		return Option(func(*Client) {}), fmt.Errorf("invalid ntlm creds format %q", creds)
+		return Option(func(*Client) {}), fmt.Errorf("invalid ntlm credentials format %q", creds)
 	}
 
 	withAuth, err := WithAuth(BasicAuth{

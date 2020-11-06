@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/wakatime/wakatime-cli/pkg/api"
@@ -119,6 +120,15 @@ func Summary(v *viper.Viper) (string, error) {
 		}
 
 		opts = append(opts, withProxy)
+
+		if strings.Contains(params.Network.ProxyURL, `\\`) {
+			withNTLMRetry, err := api.WithNTLMRequestRetry(params.Network.ProxyURL)
+			if err != nil {
+				return "", fmt.Errorf("failed to set up ntlm request retry option on api client: %w", err)
+			}
+
+			opts = append(opts, withNTLMRetry)
+		}
 	}
 
 	if params.Plugin != "" {
