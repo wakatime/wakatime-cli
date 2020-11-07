@@ -44,7 +44,7 @@ func WithDetection(config Config) heartbeat.HandleOption {
 
 				language, err := Detect(filepath)
 				if err != nil {
-					jww.ERROR.Printf("failed to detect language on file entity %q: %s", h.Entity, err)
+					jww.WARN.Printf("failed to detect language on file entity %q: %s", h.Entity, err)
 
 					if config.Alternate != "" {
 						parsed, ok := heartbeat.ParseLanguage(config.Alternate)
@@ -118,7 +118,7 @@ func detectSpecialCases(fp string) (heartbeat.Language, bool) {
 func folderContainsCFiles(dir string) bool {
 	extensions, err := loadFolderExtensions(dir)
 	if err != nil {
-		jww.ERROR.Printf("failed loading folder extensions: %s", err)
+		jww.WARN.Printf("failed loading folder extensions: %s", err)
 		return false
 	}
 
@@ -135,7 +135,7 @@ func folderContainsCFiles(dir string) bool {
 func folderContainsCPPFiles(dir string) bool {
 	extensions, err := loadFolderExtensions(dir)
 	if err != nil {
-		jww.ERROR.Printf("failed loading folder extensions: %s", err)
+		jww.WARN.Printf("failed loading folder extensions: %s", err)
 		return false
 	}
 
