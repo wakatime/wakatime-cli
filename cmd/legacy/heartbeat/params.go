@@ -55,6 +55,51 @@ type Params struct {
 	Sanitize        SanitizeParams
 }
 
+func (p Params) String() string {
+	var cursorPosition string
+	if p.CursorPosition != nil {
+		cursorPosition = strconv.Itoa(*p.CursorPosition)
+	}
+
+	var isWrite bool
+	if p.IsWrite != nil {
+		isWrite = *p.IsWrite
+	}
+
+	var lineNumber string
+	if p.LineNumber != nil {
+		lineNumber = strconv.Itoa(*p.LineNumber)
+	}
+
+	return fmt.Sprintf(
+		"api key: %q, api url: %q, category: %q, cursor position: %q, entity: %q,"+
+			" entity type: %q, num extra heartbeats: %d, hostname: %q, is write: %t,"+
+			" line number: %q, offline disabled: %t, offline sync max: %d, plugin: %q,"+
+			" time: %.5f, timeout: %s, filter params: (%s), language params: (%s)"+
+			" network params: (%s), project params: (%s), sanitize params: (%s)",
+		p.APIKey[:4]+"...",
+		p.APIUrl,
+		p.Category,
+		cursorPosition,
+		p.Entity,
+		p.EntityType,
+		len(p.ExtraHeartbeats),
+		p.Hostname,
+		isWrite,
+		lineNumber,
+		p.OfflineDisabled,
+		p.OfflineSyncMax,
+		p.Plugin,
+		p.Time,
+		p.Timeout,
+		p.Filter,
+		p.Language,
+		p.Network,
+		p.Project,
+		p.Sanitize,
+	)
+}
+
 // FilterParams contains heartbeat filtering related command parameters.
 type FilterParams struct {
 	Exclude                    []regex.Regex
@@ -63,10 +108,28 @@ type FilterParams struct {
 	IncludeOnlyWithProjectFile bool
 }
 
+func (p FilterParams) String() string {
+	return fmt.Sprintf(
+		"exclude: %q, exclude unknown project: %t, include: %q, include only with project file: %t",
+		p.Exclude,
+		p.ExcludeUnknownProject,
+		p.Include,
+		p.IncludeOnlyWithProjectFile,
+	)
+}
+
 // LanguageParams contains language detection related command parameters.
 type LanguageParams struct {
 	Alternate string
 	Override  string
+}
+
+func (p LanguageParams) String() string {
+	return fmt.Sprintf(
+		"alternate: %q, override: %q",
+		p.Alternate,
+		p.Override,
+	)
 }
 
 // NetworkParams contains network related command parameters.
@@ -74,6 +137,15 @@ type NetworkParams struct {
 	DisableSSLVerify bool
 	ProxyURL         string
 	SSLCertFilepath  string
+}
+
+func (p NetworkParams) String() string {
+	return fmt.Sprintf(
+		"disable ssl verify: %t, proxy url: %q, ssl cert filepath: %q",
+		p.DisableSSLVerify,
+		p.ProxyURL,
+		p.SSLCertFilepath,
+	)
 }
 
 // ProjectParams params for project name sanitization.
@@ -84,11 +156,30 @@ type ProjectParams struct {
 	Override         string
 }
 
+func (p ProjectParams) String() string {
+	return fmt.Sprintf(
+		"alternate: %q, disable submodule: %q, map patterns: %q, override: %q",
+		p.Alternate,
+		p.DisableSubmodule,
+		p.MapPatterns,
+		p.Override,
+	)
+}
+
 // SanitizeParams params for heartbeat sanitization.
 type SanitizeParams struct {
 	HideBranchNames  []regex.Regex
 	HideFileNames    []regex.Regex
 	HideProjectNames []regex.Regex
+}
+
+func (p SanitizeParams) String() string {
+	return fmt.Sprintf(
+		"hide branch names: %q, hide file names: %q, hide project names: %q",
+		p.HideBranchNames,
+		p.HideFileNames,
+		p.HideProjectNames,
+	)
 }
 
 // LoadParams loads heartbeat config params from viper.Viper instance. Returns ErrAuth
