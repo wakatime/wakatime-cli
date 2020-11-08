@@ -158,7 +158,7 @@ func TestParseLanguageFromChroma(t *testing.T) {
 		"Elm":              heartbeat.LanguageElm,
 		"EmacsLisp":        heartbeat.LanguageEmacsLisp,
 		"Erlang":           heartbeat.LanguageErlang,
-		"F#":               heartbeat.LanguageFSharp,
+		"FSharp":           heartbeat.LanguageFSharp,
 		"Fortran":          heartbeat.LanguageFortran,
 		"GAS":              heartbeat.LanguageAssembly,
 		"Go":               heartbeat.LanguageGo,

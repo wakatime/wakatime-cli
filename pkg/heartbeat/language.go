@@ -330,7 +330,7 @@ const (
 )
 
 const (
-	languageFSharpChromaStr    = "F#"
+	languageFSharpChromaStr    = "FSharp"
 	languageEmacsLispChromaStr = "EmacsLisp"
 	languageAssemblyChromaStr  = "GAS"
 	languageMarkdownChromaStr  = "markdown"
