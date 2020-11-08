@@ -11,7 +11,7 @@
                     "entity": "/tmp/main.go",
                     "id": "845a922e-9e65-4775-bd68-bb3196d2e06a",
                     "is_write": true,
-                    "language": "golang",
+                    "language": "Go",
                     "lineno": 42,
                     "lines": 100,
                     "machine_name_id": null,

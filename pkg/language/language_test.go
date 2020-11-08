@@ -89,29 +89,71 @@ func TestDetect_HeaderFile_With_C_And_CXX_Files(t *testing.T) {
 }
 
 func TestDetect_ObjectiveC_Over_Matlab_MatchingHeader(t *testing.T) {
-	lang, err := language.Detect("testdata/codefiles/h_with_m_file/objective-c.m")
+	lang, err := language.Detect("testdata/codefiles/with_mat_file/objective-c.m")
 	require.NoError(t, err)
 
 	assert.Equal(t, heartbeat.LanguageObjectiveC, lang)
 }
 
 func TestDetect_ObjectiveC_M_FileInFolder(t *testing.T) {
-	lang, err := language.Detect("testdata/codefiles/h_with_m_file/objective-c.h")
+	lang, err := language.Detect("testdata/codefiles/with_mat_file/objective-c.h")
 	require.NoError(t, err)
 
 	assert.Equal(t, heartbeat.LanguageObjectiveC, lang)
 }
 
 func TestDetect_ObjectiveCPP_MatchingHeader(t *testing.T) {
-	lang, err := language.Detect("testdata/codefiles/h_with_mm_file/objective-cpp.mm")
+	lang, err := language.Detect("testdata/codefiles/with_mat_file/objective-cpp.mm")
 	require.NoError(t, err)
 
 	assert.Equal(t, heartbeat.LanguageObjectiveCPP, lang)
 }
 
 func TestDetect_ObjectiveCPP_MM_FileInFolder(t *testing.T) {
-	lang, err := language.Detect("testdata/codefiles/h_with_mm_file/objective-cpp.h")
+	lang, err := language.Detect("testdata/codefiles/with_mat_file/objective-cpp.h")
 	require.NoError(t, err)
 
 	assert.Equal(t, heartbeat.LanguageObjectiveCPP, lang)
+}
+
+func TestDetect_ObjectiveC(t *testing.T) {
+	lang, err := language.Detect("testdata/codefiles/objective-c.m")
+	require.NoError(t, err)
+
+	assert.Equal(t, heartbeat.LanguageObjectiveC, lang)
+}
+
+func TestDetect_Matlab_Over_ObjectiveC_Mat_FileInFolder(t *testing.T) {
+	lang, err := language.Detect("testdata/codefiles/with_mat_file/empty.m")
+	require.NoError(t, err)
+
+	assert.Equal(t, heartbeat.LanguageMatlab, lang)
+}
+
+func TestDetect_ObjectiveC_Over_Matlab_NonMatchingHeader(t *testing.T) {
+	lang, err := language.Detect("testdata/codefiles/matlab_with_headers/empty.m")
+	require.NoError(t, err)
+
+	assert.Equal(t, heartbeat.LanguageObjectiveC, lang)
+}
+
+func TestDetect_NonHeaderFile_C_FilesInFolder(t *testing.T) {
+	lang, err := language.Detect("testdata/codefiles/py_with_c_files/see.py")
+	require.NoError(t, err)
+
+	assert.Equal(t, heartbeat.LanguagePython, lang)
+}
+
+func TestDetect_Perl_Over_Prolog(t *testing.T) {
+	lang, err := language.Detect("testdata/codefiles/perl.pl")
+	require.NoError(t, err)
+
+	assert.Equal(t, heartbeat.LanguagePerl, lang)
+}
+
+func TestDetect_FSharp_Over_Forth(t *testing.T) {
+	lang, err := language.Detect("testdata/codefiles/fsharp.fs")
+	require.NoError(t, err)
+
+	assert.Equal(t, heartbeat.LanguageFSharp, lang)
 }
