@@ -101,6 +101,8 @@ const (
 	LanguageMarkdown
 	// LanguageMarko represents the Marko programming language.
 	LanguageMarko
+	// LanguageMatlab represents the Matlab programming language.
+	LanguageMatlab
 	// LanguageModelica represents the Modelica programming language.
 	LanguageModelica
 	// LanguageModula represents the Modula programming language.
@@ -111,6 +113,10 @@ const (
 	LanguageNewLisp
 	// LanguageNix represents the Nix programming language.
 	LanguageNix
+	// LanguageObjectiveC represents the ObjectiveC programming language.
+	LanguageObjectiveC
+	// LanguageObjectiveCPP represents the ObjectiveC++ programming language.
+	LanguageObjectiveCPP
 	// LanguageObjectiveJ represents the ObjectiveJ programming language.
 	LanguageObjectiveJ
 	// LanguageOCaml represents the OCaml programming language.
@@ -260,11 +266,14 @@ const (
 	languageMakoStr              = "Mako"
 	languageMarkdownStr          = "Markdown"
 	languageMarkoStr             = "Marko"
+	languageMatlabStr            = "Matlab"
 	languageModelicaStr          = "Modelica"
 	languageModulaStr            = "Modula-2"
 	languageMustacheStr          = "Mustache"
 	languageNewLispStr           = "NewLisp"
 	languageNixStr               = "Nix"
+	languageObjectiveCStr        = "Objective-C"
+	languageObjectiveCPPStr      = "Objective-C++"
 	languageObjectiveJStr        = "Objective-J"
 	languageOCamlStr             = "OCaml"
 	languagePawnStr              = "Pawn"
@@ -420,6 +429,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageMarkdown, true
 	case languageMarkoStr:
 		return LanguageMarko, true
+	case languageMatlabStr:
+		return LanguageMatlab, true
 	case languageModelicaStr:
 		return LanguageModelica, true
 	case languageModulaStr:
@@ -430,6 +441,10 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageNewLisp, true
 	case languageNixStr:
 		return LanguageNix, true
+	case languageObjectiveCStr:
+		return LanguageObjectiveC, true
+	case languageObjectiveCPPStr:
+		return LanguageObjectiveCPP, true
 	case languageObjectiveJStr:
 		return LanguageObjectiveJ, true
 	case languageOCamlStr:
@@ -612,12 +627,16 @@ func ParseLanguageFromChroma(lexerName string) (Language, bool) {
 		return LanguageMako, true
 	case languageMarkdownChromaStr:
 		return LanguageMarkdown, true
+	case languageMatlabStr:
+		return LanguageMatlab, true
 	case languageModulaStr:
 		return LanguageModula, true
 	case languageNixStr:
 		return LanguageNix, true
 	case languageOCamlStr:
 		return LanguageOCaml, true
+	case languageObjectiveCStr:
+		return LanguageObjectiveC, true
 	case languagePerlStr:
 		return LanguagePerl, true
 	case languagePHPStr:
@@ -806,6 +825,8 @@ func (l Language) String() string {
 		return languageMarkdownStr
 	case LanguageMarko:
 		return languageMarkoStr
+	case LanguageMatlab:
+		return languageMatlabStr
 	case LanguageModelica:
 		return languageModelicaStr
 	case LanguageModula:
@@ -816,6 +837,10 @@ func (l Language) String() string {
 		return languageNewLispStr
 	case LanguageNix:
 		return languageNixStr
+	case LanguageObjectiveC:
+		return languageObjectiveCStr
+	case LanguageObjectiveCPP:
+		return languageObjectiveCPPStr
 	case LanguageObjectiveJ:
 		return languageObjectiveJStr
 	case LanguageOCaml:
