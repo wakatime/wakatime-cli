@@ -25,3 +25,6 @@ require (
 	golang.org/x/text v0.3.4 // indirect
 	gopkg.in/ini.v1 v1.62.0
 )
+
+replace github.com/alecthomas/chroma => github.com/wakatime/chroma v0.8.1-wakatime.1
+
