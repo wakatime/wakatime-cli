@@ -197,6 +197,8 @@ const (
 	LanguageTwig
 	// LanguageTypeScript represents the TypeScript programming language.
 	LanguageTypeScript
+	// LanguageTypoScript represents the TypoScript programming language.
+	LanguageTypoScript
 	// LanguageVB represents the VB programming language.
 	LanguageVB
 	// LanguageVCL represents the VCL programming language.
@@ -314,6 +316,7 @@ const (
 	languageTOMLStr              = "TOML"
 	languageTwigStr              = "Twig"
 	languageTypeScriptStr        = "TypeScript"
+	languageTypoScriptStr        = "TypoScript"
 	languageVBStr                = "VB.net"
 	languageVCLStr               = "VCL"
 	languageVelocityStr          = "Velocity"
@@ -327,7 +330,7 @@ const (
 )
 
 const (
-	languageFSharpChromaStr    = "F#"
+	languageFSharpChromaStr    = "FSharp"
 	languageEmacsLispChromaStr = "EmacsLisp"
 	languageAssemblyChromaStr  = "GAS"
 	languageMarkdownChromaStr  = "markdown"
@@ -525,6 +528,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageTwig, true
 	case languageTypeScriptStr:
 		return LanguageTypeScript, true
+	case languageTypoScriptStr:
+		return LanguageTypoScript, true
 	case languageVBStr:
 		return LanguageVB, true
 	case languageVCLStr:
@@ -691,6 +696,8 @@ func ParseLanguageFromChroma(lexerName string) (Language, bool) {
 		return LanguageTwig, true
 	case languageTypeScriptStr:
 		return LanguageTypeScript, true
+	case languageTypoScriptStr:
+		return LanguageTypoScript, true
 	case languageVBStr:
 		return LanguageVB, true
 	case languageVimLStr:
@@ -921,6 +928,8 @@ func (l Language) String() string {
 		return languageTwigStr
 	case LanguageTypeScript:
 		return languageTypeScriptStr
+	case LanguageTypoScript:
+		return languageTypoScriptStr
 	case LanguageVB:
 		return languageVBStr
 	case LanguageVCL:
