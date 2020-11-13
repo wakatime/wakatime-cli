@@ -157,3 +157,19 @@ func TestDetect_FSharp_Over_Forth(t *testing.T) {
 
 	assert.Equal(t, heartbeat.LanguageFSharp, lang)
 }
+
+func TestDetect_ChromaOverwrite(t *testing.T) {
+	tests := map[string]heartbeat.Language{
+		"testdata/codefiles/chroma_overwrite/cmakelists.txt": heartbeat.LanguageCMake,
+		"testdata/codefiles/chroma_overwrite/go.mod":         heartbeat.LanguageGo,
+	}
+
+	for filepath, lang := range tests {
+		t.Run(filepath, func(t *testing.T) {
+			match, err := language.Detect(filepath)
+			require.NoError(t, err)
+
+			assert.Equal(t, lang, match, fmt.Sprintf("Got: %s, want: %s", match, lang))
+		})
+	}
+}

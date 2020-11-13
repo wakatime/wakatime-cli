@@ -268,3 +268,24 @@ func matlabWeight(weight float32, extensions []string) float32 {
 
 	return weight
 }
+
+func chromaMatchOverwrite(filepath string) (heartbeat.Language, bool) {
+	filepathLower := strings.ToLower(filepath)
+
+	suffixes := chromaOverwriteTop()
+
+	for suffix, language := range suffixes {
+		if strings.HasSuffix(filepathLower, suffix) {
+			return language, true
+		}
+	}
+
+	return heartbeat.LanguageUnknown, false
+}
+
+func chromaOverwriteTop() map[string]heartbeat.Language {
+	return map[string]heartbeat.Language{
+		"/cmakelists.txt": heartbeat.LanguageCMake,
+		"/go.mod":         heartbeat.LanguageGo,
+	}
+}
