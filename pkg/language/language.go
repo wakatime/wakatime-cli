@@ -80,6 +80,10 @@ func Detect(fp string) (heartbeat.Language, error) {
 		return language, nil
 	}
 
+	if language, ok := chromaMatchUnsupported(fp); ok {
+		return language, nil
+	}
+
 	return heartbeat.LanguageUnknown, fmt.Errorf("could not detect the language of file %q", fp)
 }
 

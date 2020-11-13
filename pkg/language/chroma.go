@@ -289,3 +289,75 @@ func chromaOverwriteTop() map[string]heartbeat.Language {
 		"/go.mod":         heartbeat.LanguageGo,
 	}
 }
+
+func chromaMatchUnsupported(filepath string) (heartbeat.Language, bool) {
+	filepathLower := strings.ToLower(filepath)
+
+	suffixes := chromaUnsupportedTop()
+
+	for suffix, language := range suffixes {
+		if strings.HasSuffix(filepathLower, suffix) {
+			return language, true
+		}
+	}
+
+	return heartbeat.LanguageUnknown, false
+}
+
+func chromaUnsupportedTop() map[string]heartbeat.Language {
+	return map[string]heartbeat.Language{
+		".cfm":              heartbeat.LanguageColdfusionHTML,
+		".cfml":             heartbeat.LanguageColdfusionHTML,
+		"/crontab":          heartbeat.LanguageCrontab,
+		".pas":              heartbeat.LanguageDelphi,
+		".dpr":              heartbeat.LanguageDelphi,
+		".eex":              heartbeat.LanguageElixir,
+		".gs":               heartbeat.LanguageGosu,
+		".gsp":              heartbeat.LanguageGosu,
+		".gst":              heartbeat.LanguageGosu,
+		".gsx":              heartbeat.LanguageGosu,
+		".vark":             heartbeat.LanguageGosu,
+		".mjs":              heartbeat.LanguageJavaScript,
+		".jsx":              heartbeat.LanguageJSX,
+		".lasso":            heartbeat.LanguageLasso,
+		".lasso8":           heartbeat.LanguageLasso,
+		".lasso9":           heartbeat.LanguageLasso,
+		".less":             heartbeat.LanguageLess,
+		".liquid":           heartbeat.LanguageLiquid,
+		".marko":            heartbeat.LanguageMarko,
+		".mo":               heartbeat.LanguageModelica,
+		".mustache":         heartbeat.LanguageMustache,
+		".lsp":              heartbeat.LanguageNewLisp,
+		".kif":              heartbeat.LanguageNewLisp,
+		".nl":               heartbeat.LanguageNewLisp,
+		".pwn":              heartbeat.LanguagePawn,
+		".jade":             heartbeat.LanguagePug,
+		".pug":              heartbeat.LanguagePug,
+		".jy":               heartbeat.LanguagePython,
+		".bzl":              heartbeat.LanguagePython,
+		"/buck":             heartbeat.LanguagePython,
+		"/build":            heartbeat.LanguagePython,
+		"/build.bazel":      heartbeat.LanguagePython,
+		"/workspace":        heartbeat.LanguagePython,
+		".qml":              heartbeat.LanguageQML,
+		".qbs":              heartbeat.LanguageQML,
+		".spec":             heartbeat.LanguageRPMSpec,
+		".sketch":           heartbeat.LanguageSketchDrawing,
+		".slim":             heartbeat.LanguageSlim,
+		".smali":            heartbeat.LanguageSmali,
+		".svelte":           heartbeat.LanguageSvelte,
+		".sp":               heartbeat.LanguageSourcePawn,
+		".sublime-settings": heartbeat.LanguageSublimeTextConfig,
+		".swg":              heartbeat.LanguageSWIG,
+		".i":                heartbeat.LanguageSWIG,
+		"/pipfile":          heartbeat.LanguageTOML,
+		"/poetry.lock":      heartbeat.LanguageTOML,
+		".twig":             heartbeat.LanguageTwig,
+		".vcl":              heartbeat.LanguageVCL,
+		".vue":              heartbeat.LanguageVueJS,
+		".vm":               heartbeat.LanguageVelocity,
+		".fhtml":            heartbeat.LanguageVelocity,
+		".xaml":             heartbeat.LanguageXAML,
+		".xpl":              heartbeat.LanguageXSLT,
+	}
+}

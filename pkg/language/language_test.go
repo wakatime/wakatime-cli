@@ -1,6 +1,7 @@
 package language_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
@@ -162,6 +163,73 @@ func TestDetect_ChromaOverwrite(t *testing.T) {
 	tests := map[string]heartbeat.Language{
 		"testdata/codefiles/chroma_overwrite/cmakelists.txt": heartbeat.LanguageCMake,
 		"testdata/codefiles/chroma_overwrite/go.mod":         heartbeat.LanguageGo,
+	}
+
+	for filepath, lang := range tests {
+		t.Run(filepath, func(t *testing.T) {
+			match, err := language.Detect(filepath)
+			require.NoError(t, err)
+
+			assert.Equal(t, lang, match, fmt.Sprintf("Got: %s, want: %s", match, lang))
+		})
+	}
+}
+
+func TestDetect_ChromaUnsupported(t *testing.T) {
+	tests := map[string]heartbeat.Language{
+		"testdata/codefiles/chroma_unsupported/empty.cfm":              heartbeat.LanguageColdfusionHTML,
+		"testdata/codefiles/chroma_unsupported/empty.cfml":             heartbeat.LanguageColdfusionHTML,
+		"testdata/codefiles/chroma_unsupported/crontab":                heartbeat.LanguageCrontab,
+		"testdata/codefiles/chroma_unsupported/empty.pas":              heartbeat.LanguageDelphi,
+		"testdata/codefiles/chroma_unsupported/empty.dpr":              heartbeat.LanguageDelphi,
+		"testdata/codefiles/chroma_unsupported/empty.eex":              heartbeat.LanguageElixir,
+		"testdata/codefiles/chroma_unsupported/empty.gs":               heartbeat.LanguageGosu,
+		"testdata/codefiles/chroma_unsupported/empty.gsp":              heartbeat.LanguageGosu,
+		"testdata/codefiles/chroma_unsupported/empty.gst":              heartbeat.LanguageGosu,
+		"testdata/codefiles/chroma_unsupported/empty.gsx":              heartbeat.LanguageGosu,
+		"testdata/codefiles/chroma_unsupported/empty.vark":             heartbeat.LanguageGosu,
+		"testdata/codefiles/chroma_unsupported/empty.mjs":              heartbeat.LanguageJavaScript,
+		"testdata/codefiles/chroma_unsupported/empty.jsx":              heartbeat.LanguageJSX,
+		"testdata/codefiles/chroma_unsupported/empty.lasso":            heartbeat.LanguageLasso,
+		"testdata/codefiles/chroma_unsupported/empty.lasso8":           heartbeat.LanguageLasso,
+		"testdata/codefiles/chroma_unsupported/empty.lasso9":           heartbeat.LanguageLasso,
+		"testdata/codefiles/chroma_unsupported/empty.less":             heartbeat.LanguageLess,
+		"testdata/codefiles/chroma_unsupported/empty.liquid":           heartbeat.LanguageLiquid,
+		"testdata/codefiles/chroma_unsupported/empty.marko":            heartbeat.LanguageMarko,
+		"testdata/codefiles/chroma_unsupported/empty.mo":               heartbeat.LanguageModelica,
+		"testdata/codefiles/chroma_unsupported/empty.mustache":         heartbeat.LanguageMustache,
+		"testdata/codefiles/chroma_unsupported/empty.lsp":              heartbeat.LanguageNewLisp,
+		"testdata/codefiles/chroma_unsupported/empty.kif":              heartbeat.LanguageNewLisp,
+		"testdata/codefiles/chroma_unsupported/empty.nl":               heartbeat.LanguageNewLisp,
+		"testdata/codefiles/chroma_unsupported/empty.pwn":              heartbeat.LanguagePawn,
+		"testdata/codefiles/chroma_unsupported/empty.jade":             heartbeat.LanguagePug,
+		"testdata/codefiles/chroma_unsupported/empty.pug":              heartbeat.LanguagePug,
+		"testdata/codefiles/chroma_unsupported/empty.jy":               heartbeat.LanguagePython,
+		"testdata/codefiles/chroma_unsupported/empty.bzl":              heartbeat.LanguagePython,
+		"testdata/codefiles/chroma_unsupported/buck":                   heartbeat.LanguagePython,
+		"testdata/codefiles/chroma_unsupported/build":                  heartbeat.LanguagePython,
+		"testdata/codefiles/chroma_unsupported/build.bazel":            heartbeat.LanguagePython,
+		"testdata/codefiles/chroma_unsupported/workspace":              heartbeat.LanguagePython,
+		"testdata/codefiles/chroma_unsupported/empty.qml":              heartbeat.LanguageQML,
+		"testdata/codefiles/chroma_unsupported/empty.qbs":              heartbeat.LanguageQML,
+		"testdata/codefiles/chroma_unsupported/empty.spec":             heartbeat.LanguageRPMSpec,
+		"testdata/codefiles/chroma_unsupported/empty.slim":             heartbeat.LanguageSlim,
+		"testdata/codefiles/chroma_unsupported/empty.smali":            heartbeat.LanguageSmali,
+		"testdata/codefiles/chroma_unsupported/empty.sketch":           heartbeat.LanguageSketchDrawing,
+		"testdata/codefiles/chroma_unsupported/empty.svelte":           heartbeat.LanguageSvelte,
+		"testdata/codefiles/chroma_unsupported/empty.sp":               heartbeat.LanguageSourcePawn,
+		"testdata/codefiles/chroma_unsupported/empty.sublime-settings": heartbeat.LanguageSublimeTextConfig,
+		"testdata/codefiles/chroma_unsupported/empty.swg":              heartbeat.LanguageSWIG,
+		"testdata/codefiles/chroma_unsupported/empty.i":                heartbeat.LanguageSWIG,
+		"testdata/codefiles/chroma_unsupported/pipfile":                heartbeat.LanguageTOML,
+		"testdata/codefiles/chroma_unsupported/poetry.lock":            heartbeat.LanguageTOML,
+		"testdata/codefiles/chroma_unsupported/empty.twig":             heartbeat.LanguageTwig,
+		"testdata/codefiles/chroma_unsupported/empty.vcl":              heartbeat.LanguageVCL,
+		"testdata/codefiles/chroma_unsupported/empty.vm":               heartbeat.LanguageVelocity,
+		"testdata/codefiles/chroma_unsupported/empty.fhtml":            heartbeat.LanguageVelocity,
+		"testdata/codefiles/chroma_unsupported/empty.vue":              heartbeat.LanguageVueJS,
+		"testdata/codefiles/chroma_unsupported/empty.xaml":             heartbeat.LanguageXAML,
+		"testdata/codefiles/chroma_unsupported/empty.xpl":              heartbeat.LanguageXSLT,
 	}
 
 	for filepath, lang := range tests {
