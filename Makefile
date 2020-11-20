@@ -27,14 +27,19 @@ endif
 # targets
 build-all: build-darwin build-linux build-windows
 
-build-darwin:
+build-darwin: generate
 	CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 $(GOBUILD) -o ./build/darwin/amd64/$(BINARY_NAME) -v
 
-build-linux:
+build-linux: generate
 	CGO_ENABLED=1 GOOS=linux GOARCH=amd64 $(GOBUILD) -o ./build/linux/amd64/$(BINARY_NAME) -v
 
-build-windows:
+build-windows: generate
 	CGO_ENABLED=1 GOOS=windows GOARCH=amd64 $(GOBUILD) -o ./build/windows/amd64/$(BINARY_NAME).exe -v
+
+# generate plugin language mapping code
+.PHONY: generate
+generate:
+	go run ./cmd/generate/main.go
 
 # install linter
 .PHONY: install-linter
@@ -50,5 +55,5 @@ lint: install-linter
 	golangci-lint run ./...
 
 .PHONY: test
-test:
+test: generate
 	go test -cover -race ./...
