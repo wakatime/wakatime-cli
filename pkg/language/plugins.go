@@ -3,6 +3,7 @@ package language
 
 import "github.com/wakatime/wakatime-cli/pkg/heartbeat"
 
+// Parse parses the language from a plugin specific string.
 func Parse(language, plugin string) (heartbeat.Language, bool) {
 	switch plugin {
 	case "vim":
@@ -14,322 +15,322 @@ func Parse(language, plugin string) (heartbeat.Language, bool) {
 
 func parseDefault(language string) (heartbeat.Language, bool) {
 	switch language {
- 	case "actionscript":
- 		return heartbeat.LanguageActionScript, true
- 	case "ada":
- 		return heartbeat.LanguageAda, true
- 	case "agda":
- 		return heartbeat.LanguageAgda, true
- 	case "ansible":
- 		return heartbeat.LanguageAnsible, true
- 	case "apacheconf":
- 		return heartbeat.LanguageApacheConf, true
- 	case "applescript":
- 		return heartbeat.LanguageAppleScript, true
- 	case "asp":
- 		return heartbeat.LanguageASP, true
- 	case "assembly":
- 		return heartbeat.LanguageAssembly, true
- 	case "autoconf":
- 		return heartbeat.LanguageAutoconf, true
- 	case "awk":
- 		return heartbeat.LanguageAWK, true
- 	case "bash":
- 		return heartbeat.LanguageBash, true
- 	case "basic":
- 		return heartbeat.LanguageBasic, true
- 	case "bat":
- 		return heartbeat.LanguageBatchScript, true
- 	case "bibtex":
- 		return heartbeat.LanguageBibTeX, true
- 	case "brightscript":
- 		return heartbeat.LanguageBrightScript, true
- 	case "c":
- 		return heartbeat.LanguageC, true
- 	case "c#":
- 		return heartbeat.LanguageCSharp, true
- 	case "c++":
- 		return heartbeat.LanguageCPP, true
- 	case "clojure":
- 		return heartbeat.LanguageClojure, true
- 	case "cocoa":
- 		return heartbeat.LanguageCocoa, true
- 	case "coffeescript":
- 		return heartbeat.LanguageCoffeeScript, true
- 	case "coldfusion":
- 		return heartbeat.LanguageColdFusion, true
- 	case "coldfusion html":
- 		return heartbeat.LanguageColdFusion, true
- 	case "common lisp":
- 		return heartbeat.LanguageCommonLisp, true
- 	case "coq":
- 		return heartbeat.LanguageCoq, true
- 	case "cperl":
- 		return heartbeat.Languagecperl, true
- 	case "cshtml":
- 		return heartbeat.LanguageCSHTML, true
- 	case "css":
- 		return heartbeat.LanguageCSS, true
- 	case "cvs":
- 		return heartbeat.LanguageCVS, true
- 	case "dart":
- 		return heartbeat.LanguageDart, true
- 	case "dcl":
- 		return heartbeat.LanguageDCL, true
- 	case "delphi":
- 		return heartbeat.LanguageDelphi, true
- 	case "dhall":
- 		return heartbeat.LanguageDhall, true
- 	case "diff":
- 		return heartbeat.LanguageDiff, true
- 	case "doctex":
- 		return heartbeat.LanguageDocTeX, true
- 	case "elixir":
- 		return heartbeat.LanguageElixir, true
- 	case "elm":
- 		return heartbeat.LanguageElm, true
- 	case "emacs lisp":
- 		return heartbeat.LanguageEmacsLisp, true
- 	case "erlang":
- 		return heartbeat.LanguageErlang, true
- 	case "eshell":
- 		return heartbeat.LanguageEshell, true
- 	case "f#":
- 		return heartbeat.LanguageFSharp, true
- 	case "fish":
- 		return heartbeat.LanguageFish, true
- 	case "fortran":
- 		return heartbeat.LanguageFortran, true
- 	case "gas":
- 		return heartbeat.LanguageAssembly, true
- 	case "go":
- 		return heartbeat.LanguageGo, true
- 	case "gosu":
- 		return heartbeat.LanguageGosu, true
- 	case "groovy":
- 		return heartbeat.LanguageGroovy, true
- 	case "haml":
- 		return heartbeat.LanguageHaml, true
- 	case "haskell":
- 		return heartbeat.LanguageHaskell, true
- 	case "haxe":
- 		return heartbeat.LanguageHaxe, true
- 	case "hcl":
- 		return heartbeat.LanguageHCL, true
- 	case "html":
- 		return heartbeat.LanguageHTML, true
- 	case "ini":
- 		return heartbeat.LanguageINI, true
- 	case "jade":
- 		return heartbeat.LanguageJade, true
- 	case "java":
- 		return heartbeat.LanguageJava, true
- 	case "javascript":
- 		return heartbeat.LanguageJavaScript, true
- 	case "json":
- 		return heartbeat.LanguageJSON, true
- 	case "jsx":
- 		return heartbeat.LanguageJSX, true
- 	case "kotlin":
- 		return heartbeat.LanguageKotlin, true
- 	case "latex":
- 		return heartbeat.LanguageLaTeX, true
- 	case "ld-script":
- 		return heartbeat.LanguageLinkerScript, true
- 	case "less":
- 		return heartbeat.LanguageLESS, true
- 	case "lua":
- 		return heartbeat.LanguageLua, true
- 	case "makefile":
- 		return heartbeat.LanguageMakefile, true
- 	case "man":
- 		return heartbeat.LanguageMan, true
- 	case "markdown":
- 		return heartbeat.LanguageMarkdown, true
- 	case "matlab":
- 		return heartbeat.LanguageMatlab, true
- 	case "metafont":
- 		return heartbeat.LanguageMetafont, true
- 	case "metapost":
- 		return heartbeat.LanguageMetapost, true
- 	case "mustache":
- 		return heartbeat.LanguageMustache, true
- 	case "nix":
- 		return heartbeat.LanguageNix, true
- 	case "objective-c":
- 		return heartbeat.LanguageObjective-C, true
- 	case "objective-c++":
- 		return heartbeat.LanguageObjective-CPP, true
- 	case "objective-j":
- 		return heartbeat.LanguageObjective-J, true
- 	case "ocaml":
- 		return heartbeat.LanguageOCaml, true
- 	case "org":
- 		return heartbeat.LanguageOrg, true
- 	case "pascal":
- 		return heartbeat.LanguagePascal, true
- 	case "perl":
- 		return heartbeat.LanguagePerl, true
- 	case "php":
- 		return heartbeat.LanguagePHP, true
- 	case "powershell":
- 		return heartbeat.LanguagePowerShell, true
- 	case "prolog":
- 		return heartbeat.LanguageProlog, true
- 	case "puppet":
- 		return heartbeat.LanguagePuppet, true
- 	case "purescript":
- 		return heartbeat.LanguagePureScript, true
- 	case "python":
- 		return heartbeat.LanguagePython, true
- 	case "r":
- 		return heartbeat.LanguageR, true
- 	case "restructuredtext":
- 		return heartbeat.LanguagereStructuredText, true
- 	case "ruby":
- 		return heartbeat.LanguageRuby, true
- 	case "rust":
- 		return heartbeat.LanguageRust, true
- 	case "salt":
- 		return heartbeat.LanguageSalt, true
- 	case "sass":
- 		return heartbeat.LanguageSass, true
- 	case "scala":
- 		return heartbeat.LanguageScala, true
- 	case "scheme":
- 		return heartbeat.LanguageScheme, true
- 	case "scribe":
- 		return heartbeat.LanguageScribe, true
- 	case "scss":
- 		return heartbeat.LanguageSCSS, true
- 	case "sgml":
- 		return heartbeat.LanguageSGML, true
- 	case "shell":
- 		return heartbeat.LanguageShell, true
- 	case "simula":
- 		return heartbeat.LanguageSimula, true
- 	case "slim":
- 		return heartbeat.LanguageSlim, true
- 	case "smalltalk":
- 		return heartbeat.LanguageSmalltalk, true
- 	case "smime":
- 		return heartbeat.LanguageSMIME, true
- 	case "sql":
- 		return heartbeat.LanguageSQL, true
- 	case "swift":
- 		return heartbeat.LanguageSwift, true
- 	case "tex":
- 		return heartbeat.LanguageTeX, true
- 	case "text":
- 		return heartbeat.LanguageText, true
- 	case "turing":
- 		return heartbeat.LanguageTuring, true
- 	case "twig":
- 		return heartbeat.LanguageTwig, true
- 	case "typescript":
- 		return heartbeat.LanguageTypeScript, true
- 	case "typoscript":
- 		return heartbeat.LanguageTypoScript, true
- 	case "vb.net":
- 		return heartbeat.LanguageVB.net, true
- 	case "verilog":
- 		return heartbeat.LanguageVerilog, true
- 	case "vhdl":
- 		return heartbeat.LanguageVHDL, true
- 	case "viml":
- 		return heartbeat.LanguageVimL, true
- 	case "xaml":
- 		return heartbeat.LanguageXAML, true
- 	case "xml":
- 		return heartbeat.LanguageXML, true
- 	case "yaml":
- 		return heartbeat.LanguageYAML, true
- 	default:
- 		return heartbeat.LanguageUnknown, false
- 	}
+	case "actionscript":
+		return heartbeat.ParseLanguage("actionscript")
+	case "ada":
+		return heartbeat.ParseLanguage("ada")
+	case "agda":
+		return heartbeat.ParseLanguage("agda")
+	case "ansible":
+		return heartbeat.ParseLanguage("ansible")
+	case "apacheconf":
+		return heartbeat.ParseLanguage("apacheconf")
+	case "applescript":
+		return heartbeat.ParseLanguage("applescript")
+	case "asp":
+		return heartbeat.ParseLanguage("asp")
+	case "assembly":
+		return heartbeat.ParseLanguage("assembly")
+	case "autoconf":
+		return heartbeat.ParseLanguage("autoconf")
+	case "awk":
+		return heartbeat.ParseLanguage("awk")
+	case "bash":
+		return heartbeat.ParseLanguage("bash")
+	case "basic":
+		return heartbeat.ParseLanguage("basic")
+	case "bat":
+		return heartbeat.ParseLanguage("batchscript")
+	case "bibtex":
+		return heartbeat.ParseLanguage("bibtex")
+	case "brightscript":
+		return heartbeat.ParseLanguage("brightscript")
+	case "c":
+		return heartbeat.ParseLanguage("c")
+	case "c#":
+		return heartbeat.ParseLanguage("csharp")
+	case "c++":
+		return heartbeat.ParseLanguage("cpp")
+	case "clojure":
+		return heartbeat.ParseLanguage("clojure")
+	case "cocoa":
+		return heartbeat.ParseLanguage("cocoa")
+	case "coffeescript":
+		return heartbeat.ParseLanguage("coffeescript")
+	case "coldfusion":
+		return heartbeat.ParseLanguage("coldfusion")
+	case "coldfusion html":
+		return heartbeat.ParseLanguage("coldfusion")
+	case "common lisp":
+		return heartbeat.ParseLanguage("commonlisp")
+	case "coq":
+		return heartbeat.ParseLanguage("coq")
+	case "cperl":
+		return heartbeat.ParseLanguage("cperl")
+	case "cshtml":
+		return heartbeat.ParseLanguage("cshtml")
+	case "css":
+		return heartbeat.ParseLanguage("css")
+	case "cvs":
+		return heartbeat.ParseLanguage("cvs")
+	case "dart":
+		return heartbeat.ParseLanguage("dart")
+	case "dcl":
+		return heartbeat.ParseLanguage("dcl")
+	case "delphi":
+		return heartbeat.ParseLanguage("delphi")
+	case "dhall":
+		return heartbeat.ParseLanguage("dhall")
+	case "diff":
+		return heartbeat.ParseLanguage("diff")
+	case "doctex":
+		return heartbeat.ParseLanguage("doctex")
+	case "elixir":
+		return heartbeat.ParseLanguage("elixir")
+	case "elm":
+		return heartbeat.ParseLanguage("elm")
+	case "emacs lisp":
+		return heartbeat.ParseLanguage("emacslisp")
+	case "erlang":
+		return heartbeat.ParseLanguage("erlang")
+	case "eshell":
+		return heartbeat.ParseLanguage("eshell")
+	case "f#":
+		return heartbeat.ParseLanguage("fsharp")
+	case "fish":
+		return heartbeat.ParseLanguage("fish")
+	case "fortran":
+		return heartbeat.ParseLanguage("fortran")
+	case "gas":
+		return heartbeat.ParseLanguage("assembly")
+	case "go":
+		return heartbeat.ParseLanguage("go")
+	case "gosu":
+		return heartbeat.ParseLanguage("gosu")
+	case "groovy":
+		return heartbeat.ParseLanguage("groovy")
+	case "haml":
+		return heartbeat.ParseLanguage("haml")
+	case "haskell":
+		return heartbeat.ParseLanguage("haskell")
+	case "haxe":
+		return heartbeat.ParseLanguage("haxe")
+	case "hcl":
+		return heartbeat.ParseLanguage("hcl")
+	case "html":
+		return heartbeat.ParseLanguage("html")
+	case "ini":
+		return heartbeat.ParseLanguage("ini")
+	case "jade":
+		return heartbeat.ParseLanguage("jade")
+	case "java":
+		return heartbeat.ParseLanguage("java")
+	case "javascript":
+		return heartbeat.ParseLanguage("javascript")
+	case "json":
+		return heartbeat.ParseLanguage("json")
+	case "jsx":
+		return heartbeat.ParseLanguage("jsx")
+	case "kotlin":
+		return heartbeat.ParseLanguage("kotlin")
+	case "latex":
+		return heartbeat.ParseLanguage("latex")
+	case "ld-script":
+		return heartbeat.ParseLanguage("linkerscript")
+	case "less":
+		return heartbeat.ParseLanguage("less")
+	case "lua":
+		return heartbeat.ParseLanguage("lua")
+	case "makefile":
+		return heartbeat.ParseLanguage("makefile")
+	case "man":
+		return heartbeat.ParseLanguage("man")
+	case "markdown":
+		return heartbeat.ParseLanguage("markdown")
+	case "matlab":
+		return heartbeat.ParseLanguage("matlab")
+	case "metafont":
+		return heartbeat.ParseLanguage("metafont")
+	case "metapost":
+		return heartbeat.ParseLanguage("metapost")
+	case "mustache":
+		return heartbeat.ParseLanguage("mustache")
+	case "nix":
+		return heartbeat.ParseLanguage("nix")
+	case "objective-c":
+		return heartbeat.ParseLanguage("objective-c")
+	case "objective-c++":
+		return heartbeat.ParseLanguage("objective-cpp")
+	case "objective-j":
+		return heartbeat.ParseLanguage("objective-j")
+	case "ocaml":
+		return heartbeat.ParseLanguage("ocaml")
+	case "org":
+		return heartbeat.ParseLanguage("org")
+	case "pascal":
+		return heartbeat.ParseLanguage("pascal")
+	case "perl":
+		return heartbeat.ParseLanguage("perl")
+	case "php":
+		return heartbeat.ParseLanguage("php")
+	case "powershell":
+		return heartbeat.ParseLanguage("powershell")
+	case "prolog":
+		return heartbeat.ParseLanguage("prolog")
+	case "puppet":
+		return heartbeat.ParseLanguage("puppet")
+	case "purescript":
+		return heartbeat.ParseLanguage("purescript")
+	case "python":
+		return heartbeat.ParseLanguage("python")
+	case "r":
+		return heartbeat.ParseLanguage("r")
+	case "restructuredtext":
+		return heartbeat.ParseLanguage("restructuredtext")
+	case "ruby":
+		return heartbeat.ParseLanguage("ruby")
+	case "rust":
+		return heartbeat.ParseLanguage("rust")
+	case "salt":
+		return heartbeat.ParseLanguage("salt")
+	case "sass":
+		return heartbeat.ParseLanguage("sass")
+	case "scala":
+		return heartbeat.ParseLanguage("scala")
+	case "scheme":
+		return heartbeat.ParseLanguage("scheme")
+	case "scribe":
+		return heartbeat.ParseLanguage("scribe")
+	case "scss":
+		return heartbeat.ParseLanguage("scss")
+	case "sgml":
+		return heartbeat.ParseLanguage("sgml")
+	case "shell":
+		return heartbeat.ParseLanguage("shell")
+	case "simula":
+		return heartbeat.ParseLanguage("simula")
+	case "slim":
+		return heartbeat.ParseLanguage("slim")
+	case "smalltalk":
+		return heartbeat.ParseLanguage("smalltalk")
+	case "smime":
+		return heartbeat.ParseLanguage("smime")
+	case "sql":
+		return heartbeat.ParseLanguage("sql")
+	case "swift":
+		return heartbeat.ParseLanguage("swift")
+	case "tex":
+		return heartbeat.ParseLanguage("tex")
+	case "text":
+		return heartbeat.ParseLanguage("text")
+	case "turing":
+		return heartbeat.ParseLanguage("turing")
+	case "twig":
+		return heartbeat.ParseLanguage("twig")
+	case "typescript":
+		return heartbeat.ParseLanguage("typescript")
+	case "typoscript":
+		return heartbeat.ParseLanguage("typoscript")
+	case "vb.net":
+		return heartbeat.ParseLanguage("vb.net")
+	case "verilog":
+		return heartbeat.ParseLanguage("verilog")
+	case "vhdl":
+		return heartbeat.ParseLanguage("vhdl")
+	case "viml":
+		return heartbeat.ParseLanguage("viml")
+	case "xaml":
+		return heartbeat.ParseLanguage("xaml")
+	case "xml":
+		return heartbeat.ParseLanguage("xml")
+	case "yaml":
+		return heartbeat.ParseLanguage("yaml")
+	default:
+		return heartbeat.LanguageUnknown, false
+	}
 }
 
 func parseVim(language string) (heartbeat.Language, bool) {
 	switch language {
- 	case "a65":
- 		return heartbeat.LanguageAssembly, true
- 	case "asm":
- 		return heartbeat.LanguageAssembly, true
- 	case "asm68k":
- 		return heartbeat.LanguageAssembly, true
- 	case "asmh8300":
- 		return heartbeat.LanguageAssembly, true
- 	case "basic":
- 		return heartbeat.LanguageBasic, true
- 	case "c":
- 		return heartbeat.LanguageC, true
- 	case "cpp":
- 		return heartbeat.LanguageCPP, true
- 	case "crontab":
- 		return heartbeat.LanguageCrontab, true
- 	case "cs":
- 		return heartbeat.LanguageCSharp, true
- 	case "haml":
- 		return heartbeat.LanguageHAML, true
- 	case "haskell":
- 		return heartbeat.LanguageHaskell, true
- 	case "html":
- 		return heartbeat.LanguageHTML, true
- 	case "htmlcheetah":
- 		return heartbeat.LanguageHTML, true
- 	case "htmldjango":
- 		return heartbeat.LanguageHTML, true
- 	case "htmlm4":
- 		return heartbeat.LanguageHTML, true
- 	case "java":
- 		return heartbeat.LanguageJava, true
- 	case "javascript":
- 		return heartbeat.LanguageJavaScript, true
- 	case "lhaskell":
- 		return heartbeat.LanguageHaskell, true
- 	case "markdown":
- 		return heartbeat.LanguageMarkdown, true
- 	case "objc":
- 		return heartbeat.LanguageObjectiveC, true
- 	case "objcpp":
- 		return heartbeat.LanguageObjectiveCPP, true
- 	case "ocaml":
- 		return heartbeat.LanguageOCaml, true
- 	case "perl":
- 		return heartbeat.LanguagePerl, true
- 	case "perl6":
- 		return heartbeat.LanguagePerl, true
- 	case "php":
- 		return heartbeat.LanguagePHP, true
- 	case "phtml":
- 		return heartbeat.LanguagePHP, true
- 	case "prolog":
- 		return heartbeat.LanguageProlog, true
- 	case "python":
- 		return heartbeat.LanguagePython, true
- 	case "r":
- 		return heartbeat.LanguageR, true
- 	case "ruby":
- 		return heartbeat.LanguageRuby, true
- 	case "sass":
- 		return heartbeat.LanguageSass, true
- 	case "scheme":
- 		return heartbeat.LanguageScheme, true
- 	case "scss":
- 		return heartbeat.LanguageSCSS, true
- 	case "skill":
- 		return heartbeat.LanguageSKILL, true
- 	case "vb":
- 		return heartbeat.LanguageVBNet, true
- 	case "vim":
- 		return heartbeat.LanguageVimL, true
- 	case "xhtml":
- 		return heartbeat.LanguageHTML, true
- 	case "xml":
- 		return heartbeat.LanguageXML, true
- 	case "yaml":
- 		return heartbeat.LanguageYAML, true
- 	default:
- 		return heartbeat.LanguageUnknown, false
- 	}
+	case "a65":
+		return heartbeat.ParseLanguage("assembly")
+	case "asm":
+		return heartbeat.ParseLanguage("assembly")
+	case "asm68k":
+		return heartbeat.ParseLanguage("assembly")
+	case "asmh8300":
+		return heartbeat.ParseLanguage("assembly")
+	case "basic":
+		return heartbeat.ParseLanguage("basic")
+	case "c":
+		return heartbeat.ParseLanguage("c")
+	case "cpp":
+		return heartbeat.ParseLanguage("cpp")
+	case "crontab":
+		return heartbeat.ParseLanguage("crontab")
+	case "cs":
+		return heartbeat.ParseLanguage("csharp")
+	case "haml":
+		return heartbeat.ParseLanguage("haml")
+	case "haskell":
+		return heartbeat.ParseLanguage("haskell")
+	case "html":
+		return heartbeat.ParseLanguage("html")
+	case "htmlcheetah":
+		return heartbeat.ParseLanguage("html")
+	case "htmldjango":
+		return heartbeat.ParseLanguage("html")
+	case "htmlm4":
+		return heartbeat.ParseLanguage("html")
+	case "java":
+		return heartbeat.ParseLanguage("java")
+	case "javascript":
+		return heartbeat.ParseLanguage("javascript")
+	case "lhaskell":
+		return heartbeat.ParseLanguage("haskell")
+	case "markdown":
+		return heartbeat.ParseLanguage("markdown")
+	case "objc":
+		return heartbeat.ParseLanguage("objectivec")
+	case "objcpp":
+		return heartbeat.ParseLanguage("objectivecpp")
+	case "ocaml":
+		return heartbeat.ParseLanguage("ocaml")
+	case "perl":
+		return heartbeat.ParseLanguage("perl")
+	case "perl6":
+		return heartbeat.ParseLanguage("perl")
+	case "php":
+		return heartbeat.ParseLanguage("php")
+	case "phtml":
+		return heartbeat.ParseLanguage("php")
+	case "prolog":
+		return heartbeat.ParseLanguage("prolog")
+	case "python":
+		return heartbeat.ParseLanguage("python")
+	case "r":
+		return heartbeat.ParseLanguage("r")
+	case "ruby":
+		return heartbeat.ParseLanguage("ruby")
+	case "sass":
+		return heartbeat.ParseLanguage("sass")
+	case "scheme":
+		return heartbeat.ParseLanguage("scheme")
+	case "scss":
+		return heartbeat.ParseLanguage("scss")
+	case "skill":
+		return heartbeat.ParseLanguage("skill")
+	case "vb":
+		return heartbeat.ParseLanguage("vbnet")
+	case "vim":
+		return heartbeat.ParseLanguage("viml")
+	case "xhtml":
+		return heartbeat.ParseLanguage("html")
+	case "xml":
+		return heartbeat.ParseLanguage("xml")
+	case "yaml":
+		return heartbeat.ParseLanguage("yaml")
+	default:
+		return heartbeat.LanguageUnknown, false
+	}
 }
