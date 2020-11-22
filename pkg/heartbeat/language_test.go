@@ -123,11 +123,60 @@ func TestParseLanguage(t *testing.T) {
 	for value, language := range languageTests() {
 		t.Run(value, func(t *testing.T) {
 			parsed, ok := heartbeat.ParseLanguage(value)
-
 			assert.True(t, ok)
+
 			assert.Equal(t, language, parsed)
 		})
 	}
+
+	t.Run("lower case", func(t *testing.T) {
+		parsed, ok := heartbeat.ParseLanguage("go")
+		assert.True(t, ok)
+
+		assert.Equal(t, heartbeat.LanguageGo, parsed)
+	})
+
+	t.Run("hash", func(t *testing.T) {
+		parsed, ok := heartbeat.ParseLanguage("CSharp")
+		assert.True(t, ok)
+
+		assert.Equal(t, heartbeat.LanguageCSharp, parsed)
+	})
+
+	t.Run("plus sign", func(t *testing.T) {
+		parsed, ok := heartbeat.ParseLanguage("CPP")
+		assert.True(t, ok)
+
+		assert.Equal(t, heartbeat.LanguageCPP, parsed)
+	})
+
+	t.Run("leading space", func(t *testing.T) {
+		parsed, ok := heartbeat.ParseLanguage(" Go")
+		assert.True(t, ok)
+
+		assert.Equal(t, heartbeat.LanguageGo, parsed)
+	})
+
+	t.Run("trailing space", func(t *testing.T) {
+		parsed, ok := heartbeat.ParseLanguage("Go ")
+		assert.True(t, ok)
+
+		assert.Equal(t, heartbeat.LanguageGo, parsed)
+	})
+
+	t.Run("missing hyphen", func(t *testing.T) {
+		parsed, ok := heartbeat.ParseLanguage("ObjectiveC")
+		assert.True(t, ok)
+
+		assert.Equal(t, heartbeat.LanguageObjectiveC, parsed)
+	})
+
+	t.Run("missing space", func(t *testing.T) {
+		parsed, ok := heartbeat.ParseLanguage("Sublime Text Config")
+		assert.True(t, ok)
+
+		assert.Equal(t, heartbeat.LanguageSublimeTextConfig, parsed)
+	})
 }
 
 func TestParseLanguage_Unknown(t *testing.T) {
