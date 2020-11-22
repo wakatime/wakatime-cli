@@ -11,34 +11,62 @@ type Language int
 const (
 	// LanguageUnknown represents the Unknown programming language.
 	LanguageUnknown Language = iota
+	// LanguageAda represents the Ada programming language.
+	LanguageAda
+	// LanguageActionScript represents the ActionScript programming language.
+	LanguageActionScript
+	// LanguageAgda represents the Agda programming language.
+	LanguageAgda
+	// LanguageAnsible represents the Ansible programming language.
+	LanguageAnsible
 	// LanguageAppleScript represents the AppleScript programming language.
 	LanguageAppleScript
 	// LanguageApacheConf represents the ApacheConf programming language.
 	LanguageApacheConf
+	// LanguageASP represents the ASP programming language.
+	LanguageASP
 	// LanguageAssembly represents the Assembly programming language.
 	LanguageAssembly
+	// LanguageAutoconf represents the Autoconf programming language.
+	LanguageAutoconf
 	// LanguageAwk represents the Awk programming language.
 	LanguageAwk
 	// LanguageBash represents the Bash programming language.
 	LanguageBash
 	// LanguageBasic represents the Basic programming language.
 	LanguageBasic
+	// LanguageBatchScript represents the BatchScript programming language.
+	LanguageBatchScript
+	// LanguageBibTeX represents the BibTeX programming language.
+	LanguageBibTeX
+	// LanguageBrightScript represents the BrightScript programming language.
+	LanguageBrightScript
 	// LanguageC represents the C programming language.
 	LanguageC
-	// LanguageCPP represents the CPP programming language.
-	LanguageCPP
-	// LanguageCSharp represents the CSharp programming language.
-	LanguageCSharp
 	// LanguageClojure represents the Clojure programming language.
 	LanguageClojure
 	// LanguageCMake represents the CMake programming language.
 	LanguageCMake
+	// LanguageCocoa represents the Cocoa programming language.
+	LanguageCocoa
 	// LanguageCoffeeScript represents the CoffeeScript programming language.
 	LanguageCoffeeScript
 	// LanguageColdfusionHTML represents the ColdfusionHTML programming language.
 	LanguageColdfusionHTML
 	// LanguageCommonLisp represents the CommonLisp programming language.
 	LanguageCommonLisp
+	// LanguageCoq represents the Coq programming language.
+	LanguageCoq
+	// LanguageCPerl represents the CPerl programming language.
+	LanguageCPerl
+	// LanguageCPP represents the CPP programming language.
+	LanguageCPP
+	// LanguageCSharp represents the CSharp programming language.
+	LanguageCSharp
+	// LanguageCSHTML represents the CSHTML programming language.
+	LanguageCSHTML
+	// LanguageCVS represents the CVS programming language.
+	LanguageCVS
 	// LanguageCrontab represents the Crontab programming language.
 	LanguageCrontab
 	// LanguageCrystal represents the Crystal programming language.
@@ -47,10 +75,18 @@ const (
 	LanguageCSS
 	// LanguageDart represents the Dart programming language.
 	LanguageDart
+	// LanguageDCL represents the DCL programming language.
+	LanguageDCL
 	// LanguageDelphi represents the Delphi programming language.
 	LanguageDelphi
+	// LanguageDhall represents the Dhall programming language.
+	LanguageDhall
+	// LanguageDiff represents the Diff programming language.
+	LanguageDiff
 	// LanguageDocker represents the Docker programming language.
 	LanguageDocker
+	// LanguageDocTeX represents the DocTeX programming language.
+	LanguageDocTeX
 	// LanguageElixir represents the Elixir programming language.
 	LanguageElixir
 	// LanguageElm represents the Elm programming language.
@@ -59,6 +95,10 @@ const (
 	LanguageEmacsLisp
 	// LanguageErlang represents the Erlang programming language.
 	LanguageErlang
+	// LanguageEshell represents the Eshell programming language.
+	LanguageEshell
+	// LanguageFish represents the Fish programming language.
+	LanguageFish
 	// LanguageFSharp represents the FSharp programming language.
 	LanguageFSharp
 	// LanguageFortran represents the Fortran programming language.
@@ -75,10 +115,14 @@ const (
 	LanguageHaskell
 	// LanguageHaxe represents the Haxe programming language.
 	LanguageHaxe
+	// LanguageHCL represents the HCL programming language.
+	LanguageHCL
 	// LanguageHTML represents the HTML programming language.
 	LanguageHTML
 	// LanguageINI represents the INI programming language.
 	LanguageINI
+	// LanguageJade represents the Jade programming language.
+	LanguageJade
 	// LanguageJava represents the Java programming language.
 	LanguageJava
 	// LanguageJavaScript represents the JavaScript programming language.
@@ -91,10 +135,12 @@ const (
 	LanguageKotlin
 	// LanguageLasso represents the Lasso programming language.
 	LanguageLasso
-	// LanguageTex represents the Tex programming language.
-	LanguageTex
+	// LanguageLaTeX represents the LaTeX programming language.
+	LanguageLaTeX
 	// LanguageLess represents the Less programming language.
 	LanguageLess
+	// LanguageLinkerScript represents the LinkerScript programming language.
+	LanguageLinkerScript
 	// LanguageLiquid represents the Liquid programming language.
 	LanguageLiquid
 	// LanguageLua represents the Lua programming language.
@@ -103,12 +149,18 @@ const (
 	LanguageMakefile
 	// LanguageMako represents the Mako programming language.
 	LanguageMako
+	// LanguageMan represents the Man programming language.
+	LanguageMan
 	// LanguageMarkdown represents the Markdown programming language.
 	LanguageMarkdown
 	// LanguageMarko represents the Marko programming language.
 	LanguageMarko
 	// LanguageMatlab represents the Matlab programming language.
 	LanguageMatlab
+	// LanguageMetafont represents the Metafont programming language.
+	LanguageMetafont
+	// LanguageMetapost represents the Metapost programming language.
+	LanguageMetapost
 	// LanguageModelica represents the Modelica programming language.
 	LanguageModelica
 	// LanguageModula represents the Modula programming language.
@@ -127,6 +179,10 @@ const (
 	LanguageObjectiveJ
 	// LanguageOCaml represents the OCaml programming language.
 	LanguageOCaml
+	// LanguageOrg represents the Org programming language.
+	LanguageOrg
+	// LanguagePascal represents the Pascal programming language.
+	LanguagePascal
 	// LanguagePawn represents the Pawn programming language.
 	LanguagePawn
 	// LanguagePerl represents the Perl programming language.
@@ -147,6 +203,8 @@ const (
 	LanguagePug
 	// LanguagePuppet represents the Puppet programming language.
 	LanguagePuppet
+	// LanguagePureScript represents the PureScript programming language.
+	LanguagePureScript
 	// LanguagePython represents the Python programming language.
 	LanguagePython
 	// LanguageQML represents the QML programming language.
@@ -163,14 +221,24 @@ const (
 	LanguageRuby
 	// LanguageRust represents the Rust programming language.
 	LanguageRust
+	// LanguageSalt represents the Salt programming language.
+	LanguageSalt
 	// LanguageSass represents the Sass programming language.
 	LanguageSass
 	// LanguageScala represents the Scala programming language.
 	LanguageScala
 	// LanguageScheme represents the Scheme programming language.
 	LanguageScheme
+	// LanguageScribe represents the Scribe programming language.
+	LanguageScribe
 	// LanguageSCSS represents the SCSS programming language.
 	LanguageSCSS
+	// LanguageSGML represents the SGML programming language.
+	LanguageSGML
+	// LanguageShell represents the Shell programming language.
+	LanguageShell
+	// LanguageSimula represents the Simula programming language.
+	LanguageSimula
 	// LanguageSketchDrawing represents the SketchDrawing programming language.
 	LanguageSketchDrawing
 	// LanguageSKILL represents the SKILL programming language.
@@ -181,6 +249,8 @@ const (
 	LanguageSmali
 	// LanguageSmalltalk represents the Smalltalk programming language.
 	LanguageSmalltalk
+	// LanguageSMIME represents the SMIME programming language.
+	LanguageSMIME
 	// LanguageSourcePawn represents the SourcePawn programming language.
 	LanguageSourcePawn
 	// LanguageSQL represents the SQL programming language.
@@ -195,12 +265,16 @@ const (
 	LanguageSWIG
 	// Languagesystemverilog represents the systemverilog programming language.
 	Languagesystemverilog
+	// LanguageTeX represents the TeX programming language.
+	LanguageTeX
 	// LanguageText represents the Text programming language.
 	LanguageText
 	// LanguageThrift represents the Thrift programming language.
 	LanguageThrift
 	// LanguageTOML represents the TOML programming language.
 	LanguageTOML
+	// LanguageTuring represents the Turing programming language.
+	LanguageTuring
 	// LanguageTwig represents the Twig programming language.
 	LanguageTwig
 	// LanguageTypeScript represents the TypeScript programming language.
@@ -215,6 +289,10 @@ const (
 	LanguageVCL
 	// LanguageVelocity represents the Velocity programming language.
 	LanguageVelocity
+	// LanguageVerilog represents the Verilog programming language.
+	LanguageVerilog
+	// LanguageVHDL represents the VHDL programming language.
+	LanguageVHDL
 	// LanguageVimL represents the VimL programming language.
 	LanguageVimL
 	// LanguageVueJS represents the VueJS programming language.
@@ -233,31 +311,51 @@ const (
 
 const (
 	languageUnkownStr            = "Unknown"
+	languageAdaStr               = "Ada"
+	languageActionScriptStr      = "ActionScript"
+	languageAgdaStr              = "Agda"
+	languageAnsibleStr           = "Ansible"
+	languageASPStr               = "ASP"
 	languageAppleScriptStr       = "AppleScript"
 	languageApacheConfStr        = "ApacheConf"
 	languageAssemblyStr          = "Assembly"
+	languageAutoconfStr          = "Autoconf"
 	languageAwkStr               = "Awk"
 	languageBashStr              = "Bash"
 	languageBasicStr             = "Basic"
+	languageBatchScriptStr       = "Batch Script"
+	languageBibTeXStr            = "BibTeX"
+	languageBrightScriptStr      = "BrightScript"
 	languageCStr                 = "C"
-	languageCPPStr               = "C++"
-	languageCSharpStr            = "C#"
 	languageClojureStr           = "Clojure"
 	languageCMakeStr             = "CMake"
+	languageCocoaStr             = "Cocoa"
+	languageCoqStr               = "Coq"
 	languageCoffeeScriptStr      = "CoffeeScript"
 	languageColdfusionHTMLStr    = "Coldfusion"
 	languageCommonLispStr        = "Common Lisp"
+	languageCPerlStr             = "cperl"
+	languageCPPStr               = "C++"
 	languageCrontabStr           = "Crontab"
 	languageCrystalStr           = "Crystal"
+	languageCSharpStr            = "C#"
+	languageCSHTMLStr            = "CSHTML"
 	languageCSSStr               = "CSS"
+	languageCVSStr               = "CVS"
 	languageDartStr              = "Dart"
+	languageDCLStr               = "DCL"
 	languageDelphiStr            = "Delphi"
+	languageDhallStr             = "Dhall"
+	languageDiffStr              = "Diff"
 	languageDockerStr            = "Docker"
+	languageDocTeXStr            = "DocTeX"
 	languageElixirStr            = "Elixir"
 	languageElmStr               = "Elm"
 	languageEmacsLispStr         = "Emacs Lisp"
 	languageErlangStr            = "Erlang"
+	languageEshellStr            = "Eshell"
 	languageFSharpStr            = "F#"
+	languageFishStr              = "Fish"
 	languageFortranStr           = "Fortran"
 	languageGoStr                = "Go"
 	languageGosuStr              = "Gosu"
@@ -265,23 +363,29 @@ const (
 	languageHAMLStr              = "HAML"
 	languageHaskellStr           = "Haskell"
 	languageHaxeStr              = "Haxe"
+	languageHCLStr               = "HCL"
 	languageHTMLStr              = "HTML"
 	languageINIStr               = "INI"
+	languageJadeStr              = "Jade"
 	languageJavaStr              = "Java"
 	languageJavaScriptStr        = "JavaScript"
 	languageJSONStr              = "JSON"
 	languageJSXStr               = "JSX"
 	languageKotlinStr            = "Kotlin"
 	languageLassoStr             = "Lasso"
-	languageTexStr               = "TeX"
+	languageLaTeXStr             = "LaTeX"
 	languageLessStr              = "LESS"
+	languageLinkerScriptStr      = "Linker Script"
 	languageLiquidStr            = "liquid"
 	languageLuaStr               = "Lua"
 	languageMakefileStr          = "Makefile"
 	languageMakoStr              = "Mako"
+	languageManStr               = "Man"
 	languageMarkdownStr          = "Markdown"
 	languageMarkoStr             = "Marko"
 	languageMatlabStr            = "Matlab"
+	languageMetafontStr          = "Metafont"
+	languageMetapostStr          = "Metapost"
 	languageModelicaStr          = "Modelica"
 	languageModulaStr            = "Modula-2"
 	languageMustacheStr          = "Mustache"
@@ -291,6 +395,8 @@ const (
 	languageObjectiveCPPStr      = "Objective-C++"
 	languageObjectiveJStr        = "Objective-J"
 	languageOCamlStr             = "OCaml"
+	languageOrgStr               = "Org"
+	languagePascalStr            = "Pascal"
 	languagePawnStr              = "Pawn"
 	languagePerlStr              = "Perl"
 	languagePHPStr               = "PHP"
@@ -301,6 +407,7 @@ const (
 	languageProtocolBufferStr    = "Protocol Buffer"
 	languagePugStr               = "Pug"
 	languagePuppetStr            = "Puppet"
+	languagePureScriptStr        = "PureScript"
 	languagePythonStr            = "Python"
 	languageQMLStr               = "QML"
 	languageRStr                 = "R"
@@ -309,25 +416,33 @@ const (
 	languageRPMSpecStr           = "RPMSpec"
 	languageRubyStr              = "Ruby"
 	languageRustStr              = "Rust"
+	languageSaltStr              = "Salt"
 	languageSassStr              = "Sass"
 	languageScalaStr             = "Scala"
 	languageSchemeStr            = "Scheme"
+	languageScribeStr            = "Scribe"
 	languageSCSSStr              = "SCSS"
+	languageSGMLStr              = "SGML"
+	languageShellStr             = "Shell"
+	languageSimulaStr            = "Simula"
 	languageSketchDrawingStr     = "Sketch Drawing"
 	languageSKILLStr             = "SKILL"
 	languageSlimStr              = "Slim"
 	languageSmaliStr             = "Smali"
 	languageSmalltalkStr         = "Smalltalk"
+	languageSMIMEStr             = "S/MIME"
 	languageSourcePawnStr        = "SourcePawn"
 	languageSQLStr               = "SQL"
 	languageSublimeTextConfigStr = "Sublime Text Config"
 	languageSvelteStr            = "Svelte"
 	languageSwiftStr             = "Swift"
 	languageSWIGStr              = "SWIG"
-	languagesystemverilogStr     = "systemverilog"
+	languageSystemVerilogStr     = "systemverilog"
+	languageTeXStr               = "TeX"
 	languageTextStr              = "Text"
 	languageThriftStr            = "Thrift"
 	languageTOMLStr              = "TOML"
+	languageTuringStr            = "Turing"
 	languageTwigStr              = "Twig"
 	languageTypeScriptStr        = "TypeScript"
 	languageTypoScriptStr        = "TypoScript"
@@ -335,6 +450,8 @@ const (
 	languageVBNetStr             = "VB.net"
 	languageVCLStr               = "VCL"
 	languageVelocityStr          = "Velocity"
+	languageVerilogStr           = "Verilog"
+	languageVHDLStr              = "VHDL"
 	languageVimLStr              = "VimL"
 	languageVueJSStr             = "Vue.js"
 	languageXAMLStr              = "XAML"
@@ -358,46 +475,82 @@ const (
 // nolint:gocyclo
 func ParseLanguage(s string) (Language, bool) {
 	switch normalizeString(s) {
+	case normalizeString(languageAdaStr):
+		return LanguageAda, true
+	case normalizeString(languageActionScriptStr):
+		return LanguageActionScript, true
+	case normalizeString(languageAgdaStr):
+		return LanguageAgda, true
+	case normalizeString(languageAnsibleStr):
+		return LanguageAnsible, true
 	case normalizeString(languageAppleScriptStr):
 		return LanguageAppleScript, true
 	case normalizeString(languageApacheConfStr):
 		return LanguageApacheConf, true
+	case normalizeString(languageASPStr):
+		return LanguageASP, true
 	case normalizeString(languageAssemblyStr):
 		return LanguageAssembly, true
+	case normalizeString(languageAutoconfStr):
+		return LanguageAutoconf, true
 	case normalizeString(languageAwkStr):
 		return LanguageAwk, true
 	case normalizeString(languageBasicStr):
 		return LanguageBasic, true
 	case normalizeString(languageBashStr):
 		return LanguageBash, true
+	case normalizeString(languageBatchScriptStr):
+		return LanguageBatchScript, true
+	case normalizeString(languageBibTeXStr):
+		return LanguageBibTeX, true
+	case normalizeString(languageBrightScriptStr):
+		return LanguageBrightScript, true
 	case normalizeString(languageCStr):
 		return LanguageC, true
-	case normalizeString(languageCPPStr):
-		return LanguageCPP, true
-	case normalizeString(languageCSharpStr):
-		return LanguageCSharp, true
 	case normalizeString(languageClojureStr):
 		return LanguageClojure, true
 	case normalizeString(languageCMakeStr):
 		return LanguageCMake, true
+	case normalizeString(languageCocoaStr):
+		return LanguageCocoa, true
 	case normalizeString(languageCoffeeScriptStr):
 		return LanguageCoffeeScript, true
 	case normalizeString(languageColdfusionHTMLStr):
 		return LanguageColdfusionHTML, true
 	case normalizeString(languageCommonLispStr):
 		return LanguageCommonLisp, true
+	case normalizeString(languageCoqStr):
+		return LanguageCoq, true
+	case normalizeString(languageCPerlStr):
+		return LanguageCPerl, true
+	case normalizeString(languageCPPStr):
+		return LanguageCPP, true
 	case normalizeString(languageCrontabStr):
 		return LanguageCrontab, true
 	case normalizeString(languageCrystalStr):
 		return LanguageCrystal, true
+	case normalizeString(languageCSharpStr):
+		return LanguageCSharp, true
+	case normalizeString(languageCSHTMLStr):
+		return LanguageCSHTML, true
 	case normalizeString(languageCSSStr):
 		return LanguageCSS, true
+	case normalizeString(languageCVSStr):
+		return LanguageCVS, true
 	case normalizeString(languageDartStr):
 		return LanguageDart, true
+	case normalizeString(languageDCLStr):
+		return LanguageDCL, true
 	case normalizeString(languageDelphiStr):
 		return LanguageDelphi, true
+	case normalizeString(languageDhallStr):
+		return LanguageDhall, true
+	case normalizeString(languageDiffStr):
+		return LanguageDiff, true
 	case normalizeString(languageDockerStr):
 		return LanguageDocker, true
+	case normalizeString(languageDocTeXStr):
+		return LanguageDocTeX, true
 	case normalizeString(languageElixirStr):
 		return LanguageElixir, true
 	case normalizeString(languageElmStr):
@@ -406,6 +559,10 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageEmacsLisp, true
 	case normalizeString(languageErlangStr):
 		return LanguageErlang, true
+	case normalizeString(languageEshellStr):
+		return LanguageEshell, true
+	case normalizeString(languageFishStr):
+		return LanguageFish, true
 	case normalizeString(languageFSharpStr):
 		return LanguageFSharp, true
 	case normalizeString(languageFortranStr):
@@ -422,10 +579,14 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageHaskell, true
 	case normalizeString(languageHaxeStr):
 		return LanguageHaxe, true
+	case normalizeString(languageHCLStr):
+		return LanguageHCL, true
 	case normalizeString(languageHTMLStr):
 		return LanguageHTML, true
 	case normalizeString(languageINIStr):
 		return LanguageINI, true
+	case normalizeString(languageJadeStr):
+		return LanguageJade, true
 	case normalizeString(languageJavaStr):
 		return LanguageJava, true
 	case normalizeString(languageJavaScriptStr):
@@ -438,10 +599,12 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageKotlin, true
 	case normalizeString(languageLassoStr):
 		return LanguageLasso, true
-	case normalizeString(languageTexStr):
-		return LanguageTex, true
+	case normalizeString(languageLaTeXStr):
+		return LanguageLaTeX, true
 	case normalizeString(languageLessStr):
 		return LanguageLess, true
+	case normalizeString(languageLinkerScriptStr):
+		return LanguageLinkerScript, true
 	case normalizeString(languageLiquidStr):
 		return LanguageLiquid, true
 	case normalizeString(languageLuaStr):
@@ -450,12 +613,18 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageMakefile, true
 	case normalizeString(languageMakoStr):
 		return LanguageMako, true
+	case normalizeString(languageManStr):
+		return LanguageMan, true
 	case normalizeString(languageMarkdownStr):
 		return LanguageMarkdown, true
 	case normalizeString(languageMarkoStr):
 		return LanguageMarko, true
 	case normalizeString(languageMatlabStr):
 		return LanguageMatlab, true
+	case normalizeString(languageMetafontStr):
+		return LanguageMetafont, true
+	case normalizeString(languageMetapostStr):
+		return LanguageMetapost, true
 	case normalizeString(languageModelicaStr):
 		return LanguageModelica, true
 	case normalizeString(languageModulaStr):
@@ -474,6 +643,10 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageObjectiveJ, true
 	case normalizeString(languageOCamlStr):
 		return LanguageOCaml, true
+	case normalizeString(languageOrgStr):
+		return LanguageOrg, true
+	case normalizeString(languagePascalStr):
+		return LanguagePascal, true
 	case normalizeString(languagePawnStr):
 		return LanguagePawn, true
 	case normalizeString(languagePerlStr):
@@ -494,6 +667,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguagePug, true
 	case normalizeString(languagePuppetStr):
 		return LanguagePuppet, true
+	case normalizeString(languagePureScriptStr):
+		return LanguagePureScript, true
 	case normalizeString(languagePythonStr):
 		return LanguagePython, true
 	case normalizeString(languageQMLStr):
@@ -510,14 +685,24 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageRuby, true
 	case normalizeString(languageRustStr):
 		return LanguageRust, true
+	case normalizeString(languageSaltStr):
+		return LanguageSalt, true
 	case normalizeString(languageSassStr):
 		return LanguageSass, true
 	case normalizeString(languageScalaStr):
 		return LanguageScala, true
 	case normalizeString(languageSchemeStr):
 		return LanguageScheme, true
+	case normalizeString(languageScribeStr):
+		return LanguageScribe, true
 	case normalizeString(languageSCSSStr):
 		return LanguageSCSS, true
+	case normalizeString(languageSGMLStr):
+		return LanguageSGML, true
+	case normalizeString(languageShellStr):
+		return LanguageShell, true
+	case normalizeString(languageSimulaStr):
+		return LanguageSimula, true
 	case normalizeString(languageSketchDrawingStr):
 		return LanguageSketchDrawing, true
 	case normalizeString(languageSKILLStr):
@@ -528,6 +713,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageSmali, true
 	case normalizeString(languageSmalltalkStr):
 		return LanguageSmalltalk, true
+	case normalizeString(languageSMIMEStr):
+		return LanguageSMIME, true
 	case normalizeString(languageSourcePawnStr):
 		return LanguageSourcePawn, true
 	case normalizeString(languageSQLStr):
@@ -540,14 +727,18 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageSwift, true
 	case normalizeString(languageSWIGStr):
 		return LanguageSWIG, true
-	case normalizeString(languagesystemverilogStr):
+	case normalizeString(languageSystemVerilogStr):
 		return Languagesystemverilog, true
+	case normalizeString(languageTeXStr):
+		return LanguageTeX, true
 	case normalizeString(languageTextStr):
 		return LanguageText, true
 	case normalizeString(languageThriftStr):
 		return LanguageThrift, true
 	case normalizeString(languageTOMLStr):
 		return LanguageTOML, true
+	case normalizeString(languageTuringStr):
+		return LanguageTuring, true
 	case normalizeString(languageTwigStr):
 		return LanguageTwig, true
 	case normalizeString(languageTypeScriptStr):
@@ -562,6 +753,10 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageVCL, true
 	case normalizeString(languageVelocityStr):
 		return LanguageVelocity, true
+	case normalizeString(languageVerilogStr):
+		return LanguageVerilog, true
+	case normalizeString(languageVHDLStr):
+		return LanguageVHDL, true
 	case normalizeString(languageVimLStr):
 		return LanguageVimL, true
 	case normalizeString(languageVueJSStr):
@@ -632,46 +827,82 @@ func (l *Language) UnmarshalJSON(v []byte) error {
 // nolint:gocyclo
 func (l Language) String() string {
 	switch l {
+	case LanguageAda:
+		return languageAdaStr
+	case LanguageActionScript:
+		return languageActionScriptStr
+	case LanguageAgda:
+		return languageAgdaStr
+	case LanguageAnsible:
+		return languageAnsibleStr
 	case LanguageAppleScript:
 		return languageAppleScriptStr
 	case LanguageApacheConf:
 		return languageApacheConfStr
+	case LanguageASP:
+		return languageASPStr
 	case LanguageAssembly:
 		return languageAssemblyStr
+	case LanguageAutoconf:
+		return languageAutoconfStr
 	case LanguageAwk:
 		return languageAwkStr
 	case LanguageBasic:
 		return languageBasicStr
 	case LanguageBash:
 		return languageBashStr
+	case LanguageBatchScript:
+		return languageBatchScriptStr
+	case LanguageBibTeX:
+		return languageBibTeXStr
+	case LanguageBrightScript:
+		return languageBrightScriptStr
 	case LanguageC:
 		return languageCStr
-	case LanguageCPP:
-		return languageCPPStr
-	case LanguageCSharp:
-		return languageCSharpStr
 	case LanguageClojure:
 		return languageClojureStr
 	case LanguageCMake:
 		return languageCMakeStr
+	case LanguageCocoa:
+		return languageCocoaStr
 	case LanguageCoffeeScript:
 		return languageCoffeeScriptStr
 	case LanguageColdfusionHTML:
 		return languageColdfusionHTMLStr
 	case LanguageCommonLisp:
 		return languageCommonLispStr
+	case LanguageCoq:
+		return languageCoqStr
+	case LanguageCPerl:
+		return languageCPerlStr
+	case LanguageCPP:
+		return languageCPPStr
 	case LanguageCrontab:
 		return languageCrontabStr
 	case LanguageCrystal:
 		return languageCrystalStr
+	case LanguageCSharp:
+		return languageCSharpStr
+	case LanguageCSHTML:
+		return languageCSHTMLStr
 	case LanguageCSS:
 		return languageCSSStr
+	case LanguageCVS:
+		return languageCVSStr
 	case LanguageDart:
 		return languageDartStr
+	case LanguageDCL:
+		return languageDCLStr
 	case LanguageDelphi:
 		return languageDelphiStr
+	case LanguageDhall:
+		return languageDhallStr
+	case LanguageDiff:
+		return languageDiffStr
 	case LanguageDocker:
 		return languageDockerStr
+	case LanguageDocTeX:
+		return languageDocTeXStr
 	case LanguageElixir:
 		return languageElixirStr
 	case LanguageElm:
@@ -680,10 +911,14 @@ func (l Language) String() string {
 		return languageEmacsLispStr
 	case LanguageErlang:
 		return languageErlangStr
-	case LanguageFSharp:
-		return languageFSharpStr
+	case LanguageEshell:
+		return languageEshellStr
+	case LanguageFish:
+		return languageFishStr
 	case LanguageFortran:
 		return languageFortranStr
+	case LanguageFSharp:
+		return languageFSharpStr
 	case LanguageGo:
 		return languageGoStr
 	case LanguageGosu:
@@ -696,10 +931,14 @@ func (l Language) String() string {
 		return languageHaskellStr
 	case LanguageHaxe:
 		return languageHaxeStr
+	case LanguageHCL:
+		return languageHCLStr
 	case LanguageHTML:
 		return languageHTMLStr
 	case LanguageINI:
 		return languageINIStr
+	case LanguageJade:
+		return languageJadeStr
 	case LanguageJava:
 		return languageJavaStr
 	case LanguageJavaScript:
@@ -712,10 +951,12 @@ func (l Language) String() string {
 		return languageKotlinStr
 	case LanguageLasso:
 		return languageLassoStr
-	case LanguageTex:
-		return languageTexStr
+	case LanguageLaTeX:
+		return languageLaTeXStr
 	case LanguageLess:
 		return languageLessStr
+	case LanguageLinkerScript:
+		return languageLinkerScriptStr
 	case LanguageLiquid:
 		return languageLiquidStr
 	case LanguageLua:
@@ -724,12 +965,18 @@ func (l Language) String() string {
 		return languageMakefileStr
 	case LanguageMako:
 		return languageMakoStr
+	case LanguageMan:
+		return languageManStr
 	case LanguageMarkdown:
 		return languageMarkdownStr
 	case LanguageMarko:
 		return languageMarkoStr
 	case LanguageMatlab:
 		return languageMatlabStr
+	case LanguageMetafont:
+		return languageMetafontStr
+	case LanguageMetapost:
+		return languageMetapostStr
 	case LanguageModelica:
 		return languageModelicaStr
 	case LanguageModula:
@@ -748,6 +995,10 @@ func (l Language) String() string {
 		return languageObjectiveJStr
 	case LanguageOCaml:
 		return languageOCamlStr
+	case LanguageOrg:
+		return languageOrgStr
+	case LanguagePascal:
+		return languagePascalStr
 	case LanguagePawn:
 		return languagePawnStr
 	case LanguagePerl:
@@ -768,6 +1019,8 @@ func (l Language) String() string {
 		return languagePugStr
 	case LanguagePuppet:
 		return languagePuppetStr
+	case LanguagePureScript:
+		return languagePureScriptStr
 	case LanguagePython:
 		return languagePythonStr
 	case LanguageQML:
@@ -784,14 +1037,24 @@ func (l Language) String() string {
 		return languageRubyStr
 	case LanguageRust:
 		return languageRustStr
+	case LanguageSalt:
+		return languageSaltStr
 	case LanguageSass:
 		return languageSassStr
 	case LanguageScala:
 		return languageScalaStr
 	case LanguageScheme:
 		return languageSchemeStr
+	case LanguageScribe:
+		return languageScribeStr
 	case LanguageSCSS:
 		return languageSCSSStr
+	case LanguageSGML:
+		return languageSGMLStr
+	case LanguageShell:
+		return languageShellStr
+	case LanguageSimula:
+		return languageSimulaStr
 	case LanguageSketchDrawing:
 		return languageSketchDrawingStr
 	case LanguageSKILL:
@@ -802,6 +1065,8 @@ func (l Language) String() string {
 		return languageSmaliStr
 	case LanguageSmalltalk:
 		return languageSmalltalkStr
+	case LanguageSMIME:
+		return languageSMIMEStr
 	case LanguageSourcePawn:
 		return languageSourcePawnStr
 	case LanguageSQL:
@@ -815,13 +1080,17 @@ func (l Language) String() string {
 	case LanguageSWIG:
 		return languageSWIGStr
 	case Languagesystemverilog:
-		return languagesystemverilogStr
+		return languageSystemVerilogStr
+	case LanguageTeX:
+		return languageTeXStr
 	case LanguageText:
 		return languageTextStr
 	case LanguageThrift:
 		return languageThriftStr
 	case LanguageTOML:
 		return languageTOMLStr
+	case LanguageTuring:
+		return languageTuringStr
 	case LanguageTwig:
 		return languageTwigStr
 	case LanguageTypeScript:
@@ -836,6 +1105,10 @@ func (l Language) String() string {
 		return languageVCLStr
 	case LanguageVelocity:
 		return languageVelocityStr
+	case LanguageVerilog:
+		return languageVerilogStr
+	case LanguageVHDL:
+		return languageVHDLStr
 	case LanguageVimL:
 		return languageVimLStr
 	case LanguageVueJS:
@@ -879,8 +1152,12 @@ func (l Language) StringChroma() string {
 func normalizeString(s string) string {
 	s = strings.TrimSpace(s)
 	s = strings.ToLower(s)
-	s = strings.Replace(s, " ", "", -1)
-	s = strings.Replace(s, "-", "", -1)
-	s = strings.Replace(s, "#", "sharp", -1)
-	return strings.Replace(s, "++", "pp", -1)
+	s = strings.ReplaceAll(s, " ", "")
+	s = strings.ReplaceAll(s, "-", "")
+	s = strings.ReplaceAll(s, ".", "")
+	s = strings.ReplaceAll(s, "/", "")
+	s = strings.ReplaceAll(s, "#", "sharp")
+	s = strings.ReplaceAll(s, "++", "pp")
+
+	return s
 }
