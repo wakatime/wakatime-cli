@@ -21,6 +21,8 @@ const (
 	LanguageAwk
 	// LanguageBash represents the Bash programming language.
 	LanguageBash
+	// LanguageBasic represents the Basic programming language.
+	LanguageBasic
 	// LanguageC represents the C programming language.
 	LanguageC
 	// LanguageCPP represents the CPP programming language.
@@ -67,6 +69,8 @@ const (
 	LanguageGosu
 	// LanguageGroovy represents the Groovy programming language.
 	LanguageGroovy
+	// LanguageHAML represents the HAML programming language.
+	LanguageHAML
 	// LanguageHaskell represents the Haskell programming language.
 	LanguageHaskell
 	// LanguageHaxe represents the Haxe programming language.
@@ -95,6 +99,8 @@ const (
 	LanguageLiquid
 	// LanguageLua represents the Lua programming language.
 	LanguageLua
+	// LanguageMakefile represents the Makefile programming language.
+	LanguageMakefile
 	// LanguageMako represents the Mako programming language.
 	LanguageMako
 	// LanguageMarkdown represents the Markdown programming language.
@@ -167,6 +173,8 @@ const (
 	LanguageSCSS
 	// LanguageSketchDrawing represents the SketchDrawing programming language.
 	LanguageSketchDrawing
+	// LanguageSKILL represents the SKILL programming language.
+	LanguageSKILL
 	// LanguageSlim represents the Slim programming language.
 	LanguageSlim
 	// LanguageSmali represents the Smali programming language.
@@ -201,6 +209,8 @@ const (
 	LanguageTypoScript
 	// LanguageVB represents the VB programming language.
 	LanguageVB
+	// LanguageVBNet represents the VB.net programming language.
+	LanguageVBNet
 	// LanguageVCL represents the VCL programming language.
 	LanguageVCL
 	// LanguageVelocity represents the Velocity programming language.
@@ -228,6 +238,7 @@ const (
 	languageAssemblyStr          = "Assembly"
 	languageAwkStr               = "Awk"
 	languageBashStr              = "Bash"
+	languageBasicStr             = "Basic"
 	languageCStr                 = "C"
 	languageCPPStr               = "C++"
 	languageCSharpStr            = "C#"
@@ -251,6 +262,7 @@ const (
 	languageGoStr                = "Go"
 	languageGosuStr              = "Gosu"
 	languageGroovyStr            = "Groovy"
+	languageHAMLStr              = "HAML"
 	languageHaskellStr           = "Haskell"
 	languageHaxeStr              = "Haxe"
 	languageHTMLStr              = "HTML"
@@ -265,6 +277,7 @@ const (
 	languageLessStr              = "LESS"
 	languageLiquidStr            = "liquid"
 	languageLuaStr               = "Lua"
+	languageMakefileStr          = "Makefile"
 	languageMakoStr              = "Mako"
 	languageMarkdownStr          = "Markdown"
 	languageMarkoStr             = "Marko"
@@ -301,6 +314,7 @@ const (
 	languageSchemeStr            = "Scheme"
 	languageSCSSStr              = "SCSS"
 	languageSketchDrawingStr     = "Sketch Drawing"
+	languageSKILLStr             = "SKILL"
 	languageSlimStr              = "Slim"
 	languageSmaliStr             = "Smali"
 	languageSmalltalkStr         = "Smalltalk"
@@ -317,7 +331,8 @@ const (
 	languageTwigStr              = "Twig"
 	languageTypeScriptStr        = "TypeScript"
 	languageTypoScriptStr        = "TypoScript"
-	languageVBStr                = "VB.net"
+	languageVBStr                = "VB"
+	languageVBNetStr             = "VB.net"
 	languageVCLStr               = "VCL"
 	languageVelocityStr          = "Velocity"
 	languageVimLStr              = "VimL"
@@ -330,6 +345,7 @@ const (
 )
 
 const (
+	languageMakefileChromaStr  = "Base Makefile"
 	languageFSharpChromaStr    = "FSharp"
 	languageEmacsLispChromaStr = "EmacsLisp"
 	languageAssemblyChromaStr  = "GAS"
@@ -350,6 +366,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageAssembly, true
 	case normalizeString(languageAwkStr):
 		return LanguageAwk, true
+	case normalizeString(languageBasicStr):
+		return LanguageBasic, true
 	case normalizeString(languageBashStr):
 		return LanguageBash, true
 	case normalizeString(languageCStr):
@@ -398,6 +416,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageGosu, true
 	case normalizeString(languageGroovyStr):
 		return LanguageGroovy, true
+	case normalizeString(languageHAMLStr):
+		return LanguageHAML, true
 	case normalizeString(languageHaskellStr):
 		return LanguageHaskell, true
 	case normalizeString(languageHaxeStr):
@@ -426,6 +446,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageLiquid, true
 	case normalizeString(languageLuaStr):
 		return LanguageLua, true
+	case normalizeString(languageMakefileStr):
+		return LanguageMakefile, true
 	case normalizeString(languageMakoStr):
 		return LanguageMako, true
 	case normalizeString(languageMarkdownStr):
@@ -498,6 +520,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageSCSS, true
 	case normalizeString(languageSketchDrawingStr):
 		return LanguageSketchDrawing, true
+	case normalizeString(languageSKILLStr):
+		return LanguageSKILL, true
 	case normalizeString(languageSlimStr):
 		return LanguageSlim, true
 	case normalizeString(languageSmaliStr):
@@ -532,6 +556,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageTypoScript, true
 	case normalizeString(languageVBStr):
 		return LanguageVB, true
+	case normalizeString(languageVBNetStr):
+		return LanguageVBNet, true
 	case normalizeString(languageVCLStr):
 		return LanguageVCL, true
 	case normalizeString(languageVelocityStr):
@@ -560,156 +586,20 @@ func ParseLanguage(s string) (Language, bool) {
 // nolint:gocyclo
 func ParseLanguageFromChroma(lexerName string) (Language, bool) {
 	switch lexerName {
-	case languageAppleScriptStr:
-		return LanguageAppleScript, true
-	case languageApacheConfStr:
-		return LanguageApacheConf, true
 	case languageAssemblyChromaStr:
 		return LanguageAssembly, true
-	case languageAwkStr:
-		return LanguageAwk, true
-	case languageBashStr:
-		return LanguageBash, true
-	case languageCStr:
-		return LanguageC, true
-	case languageCPPStr:
-		return LanguageCPP, true
-	case languageCSharpStr:
-		return LanguageCSharp, true
-	case languageClojureStr:
-		return LanguageClojure, true
-	case languageCMakeStr:
-		return LanguageCMake, true
-	case languageCoffeeScriptStr:
-		return LanguageCoffeeScript, true
-	case languageCommonLispStr:
-		return LanguageCommonLisp, true
-	case languageCrystalStr:
-		return LanguageCrystal, true
-	case languageCSSStr:
-		return LanguageCSS, true
-	case languageDartStr:
-		return LanguageDart, true
-	case languageDockerStr:
-		return LanguageDocker, true
-	case languageElixirStr:
-		return LanguageElixir, true
-	case languageElmStr:
-		return LanguageElm, true
 	case languageEmacsLispChromaStr:
 		return LanguageEmacsLisp, true
-	case languageErlangStr:
-		return LanguageErlang, true
 	case languageFSharpChromaStr:
 		return LanguageFSharp, true
-	case languageFortranStr:
-		return LanguageFortran, true
-	case languageGoStr:
-		return LanguageGo, true
-	case languageGroovyStr:
-		return LanguageGroovy, true
-	case languageHaskellStr:
-		return LanguageHaskell, true
-	case languageHaxeStr:
-		return LanguageHaxe, true
-	case languageHTMLStr:
-		return LanguageHTML, true
-	case languageINIStr:
-		return LanguageINI, true
-	case languageJavaStr:
-		return LanguageJava, true
-	case languageJavaScriptStr:
-		return LanguageJavaScript, true
-	case languageJSONStr:
-		return LanguageJSON, true
-	case languageKotlinStr:
-		return LanguageKotlin, true
-	case languageTexStr:
-		return LanguageTex, true
-	case languageLuaStr:
-		return LanguageLua, true
-	case languageMakoStr:
-		return LanguageMako, true
+	case languageMakefileChromaStr:
+		return LanguageMakefile, true
 	case languageMarkdownChromaStr:
 		return LanguageMarkdown, true
-	case languageMatlabStr:
-		return LanguageMatlab, true
-	case languageModulaStr:
-		return LanguageModula, true
-	case languageNixStr:
-		return LanguageNix, true
-	case languageOCamlStr:
-		return LanguageOCaml, true
-	case languageObjectiveCStr:
-		return LanguageObjectiveC, true
-	case languagePerlStr:
-		return LanguagePerl, true
-	case languagePHPStr:
-		return LanguagePHP, true
-	case languagePostScriptStr:
-		return LanguagePostScript, true
-	case languagePOVRayStr:
-		return LanguagePOVRay, true
-	case languagePowerShellStr:
-		return LanguagePowerShell, true
-	case languagePrologStr:
-		return LanguageProlog, true
-	case languageProtocolBufferStr:
-		return LanguageProtocolBuffer, true
-	case languagePuppetStr:
-		return LanguagePuppet, true
-	case languagePythonStr:
-		return LanguagePython, true
-	case languageRStr:
-		return LanguageR, true
-	case languageReasonMLStr:
-		return LanguageReasonML, true
-	case languageReStructuredTextStr:
-		return LanguageReStructuredText, true
-	case languageRubyStr:
-		return LanguageRuby, true
-	case languageRustStr:
-		return LanguageRust, true
-	case languageSassStr:
-		return LanguageSass, true
-	case languageScalaStr:
-		return LanguageScala, true
-	case languageSchemeStr:
-		return LanguageScheme, true
-	case languageSCSSStr:
-		return LanguageSCSS, true
-	case languageSmalltalkStr:
-		return LanguageSmalltalk, true
-	case languageSQLStr:
-		return LanguageSQL, true
-	case languageSwiftStr:
-		return LanguageSwift, true
-	case languagesystemverilogStr:
-		return Languagesystemverilog, true
 	case languageTextChromaStr:
 		return LanguageText, true
-	case languageThriftStr:
-		return LanguageThrift, true
-	case languageTOMLStr:
-		return LanguageTOML, true
-	case languageTwigStr:
-		return LanguageTwig, true
-	case languageTypeScriptStr:
-		return LanguageTypeScript, true
-	case languageTypoScriptStr:
-		return LanguageTypoScript, true
-	case languageVBStr:
-		return LanguageVB, true
-	case languageVimLStr:
-		return LanguageVimL, true
-	case languageXMLStr:
-		return LanguageXML, true
-	case languageYAMLStr:
-		return LanguageYAML, true
-	case languageZigStr:
-		return LanguageZig, true
 	default:
-		return LanguageUnknown, false
+		return ParseLanguage(lexerName)
 	}
 }
 
@@ -750,6 +640,8 @@ func (l Language) String() string {
 		return languageAssemblyStr
 	case LanguageAwk:
 		return languageAwkStr
+	case LanguageBasic:
+		return languageBasicStr
 	case LanguageBash:
 		return languageBashStr
 	case LanguageC:
@@ -798,6 +690,8 @@ func (l Language) String() string {
 		return languageGosuStr
 	case LanguageGroovy:
 		return languageGroovyStr
+	case LanguageHAML:
+		return languageHAMLStr
 	case LanguageHaskell:
 		return languageHaskellStr
 	case LanguageHaxe:
@@ -826,6 +720,8 @@ func (l Language) String() string {
 		return languageLiquidStr
 	case LanguageLua:
 		return languageLuaStr
+	case LanguageMakefile:
+		return languageMakefileStr
 	case LanguageMako:
 		return languageMakoStr
 	case LanguageMarkdown:
@@ -898,6 +794,8 @@ func (l Language) String() string {
 		return languageSCSSStr
 	case LanguageSketchDrawing:
 		return languageSketchDrawingStr
+	case LanguageSKILL:
+		return languageSKILLStr
 	case LanguageSlim:
 		return languageSlimStr
 	case LanguageSmali:
@@ -932,6 +830,8 @@ func (l Language) String() string {
 		return languageTypoScriptStr
 	case LanguageVB:
 		return languageVBStr
+	case LanguageVBNet:
+		return languageVBNetStr
 	case LanguageVCL:
 		return languageVCLStr
 	case LanguageVelocity:
@@ -952,6 +852,27 @@ func (l Language) String() string {
 		return languageZigStr
 	default:
 		return languageUnkownStr
+	}
+}
+
+// StringChroma returns the corresponding chroma lexer name.
+// nolint:gocyclo
+func (l Language) StringChroma() string {
+	switch l {
+	case LanguageAssembly:
+		return languageAssemblyChromaStr
+	case LanguageEmacsLisp:
+		return languageEmacsLispChromaStr
+	case LanguageFSharp:
+		return languageFSharpChromaStr
+	case LanguageMakefile:
+		return languageMakefileChromaStr
+	case LanguageMarkdown:
+		return languageMarkdownChromaStr
+	case LanguageText:
+		return languageTextChromaStr
+	default:
+		return l.String()
 	}
 }
 
