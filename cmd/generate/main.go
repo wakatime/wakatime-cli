@@ -7,12 +7,13 @@ import (
 	"os"
 	"strings"
 	"text/template"
+
+	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 )
 
 const (
 	pluginFolder = "pkg/language/plugins"
 	outputFile   = "pkg/language/plugins.go"
-	// languageMappingFile = "pkg/language/languagevim/vim.json"
 )
 
 func main() {
@@ -29,6 +30,7 @@ func generate() int {
 
 	var context Context
 
+	unmatched := make(map[string][]string)
 	for _, file := range files {
 		filepath := fmt.Sprintf("%s/%s", pluginFolder, file.Name())
 		data, err := ioutil.ReadFile(filepath)
@@ -45,18 +47,33 @@ func generate() int {
 			return 1
 		}
 
-		pluginName := strings.Split(file.Name(), ".")[0]
+		plugin := strings.Split(file.Name(), ".")[0]
 
-		if pluginName == "default" {
+		// validate languages
+		for _, language := range languageMapping {
+			if _, ok := heartbeat.ParseLanguage(language); !ok {
+				unmatched[plugin] = append(unmatched[plugin], language)
+			}
+		}
+
+		if plugin == "default" {
 			context.Default = languageMapping
 			continue
 		}
 
 		context.Plugins = append(context.Plugins, Plugin{
-			Name:    pluginName,
-			Title:   strings.Title(pluginName),
+			Name:    plugin,
+			Title:   strings.Title(plugin),
 			Mapping: languageMapping,
 		})
+	}
+
+	if len(unmatched) > 0 {
+		for plugin, languages := range unmatched {
+			fmt.Printf("failed to detect the following language(s) for plugin %s: '%s'\n", plugin, strings.Join(languages, "', '"))
+		}
+
+		return 1
 	}
 
 	if context.Default == nil {
