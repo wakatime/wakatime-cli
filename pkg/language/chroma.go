@@ -42,10 +42,10 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 )
 
-// chromaMatchCustomized returns the best by filename matching lexer. Best lexer is determined
+// detectChromaCustomized returns the best by filename matching lexer. Best lexer is determined
 // by customized priority.
 // This is a modified implementation of chroma.lexers.internal.api:Match().
-func chromaMatchCustomized(filepath string) (heartbeat.Language, bool) {
+func detectChromaCustomized(filepath string) (heartbeat.Language, float32, bool) {
 	_, file := fp.Split(filepath)
 	filename := fp.Base(file)
 	matched := chroma.PrioritisedLexers{}
@@ -61,15 +61,15 @@ func chromaMatchCustomized(filepath string) (heartbeat.Language, bool) {
 	}
 
 	if len(matched) > 0 {
-		bestLexer := selectByCustomizedPriority(filepath, matched)
+		bestLexer, weight := selectByCustomizedPriority(filepath, matched)
 
 		language, ok := heartbeat.ParseLanguageFromChroma(bestLexer.Config().Name)
 		if !ok {
 			jww.WARN.Printf("failed to parse language from chroma lexer name %q", bestLexer.Config().Name)
-			return heartbeat.LanguageUnknown, false
+			return heartbeat.LanguageUnknown, 0, false
 		}
 
-		return language, true
+		return language, weight, true
 	}
 
 	// Next, try filename aliases.
@@ -83,18 +83,18 @@ func chromaMatchCustomized(filepath string) (heartbeat.Language, bool) {
 	}
 
 	if len(matched) > 0 {
-		bestLexer := selectByCustomizedPriority(filepath, matched)
+		bestLexer, weight := selectByCustomizedPriority(filepath, matched)
 
 		language, ok := heartbeat.ParseLanguageFromChroma(bestLexer.Config().Name)
 		if !ok {
 			jww.WARN.Printf("failed to parse language from chroma lexer name %q", bestLexer.Config().Name)
-			return heartbeat.LanguageUnknown, false
+			return heartbeat.LanguageUnknown, 0, false
 		}
 
-		return language, true
+		return language, weight, true
 	}
 
-	return heartbeat.LanguageUnknown, false
+	return heartbeat.LanguageUnknown, 0, false
 }
 
 // weightedLexer is a lexer with priority and weight.
@@ -105,7 +105,7 @@ type weightedLexer struct {
 }
 
 // selectByCustomizedPriority selects the best matching lexer by customized priority evaluation.
-func selectByCustomizedPriority(filepath string, lexers chroma.PrioritisedLexers) chroma.Lexer {
+func selectByCustomizedPriority(filepath string, lexers chroma.PrioritisedLexers) (chroma.Lexer, float32) {
 	sort.Slice(lexers, func(i, j int) bool {
 		icfg, jcfg := lexers[i].Config(), lexers[j].Config()
 
@@ -123,13 +123,13 @@ func selectByCustomizedPriority(filepath string, lexers chroma.PrioritisedLexers
 	extensions, err := loadFolderExtensions(dir)
 	if err != nil {
 		jww.WARN.Printf("failed to load folder extensions: %s", err)
-		return lexers[0]
+		return lexers[0], 0
 	}
 
 	head, err := fileHead(filepath)
 	if err != nil {
 		jww.WARN.Printf("failed to load head from file %q: %s", filepath, err)
-		return lexers[0]
+		return lexers[0], 0
 	}
 
 	var weighted []weightedLexer
@@ -195,7 +195,7 @@ func selectByCustomizedPriority(filepath string, lexers chroma.PrioritisedLexers
 		return weighted[i].Lexer.Config().Name > weighted[j].Lexer.Config().Name
 	})
 
-	return weighted[0].Lexer
+	return weighted[0].Lexer, weighted[0].Weight
 }
 
 // fileHead returns the first 512000 bytes of the file's content.
