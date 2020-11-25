@@ -1,0 +1,143 @@
+package language_test
+
+import (
+	"fmt"
+	"testing"
+
+	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/language"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+func TestParse(t *testing.T) {
+	tests := map[string]heartbeat.Language{
+		"actionscript":     heartbeat.LanguageActionScript,
+		"ada":              heartbeat.LanguageAda,
+		"agda":             heartbeat.LanguageAgda,
+		"ansible":          heartbeat.LanguageAnsible,
+		"apacheconf":       heartbeat.LanguageApacheConf,
+		"applescript":      heartbeat.LanguageAppleScript,
+		"asp":              heartbeat.LanguageASP,
+		"assembly":         heartbeat.LanguageAssembly,
+		"autoconf":         heartbeat.LanguageAutoconf,
+		"awk":              heartbeat.LanguageAwk,
+		"bash":             heartbeat.LanguageBash,
+		"basic":            heartbeat.LanguageBasic,
+		"bat":              heartbeat.LanguageBatchScript,
+		"bibtex":           heartbeat.LanguageBibTeX,
+		"brightscript":     heartbeat.LanguageBrightScript,
+		"c":                heartbeat.LanguageC,
+		"c#":               heartbeat.LanguageCSharp,
+		"c++":              heartbeat.LanguageCPP,
+		"clojure":          heartbeat.LanguageClojure,
+		"cocoa":            heartbeat.LanguageCocoa,
+		"coffeescript":     heartbeat.LanguageCoffeeScript,
+		"coldfusion":       heartbeat.LanguageColdfusionHTML,
+		"coldfusion html":  heartbeat.LanguageColdfusionHTML,
+		"common lisp":      heartbeat.LanguageCommonLisp,
+		"coq":              heartbeat.LanguageCoq,
+		"cperl":            heartbeat.LanguageCPerl,
+		"cshtml":           heartbeat.LanguageCSHTML,
+		"css":              heartbeat.LanguageCSS,
+		"cvs":              heartbeat.LanguageCVS,
+		"dart":             heartbeat.LanguageDart,
+		"dcl":              heartbeat.LanguageDCL,
+		"delphi":           heartbeat.LanguageDelphi,
+		"dhall":            heartbeat.LanguageDhall,
+		"diff":             heartbeat.LanguageDiff,
+		"doctex":           heartbeat.LanguageDocTeX,
+		"elixir":           heartbeat.LanguageElixir,
+		"elm":              heartbeat.LanguageElm,
+		"emacs lisp":       heartbeat.LanguageEmacsLisp,
+		"erlang":           heartbeat.LanguageErlang,
+		"eshell":           heartbeat.LanguageEshell,
+		"f#":               heartbeat.LanguageFSharp,
+		"fish":             heartbeat.LanguageFish,
+		"fortran":          heartbeat.LanguageFortran,
+		"gas":              heartbeat.LanguageAssembly,
+		"go":               heartbeat.LanguageGo,
+		"gosu":             heartbeat.LanguageGosu,
+		"groovy":           heartbeat.LanguageGroovy,
+		"haml":             heartbeat.LanguageHAML,
+		"haskell":          heartbeat.LanguageHaskell,
+		"haxe":             heartbeat.LanguageHaxe,
+		"hcl":              heartbeat.LanguageHCL,
+		"html":             heartbeat.LanguageHTML,
+		"ini":              heartbeat.LanguageINI,
+		"jade":             heartbeat.LanguageJade,
+		"java":             heartbeat.LanguageJava,
+		"javascript":       heartbeat.LanguageJavaScript,
+		"json":             heartbeat.LanguageJSON,
+		"jsx":              heartbeat.LanguageJSX,
+		"kotlin":           heartbeat.LanguageKotlin,
+		"latex":            heartbeat.LanguageLaTeX,
+		"ld-script":        heartbeat.LanguageLinkerScript,
+		"less":             heartbeat.LanguageLess,
+		"lua":              heartbeat.LanguageLua,
+		"makefile":         heartbeat.LanguageMakefile,
+		"man":              heartbeat.LanguageMan,
+		"markdown":         heartbeat.LanguageMarkdown,
+		"matlab":           heartbeat.LanguageMatlab,
+		"metafont":         heartbeat.LanguageMetafont,
+		"metapost":         heartbeat.LanguageMetapost,
+		"mustache":         heartbeat.LanguageMustache,
+		"nix":              heartbeat.LanguageNix,
+		"objective-c":      heartbeat.LanguageObjectiveC,
+		"objective-c++":    heartbeat.LanguageObjectiveCPP,
+		"objective-j":      heartbeat.LanguageObjectiveJ,
+		"ocaml":            heartbeat.LanguageOCaml,
+		"org":              heartbeat.LanguageOrg,
+		"pascal":           heartbeat.LanguagePascal,
+		"perl":             heartbeat.LanguagePerl,
+		"php":              heartbeat.LanguagePHP,
+		"powershell":       heartbeat.LanguagePowerShell,
+		"prolog":           heartbeat.LanguageProlog,
+		"puppet":           heartbeat.LanguagePuppet,
+		"purescript":       heartbeat.LanguagePureScript,
+		"python":           heartbeat.LanguagePython,
+		"r":                heartbeat.LanguageR,
+		"restructuredtext": heartbeat.LanguageReStructuredText,
+		"ruby":             heartbeat.LanguageRuby,
+		"rust":             heartbeat.LanguageRust,
+		"salt":             heartbeat.LanguageSalt,
+		"sass":             heartbeat.LanguageSass,
+		"scala":            heartbeat.LanguageScala,
+		"scheme":           heartbeat.LanguageScheme,
+		"scribe":           heartbeat.LanguageScribe,
+		"scss":             heartbeat.LanguageSCSS,
+		"sgml":             heartbeat.LanguageSGML,
+		"shell":            heartbeat.LanguageShell,
+		"simula":           heartbeat.LanguageSimula,
+		"slim":             heartbeat.LanguageSlim,
+		"smalltalk":        heartbeat.LanguageSmalltalk,
+		"smime":            heartbeat.LanguageSMIME,
+		"sql":              heartbeat.LanguageSQL,
+		"swift":            heartbeat.LanguageSwift,
+		"tex":              heartbeat.LanguageTeX,
+		"text":             heartbeat.LanguageText,
+		"turing":           heartbeat.LanguageTuring,
+		"twig":             heartbeat.LanguageTwig,
+		"typescript":       heartbeat.LanguageTypeScript,
+		"typoscript":       heartbeat.LanguageTypoScript,
+		"vb.net":           heartbeat.LanguageVBNet,
+		"verilog":          heartbeat.LanguageVerilog,
+		"vhdl":             heartbeat.LanguageVHDL,
+		"viml":             heartbeat.LanguageVimL,
+		"xaml":             heartbeat.LanguageXAML,
+		"xml":              heartbeat.LanguageXML,
+		"yaml":             heartbeat.LanguageYAML,
+		// upper case should also be accepted
+		"YAML": heartbeat.LanguageYAML,
+	}
+
+	for name, lang := range tests {
+		t.Run(name, func(t *testing.T) {
+			parsed, ok := language.Parse(name, "")
+			require.True(t, ok)
+
+			assert.Equal(t, lang, parsed, fmt.Sprintf("Got: %q, want: %q", parsed, lang))
+		})
+	}
+}
