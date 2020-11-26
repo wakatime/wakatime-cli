@@ -2,6 +2,7 @@ package heartbeat_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"runtime"
@@ -9,7 +10,9 @@ import (
 	"testing"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/version"
 
+	"github.com/matishsiao/goInfo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -196,6 +199,39 @@ func TestNewHandle(t *testing.T) {
 		},
 	})
 	require.NoError(t, err)
+}
+
+func TestUserAgentUnknownPlugin(t *testing.T) {
+	info := goInfo.GetInfo()
+	expected := fmt.Sprintf(
+		"wakatime/%s (%s-%s-%s) %s Unknown/0",
+		version.Version,
+		runtime.GOOS,
+		info.Core,
+		info.Platform,
+		runtime.Version(),
+	)
+
+	assert.Equal(t, expected, heartbeat.UserAgentUnknownPlugin())
+}
+
+func TestUserAgent(t *testing.T) {
+	info := goInfo.GetInfo()
+	expected := fmt.Sprintf(
+		"wakatime/%s (%s-%s-%s) %s testplugin",
+		version.Version,
+		runtime.GOOS,
+		info.Core,
+		info.Platform,
+		runtime.Version(),
+	)
+
+	assert.Equal(t, expected, heartbeat.UserAgent("testplugin"))
+}
+
+func TestPluginFromUserAgent(t *testing.T) {
+	userAgent := "wakatime/0.0.1 (linux-4.13.0-38-generic-x86_64) go1.15.3 testplugin/14.0.7"
+	assert.Equal(t, "testplugin", heartbeat.PluginFromUserAgent(userAgent))
 }
 
 type mockSender struct {
