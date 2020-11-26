@@ -72,11 +72,24 @@ func Detect(fp string) (heartbeat.Language, error) {
 		return language, nil
 	}
 
-	if language, ok := chromaMatchCustomized(fp); ok {
-		return language, nil
+	var language heartbeat.Language
+
+	languageChroma, weight, ok := detectChromaCustomized(fp)
+	if ok {
+		language = languageChroma
 	}
 
-	return heartbeat.LanguageUnknown, fmt.Errorf("could not detect the language of file %q", fp)
+	languageVim, weightVim, okVim := detectVimModeline(fp)
+	if okVim && weightVim > weight {
+		// use language from vim modeline, if weight is higher
+		language = languageVim
+	}
+
+	if language == heartbeat.LanguageUnknown {
+		return heartbeat.LanguageUnknown, fmt.Errorf("could not detect the language of file %q", fp)
+	}
+
+	return language, nil
 }
 
 // detectSpecialCases detects the language by file extension for some special cases.
