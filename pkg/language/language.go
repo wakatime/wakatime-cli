@@ -26,7 +26,7 @@ func WithDetection(config Config) heartbeat.HandleOption {
 		return func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 			for n, h := range hh {
 				if config.Override != "" {
-					language, ok := heartbeat.ParseLanguage(config.Override)
+					language, ok := Parse(config.Override, heartbeat.PluginFromUserAgent(h.UserAgent))
 					if !ok {
 						jww.WARN.Printf("Failed to parse override language %q", config.Alternate)
 					}
@@ -47,7 +47,7 @@ func WithDetection(config Config) heartbeat.HandleOption {
 					jww.WARN.Printf("failed to detect language on file entity %q: %s", h.Entity, err)
 
 					if config.Alternate != "" {
-						parsed, ok := heartbeat.ParseLanguage(config.Alternate)
+						parsed, ok := Parse(config.Alternate, heartbeat.PluginFromUserAgent(h.UserAgent))
 						if !ok {
 							jww.WARN.Printf("Failed to parse alternate language %q", config.Alternate)
 						}
