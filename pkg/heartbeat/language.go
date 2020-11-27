@@ -163,8 +163,8 @@ const (
 	LanguageMetapost
 	// LanguageModelica represents the Modelica programming language.
 	LanguageModelica
-	// LanguageModula represents the Modula programming language.
-	LanguageModula
+	// LanguageModula2 represents the Modula2 programming language.
+	LanguageModula2
 	// LanguageMustache represents the Mustache programming language.
 	LanguageMustache
 	// LanguageNewLisp represents the NewLisp programming language.
@@ -239,6 +239,8 @@ const (
 	LanguageShell
 	// LanguageSimula represents the Simula programming language.
 	LanguageSimula
+	// LanguageSingularity represents the Singularity programming language.
+	LanguageSingularity
 	// LanguageSketchDrawing represents the SketchDrawing programming language.
 	LanguageSketchDrawing
 	// LanguageSKILL represents the SKILL programming language.
@@ -263,8 +265,8 @@ const (
 	LanguageSwift
 	// LanguageSWIG represents the SWIG programming language.
 	LanguageSWIG
-	// Languagesystemverilog represents the systemverilog programming language.
-	Languagesystemverilog
+	// LanguageSystemVerilog represents the SystemVerilog programming language.
+	LanguageSystemVerilog
 	// LanguageTeX represents the TeX programming language.
 	LanguageTeX
 	// LanguageText represents the Text programming language.
@@ -387,7 +389,7 @@ const (
 	languageMetafontStr          = "Metafont"
 	languageMetapostStr          = "Metapost"
 	languageModelicaStr          = "Modelica"
-	languageModulaStr            = "Modula-2"
+	languageModula2Str           = "Modula-2"
 	languageMustacheStr          = "Mustache"
 	languageNewLispStr           = "NewLisp"
 	languageNixStr               = "Nix"
@@ -425,6 +427,7 @@ const (
 	languageSGMLStr              = "SGML"
 	languageShellStr             = "Shell"
 	languageSimulaStr            = "Simula"
+	languageSingularityStr       = "Singularity"
 	languageSketchDrawingStr     = "Sketch Drawing"
 	languageSKILLStr             = "SKILL"
 	languageSlimStr              = "Slim"
@@ -462,12 +465,17 @@ const (
 )
 
 const (
-	languageMakefileChromaStr  = "Base Makefile"
-	languageFSharpChromaStr    = "FSharp"
-	languageEmacsLispChromaStr = "EmacsLisp"
-	languageAssemblyChromaStr  = "GAS"
-	languageMarkdownChromaStr  = "markdown"
-	languageTextChromaStr      = "plaintext"
+	languageAssemblyChromaStr       = "GAS"
+	languageColdfusionHTMLChromaStr = "Coldfusion HTML"
+	languageFSharpChromaStr         = "FSharp"
+	languageGosuChromaStr           = "Gosu Template"
+	languageEmacsLispChromaStr      = "EmacsLisp"
+	languageJSXChromaStr            = "react"
+	languageLessChromaStr           = "LessCss"
+	languageMakefileChromaStr       = "Base Makefile"
+	languageMarkdownChromaStr       = "markdown"
+	languageTextChromaStr           = "plaintext"
+	languageVueJSChromaStr          = "vue"
 )
 
 // ParseLanguage parses a language from a string. Will return false
@@ -627,8 +635,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageMetapost, true
 	case normalizeString(languageModelicaStr):
 		return LanguageModelica, true
-	case normalizeString(languageModulaStr):
-		return LanguageModula, true
+	case normalizeString(languageModula2Str):
+		return LanguageModula2, true
 	case normalizeString(languageMustacheStr):
 		return LanguageMustache, true
 	case normalizeString(languageNewLispStr):
@@ -703,6 +711,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageShell, true
 	case normalizeString(languageSimulaStr):
 		return LanguageSimula, true
+	case normalizeString(languageSingularityStr):
+		return LanguageSingularity, true
 	case normalizeString(languageSketchDrawingStr):
 		return LanguageSketchDrawing, true
 	case normalizeString(languageSKILLStr):
@@ -728,7 +738,7 @@ func ParseLanguage(s string) (Language, bool) {
 	case normalizeString(languageSWIGStr):
 		return LanguageSWIG, true
 	case normalizeString(languageSystemVerilogStr):
-		return Languagesystemverilog, true
+		return LanguageSystemVerilog, true
 	case normalizeString(languageTeXStr):
 		return LanguageTeX, true
 	case normalizeString(languageTextStr):
@@ -780,19 +790,29 @@ func ParseLanguage(s string) (Language, bool) {
 // Will return false as second parameter, if language could not be parsed.
 // nolint:gocyclo
 func ParseLanguageFromChroma(lexerName string) (Language, bool) {
-	switch lexerName {
-	case languageAssemblyChromaStr:
+	switch normalizeString(lexerName) {
+	case normalizeString(languageAssemblyChromaStr):
 		return LanguageAssembly, true
-	case languageEmacsLispChromaStr:
+	case normalizeString(languageColdfusionHTMLChromaStr):
+		return LanguageColdfusionHTML, true
+	case normalizeString(languageEmacsLispChromaStr):
 		return LanguageEmacsLisp, true
-	case languageFSharpChromaStr:
+	case normalizeString(languageFSharpChromaStr):
 		return LanguageFSharp, true
-	case languageMakefileChromaStr:
+	case normalizeString(languageGosuChromaStr):
+		return LanguageGosu, true
+	case normalizeString(languageJSXChromaStr):
+		return LanguageJSX, true
+	case normalizeString(languageLessChromaStr):
+		return LanguageLess, true
+	case normalizeString(languageMakefileChromaStr):
 		return LanguageMakefile, true
-	case languageMarkdownChromaStr:
+	case normalizeString(languageMarkdownChromaStr):
 		return LanguageMarkdown, true
-	case languageTextChromaStr:
+	case normalizeString(languageTextChromaStr):
 		return LanguageText, true
+	case normalizeString(languageVueJSChromaStr):
+		return LanguageVueJS, true
 	default:
 		return ParseLanguage(lexerName)
 	}
@@ -979,8 +999,8 @@ func (l Language) String() string {
 		return languageMetapostStr
 	case LanguageModelica:
 		return languageModelicaStr
-	case LanguageModula:
-		return languageModulaStr
+	case LanguageModula2:
+		return languageModula2Str
 	case LanguageMustache:
 		return languageMustacheStr
 	case LanguageNewLisp:
@@ -1053,6 +1073,8 @@ func (l Language) String() string {
 		return languageSGMLStr
 	case LanguageShell:
 		return languageShellStr
+	case LanguageSingularity:
+		return languageSingularityStr
 	case LanguageSimula:
 		return languageSimulaStr
 	case LanguageSketchDrawing:
@@ -1079,7 +1101,7 @@ func (l Language) String() string {
 		return languageSwiftStr
 	case LanguageSWIG:
 		return languageSWIGStr
-	case Languagesystemverilog:
+	case LanguageSystemVerilog:
 		return languageSystemVerilogStr
 	case LanguageTeX:
 		return languageTeXStr
@@ -1134,16 +1156,26 @@ func (l Language) StringChroma() string {
 	switch l {
 	case LanguageAssembly:
 		return languageAssemblyChromaStr
+	case LanguageColdfusionHTML:
+		return languageColdfusionHTMLChromaStr
 	case LanguageEmacsLisp:
 		return languageEmacsLispChromaStr
 	case LanguageFSharp:
 		return languageFSharpChromaStr
+	case LanguageGosu:
+		return languageGosuChromaStr
+	case LanguageJSX:
+		return languageJSXChromaStr
+	case LanguageLess:
+		return languageLessChromaStr
 	case LanguageMakefile:
 		return languageMakefileChromaStr
 	case LanguageMarkdown:
 		return languageMarkdownChromaStr
 	case LanguageText:
 		return languageTextChromaStr
+	case LanguageVueJS:
+		return languageVueJSChromaStr
 	default:
 		return l.String()
 	}

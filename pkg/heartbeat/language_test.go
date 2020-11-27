@@ -2,6 +2,7 @@ package heartbeat_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"testing"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
@@ -88,7 +89,7 @@ func languageTests() map[string]heartbeat.Language {
 		"Metafont":            heartbeat.LanguageMetafont,
 		"Metapost":            heartbeat.LanguageMetapost,
 		"Modelica":            heartbeat.LanguageModelica,
-		"Modula-2":            heartbeat.LanguageModula,
+		"Modula-2":            heartbeat.LanguageModula2,
 		"Mustache":            heartbeat.LanguageMustache,
 		"NewLisp":             heartbeat.LanguageNewLisp,
 		"Nix":                 heartbeat.LanguageNix,
@@ -126,6 +127,7 @@ func languageTests() map[string]heartbeat.Language {
 		"SGML":                heartbeat.LanguageSGML,
 		"Shell":               heartbeat.LanguageShell,
 		"Simula":              heartbeat.LanguageSimula,
+		"Singularity":         heartbeat.LanguageSingularity,
 		"Sketch Drawing":      heartbeat.LanguageSketchDrawing,
 		"SKILL":               heartbeat.LanguageSKILL,
 		"Slim":                heartbeat.LanguageSlim,
@@ -138,7 +140,7 @@ func languageTests() map[string]heartbeat.Language {
 		"Svelte":              heartbeat.LanguageSvelte,
 		"Swift":               heartbeat.LanguageSwift,
 		"SWIG":                heartbeat.LanguageSWIG,
-		"systemverilog":       heartbeat.Languagesystemverilog,
+		"systemverilog":       heartbeat.LanguageSystemVerilog,
 		"TeX":                 heartbeat.LanguageTeX,
 		"Text":                heartbeat.LanguageText,
 		"Thrift":              heartbeat.LanguageThrift,
@@ -169,7 +171,7 @@ func TestParseLanguage(t *testing.T) {
 			parsed, ok := heartbeat.ParseLanguage(value)
 			assert.True(t, ok)
 
-			assert.Equal(t, language, parsed)
+			assert.Equal(t, language, parsed, fmt.Sprintf("Got: %q, want: %q", parsed, language))
 		})
 	}
 
@@ -243,6 +245,7 @@ func TestParseLanguageFromChroma(t *testing.T) {
 		"Clojure":          heartbeat.LanguageClojure,
 		"CMake":            heartbeat.LanguageCMake,
 		"CoffeeScript":     heartbeat.LanguageCoffeeScript,
+		"Coldfusion HTML":  heartbeat.LanguageColdfusionHTML,
 		"Common Lisp":      heartbeat.LanguageCommonLisp,
 		"Crystal":          heartbeat.LanguageCrystal,
 		"CSS":              heartbeat.LanguageCSS,
@@ -256,6 +259,7 @@ func TestParseLanguageFromChroma(t *testing.T) {
 		"Fortran":          heartbeat.LanguageFortran,
 		"GAS":              heartbeat.LanguageAssembly,
 		"Go":               heartbeat.LanguageGo,
+		"Gosu Template":    heartbeat.LanguageGosu,
 		"Groovy":           heartbeat.LanguageGroovy,
 		"Haskell":          heartbeat.LanguageHaskell,
 		"Haxe":             heartbeat.LanguageHaxe,
@@ -265,12 +269,12 @@ func TestParseLanguageFromChroma(t *testing.T) {
 		"JavaScript":       heartbeat.LanguageJavaScript,
 		"JSON":             heartbeat.LanguageJSON,
 		"Kotlin":           heartbeat.LanguageKotlin,
-		"TeX":              heartbeat.LanguageTeX,
 		"Lua":              heartbeat.LanguageLua,
+		"LessCss":          heartbeat.LanguageLess,
 		"Mako":             heartbeat.LanguageMako,
 		"markdown":         heartbeat.LanguageMarkdown,
 		"Matlab":           heartbeat.LanguageMatlab,
-		"Modula-2":         heartbeat.LanguageModula,
+		"Modula-2":         heartbeat.LanguageModula2,
 		"Nix":              heartbeat.LanguageNix,
 		"Objective-C":      heartbeat.LanguageObjectiveC,
 		"OCaml":            heartbeat.LanguageOCaml,
@@ -285,6 +289,7 @@ func TestParseLanguageFromChroma(t *testing.T) {
 		"Puppet":           heartbeat.LanguagePuppet,
 		"Python":           heartbeat.LanguagePython,
 		"R":                heartbeat.LanguageR,
+		"react":            heartbeat.LanguageJSX,
 		"ReasonML":         heartbeat.LanguageReasonML,
 		"reStructuredText": heartbeat.LanguageReStructuredText,
 		"Ruby":             heartbeat.LanguageRuby,
@@ -293,20 +298,33 @@ func TestParseLanguageFromChroma(t *testing.T) {
 		"Scala":            heartbeat.LanguageScala,
 		"Scheme":           heartbeat.LanguageScheme,
 		"SCSS":             heartbeat.LanguageSCSS,
+		"Singularity":      heartbeat.LanguageSingularity,
 		"Smalltalk":        heartbeat.LanguageSmalltalk,
 		"SQL":              heartbeat.LanguageSQL,
 		"Swift":            heartbeat.LanguageSwift,
-		"systemverilog":    heartbeat.Languagesystemverilog,
+		"systemverilog":    heartbeat.LanguageSystemVerilog,
 		"Thrift":           heartbeat.LanguageThrift,
+		"TeX":              heartbeat.LanguageTeX,
 		"TOML":             heartbeat.LanguageTOML,
 		"Twig":             heartbeat.LanguageTwig,
 		"TypeScript":       heartbeat.LanguageTypeScript,
 		"TypoScript":       heartbeat.LanguageTypoScript,
 		"VB.net":           heartbeat.LanguageVBNet,
+		"vue":              heartbeat.LanguageVueJS,
 		"VimL":             heartbeat.LanguageVimL,
 		"XML":              heartbeat.LanguageXML,
 		"YAML":             heartbeat.LanguageYAML,
 		"Zig":              heartbeat.LanguageZig,
+		// lowercase
+		"zig": heartbeat.LanguageZig,
+		// missing blank space
+		"ProtocolBuffer": heartbeat.LanguageProtocolBuffer,
+		// missing hyphen
+		"ObjectiveC": heartbeat.LanguageObjectiveC,
+		// plus sign
+		"CPP": heartbeat.LanguageCPP,
+		// hash
+		"CSharp": heartbeat.LanguageCSharp,
 	}
 
 	for lexerName, language := range tests {
@@ -314,7 +332,7 @@ func TestParseLanguageFromChroma(t *testing.T) {
 			parsed, ok := heartbeat.ParseLanguageFromChroma(lexerName)
 
 			assert.True(t, ok)
-			assert.Equal(t, language, parsed)
+			assert.Equal(t, language, parsed, fmt.Sprintf("Got: %q, want: %q", parsed, language))
 		})
 	}
 }
