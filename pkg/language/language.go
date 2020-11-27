@@ -97,6 +97,13 @@ func detectSpecialCases(fp string) (heartbeat.Language, bool) {
 	dir, file := filepath.Split(fp)
 	ext := strings.ToLower(filepath.Ext(file))
 
+	switch file {
+	case "go.mod":
+		return heartbeat.LanguageGo, true
+	case "CMmakeLists.txt":
+		return heartbeat.LanguageCMake, true
+	}
+
 	// nolint
 	if strings.HasPrefix(ext, ".h") || strings.HasPrefix(ext, ".c") {
 		if correspondingFileExists(fp, ".c") {
