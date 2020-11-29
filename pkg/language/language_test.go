@@ -185,9 +185,9 @@ func TestDetect_ChromaTopLanguagesRetrofit(t *testing.T) {
 	}{
 		"apache config": {
 			Filepaths: []string{
-				"testdata/codefiles/.htaccess",
-				"testdata/codefiles/apache.conf",
-				"testdata/codefiles/apache2.conf",
+				"path/to/.htaccess",
+				"path/to/apache.conf",
+				"path/to/apache2.conf",
 			},
 			Expected: heartbeat.LanguageApacheConf,
 		},
@@ -398,7 +398,7 @@ func TestDetect_ChromaTopLanguagesRetrofit(t *testing.T) {
 		},
 		"javascript": {
 			Filepaths: []string{
-				"testdata/codefiles/es6.js",
+				"path/to/es6.js",
 				"path/to/file.jsm",
 			},
 			Expected: heartbeat.LanguageJavaScript,
@@ -471,8 +471,8 @@ func TestDetect_ChromaTopLanguagesRetrofit(t *testing.T) {
 		},
 		"modula 2": {
 			Filepaths: []string{
-				"testdata/codefiles/modula2.mod",
-				"testdata/codefiles/modula2.def",
+				"testdata/codefiles/chroma_unsupported_top/modula2.mod",
+				"testdata/codefiles/chroma_unsupported_top/modula2.def",
 			},
 			Expected: heartbeat.LanguageModula2,
 		},
@@ -510,7 +510,7 @@ func TestDetect_ChromaTopLanguagesRetrofit(t *testing.T) {
 			Expected:  heartbeat.LanguagePawn,
 		},
 		"perl not prolog": {
-			Filepaths: []string{"testdata/codefiles/perl.pl"},
+			Filepaths: []string{"testdata/codefiles/chroma_unsupported_top/perl.pl"},
 			Expected:  heartbeat.LanguagePerl,
 		},
 		"php": {
@@ -728,7 +728,7 @@ func TestDetect_ChromaTopLanguagesRetrofit(t *testing.T) {
 		},
 		"typescript": {
 			Filepaths: []string{
-				"path/to/file.ts",
+				"testdata/codefiles/typescript.ts",
 				"path/to/file.tsx",
 			},
 			Expected: heartbeat.LanguageTypeScript,
