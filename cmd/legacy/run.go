@@ -24,7 +24,7 @@ func Run(v *viper.Viper) {
 	if v.GetBool("version") {
 		jww.DEBUG.Println("command: version")
 
-		runVersion()
+		runVersion(v.GetBool("verbose"))
 
 		os.Exit(exitcode.Success)
 	}

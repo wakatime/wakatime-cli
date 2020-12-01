@@ -1,7 +1,13 @@
 .DEFAULT_GOAL := build-all
 
-# Binary name
+# globals
 BINARY_NAME=wakatime-cli
+COMMIT?=$(shell git rev-parse --short HEAD)
+DATE?=$(shell date -u '+%Y-%m-%dT%H:%M:%SZ')
+REPO=github.com/wakatime/wakatime-cli
+
+# ld flags for go build
+LD_FLAGS=-s -w -X ${REPO}/pkg/version.BuildDate=${DATE} -X ${REPO}/pkg/version.Commit=${COMMIT} -X ${REPO}/pkg/version.Version=<local-build>
 
 # basic Go commands
 GOCMD=go
@@ -28,13 +34,19 @@ endif
 build-all: build-darwin build-linux build-windows
 
 build-darwin: generate
-	CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 $(GOBUILD) -o ./build/darwin/amd64/$(BINARY_NAME) -v
+	CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 $(GOBUILD) -v \
+		-ldflags "${LD_FLAGS} -X ${REPO}/pkg/version.OS=darwin -X ${REPO}/pkg/version.Arch=amd64" \
+		-o ./build/darwin/amd64/$(BINARY_NAME)
 
 build-linux: generate
-	CGO_ENABLED=1 GOOS=linux GOARCH=amd64 $(GOBUILD) -o ./build/linux/amd64/$(BINARY_NAME) -v
+	CGO_ENABLED=1 GOOS=linux GOARCH=amd64 $(GOBUILD) -v \
+		-ldflags "${LD_FLAGS} -X ${REPO}/pkg/version.OS=linux -X ${REPO}/pkg/version.Arch=amd64" \
+		-o ./build/linux/amd64/$(BINARY_NAME)
 
 build-windows: generate
-	CGO_ENABLED=1 GOOS=windows GOARCH=amd64 $(GOBUILD) -o ./build/windows/amd64/$(BINARY_NAME).exe -v
+	CGO_ENABLED=1 GOOS=windows GOARCH=amd64 $(GOBUILD) -v \
+		-ldflags "${LD_FLAGS} -X ${REPO}/pkg/version.OS=windows -X ${REPO}/pkg/version.Arch=amd64" \
+		-o ./build/windows/amd64/$(BINARY_NAME).exe
 
 # generate plugin language mapping code
 .PHONY: generate
