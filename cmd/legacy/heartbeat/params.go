@@ -28,6 +28,8 @@ var (
 	matchAllRegex = regexp.MustCompile(".*")
 	// nolint
 	proxyRegex = regexp.MustCompile(`^((https?|socks5)://)?([^:@]+(:([^:@])+)?@)?[^:]+(:\d+)?$`)
+	// nolint
+	ntlmProxyRegex = regexp.MustCompile(`^.*\\.+$`)
 )
 
 // Params contains heartbeat command parameters.
@@ -549,10 +551,16 @@ func loadNetworkParams(v *viper.Viper) (NetworkParams, error) {
 	errMsgTemplate := "Invalid url %%q. Must be in format" +
 		"'https://user:pass@host:port' or " +
 		"'socks5://user:pass@host:port' or " +
-		"'domain\\user:pass.'"
+		"'domain\\\\user:pass.'"
 
 	proxyURL, _ := vipertools.FirstNonEmptyString(v, "proxy", "settings.proxy")
-	if proxyURL != "" && !proxyRegex.MatchString(proxyURL) {
+
+	rgx := proxyRegex
+	if strings.Contains(proxyURL, `\\`) {
+		rgx = ntlmProxyRegex
+	}
+
+	if proxyURL != "" && !rgx.MatchString(proxyURL) {
 		return NetworkParams{}, fmt.Errorf(errMsgTemplate, proxyURL)
 	}
 

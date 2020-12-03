@@ -335,6 +335,7 @@ func TestLoadParams_Network_ProxyURL(t *testing.T) {
 		"https":  "https://john:secret@example.org:8888",
 		"http":   "http://john:secret@example.org:8888",
 		"socks5": "socks5://john:secret@example.org:8888",
+		"ntlm":   `domain\\john:123456`,
 	}
 
 	for name, proxyURL := range tests {
