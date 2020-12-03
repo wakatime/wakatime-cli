@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"runtime"
+	"strings"
 
 	"github.com/wakatime/wakatime-cli/pkg/version"
 	"github.com/wakatime/wakatime-cli/pkg/windows"
@@ -166,6 +167,15 @@ func UserAgent(plugin string) string {
 		runtime.Version(),
 		plugin,
 	)
+}
+
+// PluginFromUserAgent parses the plugin name from a wakatime user agent.
+func PluginFromUserAgent(userAgent string) string {
+	splitted := strings.Split(userAgent, " ")
+	splitted = strings.Split(splitted[len(splitted)-1], "/")
+	splitted = strings.Split(splitted[0], "-")
+
+	return splitted[0]
 }
 
 // Bool returns a pointer to the bool value passed in.

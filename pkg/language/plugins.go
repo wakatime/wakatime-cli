@@ -250,7 +250,7 @@ func parseDefault(language string) (heartbeat.Language, bool) {
 	case strings.ToLower("yaml"):
 		return heartbeat.ParseLanguage("yaml")
 	default:
-		return heartbeat.LanguageUnknown, false
+		return heartbeat.ParseLanguage(language)
 	}
 }
 

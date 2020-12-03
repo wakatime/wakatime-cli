@@ -152,7 +152,7 @@ func parseDefault(language string) (heartbeat.Language, bool) {
 	{{ range $key, $value := .Default }}case strings.ToLower("{{ $key }}"):
 		return heartbeat.ParseLanguage("{{ $value }}")
 	{{ end }}default:
-		return heartbeat.LanguageUnknown, false
+		return heartbeat.ParseLanguage(language)
 	}
 }
 

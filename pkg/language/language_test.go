@@ -1,6 +1,7 @@
 package language_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
@@ -14,16 +15,30 @@ func TestWithDetection(t *testing.T) {
 	tests := map[string]struct {
 		Alternate string
 		Override  string
+		Plugin    string
 		Expected  heartbeat.Language
 	}{
 		"alternate": {
 			Alternate: "Go",
+			Plugin:    "default",
 			Expected:  heartbeat.LanguageGo,
 		},
 		"override": {
 			Alternate: "Go",
 			Override:  "Python",
+			Plugin:    "default",
 			Expected:  heartbeat.LanguagePython,
+		},
+		"alternate - default plugin specific language": {
+			Alternate: "ld-script",
+			Plugin:    "default",
+			Expected:  heartbeat.LanguageLinkerScript,
+		},
+		"override - default plugin specific language": {
+			Alternate: "Go",
+			Override:  "ld-script",
+			Plugin:    "default",
+			Expected:  heartbeat.LanguageLinkerScript,
 		},
 		"empty": {
 			Expected: heartbeat.LanguageUnknown,
@@ -36,10 +51,13 @@ func TestWithDetection(t *testing.T) {
 				Alternate: test.Alternate,
 				Override:  test.Override,
 			})
+
+			userAgent := fmt.Sprintf("wakatime/0.0.1 (linux-4.13.0-38-generic-x86_64) go1.15.3 %s", test.Plugin)
 			h := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 				assert.Equal(t, []heartbeat.Heartbeat{
 					{
-						Language: test.Expected,
+						Language:  test.Expected,
+						UserAgent: userAgent,
 					},
 				}, hh)
 
@@ -50,7 +68,9 @@ func TestWithDetection(t *testing.T) {
 				}, nil
 			})
 
-			result, err := h([]heartbeat.Heartbeat{{}})
+			result, err := h([]heartbeat.Heartbeat{{
+				UserAgent: userAgent,
+			}})
 			require.NoError(t, err)
 
 			assert.Equal(t, []heartbeat.Result{
