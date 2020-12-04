@@ -72,6 +72,13 @@ func SendHeartbeats(v *viper.Viper) error {
 
 	if params.Network.DisableSSLVerify {
 		clientOpts = append(clientOpts, api.WithDisableSSLVerify())
+	} else if params.Network.SSLCertFilepath != "" {
+		withSSLCert, err := api.WithSSLCert(params.Network.SSLCertFilepath)
+		if err != nil {
+			return fmt.Errorf("failed to set up ssl cert option on api client: %w", err)
+		}
+
+		clientOpts = append(clientOpts, withSSLCert)
 	}
 
 	if params.Network.ProxyURL != "" {
@@ -81,15 +88,6 @@ func SendHeartbeats(v *viper.Viper) error {
 		}
 
 		clientOpts = append(clientOpts, withProxy)
-	}
-
-	if params.Network.SSLCertFilepath != "" {
-		withSSLCert, err := api.WithSSLCert(params.Network.SSLCertFilepath)
-		if err != nil {
-			return fmt.Errorf("failed to set up ssl cert option on api client: %w", err)
-		}
-
-		clientOpts = append(clientOpts, withSSLCert)
 	}
 
 	var userAgent string

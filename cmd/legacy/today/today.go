@@ -88,6 +88,13 @@ func Summary(v *viper.Viper) (string, error) {
 
 	if params.Network.DisableSSLVerify {
 		opts = append(opts, api.WithDisableSSLVerify())
+	} else if params.Network.SSLCertFilepath != "" {
+		withSSLCert, err := api.WithSSLCert(params.Network.SSLCertFilepath)
+		if err != nil {
+			return "", fmt.Errorf("failed to set up ssl cert option on api client: %w", err)
+		}
+
+		opts = append(opts, withSSLCert)
 	}
 
 	if params.Network.ProxyURL != "" {
@@ -97,15 +104,6 @@ func Summary(v *viper.Viper) (string, error) {
 		}
 
 		opts = append(opts, withProxy)
-	}
-
-	if params.Network.SSLCertFilepath != "" {
-		withSSLCert, err := api.WithSSLCert(params.Network.SSLCertFilepath)
-		if err != nil {
-			return "", fmt.Errorf("failed to set up ssl cert option on api client: %w", err)
-		}
-
-		opts = append(opts, withSSLCert)
 	}
 
 	if params.Plugin != "" {
