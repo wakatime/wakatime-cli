@@ -71,14 +71,16 @@ func WithNTLM(creds string) (Option, error) {
 	}
 
 	splitted := strings.Split(creds, ":")
-	if len(splitted) != 2 {
-		return Option(func(*Client) {}), fmt.Errorf("invalid ntlm credentials format %q", creds)
+
+	auth := BasicAuth{
+		User: splitted[0],
 	}
 
-	withAuth, err := WithAuth(BasicAuth{
-		User:   splitted[0],
-		Secret: splitted[1],
-	})
+	if len(splitted) == 2 {
+		auth.Secret = splitted[1]
+	}
+
+	withAuth, err := WithAuth(auth)
 	if err != nil {
 		return Option(func(*Client) {}), err
 	}

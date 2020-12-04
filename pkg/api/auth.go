@@ -14,8 +14,14 @@ type BasicAuth struct {
 
 // HeaderValue returns the value for Authorization header.
 func (a BasicAuth) HeaderValue() (string, error) {
-	if a.Secret == "" {
+	if a.User == "" && a.Secret == "" {
 		return "", errors.New("secret unset")
+	}
+
+	if a.Secret == "" {
+		return fmt.Sprintf("Basic %s", base64.StdEncoding.EncodeToString(
+			[]byte(a.User+":"),
+		)), nil
 	} else if a.User == "" {
 		return fmt.Sprintf("Basic %s", base64.StdEncoding.EncodeToString(
 			[]byte(a.Secret),

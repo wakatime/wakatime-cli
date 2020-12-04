@@ -22,6 +22,10 @@ func TestBasicAuth_HeaderValue(t *testing.T) {
 			Secret:   "secret",
 			Expected: "Basic c2VjcmV0",
 		},
+		"useronly": {
+			User:     "john",
+			Expected: "Basic am9objo=",
+		},
 	}
 
 	for name, test := range tests {
@@ -38,24 +42,8 @@ func TestBasicAuth_HeaderValue(t *testing.T) {
 	}
 }
 
-func TestBasicAuth_HeaderValue_MissingPassword(t *testing.T) {
-	tests := map[string]struct {
-		User, Secret string
-	}{
-		"only user": {
-			User: "john",
-		},
-		"empty": {},
-	}
-
-	for name, test := range tests {
-		t.Run(name, func(t *testing.T) {
-			auth := api.BasicAuth{
-				User:   test.User,
-				Secret: test.Secret,
-			}
-			_, err := auth.HeaderValue()
-			require.Error(t, err)
-		})
-	}
+func TestBasicAuth_HeaderValue_Empty(t *testing.T) {
+	auth := api.BasicAuth{}
+	_, err := auth.HeaderValue()
+	require.Error(t, err)
 }
