@@ -6,6 +6,7 @@ require (
 	github.com/PuerkitoBio/goquery v1.6.0 // indirect
 	github.com/alecthomas/chroma v0.8.1
 	github.com/armon/consul-api v0.0.0-20180202201655-eb2c6b5be1b6 // indirect
+	github.com/certifi/gocertifi v0.0.0-20200922220541-2c3bb06c6054
 	github.com/danwakefield/fnmatch v0.0.0-20160403171240-cbb64ac3d964
 	github.com/dlclark/regexp2 v1.4.0
 	github.com/matishsiao/goInfo v0.0.0-20200404012835-b5f882ee2288
@@ -27,4 +28,3 @@ require (
 )
 
 replace github.com/alecthomas/chroma => github.com/wakatime/chroma v0.8.1-wakatime.1
-

@@ -15,6 +15,7 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/offline"
 	"github.com/wakatime/wakatime-cli/pkg/project"
 
+	"github.com/certifi/gocertifi"
 	_ "github.com/mattn/go-sqlite3" // not used directly
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
@@ -74,6 +75,27 @@ func SendHeartbeats(v *viper.Viper) error {
 		clientOpts = append(clientOpts, api.WithDisableSSLVerify())
 	}
 
+	if !params.Network.DisableSSLVerify && params.Network.SSLCertFilepath != "" {
+		withSSLCert, err := api.WithSSLCertFile(params.Network.SSLCertFilepath)
+		if err != nil {
+			return fmt.Errorf("failed to set up ssl cert file option on api client: %s", err)
+		}
+
+		clientOpts = append(clientOpts, withSSLCert)
+	} else if !params.Network.DisableSSLVerify {
+		certPool, err := gocertifi.CACerts()
+		if err != nil {
+			return fmt.Errorf("failed to build certifi cert pool: %s", err)
+		}
+
+		withSSLCert, err := api.WithSSLCertPool(certPool)
+		if err != nil {
+			return fmt.Errorf("failed to set up ssl cert pool option on api client: %s", err)
+		}
+
+		clientOpts = append(clientOpts, withSSLCert)
+	}
+
 	if params.Network.ProxyURL != "" {
 		withProxy, err := api.WithProxy(params.Network.ProxyURL)
 		if err != nil {
@@ -81,15 +103,6 @@ func SendHeartbeats(v *viper.Viper) error {
 		}
 
 		clientOpts = append(clientOpts, withProxy)
-	}
-
-	if params.Network.SSLCertFilepath != "" {
-		withSSLCert, err := api.WithSSLCert(params.Network.SSLCertFilepath)
-		if err != nil {
-			return fmt.Errorf("failed to set up ssl cert option on api client: %w", err)
-		}
-
-		clientOpts = append(clientOpts, withSSLCert)
 	}
 
 	var userAgent string

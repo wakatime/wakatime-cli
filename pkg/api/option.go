@@ -53,37 +53,6 @@ func WithDisableSSLVerify() Option {
 	}
 }
 
-// WithSSLCert overrides the default CA certs file to trust specified cert file.
-func WithSSLCert(filepath string) (Option, error) {
-	expanded, err := homedir.Expand(filepath)
-	if err != nil {
-		return nil, fmt.Errorf("failed expanding filepath %q: %s", filepath, err)
-	}
-
-	caCert, err := ioutil.ReadFile(expanded)
-	if err != nil {
-		return nil, err
-	}
-
-	caCertPool := x509.NewCertPool()
-	caCertPool.AppendCertsFromPEM(caCert)
-
-	return func(c *Client) {
-		var transport *http.Transport
-		if c.client.Transport == nil {
-			transport = http.DefaultTransport.(*http.Transport).Clone()
-		} else {
-			transport = c.client.Transport.(*http.Transport).Clone()
-		}
-
-		tlsConfig := transport.TLSClientConfig
-		tlsConfig.RootCAs = caCertPool
-		transport.TLSClientConfig = tlsConfig
-
-		c.client.Transport = transport
-	}, nil
-}
-
 // WithProxy configures the client to proxy outgoing requests to the specified url.
 func WithProxy(proxyURL string) (Option, error) {
 	u, err := url.Parse(proxyURL)
@@ -98,6 +67,42 @@ func WithProxy(proxyURL string) (Option, error) {
 		}
 
 		transport.Proxy = http.ProxyURL(u)
+
+		c.client.Transport = transport
+	}, nil
+}
+
+// WithSSLCertFile overrides the default CA certs file to trust specified cert file.
+func WithSSLCertFile(filepath string) (Option, error) {
+	expanded, err := homedir.Expand(filepath)
+	if err != nil {
+		return nil, fmt.Errorf("failed expanding filepath %q: %s", filepath, err)
+	}
+
+	caCert, err := ioutil.ReadFile(expanded)
+	if err != nil {
+		return nil, err
+	}
+
+	caCertPool := x509.NewCertPool()
+	caCertPool.AppendCertsFromPEM(caCert)
+
+	return WithSSLCertPool(caCertPool)
+}
+
+// WithSSLCertPool overrides the default CA cert pool to trust specified cert pool.
+func WithSSLCertPool(caCertPool *x509.CertPool) (Option, error) {
+	return func(c *Client) {
+		var transport *http.Transport
+		if c.client.Transport == nil {
+			transport = http.DefaultTransport.(*http.Transport).Clone()
+		} else {
+			transport = c.client.Transport.(*http.Transport).Clone()
+		}
+
+		tlsConfig := transport.TLSClientConfig
+		tlsConfig.RootCAs = caCertPool
+		transport.TLSClientConfig = tlsConfig
 
 		c.client.Transport = transport
 	}, nil
