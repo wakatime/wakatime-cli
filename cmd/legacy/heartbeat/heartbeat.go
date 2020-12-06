@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/wakatime/wakatime-cli/pkg/api"
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
@@ -103,6 +104,15 @@ func SendHeartbeats(v *viper.Viper) error {
 		}
 
 		clientOpts = append(clientOpts, withProxy)
+
+		if strings.Contains(params.Network.ProxyURL, `\\`) {
+			withNTLMRetry, err := api.WithNTLMRequestRetry(params.Network.ProxyURL)
+			if err != nil {
+				return fmt.Errorf("failed to set up ntlm request retry option on api client: %w", err)
+			}
+
+			clientOpts = append(clientOpts, withNTLMRetry)
+		}
 	}
 
 	var userAgent string
