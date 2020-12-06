@@ -89,7 +89,7 @@ func Summary(v *viper.Viper) (string, error) {
 	if params.Network.DisableSSLVerify {
 		opts = append(opts, api.WithDisableSSLVerify())
 	} else if params.Network.SSLCertFilepath != "" {
-		withSSLCert, err := api.WithSSLCert(params.Network.SSLCertFilepath)
+		withSSLCert, err := api.WithSSLCertFile(params.Network.SSLCertFilepath)
 		if err != nil {
 			return "", fmt.Errorf("failed to set up ssl cert option on api client: %w", err)
 		}
