@@ -15,6 +15,7 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/offline"
 	"github.com/wakatime/wakatime-cli/pkg/project"
 
+	"github.com/certifi/gocertifi"
 	_ "github.com/mattn/go-sqlite3" // not used directly
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
@@ -72,10 +73,24 @@ func SendHeartbeats(v *viper.Viper) error {
 
 	if params.Network.DisableSSLVerify {
 		clientOpts = append(clientOpts, api.WithDisableSSLVerify())
-	} else if params.Network.SSLCertFilepath != "" {
+	}
+
+	if !params.Network.DisableSSLVerify && params.Network.SSLCertFilepath != "" {
 		withSSLCert, err := api.WithSSLCertFile(params.Network.SSLCertFilepath)
 		if err != nil {
-			return fmt.Errorf("failed to set up ssl cert option on api client: %w", err)
+			return fmt.Errorf("failed to set up ssl cert file option on api client: %s", err)
+		}
+
+		clientOpts = append(clientOpts, withSSLCert)
+	} else if !params.Network.DisableSSLVerify {
+		certPool, err := gocertifi.CACerts()
+		if err != nil {
+			return fmt.Errorf("failed to build certifi cert pool: %s", err)
+		}
+
+		withSSLCert, err := api.WithSSLCertPool(certPool)
+		if err != nil {
+			return fmt.Errorf("failed to set up ssl cert pool option on api client: %s", err)
 		}
 
 		clientOpts = append(clientOpts, withSSLCert)
