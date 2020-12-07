@@ -203,6 +203,18 @@ func TestClient_Summaries_ErrAuth(t *testing.T) {
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
 
+func TestClient_Summaries_ErrRequest(t *testing.T) {
+	c := api.NewClient("invalid-url", http.DefaultClient)
+	_, err := c.Summaries(
+		time.Date(2020, time.April, 1, 0, 0, 0, 0, time.UTC),
+		time.Date(2020, time.April, 2, 0, 0, 0, 0, time.UTC),
+	)
+
+	var reqerr api.ErrRequest
+
+	assert.True(t, errors.As(err, &reqerr))
+}
+
 func TestParseSummariesResponse_DayTotal(t *testing.T) {
 	data, err := ioutil.ReadFile("testdata/api_summaries_response.json")
 	require.NoError(t, err)

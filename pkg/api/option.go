@@ -6,11 +6,14 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 
+	"github.com/Azure/go-ntlmssp"
 	"github.com/mitchellh/go-homedir"
+	jww "github.com/spf13/jwalterweatherman"
 )
 
 // Option is a functional option for Client.
@@ -24,14 +27,22 @@ func WithAuth(auth BasicAuth) (Option, error) {
 	}
 
 	return func(c *Client) {
-		c.authHeader = authHeaderValue
+		next := c.doFunc
+		c.doFunc = func(c *Client, req *http.Request) (*http.Response, error) {
+			req.Header.Set("Authorization", authHeaderValue)
+			return next(c, req)
+		}
 	}, nil
 }
 
 // WithHostname sets the X-Machine-Name header to the passed in hostname.
 func WithHostname(hostname string) Option {
 	return func(c *Client) {
-		c.machineNameHeader = hostname
+		next := c.doFunc
+		c.doFunc = func(c *Client, req *http.Request) (*http.Response, error) {
+			req.Header.Set("X-Machine-Name", hostname)
+			return next(c, req)
+		}
 	}
 }
 
@@ -51,6 +62,68 @@ func WithDisableSSLVerify() Option {
 		transport.TLSClientConfig = tlsConfig
 		c.client.Transport = transport
 	}
+}
+
+// WithNTLM allows authentication via ntlm protocol.
+func WithNTLM(creds string) (Option, error) {
+	if !strings.Contains(creds, `\\`) {
+		return Option(func(*Client) {}), fmt.Errorf("invalid ntlm credentials format %q. does not contain '\\\\'", creds)
+	}
+
+	splitted := strings.Split(creds, ":")
+
+	auth := BasicAuth{
+		User: splitted[0],
+	}
+
+	if len(splitted) == 2 {
+		auth.Secret = splitted[1]
+	}
+
+	withAuth, err := WithAuth(auth)
+	if err != nil {
+		return Option(func(*Client) {}), err
+	}
+
+	return func(c *Client) {
+		withAuth(c)
+
+		var transport http.RoundTripper
+		if c.client.Transport == nil {
+			transport = http.DefaultTransport
+		} else {
+			transport = c.client.Transport.(*http.Transport).Clone()
+		}
+
+		c.client.Transport = ntlmssp.Negotiator{
+			RoundTripper: transport,
+		}
+	}, nil
+}
+
+// WithNTLMRequestRetry will, upon request failure, retry with ntlm authentication.
+func WithNTLMRequestRetry(creds string) (Option, error) {
+	withNTLM, err := WithNTLM(creds)
+	if err != nil {
+		return Option(func(*Client) {}), err
+	}
+
+	return func(c *Client) {
+		next := c.doFunc
+		c.doFunc = func(cl *Client, req *http.Request) (*http.Response, error) {
+			resp, err := next(c, req)
+			if err != nil {
+				jww.ERROR.Printf("request to api failed with error %q. Will retry with ntlm auth", err)
+
+				clCopy := cl
+				withNTLM(clCopy)
+
+				return clCopy.Do(req)
+			}
+
+			return resp, nil
+		}
+	}, nil
 }
 
 // WithProxy configures the client to proxy outgoing requests to the specified url.
@@ -127,6 +200,10 @@ func WithUserAgent(plugin string) Option {
 	userAgent := heartbeat.UserAgent(plugin)
 
 	return func(c *Client) {
-		c.userAgentHeader = userAgent
+		next := c.doFunc
+		c.doFunc = func(c *Client, req *http.Request) (*http.Response, error) {
+			req.Header.Set("User-Agent", userAgent)
+			return next(c, req)
+		}
 	}
 }

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/wakatime/wakatime-cli/pkg/api"
@@ -23,6 +24,8 @@ var (
 	apiKeyRegex = regexp.MustCompile("^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$")
 	// nolint
 	proxyRegex = regexp.MustCompile(`^((https?|socks5)://)?([^:@]+(:([^:@])+)?@)?[^:]+(:\d+)?$`)
+	// nolint
+	ntlmProxyRegex = regexp.MustCompile(`^.*\\.+$`)
 )
 
 // Params contains today command parameters.
@@ -119,6 +122,15 @@ func Summary(v *viper.Viper) (string, error) {
 		}
 
 		opts = append(opts, withProxy)
+
+		if strings.Contains(params.Network.ProxyURL, `\\`) {
+			withNTLMRetry, err := api.WithNTLMRequestRetry(params.Network.ProxyURL)
+			if err != nil {
+				return "", fmt.Errorf("failed to set up ntlm request retry option on api client: %w", err)
+			}
+
+			opts = append(opts, withNTLMRetry)
+		}
 	}
 
 	if params.Plugin != "" {
@@ -196,10 +208,16 @@ func loadNetworkParams(v *viper.Viper) (NetworkParams, error) {
 	errMsgTemplate := "Invalid url %%q. Must be in format" +
 		"'https://user:pass@host:port' or " +
 		"'socks5://user:pass@host:port' or " +
-		"'domain\\user:pass.'"
+		"'domain\\\\user:pass.'"
 
 	proxyURL, _ := vipertools.FirstNonEmptyString(v, "proxy", "settings.proxy")
-	if proxyURL != "" && !proxyRegex.MatchString(proxyURL) {
+
+	rgx := proxyRegex
+	if strings.Contains(proxyURL, `\\`) {
+		rgx = ntlmProxyRegex
+	}
+
+	if proxyURL != "" && !rgx.MatchString(proxyURL) {
 		return NetworkParams{}, fmt.Errorf(errMsgTemplate, proxyURL)
 	}
 
