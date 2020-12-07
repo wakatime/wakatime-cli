@@ -14,7 +14,7 @@ import (
 )
 
 func TestWithDetection(t *testing.T) {
-	opt := filestats.WithDetection()
+	opt := filestats.WithDetection(filestats.Config{})
 	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		assert.Len(t, hh, 2)
 		assert.Contains(t, hh, heartbeat.Heartbeat{
@@ -54,6 +54,42 @@ func TestWithDetection(t *testing.T) {
 	}, result)
 }
 
+func TestWithDetection_LinesInFile(t *testing.T) {
+	opt := filestats.WithDetection(filestats.Config{
+		LinesInFile: heartbeat.Int(158),
+	})
+	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		assert.Len(t, hh, 1)
+		assert.Contains(t, hh, heartbeat.Heartbeat{
+			EntityType: heartbeat.FileType,
+			Entity:     "/path/to/remote",
+			LocalFile:  "testdata/first.txt",
+			Lines:      heartbeat.Int(158),
+		})
+
+		return []heartbeat.Result{
+			{
+				Status: 42,
+			},
+		}, nil
+	})
+
+	result, err := handle([]heartbeat.Heartbeat{
+		{
+			EntityType: heartbeat.FileType,
+			Entity:     "/path/to/remote",
+			LocalFile:  "testdata/first.txt",
+		},
+	})
+	require.NoError(t, err)
+
+	assert.Equal(t, []heartbeat.Result{
+		{
+			Status: 42,
+		},
+	}, result)
+}
+
 func TestWithDetection_MaxFileSizeExceeded(t *testing.T) {
 	f, err := ioutil.TempFile(os.TempDir(), "")
 	require.NoError(t, err)
@@ -64,7 +100,7 @@ func TestWithDetection_MaxFileSizeExceeded(t *testing.T) {
 	_, err = f.Write(b.Bytes())
 	require.NoError(t, err)
 
-	opt := filestats.WithDetection()
+	opt := filestats.WithDetection(filestats.Config{})
 	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		assert.Equal(t, hh, []heartbeat.Heartbeat{
 			{

@@ -44,6 +44,7 @@ type Params struct {
 	Hostname        string
 	IsWrite         *bool
 	LineNumber      *int
+	LinesInFile     *int
 	LocalFile       string
 	OfflineDisabled bool
 	OfflineSyncMax  int
@@ -73,11 +74,16 @@ func (p Params) String() string {
 		lineNumber = strconv.Itoa(*p.LineNumber)
 	}
 
+	var linesInFile string
+	if p.LinesInFile != nil {
+		linesInFile = strconv.Itoa(*p.LinesInFile)
+	}
+
 	return fmt.Sprintf(
 		"api key: %q, api url: %q, category: %q, cursor position: %q, entity: %q,"+
 			" entity type: %q, num extra heartbeats: %d, hostname: %q, is write: %t,"+
-			" line number: %q, offline disabled: %t, offline sync max: %d, plugin: %q,"+
-			" time: %.5f, timeout: %s, filter params: (%s), language params: (%s)"+
+			" line number: %q, lines in file: %q, offline disabled: %t, offline sync max: %d, "+
+			" plugin: %q, time: %.5f, timeout: %s, filter params: (%s), language params: (%s)"+
 			" network params: (%s), project params: (%s), sanitize params: (%s)",
 		p.APIKey[:4]+"...",
 		p.APIUrl,
@@ -89,6 +95,7 @@ func (p Params) String() string {
 		p.Hostname,
 		isWrite,
 		lineNumber,
+		linesInFile,
 		p.OfflineDisabled,
 		p.OfflineSyncMax,
 		p.Plugin,
@@ -263,6 +270,11 @@ func LoadParams(v *viper.Viper) (Params, error) {
 		lineNumber = heartbeat.Int(num)
 	}
 
+	var linesInFile *int
+	if num := v.GetInt("lines-in-file"); v.IsSet("lines-in-file") {
+		linesInFile = heartbeat.Int(num)
+	}
+
 	offlineDisabled := vipertools.FirstNonEmptyBool(v, "disableoffline", "disable-offline")
 	if b := v.GetBool("settings.offline"); v.IsSet("settings.offline") {
 		offlineDisabled = !b
@@ -330,6 +342,7 @@ func LoadParams(v *viper.Viper) (Params, error) {
 		Hostname:        hostname,
 		IsWrite:         isWrite,
 		LineNumber:      lineNumber,
+		LinesInFile:     linesInFile,
 		LocalFile:       v.GetString("local-file"),
 		OfflineDisabled: offlineDisabled,
 		OfflineSyncMax:  offlineSyncMax,
