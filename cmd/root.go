@@ -117,6 +117,11 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 	flags.String("key", "", "Your wakatime api key; uses api_key from ~/.wakatime.cfg by default.")
 	flags.String("language", "", "Optional language name. If valid, takes priority over auto-detected language.")
 	flags.Int("lineno", 0, "Optional line number. This is the current line being edited.")
+	flags.Int(
+		"lines-in-file",
+		0,
+		"Optional lines in the file. Normally, this is detected automatically but"+
+			" can be provided manually for performance, accuracy, or when using --local-file.")
 	flags.String(
 		"local-file",
 		"",
