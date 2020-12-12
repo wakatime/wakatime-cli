@@ -4,6 +4,7 @@ package main
 // http://learngowith.me/alternate-ways-of-importing-packages/
 
 import "fmt"
+import "os"
 import "compress/gzip"
 import "github.com/golang/example/stringutil"
 import (

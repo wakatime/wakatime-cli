@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 )

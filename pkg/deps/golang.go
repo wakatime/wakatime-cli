@@ -4,10 +4,13 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"regexp"
 	"strings"
 
 	"github.com/alecthomas/chroma"
 )
+
+var parserGoFmtRegex = regexp.MustCompile(`^"fmt"$`)
 
 // ParserGo is a dependency parser for the go programming language.
 // It is not thread safe.
@@ -41,7 +44,17 @@ func (p *ParserGo) Parse(reader io.ReadCloser, lexer chroma.Lexer) ([]string, er
 		p.processToken(token)
 	}
 
-	return p.Output, nil
+	var filtered []string
+
+	for _, d := range p.Output {
+		if parserGoFmtRegex.MatchString(d) {
+			continue
+		}
+
+		filtered = append(filtered, d)
+	}
+
+	return filtered, nil
 }
 
 func (p *ParserGo) init() {

@@ -16,7 +16,7 @@ func TestWithDetection(t *testing.T) {
 	h := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		assert.Equal(t, []heartbeat.Heartbeat{
 			{
-				Dependencies: []string{`"fmt"`, `"github.com/wakatime/wakatime-cli/pkg/heartbeat"`},
+				Dependencies: []string{`"os"`, `"github.com/wakatime/wakatime-cli/pkg/heartbeat"`},
 				Entity:       "testdata/golang_minimal.go",
 				EntityType:   heartbeat.FileType,
 				Language:     heartbeat.LanguageGo,
@@ -50,7 +50,7 @@ func TestWithDetection_LocalFile(t *testing.T) {
 	h := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		assert.Equal(t, []heartbeat.Heartbeat{
 			{
-				Dependencies: []string{`"fmt"`, `"github.com/wakatime/wakatime-cli/pkg/heartbeat"`},
+				Dependencies: []string{`"os"`, `"github.com/wakatime/wakatime-cli/pkg/heartbeat"`},
 				Entity:       "testdata/golang.go",
 				EntityType:   heartbeat.FileType,
 				Language:     heartbeat.LanguageGo,

@@ -24,7 +24,7 @@ func TestParserGo_Parse_Minimal(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, []string{
-		`"fmt"`,
+		`"os"`,
 		`"github.com/wakatime/wakatime-cli/pkg/heartbeat"`,
 	}, dependencies)
 }
@@ -41,7 +41,7 @@ func TestParserGo_Parse_All(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, []string{
-		`"fmt"`,
+		`"os"`,
 		`"compress/gzip"`,
 		`"github.com/golang/example/stringutil"`,
 		`"log"`,
