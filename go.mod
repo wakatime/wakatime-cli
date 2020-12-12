@@ -5,7 +5,7 @@ go 1.15
 require (
 	github.com/Azure/go-ntlmssp v0.0.0-20200615164410-66371956d46c
 	github.com/PuerkitoBio/goquery v1.6.0 // indirect
-	github.com/alecthomas/chroma v0.8.1
+	github.com/alecthomas/chroma v0.8.2
 	github.com/armon/consul-api v0.0.0-20180202201655-eb2c6b5be1b6 // indirect
 	github.com/certifi/gocertifi v0.0.0-20200922220541-2c3bb06c6054
 	github.com/danwakefield/fnmatch v0.0.0-20160403171240-cbb64ac3d964
@@ -23,9 +23,8 @@ require (
 	github.com/xordataexchange/crypt v0.0.3-0.20170626215501-b2862e3d0a77 // indirect
 	github.com/yookoala/realpath v1.0.0
 	golang.org/x/net v0.0.0-20201031054903-ff519b6c9102 // indirect
-	golang.org/x/sys v0.0.0-20201101102859-da207088b7d1 // indirect
 	golang.org/x/text v0.3.4 // indirect
 	gopkg.in/ini.v1 v1.62.0
 )
 
-replace github.com/alecthomas/chroma => github.com/wakatime/chroma v0.8.1-wakatime.1
+replace github.com/alecthomas/chroma => github.com/wakatime/chroma v0.8.2-wakatime.1
