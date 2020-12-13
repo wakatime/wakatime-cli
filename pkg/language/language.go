@@ -96,7 +96,7 @@ func Detect(fp string) (heartbeat.Language, error) {
 func detectSpecialCases(fp string) (heartbeat.Language, bool) {
 	dir, file := filepath.Split(fp)
 
-	if strings.HasPrefix(file, "go.mod") {
+	if file == "go.mod" {
 		return heartbeat.LanguageGo, true
 	}
 
