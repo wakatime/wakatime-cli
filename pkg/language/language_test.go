@@ -177,3 +177,10 @@ func TestDetect_FSharp_Over_Forth(t *testing.T) {
 
 	assert.Equal(t, heartbeat.LanguageFSharp, lang)
 }
+
+func TestDetect_GoMod(t *testing.T) {
+	lang, err := language.Detect("/path/to/go.mod")
+	require.NoError(t, err)
+
+	assert.Equal(t, heartbeat.LanguageGo, lang)
+}

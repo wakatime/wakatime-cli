@@ -95,6 +95,11 @@ func Detect(fp string) (heartbeat.Language, error) {
 // detectSpecialCases detects the language by file extension for some special cases.
 func detectSpecialCases(fp string) (heartbeat.Language, bool) {
 	dir, file := filepath.Split(fp)
+
+	if strings.HasPrefix(file, "go.mod") {
+		return heartbeat.LanguageGo, true
+	}
+
 	ext := strings.ToLower(filepath.Ext(file))
 
 	// nolint
