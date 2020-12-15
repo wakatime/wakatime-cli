@@ -11,18 +11,18 @@ type Language int
 const (
 	// LanguageUnknown represents the Unknown programming language.
 	LanguageUnknown Language = iota
-	// LanguageAda represents the Ada programming language.
-	LanguageAda
 	// LanguageActionScript represents the ActionScript programming language.
 	LanguageActionScript
+	// LanguageAda represents the Ada programming language.
+	LanguageAda
 	// LanguageAgda represents the Agda programming language.
 	LanguageAgda
 	// LanguageAnsible represents the Ansible programming language.
 	LanguageAnsible
-	// LanguageAppleScript represents the AppleScript programming language.
-	LanguageAppleScript
 	// LanguageApacheConf represents the ApacheConf programming language.
 	LanguageApacheConf
+	// LanguageAppleScript represents the AppleScript programming language.
+	LanguageAppleScript
 	// LanguageASP represents the ASP programming language.
 	LanguageASP
 	// LanguageAssembly represents the Assembly programming language.
@@ -65,14 +65,14 @@ const (
 	LanguageCSharp
 	// LanguageCSHTML represents the CSHTML programming language.
 	LanguageCSHTML
-	// LanguageCVS represents the CVS programming language.
-	LanguageCVS
 	// LanguageCrontab represents the Crontab programming language.
 	LanguageCrontab
 	// LanguageCrystal represents the Crystal programming language.
 	LanguageCrystal
 	// LanguageCSS represents the CSS programming language.
 	LanguageCSS
+	// LanguageCVS represents the CVS programming language.
+	LanguageCVS
 	// LanguageDart represents the Dart programming language.
 	LanguageDart
 	// LanguageDCL represents the DCL programming language.
@@ -99,10 +99,10 @@ const (
 	LanguageEshell
 	// LanguageFish represents the Fish programming language.
 	LanguageFish
-	// LanguageFSharp represents the FSharp programming language.
-	LanguageFSharp
 	// LanguageFortran represents the Fortran programming language.
 	LanguageFortran
+	// LanguageFSharp represents the FSharp programming language.
+	LanguageFSharp
 	// LanguageGo represents the Go programming language.
 	LanguageGo
 	// LanguageGosu represents the Gosu programming language.
@@ -313,13 +313,13 @@ const (
 
 const (
 	languageUnkownStr            = "Unknown"
-	languageAdaStr               = "Ada"
 	languageActionScriptStr      = "ActionScript"
+	languageAdaStr               = "Ada"
 	languageAgdaStr              = "Agda"
 	languageAnsibleStr           = "Ansible"
-	languageASPStr               = "ASP"
-	languageAppleScriptStr       = "AppleScript"
 	languageApacheConfStr        = "ApacheConf"
+	languageAppleScriptStr       = "AppleScript"
+	languageASPStr               = "ASP"
 	languageAssemblyStr          = "Assembly"
 	languageAutoconfStr          = "Autoconf"
 	languageAwkStr               = "AWK"
@@ -339,8 +339,8 @@ const (
 	languageCPerlStr             = "cperl"
 	languageCPPStr               = "C++"
 	languageCrontabStr           = "Crontab"
-	languageCrystalStr           = "Crystal"
 	languageCSharpStr            = "C#"
+	languageCrystalStr           = "Crystal"
 	languageCSHTMLStr            = "CSHTML"
 	languageCSSStr               = "CSS"
 	languageCVSStr               = "CVS"
@@ -356,9 +356,9 @@ const (
 	languageEmacsLispStr         = "Emacs Lisp"
 	languageErlangStr            = "Erlang"
 	languageEshellStr            = "Eshell"
-	languageFSharpStr            = "F#"
 	languageFishStr              = "Fish"
 	languageFortranStr           = "Fortran"
+	languageFSharpStr            = "F#"
 	languageGoStr                = "Go"
 	languageGosuStr              = "Gosu"
 	languageGroovyStr            = "Groovy"
@@ -402,8 +402,8 @@ const (
 	languagePawnStr              = "Pawn"
 	languagePerlStr              = "Perl"
 	languagePHPStr               = "PHP"
-	languagePostScriptStr        = "PostScript"
 	languagePOVRayStr            = "POVRay"
+	languagePostScriptStr        = "PostScript"
 	languagePowerShellStr        = "PowerShell"
 	languagePrologStr            = "Prolog"
 	languageProtocolBufferStr    = "Protocol Buffer"
