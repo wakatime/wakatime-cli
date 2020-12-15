@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/wakatime/wakatime-cli/pkg/api"
+	"github.com/wakatime/wakatime-cli/pkg/deps"
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
 	"github.com/wakatime/wakatime-cli/pkg/filestats"
 	"github.com/wakatime/wakatime-cli/pkg/filter"
@@ -172,6 +173,7 @@ func SendHeartbeats(v *viper.Viper) error {
 			Alternate: params.Language.Alternate,
 			Override:  params.Language.Override,
 		}),
+		deps.WithDetection(),
 		project.WithDetection(project.Config{
 			Alternate:              params.Project.Alternate,
 			Override:               params.Project.Override,
