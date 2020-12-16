@@ -54,7 +54,7 @@ func detectChromaCustomized(filepath string) (heartbeat.Language, float32, bool)
 	for _, lexer := range lexers.Registry.Lexers {
 		config := lexer.Config()
 		for _, glob := range config.Filenames {
-			if fnmatch.Match(glob, filename, 0) {
+			if fnmatch.Match(glob, filename, 0) || fnmatch.Match(glob, strings.ToLower(filename), 0) {
 				matched = append(matched, lexer)
 			}
 		}
