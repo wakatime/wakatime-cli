@@ -4,11 +4,12 @@ import (
 	"os"
 	"testing"
 
+	"github.com/wakatime/wakatime-cli/pkg/deps"
+	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+
 	"github.com/alecthomas/chroma/lexers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/wakatime/wakatime-cli/pkg/deps"
-	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 )
 
 func TestParserRust_Parse(t *testing.T) {
@@ -23,9 +24,9 @@ func TestParserRust_Parse(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, []string{
-		`proc_macro`,
-		`phrases`,
-		`syn`,
-		`quote`,
+		"proc_macro",
+		"phrases",
+		"syn",
+		"quote",
 	}, dependencies)
 }
