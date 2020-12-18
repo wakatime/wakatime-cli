@@ -117,6 +117,32 @@ func TestWithDetection_NonFileType(t *testing.T) {
 	}, result)
 }
 
+func TestDetect(t *testing.T) {
+	tests := map[string]struct {
+		Filepath     string
+		Language     heartbeat.Language
+		Dependencies []string
+	}{
+		"golang": {
+			Filepath: "testdata/golang_minimal.go",
+			Language: heartbeat.LanguageGo,
+			Dependencies: []string{
+				`"os"`,
+				`"github.com/wakatime/wakatime-cli/pkg/heartbeat"`,
+			},
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			deps, err := deps.Detect(test.Filepath, test.Language)
+			require.NoError(t, err)
+
+			assert.Equal(t, test.Dependencies, deps)
+		})
+	}
+}
+
 func TestDetect_DuplicatesRemoved(t *testing.T) {
 	deps, err := deps.Detect(
 		"testdata/golang_duplicate.go",
