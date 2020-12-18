@@ -12,11 +12,21 @@ import (
 
 var parserGoFmtRegex = regexp.MustCompile(`^"fmt"$`)
 
+// StateGo is a token parsing state.
+type StateGo int
+
+const (
+	// StateGoUnknown represents a unknown token parsing state.
+	StateGoUnknown StateGo = iota
+	// StateGoImport means we are in import section during token parsing.
+	StateGoImport
+)
+
 // ParserGo is a dependency parser for the go programming language.
 // It is not thread safe.
 type ParserGo struct {
 	Parenthesis int
-	State       State
+	State       StateGo
 	Output      []string
 }
 
@@ -80,9 +90,9 @@ func (p *ParserGo) processNamespace(value string) {
 
 	switch value {
 	case "import":
-		p.State = StateImport
+		p.State = StateGoImport
 	default:
-		p.State = StateUnknown
+		p.State = StateGoUnknown
 	}
 }
 
@@ -96,18 +106,18 @@ func (p *ParserGo) processPunctuation(value string) {
 }
 
 func (p *ParserGo) processText(value string) {
-	if p.State == StateImport {
+	if p.State == StateGoImport {
 		if value == "\n" && p.Parenthesis <= 0 {
-			p.State = StateUnknown
+			p.State = StateGoUnknown
 			p.Parenthesis = 0
 		}
 	} else {
-		p.State = StateUnknown
+		p.State = StateGoUnknown
 	}
 }
 
 func (p *ParserGo) processString(value string) {
-	if p.State == StateImport {
+	if p.State == StateGoImport {
 		p.Output = append(p.Output, strings.TrimSpace(value))
 	}
 }

@@ -12,16 +12,6 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 )
 
-// State is a token parsing state.
-type State int
-
-const (
-	// StateUnknown represents a unknown token parsing state.
-	StateUnknown State = iota
-	// StateImport means we are in import section during token parsing.
-	StateImport
-)
-
 // DependencyParser is a dependency parser for a programming language.
 type DependencyParser interface {
 	Parse(reader io.ReadCloser, lexer chroma.Lexer) ([]string, error)
