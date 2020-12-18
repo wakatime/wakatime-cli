@@ -13,6 +13,10 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 )
 
+// maxDependencyLength defines the maximum allowed length of a dependency.
+// Any dependency exceeding this length will be discarded.
+const maxDependencyLength = 200
+
 // Config contains configurations for dependency scanning.
 type Config struct {
 	// FilePatterns will be matched against a file entities name and if matching, will skip
@@ -79,6 +83,8 @@ func Detect(filepath string, language heartbeat.Language) ([]string, error) {
 		parser = &ParserElm{}
 	case heartbeat.LanguageGo:
 		parser = &ParserGo{}
+	case heartbeat.LanguagePython:
+		parser = &ParserPython{}
 	case heartbeat.LanguageRust:
 		parser = &ParserRust{}
 	default:
@@ -106,7 +112,13 @@ func filterDependencies(deps []string) []string {
 	)
 
 	for _, d := range deps {
+		// filter duplicate
 		if _, ok := unique[d]; ok {
+			continue
+		}
+
+		// filter dependencies exceeding max length
+		if len(d) > maxDependencyLength {
 			continue
 		}
 

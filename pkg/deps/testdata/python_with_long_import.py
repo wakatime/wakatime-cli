@@ -1,0 +1,11 @@
+# -*- coding: utf-8 -*-
+# vim: set filetype=python
+
+import os, sys
+import django.forms.monstertruck
+from verylongnameverylongnameverylongnameverylongnameverylongnameverylongnameverylongnameverylongnameverylongnameverylongnameverylongnameverylongnameverylongnameverylongnameverylongnameverylongnameverylongname import verylongname
+from flask import session
+from notlongenoughnotlongenoughnotlongenoughnotlongenoughnotlongenoughnotlongenoughnotlongenoughnotlongenoughnotlongenoughnotlongenoughnotlongenoughnotlongenoughnotlongenoughnotlongenoughnotlongenoughnotlo import notlongenough
+
+def main():
+	print("hello world")
