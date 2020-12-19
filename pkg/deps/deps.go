@@ -6,11 +6,19 @@ import (
 	"os"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/regex"
 
 	"github.com/alecthomas/chroma"
 	"github.com/alecthomas/chroma/lexers"
 	jww "github.com/spf13/jwalterweatherman"
 )
+
+// Config contains configurations for dependency scanning.
+type Config struct {
+	// FilePatterns will be matched against a file entities name and if matching, will skip
+	// dependency scanning.
+	FilePatterns []regex.Regex
+}
 
 // DependencyParser is a dependency parser for a programming language.
 type DependencyParser interface {
@@ -21,11 +29,15 @@ type DependencyParser interface {
 // can be used in a heartbeat processing pipeline to detect dependencies
 // inside the entity file of heartbeats of type FileType. Will prioritize
 // local file if available.
-func WithDetection() heartbeat.HandleOption {
+func WithDetection(c Config) heartbeat.HandleOption {
 	return func(next heartbeat.Handle) heartbeat.Handle {
 		return func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 			for n, h := range hh {
 				if h.EntityType != heartbeat.FileType {
+					continue
+				}
+
+				if heartbeat.ShouldSanitize(h.Entity, c.FilePatterns) {
 					continue
 				}
 
