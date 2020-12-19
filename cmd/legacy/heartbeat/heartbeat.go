@@ -173,7 +173,9 @@ func SendHeartbeats(v *viper.Viper) error {
 			Alternate: params.Language.Alternate,
 			Override:  params.Language.Override,
 		}),
-		deps.WithDetection(),
+		deps.WithDetection(deps.Config{
+			FilePatterns: params.Sanitize.HideFileNames,
+		}),
 		project.WithDetection(project.Config{
 			Alternate:              params.Project.Alternate,
 			Override:               params.Project.Override,
