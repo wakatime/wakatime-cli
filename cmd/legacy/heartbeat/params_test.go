@@ -31,7 +31,21 @@ func TestLoadParams_AlternateLanguage(t *testing.T) {
 	params, err := cmd.LoadParams(v)
 	require.NoError(t, err)
 
-	assert.Equal(t, "Go", params.Language.Alternate)
+	assert.NotNil(t, params.Language)
+	assert.Equal(t, heartbeat.LanguageGo, *params.Language)
+}
+
+func TestLoadParams_AlternateLanguage_DefaultPluginSpecificSpelling(t *testing.T) {
+	v := viper.New()
+	v.Set("entity", "/path/to/file")
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("language", "ld-script")
+
+	params, err := cmd.LoadParams(v)
+	require.NoError(t, err)
+
+	assert.NotNil(t, params.Language)
+	assert.Equal(t, heartbeat.LanguageLinkerScript, *params.Language)
 }
 
 func TestLoadParams_AlternateProject(t *testing.T) {
@@ -526,7 +540,35 @@ func TestLoadParams_Language(t *testing.T) {
 	params, err := cmd.LoadParams(v)
 	require.NoError(t, err)
 
-	assert.Equal(t, "Go", params.Language.Override)
+	assert.NotNil(t, params.Language)
+	assert.Equal(t, heartbeat.LanguageGo, *params.Language)
+}
+
+func TestLoadParams_Language_TakesPrecedence(t *testing.T) {
+	v := viper.New()
+	v.Set("entity", "/path/to/file")
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("alternate-language", "Python")
+	v.Set("language", "Go")
+
+	params, err := cmd.LoadParams(v)
+	require.NoError(t, err)
+
+	assert.NotNil(t, params.Language)
+	assert.Equal(t, heartbeat.LanguageGo, *params.Language)
+}
+
+func TestLoadParams_Language_DefaultPluginSpecificSpelling(t *testing.T) {
+	v := viper.New()
+	v.Set("entity", "/path/to/file")
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("language", "ld-script")
+
+	params, err := cmd.LoadParams(v)
+	require.NoError(t, err)
+
+	assert.NotNil(t, params.Language)
+	assert.Equal(t, heartbeat.LanguageLinkerScript, *params.Language)
 }
 
 func TestLoadParams_LineNumber(t *testing.T) {

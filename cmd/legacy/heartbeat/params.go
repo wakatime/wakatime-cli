@@ -13,6 +13,7 @@ import (
 
 	"github.com/wakatime/wakatime-cli/pkg/api"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/language"
 	"github.com/wakatime/wakatime-cli/pkg/project"
 	"github.com/wakatime/wakatime-cli/pkg/regex"
 	"github.com/wakatime/wakatime-cli/pkg/vipertools"
@@ -43,6 +44,7 @@ type Params struct {
 	ExtraHeartbeats []heartbeat.Heartbeat
 	Hostname        string
 	IsWrite         *bool
+	Language        *heartbeat.Language
 	LineNumber      *int
 	LinesInFile     *int
 	LocalFile       string
@@ -52,7 +54,6 @@ type Params struct {
 	Time            float64
 	Timeout         time.Duration
 	Filter          FilterParams
-	Language        LanguageParams
 	Network         NetworkParams
 	Project         ProjectParams
 	Sanitize        SanitizeParams
@@ -69,6 +70,11 @@ func (p Params) String() string {
 		isWrite = *p.IsWrite
 	}
 
+	var language string
+	if p.Language != nil {
+		language = p.Language.String()
+	}
+
 	var lineNumber string
 	if p.LineNumber != nil {
 		lineNumber = strconv.Itoa(*p.LineNumber)
@@ -82,9 +88,9 @@ func (p Params) String() string {
 	return fmt.Sprintf(
 		"api key: %q, api url: %q, category: %q, cursor position: %q, entity: %q,"+
 			" entity type: %q, num extra heartbeats: %d, hostname: %q, is write: %t,"+
-			" line number: %q, lines in file: %q, offline disabled: %t, offline sync max: %d, "+
-			" plugin: %q, time: %.5f, timeout: %s, filter params: (%s), language params: (%s)"+
-			" network params: (%s), project params: (%s), sanitize params: (%s)",
+			" language: %q, line number: %q, lines in file: %q, offline disabled: %t, "+
+			" offline sync max: %d, plugin: %q, time: %.5f, timeout: %s, filter params: (%s), "+
+			"network params: (%s), project params: (%s), sanitize params: (%s)",
 		p.APIKey[:4]+"...",
 		p.APIUrl,
 		p.Category,
@@ -94,6 +100,7 @@ func (p Params) String() string {
 		len(p.ExtraHeartbeats),
 		p.Hostname,
 		isWrite,
+		language,
 		lineNumber,
 		linesInFile,
 		p.OfflineDisabled,
@@ -102,7 +109,6 @@ func (p Params) String() string {
 		p.Time,
 		p.Timeout,
 		p.Filter,
-		p.Language,
 		p.Network,
 		p.Project,
 		p.Sanitize,
@@ -124,20 +130,6 @@ func (p FilterParams) String() string {
 		p.ExcludeUnknownProject,
 		p.Include,
 		p.IncludeOnlyWithProjectFile,
-	)
-}
-
-// LanguageParams contains language detection related command parameters.
-type LanguageParams struct {
-	Alternate string
-	Override  string
-}
-
-func (p LanguageParams) String() string {
-	return fmt.Sprintf(
-		"alternate: %q, override: %q",
-		p.Alternate,
-		p.Override,
 	)
 }
 
@@ -299,6 +291,8 @@ func LoadParams(v *viper.Viper) (Params, error) {
 		return Params{}, errors.New("argument --sync-offline-activity must be \"none\" or a positive integer number")
 	}
 
+	plugin := v.GetString("plugin")
+
 	timeSecs := v.GetFloat64("time")
 	if timeSecs == 0 {
 		timeSecs = float64(time.Now().UnixNano()) / 1000000000
@@ -311,7 +305,7 @@ func LoadParams(v *viper.Viper) (Params, error) {
 		timeout = time.Duration(timeoutSecs) * time.Second
 	}
 
-	languageParams, err := loadLanguageParams(v)
+	language, err := loadLanguage(v, plugin)
 	if err != nil {
 		return Params{}, fmt.Errorf("failed to parse language params: %s", err)
 	}
@@ -341,16 +335,16 @@ func LoadParams(v *viper.Viper) (Params, error) {
 		EntityType:      entityType,
 		Hostname:        hostname,
 		IsWrite:         isWrite,
+		Language:        language,
 		LineNumber:      lineNumber,
 		LinesInFile:     linesInFile,
 		LocalFile:       v.GetString("local-file"),
 		OfflineDisabled: offlineDisabled,
 		OfflineSyncMax:  offlineSyncMax,
-		Plugin:          v.GetString("plugin"),
+		Plugin:          plugin,
 		Time:            timeSecs,
 		Timeout:         timeout,
 		Filter:          loadFilterParams(v),
-		Language:        languageParams,
 		Network:         networkParams,
 		Project:         projectParams,
 		Sanitize:        sanitizeParams,
@@ -497,6 +491,26 @@ func parseExtraHeartbeatWithStringValues(data []byte) ([]heartbeat.Heartbeat, er
 	return heartbeats, nil
 }
 
+func loadLanguage(v *viper.Viper, plugin string) (*heartbeat.Language, error) {
+	if v == nil {
+		return nil, errors.New("viper instance unset")
+	}
+
+	lang, _ := vipertools.FirstNonEmptyString(v, "language", "alternate-language")
+
+	if lang == "" {
+		return nil, nil
+	}
+
+	parsed, ok := language.Parse(lang, plugin)
+	if !ok {
+		jww.WARN.Printf("failed to parse language from string %q. plugin: %q", lang, plugin)
+		return nil, nil
+	}
+
+	return &parsed, nil
+}
+
 func loadFilterParams(v *viper.Viper) FilterParams {
 	exclude := v.GetStringSlice("exclude")
 	exclude = append(exclude, v.GetStringSlice("settings.exclude")...)
@@ -543,17 +557,6 @@ func loadFilterParams(v *viper.Viper) FilterParams {
 			"settings.include_only_with_project_file",
 		),
 	}
-}
-
-func loadLanguageParams(v *viper.Viper) (LanguageParams, error) {
-	if v == nil {
-		return LanguageParams{}, errors.New("viper instance unset")
-	}
-
-	return LanguageParams{
-		Alternate: v.GetString("alternate-language"),
-		Override:  v.GetString("language"),
-	}, nil
 }
 
 func loadNetworkParams(v *viper.Viper) (NetworkParams, error) {
