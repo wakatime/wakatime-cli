@@ -31,6 +31,10 @@ func WithDetection(c Config) heartbeat.HandleOption {
 					continue
 				}
 
+				if h.Lines != nil {
+					continue
+				}
+
 				filepath := h.Entity
 				if h.LocalFile != "" {
 					filepath = h.LocalFile
