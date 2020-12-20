@@ -40,9 +40,6 @@ func TestWithDetection(t *testing.T) {
 			Plugin:    "default",
 			Expected:  heartbeat.LanguageLinkerScript,
 		},
-		"empty": {
-			Expected: heartbeat.LanguageUnknown,
-		},
 	}
 
 	for name, test := range tests {
@@ -54,9 +51,11 @@ func TestWithDetection(t *testing.T) {
 
 			userAgent := fmt.Sprintf("wakatime/0.0.1 (linux-4.13.0-38-generic-x86_64) go1.15.3 %s", test.Plugin)
 			h := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+				assert.Len(t, hh, 1)
+				assert.Equal(t, test.Expected, *hh[0].Language)
 				assert.Equal(t, []heartbeat.Heartbeat{
 					{
-						Language:  test.Expected,
+						Language:  hh[0].Language,
 						UserAgent: userAgent,
 					},
 				}, hh)

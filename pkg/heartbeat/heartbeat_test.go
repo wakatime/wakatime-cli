@@ -109,7 +109,7 @@ func TestHeartbeat_JSON(t *testing.T) {
 		Entity:         "/tmp/main.go",
 		EntityType:     heartbeat.FileType,
 		IsWrite:        heartbeat.Bool(true),
-		Language:       heartbeat.LanguageGo,
+		Language:       heartbeat.LanguagePtr(heartbeat.LanguageGo),
 		LineNumber:     heartbeat.Int(42),
 		Lines:          heartbeat.Int(100),
 		Project:        heartbeat.String("wakatime"),

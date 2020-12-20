@@ -31,7 +31,7 @@ func WithDetection(config Config) heartbeat.HandleOption {
 						jww.WARN.Printf("Failed to parse override language %q", config.Alternate)
 					}
 
-					hh[n].Language = language
+					hh[n].Language = &language
 
 					continue
 				}
@@ -52,13 +52,13 @@ func WithDetection(config Config) heartbeat.HandleOption {
 							jww.WARN.Printf("Failed to parse alternate language %q", config.Alternate)
 						}
 
-						hh[n].Language = parsed
+						hh[n].Language = &parsed
 					}
 
 					continue
 				}
 
-				hh[n].Language = language
+				hh[n].Language = &language
 			}
 
 			return next(hh)

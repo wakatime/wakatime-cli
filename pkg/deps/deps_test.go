@@ -24,7 +24,7 @@ func TestWithDetection(t *testing.T) {
 				},
 				Entity:     "testdata/golang_minimal.go",
 				EntityType: heartbeat.FileType,
-				Language:   heartbeat.LanguageGo,
+				Language:   heartbeat.LanguagePtr(heartbeat.LanguageGo),
 			},
 		}, hh)
 
@@ -38,7 +38,7 @@ func TestWithDetection(t *testing.T) {
 	result, err := h([]heartbeat.Heartbeat{{
 		Entity:     "testdata/golang_minimal.go",
 		EntityType: heartbeat.FileType,
-		Language:   heartbeat.LanguageGo,
+		Language:   heartbeat.LanguagePtr(heartbeat.LanguageGo),
 	}})
 	require.NoError(t, err)
 
@@ -67,7 +67,7 @@ func TestWithDetection_SkipSanitized(t *testing.T) {
 	result, err := h([]heartbeat.Heartbeat{{
 		Entity:     "testdata/golang.go",
 		EntityType: heartbeat.FileType,
-		Language:   heartbeat.LanguageGo,
+		Language:   heartbeat.LanguagePtr(heartbeat.LanguageGo),
 	}})
 	require.NoError(t, err)
 
@@ -90,7 +90,7 @@ func TestWithDetection_LocalFile(t *testing.T) {
 				},
 				Entity:     "testdata/golang.go",
 				EntityType: heartbeat.FileType,
-				Language:   heartbeat.LanguageGo,
+				Language:   heartbeat.LanguagePtr(heartbeat.LanguageGo),
 				LocalFile:  "testdata/golang_minimal.go",
 			},
 		}, hh)
@@ -105,7 +105,7 @@ func TestWithDetection_LocalFile(t *testing.T) {
 	result, err := h([]heartbeat.Heartbeat{{
 		Entity:     "testdata/golang.go",
 		EntityType: heartbeat.FileType,
-		Language:   heartbeat.LanguageGo,
+		Language:   heartbeat.LanguagePtr(heartbeat.LanguageGo),
 		LocalFile:  "testdata/golang_minimal.go",
 	}})
 	require.NoError(t, err)
