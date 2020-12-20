@@ -37,6 +37,10 @@ func WithDetection(c Config) heartbeat.HandleOption {
 					continue
 				}
 
+				if h.Language == nil {
+					continue
+				}
+
 				if heartbeat.ShouldSanitize(h.Entity, c.FilePatterns) {
 					continue
 				}
@@ -47,7 +51,7 @@ func WithDetection(c Config) heartbeat.HandleOption {
 					filepath = h.LocalFile
 				}
 
-				dependencies, err := Detect(filepath, h.Language)
+				dependencies, err := Detect(filepath, *h.Language)
 				if err != nil {
 					jww.WARN.Printf("error detecting dependencies of heartbeat: %s", err)
 					continue

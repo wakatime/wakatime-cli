@@ -12,74 +12,76 @@ import (
 )
 
 func TestWithDetection(t *testing.T) {
-	tests := map[string]struct {
-		Alternate string
-		Override  string
-		Plugin    string
-		Expected  heartbeat.Language
-	}{
-		"alternate": {
-			Alternate: "Go",
-			Plugin:    "default",
-			Expected:  heartbeat.LanguageGo,
-		},
-		"override": {
-			Alternate: "Go",
-			Override:  "Python",
-			Plugin:    "default",
-			Expected:  heartbeat.LanguagePython,
-		},
-		"alternate - default plugin specific language": {
-			Alternate: "ld-script",
-			Plugin:    "default",
-			Expected:  heartbeat.LanguageLinkerScript,
-		},
-		"override - default plugin specific language": {
-			Alternate: "Go",
-			Override:  "ld-script",
-			Plugin:    "default",
-			Expected:  heartbeat.LanguageLinkerScript,
-		},
-		"empty": {
-			Expected: heartbeat.LanguageUnknown,
-		},
-	}
+	opt := language.WithDetection()
 
-	for name, test := range tests {
-		t.Run(name, func(t *testing.T) {
-			opt := language.WithDetection(language.Config{
-				Alternate: test.Alternate,
-				Override:  test.Override,
-			})
+	h := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		assert.Len(t, hh, 1)
+		assert.Equal(t, heartbeat.LanguageGo, *(hh[0].Language))
+		assert.Equal(t, []heartbeat.Heartbeat{
+			{
+				Entity:     "testdata/codefiles/golang.go",
+				EntityType: heartbeat.FileType,
+				Language:   hh[0].Language,
+			},
+		}, hh)
 
-			userAgent := fmt.Sprintf("wakatime/0.0.1 (linux-4.13.0-38-generic-x86_64) go1.15.3 %s", test.Plugin)
-			h := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
-				assert.Equal(t, []heartbeat.Heartbeat{
-					{
-						Language:  test.Expected,
-						UserAgent: userAgent,
-					},
-				}, hh)
+		return []heartbeat.Result{
+			{
+				Status: 201,
+			},
+		}, nil
+	})
 
-				return []heartbeat.Result{
-					{
-						Status: 201,
-					},
-				}, nil
-			})
+	result, err := h([]heartbeat.Heartbeat{
+		{
+			Entity:     "testdata/codefiles/golang.go",
+			EntityType: heartbeat.FileType,
+		},
+	})
+	require.NoError(t, err)
 
-			result, err := h([]heartbeat.Heartbeat{{
-				UserAgent: userAgent,
-			}})
-			require.NoError(t, err)
+	assert.Equal(t, []heartbeat.Result{
+		{
+			Status: 201,
+		},
+	}, result)
+}
 
-			assert.Equal(t, []heartbeat.Result{
-				{
-					Status: 201,
-				},
-			}, result)
-		})
-	}
+func TestWithDetection_Override(t *testing.T) {
+	opt := language.WithDetection()
+
+	h := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		assert.Len(t, hh, 1)
+		assert.Equal(t, heartbeat.LanguagePython, *(hh[0].Language))
+		assert.Equal(t, []heartbeat.Heartbeat{
+			{
+				Entity:     "testdata/codefiles/golang.go",
+				EntityType: heartbeat.FileType,
+				Language:   hh[0].Language,
+			},
+		}, hh)
+
+		return []heartbeat.Result{
+			{
+				Status: 201,
+			},
+		}, nil
+	})
+
+	result, err := h([]heartbeat.Heartbeat{
+		{
+			Entity:     "testdata/codefiles/golang.go",
+			EntityType: heartbeat.FileType,
+			Language:   heartbeat.LanguagePtr(heartbeat.LanguagePython),
+		},
+	})
+	require.NoError(t, err)
+
+	assert.Equal(t, []heartbeat.Result{
+		{
+			Status: 201,
+		},
+	}, result)
 }
 
 func TestDetect_HeaderFile_Corresponding_C_File(t *testing.T) {
