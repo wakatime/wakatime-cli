@@ -169,10 +169,7 @@ func SendHeartbeats(v *viper.Viper) error {
 		filestats.WithDetection(filestats.Config{
 			LinesInFile: params.LinesInFile,
 		}),
-		language.WithDetection(language.Config{
-			Alternate: params.Language.Alternate,
-			Override:  params.Language.Override,
-		}),
+		language.WithDetection(),
 		deps.WithDetection(deps.Config{
 			FilePatterns: params.Sanitize.HideFileNames,
 		}),

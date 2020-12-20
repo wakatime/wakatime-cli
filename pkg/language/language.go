@@ -12,27 +12,14 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 )
 
-// Config contains configurations for language detection.
-type Config struct {
-	Alternate string
-	Override  string
-}
-
 // WithDetection initializes and returns a heartbeat handle option, which
 // can be used in a heartbeat processing pipeline to detect and add programming
 // language info to heartbeats of entity type 'file'.
-func WithDetection(config Config) heartbeat.HandleOption {
+func WithDetection() heartbeat.HandleOption {
 	return func(next heartbeat.Handle) heartbeat.Handle {
 		return func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 			for n, h := range hh {
-				if config.Override != "" {
-					language, ok := Parse(config.Override, heartbeat.PluginFromUserAgent(h.UserAgent))
-					if !ok {
-						jww.WARN.Printf("Failed to parse override language %q", config.Alternate)
-					}
-
-					hh[n].Language = &language
-
+				if hh[n].Language != nil {
 					continue
 				}
 
@@ -45,15 +32,6 @@ func WithDetection(config Config) heartbeat.HandleOption {
 				language, err := Detect(filepath)
 				if err != nil {
 					jww.WARN.Printf("failed to detect language on file entity %q: %s", h.Entity, err)
-
-					if config.Alternate != "" {
-						parsed, ok := Parse(config.Alternate, heartbeat.PluginFromUserAgent(h.UserAgent))
-						if !ok {
-							jww.WARN.Printf("Failed to parse alternate language %q", config.Alternate)
-						}
-
-						hh[n].Language = &parsed
-					}
 
 					continue
 				}
