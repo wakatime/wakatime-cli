@@ -92,19 +92,19 @@ func Detect(filepath string, language heartbeat.Language) ([]string, error) {
 }
 
 func filterDependencies(deps []string) []string {
-	filtered := make(map[string]struct{})
+	var (
+		results []string
+		unique  = make(map[string]struct{})
+	)
 
 	for _, d := range deps {
-		if _, ok := filtered[d]; ok {
+		if _, ok := unique[d]; ok {
 			continue
 		}
 
-		filtered[d] = struct{}{}
-	}
+		unique[d] = struct{}{}
 
-	var results []string
-	for k := range filtered {
-		results = append(results, k)
+		results = append(results, d)
 	}
 
 	return results
