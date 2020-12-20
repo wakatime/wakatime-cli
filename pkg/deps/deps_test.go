@@ -18,10 +18,13 @@ func TestWithDetection(t *testing.T) {
 	h := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		assert.Equal(t, []heartbeat.Heartbeat{
 			{
-				Dependencies: []string{`"os"`, `"github.com/wakatime/wakatime-cli/pkg/heartbeat"`},
-				Entity:       "testdata/golang_minimal.go",
-				EntityType:   heartbeat.FileType,
-				Language:     heartbeat.LanguageGo,
+				Dependencies: []string{
+					`"os"`,
+					`"github.com/wakatime/wakatime-cli/pkg/heartbeat"`,
+				},
+				Entity:     "testdata/golang_minimal.go",
+				EntityType: heartbeat.FileType,
+				Language:   heartbeat.LanguageGo,
 			},
 		}, hh)
 
@@ -81,11 +84,14 @@ func TestWithDetection_LocalFile(t *testing.T) {
 	h := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		assert.Equal(t, []heartbeat.Heartbeat{
 			{
-				Dependencies: []string{`"os"`, `"github.com/wakatime/wakatime-cli/pkg/heartbeat"`},
-				Entity:       "testdata/golang.go",
-				EntityType:   heartbeat.FileType,
-				Language:     heartbeat.LanguageGo,
-				LocalFile:    "testdata/golang_minimal.go",
+				Dependencies: []string{
+					`"os"`,
+					`"github.com/wakatime/wakatime-cli/pkg/heartbeat"`,
+				},
+				Entity:     "testdata/golang.go",
+				EntityType: heartbeat.FileType,
+				Language:   heartbeat.LanguageGo,
+				LocalFile:  "testdata/golang_minimal.go",
 			},
 		}, hh)
 
@@ -140,4 +146,42 @@ func TestWithDetection_NonFileType(t *testing.T) {
 			Status: 201,
 		},
 	}, result)
+}
+
+func TestDetect(t *testing.T) {
+	tests := map[string]struct {
+		Filepath     string
+		Language     heartbeat.Language
+		Dependencies []string
+	}{
+		"golang": {
+			Filepath: "testdata/golang_minimal.go",
+			Language: heartbeat.LanguageGo,
+			Dependencies: []string{
+				`"os"`,
+				`"github.com/wakatime/wakatime-cli/pkg/heartbeat"`,
+			},
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			deps, err := deps.Detect(test.Filepath, test.Language)
+			require.NoError(t, err)
+
+			assert.Equal(t, test.Dependencies, deps)
+		})
+	}
+}
+
+func TestDetect_DuplicatesRemoved(t *testing.T) {
+	deps, err := deps.Detect(
+		"testdata/golang_duplicate.go",
+		heartbeat.LanguageGo,
+	)
+	require.NoError(t, err)
+
+	assert.Equal(t, []string{
+		`"os"`,
+	}, deps)
 }

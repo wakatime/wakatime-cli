@@ -83,5 +83,29 @@ func Detect(filepath string, language heartbeat.Language) ([]string, error) {
 		return nil, fmt.Errorf("failed to open file %q: %s", filepath, err)
 	}
 
-	return parser.Parse(f, lexer)
+	deps, err := parser.Parse(f, lexer)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse dependencies: %s", err)
+	}
+
+	return filterDependencies(deps), nil
+}
+
+func filterDependencies(deps []string) []string {
+	filtered := make(map[string]struct{})
+
+	for _, d := range deps {
+		if _, ok := filtered[d]; ok {
+			continue
+		}
+
+		filtered[d] = struct{}{}
+	}
+
+	var results []string
+	for k := range filtered {
+		results = append(results, k)
+	}
+
+	return results
 }
