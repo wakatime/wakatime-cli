@@ -8,6 +8,7 @@ import (
 	"github.com/mitchellh/go-homedir"
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
+	"github.com/wakatime/wakatime-cli/pkg/vipertools"
 )
 
 const defaultFile = ".wakatime.log"
@@ -34,7 +35,7 @@ func Set(v *viper.Viper) {
 
 // LoadParams loads needed data from the configuration file.
 func LoadParams(v *viper.Viper) (Params, error) {
-	logFile := firstNonEmptyString(v, "log-file", "logfile", "settings.log_file")
+	logFile, _ := vipertools.FirstNonEmptyString(v, "log-file", "logfile", "settings.log_file")
 
 	if logFile != "" {
 		p, err := homedir.Expand(logFile)
@@ -71,16 +72,4 @@ func LoadParams(v *viper.Viper) (Params, error) {
 	return Params{
 		File: filepath.Join(home, defaultFile),
 	}, nil
-}
-
-// firstNonEmptyString accepts multiple keys and returns the first non empty string value
-// it is able to retrieve from viper.Viper via these keys.
-func firstNonEmptyString(v *viper.Viper, keys ...string) string {
-	for _, key := range keys {
-		if value := v.GetString(key); value != "" {
-			return value
-		}
-	}
-
-	return ""
 }
