@@ -162,6 +162,11 @@ func TestDetect(t *testing.T) {
 				"github.com/wakatime/wakatime-cli/pkg/heartbeat",
 			},
 		},
+		"rust": {
+			Filepath:     "testdata/rust_minimal.rs",
+			Language:     heartbeat.LanguageRust,
+			Dependencies: []string{"syn"},
+		},
 	}
 
 	for name, test := range tests {
