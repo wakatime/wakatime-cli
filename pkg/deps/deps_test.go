@@ -19,8 +19,8 @@ func TestWithDetection(t *testing.T) {
 		assert.Equal(t, []heartbeat.Heartbeat{
 			{
 				Dependencies: []string{
-					`"os"`,
-					`"github.com/wakatime/wakatime-cli/pkg/heartbeat"`,
+					"os",
+					"github.com/wakatime/wakatime-cli/pkg/heartbeat",
 				},
 				Entity:     "testdata/golang_minimal.go",
 				EntityType: heartbeat.FileType,
@@ -85,8 +85,8 @@ func TestWithDetection_LocalFile(t *testing.T) {
 		assert.Equal(t, []heartbeat.Heartbeat{
 			{
 				Dependencies: []string{
-					`"os"`,
-					`"github.com/wakatime/wakatime-cli/pkg/heartbeat"`,
+					"os",
+					"github.com/wakatime/wakatime-cli/pkg/heartbeat",
 				},
 				Entity:     "testdata/golang.go",
 				EntityType: heartbeat.FileType,
@@ -158,8 +158,8 @@ func TestDetect(t *testing.T) {
 			Filepath: "testdata/golang_minimal.go",
 			Language: heartbeat.LanguageGo,
 			Dependencies: []string{
-				`"os"`,
-				`"github.com/wakatime/wakatime-cli/pkg/heartbeat"`,
+				"os",
+				"github.com/wakatime/wakatime-cli/pkg/heartbeat",
 			},
 		},
 	}
@@ -182,6 +182,6 @@ func TestDetect_DuplicatesRemoved(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, []string{
-		`"os"`,
+		"os",
 	}, deps)
 }

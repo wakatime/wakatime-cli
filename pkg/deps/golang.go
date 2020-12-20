@@ -54,21 +54,19 @@ func (p *ParserGo) Parse(reader io.ReadCloser, lexer chroma.Lexer) ([]string, er
 		p.processToken(token)
 	}
 
-	var filtered []string
+	return p.Output, nil
+}
 
-	for _, d := range p.Output {
-		if parserGoFmtRegex.MatchString(d) {
-			continue
-		}
-
-		filtered = append(filtered, d)
+func (p *ParserGo) append(dep string) {
+	if parserGoFmtRegex.MatchString(dep) {
+		return
 	}
 
-	return filtered, nil
+	p.Output = append(p.Output, strings.Trim(dep, `" `))
 }
 
 func (p *ParserGo) init() {
-	p.Output = []string{}
+	p.Output = nil
 	p.Parenthesis = 0
 }
 
@@ -118,6 +116,6 @@ func (p *ParserGo) processText(value string) {
 
 func (p *ParserGo) processString(value string) {
 	if p.State == StateGoImport {
-		p.Output = append(p.Output, strings.TrimSpace(value))
+		p.append(value)
 	}
 }
