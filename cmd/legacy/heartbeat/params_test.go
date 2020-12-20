@@ -379,6 +379,12 @@ func TestLoadParams_ExtraHeartbeats(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Len(t, params.ExtraHeartbeats, 2)
+
+	assert.NotNil(t, params.ExtraHeartbeats[0].Language)
+	assert.Equal(t, heartbeat.LanguageGo, *params.ExtraHeartbeats[0].Language)
+	assert.NotNil(t, params.ExtraHeartbeats[1].Language)
+	assert.Equal(t, heartbeat.LanguagePython, *params.ExtraHeartbeats[1].Language)
+
 	assert.Equal(t, []heartbeat.Heartbeat{
 		{
 			Category:       heartbeat.CodingCategory,
@@ -386,15 +392,17 @@ func TestLoadParams_ExtraHeartbeats(t *testing.T) {
 			Entity:         "testdata/main.go",
 			EntityType:     heartbeat.FileType,
 			IsWrite:        heartbeat.Bool(true),
+			Language:       params.ExtraHeartbeats[0].Language,
 			LineNumber:     heartbeat.Int(42),
 			Time:           1585598059,
 			UserAgent:      "wakatime/13.0.6",
 		},
 		{
 			Category:   heartbeat.DebuggingCategory,
-			Entity:     "testdata/main.go",
+			Entity:     "testdata/main.py",
 			EntityType: heartbeat.FileType,
 			IsWrite:    nil,
+			Language:   params.ExtraHeartbeats[1].Language,
 			LineNumber: nil,
 			Time:       1585598060,
 			UserAgent:  "wakatime/13.0.7",
@@ -436,6 +444,12 @@ func TestLoadParams_ExtraHeartbeats_WithStringValues(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Len(t, params.ExtraHeartbeats, 2)
+
+	assert.NotNil(t, params.ExtraHeartbeats[0].Language)
+	assert.Equal(t, heartbeat.LanguageGo, *params.ExtraHeartbeats[0].Language)
+	assert.NotNil(t, params.ExtraHeartbeats[1].Language)
+	assert.Equal(t, heartbeat.LanguagePython, *params.ExtraHeartbeats[1].Language)
+
 	assert.Equal(t, []heartbeat.Heartbeat{
 		{
 			Category:       heartbeat.CodingCategory,
@@ -443,6 +457,7 @@ func TestLoadParams_ExtraHeartbeats_WithStringValues(t *testing.T) {
 			Entity:         "testdata/main.go",
 			EntityType:     heartbeat.FileType,
 			IsWrite:        heartbeat.Bool(true),
+			Language:       params.ExtraHeartbeats[0].Language,
 			LineNumber:     heartbeat.Int(42),
 			Time:           1585598059,
 			UserAgent:      "wakatime/13.0.6",
@@ -453,6 +468,7 @@ func TestLoadParams_ExtraHeartbeats_WithStringValues(t *testing.T) {
 			Entity:         "testdata/main.go",
 			EntityType:     heartbeat.FileType,
 			IsWrite:        heartbeat.Bool(true),
+			Language:       params.ExtraHeartbeats[1].Language,
 			LineNumber:     heartbeat.Int(43),
 			Time:           1585598060,
 			UserAgent:      "wakatime/13.0.7",

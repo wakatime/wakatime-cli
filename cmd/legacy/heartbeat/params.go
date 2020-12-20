@@ -382,6 +382,7 @@ func parseExtraHeartbeat(data []byte) ([]heartbeat.Heartbeat, error) {
 		Entity         string               `json:"entity"`
 		EntityType     heartbeat.EntityType `json:"type"`
 		IsWrite        *bool                `json:"is_write"`
+		Language       *heartbeat.Language  `json:"language"`
 		LineNumber     *int                 `json:"lineno"`
 		Time           float64              `json:"time"`
 		Timestamp      float64              `json:"timestamp"`
@@ -413,6 +414,7 @@ func parseExtraHeartbeat(data []byte) ([]heartbeat.Heartbeat, error) {
 			Entity:         h.Entity,
 			EntityType:     h.EntityType,
 			IsWrite:        h.IsWrite,
+			Language:       h.Language,
 			LineNumber:     h.LineNumber,
 			Time:           timestamp,
 			UserAgent:      h.UserAgent,
@@ -429,6 +431,7 @@ func parseExtraHeartbeatWithStringValues(data []byte) ([]heartbeat.Heartbeat, er
 		Entity         string               `json:"entity"`
 		EntityType     heartbeat.EntityType `json:"type"`
 		IsWrite        *bool                `json:"is_write"`
+		Language       *heartbeat.Language  `json:"language"`
 		LineNumber     *string              `json:"lineno"`
 		Time           float64              `json:"time"`
 		Timestamp      float64              `json:"timestamp"`
@@ -482,6 +485,7 @@ func parseExtraHeartbeatWithStringValues(data []byte) ([]heartbeat.Heartbeat, er
 			Entity:         h.Entity,
 			EntityType:     h.EntityType,
 			IsWrite:        h.IsWrite,
+			Language:       h.Language,
 			LineNumber:     lineNumber,
 			Time:           timestamp,
 			UserAgent:      h.UserAgent,

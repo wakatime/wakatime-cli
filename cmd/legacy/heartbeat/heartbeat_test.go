@@ -143,24 +143,27 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 		body, err := ioutil.ReadAll(req.Body)
 		require.NoError(t, err)
 
-		var entity struct {
+		var entities []struct {
 			Entity string `json:"entity"`
 		}
 
-		err = json.Unmarshal(body, &[]interface{}{&entity})
+		err = json.Unmarshal(body, &entities)
 		require.NoError(t, err)
+
+		assert.True(t, strings.HasSuffix(entities[0].Entity, "testdata/main.go"))
+		assert.True(t, strings.HasSuffix(entities[1].Entity, "testdata/main.go"))
+		assert.True(t, strings.HasSuffix(entities[2].Entity, "testdata/main.py"))
 
 		expectedBodyStr := fmt.Sprintf(
 			string(expectedBody),
-			entity.Entity,
+			entities[0].Entity,
 			heartbeat.UserAgent(plugin),
-			entity.Entity,
+			entities[1].Entity,
 			heartbeat.UserAgent(plugin),
-			entity.Entity,
+			entities[2].Entity,
 			heartbeat.UserAgent(plugin),
 		)
 
-		assert.True(t, strings.HasSuffix(entity.Entity, "testdata/main.go"))
 		assert.JSONEq(t, expectedBodyStr, string(body))
 
 		// send response
@@ -210,6 +213,7 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("hide-branch-names", "true")
 	v.Set("project", "wakatime-cli")
+	v.Set("language", "Go")
 	v.Set("lineno", 13)
 	v.Set("plugin", plugin)
 	v.Set("time", 1585598059.1)

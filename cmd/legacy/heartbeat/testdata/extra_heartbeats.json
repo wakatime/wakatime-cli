@@ -4,6 +4,7 @@
 		"cursorpos": 12,
 		"entity": "testdata/main.go",
 		"is_write": true,
+		"language": "Go",
 		"lineno": 42,
 		"type": "file",
 		"time": 1585598059,
@@ -12,8 +13,9 @@
 	{
 		"category": "debugging",
 		"cursorpos": null,
-		"entity": "testdata/main.go",
+		"entity": "testdata/main.py",
 		"is_write": null,
+		"language": "Python",
 		"lineno": null,
 		"type": "file",
 		"timestamp": 1585598060,
