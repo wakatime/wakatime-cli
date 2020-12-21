@@ -64,15 +64,15 @@ func (p *ParserElm) init() {
 func (p *ParserElm) processToken(token chroma.Token) {
 	switch token.Type {
 	case chroma.KeywordNamespace:
-		p.processNamespace(token.Value)
+		p.processKeywordNamespace(token.Value)
 	case chroma.NameClass:
-		p.processClass(token.Value)
+		p.processNameClass(token.Value)
 	default:
 		p.State = StateElmUnknown
 	}
 }
 
-func (p *ParserElm) processNamespace(value string) {
+func (p *ParserElm) processKeywordNamespace(value string) {
 	if strings.TrimSpace(value) == "import" {
 		p.State = StateElmImport
 	} else {
@@ -80,7 +80,7 @@ func (p *ParserElm) processNamespace(value string) {
 	}
 }
 
-func (p *ParserElm) processClass(value string) {
+func (p *ParserElm) processNameClass(value string) {
 	if p.State == StateElmImport {
 		p.append(value)
 	}
