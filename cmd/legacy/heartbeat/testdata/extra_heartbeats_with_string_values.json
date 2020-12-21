@@ -5,6 +5,7 @@
 		"entity": "testdata/main.go",
 		"is_write": true,
 		"lineno": "42",
+		"lines": "84",
 		"language": "Go",
 		"project": "wakatime-cli",
 		"type": "file",
