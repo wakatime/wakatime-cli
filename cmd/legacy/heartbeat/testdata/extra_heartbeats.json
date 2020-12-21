@@ -6,6 +6,7 @@
 		"is_write": true,
 		"language": "Go",
 		"lineno": 42,
+		"project": "wakatime-cli",
 		"type": "file",
 		"time": 1585598059,
 		"user_agent": "wakatime/13.0.6"

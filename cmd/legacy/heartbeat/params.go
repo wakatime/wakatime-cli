@@ -384,6 +384,7 @@ func parseExtraHeartbeat(data []byte) ([]heartbeat.Heartbeat, error) {
 		IsWrite        *bool                `json:"is_write"`
 		Language       *heartbeat.Language  `json:"language"`
 		LineNumber     *int                 `json:"lineno"`
+		Project        *string              `json:"project"`
 		Time           float64              `json:"time"`
 		Timestamp      float64              `json:"timestamp"`
 		UserAgent      string               `json:"user_agent"`
@@ -416,6 +417,7 @@ func parseExtraHeartbeat(data []byte) ([]heartbeat.Heartbeat, error) {
 			IsWrite:        h.IsWrite,
 			Language:       h.Language,
 			LineNumber:     h.LineNumber,
+			Project:        h.Project,
 			Time:           timestamp,
 			UserAgent:      h.UserAgent,
 		})
@@ -433,6 +435,7 @@ func parseExtraHeartbeatWithStringValues(data []byte) ([]heartbeat.Heartbeat, er
 		IsWrite        *bool                `json:"is_write"`
 		Language       *heartbeat.Language  `json:"language"`
 		LineNumber     *string              `json:"lineno"`
+		Project        *string              `json:"project"`
 		Time           float64              `json:"time"`
 		Timestamp      float64              `json:"timestamp"`
 		UserAgent      string               `json:"user_agent"`
@@ -487,6 +490,7 @@ func parseExtraHeartbeatWithStringValues(data []byte) ([]heartbeat.Heartbeat, er
 			IsWrite:        h.IsWrite,
 			Language:       h.Language,
 			LineNumber:     lineNumber,
+			Project:        h.Project,
 			Time:           timestamp,
 			UserAgent:      h.UserAgent,
 		})
