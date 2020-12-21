@@ -384,6 +384,7 @@ func parseExtraHeartbeat(data []byte) ([]heartbeat.Heartbeat, error) {
 		IsWrite        *bool                `json:"is_write"`
 		Language       *heartbeat.Language  `json:"language"`
 		LineNumber     *int                 `json:"lineno"`
+		Lines          *int                 `json:"lines"`
 		Time           float64              `json:"time"`
 		Timestamp      float64              `json:"timestamp"`
 		UserAgent      string               `json:"user_agent"`
@@ -416,6 +417,7 @@ func parseExtraHeartbeat(data []byte) ([]heartbeat.Heartbeat, error) {
 			IsWrite:        h.IsWrite,
 			Language:       h.Language,
 			LineNumber:     h.LineNumber,
+			Lines:          h.Lines,
 			Time:           timestamp,
 			UserAgent:      h.UserAgent,
 		})
@@ -433,6 +435,7 @@ func parseExtraHeartbeatWithStringValues(data []byte) ([]heartbeat.Heartbeat, er
 		IsWrite        *bool                `json:"is_write"`
 		Language       *heartbeat.Language  `json:"language"`
 		LineNumber     *string              `json:"lineno"`
+		Lines          *string              `json:"lines"`
 		Time           float64              `json:"time"`
 		Timestamp      float64              `json:"timestamp"`
 		UserAgent      string               `json:"user_agent"`
@@ -468,6 +471,17 @@ func parseExtraHeartbeatWithStringValues(data []byte) ([]heartbeat.Heartbeat, er
 			lineNumber = &parsed
 		}
 
+		var lines *int
+
+		if h.Lines != nil {
+			parsed, err := strconv.Atoi(*h.Lines)
+			if err != nil {
+				return nil, fmt.Errorf("failed to convert lines to int: %s", err)
+			}
+
+			lines = &parsed
+		}
+
 		var timestamp float64
 
 		switch {
@@ -487,6 +501,7 @@ func parseExtraHeartbeatWithStringValues(data []byte) ([]heartbeat.Heartbeat, er
 			IsWrite:        h.IsWrite,
 			Language:       h.Language,
 			LineNumber:     lineNumber,
+			Lines:          lines,
 			Time:           timestamp,
 			UserAgent:      h.UserAgent,
 		})

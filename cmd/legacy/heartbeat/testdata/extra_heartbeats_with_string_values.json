@@ -5,6 +5,7 @@
 		"entity": "testdata/main.go",
 		"is_write": true,
 		"lineno": "42",
+		"lines": "45",
 		"language": "Go",
 		"type": "file",
 		"time": 1585598059,
@@ -17,6 +18,7 @@
 		"is_write": true,
 		"language": "Python",
 		"lineno": "43",
+		"lines": "46",
 		"type": "file",
 		"timestamp": 1585598060,
 		"user_agent": "wakatime/13.0.7"
