@@ -4,10 +4,14 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"regexp"
 	"strings"
 
 	"github.com/alecthomas/chroma"
 )
+
+// nolint:noglobals
+var phpExcludeRegex = regexp.MustCompile(`(?i)(^app|app\.php)$`)
 
 // StatePHP is a token parsing state.
 type StatePHP int
@@ -72,6 +76,10 @@ func (p *ParserPHP) append(dep string) {
 		if len(dep) == 0 {
 			return
 		}
+	}
+
+	if phpExcludeRegex.MatchString(dep) {
+		return
 	}
 
 	p.Output = append(p.Output, strings.TrimSpace(dep))
