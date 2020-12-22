@@ -73,17 +73,17 @@ func (p *ParserGo) init() {
 func (p *ParserGo) processToken(token chroma.Token) {
 	switch token.Type {
 	case chroma.KeywordNamespace:
-		p.processNamespace(token.Value)
+		p.processKeywordNamespace(token.Value)
 	case chroma.Punctuation:
 		p.processPunctuation(token.Value)
 	case chroma.LiteralString:
-		p.processString(token.Value)
+		p.processLiteralString(token.Value)
 	case chroma.Text:
 		p.processText(token.Value)
 	}
 }
 
-func (p *ParserGo) processNamespace(value string) {
+func (p *ParserGo) processKeywordNamespace(value string) {
 	p.Parenthesis = 0
 
 	switch value {
@@ -103,6 +103,12 @@ func (p *ParserGo) processPunctuation(value string) {
 	}
 }
 
+func (p *ParserGo) processLiteralString(value string) {
+	if p.State == StateGoImport {
+		p.append(value)
+	}
+}
+
 func (p *ParserGo) processText(value string) {
 	if p.State == StateGoImport {
 		if value == "\n" && p.Parenthesis <= 0 {
@@ -111,11 +117,5 @@ func (p *ParserGo) processText(value string) {
 		}
 	} else {
 		p.State = StateGoUnknown
-	}
-}
-
-func (p *ParserGo) processString(value string) {
-	if p.State == StateGoImport {
-		p.append(value)
 	}
 }
