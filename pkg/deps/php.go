@@ -64,10 +64,6 @@ func (p *ParserPHP) Parse(reader io.ReadCloser, lexer chroma.Lexer) ([]string, e
 }
 
 func (p *ParserPHP) append(dep string) {
-	if strings.Contains(dep, `\`) {
-		dep = strings.Split(dep, `\`)[0]
-	}
-
 	dep = strings.TrimSpace(dep)
 
 	if len(dep) == 0 {
@@ -79,6 +75,10 @@ func (p *ParserPHP) append(dep string) {
 	}
 
 	p.Output = append(p.Output, dep)
+}
+
+func (p *ParserPHP) appendTruncate(dep string) {
+	p.append(strings.Split(dep, `\`)[0])
 }
 
 func (p *ParserPHP) init() {
@@ -124,7 +124,7 @@ func (p *ParserPHP) processKeyword(value string) {
 
 func (p *ParserPHP) processNameFunction(value string) {
 	if p.State == StatePHPUseFunction {
-		p.append(value)
+		p.appendTruncate(value)
 		p.State = StatePHPUse
 	}
 }
@@ -145,7 +145,7 @@ func (p *ParserPHP) processLiteralStringDouble(value string) {
 
 func (p *ParserPHP) processNameOther(value string) {
 	if p.State == StatePHPUse {
-		p.append(value)
+		p.appendTruncate(value)
 	}
 }
 
