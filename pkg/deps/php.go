@@ -65,24 +65,20 @@ func (p *ParserPHP) Parse(reader io.ReadCloser, lexer chroma.Lexer) ([]string, e
 
 func (p *ParserPHP) append(dep string) {
 	if strings.Contains(dep, `\`) {
-		splitted := strings.Split(dep, `\`)
+		dep = strings.Split(dep, `\`)[0]
+	}
 
-		if len(splitted) == 1 {
-			dep = splitted[0]
-		} else {
-			dep = strings.Join(splitted[:1], ".")
-		}
+	dep = strings.TrimSpace(dep)
 
-		if len(dep) == 0 {
-			return
-		}
+	if len(dep) == 0 {
+		return
 	}
 
 	if phpExcludeRegex.MatchString(dep) {
 		return
 	}
 
-	p.Output = append(p.Output, strings.TrimSpace(dep))
+	p.Output = append(p.Output, dep)
 }
 
 func (p *ParserPHP) init() {
