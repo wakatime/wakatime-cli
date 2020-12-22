@@ -10,7 +10,7 @@ import (
 	"github.com/alecthomas/chroma"
 )
 
-var parserGoFmtRegex = regexp.MustCompile(`^"fmt"$`)
+var goExcludeRegex = regexp.MustCompile(`(?i)^"fmt"$`)
 
 // StateGo is a token parsing state.
 type StateGo int
@@ -58,7 +58,7 @@ func (p *ParserGo) Parse(reader io.ReadCloser, lexer chroma.Lexer) ([]string, er
 }
 
 func (p *ParserGo) append(dep string) {
-	if parserGoFmtRegex.MatchString(dep) {
+	if goExcludeRegex.MatchString(dep) {
 		return
 	}
 
