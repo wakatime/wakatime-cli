@@ -377,18 +377,20 @@ func readExtraHeartbeats() ([]heartbeat.Heartbeat, error) {
 
 func parseExtraHeartbeat(data []byte) ([]heartbeat.Heartbeat, error) {
 	var incoming []struct {
-		Category       heartbeat.Category  `json:"category"`
-		CursorPosition *int                `json:"cursorpos"`
-		Entity         string              `json:"entity"`
-		EntityType     string              `json:"entity_type"`
-		Type           string              `json:"type"`
-		IsWrite        *bool               `json:"is_write"`
-		Language       *heartbeat.Language `json:"language"`
-		LineNumber     *int                `json:"lineno"`
-		Lines          *int                `json:"lines"`
-		Time           float64             `json:"time"`
-		Timestamp      float64             `json:"timestamp"`
-		UserAgent      string              `json:"user_agent"`
+		Category         heartbeat.Category  `json:"category"`
+		CursorPosition   *int                `json:"cursorpos"`
+		Entity           string              `json:"entity"`
+		EntityType       string              `json:"entity_type"`
+		Type             string              `json:"type"`
+		IsWrite          *bool               `json:"is_write"`
+		Language         *heartbeat.Language `json:"language"`
+		LineNumber       *int                `json:"lineno"`
+		Lines            *int                `json:"lines"`
+		Project          string              `json:"project"`
+		ProjectAlternate string              `json:"alternate_project"`
+		Time             float64             `json:"time"`
+		Timestamp        float64             `json:"timestamp"`
+		UserAgent        string              `json:"user_agent"`
 	}
 
 	err := json.Unmarshal(data, &incoming)
@@ -422,16 +424,18 @@ func parseExtraHeartbeat(data []byte) ([]heartbeat.Heartbeat, error) {
 		}
 
 		heartbeats = append(heartbeats, heartbeat.Heartbeat{
-			Category:       h.Category,
-			CursorPosition: h.CursorPosition,
-			Entity:         h.Entity,
-			EntityType:     entityType,
-			IsWrite:        h.IsWrite,
-			Language:       h.Language,
-			LineNumber:     h.LineNumber,
-			Lines:          h.Lines,
-			Time:           timestamp,
-			UserAgent:      h.UserAgent,
+			Category:         h.Category,
+			CursorPosition:   h.CursorPosition,
+			Entity:           h.Entity,
+			EntityType:       entityType,
+			IsWrite:          h.IsWrite,
+			Language:         h.Language,
+			LineNumber:       h.LineNumber,
+			Lines:            h.Lines,
+			ProjectAlternate: h.ProjectAlternate,
+			ProjectOverride:  h.Project,
+			Time:             timestamp,
+			UserAgent:        h.UserAgent,
 		})
 	}
 
@@ -440,18 +444,20 @@ func parseExtraHeartbeat(data []byte) ([]heartbeat.Heartbeat, error) {
 
 func parseExtraHeartbeatWithStringValues(data []byte) ([]heartbeat.Heartbeat, error) {
 	var incoming []struct {
-		Category       heartbeat.Category  `json:"category"`
-		CursorPosition *string             `json:"cursorpos"`
-		Entity         string              `json:"entity"`
-		EntityType     string              `json:"entity_type"`
-		Type           string              `json:"type"`
-		IsWrite        *bool               `json:"is_write"`
-		Language       *heartbeat.Language `json:"language"`
-		LineNumber     *string             `json:"lineno"`
-		Lines          *string             `json:"lines"`
-		Time           float64             `json:"time"`
-		Timestamp      float64             `json:"timestamp"`
-		UserAgent      string              `json:"user_agent"`
+		Category         heartbeat.Category  `json:"category"`
+		CursorPosition   *string             `json:"cursorpos"`
+		Entity           string              `json:"entity"`
+		EntityType       string              `json:"entity_type"`
+		Type             string              `json:"type"`
+		IsWrite          *bool               `json:"is_write"`
+		Language         *heartbeat.Language `json:"language"`
+		LineNumber       *string             `json:"lineno"`
+		Lines            *string             `json:"lines"`
+		Time             float64             `json:"time"`
+		Project          string              `json:"project"`
+		ProjectAlternate string              `json:"alternate_project"`
+		Timestamp        float64             `json:"timestamp"`
+		UserAgent        string              `json:"user_agent"`
 	}
 
 	err := json.Unmarshal(data, &incoming)
@@ -518,16 +524,18 @@ func parseExtraHeartbeatWithStringValues(data []byte) ([]heartbeat.Heartbeat, er
 		}
 
 		heartbeats = append(heartbeats, heartbeat.Heartbeat{
-			Category:       h.Category,
-			CursorPosition: cursorPosition,
-			Entity:         h.Entity,
-			EntityType:     entityType,
-			IsWrite:        h.IsWrite,
-			Language:       h.Language,
-			LineNumber:     lineNumber,
-			Lines:          lines,
-			Time:           timestamp,
-			UserAgent:      h.UserAgent,
+			Category:         h.Category,
+			CursorPosition:   cursorPosition,
+			Entity:           h.Entity,
+			EntityType:       entityType,
+			IsWrite:          h.IsWrite,
+			Language:         h.Language,
+			LineNumber:       lineNumber,
+			Lines:            lines,
+			ProjectAlternate: h.ProjectAlternate,
+			ProjectOverride:  h.Project,
+			Time:             timestamp,
+			UserAgent:        h.UserAgent,
 		})
 	}
 

@@ -137,6 +137,8 @@ func SendHeartbeats(v *viper.Viper) error {
 			params.Language,
 			params.LineNumber,
 			params.LocalFile,
+			params.Project.Alternate,
+			params.Project.Override,
 			params.Time,
 			userAgent,
 		),
@@ -155,6 +157,8 @@ func SendHeartbeats(v *viper.Viper) error {
 				h.Language,
 				h.LineNumber,
 				h.LocalFile,
+				h.ProjectAlternate,
+				h.ProjectOverride,
 				h.Time,
 				userAgent,
 			))
@@ -176,8 +180,6 @@ func SendHeartbeats(v *viper.Viper) error {
 			FilePatterns: params.Sanitize.HideFileNames,
 		}),
 		project.WithDetection(project.Config{
-			Alternate:              params.Project.Alternate,
-			Override:               params.Project.Override,
 			ShouldObfuscateProject: heartbeat.ShouldSanitize(params.Entity, params.Sanitize.HideProjectNames),
 			MapPatterns:            params.Project.MapPatterns,
 			SubmodulePatterns:      params.Project.DisableSubmodule,

@@ -16,20 +16,22 @@ import (
 
 // Heartbeat is a structure representing activity for a user on a some entity.
 type Heartbeat struct {
-	Branch         *string    `json:"branch"`
-	Category       Category   `json:"category"`
-	CursorPosition *int       `json:"cursorpos"`
-	Dependencies   []string   `json:"dependencies"`
-	Entity         string     `json:"entity"`
-	EntityType     EntityType `json:"type"`
-	IsWrite        *bool      `json:"is_write"`
-	Language       *Language  `json:"language"`
-	LineNumber     *int       `json:"lineno"`
-	Lines          *int       `json:"lines"`
-	LocalFile      string     `json:"-"`
-	Project        *string    `json:"project"`
-	Time           float64    `json:"time"`
-	UserAgent      string     `json:"user_agent"`
+	Branch           *string    `json:"branch"`
+	Category         Category   `json:"category"`
+	CursorPosition   *int       `json:"cursorpos"`
+	Dependencies     []string   `json:"dependencies"`
+	Entity           string     `json:"entity"`
+	EntityType       EntityType `json:"type"`
+	IsWrite          *bool      `json:"is_write"`
+	Language         *Language  `json:"language"`
+	LineNumber       *int       `json:"lineno"`
+	Lines            *int       `json:"lines"`
+	LocalFile        string     `json:"-"`
+	Project          *string    `json:"project"`
+	ProjectAlternate string     `json:"-"`
+	ProjectOverride  string     `json:"-"`
+	Time             float64    `json:"time"`
+	UserAgent        string     `json:"user_agent"`
 }
 
 // New creates a new instance of Heartbeat with formatted entity
@@ -43,6 +45,8 @@ func New(
 	language *Language,
 	lineNumber *int,
 	localFile string,
+	projectAlternate string,
+	projectOverride string,
 	time float64,
 	userAgent string,
 ) Heartbeat {
@@ -77,16 +81,18 @@ func New(
 	}
 
 	return Heartbeat{
-		Category:       category,
-		CursorPosition: cursorPosition,
-		Entity:         entity,
-		EntityType:     entityType,
-		IsWrite:        isWrite,
-		Language:       language,
-		LineNumber:     lineNumber,
-		LocalFile:      localFile,
-		Time:           time,
-		UserAgent:      userAgent,
+		Category:         category,
+		CursorPosition:   cursorPosition,
+		Entity:           entity,
+		EntityType:       entityType,
+		IsWrite:          isWrite,
+		Language:         language,
+		LineNumber:       lineNumber,
+		LocalFile:        localFile,
+		ProjectAlternate: projectAlternate,
+		ProjectOverride:  projectOverride,
+		Time:             time,
+		UserAgent:        userAgent,
 	}
 }
 
