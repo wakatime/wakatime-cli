@@ -6,7 +6,8 @@
 		"is_write": true,
 		"language": "Go",
 		"lineno": 42,
-		"type": "file",
+		"lines": 45,
+		"entity_type": "file",
 		"time": 1585598059,
 		"user_agent": "wakatime/13.0.6"
 	},
@@ -17,6 +18,7 @@
 		"is_write": null,
 		"language": "Python",
 		"lineno": null,
+		"lines": null,
 		"type": "file",
 		"timestamp": 1585598060,
 		"user_agent": "wakatime/13.0.7"

@@ -377,16 +377,18 @@ func readExtraHeartbeats() ([]heartbeat.Heartbeat, error) {
 
 func parseExtraHeartbeat(data []byte) ([]heartbeat.Heartbeat, error) {
 	var incoming []struct {
-		Category       heartbeat.Category   `json:"category"`
-		CursorPosition *int                 `json:"cursorpos"`
-		Entity         string               `json:"entity"`
-		EntityType     heartbeat.EntityType `json:"type"`
-		IsWrite        *bool                `json:"is_write"`
-		Language       *heartbeat.Language  `json:"language"`
-		LineNumber     *int                 `json:"lineno"`
-		Time           float64              `json:"time"`
-		Timestamp      float64              `json:"timestamp"`
-		UserAgent      string               `json:"user_agent"`
+		Category       heartbeat.Category  `json:"category"`
+		CursorPosition *int                `json:"cursorpos"`
+		Entity         string              `json:"entity"`
+		EntityType     string              `json:"entity_type"`
+		Type           string              `json:"type"`
+		IsWrite        *bool               `json:"is_write"`
+		Language       *heartbeat.Language `json:"language"`
+		LineNumber     *int                `json:"lineno"`
+		Lines          *int                `json:"lines"`
+		Time           float64             `json:"time"`
+		Timestamp      float64             `json:"timestamp"`
+		UserAgent      string              `json:"user_agent"`
 	}
 
 	err := json.Unmarshal(data, &incoming)
@@ -397,6 +399,17 @@ func parseExtraHeartbeat(data []byte) ([]heartbeat.Heartbeat, error) {
 	var heartbeats []heartbeat.Heartbeat
 
 	for _, h := range incoming {
+		var entityType heartbeat.EntityType
+
+		// Both type or entity_type are acceptable here. Type takes precedence.
+		entityTypeStr := firstNonEmptyString(h.Type, h.EntityType)
+		if entityTypeStr != "" {
+			entityType, err = heartbeat.ParseEntityType(entityTypeStr)
+			if err != nil {
+				return nil, err
+			}
+		}
+
 		var timestamp float64
 
 		switch {
@@ -412,10 +425,11 @@ func parseExtraHeartbeat(data []byte) ([]heartbeat.Heartbeat, error) {
 			Category:       h.Category,
 			CursorPosition: h.CursorPosition,
 			Entity:         h.Entity,
-			EntityType:     h.EntityType,
+			EntityType:     entityType,
 			IsWrite:        h.IsWrite,
 			Language:       h.Language,
 			LineNumber:     h.LineNumber,
+			Lines:          h.Lines,
 			Time:           timestamp,
 			UserAgent:      h.UserAgent,
 		})
@@ -426,16 +440,18 @@ func parseExtraHeartbeat(data []byte) ([]heartbeat.Heartbeat, error) {
 
 func parseExtraHeartbeatWithStringValues(data []byte) ([]heartbeat.Heartbeat, error) {
 	var incoming []struct {
-		Category       heartbeat.Category   `json:"category"`
-		CursorPosition *string              `json:"cursorpos"`
-		Entity         string               `json:"entity"`
-		EntityType     heartbeat.EntityType `json:"type"`
-		IsWrite        *bool                `json:"is_write"`
-		Language       *heartbeat.Language  `json:"language"`
-		LineNumber     *string              `json:"lineno"`
-		Time           float64              `json:"time"`
-		Timestamp      float64              `json:"timestamp"`
-		UserAgent      string               `json:"user_agent"`
+		Category       heartbeat.Category  `json:"category"`
+		CursorPosition *string             `json:"cursorpos"`
+		Entity         string              `json:"entity"`
+		EntityType     string              `json:"entity_type"`
+		Type           string              `json:"type"`
+		IsWrite        *bool               `json:"is_write"`
+		Language       *heartbeat.Language `json:"language"`
+		LineNumber     *string             `json:"lineno"`
+		Lines          *string             `json:"lines"`
+		Time           float64             `json:"time"`
+		Timestamp      float64             `json:"timestamp"`
+		UserAgent      string              `json:"user_agent"`
 	}
 
 	err := json.Unmarshal(data, &incoming)
@@ -457,6 +473,17 @@ func parseExtraHeartbeatWithStringValues(data []byte) ([]heartbeat.Heartbeat, er
 			cursorPosition = &parsed
 		}
 
+		var entityType heartbeat.EntityType
+
+		// Both type or entity_type are acceptable here. Type takes precedence.
+		entityTypeStr := firstNonEmptyString(h.Type, h.EntityType)
+		if entityTypeStr != "" {
+			entityType, err = heartbeat.ParseEntityType(entityTypeStr)
+			if err != nil {
+				return nil, err
+			}
+		}
+
 		var lineNumber *int
 
 		if h.LineNumber != nil {
@@ -466,6 +493,17 @@ func parseExtraHeartbeatWithStringValues(data []byte) ([]heartbeat.Heartbeat, er
 			}
 
 			lineNumber = &parsed
+		}
+
+		var lines *int
+
+		if h.Lines != nil {
+			parsed, err := strconv.Atoi(*h.Lines)
+			if err != nil {
+				return nil, fmt.Errorf("failed to convert lines to int: %s", err)
+			}
+
+			lines = &parsed
 		}
 
 		var timestamp float64
@@ -483,10 +521,11 @@ func parseExtraHeartbeatWithStringValues(data []byte) ([]heartbeat.Heartbeat, er
 			Category:       h.Category,
 			CursorPosition: cursorPosition,
 			Entity:         h.Entity,
-			EntityType:     h.EntityType,
+			EntityType:     entityType,
 			IsWrite:        h.IsWrite,
 			Language:       h.Language,
 			LineNumber:     lineNumber,
+			Lines:          lines,
 			Time:           timestamp,
 			UserAgent:      h.UserAgent,
 		})
@@ -722,4 +761,15 @@ func parseBoolOrRegexList(s string) ([]regex.Regex, error) {
 	}
 
 	return patterns, nil
+}
+
+// firstNonEmptyString accepts multiple values and return the first non empty string value.
+func firstNonEmptyString(values ...string) string {
+	for _, v := range values {
+		if v != "" {
+			return v
+		}
+	}
+
+	return ""
 }
