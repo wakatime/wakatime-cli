@@ -167,6 +167,11 @@ func TestDetect(t *testing.T) {
 				"github.com/wakatime/wakatime-cli/pkg/heartbeat",
 			},
 		},
+		"python": {
+			Filepath:     "testdata/python_minimal.py",
+			Language:     heartbeat.LanguagePython,
+			Dependencies: []string{"flask", "simplejson"},
+		},
 		"rust": {
 			Filepath:     "testdata/rust_minimal.rs",
 			Language:     heartbeat.LanguageRust,
@@ -193,5 +198,20 @@ func TestDetect_DuplicatesRemoved(t *testing.T) {
 
 	assert.Equal(t, []string{
 		"os",
+	}, deps)
+}
+
+func TestDetect_LongDependenciesRemoved(t *testing.T) {
+	deps, err := deps.Detect(
+		"testdata/python_with_long_import.py",
+		heartbeat.LanguagePython,
+	)
+	require.NoError(t, err)
+
+	assert.Equal(t, []string{
+		"django",
+		"flask",
+		// nolint:lll
+		"notlongenoughnotlongenoughnotlongenoughnotlongenoughnotlongenoughnotlongenoughnotlongenoughnotlongenoughnotlongenoughnotlongenoughnotlongenoughnotlongenoughnotlongenoughnotlongenoughnotlongenoughnotlo",
 	}, deps)
 }

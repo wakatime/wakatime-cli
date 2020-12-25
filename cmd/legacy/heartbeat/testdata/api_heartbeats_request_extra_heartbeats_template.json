@@ -33,7 +33,7 @@
         "branch": null,
         "category": "debugging",
         "cursorpos": null,
-        "dependencies": null,
+        "dependencies": ["flask","simplejson"],
         "entity": "%s",
         "is_write": null,
         "language": "Python",
