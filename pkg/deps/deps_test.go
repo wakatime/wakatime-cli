@@ -187,6 +187,11 @@ func TestDetect(t *testing.T) {
 			Language:     heartbeat.LanguageRust,
 			Dependencies: []string{"syn"},
 		},
+		"swift": {
+			Filepath:     "testdata/swift_minimal.swift",
+			Language:     heartbeat.LanguageSwift,
+			Dependencies: []string{"Swift"},
+		},
 	}
 
 	for name, test := range tests {
