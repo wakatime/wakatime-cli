@@ -202,6 +202,11 @@ func TestDetect(t *testing.T) {
 			Language:     heartbeat.LanguageKotlin,
 			Dependencies: []string{"alpha.time"},
 		},
+		"objective-c": {
+			Filepath:     "testdata/objective_c_minimal.m",
+			Language:     heartbeat.LanguageObjectiveC,
+			Dependencies: []string{"Foundation"},
+		},
 		"php": {
 			Filepath:     "testdata/php_minimal.php",
 			Language:     heartbeat.LanguagePHP,
