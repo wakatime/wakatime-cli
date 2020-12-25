@@ -167,6 +167,11 @@ func TestDetect(t *testing.T) {
 				"github.com/wakatime/wakatime-cli/pkg/heartbeat",
 			},
 		},
+		"php": {
+			Filepath:     "testdata/php_minimal.php",
+			Language:     heartbeat.LanguagePHP,
+			Dependencies: []string{"Interop", "FooBarOne"},
+		},
 		"python": {
 			Filepath:     "testdata/python_minimal.py",
 			Language:     heartbeat.LanguagePython,
