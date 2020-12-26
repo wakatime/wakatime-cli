@@ -197,6 +197,11 @@ func TestDetect(t *testing.T) {
 			Language:     heartbeat.LanguageJavaScript,
 			Dependencies: []string{"bravo"},
 		},
+		"kotlin": {
+			Filepath:     "testdata/kotlin_minimal.kt",
+			Language:     heartbeat.LanguageKotlin,
+			Dependencies: []string{"alpha.time"},
+		},
 		"php": {
 			Filepath:     "testdata/php_minimal.php",
 			Language:     heartbeat.LanguagePHP,
