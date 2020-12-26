@@ -192,6 +192,11 @@ func TestDetect(t *testing.T) {
 			Language:     heartbeat.LanguageHaxe,
 			Dependencies: []string{"alpha"},
 		},
+		"javascript": {
+			Filepath:     "testdata/es6_minimal.js",
+			Language:     heartbeat.LanguageJavaScript,
+			Dependencies: []string{"bravo"},
+		},
 		"php": {
 			Filepath:     "testdata/php_minimal.php",
 			Language:     heartbeat.LanguagePHP,
