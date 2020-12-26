@@ -212,6 +212,11 @@ func TestDetect(t *testing.T) {
 			Language:     heartbeat.LanguageRust,
 			Dependencies: []string{"syn"},
 		},
+		"scala": {
+			Filepath:     "testdata/scala_minimal.scala",
+			Language:     heartbeat.LanguageScala,
+			Dependencies: []string{"com.alpha.SomeClass"},
+		},
 		"swift": {
 			Filepath:     "testdata/swift_minimal.swift",
 			Language:     heartbeat.LanguageSwift,
