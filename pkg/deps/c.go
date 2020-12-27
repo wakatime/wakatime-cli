@@ -1,0 +1,107 @@
+package deps
+
+import (
+	"fmt"
+	"io"
+	"io/ioutil"
+	"regexp"
+	"strings"
+
+	"github.com/alecthomas/chroma"
+)
+
+var cExcludeRegex = regexp.MustCompile(`(?i)^(stdio\.h|stdlib\.h|string\.h|time\.h)$`)
+
+// StateC is a token parsing state.
+type StateC int
+
+const (
+	// StateCUnknown represents a unknown token parsing state.
+	StateCUnknown StateC = iota
+	// StateCImport means we are in import section during token parsing.
+	StateCImport
+)
+
+// ParserC is a dependency parser for the c programming language.
+// It is not thread safe.
+type ParserC struct {
+	State  StateC
+	Output []string
+}
+
+// Parse parses dependencies from c file content via ReadCloser using the c golang lexer.
+func (p *ParserC) Parse(reader io.ReadCloser, lexer chroma.Lexer) ([]string, error) {
+	defer reader.Close()
+
+	p.init()
+	defer p.init()
+
+	data, err := ioutil.ReadAll(reader)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read from reader: %s", err)
+	}
+
+	iter, err := lexer.Tokenise(nil, string(data))
+	if err != nil {
+		return nil, fmt.Errorf("failed to tokenize file content: %s", err)
+	}
+
+	for _, token := range iter.Tokens() {
+		p.processToken(token)
+	}
+
+	return p.Output, nil
+}
+
+func (p *ParserC) append(dep string) {
+	// only consider first part of an import path
+	dep = strings.Split(dep, "/")[0]
+
+	if len(dep) == 0 {
+		return
+	}
+
+	dep = strings.TrimSpace(dep)
+
+	if cExcludeRegex.MatchString(dep) {
+		return
+	}
+
+	// trim extension
+	dep = strings.TrimSuffix(dep, ".h")
+
+	p.Output = append(p.Output, dep)
+}
+
+func (p *ParserC) init() {
+	p.Output = nil
+	p.State = StateCUnknown
+}
+
+func (p *ParserC) processToken(token chroma.Token) {
+	switch token.Type {
+	case chroma.CommentPreproc:
+		p.processCommentPreproc(token.Value)
+	case chroma.CommentPreprocFile:
+		p.processCommentPreprocFile(token.Value)
+	}
+}
+
+func (p *ParserC) processCommentPreproc(value string) {
+	if strings.HasPrefix(strings.TrimSpace(value), "include") {
+		p.State = StateCImport
+	}
+}
+
+func (p *ParserC) processCommentPreprocFile(value string) {
+	if p.State != StateCImport {
+		return
+	}
+
+	if value != "\n" && value != "#" {
+		value = strings.Trim(value, `"<> `)
+		p.append(value)
+	}
+
+	p.State = StateCUnknown
+}
