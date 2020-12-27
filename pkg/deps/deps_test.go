@@ -182,6 +182,11 @@ func TestDetect(t *testing.T) {
 				"github.com/wakatime/wakatime-cli/pkg/heartbeat",
 			},
 		},
+		"haskell": {
+			Filepath:     "testdata/haskell_minimal.hs",
+			Language:     heartbeat.LanguageHaskell,
+			Dependencies: []string{"Control"},
+		},
 		"haxe": {
 			Filepath:     "testdata/haxe_minimal.hx",
 			Language:     heartbeat.LanguageHaxe,
