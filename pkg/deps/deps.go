@@ -91,6 +91,8 @@ func Detect(filepath string, language heartbeat.Language) ([]string, error) {
 		parser = &ParserPython{}
 	case heartbeat.LanguageRust:
 		parser = &ParserRust{}
+	case heartbeat.LanguageSwift:
+		parser = &ParserSwift{}
 	default:
 		jww.DEBUG.Printf("parsing dependencies not supported for language %q", language)
 		return nil, nil
