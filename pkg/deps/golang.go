@@ -66,8 +66,9 @@ func (p *ParserGo) append(dep string) {
 }
 
 func (p *ParserGo) init() {
-	p.Output = nil
 	p.Parenthesis = 0
+	p.State = StateGoUnknown
+	p.Output = nil
 }
 
 func (p *ParserGo) processToken(token chroma.Token) {

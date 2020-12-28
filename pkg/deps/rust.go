@@ -56,6 +56,7 @@ func (p *ParserRust) Parse(reader io.ReadCloser, lexer chroma.Lexer) ([]string, 
 }
 
 func (p *ParserRust) init() {
+	p.State = StateRustUnknown
 	p.Output = []string{}
 }
 

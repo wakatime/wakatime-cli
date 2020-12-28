@@ -58,6 +58,7 @@ func (p *ParserElm) append(dep string) {
 }
 
 func (p *ParserElm) init() {
+	p.State = StateElmUnknown
 	p.Output = []string{}
 }
 
