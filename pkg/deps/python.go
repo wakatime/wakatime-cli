@@ -82,6 +82,7 @@ func (p *ParserPython) append(dep string) {
 
 func (p *ParserPython) init() {
 	p.Parenthesis = 0
+	p.State = StatePythonUnknown
 	p.Output = []string{}
 }
 
