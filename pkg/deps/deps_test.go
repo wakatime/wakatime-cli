@@ -167,6 +167,11 @@ func TestDetect(t *testing.T) {
 				"github.com/wakatime/wakatime-cli/pkg/heartbeat",
 			},
 		},
+		"haxe": {
+			Filepath:     "testdata/haxe_minimal.hx",
+			Language:     heartbeat.LanguageHaxe,
+			Dependencies: []string{"alpha"},
+		},
 		"php": {
 			Filepath:     "testdata/php_minimal.php",
 			Language:     heartbeat.LanguagePHP,
