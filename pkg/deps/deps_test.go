@@ -159,6 +159,11 @@ func TestDetect(t *testing.T) {
 			Language:     heartbeat.LanguageC,
 			Dependencies: []string{"openssl"},
 		},
+		"cpp": {
+			Filepath:     "testdata/cpp_minimal.cpp",
+			Language:     heartbeat.LanguageCPP,
+			Dependencies: []string{"iostream"},
+		},
 		"csharp": {
 			Filepath:     "testdata/csharp_minimal.cs",
 			Language:     heartbeat.LanguageCSharp,
