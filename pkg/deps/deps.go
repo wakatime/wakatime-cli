@@ -79,6 +79,8 @@ func Detect(filepath string, language heartbeat.Language) ([]string, error) {
 	var parser DependencyParser
 
 	switch language {
+	case heartbeat.LanguageC:
+		parser = &ParserC{}
 	case heartbeat.LanguageElm:
 		parser = &ParserElm{}
 	case heartbeat.LanguageGo:

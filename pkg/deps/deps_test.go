@@ -154,6 +154,11 @@ func TestDetect(t *testing.T) {
 		Language     heartbeat.Language
 		Dependencies []string
 	}{
+		"c": {
+			Filepath:     "testdata/c_minimal.c",
+			Language:     heartbeat.LanguageC,
+			Dependencies: []string{"openssl"},
+		},
 		"elm": {
 			Filepath:     "testdata/elm_minimal.elm",
 			Language:     heartbeat.LanguageElm,
