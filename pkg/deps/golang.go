@@ -2,12 +2,13 @@ package deps
 
 import (
 	"fmt"
-	"io"
 	"io/ioutil"
+	"os"
 	"regexp"
 	"strings"
 
 	"github.com/alecthomas/chroma"
+	"github.com/alecthomas/chroma/lexers/g"
 )
 
 var goExcludeRegex = regexp.MustCompile(`(?i)^"fmt"$`)
@@ -30,8 +31,13 @@ type ParserGo struct {
 	Output      []string
 }
 
-// Parse parses dependencies from golang file content via ReadCloser using the chroma golang lexer.
-func (p *ParserGo) Parse(reader io.ReadCloser, lexer chroma.Lexer) ([]string, error) {
+// Parse parses dependencies from Golang file content using the chroma Golang lexer.
+func (p *ParserGo) Parse(filepath string) ([]string, error) {
+	reader, err := os.Open(filepath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open file %q: %s", filepath, err)
+	}
+
 	defer reader.Close()
 
 	p.init()
@@ -42,10 +48,7 @@ func (p *ParserGo) Parse(reader io.ReadCloser, lexer chroma.Lexer) ([]string, er
 		return nil, fmt.Errorf("failed to read from reader: %s", err)
 	}
 
-	iter, err := lexer.Tokenise(&chroma.TokeniseOptions{
-		State:    "root",
-		EnsureLF: true,
-	}, string(data))
+	iter, err := g.Go.Tokenise(nil, string(data))
 	if err != nil {
 		return nil, fmt.Errorf("failed to tokenize file content: %s", err)
 	}

@@ -2,12 +2,13 @@ package deps
 
 import (
 	"fmt"
-	"io"
 	"io/ioutil"
+	"os"
 	"regexp"
 	"strings"
 
 	"github.com/alecthomas/chroma"
+	"github.com/alecthomas/chroma/lexers/circular"
 )
 
 // nolint:noglobals
@@ -36,8 +37,13 @@ type ParserPHP struct {
 	Output []string
 }
 
-// Parse parses dependencies from php file content via ReadCloser using the chroma php lexer.
-func (p *ParserPHP) Parse(reader io.ReadCloser, lexer chroma.Lexer) ([]string, error) {
+// Parse parses dependencies from PHP file content using the chroma PHP lexer.
+func (p *ParserPHP) Parse(filepath string) ([]string, error) {
+	reader, err := os.Open(filepath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open file %q: %s", filepath, err)
+	}
+
 	defer reader.Close()
 
 	p.init()
@@ -48,10 +54,7 @@ func (p *ParserPHP) Parse(reader io.ReadCloser, lexer chroma.Lexer) ([]string, e
 		return nil, fmt.Errorf("failed to read from reader: %s", err)
 	}
 
-	iter, err := lexer.Tokenise(&chroma.TokeniseOptions{
-		State:    "root",
-		EnsureLF: true,
-	}, string(data))
+	iter, err := circular.PHP.Tokenise(nil, string(data))
 	if err != nil {
 		return nil, fmt.Errorf("failed to tokenize file content: %s", err)
 	}

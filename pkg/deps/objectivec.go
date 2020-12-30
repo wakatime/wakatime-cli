@@ -2,11 +2,12 @@ package deps
 
 import (
 	"fmt"
-	"io"
 	"io/ioutil"
+	"os"
 	"strings"
 
 	"github.com/alecthomas/chroma"
+	"github.com/alecthomas/chroma/lexers/o"
 )
 
 // StateObjectiveC is a token parsing state.
@@ -26,8 +27,13 @@ type ParserObjectiveC struct {
 	Output []string
 }
 
-// Parse parses dependencies from objective-c file content via ReadCloser using the chroma objective-c lexer.
-func (p *ParserObjectiveC) Parse(reader io.ReadCloser, lexer chroma.Lexer) ([]string, error) {
+// Parse parses dependencies from Objective-C file content using the chroma Objective-C lexer.
+func (p *ParserObjectiveC) Parse(filepath string) ([]string, error) {
+	reader, err := os.Open(filepath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open file %q: %s", filepath, err)
+	}
+
 	defer reader.Close()
 
 	p.init()
@@ -38,7 +44,7 @@ func (p *ParserObjectiveC) Parse(reader io.ReadCloser, lexer chroma.Lexer) ([]st
 		return nil, fmt.Errorf("failed to read from reader: %s", err)
 	}
 
-	iter, err := lexer.Tokenise(nil, string(data))
+	iter, err := o.ObjectiveC.Tokenise(nil, string(data))
 	if err != nil {
 		return nil, fmt.Errorf("failed to tokenize file content: %s", err)
 	}

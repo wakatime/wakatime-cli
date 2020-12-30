@@ -2,11 +2,12 @@ package deps
 
 import (
 	"fmt"
-	"io"
 	"io/ioutil"
+	"os"
 	"strings"
 
 	"github.com/alecthomas/chroma"
+	"github.com/alecthomas/chroma/lexers/r"
 )
 
 // StateRust is a token parsing state.
@@ -28,8 +29,13 @@ type ParserRust struct {
 	Output []string
 }
 
-// Parse parses dependencies from rust file content via ReadCloser using the chroma rust lexer.
-func (p *ParserRust) Parse(reader io.ReadCloser, lexer chroma.Lexer) ([]string, error) {
+// Parse parses dependencies from Rust file content using the chroma Rust lexer.
+func (p *ParserRust) Parse(filepath string) ([]string, error) {
+	reader, err := os.Open(filepath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open file %q: %s", filepath, err)
+	}
+
 	defer reader.Close()
 
 	p.init()
@@ -40,10 +46,7 @@ func (p *ParserRust) Parse(reader io.ReadCloser, lexer chroma.Lexer) ([]string, 
 		return nil, fmt.Errorf("failed to read from reader: %s", err)
 	}
 
-	iter, err := lexer.Tokenise(&chroma.TokeniseOptions{
-		State:    "root",
-		EnsureLF: true,
-	}, string(data))
+	iter, err := r.Rust.Tokenise(nil, string(data))
 	if err != nil {
 		return nil, fmt.Errorf("failed to tokenize file content: %s", err)
 	}

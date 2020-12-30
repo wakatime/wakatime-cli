@@ -2,12 +2,13 @@ package deps
 
 import (
 	"fmt"
-	"io"
 	"io/ioutil"
+	"os"
 	"regexp"
 	"strings"
 
 	"github.com/alecthomas/chroma"
+	"github.com/alecthomas/chroma/lexers/c"
 )
 
 var cExcludeRegex = regexp.MustCompile(`(?i)^(stdio\.h|stdlib\.h|string\.h|time\.h)$`)
@@ -29,8 +30,13 @@ type ParserC struct {
 	Output []string
 }
 
-// Parse parses dependencies from c file content via ReadCloser using the c golang lexer.
-func (p *ParserC) Parse(reader io.ReadCloser, lexer chroma.Lexer) ([]string, error) {
+// Parse parses dependencies from C file content using the C lexer.
+func (p *ParserC) Parse(filepath string) ([]string, error) {
+	reader, err := os.Open(filepath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open file %q: %s", filepath, err)
+	}
+
 	defer reader.Close()
 
 	p.init()
@@ -41,7 +47,7 @@ func (p *ParserC) Parse(reader io.ReadCloser, lexer chroma.Lexer) ([]string, err
 		return nil, fmt.Errorf("failed to read from reader: %s", err)
 	}
 
-	iter, err := lexer.Tokenise(nil, string(data))
+	iter, err := c.C.Tokenise(nil, string(data))
 	if err != nil {
 		return nil, fmt.Errorf("failed to tokenize file content: %s", err)
 	}

@@ -2,12 +2,13 @@ package deps
 
 import (
 	"fmt"
-	"io"
 	"io/ioutil"
+	"os"
 	"regexp"
 	"strings"
 
 	"github.com/alecthomas/chroma"
+	lp "github.com/alecthomas/chroma/lexers/p"
 )
 
 // nolint:noglobal
@@ -33,8 +34,13 @@ type ParserPython struct {
 	Output      []string
 }
 
-// Parse parses dependencies from python file content via ReadCloser using the chroma python lexer.
-func (p *ParserPython) Parse(reader io.ReadCloser, lexer chroma.Lexer) ([]string, error) {
+// Parse parses dependencies from Python file content using the chroma Python lexer.
+func (p *ParserPython) Parse(filepath string) ([]string, error) {
+	reader, err := os.Open(filepath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open file %q: %s", filepath, err)
+	}
+
 	defer reader.Close()
 
 	p.init()
@@ -45,10 +51,7 @@ func (p *ParserPython) Parse(reader io.ReadCloser, lexer chroma.Lexer) ([]string
 		return nil, fmt.Errorf("failed to read from reader: %s", err)
 	}
 
-	iter, err := lexer.Tokenise(&chroma.TokeniseOptions{
-		State:    "root",
-		EnsureLF: true,
-	}, string(data))
+	iter, err := lp.Python.Tokenise(nil, string(data))
 	if err != nil {
 		return nil, fmt.Errorf("failed to tokenize file content: %s", err)
 	}
