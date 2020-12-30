@@ -101,6 +101,8 @@ func Detect(filepath string, language heartbeat.Language) ([]string, error) {
 		parser = &ParserPython{}
 	case heartbeat.LanguageRust:
 		parser = &ParserRust{}
+	case heartbeat.LanguageScala:
+		parser = &ParserScala{}
 	case heartbeat.LanguageSwift:
 		parser = &ParserSwift{}
 	default:
