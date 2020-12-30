@@ -27,10 +27,6 @@ type Result struct {
 
 // Config contains project detection configurations.
 type Config struct {
-	// Override sets an optional project name.
-	Override string
-	// Alternate sets an alternate project name. Auto-discovered project takes priority.
-	Alternate string
 	// Patterns contains the overridden project name per path.
 	MapPatterns []MapPattern
 	// SubmodulePatterns contains the paths to validate for submodules.
@@ -56,7 +52,7 @@ func WithDetection(c Config) heartbeat.HandleOption {
 		return func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 			for n, h := range hh {
 				if h.EntityType != heartbeat.FileType {
-					project := firstNonEmptyString(c.Override, c.Alternate)
+					project := firstNonEmptyString(h.ProjectOverride, h.ProjectAlternate)
 					hh[n].Project = &project
 
 					continue
@@ -67,7 +63,7 @@ func WithDetection(c Config) heartbeat.HandleOption {
 				result.Project, result.Branch = Detect(h.Entity, c.MapPatterns)
 
 				if result.Project == "" {
-					result.Project = c.Override
+					result.Project = h.ProjectOverride
 				}
 
 				if result.Project == "" || result.Branch == "" {
@@ -77,7 +73,7 @@ func WithDetection(c Config) heartbeat.HandleOption {
 					result.Branch = firstNonEmptyString(result.Branch, revControlResult.Branch)
 
 					if result.Project == "" {
-						result.Project = setProjectName(c.Alternate, c.ShouldObfuscateProject, revControlResult.Folder)
+						result.Project = setProjectName(h.ProjectAlternate, c.ShouldObfuscateProject, revControlResult.Folder)
 					}
 				}
 

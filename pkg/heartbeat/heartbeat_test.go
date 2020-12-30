@@ -27,6 +27,8 @@ func TestNew(t *testing.T) {
 		heartbeat.LanguagePtr(heartbeat.LanguageGo),
 		heartbeat.Int(42),
 		"/path/to/file",
+		"billing",
+		"pci",
 		1592868313.541149,
 		"wakatime/13.0.7",
 	)
@@ -34,16 +36,18 @@ func TestNew(t *testing.T) {
 	assert.True(t, strings.HasSuffix(h.Entity, "testdata/main.go"))
 
 	assert.Equal(t, heartbeat.Heartbeat{
-		Category:       heartbeat.CodingCategory,
-		CursorPosition: heartbeat.Int(12),
-		EntityType:     heartbeat.FileType,
-		IsWrite:        heartbeat.Bool(true),
-		Language:       heartbeat.LanguagePtr(heartbeat.LanguageGo),
-		LineNumber:     heartbeat.Int(42),
-		LocalFile:      "/path/to/file",
-		Time:           1592868313.541149,
-		UserAgent:      "wakatime/13.0.7",
-		Entity:         h.Entity,
+		Category:         heartbeat.CodingCategory,
+		CursorPosition:   heartbeat.Int(12),
+		EntityType:       heartbeat.FileType,
+		IsWrite:          heartbeat.Bool(true),
+		Language:         heartbeat.LanguagePtr(heartbeat.LanguageGo),
+		LineNumber:       heartbeat.Int(42),
+		LocalFile:        "/path/to/file",
+		ProjectAlternate: "billing",
+		ProjectOverride:  "pci",
+		Time:             1592868313.541149,
+		UserAgent:        "wakatime/13.0.7",
+		Entity:           h.Entity,
 	}, h)
 }
 
@@ -61,6 +65,8 @@ func TestNew_Windows(t *testing.T) {
 		heartbeat.LanguagePtr(heartbeat.LanguageGo),
 		heartbeat.Int(42),
 		"/path/to/file",
+		"billing",
+		"pci",
 		1592868313.541149,
 		"wakatime/13.0.7",
 	)
@@ -68,16 +74,18 @@ func TestNew_Windows(t *testing.T) {
 	assert.True(t, strings.HasSuffix(h.Entity, "testdata/main.go"))
 
 	assert.Equal(t, heartbeat.Heartbeat{
-		Category:       heartbeat.CodingCategory,
-		CursorPosition: heartbeat.Int(12),
-		EntityType:     heartbeat.FileType,
-		IsWrite:        heartbeat.Bool(true),
-		Language:       heartbeat.LanguagePtr(heartbeat.LanguageGo),
-		LineNumber:     heartbeat.Int(42),
-		LocalFile:      "/path/to/file",
-		Time:           1592868313.541149,
-		UserAgent:      "wakatime/13.0.7",
-		Entity:         h.Entity,
+		Category:         heartbeat.CodingCategory,
+		CursorPosition:   heartbeat.Int(12),
+		EntityType:       heartbeat.FileType,
+		IsWrite:          heartbeat.Bool(true),
+		Language:         heartbeat.LanguagePtr(heartbeat.LanguageGo),
+		LineNumber:       heartbeat.Int(42),
+		LocalFile:        "/path/to/file",
+		ProjectAlternate: "billing",
+		ProjectOverride:  "pci",
+		Time:             1592868313.541149,
+		UserAgent:        "wakatime/13.0.7",
+		Entity:           h.Entity,
 	}, h)
 }
 
