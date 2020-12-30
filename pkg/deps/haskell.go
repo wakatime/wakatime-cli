@@ -2,11 +2,12 @@ package deps
 
 import (
 	"fmt"
-	"io"
 	"io/ioutil"
+	"os"
 	"strings"
 
 	"github.com/alecthomas/chroma"
+	"github.com/alecthomas/chroma/lexers/h"
 )
 
 // StateHaskell is a token parsing state.
@@ -26,8 +27,13 @@ type ParserHaskell struct {
 	Output []string
 }
 
-// Parse parses dependencies from Haskell file content via ReadCloser using the chroma Haskell lexer.
-func (p *ParserHaskell) Parse(reader io.ReadCloser, lexer chroma.Lexer) ([]string, error) {
+// Parse parses dependencies from Haskell file content using the chroma Haskell lexer.
+func (p *ParserHaskell) Parse(filepath string) ([]string, error) {
+	reader, err := os.Open(filepath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open file %q: %s", filepath, err)
+	}
+
 	defer reader.Close()
 
 	p.init()
@@ -38,7 +44,7 @@ func (p *ParserHaskell) Parse(reader io.ReadCloser, lexer chroma.Lexer) ([]strin
 		return nil, fmt.Errorf("failed to read from reader: %s", err)
 	}
 
-	iter, err := lexer.Tokenise(nil, string(data))
+	iter, err := h.Haskell.Tokenise(nil, string(data))
 	if err != nil {
 		return nil, fmt.Errorf("failed to tokenize file content: %s", err)
 	}

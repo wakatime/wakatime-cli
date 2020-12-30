@@ -2,11 +2,12 @@ package deps
 
 import (
 	"fmt"
-	"io"
 	"io/ioutil"
+	"os"
 	"strings"
 
 	"github.com/alecthomas/chroma"
+	"github.com/alecthomas/chroma/lexers/e"
 )
 
 // StateElm is a token parsing state.
@@ -26,8 +27,13 @@ type ParserElm struct {
 	Output []string
 }
 
-// Parse parses dependencies from elm file content via ReadCloser using the chroma elm lexer.
-func (p *ParserElm) Parse(reader io.ReadCloser, lexer chroma.Lexer) ([]string, error) {
+// Parse parses dependencies from Elm file content using the chroma Elm lexer.
+func (p *ParserElm) Parse(filepath string) ([]string, error) {
+	reader, err := os.Open(filepath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open file %q: %s", filepath, err)
+	}
+
 	defer reader.Close()
 
 	p.init()
@@ -38,10 +44,7 @@ func (p *ParserElm) Parse(reader io.ReadCloser, lexer chroma.Lexer) ([]string, e
 		return nil, fmt.Errorf("failed to read from reader: %s", err)
 	}
 
-	iter, err := lexer.Tokenise(&chroma.TokeniseOptions{
-		State:    "root",
-		EnsureLF: true,
-	}, string(data))
+	iter, err := e.Elm.Tokenise(nil, string(data))
 	if err != nil {
 		return nil, fmt.Errorf("failed to tokenize file content: %s", err)
 	}

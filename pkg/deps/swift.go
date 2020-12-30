@@ -2,12 +2,13 @@ package deps
 
 import (
 	"fmt"
-	"io"
 	"io/ioutil"
+	"os"
 	"regexp"
 	"strings"
 
 	"github.com/alecthomas/chroma"
+	"github.com/alecthomas/chroma/lexers/s"
 )
 
 // nolint:noglobals
@@ -30,8 +31,13 @@ type ParserSwift struct {
 	Output []string
 }
 
-// Parse parses dependencies from swift file content via ReadCloser using the chroma swift lexer.
-func (p *ParserSwift) Parse(reader io.ReadCloser, lexer chroma.Lexer) ([]string, error) {
+// Parse parses dependencies from Swift file content using the chroma Swift lexer.
+func (p *ParserSwift) Parse(filepath string) ([]string, error) {
+	reader, err := os.Open(filepath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open file %q: %s", filepath, err)
+	}
+
 	defer reader.Close()
 
 	p.init()
@@ -42,7 +48,7 @@ func (p *ParserSwift) Parse(reader io.ReadCloser, lexer chroma.Lexer) ([]string,
 		return nil, fmt.Errorf("failed to read from reader: %s", err)
 	}
 
-	iter, err := lexer.Tokenise(nil, string(data))
+	iter, err := s.Swift.Tokenise(nil, string(data))
 	if err != nil {
 		return nil, fmt.Errorf("failed to tokenize file content: %s", err)
 	}

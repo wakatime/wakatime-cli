@@ -2,12 +2,13 @@ package deps
 
 import (
 	"fmt"
-	"io"
 	"io/ioutil"
+	"os"
 	"regexp"
 	"strings"
 
 	"github.com/alecthomas/chroma"
+	"github.com/alecthomas/chroma/lexers/j"
 )
 
 // nolint:noglobal
@@ -30,8 +31,13 @@ type ParserJavaScript struct {
 	Output []string
 }
 
-// Parse parses dependencies from JavaScript file content via ReadCloser using the chroma JavaScript lexer.
-func (p *ParserJavaScript) Parse(reader io.ReadCloser, lexer chroma.Lexer) ([]string, error) {
+// Parse parses dependencies from JavaScript file content using the chroma JavaScript lexer.
+func (p *ParserJavaScript) Parse(filepath string) ([]string, error) {
+	reader, err := os.Open(filepath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open file %q: %s", filepath, err)
+	}
+
 	defer reader.Close()
 
 	p.init()
@@ -42,7 +48,7 @@ func (p *ParserJavaScript) Parse(reader io.ReadCloser, lexer chroma.Lexer) ([]st
 		return nil, fmt.Errorf("failed to read from reader: %s", err)
 	}
 
-	iter, err := lexer.Tokenise(nil, string(data))
+	iter, err := j.Javascript.Tokenise(nil, string(data))
 	if err != nil {
 		return nil, fmt.Errorf("failed to tokenize file content: %s", err)
 	}

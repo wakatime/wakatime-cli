@@ -2,12 +2,13 @@ package deps
 
 import (
 	"fmt"
-	"io"
 	"io/ioutil"
+	"os"
 	"regexp"
 	"strings"
 
 	"github.com/alecthomas/chroma"
+	"github.com/alecthomas/chroma/lexers/h"
 )
 
 // nolint:noglobal
@@ -30,8 +31,13 @@ type ParserHaxe struct {
 	Output []string
 }
 
-// Parse parses dependencies from Haxe file content via ReadCloser using the chroma Haxe lexer.
-func (p *ParserHaxe) Parse(reader io.ReadCloser, lexer chroma.Lexer) ([]string, error) {
+// Parse parses dependencies from Haxe file content using the chroma Haxe lexer.
+func (p *ParserHaxe) Parse(filepath string) ([]string, error) {
+	reader, err := os.Open(filepath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open file %q: %s", filepath, err)
+	}
+
 	defer reader.Close()
 
 	p.init()
@@ -42,7 +48,7 @@ func (p *ParserHaxe) Parse(reader io.ReadCloser, lexer chroma.Lexer) ([]string, 
 		return nil, fmt.Errorf("failed to read from reader: %s", err)
 	}
 
-	iter, err := lexer.Tokenise(nil, string(data))
+	iter, err := h.Haxe.Tokenise(nil, string(data))
 	if err != nil {
 		return nil, fmt.Errorf("failed to tokenize file content: %s", err)
 	}

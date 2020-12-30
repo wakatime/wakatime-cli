@@ -2,12 +2,13 @@ package deps
 
 import (
 	"fmt"
-	"io"
 	"io/ioutil"
+	"os"
 	"regexp"
 	"strings"
 
 	"github.com/alecthomas/chroma"
+	"github.com/alecthomas/chroma/lexers/j"
 )
 
 var javaExcludeRegex = regexp.MustCompile(`(?i)^(java\..*|javax\..*)`)
@@ -32,8 +33,13 @@ type ParserJava struct {
 	Output []string
 }
 
-// Parse parses dependencies from java file content via ReadCloser using the chroma java lexer.
-func (p *ParserJava) Parse(reader io.ReadCloser, lexer chroma.Lexer) ([]string, error) {
+// Parse parses dependencies from Java file content using the chroma Java lexer.
+func (p *ParserJava) Parse(filepath string) ([]string, error) {
+	reader, err := os.Open(filepath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open file %q: %s", filepath, err)
+	}
+
 	defer reader.Close()
 
 	p.init()
@@ -44,7 +50,7 @@ func (p *ParserJava) Parse(reader io.ReadCloser, lexer chroma.Lexer) ([]string, 
 		return nil, fmt.Errorf("failed to read from reader: %s", err)
 	}
 
-	iter, err := lexer.Tokenise(nil, string(data))
+	iter, err := j.Java.Tokenise(nil, string(data))
 	if err != nil {
 		return nil, fmt.Errorf("failed to tokenize file content: %s", err)
 	}

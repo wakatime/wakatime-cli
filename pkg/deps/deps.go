@@ -2,14 +2,10 @@ package deps
 
 import (
 	"fmt"
-	"io"
-	"os"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/regex"
 
-	"github.com/alecthomas/chroma"
-	"github.com/alecthomas/chroma/lexers"
 	jww "github.com/spf13/jwalterweatherman"
 )
 
@@ -26,7 +22,7 @@ type Config struct {
 
 // DependencyParser is a dependency parser for a programming language.
 type DependencyParser interface {
-	Parse(reader io.ReadCloser, lexer chroma.Lexer) ([]string, error)
+	Parse(filepath string) ([]string, error)
 }
 
 // WithDetection initializes and returns a heartbeat handle option, which
@@ -71,11 +67,6 @@ func WithDetection(c Config) heartbeat.HandleOption {
 
 // Detect parses the dependencies from a heartbeat file of a specific language.
 func Detect(filepath string, language heartbeat.Language) ([]string, error) {
-	lexer := lexers.Get(language.StringChroma())
-	if lexer == nil {
-		return nil, fmt.Errorf("unable to detect lexer for language %q", language)
-	}
-
 	var parser DependencyParser
 
 	switch language {
@@ -114,12 +105,7 @@ func Detect(filepath string, language heartbeat.Language) ([]string, error) {
 		return nil, nil
 	}
 
-	f, err := os.Open(filepath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open file %q: %s", filepath, err)
-	}
-
-	deps, err := parser.Parse(f, lexer)
+	deps, err := parser.Parse(filepath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse dependencies: %s", err)
 	}
