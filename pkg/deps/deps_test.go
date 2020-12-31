@@ -237,6 +237,11 @@ func TestDetect(t *testing.T) {
 			Language:     heartbeat.LanguageSwift,
 			Dependencies: []string{"Swift"},
 		},
+		"vb.net": {
+			Filepath:     "testdata/vbnet_minimal.vb",
+			Language:     heartbeat.LanguageVBNet,
+			Dependencies: []string{"WakaTime"},
+		},
 	}
 
 	for name, test := range tests {
