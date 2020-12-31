@@ -84,12 +84,12 @@ func (p *ParserJavaScript) init() {
 }
 
 func (p *ParserJavaScript) processToken(token chroma.Token) {
-	switch {
-	case token.Type == chroma.KeywordReserved:
+	switch token.Type {
+	case chroma.KeywordReserved:
 		p.processKeywordReserved(token.Value)
-	case token.Type == chroma.LiteralStringSingle:
+	case chroma.LiteralStringSingle:
 		p.processLiteralStringSingle(token.Value)
-	case token.Type == chroma.Punctuation:
+	case chroma.Punctuation:
 		p.processPunctuation(token.Value)
 	}
 }
@@ -104,12 +104,11 @@ func (p *ParserJavaScript) processKeywordReserved(value string) {
 }
 
 func (p *ParserJavaScript) processLiteralStringSingle(value string) {
-	switch p.State {
-	case StateJavaScriptImport:
+	if p.State == StateJavaScriptImport {
 		p.append(value)
-	default:
-		p.State = StateJavaScriptUnknown
 	}
+
+	p.State = StateJavaScriptUnknown
 }
 
 func (p *ParserJavaScript) processPunctuation(value string) {
