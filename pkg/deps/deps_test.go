@@ -237,6 +237,11 @@ func TestDetect(t *testing.T) {
 			Language:     heartbeat.LanguageSwift,
 			Dependencies: []string{"Swift"},
 		},
+		"typescript": {
+			Filepath:     "testdata/typescript_minimal.ts",
+			Language:     heartbeat.LanguageTypeScript,
+			Dependencies: []string{"bravo"},
+		},
 		"vb.net": {
 			Filepath:     "testdata/vbnet_minimal.vb",
 			Language:     heartbeat.LanguageVBNet,
