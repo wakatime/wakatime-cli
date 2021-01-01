@@ -1,0 +1,12 @@
+{
+    "name": "wakatime",
+    "version": "1.0.0",
+    "dependencies": {
+        "wakatime": "^1.0.0",
+        "another_dep": "~2.2.0"
+    },
+    "devDependencies" : {
+        "test_framework": "^3.1.0",
+        "another_dev_dep": "1.0.0 - 1.2.0"
+    }
+}
