@@ -202,6 +202,11 @@ func TestDetect(t *testing.T) {
 			Language:     heartbeat.LanguageJavaScript,
 			Dependencies: []string{"bravo"},
 		},
+		"json": {
+			Filepath:     "testdata/bower_minimal.json",
+			Language:     heartbeat.LanguageJSON,
+			Dependencies: []string{"bootstrap"},
+		},
 		"kotlin": {
 			Filepath:     "testdata/kotlin_minimal.kt",
 			Language:     heartbeat.LanguageKotlin,
