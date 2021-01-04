@@ -247,6 +247,11 @@ func TestDetect(t *testing.T) {
 			Language:     heartbeat.LanguageTypeScript,
 			Dependencies: []string{"bravo"},
 		},
+		"unknown": {
+			Filepath:     "testdata/Gruntfile",
+			Language:     heartbeat.LanguageUnknown,
+			Dependencies: []string{"grunt"},
+		},
 		"vb.net": {
 			Filepath:     "testdata/vbnet_minimal.vb",
 			Language:     heartbeat.LanguageVBNet,

@@ -105,8 +105,9 @@ func Detect(filepath string, language heartbeat.Language) ([]string, error) {
 	case heartbeat.LanguageVBNet:
 		parser = &ParserVbNet{}
 	default:
-		jww.DEBUG.Printf("parsing dependencies not supported for language %q", language)
-		return nil, nil
+		jww.DEBUG.Printf("No parser has been found for language %q. Using Unknown parser to detect dependencies.", language)
+
+		parser = &ParserUnknown{}
 	}
 
 	deps, err := parser.Parse(filepath)
