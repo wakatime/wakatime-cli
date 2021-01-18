@@ -454,7 +454,7 @@ const (
 	languageVCLStr               = "VCL"
 	languageVelocityStr          = "Velocity"
 	languageVerilogStr           = "Verilog"
-	languageVHDLStr              = "VHDL"
+	languageVHDLStr              = "vhdl"
 	languageVimLStr              = "VimL"
 	languageVueJSStr             = "Vue.js"
 	languageXAMLStr              = "XAML"
@@ -475,6 +475,7 @@ const (
 	languageMakefileChromaStr       = "Base Makefile"
 	languageMarkdownChromaStr       = "markdown"
 	languageTextChromaStr           = "plaintext"
+	languageVHDLChromaStr           = "VHDL"
 	languageVueJSChromaStr          = "vue"
 )
 
@@ -811,6 +812,8 @@ func ParseLanguageFromChroma(lexerName string) (Language, bool) {
 		return LanguageMarkdown, true
 	case normalizeString(languageTextChromaStr):
 		return LanguageText, true
+	case normalizeString(languageVHDLChromaStr):
+		return LanguageVHDL, true
 	case normalizeString(languageVueJSChromaStr):
 		return LanguageVueJS, true
 	default:
@@ -1174,6 +1177,8 @@ func (l Language) StringChroma() string {
 		return languageMarkdownChromaStr
 	case LanguageText:
 		return languageTextChromaStr
+	case LanguageVHDL:
+		return languageVHDLChromaStr
 	case LanguageVueJS:
 		return languageVueJSChromaStr
 	default:
