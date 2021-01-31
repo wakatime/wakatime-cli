@@ -23,6 +23,8 @@ const (
 	LanguageAda
 	// LanguageADL represents the ADL programming language.
 	LanguageADL
+	// LanguageAdvPL represents the AdvPL programming language.
+	LanguageAdvPL
 	// LanguageAgda represents the Agda programming language.
 	LanguageAgda
 	// LanguageAheui represents the Aheui programming language.
@@ -41,10 +43,14 @@ const (
 	LanguageANTLR
 	// LanguageApacheConfig represents the Apache Config programming language.
 	LanguageApacheConfig
+	// LanguageApex represents the Apex programming language.
+	LanguageApex
 	// LanguageAPL represents the APL programming language.
 	LanguageAPL
 	// LanguageAppleScript represents the AppleScript programming language.
 	LanguageAppleScript
+	// LanguageArc represents the Arc programming language.
+	LanguageArc
 	// LanguageArduino represents the Arduino programming language.
 	LanguageArduino
 	// LanguageArrow represents the Arrow programming language.
@@ -97,6 +103,8 @@ const (
 	LanguageBefunge
 	// LanguageBibTeX represents the BibTeX programming language.
 	LanguageBibTeX
+	// LanguageBladeTemplate represents the BladeTemplate programming language.
+	LanguageBladeTemplate
 	// LanguageBlitzBasic represents the BlitzBasic programming language.
 	LanguageBlitzBasic
 	// LanguageBlitzMax represents the BlitzMax programming language.
@@ -113,6 +121,8 @@ const (
 	LanguageBrainfuck
 	// LanguageBrightScript represents the BrightScript programming language.
 	LanguageBrightScript
+	// LanguageBro represents the Bro programming language.
+	LanguageBro
 	// LanguageBST represents the BST programming language.
 	LanguageBST
 	// LanguageBUGS represents the BUGS programming language.
@@ -205,6 +215,8 @@ const (
 	LanguageCrontab
 	// LanguageCrystal represents the Crystal programming language.
 	LanguageCrystal
+	// LanguageCSON represents the CSON programming language.
+	LanguageCSON
 	// LanguageCsoundDocument represents the CsoundDocument programming language.
 	LanguageCsoundDocument
 	// LanguageCsoundOrchestra represents the CsoundOrchestra programming language.
@@ -213,6 +225,8 @@ const (
 	LanguageCsoundScore
 	// LanguageCSS represents the CSS programming language.
 	LanguageCSS
+	// LanguageCSV represents the CSV programming language.
+	LanguageCSV
 	// LanguageCUDA represents the CUDA programming language.
 	LanguageCUDA
 	// LanguageCVS represents the CVS programming language.
@@ -231,6 +245,8 @@ const (
 	LanguageDASM16
 	// LanguageDCL represents the DCL programming language.
 	LanguageDCL
+	// LanguageDCPU16Asm represents the DCPU16Asm programming language.
+	LanguageDCPU16Asm
 	// LanguageDebianControlFile represents the DebianControlFile programming language.
 	LanguageDebianControlFile
 	// LanguageDelphi represents the Delphi programming language.
@@ -261,6 +277,8 @@ const (
 	LanguageDylanLID
 	// LanguageDylanSession represents the DylanSession programming language.
 	LanguageDylanSession
+	// LanguageDynASM represents the DynASM programming language.
+	LanguageDynASM
 	// LanguageEMail represents the EMail programming language.
 	LanguageEMail
 	// LanguageEarlGrey represents the EarlGrey programming language.
@@ -275,6 +293,8 @@ const (
 	LanguageECL
 	// LanguageEiffel represents the Eiffel programming language.
 	LanguageEiffel
+	// LanguageEJS represents the EJS programming language.
+	LanguageEJS
 	// LanguageElixir represents the Elixir programming language.
 	LanguageElixir
 	// LanguageElixirIexSession represents the ElixirIexSession programming language.
@@ -519,6 +539,7 @@ const (
 	languageActionScript3Str       = "ActionScript 3"
 	languageAdaStr                 = "Ada"
 	languageADLStr                 = "ADL"
+	languageAdvPLStr               = "AdvPL"
 	languageAgdaStr                = "Agda"
 	languageAheuiStr               = "Aheui"
 	languageAlloyStr               = "Alloy"
@@ -528,8 +549,10 @@ const (
 	languageAnsibleStr             = "Ansible"
 	languageANTLRStr               = "ANTLR"
 	languageApacheConfigStr        = "Apache Config"
+	languageApexStr                = "Apex"
 	languageAPLStr                 = "APL"
 	languageAppleScriptStr         = "AppleScript"
+	languageArcStr                 = "Arc"
 	languageArduinoStr             = "Arduino"
 	languageArrowStr               = "Arrow"
 	languageASPClassicStr          = "ASP Classic"
@@ -556,6 +579,7 @@ const (
 	languageBCStr                  = "BC"
 	languageBefungeStr             = "Befunge"
 	languageBibTeXStr              = "BibTeX"
+	languageBladeTemplateStr       = "Blade Template"
 	languageBlitzBasicStr          = "BlitzBasic"
 	languageBlitzMaxStr            = "BlitzMax"
 	languageBNFStr                 = "BNF"
@@ -564,6 +588,7 @@ const (
 	languageBoogieStr              = "Boogie"
 	languageBrainfuckStr           = "Brainfuck"
 	languageBrightScriptStr        = "BrightScript"
+	languageBroStr                 = "Bro"
 	languageBSTStr                 = "BST"
 	languageBUGSStr                = "BUGS"
 	languageCStr                   = "C"
@@ -610,10 +635,12 @@ const (
 	languageCrystalStr             = "Crystal"
 	languageCSharpStr              = "C#"
 	languageCSHTMLStr              = "CSHTML"
+	languageCSONStr                = "CSON"
 	languageCsoundDocumentStr      = "Csound Document"
 	languageCsoundOrchestraStr     = "Csound Orchestra"
 	languageCsoundScoreStr         = "Csound Score"
 	languageCSSStr                 = "CSS"
+	languageCSVStr                 = "CSV"
 	languageCUDAStr                = "CUDA"
 	languageCVSStr                 = "CVS"
 	languageCypherStr              = "Cypher"
@@ -623,6 +650,7 @@ const (
 	languageDartStr                = "Dart"
 	languageDASM16Str              = "DASM16"
 	languageDCLStr                 = "DCL"
+	languageDCPU16AsmStr           = "DCPU-16 ASM"
 	languageDebianControlFileStr   = "Debian Control file"
 	languageDelphiStr              = "Delphi"
 	languageDevicetreeStr          = "Devicetree"
@@ -638,12 +666,14 @@ const (
 	languageDylanStr               = "Dylan"
 	languageDylanLIDStr            = "DylanLID"
 	languageDylanSessionStr        = "Dylan session"
+	languageDynASMStr              = "DynASM"
 	languageEarlGreyStr            = "Earl Grey"
 	languageEasytrieveStr          = "Easytrieve"
 	languageEBNFStr                = "EBNF"
 	languageECStr                  = "eC"
 	languageECLStr                 = "ECL"
 	languageEiffelStr              = "Eiffel"
+	languageEJSStr                 = "EJS"
 	languageElixirIexSessionStr    = "Elixir iex session"
 	languageElixirStr              = "Elixir"
 	languageElmStr                 = "Elm"
@@ -793,6 +823,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageAda, true
 	case normalizeString(languageADLStr):
 		return LanguageADL, true
+	case normalizeString(languageAdvPLStr):
+		return LanguageAdvPL, true
 	case normalizeString(languageActionScriptStr):
 		return LanguageActionScript, true
 	case normalizeString(languageActionScript3Str):
@@ -815,10 +847,14 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageANTLR, true
 	case normalizeString(languageApacheConfigStr):
 		return LanguageApacheConfig, true
+	case normalizeString(languageApexStr):
+		return LanguageApex, true
 	case normalizeString(languageAPLStr):
 		return LanguageAPL, true
 	case normalizeString(languageAppleScriptStr):
 		return LanguageAppleScript, true
+	case normalizeString(languageArcStr):
+		return LanguageArc, true
 	case normalizeString(languageArduinoStr):
 		return LanguageArduino, true
 	case normalizeString(languageArrowStr):
@@ -871,6 +907,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageBefunge, true
 	case normalizeString(languageBibTeXStr):
 		return LanguageBibTeX, true
+	case normalizeString(languageBladeTemplateStr):
+		return LanguageBladeTemplate, true
 	case normalizeString(languageBlitzBasicStr):
 		return LanguageBlitzBasic, true
 	case normalizeString(languageBlitzMaxStr):
@@ -887,6 +925,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageBrainfuck, true
 	case normalizeString(languageBrightScriptStr):
 		return LanguageBrightScript, true
+	case normalizeString(languageBroStr):
+		return LanguageBro, true
 	case normalizeString(languageBSTStr):
 		return LanguageBST, true
 	case normalizeString(languageBUGSStr):
@@ -979,6 +1019,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageCSharp, true
 	case normalizeString(languageCSHTMLStr):
 		return LanguageCSHTML, true
+	case normalizeString(languageCSONStr):
+		return LanguageCSON, true
 	case normalizeString(languageCsoundDocumentStr):
 		return LanguageCsoundDocument, true
 	case normalizeString(languageCsoundOrchestraStr):
@@ -987,6 +1029,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageCsoundScore, true
 	case normalizeString(languageCSSStr):
 		return LanguageCSS, true
+	case normalizeString(languageCSVStr):
+		return LanguageCSV, true
 	case normalizeString(languageCUDAStr):
 		return LanguageCUDA, true
 	case normalizeString(languageCVSStr):
@@ -1005,6 +1049,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageDASM16, true
 	case normalizeString(languageDCLStr):
 		return LanguageDCL, true
+	case normalizeString(languageDCPU16AsmStr):
+		return LanguageDCPU16Asm, true
 	case normalizeString(languageDebianControlFileStr):
 		return LanguageDebianControlFile, true
 	case normalizeString(languageDelphiStr):
@@ -1035,6 +1081,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageDylanLID, true
 	case normalizeString(languageDylanSessionStr):
 		return LanguageDylanSession, true
+	case normalizeString(languageDynASMStr):
+		return LanguageDynASM, true
 	case normalizeString(languageEMailStr):
 		return LanguageEMail, true
 	case normalizeString(languageEarlGreyStr):
@@ -1049,6 +1097,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageECL, true
 	case normalizeString(languageEiffelStr):
 		return LanguageEiffel, true
+	case normalizeString(languageEJSStr):
+		return LanguageEJS, true
 	case normalizeString(languageElixirStr):
 		return LanguageElixir, true
 	case normalizeString(languageElixirIexSessionStr):
@@ -1361,6 +1411,8 @@ func (l Language) String() string {
 		return languageAdaStr
 	case LanguageADL:
 		return languageADLStr
+	case LanguageAdvPL:
+		return languageAdvPLStr
 	case LanguageActionScript:
 		return languageActionScriptStr
 	case LanguageActionScript3:
@@ -1383,10 +1435,14 @@ func (l Language) String() string {
 		return languageANTLRStr
 	case LanguageApacheConfig:
 		return languageApacheConfigStr
+	case LanguageApex:
+		return languageApexStr
 	case LanguageAPL:
 		return languageAPLStr
 	case LanguageAppleScript:
 		return languageAppleScriptStr
+	case LanguageArc:
+		return languageArcStr
 	case LanguageArduino:
 		return languageArduinoStr
 	case LanguageArrow:
@@ -1439,6 +1495,8 @@ func (l Language) String() string {
 		return languageBefungeStr
 	case LanguageBibTeX:
 		return languageBibTeXStr
+	case LanguageBladeTemplate:
+		return languageBladeTemplateStr
 	case LanguageBlitzBasic:
 		return languageBlitzBasicStr
 	case LanguageBlitzMax:
@@ -1455,6 +1513,8 @@ func (l Language) String() string {
 		return languageBrainfuckStr
 	case LanguageBrightScript:
 		return languageBrightScriptStr
+	case LanguageBro:
+		return languageBroStr
 	case LanguageBST:
 		return languageBSTStr
 	case LanguageBUGS:
@@ -1547,6 +1607,8 @@ func (l Language) String() string {
 		return languageCSharpStr
 	case LanguageCSHTML:
 		return languageCSHTMLStr
+	case LanguageCSON:
+		return languageCSONStr
 	case LanguageCsoundDocument:
 		return languageCsoundDocumentStr
 	case LanguageCsoundOrchestra:
@@ -1555,6 +1617,8 @@ func (l Language) String() string {
 		return languageCsoundScoreStr
 	case LanguageCSS:
 		return languageCSSStr
+	case LanguageCSV:
+		return languageCSVStr
 	case LanguageCUDA:
 		return languageCUDAStr
 	case LanguageCVS:
@@ -1573,6 +1637,8 @@ func (l Language) String() string {
 		return languageDASM16Str
 	case LanguageDCL:
 		return languageDCLStr
+	case LanguageDCPU16Asm:
+		return languageDCPU16AsmStr
 	case LanguageDebianControlFile:
 		return languageDebianControlFileStr
 	case LanguageDelphi:
@@ -1603,6 +1669,8 @@ func (l Language) String() string {
 		return languageDylanLIDStr
 	case LanguageDylanSession:
 		return languageDylanSessionStr
+	case LanguageDynASM:
+		return languageDynASMStr
 	case LanguageEarlGrey:
 		return languageEarlGreyStr
 	case LanguageEasytrieve:
@@ -1615,6 +1683,8 @@ func (l Language) String() string {
 		return languageECLStr
 	case LanguageEiffel:
 		return languageEiffelStr
+	case LanguageEJS:
+		return languageEJSStr
 	case LanguageElixir:
 		return languageElixirStr
 	case LanguageElixirIexSession:
