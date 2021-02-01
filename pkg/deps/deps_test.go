@@ -174,11 +174,6 @@ func TestDetect(t *testing.T) {
 			Language:     heartbeat.LanguageElm,
 			Dependencies: []string{"Html"},
 		},
-		"java": {
-			Filepath:     "testdata/java_minimal.java",
-			Language:     heartbeat.LanguageJava,
-			Dependencies: []string{"foobar"},
-		},
 		"golang": {
 			Filepath: "testdata/golang_minimal.go",
 			Language: heartbeat.LanguageGo,
@@ -196,6 +191,16 @@ func TestDetect(t *testing.T) {
 			Filepath:     "testdata/haxe_minimal.hx",
 			Language:     heartbeat.LanguageHaxe,
 			Dependencies: []string{"alpha"},
+		},
+		"html": {
+			Filepath:     "testdata/html_minimal.html",
+			Language:     heartbeat.LanguageHTML,
+			Dependencies: []string{`"https://cdn.wakatime.com/app.min.js"`},
+		},
+		"java": {
+			Filepath:     "testdata/java_minimal.java",
+			Language:     heartbeat.LanguageJava,
+			Dependencies: []string{"foobar"},
 		},
 		"javascript": {
 			Filepath:     "testdata/es6_minimal.js",
