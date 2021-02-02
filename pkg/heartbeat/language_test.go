@@ -283,14 +283,41 @@ func languageTests() map[string]heartbeat.Language {
 		"Makefile":                    heartbeat.LanguageMakefile,
 		"Mako":                        heartbeat.LanguageMako,
 		"Man":                         heartbeat.LanguageMan,
+		"MAQL":                        heartbeat.LanguageMAQL,
 		"Markdown":                    heartbeat.LanguageMarkdown,
 		"Marko":                       heartbeat.LanguageMarko,
+		"Mask":                        heartbeat.LanguageMask,
+		"Mason":                       heartbeat.LanguageMason,
+		"Mathematica":                 heartbeat.LanguageMathematica,
 		"Matlab":                      heartbeat.LanguageMatlab,
+		"Matlab session":              heartbeat.LanguageMatlabSession,
 		"Metafont":                    heartbeat.LanguageMetafont,
 		"Metapost":                    heartbeat.LanguageMetapost,
+		"MIME":                        heartbeat.LanguageMIME,
+		"MiniD":                       heartbeat.LanguageMiniD,
+		"MiniScript":                  heartbeat.LanguageMiniScript,
+		"MiniZinc":                    heartbeat.LanguageMiniZinc,
+		"MLIR":                        heartbeat.LanguageMLIR,
 		"Modelica":                    heartbeat.LanguageModelica,
 		"Modula-2":                    heartbeat.LanguageModula2,
+		"MoinMoin/Trac Wiki markup":   heartbeat.LanguageMoinWiki,
+		"Monkey":                      heartbeat.LanguageMonkey,
+		"MonkeyC":                     heartbeat.LanguageMonkeyC,
+		"Monte":                       heartbeat.LanguageMonte,
+		"MOOCode":                     heartbeat.LanguageMOOCode,
+		"MoonScript":                  heartbeat.LanguageMoonScript,
+		"MorrowindScript":             heartbeat.LanguageMorrowindScript,
+		"Mosel":                       heartbeat.LanguageMosel,
+		"mozhashpreproc":              heartbeat.LanguageMozPreprocHash,
+		"mozpercentpreproc":           heartbeat.LanguageMozPreprocPercent,
+		"MQL":                         heartbeat.LanguageMQL,
+		"Mscgen":                      heartbeat.LanguageMscgen,
+		"MSDOS Session":               heartbeat.LanguageMSDOSSession,
+		"MuPAD":                       heartbeat.LanguageMuPAD,
 		"Mustache":                    heartbeat.LanguageMustache,
+		"MXML":                        heartbeat.LanguageMXML,
+		"Myghty":                      heartbeat.LanguageMyghty,
+		"MySQL":                       heartbeat.LanguageMySQL,
 		"NewLisp":                     heartbeat.LanguageNewLisp,
 		"Nix":                         heartbeat.LanguageNix,
 		"Objective-C":                 heartbeat.LanguageObjectiveC,
@@ -492,7 +519,7 @@ func TestParseLanguageFromChroma_AllLexersSupported(t *testing.T) {
 		// - https://github.com/wakatime/wakatime-cli/issues/234
 		// - https://github.com/wakatime/wakatime-cli/issues/238
 		// - https://github.com/wakatime/wakatime-cli/issues/239
-		rgx := regexp.MustCompile(`^[a-lA-L]`)
+		rgx := regexp.MustCompile(`^[a-mA-M]`)
 		if !rgx.MatchString(config.Name) {
 			continue
 		}

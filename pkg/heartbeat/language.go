@@ -551,20 +551,74 @@ const (
 	LanguageMako
 	// LanguageMan represents the Man programming language.
 	LanguageMan
+	// LanguageMAQL represents the MAQL programming language.
+	LanguageMAQL
 	// LanguageMarkdown represents the Markdown programming language.
 	LanguageMarkdown
 	// LanguageMarko represents the Marko programming language.
 	LanguageMarko
+	// LanguageMask represents the Mask programming language.
+	LanguageMask
+	// LanguageMason represents the Mason programming language.
+	LanguageMason
+	// LanguageMathematica represents the Mathematica programming language.
+	LanguageMathematica
 	// LanguageMatlab represents the Matlab programming language.
 	LanguageMatlab
+	// LanguageMatlabSession represents the MatlabSession programming language.
+	LanguageMatlabSession
 	// LanguageMetafont represents the Metafont programming language.
 	LanguageMetafont
 	// LanguageMetapost represents the Metapost programming language.
 	LanguageMetapost
+	// LanguageMIME represents the MIME programming language.
+	LanguageMIME
+	// LanguageMiniD represents the MiniD programming language.
+	LanguageMiniD
+	// LanguageMiniScript represents the MiniScript programming language.
+	LanguageMiniScript
+	// LanguageMiniZinc represents the MiniZinc programming language.
+	LanguageMiniZinc
+	// LanguageMLIR represents the MLIR programming language.
+	LanguageMLIR
 	// LanguageModelica represents the Modelica programming language.
 	LanguageModelica
 	// LanguageModula2 represents the Modula2 programming language.
 	LanguageModula2
+	// LanguageMoinWiki represents the MoinWiki programming language.
+	LanguageMoinWiki
+	// LanguageMonkey represents the Monkey programming language.
+	LanguageMonkey
+	// LanguageMonkeyC represents the MonkeyC programming language.
+	LanguageMonkeyC
+	// LanguageMonte represents the Monte programming language.
+	LanguageMonte
+	// LanguageMOOCode represents the MOOCode programming language.
+	LanguageMOOCode
+	// LanguageMoonScript represents the MoonScript programming language.
+	LanguageMoonScript
+	// LanguageMorrowindScript represents the MorrowindScript programming language.
+	LanguageMorrowindScript
+	// LanguageMosel represents the Mosel programming language.
+	LanguageMosel
+	// LanguageMozPreprocHash represents the MozPreprocHash programming language.
+	LanguageMozPreprocHash
+	// LanguageMozPreprocPercent represents the MozPreprocPercent programming language.
+	LanguageMozPreprocPercent
+	// LanguageMQL represents the MQL programming language.
+	LanguageMQL
+	// LanguageMscgen represents the Mscgen programming language.
+	LanguageMscgen
+	// LanguageMSDOSSession represents the MSDOSSession programming language.
+	LanguageMSDOSSession
+	// LanguageMuPAD represents the MuPAD programming language.
+	LanguageMuPAD
+	// LanguageMXML represents the MXML programming language.
+	LanguageMXML
+	// LanguageMyghty represents the Myghty programming language.
+	LanguageMyghty
+	// LanguageMySQL represents the MySQL programming language.
+	LanguageMySQL
 	// LanguageMustache represents the Mustache programming language.
 	LanguageMustache
 	// LanguageNewLisp represents the NewLisp programming language.
@@ -981,14 +1035,41 @@ const (
 	languageMakefileStr            = "Makefile"
 	languageMakoStr                = "Mako"
 	languageManStr                 = "Man"
+	languageMAQLStr                = "MAQL"
 	languageMarkdownStr            = "Markdown"
 	languageMarkoStr               = "Marko"
+	languageMaskStr                = "Mask"
+	languageMasonStr               = "Mason"
+	languageMathematicaStr         = "Mathematica"
 	languageMatlabStr              = "Matlab"
+	languageMatlabSessionStr       = "Matlab session"
 	languageMetafontStr            = "Metafont"
 	languageMetapostStr            = "Metapost"
+	languageMIMEStr                = "MIME"
+	languageMiniDStr               = "MiniD"
+	languageMiniScriptStr          = "MiniScript"
+	languageMiniZincStr            = "MiniZinc"
+	languageMLIRStr                = "MLIR"
 	languageModelicaStr            = "Modelica"
 	languageModula2Str             = "Modula-2"
+	languageMoinWikiStr            = "MoinMoin/Trac Wiki markup"
+	languageMonkeyStr              = "Monkey"
+	languageMonkeyCStr             = "MonkeyC"
+	languageMonteStr               = "Monte"
+	languageMOOCodeStr             = "MOOCode"
+	languageMoonScriptStr          = "MoonScript"
+	languageMorrowindScriptStr     = "MorrowindScript"
+	languageMoselStr               = "Mosel"
+	languageMozPreprocHashStr      = "mozhashpreproc"
+	languageMozPreprocPercentStr   = "mozpercentpreproc"
+	languageMQLStr                 = "MQL"
 	languageMustacheStr            = "Mustache"
+	languageMscgenStr              = "Mscgen"
+	languageMSDOSSessionStr        = "MSDOS Session"
+	languageMuPADStr               = "MuPAD"
+	languageMXMLStr                = "MXML"
+	languageMyghtyStr              = "Myghty"
+	languageMySQLStr               = "MySQL"
 	languageNewLispStr             = "NewLisp"
 	languageNixStr                 = "Nix"
 	languageObjectiveCStr          = "Objective-C"
@@ -1622,20 +1703,74 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageMako, true
 	case normalizeString(languageManStr):
 		return LanguageMan, true
+	case normalizeString(languageMAQLStr):
+		return LanguageMAQL, true
 	case normalizeString(languageMarkdownStr):
 		return LanguageMarkdown, true
 	case normalizeString(languageMarkoStr):
 		return LanguageMarko, true
+	case normalizeString(languageMaskStr):
+		return LanguageMask, true
+	case normalizeString(languageMasonStr):
+		return LanguageMason, true
+	case normalizeString(languageMathematicaStr):
+		return LanguageMathematica, true
 	case normalizeString(languageMatlabStr):
 		return LanguageMatlab, true
+	case normalizeString(languageMatlabSessionStr):
+		return LanguageMatlabSession, true
 	case normalizeString(languageMetafontStr):
 		return LanguageMetafont, true
 	case normalizeString(languageMetapostStr):
 		return LanguageMetapost, true
+	case normalizeString(languageMIMEStr):
+		return LanguageMIME, true
+	case normalizeString(languageMiniDStr):
+		return LanguageMiniD, true
+	case normalizeString(languageMiniScriptStr):
+		return LanguageMiniScript, true
+	case normalizeString(languageMiniZincStr):
+		return LanguageMiniZinc, true
+	case normalizeString(languageMLIRStr):
+		return LanguageMLIR, true
 	case normalizeString(languageModelicaStr):
 		return LanguageModelica, true
 	case normalizeString(languageModula2Str):
 		return LanguageModula2, true
+	case normalizeString(languageMoinWikiStr):
+		return LanguageMoinWiki, true
+	case normalizeString(languageMonkeyStr):
+		return LanguageMonkey, true
+	case normalizeString(languageMonkeyCStr):
+		return LanguageMonkeyC, true
+	case normalizeString(languageMonteStr):
+		return LanguageMonte, true
+	case normalizeString(languageMOOCodeStr):
+		return LanguageMOOCode, true
+	case normalizeString(languageMoonScriptStr):
+		return LanguageMoonScript, true
+	case normalizeString(languageMorrowindScriptStr):
+		return LanguageMorrowindScript, true
+	case normalizeString(languageMoselStr):
+		return LanguageMosel, true
+	case normalizeString(languageMozPreprocHashStr):
+		return LanguageMozPreprocHash, true
+	case normalizeString(languageMozPreprocPercentStr):
+		return LanguageMozPreprocPercent, true
+	case normalizeString(languageMQLStr):
+		return LanguageMQL, true
+	case normalizeString(languageMscgenStr):
+		return LanguageMscgen, true
+	case normalizeString(languageMSDOSSessionStr):
+		return LanguageMSDOSSession, true
+	case normalizeString(languageMuPADStr):
+		return LanguageMuPAD, true
+	case normalizeString(languageMXMLStr):
+		return LanguageMXML, true
+	case normalizeString(languageMyghtyStr):
+		return LanguageMyghty, true
+	case normalizeString(languageMySQLStr):
+		return LanguageMySQL, true
 	case normalizeString(languageMustacheStr):
 		return LanguageMustache, true
 	case normalizeString(languageNewLispStr):
@@ -2392,20 +2527,74 @@ func (l Language) String() string {
 		return languageMakoStr
 	case LanguageMan:
 		return languageManStr
+	case LanguageMAQL:
+		return languageMAQLStr
 	case LanguageMarkdown:
 		return languageMarkdownStr
 	case LanguageMarko:
 		return languageMarkoStr
+	case LanguageMask:
+		return languageMaskStr
+	case LanguageMason:
+		return languageMasonStr
+	case LanguageMathematica:
+		return languageMathematicaStr
 	case LanguageMatlab:
 		return languageMatlabStr
+	case LanguageMatlabSession:
+		return languageMatlabSessionStr
 	case LanguageMetafont:
 		return languageMetafontStr
 	case LanguageMetapost:
 		return languageMetapostStr
+	case LanguageMIME:
+		return languageMIMEStr
+	case LanguageMiniD:
+		return languageMiniDStr
+	case LanguageMiniScript:
+		return languageMiniScriptStr
+	case LanguageMiniZinc:
+		return languageMiniZincStr
+	case LanguageMLIR:
+		return languageMLIRStr
 	case LanguageModelica:
 		return languageModelicaStr
 	case LanguageModula2:
 		return languageModula2Str
+	case LanguageMoinWiki:
+		return languageMoinWikiStr
+	case LanguageMonkey:
+		return languageMonkeyStr
+	case LanguageMonkeyC:
+		return languageMonkeyCStr
+	case LanguageMonte:
+		return languageMonteStr
+	case LanguageMOOCode:
+		return languageMOOCodeStr
+	case LanguageMoonScript:
+		return languageMoonScriptStr
+	case LanguageMorrowindScript:
+		return languageMorrowindScriptStr
+	case LanguageMosel:
+		return languageMoselStr
+	case LanguageMozPreprocHash:
+		return languageMozPreprocHashStr
+	case LanguageMozPreprocPercent:
+		return languageMozPreprocPercentStr
+	case LanguageMQL:
+		return languageMQLStr
+	case LanguageMscgen:
+		return languageMscgenStr
+	case LanguageMSDOSSession:
+		return languageMSDOSSessionStr
+	case LanguageMuPAD:
+		return languageMuPADStr
+	case LanguageMXML:
+		return languageMXMLStr
+	case LanguageMyghty:
+		return languageMyghtyStr
+	case LanguageMySQL:
+		return languageMySQLStr
 	case LanguageMustache:
 		return languageMustacheStr
 	case LanguageNewLisp:
