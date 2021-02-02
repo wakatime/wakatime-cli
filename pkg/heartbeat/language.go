@@ -567,6 +567,12 @@ const (
 	LanguageMatlab
 	// LanguageMatlabSession represents the MatlabSession programming language.
 	LanguageMatlabSession
+	// LanguageMax represents the Max programming language.
+	LanguageMax
+	// LanguageMaxMSP represents the MaxMSP programming language.
+	LanguageMaxMSP
+	// LanguageMeson represents the Meson programming language.
+	LanguageMeson
 	// LanguageMetafont represents the Metafont programming language.
 	LanguageMetafont
 	// LanguageMetapost represents the Metapost programming language.
@@ -579,6 +585,8 @@ const (
 	LanguageMiniScript
 	// LanguageMiniZinc represents the MiniZinc programming language.
 	LanguageMiniZinc
+	// LanguageMirah represents the Mirah programming language.
+	LanguageMirah
 	// LanguageMLIR represents the MLIR programming language.
 	LanguageMLIR
 	// LanguageModelica represents the Modelica programming language.
@@ -1043,12 +1051,16 @@ const (
 	languageMathematicaStr         = "Mathematica"
 	languageMatlabStr              = "Matlab"
 	languageMatlabSessionStr       = "Matlab session"
+	languageMaxStr                 = "Max"
+	languageMaxMSPStr              = "Max/MSP"
+	languageMesonStr               = "Meson"
 	languageMetafontStr            = "Metafont"
 	languageMetapostStr            = "Metapost"
 	languageMIMEStr                = "MIME"
 	languageMiniDStr               = "MiniD"
 	languageMiniScriptStr          = "MiniScript"
 	languageMiniZincStr            = "MiniZinc"
+	languageMirahStr               = "Mirah"
 	languageMLIRStr                = "MLIR"
 	languageModelicaStr            = "Modelica"
 	languageModula2Str             = "Modula-2"
@@ -1719,6 +1731,12 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageMatlab, true
 	case normalizeString(languageMatlabSessionStr):
 		return LanguageMatlabSession, true
+	case normalizeString(languageMaxStr):
+		return LanguageMax, true
+	case normalizeString(languageMaxMSPStr):
+		return LanguageMaxMSP, true
+	case normalizeString(languageMesonStr):
+		return LanguageMeson, true
 	case normalizeString(languageMetafontStr):
 		return LanguageMetafont, true
 	case normalizeString(languageMetapostStr):
@@ -1731,6 +1749,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageMiniScript, true
 	case normalizeString(languageMiniZincStr):
 		return LanguageMiniZinc, true
+	case normalizeString(languageMirahStr):
+		return LanguageMirah, true
 	case normalizeString(languageMLIRStr):
 		return LanguageMLIR, true
 	case normalizeString(languageModelicaStr):
@@ -2543,6 +2563,12 @@ func (l Language) String() string {
 		return languageMatlabStr
 	case LanguageMatlabSession:
 		return languageMatlabSessionStr
+	case LanguageMax:
+		return languageMaxStr
+	case LanguageMaxMSP:
+		return languageMaxMSPStr
+	case LanguageMeson:
+		return languageMesonStr
 	case LanguageMetafont:
 		return languageMetafontStr
 	case LanguageMetapost:
@@ -2555,6 +2581,8 @@ func (l Language) String() string {
 		return languageMiniScriptStr
 	case LanguageMiniZinc:
 		return languageMiniZincStr
+	case LanguageMirah:
+		return languageMirahStr
 	case LanguageMLIR:
 		return languageMLIRStr
 	case LanguageModelica:
