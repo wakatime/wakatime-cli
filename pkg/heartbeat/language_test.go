@@ -585,6 +585,8 @@ func TestParseLanguageFromChroma_AllLexersSupported(t *testing.T) {
 		// - https://github.com/wakatime/wakatime-cli/issues/232
 		// - https://github.com/wakatime/wakatime-cli/issues/233
 		// - https://github.com/wakatime/wakatime-cli/issues/234
+		// - https://github.com/wakatime/wakatime-cli/issues/238
+		// - https://github.com/wakatime/wakatime-cli/issues/239
 		rgx := regexp.MustCompile(`^[a-eA-E]`)
 		if !rgx.MatchString(config.Name) {
 			continue
