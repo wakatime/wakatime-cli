@@ -637,12 +637,16 @@ const (
 	LanguageNCL
 	// LanguageNemerle represents the Nemerle programming language.
 	LanguageNemerle
+	// LanguageNeon represents the Neon programming language.
+	LanguageNeon
 	// LanguageNesC represents the NesC programming language.
 	LanguageNesC
 	// LanguageNewLisp represents the NewLisp programming language.
 	LanguageNewLisp
 	// LanguageNewspeak represents the Newspeak programming language.
 	LanguageNewspeak
+	// LanguageNginx represents the Nginx programming language.
+	LanguageNginx
 	// LanguageNginxConfig represents the NginxConfig programming language.
 	LanguageNginxConfig
 	// LanguageNimrod represents the Nimrod programming language.
@@ -655,6 +659,8 @@ const (
 	LanguageNotmuch
 	// LanguageNSIS represents the NSIS programming language.
 	LanguageNSIS
+	// LanguageNu represents the Nu programming language.
+	LanguageNu
 	// LanguageNumPy represents the NumPy programming language.
 	LanguageNumPy
 	// LanguageNuSMV represents the NuSMV programming language.
@@ -1112,15 +1118,18 @@ const (
 	languageNASMObjdumpStr         = "objdump-nasm"
 	languageNCLStr                 = "NCL"
 	languageNemerleStr             = "Nemerle"
+	languageNeonStr                = "Neon"
 	languageNesCStr                = "nesC"
-	languageNewLispStr             = "NewLisp"
+	languageNewLispStr             = "newLisp"
 	languageNewspeakStr            = "Newspeak"
+	languageNginxStr               = "Nginx"
 	languageNginxConfigStr         = "Nginx configuration file"
 	languageNimrodStr              = "Nimrod"
 	languageNitStr                 = "Nit"
 	languageNixStr                 = "Nix"
 	languageNotmuchStr             = "Notmuch"
 	languageNSISStr                = "NSIS"
+	languageNuStr                  = "Nu"
 	languageNumPyStr               = "NumPy"
 	languageNuSMVStr               = "NuSMV"
 	languageObjectiveCStr          = "Objective-C"
@@ -1208,6 +1217,7 @@ const (
 	languageLiquidChromaStr         = "liquid"
 	languageMakefileChromaStr       = "Base Makefile"
 	languageMarkdownChromaStr       = "markdown"
+	languageNewLispChromaStr        = "NewLisp"
 	languageNimrodChromaStr         = "Nim"
 	languageTextChromaStr           = "plaintext"
 	languageVHDLChromaStr           = "VHDL"
@@ -1839,12 +1849,16 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageNCL, true
 	case normalizeString(languageNemerleStr):
 		return LanguageNemerle, true
+	case normalizeString(languageNeonStr):
+		return LanguageNeon, true
 	case normalizeString(languageNesCStr):
 		return LanguageNesC, true
 	case normalizeString(languageNewLispStr):
 		return LanguageNewLisp, true
 	case normalizeString(languageNewspeakStr):
 		return LanguageNewspeak, true
+	case normalizeString(languageNginxStr):
+		return LanguageNginx, true
 	case normalizeString(languageNginxConfigStr):
 		return LanguageNginxConfig, true
 	case normalizeString(languageNimrodStr):
@@ -1857,6 +1871,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageNotmuch, true
 	case normalizeString(languageNSISStr):
 		return LanguageNSIS, true
+	case normalizeString(languageNuStr):
+		return LanguageNu, true
 	case normalizeString(languageNumPyStr):
 		return LanguageNumPy, true
 	case normalizeString(languageNuSMVStr):
@@ -2037,6 +2053,8 @@ func ParseLanguageFromChroma(lexerName string) (Language, bool) {
 		return LanguageMakefile, true
 	case normalizeString(languageMarkdownChromaStr):
 		return LanguageMarkdown, true
+	case normalizeString(languageNewLispChromaStr):
+		return LanguageNewLisp, true
 	case normalizeString(languageNimrodChromaStr):
 		return LanguageNimrod, true
 	case normalizeString(languageTextChromaStr):
@@ -2699,12 +2717,16 @@ func (l Language) String() string {
 		return languageNCLStr
 	case LanguageNemerle:
 		return languageNemerleStr
+	case LanguageNeon:
+		return languageNeonStr
 	case LanguageNesC:
 		return languageNesCStr
 	case LanguageNewLisp:
 		return languageNewLispStr
 	case LanguageNewspeak:
 		return languageNewspeakStr
+	case LanguageNginx:
+		return languageNginxStr
 	case LanguageNginxConfig:
 		return languageNginxConfigStr
 	case LanguageNimrod:
@@ -2717,6 +2739,8 @@ func (l Language) String() string {
 		return languageNotmuchStr
 	case LanguageNSIS:
 		return languageNSISStr
+	case LanguageNu:
+		return languageNuStr
 	case LanguageNumPy:
 		return languageNumPyStr
 	case LanguageNuSMV:
@@ -2886,6 +2910,8 @@ func (l Language) StringChroma() string {
 		return languageMakefileChromaStr
 	case LanguageMarkdown:
 		return languageMarkdownChromaStr
+	case LanguageNewLisp:
+		return languageNewLispChromaStr
 	case LanguageText:
 		return languageTextChromaStr
 	case LanguageVHDL:
