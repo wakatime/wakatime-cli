@@ -629,10 +629,36 @@ const (
 	LanguageMySQL
 	// LanguageMustache represents the Mustache programming language.
 	LanguageMustache
+	// LanguageNASM represents the NASM programming language.
+	LanguageNASM
+	// LanguageNASMObjdump represents the NASMObjdump programming language.
+	LanguageNASMObjdump
+	// LanguageNCL represents the NCL programming language.
+	LanguageNCL
+	// LanguageNemerle represents the Nemerle programming language.
+	LanguageNemerle
+	// LanguageNesC represents the NesC programming language.
+	LanguageNesC
 	// LanguageNewLisp represents the NewLisp programming language.
 	LanguageNewLisp
+	// LanguageNewspeak represents the Newspeak programming language.
+	LanguageNewspeak
+	// LanguageNginxConfig represents the NginxConfig programming language.
+	LanguageNginxConfig
+	// LanguageNimrod represents the Nimrod programming language.
+	LanguageNimrod
+	// LanguageNit represents the Nit programming language.
+	LanguageNit
 	// LanguageNix represents the Nix programming language.
 	LanguageNix
+	// LanguageNotmuch represents the Notmuch programming language.
+	LanguageNotmuch
+	// LanguageNSIS represents the NSIS programming language.
+	LanguageNSIS
+	// LanguageNumPy represents the NumPy programming language.
+	LanguageNumPy
+	// LanguageNuSMV represents the NuSMV programming language.
+	LanguageNuSMV
 	// LanguageObjectiveC represents the ObjectiveC programming language.
 	LanguageObjectiveC
 	// LanguageObjectiveCPP represents the ObjectiveC++ programming language.
@@ -1082,8 +1108,21 @@ const (
 	languageMXMLStr                = "MXML"
 	languageMyghtyStr              = "Myghty"
 	languageMySQLStr               = "MySQL"
+	languageNASMStr                = "NASM"
+	languageNASMObjdumpStr         = "objdump-nasm"
+	languageNCLStr                 = "NCL"
+	languageNemerleStr             = "Nemerle"
+	languageNesCStr                = "nesC"
 	languageNewLispStr             = "NewLisp"
+	languageNewspeakStr            = "Newspeak"
+	languageNginxConfigStr         = "Nginx configuration file"
+	languageNimrodStr              = "Nimrod"
+	languageNitStr                 = "Nit"
 	languageNixStr                 = "Nix"
+	languageNotmuchStr             = "Notmuch"
+	languageNSISStr                = "NSIS"
+	languageNumPyStr               = "NumPy"
+	languageNuSMVStr               = "NuSMV"
 	languageObjectiveCStr          = "Objective-C"
 	languageObjectiveCPPStr        = "Objective-C++"
 	languageObjectiveJStr          = "Objective-J"
@@ -1169,6 +1208,7 @@ const (
 	languageLiquidChromaStr         = "liquid"
 	languageMakefileChromaStr       = "Base Makefile"
 	languageMarkdownChromaStr       = "markdown"
+	languageNimrodChromaStr         = "Nim"
 	languageTextChromaStr           = "plaintext"
 	languageVHDLChromaStr           = "VHDL"
 	languageVueJSChromaStr          = "vue"
@@ -1793,10 +1833,36 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageMySQL, true
 	case normalizeString(languageMustacheStr):
 		return LanguageMustache, true
+	case normalizeString(languageNASMStr):
+		return LanguageNASM, true
+	case normalizeString(languageNCLStr):
+		return LanguageNCL, true
+	case normalizeString(languageNemerleStr):
+		return LanguageNemerle, true
+	case normalizeString(languageNesCStr):
+		return LanguageNesC, true
 	case normalizeString(languageNewLispStr):
 		return LanguageNewLisp, true
+	case normalizeString(languageNewspeakStr):
+		return LanguageNewspeak, true
+	case normalizeString(languageNginxConfigStr):
+		return LanguageNginxConfig, true
+	case normalizeString(languageNimrodStr):
+		return LanguageNimrod, true
+	case normalizeString(languageNitStr):
+		return LanguageNit, true
 	case normalizeString(languageNixStr):
 		return LanguageNix, true
+	case normalizeString(languageNotmuchStr):
+		return LanguageNotmuch, true
+	case normalizeString(languageNSISStr):
+		return LanguageNSIS, true
+	case normalizeString(languageNumPyStr):
+		return LanguageNumPy, true
+	case normalizeString(languageNuSMVStr):
+		return LanguageNuSMV, true
+	case normalizeString(languageNASMObjdumpStr):
+		return LanguageNASMObjdump, true
 	case normalizeString(languageObjectiveCStr):
 		return LanguageObjectiveC, true
 	case normalizeString(languageObjectiveCPPStr):
@@ -1971,6 +2037,8 @@ func ParseLanguageFromChroma(lexerName string) (Language, bool) {
 		return LanguageMakefile, true
 	case normalizeString(languageMarkdownChromaStr):
 		return LanguageMarkdown, true
+	case normalizeString(languageNimrodChromaStr):
+		return LanguageNimrod, true
 	case normalizeString(languageTextChromaStr):
 		return LanguageText, true
 	case normalizeString(languageVHDLChromaStr):
@@ -2625,10 +2693,36 @@ func (l Language) String() string {
 		return languageMySQLStr
 	case LanguageMustache:
 		return languageMustacheStr
+	case LanguageNASM:
+		return languageNASMStr
+	case LanguageNCL:
+		return languageNCLStr
+	case LanguageNemerle:
+		return languageNemerleStr
+	case LanguageNesC:
+		return languageNesCStr
 	case LanguageNewLisp:
 		return languageNewLispStr
+	case LanguageNewspeak:
+		return languageNewspeakStr
+	case LanguageNginxConfig:
+		return languageNginxConfigStr
+	case LanguageNimrod:
+		return languageNimrodStr
+	case LanguageNit:
+		return languageNitStr
 	case LanguageNix:
 		return languageNixStr
+	case LanguageNotmuch:
+		return languageNotmuchStr
+	case LanguageNSIS:
+		return languageNSISStr
+	case LanguageNumPy:
+		return languageNumPyStr
+	case LanguageNuSMV:
+		return languageNuSMVStr
+	case LanguageNASMObjdump:
+		return languageNASMObjdumpStr
 	case LanguageObjectiveC:
 		return languageObjectiveCStr
 	case LanguageObjectiveCPP:

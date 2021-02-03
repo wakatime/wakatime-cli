@@ -322,8 +322,21 @@ func languageTests() map[string]heartbeat.Language {
 		"MXML":                        heartbeat.LanguageMXML,
 		"Myghty":                      heartbeat.LanguageMyghty,
 		"MySQL":                       heartbeat.LanguageMySQL,
+		"NASM":                        heartbeat.LanguageNASM,
+		"NCL":                         heartbeat.LanguageNCL,
+		"Nemerle":                     heartbeat.LanguageNemerle,
+		"nesC":                        heartbeat.LanguageNesC,
 		"NewLisp":                     heartbeat.LanguageNewLisp,
+		"Newspeak":                    heartbeat.LanguageNewspeak,
+		"Nginx configuration file":    heartbeat.LanguageNginxConfig,
+		"Nimrod":                      heartbeat.LanguageNimrod,
+		"Nit":                         heartbeat.LanguageNit,
 		"Nix":                         heartbeat.LanguageNix,
+		"Notmuch":                     heartbeat.LanguageNotmuch,
+		"NSIS":                        heartbeat.LanguageNSIS,
+		"NumPy":                       heartbeat.LanguageNumPy,
+		"NuSMV":                       heartbeat.LanguageNuSMV,
+		"objdump-nasm":                heartbeat.LanguageNASMObjdump,
 		"Objective-C":                 heartbeat.LanguageObjectiveC,
 		"Objective-C++":               heartbeat.LanguageObjectiveCPP,
 		"Objective-J":                 heartbeat.LanguageObjectiveJ,
@@ -476,6 +489,7 @@ func TestParseLanguageFromChroma(t *testing.T) {
 		"LessCss":          heartbeat.LanguageLess,
 		"liquid":           heartbeat.LanguageLiquid,
 		"markdown":         heartbeat.LanguageMarkdown,
+		"Nim":              heartbeat.LanguageNimrod,
 		"plaintext":        heartbeat.LanguageText,
 		"react":            heartbeat.LanguageJSX,
 		"VHDL":             heartbeat.LanguageVHDL,
@@ -523,7 +537,7 @@ func TestParseLanguageFromChroma_AllLexersSupported(t *testing.T) {
 		// - https://github.com/wakatime/wakatime-cli/issues/234
 		// - https://github.com/wakatime/wakatime-cli/issues/238
 		// - https://github.com/wakatime/wakatime-cli/issues/239
-		rgx := regexp.MustCompile(`^[a-mA-M]`)
+		rgx := regexp.MustCompile(`^[a-nA-N]`)
 		if !rgx.MatchString(config.Name) {
 			continue
 		}
