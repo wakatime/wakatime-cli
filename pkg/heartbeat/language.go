@@ -317,52 +317,230 @@ const (
 	LanguageExecline
 	// LanguageEzhil represents the Ezhil programming language.
 	LanguageEzhil
+	// LanguageFactor represents the Factor programming language.
+	LanguageFactor
+	// LanguageFancy represents the Fancy programming language.
+	LanguageFancy
+	// LanguageFantom represents the Fantom programming language.
+	LanguageFantom
+	// LanguageFelix represents the Felix programming language.
+	LanguageFelix
+	// LanguageFennel represents the Fennel programming language.
+	LanguageFennel
+	// LanguageFlatline represents the Flatline programming language.
+	LanguageFlatline
+	// LanguageFloScript represents the FloScript programming language.
+	LanguageFloScript
+	// LanguageForth represents the Forth programming language.
+	LanguageForth
 	// LanguageFish represents the Fish programming language.
 	LanguageFish
+	// LanguageFont represents the Font programming language.
+	LanguageFont
 	// LanguageFortran represents the Fortran programming language.
 	LanguageFortran
+	// LanguageFortranFixed represents the FortranFixed programming language.
+	LanguageFortranFixed
 	// LanguageFSharp represents the FSharp programming language.
 	LanguageFSharp
+	// LanguageFoxPro represents the FoxPro programming language.
+	LanguageFoxPro
+	// LanguageFreefem represents the Freefem programming language.
+	LanguageFreefem
+	// LanguageFStar represents the FStar programming language.
+	LanguageFStar
+	// LanguageGap represents the Gap programming language.
+	LanguageGap
+	// LanguageGas represents the Gas programming language.
+	LanguageGas
+	// LanguageGDNative represents the GDNative programming language.
+	LanguageGDNative
+	// LanguageGDScript represents the GDScript programming language.
+	LanguageGDScript
+	// LanguageGenshi represents the Genshi programming language.
+	LanguageGenshi
+	// LanguageGenshiHTML represents the Genshi HTML programming language.
+	LanguageGenshiHTML
+	// LanguageGenshiText represents the Genshi Text programming language.
+	LanguageGenshiText
+	// LanguageGettextCatalog represents the Gettext Catalog programming language.
+	LanguageGettextCatalog
+	// LanguageGherkin represents the Gherkin programming language.
+	LanguageGherkin
+	// LanguageGit represents the Git programming language.
+	LanguageGit
+	// LanguageGitConfig represents the Git Config programming language.
+	LanguageGitConfig
+	// LanguageGLSL represents the GLSL programming language.
+	LanguageGLSL
+	// LanguageGnuplot represents the Gnuplot programming language.
+	LanguageGnuplot
 	// LanguageGo represents the Go programming language.
 	LanguageGo
+	// LanguageGoHTMLTemplate represents the Go HTML Template programming language.
+	LanguageGoHTMLTemplate
+	// LanguageGoTextTemplate represents the Go Text Template programming language.
+	LanguageGoTextTemplate
+	// LanguageGolo represents the Golo programming language.
+	LanguageGolo
+	// LanguageGoodDataCL represents the GoodData-CL programming language.
+	LanguageGoodDataCL
 	// LanguageGosu represents the Gosu programming language.
 	LanguageGosu
+	// LanguageGosuTemplate represents the Gosu Template programming language.
+	LanguageGosuTemplate
+	// LanguageGradleConfig represents the GradleConfig programming language.
+	LanguageGradleConfig
+	// LanguageGraphQL represents the GraphQL programming language.
+	LanguageGraphQL
+	// LanguageGroff represents the Groff programming language.
+	LanguageGroff
 	// LanguageGroovy represents the Groovy programming language.
 	LanguageGroovy
-	// LanguageHAML represents the HAML programming language.
-	LanguageHAML
+	// LanguageHaml represents the Haml programming language.
+	LanguageHaml
+	// LanguageHandlebars represents the Handlebars programming language.
+	LanguageHandlebars
 	// LanguageHaskell represents the Haskell programming language.
 	LanguageHaskell
 	// LanguageHaxe represents the Haxe programming language.
 	LanguageHaxe
 	// LanguageHCL represents the HCL programming language.
 	LanguageHCL
+	// LanguageHexdump represents the Hexdump programming language.
+	LanguageHexdump
+	// LanguageHLB represents the HLB programming language.
+	LanguageHLB
+	// LanguageHLSL represents the HLSL programming language.
+	LanguageHLSL
+	// LanguageHSAIL represents the HSAIL programming language.
+	LanguageHSAIL
+	// LanguageHspec represents the Hspec programming language.
+	LanguageHspec
 	// LanguageHTML represents the HTML programming language.
 	LanguageHTML
+	// LanguageHTTP represents the HTTP programming language.
+	LanguageHTTP
+	// LanguageHxml represents the Hxml programming language.
+	LanguageHxml
+	// LanguageHy represents the Hy programming language.
+	LanguageHy
+	// LanguageHybris represents the Hybris programming language.
+	LanguageHybris
+	// LanguageIcon represents the Icon programming language.
+	LanguageIcon
+	// LanguageIDL represents the IDL programming language.
+	LanguageIDL
+	// LanguageIdris represents the Idris programming language.
+	LanguageIdris
+	// LanguageIgor represents the Igor programming language.
+	LanguageIgor
+	// LanguageImageJPEG represents the Image (jpeg) programming language.
+	LanguageImageJPEG
+	// LanguageImagePNG represents the Image (png) programming language.
+	LanguageImagePNG
+	// LanguageInform6 represents the Inform 6 programming language.
+	LanguageInform6
+	// LanguageInform6Template represents the Inform 6 template programming language.
+	LanguageInform6Template
+	// LanguageInform7 represents the Inform 7 programming language.
+	LanguageInform7
 	// LanguageINI represents the INI programming language.
 	LanguageINI
+	// LanguageIo represents the Io programming language.
+	LanguageIo
+	// LanguageIoke represents the Ioke programming language.
+	LanguageIoke
+	// LanguageIRCLogs represents the IRC Logs programming language.
+	LanguageIRCLogs
+	// LanguageIsabelle represents the Isabelle programming language.
+	LanguageIsabelle
+	// LanguageJ represents the J programming language.
+	LanguageJ
+	// LanguageJAGS represents the JAGS programming language.
+	LanguageJAGS
 	// LanguageJade represents the Jade programming language.
 	LanguageJade
+	// LanguageJasmin represents the Jasmin programming language.
+	LanguageJasmin
 	// LanguageJava represents the Java programming language.
 	LanguageJava
 	// LanguageJavaScript represents the JavaScript programming language.
 	LanguageJavaScript
+	// LanguageJCL represents the JCL programming language.
+	LanguageJCL
+	// LanguageJSGF represents the JSGF programming language.
+	LanguageJSGF
 	// LanguageJSON represents the JSON programming language.
 	LanguageJSON
+	// LanguageJSONLD represents the JSON-LD programming language.
+	LanguageJSONLD
+	// LanguageJSP represents the Java Server Page programming language.
+	LanguageJSP
 	// LanguageJSX represents the JSX programming language.
 	LanguageJSX
+	// LanguageJulia represents the Julia programming language.
+	LanguageJulia
+	// LanguageJuliaConsole represents the Julia console programming language.
+	LanguageJuliaConsole
+	// LanguageJungle represents the Jungle programming language.
+	LanguageJungle
+	// LanguageJuttle represents the Juttle console programming language.
+	LanguageJuttle
+	// LanguageKal represents the Kal console programming language.
+	LanguageKal
+	// LanguageKconfig represents the Kconfig console programming language.
+	LanguageKconfig
+	// LanguageKernelLog represents the Kernel log console programming language.
+	LanguageKernelLog
+	// LanguageKoka represents the Koka console programming language.
+	LanguageKoka
 	// LanguageKotlin represents the Kotlin programming language.
 	LanguageKotlin
+	// LanguageLaravelTemplate represents the Laravel Template programming language.
+	LanguageLaravelTemplate
 	// LanguageLasso represents the Lasso programming language.
 	LanguageLasso
 	// LanguageLaTeX represents the LaTeX programming language.
 	LanguageLaTeX
+	// LanguageLatte represents the Latte programming language.
+	LanguageLatte
+	// LanguageLean represents the Lean programming language.
+	LanguageLean
 	// LanguageLess represents the Less programming language.
 	LanguageLess
+	// LanguageLighttpd represents the Lighttpd configuration file programming language.
+	LanguageLighttpd
+	// LanguageLimbo represents the Limbo configuration file programming language.
+	LanguageLimbo
 	// LanguageLinkerScript represents the LinkerScript programming language.
 	LanguageLinkerScript
 	// LanguageLiquid represents the Liquid programming language.
 	LanguageLiquid
+	// LanguageLiterateAgda represents the Literate Agda programming language.
+	LanguageLiterateAgda
+	// LanguageLiterateCryptol represents the Literate Cryptol programming language.
+	LanguageLiterateCryptol
+	// LanguageLiterateHaskell represents the Literate Haskell programming language.
+	LanguageLiterateHaskell
+	// LanguageLiterateIdris represents the Literate Idris programming language.
+	LanguageLiterateIdris
+	// LanguageLiveScript represents the LiveScript programming language.
+	LanguageLiveScript
+	// LanguageLLVM represents the LLVM programming language.
+	LanguageLLVM
+	// LanguageLLVMMIR represents the LLVM-MIR programming language.
+	LanguageLLVMMIR
+	// LanguageLLVMMIRBody represents the LLVM-MIR Body programming language.
+	LanguageLLVMMIRBody
+	// LanguageLogos represents the Logos programming language.
+	LanguageLogos
+	// LanguageLogFile represents the LogFile programming language.
+	LanguageLogFile
+	// LanguageLogtalk represents the Logtalk programming language.
+	LanguageLogtalk
+	// LanguageLSL represents the LSL programming language.
+	LanguageLSL
 	// LanguageLua represents the Lua programming language.
 	LanguageLua
 	// LanguageMakefile represents the Makefile programming language.
@@ -686,29 +864,116 @@ const (
 	languageEvoqueStr              = "Evoque"
 	languageExeclineStr            = "execline"
 	languageEzhilStr               = "Ezhil"
+	languageFactorStr              = "Factor"
+	languageFancyStr               = "Fancy"
+	languageFantomStr              = "Fantom"
+	languageFelixStr               = "Felix"
+	languageFennelStr              = "Fennel"
+	languageFlatlineStr            = "Flatline"
+	languageFloScriptStr           = "FloScript"
+	languageForthStr               = "Forth"
 	languageFishStr                = "Fish"
+	languageFontStr                = "Font"
 	languageFortranStr             = "Fortran"
+	languageFortranFixedStr        = "FortranFixed"
 	languageFSharpStr              = "F#"
+	languageFoxProStr              = "FoxPro"
+	languageFreefemStr             = "Freefem"
+	languageFStarStr               = "FStar"
+	languageGapStr                 = "GAP"
+	languageGasStr                 = "GAS"
+	languageGDNativeStr            = "GDNative"
+	languageGDScriptStr            = "GDScript"
+	languageGenshiStr              = "Genshi"
+	languageGenshiHTMLStr          = "Genshi HTML"
+	languageGenshiTextStr          = "Genshi Text"
+	languageGettextCatalogStr      = "Gettext Catalog"
+	languageGherkinStr             = "Gherkin"
+	languageGitStr                 = "Git"
+	languageGitConfigStr           = "Git Config"
+	languageGLSLStr                = "GLSL"
+	languageGnuplotStr             = "Gnuplot"
 	languageGoStr                  = "Go"
+	languageGoloStr                = "Golo"
+	languageGoodDataCLStr          = "GoodData-CL"
 	languageGosuStr                = "Gosu"
+	languageGosuTemplateStr        = "Gosu Template"
+	languageGradleConfigStr        = "Gradle Config"
+	languageGraphQLStr             = "GraphQL"
+	languageGroffStr               = "Groff"
 	languageGroovyStr              = "Groovy"
-	languageHAMLStr                = "Haml"
+	languageHamlStr                = "Haml"
+	languageHandlebarsStr          = "Handlebars"
 	languageHaskellStr             = "Haskell"
 	languageHaxeStr                = "Haxe"
 	languageHCLStr                 = "HCL"
+	languageHexdumpStr             = "Hexdump"
+	languageHLBStr                 = "HLB"
+	languageHLSLStr                = "HLSL"
+	languageHSAILStr               = "HSAIL"
+	languageHspecStr               = "Hspec"
 	languageHTMLStr                = "HTML"
+	languageHTTPStr                = "HTTP"
+	languageHxmlStr                = "Hxml"
+	languageHyStr                  = "Hy"
+	languageHybrisStr              = "Hybris"
+	languageIconStr                = "Icon"
+	languageIDLStr                 = "IDL"
+	languageIdrisStr               = "Idris"
+	languageIgorStr                = "Igor"
+	languageImageJPEGStr           = "Image (jpeg)"
+	languageImagePNGStr            = "Image (png)"
+	languageInform6Str             = "Inform 6"
+	languageInform6TemplateStr     = "Inform 6 template"
+	languageInform7Str             = "Inform 7"
 	languageINIStr                 = "INI"
+	languageIoStr                  = "Io"
+	languageIokeStr                = "Ioke"
+	languageIRCLogsStr             = "IRC Logs"
+	languageIsabelleStr            = "Isabelle"
+	languageJStr                   = "J"
+	languageJAGSStr                = "JAGS"
 	languageJadeStr                = "Jade"
+	languageJasminStr              = "Jasmin"
 	languageJavaStr                = "Java"
 	languageJavaScriptStr          = "JavaScript"
+	languageJCLStr                 = "JCL"
+	languageJSGFStr                = "JSGF"
 	languageJSONStr                = "JSON"
+	languageJSONLDStr              = "JSON-LD"
+	languageJSPStr                 = "Java Server Page"
 	languageJSXStr                 = "JSX"
+	languageJuliaStr               = "Julia"
+	languageJuliaConsoleStr        = "Julia console"
+	languageJungleStr              = "Jungle"
+	languageJuttleStr              = "Juttle"
+	languageKalStr                 = "Kal"
+	languageKconfigStr             = "Kconfig"
+	languageKernelLogStr           = "Kernel log"
+	languageKokaStr                = "Koka"
 	languageKotlinStr              = "Kotlin"
+	languageLaravelTemplateStr     = "Laravel Template"
 	languageLassoStr               = "Lasso"
 	languageLaTeXStr               = "LaTeX"
+	languageLatteStr               = "Latte"
+	languageLeanStr                = "Lean"
 	languageLessStr                = "LESS"
+	languageLighttpdStr            = "Lighttpd configuration file"
+	languageLimboStr               = "Limbo"
 	languageLinkerScriptStr        = "Linker Script"
-	languageLiquidStr              = "liquid"
+	languageLiquidStr              = "Liquid"
+	languageLiterateAgdaStr        = "Literate Agda"
+	languageLiterateCryptolStr     = "Literate Cryptol"
+	languageLiterateHaskellStr     = "Literate Haskell"
+	languageLiterateIdrisStr       = "Literate Idris"
+	languageLiveScriptStr          = "LiveScript"
+	languageLLVMStr                = "LLVM"
+	languageLLVMMIRStr             = "LLVM-MIR"
+	languageLLVMMIRBodyStr         = "LLVM-MIR Body"
+	languageLogosStr               = "Logos"
+	languageLogFileStr             = "Log File"
+	languageLogtalkStr             = "Logtalk"
+	languageLSLStr                 = "LSL"
 	languageLuaStr                 = "Lua"
 	languageMakefileStr            = "Makefile"
 	languageMakoStr                = "Mako"
@@ -799,10 +1064,13 @@ const (
 	languageAssemblyChromaStr       = "GAS"
 	languageColdfusionHTMLChromaStr = "Coldfusion HTML"
 	languageFSharpChromaStr         = "FSharp"
-	languageGosuChromaStr           = "Gosu Template"
 	languageEmacsLispChromaStr      = "EmacsLisp"
+	languageGoHTMLTemplateChromaStr = "Go HTML Template"
+	languageGoTextTemplateChromaStr = "Go Text Template"
+	languageGosuTemplateChromaStr   = "Gosu Template"
 	languageJSXChromaStr            = "react"
 	languageLessChromaStr           = "LessCss"
+	languageLiquidChromaStr         = "liquid"
 	languageMakefileChromaStr       = "Base Makefile"
 	languageMarkdownChromaStr       = "markdown"
 	languageTextChromaStr           = "plaintext"
@@ -1121,52 +1389,226 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageExecline, true
 	case normalizeString(languageEzhilStr):
 		return LanguageEzhil, true
+	case normalizeString(languageFactorStr):
+		return LanguageFactor, true
+	case normalizeString(languageFancyStr):
+		return LanguageFancy, true
+	case normalizeString(languageFantomStr):
+		return LanguageFantom, true
+	case normalizeString(languageFelixStr):
+		return LanguageFelix, true
+	case normalizeString(languageFennelStr):
+		return LanguageFennel, true
+	case normalizeString(languageFlatlineStr):
+		return LanguageFlatline, true
+	case normalizeString(languageFloScriptStr):
+		return LanguageFloScript, true
+	case normalizeString(languageForthStr):
+		return LanguageForth, true
 	case normalizeString(languageFishStr):
 		return LanguageFish, true
-	case normalizeString(languageFSharpStr):
-		return LanguageFSharp, true
+	case normalizeString(languageFontStr):
+		return LanguageFont, true
 	case normalizeString(languageFortranStr):
 		return LanguageFortran, true
+	case normalizeString(languageFortranFixedStr):
+		return LanguageFortranFixed, true
+	case normalizeString(languageFSharpStr):
+		return LanguageFSharp, true
+	case normalizeString(languageFoxProStr):
+		return LanguageFoxPro, true
+	case normalizeString(languageFreefemStr):
+		return LanguageFreefem, true
+	case normalizeString(languageFStarStr):
+		return LanguageFStar, true
+	case normalizeString(languageGapStr):
+		return LanguageGap, true
+	case normalizeString(languageGasStr):
+		return LanguageGas, true
+	case normalizeString(languageGDNativeStr):
+		return LanguageGDNative, true
+	case normalizeString(languageGDScriptStr):
+		return LanguageGDScript, true
+	case normalizeString(languageGenshiStr):
+		return LanguageGenshi, true
+	case normalizeString(languageGenshiHTMLStr):
+		return LanguageGenshiHTML, true
+	case normalizeString(languageGenshiTextStr):
+		return LanguageGenshiText, true
+	case normalizeString(languageGettextCatalogStr):
+		return LanguageGettextCatalog, true
+	case normalizeString(languageGherkinStr):
+		return LanguageGherkin, true
+	case normalizeString(languageGitStr):
+		return LanguageGit, true
+	case normalizeString(languageGitConfigStr):
+		return LanguageGitConfig, true
+	case normalizeString(languageGLSLStr):
+		return LanguageGLSL, true
+	case normalizeString(languageGnuplotStr):
+		return LanguageGnuplot, true
 	case normalizeString(languageGoStr):
 		return LanguageGo, true
+	case normalizeString(languageGoloStr):
+		return LanguageGolo, true
+	case normalizeString(languageGoodDataCLStr):
+		return LanguageGoodDataCL, true
 	case normalizeString(languageGosuStr):
 		return LanguageGosu, true
+	case normalizeString(languageGosuTemplateStr):
+		return LanguageGosuTemplate, true
+	case normalizeString(languageGradleConfigStr):
+		return LanguageGradleConfig, true
+	case normalizeString(languageGraphQLStr):
+		return LanguageGraphQL, true
+	case normalizeString(languageGroffStr):
+		return LanguageGroff, true
 	case normalizeString(languageGroovyStr):
 		return LanguageGroovy, true
-	case normalizeString(languageHAMLStr):
-		return LanguageHAML, true
+	case normalizeString(languageHamlStr):
+		return LanguageHaml, true
+	case normalizeString(languageHandlebarsStr):
+		return LanguageHandlebars, true
 	case normalizeString(languageHaskellStr):
 		return LanguageHaskell, true
 	case normalizeString(languageHaxeStr):
 		return LanguageHaxe, true
 	case normalizeString(languageHCLStr):
 		return LanguageHCL, true
+	case normalizeString(languageHexdumpStr):
+		return LanguageHexdump, true
+	case normalizeString(languageHLBStr):
+		return LanguageHLB, true
+	case normalizeString(languageHLSLStr):
+		return LanguageHLSL, true
+	case normalizeString(languageHSAILStr):
+		return LanguageHSAIL, true
+	case normalizeString(languageHspecStr):
+		return LanguageHspec, true
 	case normalizeString(languageHTMLStr):
 		return LanguageHTML, true
+	case normalizeString(languageHTTPStr):
+		return LanguageHTTP, true
+	case normalizeString(languageHxmlStr):
+		return LanguageHxml, true
+	case normalizeString(languageHyStr):
+		return LanguageHy, true
+	case normalizeString(languageHybrisStr):
+		return LanguageHybris, true
+	case normalizeString(languageIconStr):
+		return LanguageIcon, true
+	case normalizeString(languageIDLStr):
+		return LanguageIDL, true
+	case normalizeString(languageIdrisStr):
+		return LanguageIdris, true
+	case normalizeString(languageIgorStr):
+		return LanguageIgor, true
+	case normalizeString(languageImageJPEGStr):
+		return LanguageImageJPEG, true
+	case normalizeString(languageImagePNGStr):
+		return LanguageImagePNG, true
+	case normalizeString(languageInform6Str):
+		return LanguageInform6, true
+	case normalizeString(languageInform6TemplateStr):
+		return LanguageInform6Template, true
+	case normalizeString(languageInform7Str):
+		return LanguageInform7, true
 	case normalizeString(languageINIStr):
 		return LanguageINI, true
+	case normalizeString(languageIoStr):
+		return LanguageIo, true
+	case normalizeString(languageIokeStr):
+		return LanguageIoke, true
+	case normalizeString(languageIRCLogsStr):
+		return LanguageIRCLogs, true
+	case normalizeString(languageIsabelleStr):
+		return LanguageIsabelle, true
+	case normalizeString(languageJStr):
+		return LanguageJ, true
+	case normalizeString(languageJAGSStr):
+		return LanguageJAGS, true
 	case normalizeString(languageJadeStr):
 		return LanguageJade, true
+	case normalizeString(languageJasminStr):
+		return LanguageJasmin, true
 	case normalizeString(languageJavaStr):
 		return LanguageJava, true
 	case normalizeString(languageJavaScriptStr):
 		return LanguageJavaScript, true
+	case normalizeString(languageJCLStr):
+		return LanguageJCL, true
+	case normalizeString(languageJSGFStr):
+		return LanguageJSGF, true
 	case normalizeString(languageJSONStr):
 		return LanguageJSON, true
+	case normalizeString(languageJSONLDStr):
+		return LanguageJSONLD, true
+	case normalizeString(languageJSPStr):
+		return LanguageJSP, true
 	case normalizeString(languageJSXStr):
 		return LanguageJSX, true
+	case normalizeString(languageJuliaStr):
+		return LanguageJulia, true
+	case normalizeString(languageJuliaConsoleStr):
+		return LanguageJuliaConsole, true
+	case normalizeString(languageJungleStr):
+		return LanguageJungle, true
+	case normalizeString(languageJuttleStr):
+		return LanguageJuttle, true
+	case normalizeString(languageKalStr):
+		return LanguageKal, true
+	case normalizeString(languageKconfigStr):
+		return LanguageKconfig, true
+	case normalizeString(languageKernelLogStr):
+		return LanguageKernelLog, true
+	case normalizeString(languageKokaStr):
+		return LanguageKoka, true
 	case normalizeString(languageKotlinStr):
 		return LanguageKotlin, true
+	case normalizeString(languageLaravelTemplateStr):
+		return LanguageLaravelTemplate, true
 	case normalizeString(languageLassoStr):
 		return LanguageLasso, true
 	case normalizeString(languageLaTeXStr):
 		return LanguageLaTeX, true
+	case normalizeString(languageLatteStr):
+		return LanguageLatte, true
+	case normalizeString(languageLeanStr):
+		return LanguageLean, true
 	case normalizeString(languageLessStr):
 		return LanguageLess, true
+	case normalizeString(languageLighttpdStr):
+		return LanguageLighttpd, true
+	case normalizeString(languageLimboStr):
+		return LanguageLimbo, true
 	case normalizeString(languageLinkerScriptStr):
 		return LanguageLinkerScript, true
 	case normalizeString(languageLiquidStr):
 		return LanguageLiquid, true
+	case normalizeString(languageLiterateAgdaStr):
+		return LanguageLiterateAgda, true
+	case normalizeString(languageLiterateCryptolStr):
+		return LanguageLiterateCryptol, true
+	case normalizeString(languageLiterateHaskellStr):
+		return LanguageLiterateHaskell, true
+	case normalizeString(languageLiterateIdrisStr):
+		return LanguageLiterateIdris, true
+	case normalizeString(languageLiveScriptStr):
+		return LanguageLiveScript, true
+	case normalizeString(languageLLVMStr):
+		return LanguageLLVM, true
+	case normalizeString(languageLLVMMIRStr):
+		return LanguageLLVMMIR, true
+	case normalizeString(languageLLVMMIRBodyStr):
+		return LanguageLLVMMIRBody, true
+	case normalizeString(languageLogosStr):
+		return LanguageLogos, true
+	case normalizeString(languageLogFileStr):
+		return LanguageLogFile, true
+	case normalizeString(languageLogtalkStr):
+		return LanguageLogtalk, true
+	case normalizeString(languageLSLStr):
+		return LanguageLSL, true
 	case normalizeString(languageLuaStr):
 		return LanguageLua, true
 	case normalizeString(languageMakefileStr):
@@ -1351,14 +1793,20 @@ func ParseLanguageFromChroma(lexerName string) (Language, bool) {
 		return LanguageColdfusionHTML, true
 	case normalizeString(languageEmacsLispChromaStr):
 		return LanguageEmacsLisp, true
+	case normalizeString(languageGoHTMLTemplateChromaStr):
+		return LanguageGo, true
+	case normalizeString(languageGoTextTemplateChromaStr):
+		return LanguageGo, true
+	case normalizeString(languageGosuTemplateChromaStr):
+		return LanguageGosu, true
 	case normalizeString(languageFSharpChromaStr):
 		return LanguageFSharp, true
-	case normalizeString(languageGosuChromaStr):
-		return LanguageGosu, true
 	case normalizeString(languageJSXChromaStr):
 		return LanguageJSX, true
 	case normalizeString(languageLessChromaStr):
 		return LanguageLess, true
+	case normalizeString(languageLiquidChromaStr):
+		return LanguageLiquid, true
 	case normalizeString(languageMakefileChromaStr):
 		return LanguageMakefile, true
 	case normalizeString(languageMarkdownChromaStr):
@@ -1709,52 +2157,226 @@ func (l Language) String() string {
 		return languageExeclineStr
 	case LanguageEzhil:
 		return languageEzhilStr
+	case LanguageFactor:
+		return languageFactorStr
+	case LanguageFancy:
+		return languageFancyStr
+	case LanguageFantom:
+		return languageFantomStr
+	case LanguageFelix:
+		return languageFelixStr
+	case LanguageFennel:
+		return languageFennelStr
+	case LanguageFlatline:
+		return languageFlatlineStr
+	case LanguageFloScript:
+		return languageFloScriptStr
+	case LanguageForth:
+		return languageForthStr
 	case LanguageFish:
 		return languageFishStr
+	case LanguageFont:
+		return languageFontStr
 	case LanguageFortran:
 		return languageFortranStr
+	case LanguageFortranFixed:
+		return languageFortranFixedStr
 	case LanguageFSharp:
 		return languageFSharpStr
-	case LanguageGo:
+	case LanguageFoxPro:
+		return languageFoxProStr
+	case LanguageFreefem:
+		return languageFreefemStr
+	case LanguageFStar:
+		return languageFStarStr
+	case LanguageGap:
+		return languageGapStr
+	case LanguageGas:
+		return languageGasStr
+	case LanguageGDScript:
+		return languageGDScriptStr
+	case LanguageGenshi:
+		return languageGenshiStr
+	case LanguageGenshiHTML:
+		return languageGenshiHTMLStr
+	case LanguageGenshiText:
+		return languageGenshiTextStr
+	case LanguageGettextCatalog:
+		return languageGettextCatalogStr
+	case LanguageGherkin:
+		return languageGherkinStr
+	case LanguageGDNative:
+		return languageGDNativeStr
+	case LanguageGit:
+		return languageGitStr
+	case LanguageGitConfig:
+		return languageGitConfigStr
+	case LanguageGLSL:
+		return languageGLSLStr
+	case LanguageGnuplot:
+		return languageGnuplotStr
+	case LanguageGo, LanguageGoHTMLTemplate, LanguageGoTextTemplate:
 		return languageGoStr
+	case LanguageGolo:
+		return languageGoloStr
+	case LanguageGoodDataCL:
+		return languageGoodDataCLStr
 	case LanguageGosu:
 		return languageGosuStr
+	case LanguageGosuTemplate:
+		return languageGosuTemplateStr
+	case LanguageGradleConfig:
+		return languageGradleConfigStr
+	case LanguageGraphQL:
+		return languageGraphQLStr
+	case LanguageGroff:
+		return languageGroffStr
 	case LanguageGroovy:
 		return languageGroovyStr
-	case LanguageHAML:
-		return languageHAMLStr
+	case LanguageHaml:
+		return languageHamlStr
+	case LanguageHandlebars:
+		return languageHandlebarsStr
 	case LanguageHaskell:
 		return languageHaskellStr
 	case LanguageHaxe:
 		return languageHaxeStr
 	case LanguageHCL:
 		return languageHCLStr
+	case LanguageHexdump:
+		return languageHexdumpStr
+	case LanguageHLB:
+		return languageHLBStr
+	case LanguageHLSL:
+		return languageHLSLStr
+	case LanguageHSAIL:
+		return languageHSAILStr
+	case LanguageHspec:
+		return languageHspecStr
 	case LanguageHTML:
 		return languageHTMLStr
+	case LanguageHTTP:
+		return languageHTTPStr
+	case LanguageHxml:
+		return languageHxmlStr
+	case LanguageHy:
+		return languageHyStr
+	case LanguageHybris:
+		return languageHybrisStr
+	case LanguageIcon:
+		return languageIconStr
+	case LanguageIDL:
+		return languageIDLStr
+	case LanguageIdris:
+		return languageIdrisStr
+	case LanguageIgor:
+		return languageIgorStr
+	case LanguageImageJPEG:
+		return languageImageJPEGStr
+	case LanguageImagePNG:
+		return languageImagePNGStr
+	case LanguageInform6:
+		return languageInform6Str
+	case LanguageInform6Template:
+		return languageInform6TemplateStr
+	case LanguageInform7:
+		return languageInform7Str
 	case LanguageINI:
 		return languageINIStr
+	case LanguageIo:
+		return languageIoStr
+	case LanguageIoke:
+		return languageIokeStr
+	case LanguageIRCLogs:
+		return languageIRCLogsStr
+	case LanguageIsabelle:
+		return languageIsabelleStr
+	case LanguageJ:
+		return languageJStr
+	case LanguageJAGS:
+		return languageJAGSStr
 	case LanguageJade:
 		return languageJadeStr
+	case LanguageJasmin:
+		return languageJasminStr
 	case LanguageJava:
 		return languageJavaStr
 	case LanguageJavaScript:
 		return languageJavaScriptStr
+	case LanguageJCL:
+		return languageJCLStr
+	case LanguageJSGF:
+		return languageJSGFStr
 	case LanguageJSON:
 		return languageJSONStr
+	case LanguageJSONLD:
+		return languageJSONLDStr
+	case LanguageJSP:
+		return languageJSPStr
 	case LanguageJSX:
 		return languageJSXStr
+	case LanguageJulia:
+		return languageJuliaStr
+	case LanguageJuliaConsole:
+		return languageJuliaConsoleStr
+	case LanguageJungle:
+		return languageJungleStr
+	case LanguageJuttle:
+		return languageJuttleStr
+	case LanguageKal:
+		return languageKalStr
+	case LanguageKconfig:
+		return languageKconfigStr
+	case LanguageKernelLog:
+		return languageKernelLogStr
+	case LanguageKoka:
+		return languageKokaStr
 	case LanguageKotlin:
 		return languageKotlinStr
+	case LanguageLaravelTemplate:
+		return languageLaravelTemplateStr
 	case LanguageLasso:
 		return languageLassoStr
 	case LanguageLaTeX:
 		return languageLaTeXStr
+	case LanguageLatte:
+		return languageLatteStr
+	case LanguageLean:
+		return languageLeanStr
 	case LanguageLess:
 		return languageLessStr
+	case LanguageLighttpd:
+		return languageLighttpdStr
+	case LanguageLimbo:
+		return languageLimboStr
 	case LanguageLinkerScript:
 		return languageLinkerScriptStr
 	case LanguageLiquid:
 		return languageLiquidStr
+	case LanguageLiterateAgda:
+		return languageLiterateAgdaStr
+	case LanguageLiterateCryptol:
+		return languageLiterateCryptolStr
+	case LanguageLiterateHaskell:
+		return languageLiterateHaskellStr
+	case LanguageLiterateIdris:
+		return languageLiterateIdrisStr
+	case LanguageLiveScript:
+		return languageLiveScriptStr
+	case LanguageLLVM:
+		return languageLLVMStr
+	case LanguageLLVMMIR:
+		return languageLLVMMIRStr
+	case LanguageLLVMMIRBody:
+		return languageLLVMMIRBodyStr
+	case LanguageLogos:
+		return languageLogosStr
+	case LanguageLogFile:
+		return languageLogFileStr
+	case LanguageLogtalk:
+		return languageLogtalkStr
+	case LanguageLSL:
+		return languageLSLStr
 	case LanguageLua:
 		return languageLuaStr
 	case LanguageMakefile:
@@ -1938,8 +2560,6 @@ func (l Language) StringChroma() string {
 		return languageEmacsLispChromaStr
 	case LanguageFSharp:
 		return languageFSharpChromaStr
-	case LanguageGosu:
-		return languageGosuChromaStr
 	case LanguageJSX:
 		return languageJSXChromaStr
 	case LanguageLess:

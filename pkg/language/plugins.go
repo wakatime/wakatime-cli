@@ -100,7 +100,7 @@ func parseDefault(language string) (heartbeat.Language, bool) {
 	case strings.ToLower("eshell"):
 		return heartbeat.ParseLanguage("eshell")
 	case strings.ToLower("f#"):
-		return heartbeat.ParseLanguage("fsharp")
+		return heartbeat.ParseLanguage("f#")
 	case strings.ToLower("fish"):
 		return heartbeat.ParseLanguage("fish")
 	case strings.ToLower("fortran"):

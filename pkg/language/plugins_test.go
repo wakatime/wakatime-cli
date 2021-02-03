@@ -60,7 +60,7 @@ func TestParse(t *testing.T) {
 		"go":               heartbeat.LanguageGo,
 		"gosu":             heartbeat.LanguageGosu,
 		"groovy":           heartbeat.LanguageGroovy,
-		"haml":             heartbeat.LanguageHAML,
+		"haml":             heartbeat.LanguageHaml,
 		"haskell":          heartbeat.LanguageHaskell,
 		"haxe":             heartbeat.LanguageHaxe,
 		"hcl":              heartbeat.LanguageHCL,
