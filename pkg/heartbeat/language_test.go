@@ -339,11 +339,18 @@ func languageTests() map[string]heartbeat.Language {
 		"NSIS":                        heartbeat.LanguageNSIS,
 		"NumPy":                       heartbeat.LanguageNumPy,
 		"NuSMV":                       heartbeat.LanguageNuSMV,
+		"objdump":                     heartbeat.LanguageObjdump,
 		"objdump-nasm":                heartbeat.LanguageNASMObjdump,
 		"Objective-C":                 heartbeat.LanguageObjectiveC,
 		"Objective-C++":               heartbeat.LanguageObjectiveCPP,
 		"Objective-J":                 heartbeat.LanguageObjectiveJ,
 		"OCaml":                       heartbeat.LanguageOCaml,
+		"Octave":                      heartbeat.LanguageOctave,
+		"ODIN":                        heartbeat.LanguageODIN,
+		"ooc":                         heartbeat.LanguageOoc,
+		"Opa":                         heartbeat.LanguageOpa,
+		"OpenEdge ABL":                heartbeat.LanguageOpenEdgeABL,
+		"OpenSCAD":                    heartbeat.LanguageOpenSCAD,
 		"Org":                         heartbeat.LanguageOrg,
 		"Pascal":                      heartbeat.LanguagePascal,
 		"Pawn":                        heartbeat.LanguagePawn,
@@ -494,6 +501,7 @@ func TestParseLanguageFromChroma(t *testing.T) {
 		"markdown":         heartbeat.LanguageMarkdown,
 		"NewLisp":          heartbeat.LanguageNewLisp,
 		"Nim":              heartbeat.LanguageNimrod,
+		"Org Mode":         heartbeat.LanguageOrg,
 		"plaintext":        heartbeat.LanguageText,
 		"react":            heartbeat.LanguageJSX,
 		"VHDL":             heartbeat.LanguageVHDL,
@@ -541,7 +549,7 @@ func TestParseLanguageFromChroma_AllLexersSupported(t *testing.T) {
 		// - https://github.com/wakatime/wakatime-cli/issues/234
 		// - https://github.com/wakatime/wakatime-cli/issues/238
 		// - https://github.com/wakatime/wakatime-cli/issues/239
-		rgx := regexp.MustCompile(`^[a-nA-N]`)
+		rgx := regexp.MustCompile(`^[a-oA-O]`)
 		if !rgx.MatchString(config.Name) {
 			continue
 		}

@@ -665,6 +665,8 @@ const (
 	LanguageNumPy
 	// LanguageNuSMV represents the NuSMV programming language.
 	LanguageNuSMV
+	// LanguageObjdump represents the Objdump programming language.
+	LanguageObjdump
 	// LanguageObjectiveC represents the ObjectiveC programming language.
 	LanguageObjectiveC
 	// LanguageObjectiveCPP represents the ObjectiveC++ programming language.
@@ -673,6 +675,18 @@ const (
 	LanguageObjectiveJ
 	// LanguageOCaml represents the OCaml programming language.
 	LanguageOCaml
+	// LanguageOctave represents the Octave programming language.
+	LanguageOctave
+	// LanguageODIN represents the ODIN programming language.
+	LanguageODIN
+	// LanguageOoc represents the Ooc programming language.
+	LanguageOoc
+	// LanguageOpa represents the Opa programming language.
+	LanguageOpa
+	// LanguageOpenEdgeABL represents the OpenEdgeABL programming language.
+	LanguageOpenEdgeABL
+	// LanguageOpenSCAD represents the OpenSCAD programming language.
+	LanguageOpenSCAD
 	// LanguageOrg represents the Org programming language.
 	LanguageOrg
 	// LanguagePascal represents the Pascal programming language.
@@ -1132,10 +1146,17 @@ const (
 	languageNuStr                  = "Nu"
 	languageNumPyStr               = "NumPy"
 	languageNuSMVStr               = "NuSMV"
+	languageObjdumpStr             = "objdump"
 	languageObjectiveCStr          = "Objective-C"
 	languageObjectiveCPPStr        = "Objective-C++"
 	languageObjectiveJStr          = "Objective-J"
 	languageOCamlStr               = "OCaml"
+	languageOctaveStr              = "Octave"
+	languageODINStr                = "ODIN"
+	languageOocStr                 = "ooc"
+	languageOpaStr                 = "Opa"
+	languageOpenEdgeABLStr         = "OpenEdge ABL"
+	languageOpenSCADStr            = "OpenSCAD"
 	languageOrgStr                 = "Org"
 	languagePascalStr              = "Pascal"
 	languagePawnStr                = "Pawn"
@@ -1219,6 +1240,7 @@ const (
 	languageMarkdownChromaStr       = "markdown"
 	languageNewLispChromaStr        = "NewLisp"
 	languageNimrodChromaStr         = "Nim"
+	languageOrgChromaStr            = "Org Mode"
 	languageTextChromaStr           = "plaintext"
 	languageVHDLChromaStr           = "VHDL"
 	languageVueJSChromaStr          = "vue"
@@ -1879,6 +1901,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageNuSMV, true
 	case normalizeString(languageNASMObjdumpStr):
 		return LanguageNASMObjdump, true
+	case normalizeString(languageObjdumpStr):
+		return LanguageObjdump, true
 	case normalizeString(languageObjectiveCStr):
 		return LanguageObjectiveC, true
 	case normalizeString(languageObjectiveCPPStr):
@@ -1887,6 +1911,18 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageObjectiveJ, true
 	case normalizeString(languageOCamlStr):
 		return LanguageOCaml, true
+	case normalizeString(languageOctaveStr):
+		return LanguageOctave, true
+	case normalizeString(languageODINStr):
+		return LanguageODIN, true
+	case normalizeString(languageOocStr):
+		return LanguageOoc, true
+	case normalizeString(languageOpaStr):
+		return LanguageOpa, true
+	case normalizeString(languageOpenEdgeABLStr):
+		return LanguageOpenEdgeABL, true
+	case normalizeString(languageOpenSCADStr):
+		return LanguageOpenSCAD, true
 	case normalizeString(languageOrgStr):
 		return LanguageOrg, true
 	case normalizeString(languagePascalStr):
@@ -2057,6 +2093,8 @@ func ParseLanguageFromChroma(lexerName string) (Language, bool) {
 		return LanguageNewLisp, true
 	case normalizeString(languageNimrodChromaStr):
 		return LanguageNimrod, true
+	case normalizeString(languageOrgChromaStr):
+		return LanguageOrg, true
 	case normalizeString(languageTextChromaStr):
 		return LanguageText, true
 	case normalizeString(languageVHDLChromaStr):
@@ -2747,6 +2785,8 @@ func (l Language) String() string {
 		return languageNuSMVStr
 	case LanguageNASMObjdump:
 		return languageNASMObjdumpStr
+	case LanguageObjdump:
+		return languageObjdumpStr
 	case LanguageObjectiveC:
 		return languageObjectiveCStr
 	case LanguageObjectiveCPP:
@@ -2755,6 +2795,18 @@ func (l Language) String() string {
 		return languageObjectiveJStr
 	case LanguageOCaml:
 		return languageOCamlStr
+	case LanguageOctave:
+		return languageOctaveStr
+	case LanguageODIN:
+		return languageODINStr
+	case LanguageOoc:
+		return languageOocStr
+	case LanguageOpa:
+		return languageOpaStr
+	case LanguageOpenEdgeABL:
+		return languageOpenEdgeABLStr
+	case LanguageOpenSCAD:
+		return languageOpenSCADStr
 	case LanguageOrg:
 		return languageOrgStr
 	case LanguagePascal:
