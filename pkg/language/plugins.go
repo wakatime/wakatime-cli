@@ -28,11 +28,11 @@ func parseDefault(language string) (heartbeat.Language, bool) {
 	case strings.ToLower("ansible"):
 		return heartbeat.ParseLanguage("ansible")
 	case strings.ToLower("apacheconf"):
-		return heartbeat.ParseLanguage("apacheconf")
+		return heartbeat.ParseLanguage("apache config")
 	case strings.ToLower("applescript"):
 		return heartbeat.ParseLanguage("applescript")
 	case strings.ToLower("asp"):
-		return heartbeat.ParseLanguage("asp")
+		return heartbeat.ParseLanguage("asp classic")
 	case strings.ToLower("assembly"):
 		return heartbeat.ParseLanguage("assembly")
 	case strings.ToLower("autoconf"):

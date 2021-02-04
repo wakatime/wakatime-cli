@@ -191,7 +191,7 @@ func TestDetect_ChromaTopLanguagesRetrofit(t *testing.T) {
 				"path/to/apache.conf",
 				"path/to/apache2.conf",
 			},
-			Expected: heartbeat.LanguageApacheConf,
+			Expected: heartbeat.LanguageApacheConfig,
 		},
 		"applescript": {
 			Filepaths: []string{
