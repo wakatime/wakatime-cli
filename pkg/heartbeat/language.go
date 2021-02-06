@@ -749,6 +749,8 @@ const (
 	LanguagePug
 	// LanguagePuppet represents the Puppet programming language.
 	LanguagePuppet
+	// LanguagePureData represents the PureData programming language.
+	LanguagePureData
 	// LanguagePureScript represents the PureScript programming language.
 	LanguagePureScript
 	// LanguagePyPyLog represents the PyPyLog programming language.
@@ -1294,6 +1296,7 @@ const (
 	languagePsyShPHPStr            = "PsySH console session for PHP"
 	languagePugStr                 = "Pug"
 	languagePuppetStr              = "Puppet"
+	languagePureDataStr            = "Pure Data"
 	languagePureScriptStr          = "PureScript"
 	languagePyPyLogStr             = "PyPy Log"
 	languagePythonStr              = "Python"
@@ -2147,6 +2150,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguagePug, true
 	case normalizeString(languagePuppetStr):
 		return LanguagePuppet, true
+	case normalizeString(languagePureDataStr):
+		return LanguagePureData, true
 	case normalizeString(languagePureScriptStr):
 		return LanguagePureScript, true
 	case normalizeString(languagePyPyLogStr):
@@ -3143,6 +3148,8 @@ func (l Language) String() string {
 		return languagePugStr
 	case LanguagePuppet:
 		return languagePuppetStr
+	case LanguagePureData:
+		return languagePureDataStr
 	case LanguagePureScript:
 		return languagePureScriptStr
 	case LanguagePyPyLog:

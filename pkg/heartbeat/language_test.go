@@ -383,6 +383,7 @@ func languageTests() map[string]heartbeat.Language {
 		"PsySH console session for PHP": heartbeat.LanguagePsyShPHP,
 		"Pug":                           heartbeat.LanguagePug,
 		"Puppet":                        heartbeat.LanguagePuppet,
+		"Pure Data":                     heartbeat.LanguagePureData,
 		"PureScript":                    heartbeat.LanguagePureScript,
 		"PyPy Log":                      heartbeat.LanguagePyPyLog,
 		"Python":                        heartbeat.LanguagePython,
