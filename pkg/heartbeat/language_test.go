@@ -490,12 +490,32 @@ func languageTests() map[string]heartbeat.Language {
 		"Swig":                          heartbeat.LanguageSwig,
 		"SYSTEMD":                       heartbeat.LanguageSYSTEMD,
 		"SystemVerilog":                 heartbeat.LanguageSystemVerilog,
+		"TableGen":                      heartbeat.LanguageTableGen,
+		"TADS 3":                        heartbeat.LanguageTADS3,
+		"TAP":                           heartbeat.LanguageTAP,
+		"TASM":                          heartbeat.LanguageTASM,
+		"Tcl":                           heartbeat.LanguageTcl,
+		"Tcsh":                          heartbeat.LanguageTcsh,
+		"Tcsh Session":                  heartbeat.LanguageTcshSession,
+		"Tea":                           heartbeat.LanguageTea,
+		"Tera Term macro":               heartbeat.LanguageTeraTerm,
+		"Termcap":                       heartbeat.LanguageTermcap,
+		"Terminfo":                      heartbeat.LanguageTerminfo,
+		"Terraform":                     heartbeat.LanguageTerraform,
 		"TeX":                           heartbeat.LanguageTeX,
 		"Text":                          heartbeat.LanguageText,
 		"Thrift":                        heartbeat.LanguageThrift,
+		"tiddler":                       heartbeat.LanguageTiddler,
+		"Todotxt":                       heartbeat.LanguageTodotxt,
 		"TOML":                          heartbeat.LanguageTOML,
+		"TradingView":                   heartbeat.LanguageTradingView,
+		"TrafficScript":                 heartbeat.LanguageTrafficScript,
+		"Transact-SQL":                  heartbeat.LanguageTransactSQL,
+		"Treetop":                       heartbeat.LanguageTreetop,
 		"Turing":                        heartbeat.LanguageTuring,
+		"Turtle":                        heartbeat.LanguageTurtle,
 		"Twig":                          heartbeat.LanguageTwig,
+		"Typographic Number Theory":     heartbeat.LanguageTNT,
 		"TypeScript":                    heartbeat.LanguageTypeScript,
 		"TypoScript":                    heartbeat.LanguageTypoScript,
 		"VB":                            heartbeat.LanguageVB,
@@ -583,30 +603,32 @@ func TestParseLanguage_Unknown(t *testing.T) {
 
 func TestParseLanguageFromChroma(t *testing.T) {
 	tests := map[string]heartbeat.Language{
-		"Base Makefile":    heartbeat.LanguageMakefile,
-		"Coldfusion HTML":  heartbeat.LanguageColdfusionHTML,
-		"EmacsLisp":        heartbeat.LanguageEmacsLisp,
-		"Go HTML Template": heartbeat.LanguageGo,
-		"Go Text Template": heartbeat.LanguageGo,
-		"FSharp":           heartbeat.LanguageFSharp,
-		"GAS":              heartbeat.LanguageAssembly,
-		"LessCss":          heartbeat.LanguageLess,
-		"liquid":           heartbeat.LanguageLiquid,
-		"markdown":         heartbeat.LanguageMarkdown,
-		"NewLisp":          heartbeat.LanguageNewLisp,
-		"Nim":              heartbeat.LanguageNimrod,
-		"Org Mode":         heartbeat.LanguageOrg,
-		"plaintext":        heartbeat.LanguageText,
-		"Python 3":         heartbeat.LanguagePython,
-		"R":                heartbeat.LanguageS,
-		"react":            heartbeat.LanguageJSX,
-		"ReasonML":         heartbeat.LanguageReasonML,
-		"REBOL":            heartbeat.LanguageREBOL,
-		"Rexx":             heartbeat.LanguageRexx,
-		"SWIG":             heartbeat.LanguageSwig,
-		"systemverilog":    heartbeat.LanguageSystemVerilog,
-		"VHDL":             heartbeat.LanguageVHDL,
-		"vue":              heartbeat.LanguageVueJS,
+		"Base Makefile":      heartbeat.LanguageMakefile,
+		"Coldfusion HTML":    heartbeat.LanguageColdfusionHTML,
+		"EmacsLisp":          heartbeat.LanguageEmacsLisp,
+		"Go HTML Template":   heartbeat.LanguageGo,
+		"Go Text Template":   heartbeat.LanguageGo,
+		"FSharp":             heartbeat.LanguageFSharp,
+		"GAS":                heartbeat.LanguageAssembly,
+		"LessCss":            heartbeat.LanguageLess,
+		"liquid":             heartbeat.LanguageLiquid,
+		"markdown":           heartbeat.LanguageMarkdown,
+		"NewLisp":            heartbeat.LanguageNewLisp,
+		"Nim":                heartbeat.LanguageNimrod,
+		"Org Mode":           heartbeat.LanguageOrg,
+		"plaintext":          heartbeat.LanguageText,
+		"Python 3":           heartbeat.LanguagePython,
+		"R":                  heartbeat.LanguageS,
+		"react":              heartbeat.LanguageJSX,
+		"ReasonML":           heartbeat.LanguageReasonML,
+		"REBOL":              heartbeat.LanguageREBOL,
+		"Rexx":               heartbeat.LanguageRexx,
+		"SWIG":               heartbeat.LanguageSwig,
+		"systemverilog":      heartbeat.LanguageSystemVerilog,
+		"TypoScriptCssData":  heartbeat.LanguageTypoScript,
+		"TypoScriptHtmlData": heartbeat.LanguageTypoScript,
+		"VHDL":               heartbeat.LanguageVHDL,
+		"vue":                heartbeat.LanguageVueJS,
 		// lowercase
 		"zig": heartbeat.LanguageZig,
 		// missing blank space
@@ -645,7 +667,7 @@ func TestParseLanguageFromChroma_AllLexersSupported(t *testing.T) {
 		// language support was already ensured. Has to be adjusted to cover more letters,
 		// once another issue is resolved. Has to be removed finally, once all issues
 		// are done.
-		rgx := regexp.MustCompile(`^[a-sA-S]`)
+		rgx := regexp.MustCompile(`^[a-tA-T]`)
 		if !rgx.MatchString(config.Name) {
 			continue
 		}
@@ -743,13 +765,18 @@ func TestLanguage_StringChroma_AllLexersSupported(t *testing.T) {
 		// language support was already ensured. Has to be adjust to cover more letters,
 		// once another issue is resolved. Has to be removed finally, once all issues
 		// are done.
-		rgx := regexp.MustCompile(`^[a-sA-S]`)
+		rgx := regexp.MustCompile(`^[a-tA-T]`)
 		if !rgx.MatchString(config.Name) {
 			continue
 		}
 
 		// Aliases, which match in addition to standard spelling of languages are ignored here.
-		if config.Name == "Go HTML Template" || config.Name == "Go Text Template" || config.Name == "Python 3" {
+		switch config.Name {
+		case "Go HTML Template", "Go Text Template":
+			continue
+		case "Python 3":
+			continue
+		case "TypoScriptCssData", "TypoScriptHtmlData":
 			continue
 		}
 
