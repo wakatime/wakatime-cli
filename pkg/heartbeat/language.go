@@ -765,8 +765,12 @@ const (
 	LanguagePythonConsole
 	// LanguagePythonTraceback represents the PythonTraceback programming language.
 	LanguagePythonTraceback
+	// LanguageQBasic represents the QBasic programming language.
+	LanguageQBasic
 	// LanguageQML represents the QML programming language.
 	LanguageQML
+	// LanguageQVTO represents the QVTO programming language.
+	LanguageQVTO
 	// LanguageR represents the R programming language.
 	LanguageR
 	// LanguageReasonML represents the ReasonML programming language.
@@ -1304,7 +1308,9 @@ const (
 	languagePython2TracebackStr    = "Python 2.x Traceback"
 	languagePythonConsoleStr       = "Python console session"
 	languagePythonTracebackStr     = "Python Traceback"
+	languageQBasicStr              = "QBasic"
 	languageQMLStr                 = "QML"
+	languageQVTOStr                = "QVTO"
 	languageRStr                   = "R"
 	languageReasonMLStr            = "ReasonML"
 	languageReStructuredTextStr    = "reStructuredText"
@@ -2166,8 +2172,12 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguagePythonConsole, true
 	case normalizeString(languagePythonTracebackStr):
 		return LanguagePythonTraceback, true
+	case normalizeString(languageQBasicStr):
+		return LanguageQBasic, true
 	case normalizeString(languageQMLStr):
 		return LanguageQML, true
+	case normalizeString(languageQVTOStr):
+		return LanguageQVTO, true
 	case normalizeString(languageRStr):
 		return LanguageR, true
 	case normalizeString(languageReasonMLStr):
@@ -3164,8 +3174,12 @@ func (l Language) String() string {
 		return languagePythonConsoleStr
 	case LanguagePythonTraceback:
 		return languagePythonTracebackStr
+	case LanguageQBasic:
+		return languageQBasicStr
 	case LanguageQML:
 		return languageQMLStr
+	case LanguageQVTO:
+		return languageQVTOStr
 	case LanguageR:
 		return languageRStr
 	case LanguageReasonML:

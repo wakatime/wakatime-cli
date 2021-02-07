@@ -391,7 +391,9 @@ func languageTests() map[string]heartbeat.Language {
 		"Python 2.x Traceback":          heartbeat.LanguagePython2Traceback,
 		"Python Traceback":              heartbeat.LanguagePythonTraceback,
 		"Python console session":        heartbeat.LanguagePythonConsole,
+		"QBasic":                        heartbeat.LanguageQBasic,
 		"QML":                           heartbeat.LanguageQML,
+		"QVTO":                          heartbeat.LanguageQVTO,
 		"R":                             heartbeat.LanguageR,
 		"ReasonML":                      heartbeat.LanguageReasonML,
 		"reStructuredText":              heartbeat.LanguageReStructuredText,
@@ -598,7 +600,7 @@ func TestParseLanguageFromChroma_AllLexersSupported(t *testing.T) {
 		// language support was already ensured. Has to be adjusted to cover more letters,
 		// once another issue is resolved. Has to be removed finally, once all issues
 		// are done.
-		rgx := regexp.MustCompile(`^[a-psA-PS]`)
+		rgx := regexp.MustCompile(`^[a-qsA-QS]`)
 		if !rgx.MatchString(config.Name) {
 			continue
 		}
@@ -692,7 +694,7 @@ func TestLanguage_StringChroma_AllLexersSupported(t *testing.T) {
 		// language support was already ensured. Has to be adjust to cover more letters,
 		// once another issue is resolved. Has to be removed finally, once all issues
 		// are done.
-		rgx := regexp.MustCompile(`^[a-psA-PS]`)
+		rgx := regexp.MustCompile(`^[a-qsA-QS]`)
 		if !rgx.MatchString(config.Name) {
 			continue
 		}
