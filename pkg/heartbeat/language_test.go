@@ -396,10 +396,31 @@ func languageTests() map[string]heartbeat.Language {
 		"QML":                           heartbeat.LanguageQML,
 		"QVTO":                          heartbeat.LanguageQVTO,
 		"R":                             heartbeat.LanguageR,
-		"ReasonML":                      heartbeat.LanguageReasonML,
+		"Racket":                        heartbeat.LanguageRacket,
+		"Ragel":                         heartbeat.LanguageRagel,
+		"Embedded Ragel":                heartbeat.LanguageRagelEmbedded,
+		"Raw token data":                heartbeat.LanguageRawToken,
+		"RConsole":                      heartbeat.LanguageRConsole,
+		"Rd":                            heartbeat.LanguageRd,
+		"Reason":                        heartbeat.LanguageReasonML,
+		"Rebol":                         heartbeat.LanguageREBOL,
+		"Red":                           heartbeat.LanguageRed,
+		"Redcode":                       heartbeat.LanguageRedcode,
+		"reg":                           heartbeat.LanguageRegistry,
+		"ResourceBundle":                heartbeat.LanguageResourceBundle,
 		"reStructuredText":              heartbeat.LanguageReStructuredText,
+		"Rexx":                          heartbeat.LanguageRexx,
+		"RHTML":                         heartbeat.LanguageRHTML,
+		"Ride":                          heartbeat.LanguageRide,
+		"Relax-NG Compact":              heartbeat.LanguageRNGCompact,
+		"Roboconf Graph":                heartbeat.LanguageRoboconfGraph,
+		"Roboconf Instances":            heartbeat.LanguageRoboconfInstances,
+		"RobotFramework":                heartbeat.LanguageRobotFramework,
 		"RPMSpec":                       heartbeat.LanguageRPMSpec,
+		"RQL":                           heartbeat.LanguageRQL,
+		"RSL":                           heartbeat.LanguageRSL,
 		"Ruby":                          heartbeat.LanguageRuby,
+		"Ruby irb session":              heartbeat.LanguageRubyIRBSession,
 		"Rust":                          heartbeat.LanguageRust,
 		"S":                             heartbeat.LanguageS,
 		"Salt":                          heartbeat.LanguageSalt,
@@ -558,6 +579,8 @@ func TestParseLanguageFromChroma(t *testing.T) {
 		"plaintext":        heartbeat.LanguageText,
 		"Python 3":         heartbeat.LanguagePython,
 		"R":                heartbeat.LanguageS,
+		"ReasonML":         heartbeat.LanguageReasonML,
+		"REBOL":            heartbeat.LanguageREBOL,
 		"react":            heartbeat.LanguageJSX,
 		"SWIG":             heartbeat.LanguageSwig,
 		"systemverilog":    heartbeat.LanguageSystemVerilog,
@@ -601,7 +624,7 @@ func TestParseLanguageFromChroma_AllLexersSupported(t *testing.T) {
 		// language support was already ensured. Has to be adjusted to cover more letters,
 		// once another issue is resolved. Has to be removed finally, once all issues
 		// are done.
-		rgx := regexp.MustCompile(`^[a-qsA-QS]`)
+		rgx := regexp.MustCompile(`^[a-sA-S]`)
 		if !rgx.MatchString(config.Name) {
 			continue
 		}
@@ -672,7 +695,10 @@ func TestLanguage_StringChroma(t *testing.T) {
 		"Nim":             heartbeat.LanguageNimrod,
 		"Org Mode":        heartbeat.LanguageOrg,
 		"plaintext":       heartbeat.LanguageText,
+		"R":               heartbeat.LanguageS,
 		"react":           heartbeat.LanguageJSX,
+		"ReasonML":        heartbeat.LanguageReasonML,
+		"REBOL":           heartbeat.LanguageREBOL,
 		"SWIG":            heartbeat.LanguageSwig,
 		"systemverilog":   heartbeat.LanguageSystemVerilog,
 		"VHDL":            heartbeat.LanguageVHDL,
@@ -695,7 +721,7 @@ func TestLanguage_StringChroma_AllLexersSupported(t *testing.T) {
 		// language support was already ensured. Has to be adjust to cover more letters,
 		// once another issue is resolved. Has to be removed finally, once all issues
 		// are done.
-		rgx := regexp.MustCompile(`^[a-qsA-QS]`)
+		rgx := regexp.MustCompile(`^[a-sA-S]`)
 		if !rgx.MatchString(config.Name) {
 			continue
 		}
