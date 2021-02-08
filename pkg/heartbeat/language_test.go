@@ -527,6 +527,10 @@ func languageTests() map[string]heartbeat.Language {
 		"Typographic Number Theory":     heartbeat.LanguageTNT,
 		"TypeScript":                    heartbeat.LanguageTypeScript,
 		"TypoScript":                    heartbeat.LanguageTypoScript,
+		"ucode":                         heartbeat.LanguageUcode,
+		"Unicon":                        heartbeat.LanguageUnicon,
+		"UrbiScript":                    heartbeat.LanguageUrbiScript,
+		"USD":                           heartbeat.LanguageUSD,
 		"VB":                            heartbeat.LanguageVB,
 		"VB.net":                        heartbeat.LanguageVBNet,
 		"VCL":                           heartbeat.LanguageVCL,
@@ -677,7 +681,7 @@ func TestParseLanguageFromChroma_AllLexersSupported(t *testing.T) {
 		// language support was already ensured. Has to be adjusted to cover more letters,
 		// once another issue is resolved. Has to be removed finally, once all issues
 		// are done.
-		rgx := regexp.MustCompile(`^[a-tA-T]`)
+		rgx := regexp.MustCompile(`^[a-uA-U]`)
 		if !rgx.MatchString(config.Name) {
 			continue
 		}

@@ -1045,6 +1045,14 @@ const (
 	LanguageTypeScript
 	// LanguageTypoScript represents the TypoScript programming language.
 	LanguageTypoScript
+	// LanguageUcode represents the Ucode programming language.
+	LanguageUcode
+	// LanguageUnicon represents the Unicon programming language.
+	LanguageUnicon
+	// LanguageUrbiScript represents the UrbiScript programming language.
+	LanguageUrbiScript
+	// LanguageUSD represents the USD programming language.
+	LanguageUSD
 	// LanguageVB represents the VB programming language.
 	LanguageVB
 	// LanguageVBNet represents the VB.net programming language.
@@ -1590,6 +1598,10 @@ const (
 	languageTypeLanguageStr        = "Type Language"
 	languageTypeScriptStr          = "TypeScript"
 	languageTypoScriptStr          = "TypoScript"
+	languageUcodeStr               = "ucode"
+	languageUniconStr              = "Unicon"
+	languageUrbiScriptStr          = "UrbiScript"
+	languageUSDStr                 = "USD"
 	languageVBStr                  = "VB"
 	languageVBNetStr               = "VB.net"
 	languageVCLStr                 = "VCL"
@@ -2671,6 +2683,14 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageTypeScript, true
 	case normalizeString(languageTypoScriptStr):
 		return LanguageTypoScript, true
+	case normalizeString(languageUcodeStr):
+		return LanguageUcode, true
+	case normalizeString(languageUniconStr):
+		return LanguageUnicon, true
+	case normalizeString(languageUrbiScriptStr):
+		return LanguageUrbiScript, true
+	case normalizeString(languageUSDStr):
+		return LanguageUSD, true
 	case normalizeString(languageVBStr):
 		return LanguageVB, true
 	case normalizeString(languageVBNetStr):
@@ -3827,6 +3847,14 @@ func (l Language) String() string {
 		return languageTypeScriptStr
 	case LanguageTypoScript:
 		return languageTypoScriptStr
+	case LanguageUcode:
+		return languageUcodeStr
+	case LanguageUnicon:
+		return languageUniconStr
+	case LanguageUrbiScript:
+		return languageUrbiScriptStr
+	case LanguageUSD:
+		return languageUSDStr
 	case LanguageVB:
 		return languageVBStr
 	case LanguageVBNet:
