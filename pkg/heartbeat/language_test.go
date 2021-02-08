@@ -531,12 +531,17 @@ func languageTests() map[string]heartbeat.Language {
 		"Unicon":                        heartbeat.LanguageUnicon,
 		"UrbiScript":                    heartbeat.LanguageUrbiScript,
 		"USD":                           heartbeat.LanguageUSD,
+		"Vala":                          heartbeat.LanguageVala,
 		"VB":                            heartbeat.LanguageVB,
 		"VB.net":                        heartbeat.LanguageVBNet,
+		"VBScript":                      heartbeat.LanguageVBScript,
 		"VCL":                           heartbeat.LanguageVCL,
+		"VCLSnippets":                   heartbeat.LanguageVCLSnippets,
+		"VCTreeStatus":                  heartbeat.LanguageVCTreeStatus,
 		"Velocity":                      heartbeat.LanguageVelocity,
 		"Verilog":                       heartbeat.LanguageVerilog,
-		"vhdl":                          heartbeat.LanguageVHDL,
+		"VGL":                           heartbeat.LanguageVGL,
+		"VHDL":                          heartbeat.LanguageVHDL,
 		"VimL":                          heartbeat.LanguageVimL,
 		"Vue.js":                        heartbeat.LanguageVueJS,
 		"XAML":                          heartbeat.LanguageXAML,
@@ -641,7 +646,7 @@ func TestParseLanguageFromChroma(t *testing.T) {
 		"Transact-SQL":       heartbeat.LanguageTransactSQL,
 		"TypoScriptCssData":  heartbeat.LanguageTypoScript,
 		"TypoScriptHtmlData": heartbeat.LanguageTypoScript,
-		"VHDL":               heartbeat.LanguageVHDL,
+		"verilog":            heartbeat.LanguageVerilog,
 		"vue":                heartbeat.LanguageVueJS,
 		// lowercase
 		"zig": heartbeat.LanguageZig,
@@ -681,7 +686,7 @@ func TestParseLanguageFromChroma_AllLexersSupported(t *testing.T) {
 		// language support was already ensured. Has to be adjusted to cover more letters,
 		// once another issue is resolved. Has to be removed finally, once all issues
 		// are done.
-		rgx := regexp.MustCompile(`^[a-uA-U]`)
+		rgx := regexp.MustCompile(`^[a-vA-V]`)
 		if !rgx.MatchString(config.Name) {
 			continue
 		}
@@ -759,7 +764,7 @@ func TestLanguage_StringChroma(t *testing.T) {
 		"Rexx":            heartbeat.LanguageRexx,
 		"SWIG":            heartbeat.LanguageSwig,
 		"systemverilog":   heartbeat.LanguageSystemVerilog,
-		"VHDL":            heartbeat.LanguageVHDL,
+		"verilog":         heartbeat.LanguageVerilog,
 		"vue":             heartbeat.LanguageVueJS,
 	}
 
@@ -779,7 +784,7 @@ func TestLanguage_StringChroma_AllLexersSupported(t *testing.T) {
 		// language support was already ensured. Has to be adjust to cover more letters,
 		// once another issue is resolved. Has to be removed finally, once all issues
 		// are done.
-		rgx := regexp.MustCompile(`^[a-tA-T]`)
+		rgx := regexp.MustCompile(`^[a-vA-V]`)
 		if !rgx.MatchString(config.Name) {
 			continue
 		}

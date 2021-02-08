@@ -1053,16 +1053,26 @@ const (
 	LanguageUrbiScript
 	// LanguageUSD represents the USD programming language.
 	LanguageUSD
+	// LanguageVala represents the Vala programming language.
+	LanguageVala
 	// LanguageVB represents the VB programming language.
 	LanguageVB
 	// LanguageVBNet represents the VB.net programming language.
 	LanguageVBNet
+	// LanguageVBScript represents the VBScript programming language.
+	LanguageVBScript
 	// LanguageVCL represents the VCL programming language.
 	LanguageVCL
+	// LanguageVCLSnippets represents the VCLSnippets programming language.
+	LanguageVCLSnippets
+	// LanguageVCTreeStatus represents the VCTreeStatus programming language.
+	LanguageVCTreeStatus
 	// LanguageVelocity represents the Velocity programming language.
 	LanguageVelocity
 	// LanguageVerilog represents the Verilog programming language.
 	LanguageVerilog
+	// LanguageVGL represents the VGL programming language.
+	LanguageVGL
 	// LanguageVHDL represents the VHDL programming language.
 	LanguageVHDL
 	// LanguageVimL represents the VimL programming language.
@@ -1602,12 +1612,17 @@ const (
 	languageUniconStr              = "Unicon"
 	languageUrbiScriptStr          = "UrbiScript"
 	languageUSDStr                 = "USD"
+	languageValaStr                = "Vala"
 	languageVBStr                  = "VB"
 	languageVBNetStr               = "VB.net"
+	languageVBScriptStr            = "VBScript"
 	languageVCLStr                 = "VCL"
+	languageVCLSnippetsStr         = "VCLSnippets"
+	languageVCTreeStatusStr        = "VCTreeStatus"
 	languageVelocityStr            = "Velocity"
 	languageVerilogStr             = "Verilog"
-	languageVHDLStr                = "vhdl"
+	languageVGLStr                 = "VGL"
+	languageVHDLStr                = "VHDL"
 	languageVimLStr                = "VimL"
 	languageVueJSStr               = "Vue.js"
 	languageXAMLStr                = "XAML"
@@ -1644,7 +1659,7 @@ const (
 	languageTransactSQLChromaStr        = "Transact-SQL"
 	languageTypoScriptHTMLDataChromaStr = "TypoScriptHtmlData"
 	languageTypoScriptCSSDataChromaStr  = "TypoScriptCssData"
-	languageVHDLChromaStr               = "VHDL"
+	languageVerilogChromaStr            = "verilog"
 	languageVueJSChromaStr              = "vue"
 )
 
@@ -2691,16 +2706,26 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageUrbiScript, true
 	case normalizeString(languageUSDStr):
 		return LanguageUSD, true
+	case normalizeString(languageValaStr):
+		return LanguageVala, true
 	case normalizeString(languageVBStr):
 		return LanguageVB, true
 	case normalizeString(languageVBNetStr):
 		return LanguageVBNet, true
+	case normalizeString(languageVBScriptStr):
+		return LanguageVBScript, true
 	case normalizeString(languageVCLStr):
 		return LanguageVCL, true
+	case normalizeString(languageVCLSnippetsStr):
+		return LanguageVCLSnippets, true
+	case normalizeString(languageVCTreeStatusStr):
+		return LanguageVCTreeStatus, true
 	case normalizeString(languageVelocityStr):
 		return LanguageVelocity, true
 	case normalizeString(languageVerilogStr):
 		return LanguageVerilog, true
+	case normalizeString(languageVGLStr):
+		return LanguageVGL, true
 	case normalizeString(languageVHDLStr):
 		return LanguageVHDL, true
 	case normalizeString(languageVimLStr):
@@ -2779,8 +2804,8 @@ func ParseLanguageFromChroma(lexerName string) (Language, bool) {
 		return LanguageTypoScript, true
 	case normalizeString(languageTypoScriptHTMLDataChromaStr):
 		return LanguageTypoScript, true
-	case normalizeString(languageVHDLChromaStr):
-		return LanguageVHDL, true
+	case normalizeString(languageVerilogChromaStr):
+		return LanguageVerilog, true
 	case normalizeString(languageVueJSChromaStr):
 		return LanguageVueJS, true
 	default:
@@ -3855,14 +3880,24 @@ func (l Language) String() string {
 		return languageUrbiScriptStr
 	case LanguageUSD:
 		return languageUSDStr
+	case LanguageVala:
+		return languageValaStr
 	case LanguageVB:
 		return languageVBStr
 	case LanguageVBNet:
 		return languageVBNetStr
+	case LanguageVBScript:
+		return languageVBScriptStr
 	case LanguageVCL:
 		return languageVCLStr
+	case LanguageVCLSnippets:
+		return languageVCLSnippetsStr
+	case LanguageVCTreeStatus:
+		return languageVCTreeStatusStr
 	case LanguageVelocity:
 		return languageVelocityStr
+	case LanguageVGL:
+		return languageVGLStr
 	case LanguageVerilog:
 		return languageVerilogStr
 	case LanguageVHDL:
@@ -3932,8 +3967,8 @@ func (l Language) StringChroma() string {
 		return languageTextChromaStr
 	case LanguageTransactSQL:
 		return languageTransactSQLChromaStr
-	case LanguageVHDL:
-		return languageVHDLChromaStr
+	case LanguageVerilog:
+		return languageVerilogChromaStr
 	case LanguageVueJS:
 		return languageVueJSChromaStr
 	default:
