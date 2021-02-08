@@ -1079,6 +1079,14 @@ const (
 	LanguageVimL
 	// LanguageVueJS represents the VueJS programming language.
 	LanguageVueJS
+	// LanguageWDTE represents the WDTE programming language.
+	LanguageWDTE
+	// LanguageWDiff represents the WDiff programming language.
+	LanguageWDiff
+	// LanguageWebIDL represents the WebIDL programming language.
+	LanguageWebIDL
+	// LanguageWhiley represents the Whiley programming language.
+	LanguageWhiley
 	// LanguageXAML represents the XAML programming language.
 	LanguageXAML
 	// LanguageXML represents the XML programming language.
@@ -1625,6 +1633,10 @@ const (
 	languageVHDLStr                = "VHDL"
 	languageVimLStr                = "VimL"
 	languageVueJSStr               = "Vue.js"
+	languageWDTEStr                = "WDTE"
+	languageWDiffStr               = "WDiff"
+	languageWebIDLStr              = "WebIDL"
+	languageWhileyStr              = "Whiley"
 	languageXAMLStr                = "XAML"
 	languageXMLStr                 = "XML"
 	languageXSLTStr                = "XSLT"
@@ -1661,6 +1673,7 @@ const (
 	languageTypoScriptCSSDataChromaStr  = "TypoScriptCssData"
 	languageVerilogChromaStr            = "verilog"
 	languageVueJSChromaStr              = "vue"
+	languageWebIDLChromaStr             = "Web IDL"
 )
 
 // ParseLanguage parses a language from a string. Will return false
@@ -2732,6 +2745,14 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageVimL, true
 	case normalizeString(languageVueJSStr):
 		return LanguageVueJS, true
+	case normalizeString(languageWDTEStr):
+		return LanguageWDTE, true
+	case normalizeString(languageWDiffStr):
+		return LanguageWDiff, true
+	case normalizeString(languageWebIDLStr):
+		return LanguageWebIDL, true
+	case normalizeString(languageWhileyStr):
+		return LanguageWhiley, true
 	case normalizeString(languageXAMLStr):
 		return LanguageXAML, true
 	case normalizeString(languageXMLStr):
@@ -2808,6 +2829,8 @@ func ParseLanguageFromChroma(lexerName string) (Language, bool) {
 		return LanguageVerilog, true
 	case normalizeString(languageVueJSChromaStr):
 		return LanguageVueJS, true
+	case normalizeString(languageWebIDLChromaStr):
+		return LanguageWebIDL, true
 	default:
 		return ParseLanguage(lexerName)
 	}
@@ -3906,6 +3929,14 @@ func (l Language) String() string {
 		return languageVimLStr
 	case LanguageVueJS:
 		return languageVueJSStr
+	case LanguageWDTE:
+		return languageWDTEStr
+	case LanguageWDiff:
+		return languageWDiffStr
+	case LanguageWebIDL:
+		return languageWebIDLStr
+	case LanguageWhiley:
+		return languageWhileyStr
 	case LanguageXAML:
 		return languageXAMLStr
 	case LanguageXML:
@@ -3971,6 +4002,8 @@ func (l Language) StringChroma() string {
 		return languageVerilogChromaStr
 	case LanguageVueJS:
 		return languageVueJSChromaStr
+	case LanguageWebIDL:
+		return languageWebIDLChromaStr
 	default:
 		return l.String()
 	}

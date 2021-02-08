@@ -544,6 +544,10 @@ func languageTests() map[string]heartbeat.Language {
 		"VHDL":                          heartbeat.LanguageVHDL,
 		"VimL":                          heartbeat.LanguageVimL,
 		"Vue.js":                        heartbeat.LanguageVueJS,
+		"WDTE":                          heartbeat.LanguageWDTE,
+		"WDiff":                         heartbeat.LanguageWDiff,
+		"WebIDL":                        heartbeat.LanguageWebIDL,
+		"Whiley":                        heartbeat.LanguageWhiley,
 		"XAML":                          heartbeat.LanguageXAML,
 		"XML":                           heartbeat.LanguageXML,
 		"XSLT":                          heartbeat.LanguageXSLT,
@@ -648,6 +652,7 @@ func TestParseLanguageFromChroma(t *testing.T) {
 		"TypoScriptHtmlData": heartbeat.LanguageTypoScript,
 		"verilog":            heartbeat.LanguageVerilog,
 		"vue":                heartbeat.LanguageVueJS,
+		"Web IDL":            heartbeat.LanguageWebIDL,
 		// lowercase
 		"zig": heartbeat.LanguageZig,
 		// missing blank space
@@ -686,7 +691,7 @@ func TestParseLanguageFromChroma_AllLexersSupported(t *testing.T) {
 		// language support was already ensured. Has to be adjusted to cover more letters,
 		// once another issue is resolved. Has to be removed finally, once all issues
 		// are done.
-		rgx := regexp.MustCompile(`^[a-vA-V]`)
+		rgx := regexp.MustCompile(`^[a-wA-W]`)
 		if !rgx.MatchString(config.Name) {
 			continue
 		}
@@ -766,6 +771,7 @@ func TestLanguage_StringChroma(t *testing.T) {
 		"systemverilog":   heartbeat.LanguageSystemVerilog,
 		"verilog":         heartbeat.LanguageVerilog,
 		"vue":             heartbeat.LanguageVueJS,
+		"Web IDL":         heartbeat.LanguageWebIDL,
 	}
 
 	for lexerName, language := range tests {
@@ -784,7 +790,7 @@ func TestLanguage_StringChroma_AllLexersSupported(t *testing.T) {
 		// language support was already ensured. Has to be adjust to cover more letters,
 		// once another issue is resolved. Has to be removed finally, once all issues
 		// are done.
-		rgx := regexp.MustCompile(`^[a-vA-V]`)
+		rgx := regexp.MustCompile(`^[a-wA-W]`)
 		if !rgx.MatchString(config.Name) {
 			continue
 		}
