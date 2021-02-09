@@ -571,9 +571,14 @@ func languageTests() map[string]heartbeat.Language {
 		"wisp":                          heartbeat.LanguageWisp,
 		"Wollok":                        heartbeat.LanguageWollok,
 		"World of Warcraft Addon Data":  heartbeat.LanguageWowAddonData,
+		"X10":                           heartbeat.LanguageX10,
 		"XAML":                          heartbeat.LanguageXAML,
 		"XML":                           heartbeat.LanguageXML,
+		"Xorg":                          heartbeat.LanguageXorg,
+		"XQuery":                        heartbeat.LanguageXQuery,
 		"XSLT":                          heartbeat.LanguageXSLT,
+		"Xtend":                         heartbeat.LanguageXtend,
+		"xtlang":                        heartbeat.LanguageXtlang,
 		"YAML":                          heartbeat.LanguageYAML,
 		"Zig":                           heartbeat.LanguageZig,
 	}
@@ -715,7 +720,7 @@ func TestParseLanguageFromChroma_AllLexersSupported(t *testing.T) {
 		// language support was already ensured. Has to be adjusted to cover more letters,
 		// once another issue is resolved. Has to be removed finally, once all issues
 		// are done.
-		rgx := regexp.MustCompile(`^[a-wA-W]`)
+		rgx := regexp.MustCompile(`^[a-xA-X]`)
 		if !rgx.MatchString(config.Name) {
 			continue
 		}
@@ -815,7 +820,7 @@ func TestLanguage_StringChroma_AllLexersSupported(t *testing.T) {
 		// language support was already ensured. Has to be adjust to cover more letters,
 		// once another issue is resolved. Has to be removed finally, once all issues
 		// are done.
-		rgx := regexp.MustCompile(`^[a-wA-W]`)
+		rgx := regexp.MustCompile(`^[a-xA-X]`)
 		if !rgx.MatchString(config.Name) {
 			continue
 		}

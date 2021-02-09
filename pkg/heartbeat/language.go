@@ -1133,12 +1133,22 @@ const (
 	LanguageWollok
 	// LanguageWowAddonData represents the WowAddonData programming language.
 	LanguageWowAddonData
+	// LanguageX10 represents the X10 programming language.
+	LanguageX10
 	// LanguageXAML represents the XAML programming language.
 	LanguageXAML
 	// LanguageXML represents the XML programming language.
 	LanguageXML
+	// LanguageXorg represents the Xorg programming language.
+	LanguageXorg
+	// LanguageXQuery represents the XQuery programming language.
+	LanguageXQuery
 	// LanguageXSLT represents the XSLT programming language.
 	LanguageXSLT
+	// LanguageXtend represents the Xtend programming language.
+	LanguageXtend
+	// LanguageXtlang represents the Xtlang programming language.
+	LanguageXtlang
 	// LanguageYAML represents the YAML programming language.
 	LanguageYAML
 	// LanguageZig represents the Zig programming language.
@@ -1706,9 +1716,14 @@ const (
 	languageWispStr                   = "wisp"
 	languageWollokStr                 = "Wollok"
 	languageWowAddonDataStr           = "World of Warcraft Addon Data"
+	languageX10Str                    = "X10"
 	languageXAMLStr                   = "XAML"
 	languageXMLStr                    = "XML"
+	languageXorgStr                   = "Xorg"
+	languageXQueryStr                 = "XQuery"
 	languageXSLTStr                   = "XSLT"
+	languageXtendStr                  = "Xtend"
+	languageXtlangStr                 = "xtlang"
 	languageYAMLStr                   = "YAML"
 	languageZigStr                    = "Zig"
 )
@@ -2869,12 +2884,22 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageWollok, true
 	case normalizeString(languageWowAddonDataStr):
 		return LanguageWowAddonData, true
+	case normalizeString(languageX10Str):
+		return LanguageX10, true
 	case normalizeString(languageXAMLStr):
 		return LanguageXAML, true
 	case normalizeString(languageXMLStr):
 		return LanguageXML, true
+	case normalizeString(languageXorgStr):
+		return LanguageXorg, true
+	case normalizeString(languageXQueryStr):
+		return LanguageXQuery, true
 	case normalizeString(languageXSLTStr):
 		return LanguageXSLT, true
+	case normalizeString(languageXtendStr):
+		return LanguageXtend, true
+	case normalizeString(languageXtlangStr):
+		return LanguageXtlang, true
 	case normalizeString(languageYAMLStr):
 		return LanguageYAML, true
 	case normalizeString(languageZigStr):
@@ -4101,12 +4126,22 @@ func (l Language) String() string {
 		return languageWollokStr
 	case LanguageWowAddonData:
 		return languageWowAddonDataStr
+	case LanguageX10:
+		return languageX10Str
 	case LanguageXAML:
 		return languageXAMLStr
 	case LanguageXML:
 		return languageXMLStr
+	case LanguageXorg:
+		return languageXorgStr
+	case LanguageXQuery:
+		return languageXQueryStr
 	case LanguageXSLT:
 		return languageXSLTStr
+	case LanguageXtend:
+		return languageXtendStr
+	case LanguageXtlang:
+		return languageXtlangStr
 	case LanguageYAML:
 		return languageYAMLStr
 	case LanguageZig:
