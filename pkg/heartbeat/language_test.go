@@ -282,9 +282,9 @@ func languageTestsChroma() map[string]heartbeat.Language {
 		"ApacheConf":      heartbeat.LanguageApacheConfig,
 		"GAS":             heartbeat.LanguageAssembly,
 		"Coldfusion HTML": heartbeat.LanguageColdfusionHTML,
+		"EmacsLisp":       heartbeat.LanguageEmacsLisp,
 		"FSharp":          heartbeat.LanguageFSharp,
 		"Gosu Template":   heartbeat.LanguageGosu,
-		"EmacsLisp":       heartbeat.LanguageEmacsLisp,
 		"react":           heartbeat.LanguageJSX,
 		"LessCss":         heartbeat.LanguageLess,
 		"Base Makefile":   heartbeat.LanguageMakefile,
@@ -442,6 +442,14 @@ func TestLanguage_String(t *testing.T) {
 	for value, language := range languageTests() {
 		t.Run(value, func(t *testing.T) {
 			assert.Equal(t, value, language.String())
+		})
+	}
+}
+
+func TestLanguage_StringChroma(t *testing.T) {
+	for value, language := range languageTestsChroma() {
+		t.Run(value, func(t *testing.T) {
+			assert.Equal(t, value, language.StringChroma())
 		})
 	}
 }

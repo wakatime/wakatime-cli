@@ -798,9 +798,9 @@ const (
 	languageApacheConfigChromaStr   = "ApacheConf"
 	languageAssemblyChromaStr       = "GAS"
 	languageColdfusionHTMLChromaStr = "Coldfusion HTML"
+	languageEmacsLispChromaStr      = "EmacsLisp"
 	languageFSharpChromaStr         = "FSharp"
 	languageGosuChromaStr           = "Gosu Template"
-	languageEmacsLispChromaStr      = "EmacsLisp"
 	languageJSXChromaStr            = "react"
 	languageLessChromaStr           = "LessCss"
 	languageMakefileChromaStr       = "Base Makefile"
@@ -1930,6 +1930,8 @@ func (l Language) String() string {
 // nolint:gocyclo
 func (l Language) StringChroma() string {
 	switch l {
+	case LanguageApacheConfig:
+		return languageApacheConfigChromaStr
 	case LanguageAssembly:
 		return languageAssemblyChromaStr
 	case LanguageColdfusionHTML:
