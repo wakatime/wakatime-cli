@@ -1153,6 +1153,10 @@ const (
 	LanguageYAML
 	// LanguageYANG represents the YANG programming language.
 	LanguageYANG
+	// LanguageZeek represents the Zeek programming language.
+	LanguageZeek
+	// LanguageZephir represents the Zephir programming language.
+	LanguageZephir
 	// LanguageZig represents the Zig programming language.
 	LanguageZig
 )
@@ -1728,6 +1732,8 @@ const (
 	languageXtlangStr                 = "xtlang"
 	languageYAMLStr                   = "YAML"
 	languageYANGStr                   = "YANG"
+	languageZeekStr                   = "Zeek"
+	languageZephirStr                 = "Zephir"
 	languageZigStr                    = "Zig"
 )
 
@@ -2907,6 +2913,10 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageYAML, true
 	case normalizeString(languageYANGStr):
 		return LanguageYANG, true
+	case normalizeString(languageZeekStr):
+		return LanguageZeek, true
+	case normalizeString(languageZephirStr):
+		return LanguageZephir, true
 	case normalizeString(languageZigStr):
 		return LanguageZig, true
 	default:
@@ -4151,6 +4161,10 @@ func (l Language) String() string {
 		return languageYAMLStr
 	case LanguageYANG:
 		return languageYANGStr
+	case LanguageZeek:
+		return languageZeekStr
+	case LanguageZephir:
+		return languageZephirStr
 	case LanguageZig:
 		return languageZigStr
 	default:

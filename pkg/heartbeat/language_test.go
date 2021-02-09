@@ -581,6 +581,8 @@ func languageTests() map[string]heartbeat.Language {
 		"xtlang":                        heartbeat.LanguageXtlang,
 		"YAML":                          heartbeat.LanguageYAML,
 		"YANG":                          heartbeat.LanguageYANG,
+		"Zeek":                          heartbeat.LanguageZeek,
+		"Zephir":                        heartbeat.LanguageZephir,
 		"Zig":                           heartbeat.LanguageZig,
 	}
 }
@@ -721,7 +723,7 @@ func TestParseLanguageFromChroma_AllLexersSupported(t *testing.T) {
 		// language support was already ensured. Has to be adjusted to cover more letters,
 		// once another issue is resolved. Has to be removed finally, once all issues
 		// are done.
-		rgx := regexp.MustCompile(`^[a-yA-Y]`)
+		rgx := regexp.MustCompile(`^[a-zA-Z]`)
 		if !rgx.MatchString(config.Name) {
 			continue
 		}
@@ -821,7 +823,7 @@ func TestLanguage_StringChroma_AllLexersSupported(t *testing.T) {
 		// language support was already ensured. Has to be adjust to cover more letters,
 		// once another issue is resolved. Has to be removed finally, once all issues
 		// are done.
-		rgx := regexp.MustCompile(`^[a-yA-Y]`)
+		rgx := regexp.MustCompile(`^[a-zA-Z]`)
 		if !rgx.MatchString(config.Name) {
 			continue
 		}
