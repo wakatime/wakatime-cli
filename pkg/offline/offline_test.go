@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -53,6 +54,41 @@ func initDB(t *testing.T) (*sql.DB, func()) {
 
 	return conn, func() {
 		os.Remove(f.Name())
+	}
+}
+
+func TestQueueFilepath(t *testing.T) {
+	home, err := os.UserHomeDir()
+	require.NoError(t, err)
+
+	tests := map[string]struct {
+		ViperValue string
+		EnvVar     string
+		Expected   string
+	}{
+		"default": {
+			Expected: filepath.Join(home, ".wakatime.db"),
+		},
+		"env_trailling_slash": {
+			EnvVar:   "~/path2/",
+			Expected: filepath.Join(home, "path2", ".wakatime.db"),
+		},
+		"env_without_trailling_slash": {
+			EnvVar:   "~/path2",
+			Expected: filepath.Join(home, "path2", ".wakatime.db"),
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			err := os.Setenv("WAKATIME_HOME", test.EnvVar)
+			require.NoError(t, err)
+
+			queueFilepath, err := offline.QueueFilepath()
+			require.NoError(t, err)
+
+			assert.Equal(t, test.Expected, queueFilepath)
+		})
 	}
 }
 
