@@ -62,6 +62,7 @@ func languageTests() map[string]heartbeat.Language {
 		"Befunge":                     heartbeat.LanguageBefunge,
 		"BibTeX":                      heartbeat.LanguageBibTeX,
 		"Blade Template":              heartbeat.LanguageBladeTemplate,
+		"Blazor":                      heartbeat.LanguageBlazor,
 		"BlitzBasic":                  heartbeat.LanguageBlitzBasic,
 		"BlitzMax":                    heartbeat.LanguageBlitzMax,
 		"BNF":                         heartbeat.LanguageBNF,
