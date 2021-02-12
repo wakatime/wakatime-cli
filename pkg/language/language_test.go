@@ -354,7 +354,6 @@ func TestDetect_ChromaTopLanguagesRetrofit(t *testing.T) {
 			Filepaths: []string{
 				"path/to/file.gs",
 				"path/to/file.gsp",
-				"path/to/file.gst",
 				"path/to/file.gsx",
 				"path/to/file.vark",
 			},

@@ -1319,7 +1319,6 @@ const (
 	languageEmacsLispChromaStr      = "EmacsLisp"
 	languageGoHTMLTemplateChromaStr = "Go HTML Template"
 	languageGoTextTemplateChromaStr = "Go Text Template"
-	languageGosuTemplateChromaStr   = "Gosu Template"
 	languageJSXChromaStr            = "react"
 	languageLessChromaStr           = "LessCss"
 	languageLiquidChromaStr         = "liquid"
@@ -2223,8 +2222,6 @@ func ParseLanguageFromChroma(lexerName string) (Language, bool) {
 		return LanguageGo, true
 	case normalizeString(languageGoTextTemplateChromaStr):
 		return LanguageGo, true
-	case normalizeString(languageGosuTemplateChromaStr):
-		return LanguageGosu, true
 	case normalizeString(languageFSharpChromaStr):
 		return LanguageFSharp, true
 	case normalizeString(languageJSXChromaStr):

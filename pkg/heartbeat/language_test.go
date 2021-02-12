@@ -521,7 +521,6 @@ func TestParseLanguageFromChroma(t *testing.T) {
 		"Go Text Template": heartbeat.LanguageGo,
 		"FSharp":           heartbeat.LanguageFSharp,
 		"GAS":              heartbeat.LanguageAssembly,
-		"Gosu Template":    heartbeat.LanguageGosu,
 		"LessCss":          heartbeat.LanguageLess,
 		"liquid":           heartbeat.LanguageLiquid,
 		"markdown":         heartbeat.LanguageMarkdown,
