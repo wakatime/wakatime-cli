@@ -3155,6 +3155,8 @@ func (l Language) String() string {
 // nolint:gocyclo
 func (l Language) StringChroma() string {
 	switch l {
+	case LanguageApacheConfig:
+		return languageApacheConfigChromaStr
 	case LanguageAssembly:
 		return languageAssemblyChromaStr
 	case LanguageColdfusionHTML:
@@ -3167,12 +3169,22 @@ func (l Language) StringChroma() string {
 		return languageJSXChromaStr
 	case LanguageLess:
 		return languageLessChromaStr
+	case LanguageLiquid:
+		return languageLiquidChromaStr
 	case LanguageMakefile:
 		return languageMakefileChromaStr
 	case LanguageMarkdown:
 		return languageMarkdownChromaStr
 	case LanguageNewLisp:
 		return languageNewLispChromaStr
+	case LanguageNimrod:
+		return languageNimrodChromaStr
+	case LanguageOrg:
+		return languageOrgChromaStr
+	case LanguageSwig:
+		return languageSWIGChromaStr
+	case LanguageSystemVerilog:
+		return languageSystemVerilogChromaStr
 	case LanguageText:
 		return languageTextChromaStr
 	case LanguageVHDL:

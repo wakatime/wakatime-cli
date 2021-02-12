@@ -571,13 +571,8 @@ func TestParseLanguageFromChroma_AllLexersSupported(t *testing.T) {
 		// letters. Currently only lexers are tested, which start with letters, where
 		// language support was already ensured. Has to be adjusted to cover more letters,
 		// once another issue is resolved. Has to be removed finally, once all issues
-		// are done. Issues:
-		// - https://github.com/wakatime/wakatime-cli/issues/232
-		// - https://github.com/wakatime/wakatime-cli/issues/233
-		// - https://github.com/wakatime/wakatime-cli/issues/234
-		// - https://github.com/wakatime/wakatime-cli/issues/238
-		// - https://github.com/wakatime/wakatime-cli/issues/239
-		rgx := regexp.MustCompile(`^[a-lsA-LS]`)
+		// are done.
+		rgx := regexp.MustCompile(`^[a-osA-OS]`)
 		if !rgx.MatchString(config.Name) {
 			continue
 		}
@@ -631,4 +626,63 @@ func TestLanguage_String(t *testing.T) {
 
 func TestLanguage_String_UnknownLanguage(t *testing.T) {
 	assert.Equal(t, "Unknown", heartbeat.LanguageUnknown.String())
+}
+
+func TestLanguage_StringChroma(t *testing.T) {
+	tests := map[string]heartbeat.Language{
+		"ApacheConf":      heartbeat.LanguageApacheConfig,
+		"Base Makefile":   heartbeat.LanguageMakefile,
+		"Coldfusion HTML": heartbeat.LanguageColdfusionHTML,
+		"EmacsLisp":       heartbeat.LanguageEmacsLisp,
+		"GAS":             heartbeat.LanguageAssembly,
+		"FSharp":          heartbeat.LanguageFSharp,
+		"Go":              heartbeat.LanguageGo,
+		"LessCss":         heartbeat.LanguageLess,
+		"liquid":          heartbeat.LanguageLiquid,
+		"markdown":        heartbeat.LanguageMarkdown,
+		"Nim":             heartbeat.LanguageNimrod,
+		"Org Mode":        heartbeat.LanguageOrg,
+		"plaintext":       heartbeat.LanguageText,
+		"react":           heartbeat.LanguageJSX,
+		"SWIG":            heartbeat.LanguageSwig,
+		"systemverilog":   heartbeat.LanguageSystemVerilog,
+		"VHDL":            heartbeat.LanguageVHDL,
+		"vue":             heartbeat.LanguageVueJS,
+	}
+
+	for lexerName, language := range tests {
+		t.Run(lexerName, func(t *testing.T) {
+			assert.Equal(t, lexerName, language.StringChroma())
+		})
+	}
+}
+
+func TestLanguage_StringChroma_AllLexersSupported(t *testing.T) {
+	for _, lexer := range lexers.Registry.Lexers {
+		config := lexer.Config()
+
+		// TODO: This condition restricts testing to lexers starting with particular
+		// letters. Currently only lexers are testsed, which start with letters, where
+		// language support was already ensured. Has to be adjust to cover more letters,
+		// once another issue is resolved. Has to be removed finally, once all issues
+		// are done.
+		rgx := regexp.MustCompile(`^[a-osA-OS]`)
+		if !rgx.MatchString(config.Name) {
+			continue
+		}
+
+		// We evaluate the following lexers to Go, thus they're ignored here.
+		if config.Name == "Go HTML Template" || config.Name == "Go Text Template" {
+			continue
+		}
+
+		parsed, ok := heartbeat.ParseLanguageFromChroma(config.Name)
+		require.True(t, ok, fmt.Sprintf("Failed parsing language from lexer %q", config.Name))
+		require.NotEqual(t, heartbeat.LanguageUnknown, parsed, fmt.Sprintf(
+			"Parsed language.Unknown. Failed parsing language from lexer %q",
+			config.Name,
+		))
+
+		assert.Equal(t, config.Name, parsed.StringChroma())
+	}
 }
