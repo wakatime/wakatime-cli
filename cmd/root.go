@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
+	"gopkg.in/ini.v1"
 )
 
 const (
@@ -24,7 +25,8 @@ const (
 
 // NewRootCMD creates a rootCmd, which represents the base command when called without any subcommands.
 func NewRootCMD() *cobra.Command {
-	v := viper.GetViper()
+	multilineOption := viper.IniLoadOptions(ini.LoadOptions{AllowPythonMultilineValues: true})
+	v := viper.NewWithOptions(multilineOption)
 	cmd := &cobra.Command{
 		Use:   "wakatime-cli",
 		Short: "Command line interface used by all WakaTime text editor plugins.",

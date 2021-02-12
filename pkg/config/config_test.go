@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/wakatime/wakatime-cli/pkg/config"
@@ -26,6 +27,22 @@ func TestReadInConfig(t *testing.T) {
 	assert.Equal(t, "b9485572-74bf-419a-916b-22056ca3a24c", v.GetString("settings.api_key"))
 	assert.Equal(t, "true", v.GetString("settings.debug"))
 	assert.Equal(t, "true", v.GetString("test.pandemia"))
+}
+
+func TestReadInConfig_Multiline(t *testing.T) {
+	multilineOption := viper.IniLoadOptions(ini.LoadOptions{AllowPythonMultilineValues: true})
+	v := viper.NewWithOptions(multilineOption)
+	err := config.ReadInConfig(v, func(vp *viper.Viper) (string, error) {
+		assert.Equal(t, v, vp)
+		return "testdata/wakatime-multiline.cfg", nil
+	})
+	require.NoError(t, err)
+
+	ignoreConfig := strings.ReplaceAll(v.GetString("settings.ignore"), "\r", "")
+	assert.Equal(t, "\nCOMMIT_EDITMSG$\nPULLREQ_EDITMSG$\nMERGE_MSG$\nTAG_EDITMSG$", ignoreConfig)
+
+	gitConfig := strings.ReplaceAll(v.GetString("git.submodules_disabled"), "\r", "")
+	assert.Equal(t, "\n.*secret.*\nfix.*", gitConfig)
 }
 
 func TestReadInConfig_DoesNotExit_NoError(t *testing.T) {
