@@ -912,7 +912,7 @@ const (
 	languageAutoconfStr            = "Autoconf"
 	languageAutoHotkeyStr          = "AutoHotkey"
 	languageAutoItStr              = "AutoIt"
-	languageAwkStr                 = "AWK"
+	languageAwkStr                 = "Awk"
 	languageBallerinaStr           = "Ballerina"
 	languageBAREStr                = "BARE"
 	languageBashStr                = "Bash"

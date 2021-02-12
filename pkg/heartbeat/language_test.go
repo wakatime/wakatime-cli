@@ -48,7 +48,7 @@ func languageTests() map[string]heartbeat.Language {
 		"Autoconf":                    heartbeat.LanguageAutoconf,
 		"AutoHotkey":                  heartbeat.LanguageAutoHotkey,
 		"AutoIt":                      heartbeat.LanguageAutoIt,
-		"AWK":                         heartbeat.LanguageAwk,
+		"Awk":                         heartbeat.LanguageAwk,
 		"Ballerina":                   heartbeat.LanguageBallerina,
 		"BARE":                        heartbeat.LanguageBARE,
 		"Bash":                        heartbeat.LanguageBash,
