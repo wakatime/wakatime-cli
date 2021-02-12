@@ -148,6 +148,8 @@ github.com/mitchellh/iochan v1.0.0/go.mod h1:JwYml1nuB7xOzsp52dPpHFffvOCDupsG0Qu
 github.com/mitchellh/mapstructure v0.0.0-20160808181253-ca63d7c062ee/go.mod h1:FVVH3fgwuzCH5S8UJGiWEs2h04kUh9fWfEaFds41c1Y=
 github.com/mitchellh/mapstructure v1.1.2 h1:fmNYVwqnSfB9mZU6OS2O6GsXM+wcskZDuKQzvN1EDeE=
 github.com/mitchellh/mapstructure v1.1.2/go.mod h1:FVVH3fgwuzCH5S8UJGiWEs2h04kUh9fWfEaFds41c1Y=
+github.com/mitchellh/mapstructure v1.3.3 h1:SzB1nHZ2Xi+17FP0zVQBHIZqvwRN9408fJO8h+eeNA8=
+github.com/mitchellh/mapstructure v1.3.3/go.mod h1:bFUtVrKA4DC2yAKiSyO/QUcy7e+RRV2QTWOzhPopBRo=
 github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd/go.mod h1:6dJC0mAP4ikYIbvyc7fijjWJddQyLn8Ig3JB5CqoB9Q=
 github.com/modern-go/reflect2 v1.0.1/go.mod h1:bx2lNnkwVCuqBIxFjflWJWanXIb3RllmbCylyMrvgv0=
 github.com/mwitkow/go-conntrack v0.0.0-20161129095857-cc309e4a2223/go.mod h1:qRWi+5nqEBWmkhHvq77mSJWrCKwh8bxhgT7d/eI7P4U=
@@ -217,6 +219,10 @@ github.com/subosito/gotenv v1.2.0/go.mod h1:N0PQaV/YGNqwC0u51sEeR/aUtSLEXKX9iv69
 github.com/tmc/grpc-websocket-proxy v0.0.0-20190109142713-0ad062ec5ee5/go.mod h1:ncp9v5uamzpCO7NfCPTXjqaC+bZgJeR0sMTm6dMHP7U=
 github.com/wakatime/chroma v0.8.2-wakatime.3 h1:J/gf6+mW7FmJ653vgU+7zxuN2qzwAU3KNtyIkfDgezI=
 github.com/wakatime/chroma v0.8.2-wakatime.3/go.mod h1:Mldbmbb8NHiOz8oC1HKR8xUQ0EPvAjZpKDyQl2nGrnQ=
+github.com/wakatime/viper v1.7.1-0.20201207195845-0f8f81cd69d4 h1:EGM67Sbu2ekEK6lQZXoCjw5KLPcZn/yD3yDXJdTu8t4=
+github.com/wakatime/viper v1.7.1-0.20201207195845-0f8f81cd69d4/go.mod h1:3sfV/eQm/hLQ0tQ24YjZmGp6Jm+yPGAmxexB8s0KatU=
+github.com/wakatime/viper v1.7.1-0.20210127133619-3adac62bd70f h1:l7cFA661os7j0s1Ub+jJ2Y9icZhfEGXXNa3/D8CFsMg=
+github.com/wakatime/viper v1.7.1-0.20210127133619-3adac62bd70f/go.mod h1:3sfV/eQm/hLQ0tQ24YjZmGp6Jm+yPGAmxexB8s0KatU=
 github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2/go.mod h1:UETIi67q53MR2AWcXfiuqkDkRtnGDLqkBTpCHuJHxtU=
 github.com/yookoala/realpath v1.0.0 h1:7OA9pj4FZd+oZDsyvXWQvjn5oBdcHRTV44PpdMSuImQ=
 github.com/yookoala/realpath v1.0.0/go.mod h1:gJJMA9wuX7AcqLy1+ffPatSCySA1FQ2S8Ya9AIoYBpE=
