@@ -105,6 +105,8 @@ const (
 	LanguageBibTeX
 	// LanguageBladeTemplate represents the BladeTemplate programming language.
 	LanguageBladeTemplate
+	// LanguageBlazor represent the Blazor programming language.
+	LanguageBlazor
 	// LanguageBlitzBasic represents the BlitzBasic programming language.
 	LanguageBlitzBasic
 	// LanguageBlitzMax represents the BlitzMax programming language.
@@ -758,6 +760,7 @@ const (
 	languageBefungeStr             = "Befunge"
 	languageBibTeXStr              = "BibTeX"
 	languageBladeTemplateStr       = "Blade Template"
+	languageBlazorStr              = "Blazor"
 	languageBlitzBasicStr          = "BlitzBasic"
 	languageBlitzMaxStr            = "BlitzMax"
 	languageBNFStr                 = "BNF"
@@ -1177,6 +1180,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageBibTeX, true
 	case normalizeString(languageBladeTemplateStr):
 		return LanguageBladeTemplate, true
+	case normalizeString(languageBlazorStr):
+		return LanguageBlazor, true
 	case normalizeString(languageBlitzBasicStr):
 		return LanguageBlitzBasic, true
 	case normalizeString(languageBlitzMaxStr):
@@ -1945,6 +1950,8 @@ func (l Language) String() string {
 		return languageBibTeXStr
 	case LanguageBladeTemplate:
 		return languageBladeTemplateStr
+	case LanguageBlazor:
+		return languageBlazorStr
 	case LanguageBlitzBasic:
 		return languageBlitzBasicStr
 	case LanguageBlitzMax:
