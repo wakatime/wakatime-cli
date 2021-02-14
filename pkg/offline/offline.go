@@ -16,27 +16,28 @@ import (
 )
 
 const (
-	tableName = "heartbeat_2"
+	tableName  = "heartbeat_2"
+	dbFilename = ".wakatime.db"
 )
 
-// QueueFilepath returns the path to the offline queue db file.
+// QueueFilepath returns the path for offline queue db file.
 func QueueFilepath() (string, error) {
-	dir := os.Getenv("WAKATIME_HOME")
-
-	var err error
-	if dir == "" {
-		dir, err = os.UserHomeDir()
+	home, exists := os.LookupEnv("WAKATIME_HOME")
+	if exists && home != "" {
+		p, err := homedir.Expand(home)
 		if err != nil {
-			return "", fmt.Errorf("failed to retrieve user's home dir: %s", err)
+			return "", fmt.Errorf("failed parsing WAKATIME_HOME environment variable: %s", err)
 		}
+
+		return filepath.Join(p, dbFilename), nil
 	}
 
-	expanded, err := homedir.Expand(dir)
+	home, err := os.UserHomeDir()
 	if err != nil {
-		return "", fmt.Errorf("failed to expand offline queue folder path: %s", err)
+		return "", fmt.Errorf("failed getting user's home directory: %s", err)
 	}
 
-	return filepath.Join(expanded, ".wakatime.db"), nil
+	return filepath.Join(home, dbFilename), nil
 }
 
 // WithQueue initializes and returns a heartbeat handle option, which can be
