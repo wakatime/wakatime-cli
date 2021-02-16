@@ -110,6 +110,7 @@ func TestParse(t *testing.T) {
 		"sgml":             heartbeat.LanguageSGML,
 		"shell":            heartbeat.LanguageShell,
 		"simula":           heartbeat.LanguageSimula,
+		"skill":            heartbeat.LanguageSKILL,
 		"slim":             heartbeat.LanguageSlim,
 		"smalltalk":        heartbeat.LanguageSmalltalk,
 		"smime":            heartbeat.LanguageSMIME,
