@@ -551,26 +551,122 @@ const (
 	LanguageMako
 	// LanguageMan represents the Man programming language.
 	LanguageMan
+	// LanguageMAQL represents the MAQL programming language.
+	LanguageMAQL
 	// LanguageMarkdown represents the Markdown programming language.
 	LanguageMarkdown
 	// LanguageMarko represents the Marko programming language.
 	LanguageMarko
+	// LanguageMask represents the Mask programming language.
+	LanguageMask
+	// LanguageMason represents the Mason programming language.
+	LanguageMason
+	// LanguageMathematica represents the Mathematica programming language.
+	LanguageMathematica
 	// LanguageMatlab represents the Matlab programming language.
 	LanguageMatlab
+	// LanguageMatlabSession represents the MatlabSession programming language.
+	LanguageMatlabSession
+	// LanguageMax represents the Max programming language.
+	LanguageMax
+	// LanguageMaxMSP represents the MaxMSP programming language.
+	LanguageMaxMSP
+	// LanguageMeson represents the Meson programming language.
+	LanguageMeson
 	// LanguageMetafont represents the Metafont programming language.
 	LanguageMetafont
 	// LanguageMetapost represents the Metapost programming language.
 	LanguageMetapost
+	// LanguageMIME represents the MIME programming language.
+	LanguageMIME
+	// LanguageMiniD represents the MiniD programming language.
+	LanguageMiniD
+	// LanguageMiniScript represents the MiniScript programming language.
+	LanguageMiniScript
+	// LanguageMiniZinc represents the MiniZinc programming language.
+	LanguageMiniZinc
+	// LanguageMirah represents the Mirah programming language.
+	LanguageMirah
+	// LanguageMLIR represents the MLIR programming language.
+	LanguageMLIR
 	// LanguageModelica represents the Modelica programming language.
 	LanguageModelica
 	// LanguageModula2 represents the Modula2 programming language.
 	LanguageModula2
+	// LanguageMoinWiki represents the MoinWiki programming language.
+	LanguageMoinWiki
+	// LanguageMonkey represents the Monkey programming language.
+	LanguageMonkey
+	// LanguageMonkeyC represents the MonkeyC programming language.
+	LanguageMonkeyC
+	// LanguageMonte represents the Monte programming language.
+	LanguageMonte
+	// LanguageMOOCode represents the MOOCode programming language.
+	LanguageMOOCode
+	// LanguageMoonScript represents the MoonScript programming language.
+	LanguageMoonScript
+	// LanguageMorrowindScript represents the MorrowindScript programming language.
+	LanguageMorrowindScript
+	// LanguageMosel represents the Mosel programming language.
+	LanguageMosel
+	// LanguageMozPreprocHash represents the MozPreprocHash programming language.
+	LanguageMozPreprocHash
+	// LanguageMozPreprocPercent represents the MozPreprocPercent programming language.
+	LanguageMozPreprocPercent
+	// LanguageMQL represents the MQL programming language.
+	LanguageMQL
+	// LanguageMscgen represents the Mscgen programming language.
+	LanguageMscgen
+	// LanguageMSDOSSession represents the MSDOSSession programming language.
+	LanguageMSDOSSession
+	// LanguageMuPAD represents the MuPAD programming language.
+	LanguageMuPAD
+	// LanguageMXML represents the MXML programming language.
+	LanguageMXML
+	// LanguageMyghty represents the Myghty programming language.
+	LanguageMyghty
+	// LanguageMySQL represents the MySQL programming language.
+	LanguageMySQL
 	// LanguageMustache represents the Mustache programming language.
 	LanguageMustache
+	// LanguageNASM represents the NASM programming language.
+	LanguageNASM
+	// LanguageNASMObjdump represents the NASMObjdump programming language.
+	LanguageNASMObjdump
+	// LanguageNCL represents the NCL programming language.
+	LanguageNCL
+	// LanguageNemerle represents the Nemerle programming language.
+	LanguageNemerle
+	// LanguageNeon represents the Neon programming language.
+	LanguageNeon
+	// LanguageNesC represents the NesC programming language.
+	LanguageNesC
 	// LanguageNewLisp represents the NewLisp programming language.
 	LanguageNewLisp
+	// LanguageNewspeak represents the Newspeak programming language.
+	LanguageNewspeak
+	// LanguageNginx represents the Nginx programming language.
+	LanguageNginx
+	// LanguageNginxConfig represents the NginxConfig programming language.
+	LanguageNginxConfig
+	// LanguageNimrod represents the Nimrod programming language.
+	LanguageNimrod
+	// LanguageNit represents the Nit programming language.
+	LanguageNit
 	// LanguageNix represents the Nix programming language.
 	LanguageNix
+	// LanguageNotmuch represents the Notmuch programming language.
+	LanguageNotmuch
+	// LanguageNSIS represents the NSIS programming language.
+	LanguageNSIS
+	// LanguageNu represents the Nu programming language.
+	LanguageNu
+	// LanguageNumPy represents the NumPy programming language.
+	LanguageNumPy
+	// LanguageNuSMV represents the NuSMV programming language.
+	LanguageNuSMV
+	// LanguageObjdump represents the Objdump programming language.
+	LanguageObjdump
 	// LanguageObjectiveC represents the ObjectiveC programming language.
 	LanguageObjectiveC
 	// LanguageObjectiveCPP represents the ObjectiveC++ programming language.
@@ -579,6 +675,18 @@ const (
 	LanguageObjectiveJ
 	// LanguageOCaml represents the OCaml programming language.
 	LanguageOCaml
+	// LanguageOctave represents the Octave programming language.
+	LanguageOctave
+	// LanguageODIN represents the ODIN programming language.
+	LanguageODIN
+	// LanguageOoc represents the Ooc programming language.
+	LanguageOoc
+	// LanguageOpa represents the Opa programming language.
+	LanguageOpa
+	// LanguageOpenEdgeABL represents the OpenEdgeABL programming language.
+	LanguageOpenEdgeABL
+	// LanguageOpenSCAD represents the OpenSCAD programming language.
+	LanguageOpenSCAD
 	// LanguageOrg represents the Org programming language.
 	LanguageOrg
 	// LanguagePascal represents the Pascal programming language.
@@ -981,20 +1089,74 @@ const (
 	languageMakefileStr            = "Makefile"
 	languageMakoStr                = "Mako"
 	languageManStr                 = "Man"
+	languageMAQLStr                = "MAQL"
 	languageMarkdownStr            = "Markdown"
 	languageMarkoStr               = "Marko"
+	languageMaskStr                = "Mask"
+	languageMasonStr               = "Mason"
+	languageMathematicaStr         = "Mathematica"
 	languageMatlabStr              = "Matlab"
+	languageMatlabSessionStr       = "Matlab session"
+	languageMaxStr                 = "Max"
+	languageMaxMSPStr              = "Max/MSP"
+	languageMesonStr               = "Meson"
 	languageMetafontStr            = "Metafont"
 	languageMetapostStr            = "Metapost"
+	languageMIMEStr                = "MIME"
+	languageMiniDStr               = "MiniD"
+	languageMiniScriptStr          = "MiniScript"
+	languageMiniZincStr            = "MiniZinc"
+	languageMirahStr               = "Mirah"
+	languageMLIRStr                = "MLIR"
 	languageModelicaStr            = "Modelica"
 	languageModula2Str             = "Modula-2"
+	languageMoinWikiStr            = "MoinMoin/Trac Wiki markup"
+	languageMonkeyStr              = "Monkey"
+	languageMonkeyCStr             = "MonkeyC"
+	languageMonteStr               = "Monte"
+	languageMOOCodeStr             = "MOOCode"
+	languageMoonScriptStr          = "MoonScript"
+	languageMorrowindScriptStr     = "MorrowindScript"
+	languageMoselStr               = "Mosel"
+	languageMozPreprocHashStr      = "mozhashpreproc"
+	languageMozPreprocPercentStr   = "mozpercentpreproc"
+	languageMQLStr                 = "MQL"
 	languageMustacheStr            = "Mustache"
-	languageNewLispStr             = "NewLisp"
+	languageMscgenStr              = "Mscgen"
+	languageMSDOSSessionStr        = "MSDOS Session"
+	languageMuPADStr               = "MuPAD"
+	languageMXMLStr                = "MXML"
+	languageMyghtyStr              = "Myghty"
+	languageMySQLStr               = "MySQL"
+	languageNASMStr                = "NASM"
+	languageNASMObjdumpStr         = "objdump-nasm"
+	languageNCLStr                 = "NCL"
+	languageNemerleStr             = "Nemerle"
+	languageNeonStr                = "Neon"
+	languageNesCStr                = "nesC"
+	languageNewLispStr             = "newLisp"
+	languageNewspeakStr            = "Newspeak"
+	languageNginxStr               = "Nginx"
+	languageNginxConfigStr         = "Nginx configuration file"
+	languageNimrodStr              = "Nimrod"
+	languageNitStr                 = "Nit"
 	languageNixStr                 = "Nix"
+	languageNotmuchStr             = "Notmuch"
+	languageNSISStr                = "NSIS"
+	languageNuStr                  = "Nu"
+	languageNumPyStr               = "NumPy"
+	languageNuSMVStr               = "NuSMV"
+	languageObjdumpStr             = "objdump"
 	languageObjectiveCStr          = "Objective-C"
 	languageObjectiveCPPStr        = "Objective-C++"
 	languageObjectiveJStr          = "Objective-J"
 	languageOCamlStr               = "OCaml"
+	languageOctaveStr              = "Octave"
+	languageODINStr                = "ODIN"
+	languageOocStr                 = "ooc"
+	languageOpaStr                 = "Opa"
+	languageOpenEdgeABLStr         = "OpenEdge ABL"
+	languageOpenSCADStr            = "OpenSCAD"
 	languageOrgStr                 = "Org"
 	languagePascalStr              = "Pascal"
 	languagePawnStr                = "Pawn"
@@ -1076,6 +1238,9 @@ const (
 	languageLiquidChromaStr         = "liquid"
 	languageMakefileChromaStr       = "Base Makefile"
 	languageMarkdownChromaStr       = "markdown"
+	languageNewLispChromaStr        = "NewLisp"
+	languageNimrodChromaStr         = "Nim"
+	languageOrgChromaStr            = "Org Mode"
 	languageTextChromaStr           = "plaintext"
 	languageVHDLChromaStr           = "VHDL"
 	languageVueJSChromaStr          = "vue"
@@ -1622,26 +1787,122 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageMako, true
 	case normalizeString(languageManStr):
 		return LanguageMan, true
+	case normalizeString(languageMAQLStr):
+		return LanguageMAQL, true
 	case normalizeString(languageMarkdownStr):
 		return LanguageMarkdown, true
 	case normalizeString(languageMarkoStr):
 		return LanguageMarko, true
+	case normalizeString(languageMaskStr):
+		return LanguageMask, true
+	case normalizeString(languageMasonStr):
+		return LanguageMason, true
+	case normalizeString(languageMathematicaStr):
+		return LanguageMathematica, true
 	case normalizeString(languageMatlabStr):
 		return LanguageMatlab, true
+	case normalizeString(languageMatlabSessionStr):
+		return LanguageMatlabSession, true
+	case normalizeString(languageMaxStr):
+		return LanguageMax, true
+	case normalizeString(languageMaxMSPStr):
+		return LanguageMaxMSP, true
+	case normalizeString(languageMesonStr):
+		return LanguageMeson, true
 	case normalizeString(languageMetafontStr):
 		return LanguageMetafont, true
 	case normalizeString(languageMetapostStr):
 		return LanguageMetapost, true
+	case normalizeString(languageMIMEStr):
+		return LanguageMIME, true
+	case normalizeString(languageMiniDStr):
+		return LanguageMiniD, true
+	case normalizeString(languageMiniScriptStr):
+		return LanguageMiniScript, true
+	case normalizeString(languageMiniZincStr):
+		return LanguageMiniZinc, true
+	case normalizeString(languageMirahStr):
+		return LanguageMirah, true
+	case normalizeString(languageMLIRStr):
+		return LanguageMLIR, true
 	case normalizeString(languageModelicaStr):
 		return LanguageModelica, true
 	case normalizeString(languageModula2Str):
 		return LanguageModula2, true
+	case normalizeString(languageMoinWikiStr):
+		return LanguageMoinWiki, true
+	case normalizeString(languageMonkeyStr):
+		return LanguageMonkey, true
+	case normalizeString(languageMonkeyCStr):
+		return LanguageMonkeyC, true
+	case normalizeString(languageMonteStr):
+		return LanguageMonte, true
+	case normalizeString(languageMOOCodeStr):
+		return LanguageMOOCode, true
+	case normalizeString(languageMoonScriptStr):
+		return LanguageMoonScript, true
+	case normalizeString(languageMorrowindScriptStr):
+		return LanguageMorrowindScript, true
+	case normalizeString(languageMoselStr):
+		return LanguageMosel, true
+	case normalizeString(languageMozPreprocHashStr):
+		return LanguageMozPreprocHash, true
+	case normalizeString(languageMozPreprocPercentStr):
+		return LanguageMozPreprocPercent, true
+	case normalizeString(languageMQLStr):
+		return LanguageMQL, true
+	case normalizeString(languageMscgenStr):
+		return LanguageMscgen, true
+	case normalizeString(languageMSDOSSessionStr):
+		return LanguageMSDOSSession, true
+	case normalizeString(languageMuPADStr):
+		return LanguageMuPAD, true
+	case normalizeString(languageMXMLStr):
+		return LanguageMXML, true
+	case normalizeString(languageMyghtyStr):
+		return LanguageMyghty, true
+	case normalizeString(languageMySQLStr):
+		return LanguageMySQL, true
 	case normalizeString(languageMustacheStr):
 		return LanguageMustache, true
+	case normalizeString(languageNASMStr):
+		return LanguageNASM, true
+	case normalizeString(languageNCLStr):
+		return LanguageNCL, true
+	case normalizeString(languageNemerleStr):
+		return LanguageNemerle, true
+	case normalizeString(languageNeonStr):
+		return LanguageNeon, true
+	case normalizeString(languageNesCStr):
+		return LanguageNesC, true
 	case normalizeString(languageNewLispStr):
 		return LanguageNewLisp, true
+	case normalizeString(languageNewspeakStr):
+		return LanguageNewspeak, true
+	case normalizeString(languageNginxStr):
+		return LanguageNginx, true
+	case normalizeString(languageNginxConfigStr):
+		return LanguageNginxConfig, true
+	case normalizeString(languageNimrodStr):
+		return LanguageNimrod, true
+	case normalizeString(languageNitStr):
+		return LanguageNit, true
 	case normalizeString(languageNixStr):
 		return LanguageNix, true
+	case normalizeString(languageNotmuchStr):
+		return LanguageNotmuch, true
+	case normalizeString(languageNSISStr):
+		return LanguageNSIS, true
+	case normalizeString(languageNuStr):
+		return LanguageNu, true
+	case normalizeString(languageNumPyStr):
+		return LanguageNumPy, true
+	case normalizeString(languageNuSMVStr):
+		return LanguageNuSMV, true
+	case normalizeString(languageNASMObjdumpStr):
+		return LanguageNASMObjdump, true
+	case normalizeString(languageObjdumpStr):
+		return LanguageObjdump, true
 	case normalizeString(languageObjectiveCStr):
 		return LanguageObjectiveC, true
 	case normalizeString(languageObjectiveCPPStr):
@@ -1650,6 +1911,18 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageObjectiveJ, true
 	case normalizeString(languageOCamlStr):
 		return LanguageOCaml, true
+	case normalizeString(languageOctaveStr):
+		return LanguageOctave, true
+	case normalizeString(languageODINStr):
+		return LanguageODIN, true
+	case normalizeString(languageOocStr):
+		return LanguageOoc, true
+	case normalizeString(languageOpaStr):
+		return LanguageOpa, true
+	case normalizeString(languageOpenEdgeABLStr):
+		return LanguageOpenEdgeABL, true
+	case normalizeString(languageOpenSCADStr):
+		return LanguageOpenSCAD, true
 	case normalizeString(languageOrgStr):
 		return LanguageOrg, true
 	case normalizeString(languagePascalStr):
@@ -1816,6 +2089,12 @@ func ParseLanguageFromChroma(lexerName string) (Language, bool) {
 		return LanguageMakefile, true
 	case normalizeString(languageMarkdownChromaStr):
 		return LanguageMarkdown, true
+	case normalizeString(languageNewLispChromaStr):
+		return LanguageNewLisp, true
+	case normalizeString(languageNimrodChromaStr):
+		return LanguageNimrod, true
+	case normalizeString(languageOrgChromaStr):
+		return LanguageOrg, true
 	case normalizeString(languageTextChromaStr):
 		return LanguageText, true
 	case normalizeString(languageVHDLChromaStr):
@@ -2392,26 +2671,122 @@ func (l Language) String() string {
 		return languageMakoStr
 	case LanguageMan:
 		return languageManStr
+	case LanguageMAQL:
+		return languageMAQLStr
 	case LanguageMarkdown:
 		return languageMarkdownStr
 	case LanguageMarko:
 		return languageMarkoStr
+	case LanguageMask:
+		return languageMaskStr
+	case LanguageMason:
+		return languageMasonStr
+	case LanguageMathematica:
+		return languageMathematicaStr
 	case LanguageMatlab:
 		return languageMatlabStr
+	case LanguageMatlabSession:
+		return languageMatlabSessionStr
+	case LanguageMax:
+		return languageMaxStr
+	case LanguageMaxMSP:
+		return languageMaxMSPStr
+	case LanguageMeson:
+		return languageMesonStr
 	case LanguageMetafont:
 		return languageMetafontStr
 	case LanguageMetapost:
 		return languageMetapostStr
+	case LanguageMIME:
+		return languageMIMEStr
+	case LanguageMiniD:
+		return languageMiniDStr
+	case LanguageMiniScript:
+		return languageMiniScriptStr
+	case LanguageMiniZinc:
+		return languageMiniZincStr
+	case LanguageMirah:
+		return languageMirahStr
+	case LanguageMLIR:
+		return languageMLIRStr
 	case LanguageModelica:
 		return languageModelicaStr
 	case LanguageModula2:
 		return languageModula2Str
+	case LanguageMoinWiki:
+		return languageMoinWikiStr
+	case LanguageMonkey:
+		return languageMonkeyStr
+	case LanguageMonkeyC:
+		return languageMonkeyCStr
+	case LanguageMonte:
+		return languageMonteStr
+	case LanguageMOOCode:
+		return languageMOOCodeStr
+	case LanguageMoonScript:
+		return languageMoonScriptStr
+	case LanguageMorrowindScript:
+		return languageMorrowindScriptStr
+	case LanguageMosel:
+		return languageMoselStr
+	case LanguageMozPreprocHash:
+		return languageMozPreprocHashStr
+	case LanguageMozPreprocPercent:
+		return languageMozPreprocPercentStr
+	case LanguageMQL:
+		return languageMQLStr
+	case LanguageMscgen:
+		return languageMscgenStr
+	case LanguageMSDOSSession:
+		return languageMSDOSSessionStr
+	case LanguageMuPAD:
+		return languageMuPADStr
+	case LanguageMXML:
+		return languageMXMLStr
+	case LanguageMyghty:
+		return languageMyghtyStr
+	case LanguageMySQL:
+		return languageMySQLStr
 	case LanguageMustache:
 		return languageMustacheStr
+	case LanguageNASM:
+		return languageNASMStr
+	case LanguageNCL:
+		return languageNCLStr
+	case LanguageNemerle:
+		return languageNemerleStr
+	case LanguageNeon:
+		return languageNeonStr
+	case LanguageNesC:
+		return languageNesCStr
 	case LanguageNewLisp:
 		return languageNewLispStr
+	case LanguageNewspeak:
+		return languageNewspeakStr
+	case LanguageNginx:
+		return languageNginxStr
+	case LanguageNginxConfig:
+		return languageNginxConfigStr
+	case LanguageNimrod:
+		return languageNimrodStr
+	case LanguageNit:
+		return languageNitStr
 	case LanguageNix:
 		return languageNixStr
+	case LanguageNotmuch:
+		return languageNotmuchStr
+	case LanguageNSIS:
+		return languageNSISStr
+	case LanguageNu:
+		return languageNuStr
+	case LanguageNumPy:
+		return languageNumPyStr
+	case LanguageNuSMV:
+		return languageNuSMVStr
+	case LanguageNASMObjdump:
+		return languageNASMObjdumpStr
+	case LanguageObjdump:
+		return languageObjdumpStr
 	case LanguageObjectiveC:
 		return languageObjectiveCStr
 	case LanguageObjectiveCPP:
@@ -2420,6 +2795,18 @@ func (l Language) String() string {
 		return languageObjectiveJStr
 	case LanguageOCaml:
 		return languageOCamlStr
+	case LanguageOctave:
+		return languageOctaveStr
+	case LanguageODIN:
+		return languageODINStr
+	case LanguageOoc:
+		return languageOocStr
+	case LanguageOpa:
+		return languageOpaStr
+	case LanguageOpenEdgeABL:
+		return languageOpenEdgeABLStr
+	case LanguageOpenSCAD:
+		return languageOpenSCADStr
 	case LanguageOrg:
 		return languageOrgStr
 	case LanguagePascal:
@@ -2575,6 +2962,8 @@ func (l Language) StringChroma() string {
 		return languageMakefileChromaStr
 	case LanguageMarkdown:
 		return languageMarkdownChromaStr
+	case LanguageNewLisp:
+		return languageNewLispChromaStr
 	case LanguageText:
 		return languageTextChromaStr
 	case LanguageVHDL:
