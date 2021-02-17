@@ -54,6 +54,8 @@ builds:
     - windows
   goarch:
     - amd64
+release:
+  prerelease: auto
 archives:
   -
     format_overrides:
