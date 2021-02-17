@@ -1,20 +1,21 @@
 on:
-  release:
-    types: [published]
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
 
 jobs:
-  build:
-    name: Build release artifacts
+  release:
+    name: Release
     runs-on: ubuntu-latest
     steps:
-      - name: Check out code
+      - name: "Checkout"
         uses: actions/checkout@v2
         with:
           fetch-depth: 0
-      - name: Run goreleaser-xcgo in docker container
+      - name: "Publish new release"
         run: >-
           docker run --privileged --rm
-          -e GO_VERSION=1.15
+          -e GO_VERSION=${{ env.GO_VERSION }}
           -e GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
           -v $PWD:/go/src/github.com/wakatime/wakatime-cli
           -v /var/run/docker.sock:/var/run/docker.sock
