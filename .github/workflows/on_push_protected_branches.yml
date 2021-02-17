@@ -1,0 +1,59 @@
+on:
+  push:
+    branches:
+      - "develop"
+      - "master"
+
+env:
+  GO_VERSION: "1.15"
+
+jobs:
+  # test:
+  #   name: Test
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: "Checkout"
+  #       uses: actions/checkout@v2
+  #     - uses: actions/setup-go@v2
+  #       with:
+  #         go-version: ${{ env.GO_VERSION }}
+  #     - name: "Pull dependencies"
+  #       run: go mod vendor
+  #     - name: "Unit tests"
+  #       run: make test
+  #     - name: "Linter"
+  #       run: make lint
+  
+  # test-windows:
+  #   name: Test Windows
+  #   runs-on: windows-latest
+  #   steps:
+  #     - name: "Checkout"
+  #       uses: actions/checkout@v2
+  #     - uses: actions/setup-go@v2
+  #       with:
+  #         go-version: ${{ env.GO_VERSION }}
+  #     - name: "Pull dependencies"
+  #       run: go mod vendor
+  #     - name: "Unit tests"
+  #       run: make test
+  #     - name: "Linter"
+  #       run: make lint
+  
+  tag:
+    name: Tag
+    runs-on: ubuntu-latest
+    # needs: [test, test-windows]
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: "Create semver tag"
+        id: semver-tag
+        uses: gandarez/semver-action@v1.3.2
+        with:
+          prerelease_id: "alpha"
+          user_email: "<>"
+          username: "WakaTime Actions"
+          debug: "true"
