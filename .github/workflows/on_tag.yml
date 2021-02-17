@@ -1,0 +1,52 @@
+name: "Create Release"
+
+on:
+  push:
+    tags:
+      - "v*"
+
+env:
+  GO_VERSION: "1.15"
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: "Get the version"
+        id: version
+        run: echo ::set-output name=version::$(echo $GITHUB_REF | cut -d / -f 3)
+      - name: "Publish new release"
+        run: >-
+          docker run --privileged --rm
+          -e GORELEASER_CURRENT_TAG=${{ steps.version.outputs.version }}
+          -e GO_VERSION=${{ env.GO_VERSION }}
+          -e GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
+          -v $PWD:/go/src/github.com/wakatime/wakatime-cli
+          -v /var/run/docker.sock:/var/run/docker.sock
+          -w /go/src/github.com/wakatime/wakatime-cli
+          mailchain/goreleaser-xcgo --rm-dist
+      - name: "Slack notification"
+        uses: 8398a7/action-slack@v3
+        if: ${{ success() }}
+        with:
+          status: custom
+          fields: message
+          custom_payload: |
+            {
+              username: 'WakaTime Bot',
+              icon_emoji: ':mega:',
+              attachments: [{
+                color: 'good',
+                pretext: 'New version has been released for <https://github.com/wakatime/wakatime-cli|wakatime-cli>',
+                title: `${{ steps.version.outputs.version }}`,
+                title_link: `https://github.com/wakatime/wakatime-cli/releases/tag/${{ steps.version.outputs.version }}`,
+                text: `${process.env.AS_MESSAGE}`
+              }]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
