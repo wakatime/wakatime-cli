@@ -1,6 +1,6 @@
 on:
   push:
-    branches-ignore:
+    branches:
       - 'develop'
       - 'master'
 
@@ -39,3 +39,23 @@ jobs:
         run: make test
       - name: "Linter"
         run: make lint
+  
+  tag:
+    name: Tag
+    runs-on: ubuntu-latest
+    needs: [test, test-windows]
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: "Create semver tag"
+        id: semver-tag
+        uses: gandarez/semver-action@v1.0.0
+        env:
+          GIT_DIR: $PWD
+        with:
+          prerelease_id: "alpha"
+          debug: "true"
+      - name: "Created tag"
+        run: echo "tag ${{ steps.semver-tag.outputs.semver_tag }}"      
