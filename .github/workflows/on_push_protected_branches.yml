@@ -1,8 +1,8 @@
-name: "Unit Tests"
+name: "Create Tag"
 
 on:
   push:
-    branches-ignore:
+    branches:
       - "develop"
       - "master"
 
@@ -41,3 +41,20 @@ jobs:
         run: make test
       - name: "Linter"
         run: make lint
+  
+  tag:
+    name: Tag
+    runs-on: ubuntu-latest
+    needs: [test, test-windows]
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: "Create semver tag"
+        id: semver-tag
+        uses: gandarez/semver-action@v1.5.0
+        with:
+          prerelease_id: "alpha"
+          auth_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+          debug: "true"
