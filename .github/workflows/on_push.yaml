@@ -47,11 +47,16 @@ jobs:
         uses: actions/checkout@v2
       - name: "Create semver tag"
         id: semver-tag
-        uses: gandarez/semver-action@v0.1.0
+        uses: gandarez/semver-action@v0.2.0
         with:
           auth_token: ${{ secrets.GITHUB_TOKEN }}
+          prefix: "alpha"
       - name: "Created tag"
         run: echo "tag ${{ steps.semver-tag.outputs.semver_tag }}"
+      - name: "Update local clone"
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
       - name: "Publish new release"
         run: >-
           docker run --privileged --rm
