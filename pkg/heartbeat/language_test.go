@@ -136,6 +136,7 @@ func languageTests() map[string]heartbeat.Language {
 		"DCL":                         heartbeat.LanguageDCL,
 		"DCPU-16 ASM":                 heartbeat.LanguageDCPU16Asm,
 		"Debian Control file":         heartbeat.LanguageDebianControlFile,
+		"Debian Sourcelist":           heartbeat.LanguageSourcesList,
 		"Delphi":                      heartbeat.LanguageDelphi,
 		"Devicetree":                  heartbeat.LanguageDevicetree,
 		"dg":                          heartbeat.LanguageDG,
@@ -372,29 +373,54 @@ func languageTests() map[string]heartbeat.Language {
 		"RPMSpec":                     heartbeat.LanguageRPMSpec,
 		"Ruby":                        heartbeat.LanguageRuby,
 		"Rust":                        heartbeat.LanguageRust,
+		"S":                           heartbeat.LanguageS,
 		"Salt":                        heartbeat.LanguageSalt,
+		"SARL":                        heartbeat.LanguageSARL,
+		"SAS":                         heartbeat.LanguageSAS,
 		"Sass":                        heartbeat.LanguageSass,
 		"Scala":                       heartbeat.LanguageScala,
+		"Scalate Server Page":         heartbeat.LanguageSSP,
+		"Scaml":                       heartbeat.LanguageScaml,
+		"scdoc":                       heartbeat.LanguageScdoc,
 		"Scheme":                      heartbeat.LanguageScheme,
+		"Scilab":                      heartbeat.LanguageScilab,
 		"Scribe":                      heartbeat.LanguageScribe,
 		"SCSS":                        heartbeat.LanguageSCSS,
-		"SGML":                        heartbeat.LanguageSGML,
+		"Self":                        heartbeat.LanguageSelf,
 		"Shell":                       heartbeat.LanguageShell,
-		"Simula":                      heartbeat.LanguageSimula,
+		"Shen":                        heartbeat.LanguageShen,
+		"ShExC":                       heartbeat.LanguageShExC,
+		"Sieve":                       heartbeat.LanguageSieve,
+		"Silver":                      heartbeat.LanguageSilver,
 		"Singularity":                 heartbeat.LanguageSingularity,
 		"Sketch Drawing":              heartbeat.LanguageSketchDrawing,
-		"SKILL":                       heartbeat.LanguageSKILL,
+		"Slash":                       heartbeat.LanguageSlash,
 		"Slim":                        heartbeat.LanguageSlim,
+		"Slurm":                       heartbeat.LanguageSlurm,
 		"Smali":                       heartbeat.LanguageSmali,
 		"Smalltalk":                   heartbeat.LanguageSmalltalk,
+		"SmartGameFormat":             heartbeat.LanguageSmartGameFormat,
+		"Smarty":                      heartbeat.LanguageSmarty,
 		"S/MIME":                      heartbeat.LanguageSMIME,
+		"Snobol":                      heartbeat.LanguageSnobol,
+		"Snowball":                    heartbeat.LanguageSnowball,
+		"Solidity":                    heartbeat.LanguageSolidity,
 		"SourcePawn":                  heartbeat.LanguageSourcePawn,
+		"SPARQL":                      heartbeat.LanguageSPARQL,
 		"SQL":                         heartbeat.LanguageSQL,
+		"sqlite3con":                  heartbeat.LanguageSqlite3con,
+		"SquidConf":                   heartbeat.LanguageSquidConf,
+		"Stan":                        heartbeat.LanguageStan,
+		"Stata":                       heartbeat.LanguageStata,
+		"Standard ML":                 heartbeat.LanguageSML,
+		"Stylus":                      heartbeat.LanguageStylus,
 		"Sublime Text Config":         heartbeat.LanguageSublimeTextConfig,
+		"SuperCollider":               heartbeat.LanguageSuperCollider,
 		"Svelte":                      heartbeat.LanguageSvelte,
 		"Swift":                       heartbeat.LanguageSwift,
-		"SWIG":                        heartbeat.LanguageSWIG,
-		"systemverilog":               heartbeat.LanguageSystemVerilog,
+		"Swig":                        heartbeat.LanguageSwig,
+		"SYSTEMD":                     heartbeat.LanguageSYSTEMD,
+		"SystemVerilog":               heartbeat.LanguageSystemVerilog,
 		"TeX":                         heartbeat.LanguageTeX,
 		"Text":                        heartbeat.LanguageText,
 		"Thrift":                      heartbeat.LanguageThrift,
@@ -503,7 +529,10 @@ func TestParseLanguageFromChroma(t *testing.T) {
 		"Nim":              heartbeat.LanguageNimrod,
 		"Org Mode":         heartbeat.LanguageOrg,
 		"plaintext":        heartbeat.LanguageText,
+		"R":                heartbeat.LanguageS,
 		"react":            heartbeat.LanguageJSX,
+		"SWIG":             heartbeat.LanguageSwig,
+		"systemverilog":    heartbeat.LanguageSystemVerilog,
 		"VHDL":             heartbeat.LanguageVHDL,
 		"vue":              heartbeat.LanguageVueJS,
 		// lowercase
@@ -540,8 +569,8 @@ func TestParseLanguageFromChroma_AllLexersSupported(t *testing.T) {
 		config := lexer.Config()
 
 		// TODO: This condition restricts testing to lexers starting with particular
-		// letters. Currently only lexers are testsed, which start with letters, where
-		// language support was already ensured. Has to be adjust to cover more letters,
+		// letters. Currently only lexers are tested, which start with letters, where
+		// language support was already ensured. Has to be adjusted to cover more letters,
 		// once another issue is resolved. Has to be removed finally, once all issues
 		// are done. Issues:
 		// - https://github.com/wakatime/wakatime-cli/issues/232
@@ -549,7 +578,7 @@ func TestParseLanguageFromChroma_AllLexersSupported(t *testing.T) {
 		// - https://github.com/wakatime/wakatime-cli/issues/234
 		// - https://github.com/wakatime/wakatime-cli/issues/238
 		// - https://github.com/wakatime/wakatime-cli/issues/239
-		rgx := regexp.MustCompile(`^[a-oA-O]`)
+		rgx := regexp.MustCompile(`^[a-lsA-LS]`)
 		if !rgx.MatchString(config.Name) {
 			continue
 		}

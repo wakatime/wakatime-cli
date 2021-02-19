@@ -591,16 +591,6 @@ func TestDetect_ChromaTopLanguagesRetrofit(t *testing.T) {
 			},
 			Expected: heartbeat.LanguageQML,
 		},
-		"rrr": {
-			Filepaths: []string{
-				"path/to/file.r",
-				"path/to/file.R",
-				"path/to/.Rhistory",
-				"path/to/.Rprofile",
-				"path/to/.Renviron",
-			},
-			Expected: heartbeat.LanguageR,
-		},
 		"reason": {
 			Filepaths: []string{
 				"path/to/file.re",
@@ -638,6 +628,16 @@ func TestDetect_ChromaTopLanguagesRetrofit(t *testing.T) {
 				"path/to/file.rs.in",
 			},
 			Expected: heartbeat.LanguageRust,
+		},
+		"s": {
+			Filepaths: []string{
+				"path/to/file.r",
+				"path/to/file.R",
+				"path/to/.Rhistory",
+				"path/to/.Rprofile",
+				"path/to/.Renviron",
+			},
+			Expected: heartbeat.LanguageS,
 		},
 		"sass": {
 			Filepaths: []string{"path/to/file.sass"},
@@ -699,7 +699,7 @@ func TestDetect_ChromaTopLanguagesRetrofit(t *testing.T) {
 				"path/to/file.swg",
 				"path/to/file.i",
 			},
-			Expected: heartbeat.LanguageSWIG,
+			Expected: heartbeat.LanguageSwig,
 		},
 		"system verilog": {
 			Filepaths: []string{
