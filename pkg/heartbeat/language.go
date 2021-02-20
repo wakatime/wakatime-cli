@@ -912,7 +912,7 @@ const (
 	languageAutoconfStr            = "Autoconf"
 	languageAutoHotkeyStr          = "AutoHotkey"
 	languageAutoItStr              = "AutoIt"
-	languageAwkStr                 = "AWK"
+	languageAwkStr                 = "Awk"
 	languageBallerinaStr           = "Ballerina"
 	languageBAREStr                = "BARE"
 	languageBashStr                = "Bash"
@@ -1319,7 +1319,6 @@ const (
 	languageEmacsLispChromaStr      = "EmacsLisp"
 	languageGoHTMLTemplateChromaStr = "Go HTML Template"
 	languageGoTextTemplateChromaStr = "Go Text Template"
-	languageGosuTemplateChromaStr   = "Gosu Template"
 	languageJSXChromaStr            = "react"
 	languageLessChromaStr           = "LessCss"
 	languageLiquidChromaStr         = "liquid"
@@ -2223,8 +2222,6 @@ func ParseLanguageFromChroma(lexerName string) (Language, bool) {
 		return LanguageGo, true
 	case normalizeString(languageGoTextTemplateChromaStr):
 		return LanguageGo, true
-	case normalizeString(languageGosuTemplateChromaStr):
-		return LanguageGosu, true
 	case normalizeString(languageFSharpChromaStr):
 		return LanguageFSharp, true
 	case normalizeString(languageJSXChromaStr):
@@ -3158,6 +3155,8 @@ func (l Language) String() string {
 // nolint:gocyclo
 func (l Language) StringChroma() string {
 	switch l {
+	case LanguageApacheConfig:
+		return languageApacheConfigChromaStr
 	case LanguageAssembly:
 		return languageAssemblyChromaStr
 	case LanguageColdfusionHTML:
@@ -3170,12 +3169,22 @@ func (l Language) StringChroma() string {
 		return languageJSXChromaStr
 	case LanguageLess:
 		return languageLessChromaStr
+	case LanguageLiquid:
+		return languageLiquidChromaStr
 	case LanguageMakefile:
 		return languageMakefileChromaStr
 	case LanguageMarkdown:
 		return languageMarkdownChromaStr
 	case LanguageNewLisp:
 		return languageNewLispChromaStr
+	case LanguageNimrod:
+		return languageNimrodChromaStr
+	case LanguageOrg:
+		return languageOrgChromaStr
+	case LanguageSwig:
+		return languageSWIGChromaStr
+	case LanguageSystemVerilog:
+		return languageSystemVerilogChromaStr
 	case LanguageText:
 		return languageTextChromaStr
 	case LanguageVHDL:
