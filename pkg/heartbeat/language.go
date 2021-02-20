@@ -695,6 +695,8 @@ const (
 	LanguagePan
 	// LanguageParaSail represents the ParaSail programming language.
 	LanguageParaSail
+	// LanguageParrot represents the Parrot programming language.
+	LanguageParrot
 	// LanguagePascal represents the Pascal programming language.
 	LanguagePascal
 	// LanguagePawn represents the Pawn programming language.
@@ -1273,6 +1275,7 @@ const (
 	languagePacmanConfStr          = "PacmanConf"
 	languagePanStr                 = "Pan"
 	languageParaSailStr            = "ParaSail"
+	languageParrotStr              = "Parrot"
 	languagePascalStr              = "Pascal"
 	languagePawnStr                = "Pawn"
 	languagePEGStr                 = "PEG"
@@ -2102,6 +2105,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguagePan, true
 	case normalizeString(languageParaSailStr):
 		return LanguageParaSail, true
+	case normalizeString(languageParrotStr):
+		return LanguageParrot, true
 	case normalizeString(languagePascalStr):
 		return LanguagePascal, true
 	case normalizeString(languagePawnStr):
@@ -3104,6 +3109,8 @@ func (l Language) String() string {
 		return languagePanStr
 	case LanguageParaSail:
 		return languageParaSailStr
+	case LanguageParrot:
+		return languageParrotStr
 	case LanguagePascal:
 		return languagePascalStr
 	case LanguagePawn:

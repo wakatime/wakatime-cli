@@ -356,6 +356,7 @@ func languageTests() map[string]heartbeat.Language {
 		"PacmanConf":                    heartbeat.LanguagePacmanConf,
 		"Pan":                           heartbeat.LanguagePan,
 		"ParaSail":                      heartbeat.LanguageParaSail,
+		"Parrot":                        heartbeat.LanguageParrot,
 		"Pascal":                        heartbeat.LanguagePascal,
 		"Pawn":                          heartbeat.LanguagePawn,
 		"PEG":                           heartbeat.LanguagePEG,
