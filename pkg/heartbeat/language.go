@@ -689,34 +689,90 @@ const (
 	LanguageOpenSCAD
 	// LanguageOrg represents the Org programming language.
 	LanguageOrg
+	// LanguagePacmanConf represents the PacmanConf programming language.
+	LanguagePacmanConf
+	// LanguagePan represents the Pan programming language.
+	LanguagePan
+	// LanguageParaSail represents the ParaSail programming language.
+	LanguageParaSail
+	// LanguageParrot represents the Parrot programming language.
+	LanguageParrot
 	// LanguagePascal represents the Pascal programming language.
 	LanguagePascal
 	// LanguagePawn represents the Pawn programming language.
 	LanguagePawn
+	// LanguagePEG represents the PEG programming language.
+	LanguagePEG
 	// LanguagePerl represents the Perl programming language.
 	LanguagePerl
+	// LanguagePerl6 represents the Perl6 programming language.
+	LanguagePerl6
 	// LanguagePHP represents the PHP programming language.
 	LanguagePHP
+	// LanguagePHTML represents the PHTML programming language.
+	LanguagePHTML
+	// LanguagePig represents the Pig programming language.
+	LanguagePig
+	// LanguagePike represents the Pike programming language.
+	LanguagePike
+	// LanguagePkgConfig represents the PkgConfig programming language.
+	LanguagePkgConfig
+	// LanguagePLpgSQL represents the PLpgSQL programming language.
+	LanguagePLpgSQL
+	// LanguagePointless represents the Pointless programming language.
+	LanguagePointless
+	// LanguagePony represents the Pony programming language.
+	LanguagePony
+	// LanguagePostgres represents the Postgres programming language.
+	LanguagePostgres
+	// LanguagePostgresConsole represents the PostgresConsole programming language.
+	LanguagePostgresConsole
 	// LanguagePostScript represents the PostScript programming language.
 	LanguagePostScript
 	// LanguagePOVRay represents the POVRay programming language.
 	LanguagePOVRay
 	// LanguagePowerShell represents the PowerShell programming language.
 	LanguagePowerShell
+	// LanguagePowerShellSession represents the PowerShellSession programming language.
+	LanguagePowerShellSession
+	// LanguagePraat represents the Praat programming language.
+	LanguagePraat
 	// LanguageProlog represents the Prolog programming language.
 	LanguageProlog
+	// LanguagePromQL represents the PromQL programming language.
+	LanguagePromQL
+	// LanguagePropertiesJava represents the JavaProperties programming language.
+	LanguagePropertiesJava
 	// LanguageProtocolBuffer represents the ProtocolBuffer programming language.
 	LanguageProtocolBuffer
+	// LanguagePsyShPHP represents the PHPPsySH programming language.
+	LanguagePsyShPHP
 	// LanguagePug represents the Pug programming language.
 	LanguagePug
 	// LanguagePuppet represents the Puppet programming language.
 	LanguagePuppet
+	// LanguagePureData represents the PureData programming language.
+	LanguagePureData
 	// LanguagePureScript represents the PureScript programming language.
 	LanguagePureScript
+	// LanguagePyPyLog represents the PyPyLog programming language.
+	LanguagePyPyLog
 	// LanguagePython represents the Python programming language.
 	LanguagePython
+	// LanguagePython2 represents the Python2 programming language.
+	LanguagePython2
+	// LanguagePython2Traceback represents the Python2Traceback programming language.
+	LanguagePython2Traceback
+	// LanguagePythonConsole represents the PythonConsole programming language.
+	LanguagePythonConsole
+	// LanguagePythonTraceback represents the PythonTraceback programming language.
+	LanguagePythonTraceback
+	// LanguageQBasic represents the QBasic programming language.
+	LanguageQBasic
 	// LanguageQML represents the QML programming language.
 	LanguageQML
+	// LanguageQVTO represents the QVTO programming language.
+	LanguageQVTO
 	// LanguageR represents the R programming language.
 	LanguageR
 	// LanguageReasonML represents the ReasonML programming language.
@@ -1216,20 +1272,48 @@ const (
 	languageOpenEdgeABLStr         = "OpenEdge ABL"
 	languageOpenSCADStr            = "OpenSCAD"
 	languageOrgStr                 = "Org"
+	languagePacmanConfStr          = "PacmanConf"
+	languagePanStr                 = "Pan"
+	languageParaSailStr            = "ParaSail"
+	languageParrotStr              = "Parrot"
 	languagePascalStr              = "Pascal"
 	languagePawnStr                = "Pawn"
+	languagePEGStr                 = "PEG"
 	languagePerlStr                = "Perl"
+	languagePerl6Str               = "Perl6"
 	languagePHPStr                 = "PHP"
+	languagePHTMLStr               = "PHTML"
+	languagePigStr                 = "Pig"
+	languagePikeStr                = "Pike"
+	languagePkgConfigStr           = "PkgConfig"
+	languagePLpgSQLStr             = "PL/pgSQL"
+	languagePointlessStr           = "Pointless"
+	languagePonyStr                = "Pony"
+	languagePostgresStr            = "PostgreSQL SQL dialect"
+	languagePostgresConsoleStr     = "PostgreSQL console (psql)"
 	languagePOVRayStr              = "POVRay"
 	languagePostScriptStr          = "PostScript"
 	languagePowerShellStr          = "PowerShell"
+	languagePowerShellSessionStr   = "PowerShell Session"
+	languagePraatStr               = "Praat"
 	languagePrologStr              = "Prolog"
+	languagePromQLStr              = "PromQL"
+	languagePropertiesJavaStr      = "Properties"
 	languageProtocolBufferStr      = "Protocol Buffer"
+	languagePsyShPHPStr            = "PsySH console session for PHP"
 	languagePugStr                 = "Pug"
 	languagePuppetStr              = "Puppet"
+	languagePureDataStr            = "Pure Data"
 	languagePureScriptStr          = "PureScript"
+	languagePyPyLogStr             = "PyPy Log"
 	languagePythonStr              = "Python"
+	languagePython2Str             = "Python 2.x"
+	languagePython2TracebackStr    = "Python 2.x Traceback"
+	languagePythonConsoleStr       = "Python console session"
+	languagePythonTracebackStr     = "Python Traceback"
+	languageQBasicStr              = "QBasic"
 	languageQMLStr                 = "QML"
+	languageQVTOStr                = "QVTO"
 	languageRStr                   = "R"
 	languageReasonMLStr            = "ReasonML"
 	languageReStructuredTextStr    = "reStructuredText"
@@ -1326,6 +1410,7 @@ const (
 	languageMarkdownChromaStr       = "markdown"
 	languageNewLispChromaStr        = "NewLisp"
 	languageNimrodChromaStr         = "Nim"
+	languagePython3ChromaStr        = "Python 3"
 	languageOrgChromaStr            = "Org Mode"
 	languageRChromaStr              = "R"
 	languageSWIGChromaStr           = "SWIG"
@@ -2014,34 +2099,90 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageOpenSCAD, true
 	case normalizeString(languageOrgStr):
 		return LanguageOrg, true
+	case normalizeString(languagePacmanConfStr):
+		return LanguagePacmanConf, true
+	case normalizeString(languagePanStr):
+		return LanguagePan, true
+	case normalizeString(languageParaSailStr):
+		return LanguageParaSail, true
+	case normalizeString(languageParrotStr):
+		return LanguageParrot, true
 	case normalizeString(languagePascalStr):
 		return LanguagePascal, true
 	case normalizeString(languagePawnStr):
 		return LanguagePawn, true
+	case normalizeString(languagePEGStr):
+		return LanguagePEG, true
 	case normalizeString(languagePerlStr):
 		return LanguagePerl, true
+	case normalizeString(languagePerl6Str):
+		return LanguagePerl6, true
 	case normalizeString(languagePHPStr):
 		return LanguagePHP, true
+	case normalizeString(languagePHTMLStr):
+		return LanguagePHTML, true
+	case normalizeString(languagePigStr):
+		return LanguagePig, true
+	case normalizeString(languagePikeStr):
+		return LanguagePike, true
+	case normalizeString(languagePkgConfigStr):
+		return LanguagePkgConfig, true
+	case normalizeString(languagePLpgSQLStr):
+		return LanguagePLpgSQL, true
+	case normalizeString(languagePointlessStr):
+		return LanguagePointless, true
+	case normalizeString(languagePonyStr):
+		return LanguagePony, true
+	case normalizeString(languagePostgresStr):
+		return LanguagePostgres, true
+	case normalizeString(languagePostgresConsoleStr):
+		return LanguagePostgresConsole, true
 	case normalizeString(languagePostScriptStr):
 		return LanguagePostScript, true
 	case normalizeString(languagePOVRayStr):
 		return LanguagePOVRay, true
 	case normalizeString(languagePowerShellStr):
 		return LanguagePowerShell, true
+	case normalizeString(languagePowerShellSessionStr):
+		return LanguagePowerShellSession, true
+	case normalizeString(languagePraatStr):
+		return LanguagePraat, true
 	case normalizeString(languagePrologStr):
 		return LanguageProlog, true
+	case normalizeString(languagePromQLStr):
+		return LanguagePromQL, true
+	case normalizeString(languagePropertiesJavaStr):
+		return LanguagePropertiesJava, true
 	case normalizeString(languageProtocolBufferStr):
 		return LanguageProtocolBuffer, true
+	case normalizeString(languagePsyShPHPStr):
+		return LanguagePsyShPHP, true
 	case normalizeString(languagePugStr):
 		return LanguagePug, true
 	case normalizeString(languagePuppetStr):
 		return LanguagePuppet, true
+	case normalizeString(languagePureDataStr):
+		return LanguagePureData, true
 	case normalizeString(languagePureScriptStr):
 		return LanguagePureScript, true
+	case normalizeString(languagePyPyLogStr):
+		return LanguagePyPyLog, true
 	case normalizeString(languagePythonStr):
 		return LanguagePython, true
+	case normalizeString(languagePython2Str):
+		return LanguagePython2, true
+	case normalizeString(languagePython2TracebackStr):
+		return LanguagePython2Traceback, true
+	case normalizeString(languagePythonConsoleStr):
+		return LanguagePythonConsole, true
+	case normalizeString(languagePythonTracebackStr):
+		return LanguagePythonTraceback, true
+	case normalizeString(languageQBasicStr):
+		return LanguageQBasic, true
 	case normalizeString(languageQMLStr):
 		return LanguageQML, true
+	case normalizeString(languageQVTOStr):
+		return LanguageQVTO, true
 	case normalizeString(languageRStr):
 		return LanguageR, true
 	case normalizeString(languageReasonMLStr):
@@ -2240,6 +2381,8 @@ func ParseLanguageFromChroma(lexerName string) (Language, bool) {
 		return LanguageNimrod, true
 	case normalizeString(languageOrgChromaStr):
 		return LanguageOrg, true
+	case normalizeString(languagePython3ChromaStr):
+		return LanguagePython, true
 	case normalizeString(languageRChromaStr):
 		return LanguageS, true
 	case normalizeString(languageSWIGChromaStr):
@@ -2960,34 +3103,90 @@ func (l Language) String() string {
 		return languageOpenSCADStr
 	case LanguageOrg:
 		return languageOrgStr
+	case LanguagePacmanConf:
+		return languagePacmanConfStr
+	case LanguagePan:
+		return languagePanStr
+	case LanguageParaSail:
+		return languageParaSailStr
+	case LanguageParrot:
+		return languageParrotStr
 	case LanguagePascal:
 		return languagePascalStr
 	case LanguagePawn:
 		return languagePawnStr
+	case LanguagePEG:
+		return languagePEGStr
 	case LanguagePerl:
 		return languagePerlStr
+	case LanguagePerl6:
+		return languagePerl6Str
+	case LanguagePHTML:
+		return languagePHTMLStr
 	case LanguagePHP:
 		return languagePHPStr
+	case LanguagePig:
+		return languagePigStr
+	case LanguagePike:
+		return languagePikeStr
+	case LanguagePkgConfig:
+		return languagePkgConfigStr
+	case LanguagePLpgSQL:
+		return languagePLpgSQLStr
+	case LanguagePointless:
+		return languagePointlessStr
+	case LanguagePony:
+		return languagePonyStr
+	case LanguagePostgres:
+		return languagePostgresStr
+	case LanguagePostgresConsole:
+		return languagePostgresConsoleStr
 	case LanguagePostScript:
 		return languagePostScriptStr
 	case LanguagePOVRay:
 		return languagePOVRayStr
 	case LanguagePowerShell:
 		return languagePowerShellStr
+	case LanguagePowerShellSession:
+		return languagePowerShellSessionStr
+	case LanguagePraat:
+		return languagePraatStr
 	case LanguageProlog:
 		return languagePrologStr
+	case LanguagePromQL:
+		return languagePromQLStr
+	case LanguagePropertiesJava:
+		return languagePropertiesJavaStr
 	case LanguageProtocolBuffer:
 		return languageProtocolBufferStr
+	case LanguagePsyShPHP:
+		return languagePsyShPHPStr
 	case LanguagePug:
 		return languagePugStr
 	case LanguagePuppet:
 		return languagePuppetStr
+	case LanguagePureData:
+		return languagePureDataStr
 	case LanguagePureScript:
 		return languagePureScriptStr
+	case LanguagePyPyLog:
+		return languagePyPyLogStr
 	case LanguagePython:
 		return languagePythonStr
+	case LanguagePython2:
+		return languagePython2Str
+	case LanguagePython2Traceback:
+		return languagePython2TracebackStr
+	case LanguagePythonConsole:
+		return languagePythonConsoleStr
+	case LanguagePythonTraceback:
+		return languagePythonTracebackStr
+	case LanguageQBasic:
+		return languageQBasicStr
 	case LanguageQML:
 		return languageQMLStr
+	case LanguageQVTO:
+		return languageQVTOStr
 	case LanguageR:
 		return languageRStr
 	case LanguageReasonML:
