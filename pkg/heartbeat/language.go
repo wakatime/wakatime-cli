@@ -775,14 +775,96 @@ const (
 	LanguageQVTO
 	// LanguageR represents the R programming language.
 	LanguageR
+	// LanguageRacket represents the Racket programming language.
+	LanguageRacket
+	// LanguageRagel represents the Ragel programming language.
+	LanguageRagel
+	// LanguageRagelEmbedded represents the RagelEmbedded programming language.
+	LanguageRagelEmbedded
+	// LanguageRaku represents the Raku programming language.
+	LanguageRaku
+	// LanguageRAML represents the RAML programming language.
+	LanguageRAML
+	// LanguageRascal represents the Rascal programming language.
+	LanguageRascal
+	// LanguageRawToken represents the RawToken programming language.
+	LanguageRawToken
+	// LanguageRConsole represents the RConsole programming language.
+	LanguageRConsole
+	// LanguageRd represents the Rd programming language.
+	LanguageRd
+	// LanguageRDoc represents the RDoc programming language.
+	LanguageRDoc
+	// LanguageReadlineConfig represents the ReadlineConfig programming language.
+	LanguageReadlineConfig
+	// LanguageREALbasic represents the REALbasic programming language.
+	LanguageREALbasic
 	// LanguageReasonML represents the ReasonML programming language.
 	LanguageReasonML
+	// LanguageREBOL represents the REBOL programming language.
+	LanguageREBOL
+	// LanguageRecordJar represents the RecordJar programming language.
+	LanguageRecordJar
+	// LanguageRed represents the Red programming language.
+	LanguageRed
+	// LanguageRedcode represents the Redcode programming language.
+	LanguageRedcode
+	// LanguageRegularExpression represents the RegularExpression programming language.
+	LanguageRegularExpression
+	// LanguageRenderScript represents the RenderScript programming language.
+	LanguageRenderScript
+	// LanguageRenPy represents the RenPy programming language.
+	LanguageRenPy
+	// LanguageRegistry represents the Registry programming language.
+	LanguageRegistry
+	// LanguageReScript represents the ReScript programming language.
+	LanguageReScript
+	// LanguageResourceBundle represents the ResourceBundle programming language.
+	LanguageResourceBundle
 	// LanguageReStructuredText represents the ReStructuredText programming language.
 	LanguageReStructuredText
+	// LanguageRexx represents the Rexx programming language.
+	LanguageRexx
+	// LanguageRHTML represents the RHTML programming language.
+	LanguageRHTML
+	// LanguageRichTextFormat represents the RichTextFormat programming language.
+	LanguageRichTextFormat
+	// LanguageRide represents the Ride programming language.
+	LanguageRide
+	// LanguageRing represents the Ring programming language.
+	LanguageRing
+	// LanguageRiot represents the Riot programming language.
+	LanguageRiot
+	// LanguageRMarkdown represents the RMarkdown programming language.
+	LanguageRMarkdown
+	// LanguageRNGCompact represents the RNGCompact programming language.
+	LanguageRNGCompact
+	// LanguageRoboconfGraph represents the RoboconfGraph programming language.
+	LanguageRoboconfGraph
+	// LanguageRoboconfInstances represents the RoboconfInstances programming language.
+	LanguageRoboconfInstances
+	// LanguageRobotFramework represents the RobotFramework programming language.
+	LanguageRobotFramework
+	// LanguageRoff represents the Roff programming language.
+	LanguageRoff
+	// LanguageRoffManpage represents the RoffManpage programming language.
+	LanguageRoffManpage
+	// LanguageRouge represents the Rouge programming language.
+	LanguageRouge
+	// LanguageRPC represents the RPC programming language.
+	LanguageRPC
 	// LanguageRPMSpec represents the RPMSpec programming language.
 	LanguageRPMSpec
+	// LanguageRQL represents the RQL programming language.
+	LanguageRQL
+	// LanguageRSL represents the RSL programming language.
+	LanguageRSL
 	// LanguageRuby represents the Ruby programming language.
 	LanguageRuby
+	// LanguageRubyIRBSession represents the RubyIRBSession programming language.
+	LanguageRubyIRBSession
+	// LanguageRUNOFF represents the RUNOFF programming language.
+	LanguageRUNOFF
 	// LanguageRust represents the Rust programming language.
 	LanguageRust
 	// LanguageS represents the S programming language.
@@ -1315,10 +1397,51 @@ const (
 	languageQMLStr                 = "QML"
 	languageQVTOStr                = "QVTO"
 	languageRStr                   = "R"
-	languageReasonMLStr            = "ReasonML"
+	languageRacketStr              = "Racket"
+	languageRagelStr               = "Ragel"
+	languageRagelEmbeddedStr       = "Embedded Ragel"
+	languageRakuStr                = "Raku"
+	languageRAMLStr                = "RAML"
+	languageRascalStr              = "Rascal"
+	languageRawTokenStr            = "Raw token data" // nolint:gosec
+	languageRConsoleStr            = "RConsole"
+	languageRdStr                  = "Rd"
+	languageRDocStr                = "RDoc"
+	languageReadlineConfigStr      = "Readline Config"
+	languageREALbasicStr           = "REALbasic"
+	languageReasonMLStr            = "Reason"
+	languageREBOLStr               = "Rebol"
+	languageRecordJarStr           = "Record Jar"
+	languageRedStr                 = "Red"
+	languageRedcodeStr             = "Redcode"
+	languageRegistryStr            = "reg"
+	languageRegularExpressionStr   = "Regular Expression"
+	languageRenderScriptStr        = "RenderScript"
+	languageRenPyStr               = "Ren'Py"
+	languageReScriptStr            = "ReScript"
+	languageResourceBundleStr      = "ResourceBundle"
 	languageReStructuredTextStr    = "reStructuredText"
+	languageRexxStr                = "REXX"
+	languageRHTMLStr               = "RHTML"
+	languageRichTextFormatStr      = "Rich Text Format"
+	languageRideStr                = "Ride"
+	languageRingStr                = "Ring"
+	languageRiotStr                = "Riot"
+	languageRMarkdownStr           = "RMarkdown"
+	languageRNGCompactStr          = "Relax-NG Compact"
+	languageRoboconfGraphStr       = "Roboconf Graph"
+	languageRoboconfInstancesStr   = "Roboconf Instances"
+	languageRobotFrameworkStr      = "RobotFramework"
+	languageRoffStr                = "Roff"
+	languageRoffManpageStr         = "Roff Manpage"
+	languageRougeStr               = "Rouge"
+	languageRPCStr                 = "RPC"
 	languageRPMSpecStr             = "RPMSpec"
+	languageRQLStr                 = "RQL"
+	languageRSLStr                 = "RSL"
 	languageRubyStr                = "Ruby"
+	languageRubyIRBSessionStr      = "Ruby irb session"
+	languageRUNOFFStr              = "RUNOFF"
 	languageRustStr                = "Rust"
 	languageSStr                   = "S"
 	languageSaltStr                = "Salt"
@@ -1413,6 +1536,9 @@ const (
 	languagePython3ChromaStr        = "Python 3"
 	languageOrgChromaStr            = "Org Mode"
 	languageRChromaStr              = "R"
+	languageReasonMLChromaStr       = "ReasonML"
+	languageREBOLChromaStr          = "REBOL"
+	languageRexxChromaStr           = "Rexx"
 	languageSWIGChromaStr           = "SWIG"
 	languageSystemVerilogChromaStr  = "systemverilog"
 	languageTextChromaStr           = "plaintext"
@@ -2185,14 +2311,96 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageQVTO, true
 	case normalizeString(languageRStr):
 		return LanguageR, true
+	case normalizeString(languageRacketStr):
+		return LanguageRacket, true
+	case normalizeString(languageRagelStr):
+		return LanguageRagel, true
+	case normalizeString(languageRagelEmbeddedStr):
+		return LanguageRagelEmbedded, true
+	case normalizeString(languageRakuStr):
+		return LanguageRaku, true
+	case normalizeString(languageRAMLStr):
+		return LanguageRAML, true
+	case normalizeString(languageRascalStr):
+		return LanguageRascal, true
+	case normalizeString(languageRawTokenStr):
+		return LanguageRawToken, true
+	case normalizeString(languageRConsoleStr):
+		return LanguageRConsole, true
+	case normalizeString(languageRdStr):
+		return LanguageRd, true
+	case normalizeString(languageRDocStr):
+		return LanguageRDoc, true
+	case normalizeString(languageReadlineConfigStr):
+		return LanguageReadlineConfig, true
+	case normalizeString(languageREALbasicStr):
+		return LanguageREALbasic, true
 	case normalizeString(languageReasonMLStr):
 		return LanguageReasonML, true
+	case normalizeString(languageREBOLStr):
+		return LanguageREBOL, true
+	case normalizeString(languageRecordJarStr):
+		return LanguageRecordJar, true
+	case normalizeString(languageRedStr):
+		return LanguageRed, true
+	case normalizeString(languageRedcodeStr):
+		return LanguageRedcode, true
+	case normalizeString(languageRegistryStr):
+		return LanguageRegistry, true
+	case normalizeString(languageRegularExpressionStr):
+		return LanguageRegularExpression, true
+	case normalizeString(languageRenderScriptStr):
+		return LanguageRenderScript, true
+	case normalizeString(languageRenPyStr):
+		return LanguageRenPy, true
+	case normalizeString(languageReScriptStr):
+		return LanguageReScript, true
+	case normalizeString(languageResourceBundleStr):
+		return LanguageResourceBundle, true
 	case normalizeString(languageReStructuredTextStr):
 		return LanguageReStructuredText, true
+	case normalizeString(languageRexxStr):
+		return LanguageRexx, true
+	case normalizeString(languageRHTMLStr):
+		return LanguageRHTML, true
+	case normalizeString(languageRichTextFormatStr):
+		return LanguageRichTextFormat, true
+	case normalizeString(languageRideStr):
+		return LanguageRide, true
+	case normalizeString(languageRingStr):
+		return LanguageRing, true
+	case normalizeString(languageRiotStr):
+		return LanguageRiot, true
+	case normalizeString(languageRMarkdownStr):
+		return LanguageRMarkdown, true
+	case normalizeString(languageRNGCompactStr):
+		return LanguageRNGCompact, true
+	case normalizeString(languageRoboconfGraphStr):
+		return LanguageRoboconfGraph, true
+	case normalizeString(languageRoboconfInstancesStr):
+		return LanguageRoboconfInstances, true
+	case normalizeString(languageRobotFrameworkStr):
+		return LanguageRobotFramework, true
+	case normalizeString(languageRoffStr):
+		return LanguageRoff, true
+	case normalizeString(languageRoffManpageStr):
+		return LanguageRoffManpage, true
+	case normalizeString(languageRougeStr):
+		return LanguageRouge, true
+	case normalizeString(languageRPCStr):
+		return LanguageRPC, true
 	case normalizeString(languageRPMSpecStr):
 		return LanguageRPMSpec, true
+	case normalizeString(languageRQLStr):
+		return LanguageRQL, true
+	case normalizeString(languageRSLStr):
+		return LanguageRSL, true
 	case normalizeString(languageRubyStr):
 		return LanguageRuby, true
+	case normalizeString(languageRubyIRBSessionStr):
+		return LanguageRubyIRBSession, true
+	case normalizeString(languageRUNOFFStr):
+		return LanguageRUNOFF, true
 	case normalizeString(languageRustStr):
 		return LanguageRust, true
 	case normalizeString(languageSStr):
@@ -2385,6 +2593,12 @@ func ParseLanguageFromChroma(lexerName string) (Language, bool) {
 		return LanguagePython, true
 	case normalizeString(languageRChromaStr):
 		return LanguageS, true
+	case normalizeString(languageRexxChromaStr):
+		return LanguageRexx, true
+	case normalizeString(languageReasonMLChromaStr):
+		return LanguageReasonML, true
+	case normalizeString(languageREBOLChromaStr):
+		return LanguageREBOL, true
 	case normalizeString(languageSWIGChromaStr):
 		return LanguageSwig, true
 	case normalizeString(languageSystemVerilogChromaStr):
@@ -3189,14 +3403,96 @@ func (l Language) String() string {
 		return languageQVTOStr
 	case LanguageR:
 		return languageRStr
+	case LanguageRacket:
+		return languageRacketStr
+	case LanguageRagel:
+		return languageRagelStr
+	case LanguageRagelEmbedded:
+		return languageRagelEmbeddedStr
+	case LanguageRaku:
+		return languageRakuStr
+	case LanguageRAML:
+		return languageRAMLStr
+	case LanguageRascal:
+		return languageRascalStr
+	case LanguageRawToken:
+		return languageRawTokenStr
+	case LanguageRConsole:
+		return languageRConsoleStr
+	case LanguageRd:
+		return languageRdStr
+	case LanguageRDoc:
+		return languageRDocStr
+	case LanguageReadlineConfig:
+		return languageReadlineConfigStr
+	case LanguageREALbasic:
+		return languageREALbasicStr
 	case LanguageReasonML:
 		return languageReasonMLStr
+	case LanguageREBOL:
+		return languageREBOLStr
+	case LanguageRecordJar:
+		return languageRecordJarStr
+	case LanguageRed:
+		return languageRedStr
+	case LanguageRedcode:
+		return languageRedcodeStr
+	case LanguageRegistry:
+		return languageRegistryStr
+	case LanguageRegularExpression:
+		return languageRegularExpressionStr
+	case LanguageRenderScript:
+		return languageRenderScriptStr
+	case LanguageRenPy:
+		return languageRenPyStr
+	case LanguageReScript:
+		return languageReScriptStr
+	case LanguageResourceBundle:
+		return languageResourceBundleStr
 	case LanguageReStructuredText:
 		return languageReStructuredTextStr
+	case LanguageRexx:
+		return languageRexxStr
+	case LanguageRHTML:
+		return languageRHTMLStr
+	case LanguageRichTextFormat:
+		return languageRichTextFormatStr
+	case LanguageRide:
+		return languageRideStr
+	case LanguageRing:
+		return languageRingStr
+	case LanguageRiot:
+		return languageRiotStr
+	case LanguageRMarkdown:
+		return languageRMarkdownStr
+	case LanguageRNGCompact:
+		return languageRNGCompactStr
+	case LanguageRoboconfGraph:
+		return languageRoboconfGraphStr
+	case LanguageRoboconfInstances:
+		return languageRoboconfInstancesStr
+	case LanguageRobotFramework:
+		return languageRobotFrameworkStr
+	case LanguageRoff:
+		return languageRoffStr
+	case LanguageRoffManpage:
+		return languageRoffManpageStr
+	case LanguageRouge:
+		return languageRougeStr
+	case LanguageRPC:
+		return languageRPCStr
 	case LanguageRPMSpec:
 		return languageRPMSpecStr
+	case LanguageRQL:
+		return languageRQLStr
+	case LanguageRSL:
+		return languageRSLStr
 	case LanguageRuby:
 		return languageRubyStr
+	case LanguageRubyIRBSession:
+		return languageRubyIRBSessionStr
+	case LanguageRUNOFF:
+		return languageRUNOFFStr
 	case LanguageRust:
 		return languageRustStr
 	case LanguageS:
@@ -3380,6 +3676,14 @@ func (l Language) StringChroma() string {
 		return languageNimrodChromaStr
 	case LanguageOrg:
 		return languageOrgChromaStr
+	case LanguageReasonML:
+		return languageReasonMLChromaStr
+	case LanguageREBOL:
+		return languageREBOLChromaStr
+	case LanguageRexx:
+		return languageRexxChromaStr
+	case LanguageS:
+		return languageRChromaStr
 	case LanguageSwig:
 		return languageSWIGChromaStr
 	case LanguageSystemVerilog:
