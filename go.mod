@@ -1,6 +1,6 @@
 module github.com/wakatime/wakatime-cli
 
-go 1.15
+go 1.16
 
 require (
 	github.com/Azure/go-ntlmssp v0.0.0-20200615164410-66371956d46c
