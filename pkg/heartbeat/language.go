@@ -993,16 +993,26 @@ const (
 	LanguageTermcap
 	// LanguageTerminfo represents the Terminfo programming language.
 	LanguageTerminfo
+	// LanguageTerra represent the Terra programming language.
+	LanguageTerra
 	// LanguageTerraform represents the Terraform programming language.
 	LanguageTerraform
 	// LanguageTeX represents the TeX programming language.
 	LanguageTeX
+	// LanguageTexinfo represent the Texinfo programming language.
+	LanguageTexinfo
 	// LanguageText represents the Text programming language.
 	LanguageText
+	// LanguageTextile represent the Textile programming language.
+	LanguageTextile
 	// LanguageThrift represents the Thrift programming language.
 	LanguageThrift
 	// LanguageTiddler represents the Tiddler programming languages.
 	LanguageTiddler
+	// LanguageTIProgram represent the TIProgram programming language.
+	LanguageTIProgram
+	// LanguageTLA represent the TLA programming language.
+	LanguageTLA
 	// LanguageTNT represents the TNT programming languages.
 	LanguageTNT
 	// LanguageTodotxt represents the Todotxt programming languages.
@@ -1017,12 +1027,20 @@ const (
 	LanguageTransactSQL
 	// LanguageTreetop represents the Treetop programming languages.
 	LanguageTreetop
+	// LanguageTSV represent the TSV programming language.
+	LanguageTSV
+	// LanguageTSX represent the TSX programming language.
+	LanguageTSX
 	// LanguageTuring represents the Turing programming language.
 	LanguageTuring
 	// LanguageTurtle represents the Turtle programming languages.
 	LanguageTurtle
 	// LanguageTwig represents the Twig programming language.
 	LanguageTwig
+	// LanguageTXL represent the TXL programming language.
+	LanguageTXL
+	// LanguageTypeLanguage represent the TypeLanguage programming language.
+	LanguageTypeLanguage
 	// LanguageTypeScript represents the TypeScript programming language.
 	LanguageTypeScript
 	// LanguageTypoScript represents the TypoScript programming language.
@@ -1546,21 +1564,30 @@ const (
 	languageTeraTermStr            = "Tera Term macro"
 	languageTermcapStr             = "Termcap"
 	languageTerminfoStr            = "Terminfo"
+	languageTerraStr               = "Terra"
 	languageTerraformStr           = "Terraform"
 	languageTeXStr                 = "TeX"
+	languageTexinfoStr             = "Texinfo"
 	languageTextStr                = "Text"
+	languageTextileStr             = "Textile"
 	languageThriftStr              = "Thrift"
 	languageTiddlerStr             = "tiddler"
+	languageTIProgramStr           = "TI Program"
+	languageTLAStr                 = "TLA"
 	languageTNTStr                 = "Typographic Number Theory"
 	languageTodotxtStr             = "Todotxt"
 	languageTOMLStr                = "TOML"
 	languageTradingViewStr         = "TradingView"
 	languageTrafficScriptStr       = "TrafficScript"
-	languageTransactSQLStr         = "Transact-SQL"
+	languageTransactSQLStr         = "TSQL"
 	languageTreetopStr             = "Treetop"
+	languageTSVStr                 = "TSV"
+	languageTSXStr                 = "TSX"
 	languageTuringStr              = "Turing"
 	languageTurtleStr              = "Turtle"
 	languageTwigStr                = "Twig"
+	languageTXLStr                 = "TXL"
+	languageTypeLanguageStr        = "Type Language"
 	languageTypeScriptStr          = "TypeScript"
 	languageTypoScriptStr          = "TypoScript"
 	languageVBStr                  = "VB"
@@ -1602,6 +1629,7 @@ const (
 	languageSWIGChromaStr               = "SWIG"
 	languageSystemVerilogChromaStr      = "systemverilog"
 	languageTextChromaStr               = "plaintext"
+	languageTransactSQLChromaStr        = "Transact-SQL"
 	languageTypoScriptHTMLDataChromaStr = "TypoScriptHtmlData"
 	languageTypoScriptCSSDataChromaStr  = "TypoScriptCssData"
 	languageVHDLChromaStr               = "VHDL"
@@ -2591,16 +2619,26 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageTermcap, true
 	case normalizeString(languageTerminfoStr):
 		return LanguageTerminfo, true
+	case normalizeString(languageTerraStr):
+		return LanguageTerra, true
 	case normalizeString(languageTerraformStr):
 		return LanguageTerraform, true
 	case normalizeString(languageTeXStr):
 		return LanguageTeX, true
+	case normalizeString(languageTexinfoStr):
+		return LanguageTexinfo, true
 	case normalizeString(languageTextStr):
 		return LanguageText, true
+	case normalizeString(languageTextileStr):
+		return LanguageTextile, true
 	case normalizeString(languageThriftStr):
 		return LanguageThrift, true
 	case normalizeString(languageTiddlerStr):
 		return LanguageTiddler, true
+	case normalizeString(languageTIProgramStr):
+		return LanguageTIProgram, true
+	case normalizeString(languageTLAStr):
+		return LanguageTLA, true
 	case normalizeString(languageTNTStr):
 		return LanguageTNT, true
 	case normalizeString(languageTodotxtStr):
@@ -2615,12 +2653,20 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageTransactSQL, true
 	case normalizeString(languageTreetopStr):
 		return LanguageTreetop, true
+	case normalizeString(languageTSVStr):
+		return LanguageTSV, true
+	case normalizeString(languageTSXStr):
+		return LanguageTSX, true
 	case normalizeString(languageTuringStr):
 		return LanguageTuring, true
 	case normalizeString(languageTurtleStr):
 		return LanguageTurtle, true
 	case normalizeString(languageTwigStr):
 		return LanguageTwig, true
+	case normalizeString(languageTXLStr):
+		return LanguageTXL, true
+	case normalizeString(languageTypeLanguageStr):
+		return LanguageTypeLanguage, true
 	case normalizeString(languageTypeScriptStr):
 		return LanguageTypeScript, true
 	case normalizeString(languageTypoScriptStr):
@@ -2707,6 +2753,8 @@ func ParseLanguageFromChroma(lexerName string) (Language, bool) {
 		return LanguageSystemVerilog, true
 	case normalizeString(languageTextChromaStr):
 		return LanguageText, true
+	case normalizeString(languageTransactSQLChromaStr):
+		return LanguageTransactSQL, true
 	case normalizeString(languageTypoScriptCSSDataChromaStr):
 		return LanguageTypoScript, true
 	case normalizeString(languageTypoScriptHTMLDataChromaStr):
@@ -3727,16 +3775,26 @@ func (l Language) String() string {
 		return languageTermcapStr
 	case LanguageTerminfo:
 		return languageTerminfoStr
+	case LanguageTerra:
+		return languageTerraStr
 	case LanguageTerraform:
 		return languageTerraformStr
 	case LanguageTeX:
 		return languageTeXStr
+	case LanguageTexinfo:
+		return languageTexinfoStr
 	case LanguageText:
 		return languageTextStr
+	case LanguageTextile:
+		return languageTextileStr
 	case LanguageThrift:
 		return languageThriftStr
 	case LanguageTiddler:
 		return languageTiddlerStr
+	case LanguageTIProgram:
+		return languageTIProgramStr
+	case LanguageTLA:
+		return languageTLAStr
 	case LanguageTNT:
 		return languageTNTStr
 	case LanguageTodotxt:
@@ -3751,12 +3809,20 @@ func (l Language) String() string {
 		return languageTransactSQLStr
 	case LanguageTreetop:
 		return languageTreetopStr
+	case LanguageTSV:
+		return languageTSVStr
+	case LanguageTSX:
+		return languageTSXStr
 	case LanguageTuring:
 		return languageTuringStr
 	case LanguageTurtle:
 		return languageTurtleStr
 	case LanguageTwig:
 		return languageTwigStr
+	case LanguageTXL:
+		return languageTXLStr
+	case LanguageTypeLanguage:
+		return languageTypeLanguageStr
 	case LanguageTypeScript:
 		return languageTypeScriptStr
 	case LanguageTypoScript:
@@ -3836,6 +3902,8 @@ func (l Language) StringChroma() string {
 		return languageSystemVerilogChromaStr
 	case LanguageText:
 		return languageTextChromaStr
+	case LanguageTransactSQL:
+		return languageTransactSQLChromaStr
 	case LanguageVHDL:
 		return languageVHDLChromaStr
 	case LanguageVueJS:
