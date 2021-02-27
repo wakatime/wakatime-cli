@@ -1049,8 +1049,20 @@ const (
 	LanguageUcode
 	// LanguageUnicon represents the Unicon programming language.
 	LanguageUnicon
+	// LanguageUnifiedParallelC represents the UnifiedParallelC programming language.
+	LanguageUnifiedParallelC
+	// LanguageUnity3DAsset represents the Unity3DAsset programming language.
+	LanguageUnity3DAsset
+	// LanguageUnixAssembly represents the UnixAssembly programming language.
+	LanguageUnixAssembly
+	// LanguageUno represents the Uno programming language.
+	LanguageUno
+	// LanguageUnrealScript represents the UnrealScript programming language.
+	LanguageUnrealScript
 	// LanguageUrbiScript represents the UrbiScript programming language.
 	LanguageUrbiScript
+	// LanguageUrWeb represents the UrWeb programming language.
+	LanguageUrWeb
 	// LanguageUSD represents the USD programming language.
 	LanguageUSD
 	// LanguageVala represents the Vala programming language.
@@ -1618,7 +1630,13 @@ const (
 	languageTypoScriptStr          = "TypoScript"
 	languageUcodeStr               = "ucode"
 	languageUniconStr              = "Unicon"
+	languageUnifiedParallelCStr    = "Unified Parallel C"
+	languageUnity3DAssetStr        = "Unity3D Asset"
+	languageUnixAssemblyStr        = "Unix Assembly"
+	languageUnoStr                 = "Uno"
+	languageUnrealScriptStr        = "UnrealScript"
 	languageUrbiScriptStr          = "UrbiScript"
+	languageUrWebStr               = "UrWeb"
 	languageUSDStr                 = "USD"
 	languageValaStr                = "Vala"
 	languageVBStr                  = "VB"
@@ -2715,8 +2733,20 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageUcode, true
 	case normalizeString(languageUniconStr):
 		return LanguageUnicon, true
+	case normalizeString(languageUnifiedParallelCStr):
+		return LanguageUnifiedParallelC, true
+	case normalizeString(languageUnity3DAssetStr):
+		return LanguageUnity3DAsset, true
+	case normalizeString(languageUnixAssemblyStr):
+		return LanguageUnixAssembly, true
+	case normalizeString(languageUnoStr):
+		return LanguageUno, true
+	case normalizeString(languageUnrealScriptStr):
+		return LanguageUnrealScript, true
 	case normalizeString(languageUrbiScriptStr):
 		return LanguageUrbiScript, true
+	case normalizeString(languageUrWebStr):
+		return LanguageUrWeb, true
 	case normalizeString(languageUSDStr):
 		return LanguageUSD, true
 	case normalizeString(languageValaStr):
@@ -3899,8 +3929,20 @@ func (l Language) String() string {
 		return languageUcodeStr
 	case LanguageUnicon:
 		return languageUniconStr
+	case LanguageUnifiedParallelC:
+		return languageUnifiedParallelCStr
+	case LanguageUnity3DAsset:
+		return languageUnity3DAssetStr
+	case LanguageUnixAssembly:
+		return languageUnixAssemblyStr
+	case LanguageUno:
+		return languageUnoStr
+	case LanguageUnrealScript:
+		return languageUnrealScriptStr
 	case LanguageUrbiScript:
 		return languageUrbiScriptStr
+	case LanguageUrWeb:
+		return languageUrWebStr
 	case LanguageUSD:
 		return languageUSDStr
 	case LanguageVala:
