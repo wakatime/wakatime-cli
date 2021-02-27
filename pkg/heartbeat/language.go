@@ -1065,10 +1065,14 @@ const (
 	LanguageUrWeb
 	// LanguageUSD represents the USD programming language.
 	LanguageUSD
+	// LanguageV represents the V programming language.
+	LanguageV
 	// LanguageVala represents the Vala programming language.
 	LanguageVala
 	// LanguageVB represents the VB programming language.
 	LanguageVB
+	// LanguageVBA represents the VBA programming language.
+	LanguageVBA
 	// LanguageVBNet represents the VB.net programming language.
 	LanguageVBNet
 	// LanguageVBScript represents the VBScript programming language.
@@ -1087,8 +1091,16 @@ const (
 	LanguageVGL
 	// LanguageVHDL represents the VHDL programming language.
 	LanguageVHDL
+	// LanguageVimHelpFile represents the VimHelpFile programming language.
+	LanguageVimHelpFile
 	// LanguageVimL represents the VimL programming language.
 	LanguageVimL
+	// LanguageVimScript represents the VimScript programming language.
+	LanguageVimScript
+	// LanguageVimSnippet represents the VimSnippet programming language.
+	LanguageVimSnippet
+	// LanguageVolt represents the Volt programming language.
+	LanguageVolt
 	// LanguageVueJS represents the VueJS programming language.
 	LanguageVueJS
 	// LanguageWDTE represents the WDTE programming language.
@@ -1638,9 +1650,11 @@ const (
 	languageUrbiScriptStr          = "UrbiScript"
 	languageUrWebStr               = "UrWeb"
 	languageUSDStr                 = "USD"
+	languageVStr                   = "V"
 	languageValaStr                = "Vala"
 	languageVBStr                  = "VB"
-	languageVBNetStr               = "VB.net"
+	languageVBAStr                 = "VBA"
+	languageVBNetStr               = "VB.NET"
 	languageVBScriptStr            = "VBScript"
 	languageVCLStr                 = "VCL"
 	languageVCLSnippetsStr         = "VCLSnippets"
@@ -1649,7 +1663,11 @@ const (
 	languageVerilogStr             = "Verilog"
 	languageVGLStr                 = "VGL"
 	languageVHDLStr                = "VHDL"
+	languageVimHelpFileStr         = "Vim Help File"
 	languageVimLStr                = "VimL"
+	languageVimScriptStr           = "Vim script"
+	languageVimSnippetStr          = "Vim Snippet"
+	languageVoltStr                = "Volt"
 	languageVueJSStr               = "Vue.js"
 	languageWDTEStr                = "WDTE"
 	languageWDiffStr               = "WDiff"
@@ -1689,6 +1707,7 @@ const (
 	languageTransactSQLChromaStr        = "Transact-SQL"
 	languageTypoScriptHTMLDataChromaStr = "TypoScriptHtmlData"
 	languageTypoScriptCSSDataChromaStr  = "TypoScriptCssData"
+	languageVBNetChromaStr              = "VB.net"
 	languageVerilogChromaStr            = "verilog"
 	languageVueJSChromaStr              = "vue"
 	languageWebIDLChromaStr             = "Web IDL"
@@ -2749,10 +2768,14 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageUrWeb, true
 	case normalizeString(languageUSDStr):
 		return LanguageUSD, true
+	case normalizeString(languageVStr):
+		return LanguageV, true
 	case normalizeString(languageValaStr):
 		return LanguageVala, true
 	case normalizeString(languageVBStr):
 		return LanguageVB, true
+	case normalizeString(languageVBAStr):
+		return LanguageVBA, true
 	case normalizeString(languageVBNetStr):
 		return LanguageVBNet, true
 	case normalizeString(languageVBScriptStr):
@@ -2771,8 +2794,16 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageVGL, true
 	case normalizeString(languageVHDLStr):
 		return LanguageVHDL, true
+	case normalizeString(languageVimHelpFileStr):
+		return LanguageVimHelpFile, true
 	case normalizeString(languageVimLStr):
 		return LanguageVimL, true
+	case normalizeString(languageVimScriptStr):
+		return LanguageVimScript, true
+	case normalizeString(languageVimSnippetStr):
+		return LanguageVimSnippet, true
+	case normalizeString(languageVoltStr):
+		return LanguageVolt, true
 	case normalizeString(languageVueJSStr):
 		return LanguageVueJS, true
 	case normalizeString(languageWDTEStr):
@@ -2855,6 +2886,8 @@ func ParseLanguageFromChroma(lexerName string) (Language, bool) {
 		return LanguageTypoScript, true
 	case normalizeString(languageTypoScriptHTMLDataChromaStr):
 		return LanguageTypoScript, true
+	case normalizeString(languageVBNetChromaStr):
+		return LanguageVBNet, true
 	case normalizeString(languageVerilogChromaStr):
 		return LanguageVerilog, true
 	case normalizeString(languageVueJSChromaStr):
@@ -3945,10 +3978,14 @@ func (l Language) String() string {
 		return languageUrWebStr
 	case LanguageUSD:
 		return languageUSDStr
+	case LanguageV:
+		return languageVStr
 	case LanguageVala:
 		return languageValaStr
 	case LanguageVB:
 		return languageVBStr
+	case LanguageVBA:
+		return languageVBAStr
 	case LanguageVBNet:
 		return languageVBNetStr
 	case LanguageVBScript:
@@ -3967,8 +4004,16 @@ func (l Language) String() string {
 		return languageVerilogStr
 	case LanguageVHDL:
 		return languageVHDLStr
+	case LanguageVimHelpFile:
+		return languageVimHelpFileStr
 	case LanguageVimL:
 		return languageVimLStr
+	case LanguageVimScript:
+		return languageVimScriptStr
+	case LanguageVimSnippet:
+		return languageVimSnippetStr
+	case LanguageVolt:
+		return languageVoltStr
 	case LanguageVueJS:
 		return languageVueJSStr
 	case LanguageWDTE:
@@ -4040,6 +4085,8 @@ func (l Language) StringChroma() string {
 		return languageTextChromaStr
 	case LanguageTransactSQL:
 		return languageTransactSQLChromaStr
+	case LanguageVBNet:
+		return languageVBNetChromaStr
 	case LanguageVerilog:
 		return languageVerilogChromaStr
 	case LanguageVueJS:
