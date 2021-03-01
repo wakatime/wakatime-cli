@@ -1181,12 +1181,20 @@ const (
 	LanguageYARA
 	// LanguageYASnippet represents the YASnippet programming language.
 	LanguageYASnippet
+	// LanguageZAP represents the ZAP programming language.
+	LanguageZAP
 	// LanguageZeek represents the Zeek programming language.
 	LanguageZeek
+	// LanguageZenScript represents the ZenScript programming language.
+	LanguageZenScript
 	// LanguageZephir represents the Zephir programming language.
 	LanguageZephir
 	// LanguageZig represents the Zig programming language.
 	LanguageZig
+	// LanguageZIL represents the ZIL programming language.
+	LanguageZIL
+	// LanguageZimpl represents the Zimpl programming language.
+	LanguageZimpl
 )
 
 const (
@@ -1774,9 +1782,13 @@ const (
 	languageYANGStr                   = "YANG"
 	languageYARAStr                   = "YARA"
 	languageYASnippetStr              = "YASnippet"
+	languageZAPStr                    = "ZAP"
 	languageZeekStr                   = "Zeek"
+	languageZenScriptStr              = "ZenScript"
 	languageZephirStr                 = "Zephir"
 	languageZigStr                    = "Zig"
+	languageZILStr                    = "ZIL"
+	languageZimplStr                  = "Zimpl"
 )
 
 const (
@@ -2983,12 +2995,20 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageYARA, true
 	case normalizeString(languageYASnippetStr):
 		return LanguageYASnippet, true
+	case normalizeString(languageZAPStr):
+		return LanguageZAP, true
 	case normalizeString(languageZeekStr):
 		return LanguageZeek, true
+	case normalizeString(languageZenScriptStr):
+		return LanguageZenScript, true
 	case normalizeString(languageZephirStr):
 		return LanguageZephir, true
 	case normalizeString(languageZigStr):
 		return LanguageZig, true
+	case normalizeString(languageZILStr):
+		return LanguageZIL, true
+	case normalizeString(languageZimplStr):
+		return LanguageZimpl, true
 	default:
 		return LanguageUnknown, false
 	}
@@ -4259,12 +4279,21 @@ func (l Language) String() string {
 		return languageYARAStr
 	case LanguageYASnippet:
 		return languageYASnippetStr
+	case LanguageZAP:
+		return languageZAPStr
 	case LanguageZeek:
 		return languageZeekStr
+	case LanguageZenScript:
+		return languageZenScriptStr
 	case LanguageZephir:
 		return languageZephirStr
 	case LanguageZig:
 		return languageZigStr
+	case LanguageZIL:
+		return languageZILStr
+	case LanguageZimpl:
+		return languageZimplStr
+
 	default:
 		return languageUnkownStr
 	}

@@ -595,9 +595,13 @@ func languageTests() map[string]heartbeat.Language {
 		"YANG":                          heartbeat.LanguageYANG,
 		"YARA":                          heartbeat.LanguageYARA,
 		"YASnippet":                     heartbeat.LanguageYASnippet,
+		"ZAP":                           heartbeat.LanguageZAP,
 		"Zeek":                          heartbeat.LanguageZeek,
+		"ZenScript":                     heartbeat.LanguageZenScript,
 		"Zephir":                        heartbeat.LanguageZephir,
 		"Zig":                           heartbeat.LanguageZig,
+		"ZIL":                           heartbeat.LanguageZIL,
+		"Zimpl":                         heartbeat.LanguageZimpl,
 	}
 }
 
