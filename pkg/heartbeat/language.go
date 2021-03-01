@@ -1137,12 +1137,34 @@ const (
 	LanguageX10
 	// LanguageXAML represents the XAML programming language.
 	LanguageXAML
+	// LanguageXBase represents the XBase programming language.
+	LanguageXBase
+	// LanguageXBitMap represents the XBitMap programming language.
+	LanguageXBitMap
+	// LanguageXC represents the XC programming language.
+	LanguageXC
+	// LanguageXCompose represents the XCompose programming language.
+	LanguageXCompose
+	// LanguageXFontDirectoryIndex represents the XFontDirectoryIndex programming language.
+	LanguageXFontDirectoryIndex
 	// LanguageXML represents the XML programming language.
 	LanguageXML
+	// LanguageXMLPropertyList represents the XMLPropertyList programming language.
+	LanguageXMLPropertyList
+	// LanguageXojo represents the Xojo programming language.
+	LanguageXojo
 	// LanguageXorg represents the Xorg programming language.
 	LanguageXorg
+	// LanguageXPages represents the XPages programming language.
+	LanguageXPages
+	// LanguageXPixMap represents the XPixMap programming language.
+	LanguageXPixMap
+	// LanguageXProc represents the XProc programming language.
+	LanguageXProc
 	// LanguageXQuery represents the XQuery programming language.
 	LanguageXQuery
+	// LanguageXS represents the XS programming language.
+	LanguageXS
 	// LanguageXSLT represents the XSLT programming language.
 	LanguageXSLT
 	// LanguageXtend represents the Xtend programming language.
@@ -1724,9 +1746,20 @@ const (
 	languageWowAddonDataStr           = "World of Warcraft Addon Data"
 	languageX10Str                    = "X10"
 	languageXAMLStr                   = "XAML"
+	languageXBaseStr                  = "xBase"
+	languageXBitMapStr                = "X BitMap"
+	languageXCStr                     = "XC"
+	languageXComposeStr               = "XCompose"
+	languageXFontDirectoryIndexStr    = "X Font Directory Index"
 	languageXMLStr                    = "XML"
+	languageXMLPropertyListStr        = "XML Property List"
+	languageXojoStr                   = "Xojo"
 	languageXorgStr                   = "Xorg"
+	languageXPagesStr                 = "XPages"
+	languageXPixMapStr                = "X PixMap"
+	languageXProcStr                  = "XProc"
 	languageXQueryStr                 = "XQuery"
+	languageXSStr                     = "XS"
 	languageXSLTStr                   = "XSLT"
 	languageXtendStr                  = "Xtend"
 	languageXtlangStr                 = "xtlang"
@@ -2897,12 +2930,34 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageX10, true
 	case normalizeString(languageXAMLStr):
 		return LanguageXAML, true
+	case normalizeString(languageXBaseStr):
+		return LanguageXBase, true
+	case normalizeString(languageXBitMapStr):
+		return LanguageXBitMap, true
+	case normalizeString(languageXCStr):
+		return LanguageXC, true
+	case normalizeString(languageXComposeStr):
+		return LanguageXCompose, true
+	case normalizeString(languageXFontDirectoryIndexStr):
+		return LanguageXFontDirectoryIndex, true
 	case normalizeString(languageXMLStr):
 		return LanguageXML, true
+	case normalizeString(languageXMLPropertyListStr):
+		return LanguageXMLPropertyList, true
+	case normalizeString(languageXojoStr):
+		return LanguageXojo, true
 	case normalizeString(languageXorgStr):
 		return LanguageXorg, true
+	case normalizeString(languageXPagesStr):
+		return LanguageXPages, true
+	case normalizeString(languageXPixMapStr):
+		return LanguageXPixMap, true
+	case normalizeString(languageXProcStr):
+		return LanguageXProc, true
 	case normalizeString(languageXQueryStr):
 		return LanguageXQuery, true
+	case normalizeString(languageXSStr):
+		return LanguageXS, true
 	case normalizeString(languageXSLTStr):
 		return LanguageXSLT, true
 	case normalizeString(languageXtendStr):
@@ -4145,12 +4200,34 @@ func (l Language) String() string {
 		return languageX10Str
 	case LanguageXAML:
 		return languageXAMLStr
+	case LanguageXBase:
+		return languageXBaseStr
+	case LanguageXBitMap:
+		return languageXBitMapStr
+	case LanguageXC:
+		return languageXCStr
+	case LanguageXCompose:
+		return languageXComposeStr
+	case LanguageXFontDirectoryIndex:
+		return languageXFontDirectoryIndexStr
 	case LanguageXML:
 		return languageXMLStr
+	case LanguageXMLPropertyList:
+		return languageXMLPropertyListStr
+	case LanguageXojo:
+		return languageXojoStr
 	case LanguageXorg:
 		return languageXorgStr
+	case LanguageXPages:
+		return languageXPagesStr
+	case LanguageXPixMap:
+		return languageXPixMapStr
+	case LanguageXProc:
+		return languageXProcStr
 	case LanguageXQuery:
 		return languageXQueryStr
+	case LanguageXS:
+		return languageXSStr
 	case LanguageXSLT:
 		return languageXSLTStr
 	case LanguageXtend:
