@@ -1171,10 +1171,16 @@ const (
 	LanguageXtend
 	// LanguageXtlang represents the Xtlang programming language.
 	LanguageXtlang
+	// LanguageYacc represents the Yacc programming language.
+	LanguageYacc
 	// LanguageYAML represents the YAML programming language.
 	LanguageYAML
 	// LanguageYANG represents the YANG programming language.
 	LanguageYANG
+	// LanguageYARA represents the YARA programming language.
+	LanguageYARA
+	// LanguageYASnippet represents the YASnippet programming language.
+	LanguageYASnippet
 	// LanguageZeek represents the Zeek programming language.
 	LanguageZeek
 	// LanguageZephir represents the Zephir programming language.
@@ -1763,8 +1769,11 @@ const (
 	languageXSLTStr                   = "XSLT"
 	languageXtendStr                  = "Xtend"
 	languageXtlangStr                 = "xtlang"
+	languageYaccStr                   = "Yacc"
 	languageYAMLStr                   = "YAML"
 	languageYANGStr                   = "YANG"
+	languageYARAStr                   = "YARA"
+	languageYASnippetStr              = "YASnippet"
 	languageZeekStr                   = "Zeek"
 	languageZephirStr                 = "Zephir"
 	languageZigStr                    = "Zig"
@@ -2964,10 +2973,16 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageXtend, true
 	case normalizeString(languageXtlangStr):
 		return LanguageXtlang, true
+	case normalizeString(languageYaccStr):
+		return LanguageYacc, true
 	case normalizeString(languageYAMLStr):
 		return LanguageYAML, true
 	case normalizeString(languageYANGStr):
 		return LanguageYANG, true
+	case normalizeString(languageYARAStr):
+		return LanguageYARA, true
+	case normalizeString(languageYASnippetStr):
+		return LanguageYASnippet, true
 	case normalizeString(languageZeekStr):
 		return LanguageZeek, true
 	case normalizeString(languageZephirStr):
@@ -4234,10 +4249,16 @@ func (l Language) String() string {
 		return languageXtendStr
 	case LanguageXtlang:
 		return languageXtlangStr
+	case LanguageYacc:
+		return languageYaccStr
 	case LanguageYAML:
 		return languageYAMLStr
 	case LanguageYANG:
 		return languageYANGStr
+	case LanguageYARA:
+		return languageYARAStr
+	case LanguageYASnippet:
+		return languageYASnippetStr
 	case LanguageZeek:
 		return languageZeekStr
 	case LanguageZephir:
