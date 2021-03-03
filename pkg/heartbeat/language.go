@@ -971,18 +971,76 @@ const (
 	LanguageSYSTEMD
 	// LanguageSystemVerilog represents the SystemVerilog programming language.
 	LanguageSystemVerilog
+	// LanguageTableGen represents the TableGen programming language.
+	LanguageTableGen
+	// LanguageTADS3 represents the TADS3 programming language.
+	LanguageTADS3
+	// LanguageTAP represents the TAP programming language.
+	LanguageTAP
+	// LanguageTASM represents the TASM programming language.
+	LanguageTASM
+	// LanguageTcl represents the Tcl programming language.
+	LanguageTcl
+	// LanguageTcsh represents the Tcsh programming language.
+	LanguageTcsh
+	// LanguageTcshSession represents the TcshSession programming language.
+	LanguageTcshSession
+	// LanguageTea represents the Tea programming language.
+	LanguageTea
+	// LanguageTeraTerm represents the TeraTerm programming language.
+	LanguageTeraTerm
+	// LanguageTermcap represents the Termcap programming language.
+	LanguageTermcap
+	// LanguageTerminfo represents the Terminfo programming language.
+	LanguageTerminfo
+	// LanguageTerra represent the Terra programming language.
+	LanguageTerra
+	// LanguageTerraform represents the Terraform programming language.
+	LanguageTerraform
 	// LanguageTeX represents the TeX programming language.
 	LanguageTeX
+	// LanguageTexinfo represent the Texinfo programming language.
+	LanguageTexinfo
 	// LanguageText represents the Text programming language.
 	LanguageText
+	// LanguageTextile represent the Textile programming language.
+	LanguageTextile
 	// LanguageThrift represents the Thrift programming language.
 	LanguageThrift
+	// LanguageTiddler represents the Tiddler programming languages.
+	LanguageTiddler
+	// LanguageTIProgram represent the TIProgram programming language.
+	LanguageTIProgram
+	// LanguageTLA represent the TLA programming language.
+	LanguageTLA
+	// LanguageTNT represents the TNT programming languages.
+	LanguageTNT
+	// LanguageTodotxt represents the Todotxt programming languages.
+	LanguageTodotxt
 	// LanguageTOML represents the TOML programming language.
 	LanguageTOML
+	// LanguageTradingView represents the TradingView programming languages.
+	LanguageTradingView
+	// LanguageTrafficScript represents the TrafficScript programming languages.
+	LanguageTrafficScript
+	// LanguageTransactSQL represents the TransactSQL programming languages.
+	LanguageTransactSQL
+	// LanguageTreetop represents the Treetop programming languages.
+	LanguageTreetop
+	// LanguageTSV represent the TSV programming language.
+	LanguageTSV
+	// LanguageTSX represent the TSX programming language.
+	LanguageTSX
 	// LanguageTuring represents the Turing programming language.
 	LanguageTuring
+	// LanguageTurtle represents the Turtle programming languages.
+	LanguageTurtle
 	// LanguageTwig represents the Twig programming language.
 	LanguageTwig
+	// LanguageTXL represent the TXL programming language.
+	LanguageTXL
+	// LanguageTypeLanguage represent the TypeLanguage programming language.
+	LanguageTypeLanguage
 	// LanguageTypeScript represents the TypeScript programming language.
 	LanguageTypeScript
 	// LanguageTypoScript represents the TypoScript programming language.
@@ -1495,12 +1553,41 @@ const (
 	languageSwigStr                = "Swig"
 	languageSYSTEMDStr             = "SYSTEMD"
 	languageSystemVerilogStr       = "SystemVerilog"
+	languageTableGenStr            = "TableGen"
+	languageTADS3Str               = "TADS 3"
+	languageTAPStr                 = "TAP"
+	languageTASMStr                = "TASM"
+	languageTclStr                 = "Tcl"
+	languageTcshStr                = "Tcsh"
+	languageTcshSessionStr         = "Tcsh Session"
+	languageTeaStr                 = "Tea"
+	languageTeraTermStr            = "Tera Term macro"
+	languageTermcapStr             = "Termcap"
+	languageTerminfoStr            = "Terminfo"
+	languageTerraStr               = "Terra"
+	languageTerraformStr           = "Terraform"
 	languageTeXStr                 = "TeX"
+	languageTexinfoStr             = "Texinfo"
 	languageTextStr                = "Text"
+	languageTextileStr             = "Textile"
 	languageThriftStr              = "Thrift"
+	languageTiddlerStr             = "tiddler"
+	languageTIProgramStr           = "TI Program"
+	languageTLAStr                 = "TLA"
+	languageTNTStr                 = "Typographic Number Theory"
+	languageTodotxtStr             = "Todotxt"
 	languageTOMLStr                = "TOML"
+	languageTradingViewStr         = "TradingView"
+	languageTrafficScriptStr       = "TrafficScript"
+	languageTransactSQLStr         = "TSQL"
+	languageTreetopStr             = "Treetop"
+	languageTSVStr                 = "TSV"
+	languageTSXStr                 = "TSX"
 	languageTuringStr              = "Turing"
+	languageTurtleStr              = "Turtle"
 	languageTwigStr                = "Twig"
+	languageTXLStr                 = "TXL"
+	languageTypeLanguageStr        = "Type Language"
 	languageTypeScriptStr          = "TypeScript"
 	languageTypoScriptStr          = "TypoScript"
 	languageVBStr                  = "VB"
@@ -1519,31 +1606,34 @@ const (
 )
 
 const (
-	languageApacheConfigChromaStr   = "ApacheConf"
-	languageAssemblyChromaStr       = "GAS"
-	languageColdfusionHTMLChromaStr = "Coldfusion HTML"
-	languageFSharpChromaStr         = "FSharp"
-	languageEmacsLispChromaStr      = "EmacsLisp"
-	languageGoHTMLTemplateChromaStr = "Go HTML Template"
-	languageGoTextTemplateChromaStr = "Go Text Template"
-	languageJSXChromaStr            = "react"
-	languageLessChromaStr           = "LessCss"
-	languageLiquidChromaStr         = "liquid"
-	languageMakefileChromaStr       = "Base Makefile"
-	languageMarkdownChromaStr       = "markdown"
-	languageNewLispChromaStr        = "NewLisp"
-	languageNimrodChromaStr         = "Nim"
-	languagePython3ChromaStr        = "Python 3"
-	languageOrgChromaStr            = "Org Mode"
-	languageRChromaStr              = "R"
-	languageReasonMLChromaStr       = "ReasonML"
-	languageREBOLChromaStr          = "REBOL"
-	languageRexxChromaStr           = "Rexx"
-	languageSWIGChromaStr           = "SWIG"
-	languageSystemVerilogChromaStr  = "systemverilog"
-	languageTextChromaStr           = "plaintext"
-	languageVHDLChromaStr           = "VHDL"
-	languageVueJSChromaStr          = "vue"
+	languageApacheConfigChromaStr       = "ApacheConf"
+	languageAssemblyChromaStr           = "GAS"
+	languageColdfusionHTMLChromaStr     = "Coldfusion HTML"
+	languageFSharpChromaStr             = "FSharp"
+	languageEmacsLispChromaStr          = "EmacsLisp"
+	languageGoHTMLTemplateChromaStr     = "Go HTML Template"
+	languageGoTextTemplateChromaStr     = "Go Text Template"
+	languageJSXChromaStr                = "react"
+	languageLessChromaStr               = "LessCss"
+	languageLiquidChromaStr             = "liquid"
+	languageMakefileChromaStr           = "Base Makefile"
+	languageMarkdownChromaStr           = "markdown"
+	languageNewLispChromaStr            = "NewLisp"
+	languageNimrodChromaStr             = "Nim"
+	languagePython3ChromaStr            = "Python 3"
+	languageOrgChromaStr                = "Org Mode"
+	languageRChromaStr                  = "R"
+	languageReasonMLChromaStr           = "ReasonML"
+	languageREBOLChromaStr              = "REBOL"
+	languageRexxChromaStr               = "Rexx"
+	languageSWIGChromaStr               = "SWIG"
+	languageSystemVerilogChromaStr      = "systemverilog"
+	languageTextChromaStr               = "plaintext"
+	languageTransactSQLChromaStr        = "Transact-SQL"
+	languageTypoScriptHTMLDataChromaStr = "TypoScriptHtmlData"
+	languageTypoScriptCSSDataChromaStr  = "TypoScriptCssData"
+	languageVHDLChromaStr               = "VHDL"
+	languageVueJSChromaStr              = "vue"
 )
 
 // ParseLanguage parses a language from a string. Will return false
@@ -2507,18 +2597,76 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageSYSTEMD, true
 	case normalizeString(languageSystemVerilogStr):
 		return LanguageSystemVerilog, true
+	case normalizeString(languageTableGenStr):
+		return LanguageTableGen, true
+	case normalizeString(languageTADS3Str):
+		return LanguageTADS3, true
+	case normalizeString(languageTAPStr):
+		return LanguageTAP, true
+	case normalizeString(languageTASMStr):
+		return LanguageTASM, true
+	case normalizeString(languageTclStr):
+		return LanguageTcl, true
+	case normalizeString(languageTcshStr):
+		return LanguageTcsh, true
+	case normalizeString(languageTcshSessionStr):
+		return LanguageTcshSession, true
+	case normalizeString(languageTeaStr):
+		return LanguageTea, true
+	case normalizeString(languageTeraTermStr):
+		return LanguageTeraTerm, true
+	case normalizeString(languageTermcapStr):
+		return LanguageTermcap, true
+	case normalizeString(languageTerminfoStr):
+		return LanguageTerminfo, true
+	case normalizeString(languageTerraStr):
+		return LanguageTerra, true
+	case normalizeString(languageTerraformStr):
+		return LanguageTerraform, true
 	case normalizeString(languageTeXStr):
 		return LanguageTeX, true
+	case normalizeString(languageTexinfoStr):
+		return LanguageTexinfo, true
 	case normalizeString(languageTextStr):
 		return LanguageText, true
+	case normalizeString(languageTextileStr):
+		return LanguageTextile, true
 	case normalizeString(languageThriftStr):
 		return LanguageThrift, true
+	case normalizeString(languageTiddlerStr):
+		return LanguageTiddler, true
+	case normalizeString(languageTIProgramStr):
+		return LanguageTIProgram, true
+	case normalizeString(languageTLAStr):
+		return LanguageTLA, true
+	case normalizeString(languageTNTStr):
+		return LanguageTNT, true
+	case normalizeString(languageTodotxtStr):
+		return LanguageTodotxt, true
 	case normalizeString(languageTOMLStr):
 		return LanguageTOML, true
+	case normalizeString(languageTradingViewStr):
+		return LanguageTradingView, true
+	case normalizeString(languageTrafficScriptStr):
+		return LanguageTrafficScript, true
+	case normalizeString(languageTransactSQLStr):
+		return LanguageTransactSQL, true
+	case normalizeString(languageTreetopStr):
+		return LanguageTreetop, true
+	case normalizeString(languageTSVStr):
+		return LanguageTSV, true
+	case normalizeString(languageTSXStr):
+		return LanguageTSX, true
 	case normalizeString(languageTuringStr):
 		return LanguageTuring, true
+	case normalizeString(languageTurtleStr):
+		return LanguageTurtle, true
 	case normalizeString(languageTwigStr):
 		return LanguageTwig, true
+	case normalizeString(languageTXLStr):
+		return LanguageTXL, true
+	case normalizeString(languageTypeLanguageStr):
+		return LanguageTypeLanguage, true
 	case normalizeString(languageTypeScriptStr):
 		return LanguageTypeScript, true
 	case normalizeString(languageTypoScriptStr):
@@ -2605,6 +2753,12 @@ func ParseLanguageFromChroma(lexerName string) (Language, bool) {
 		return LanguageSystemVerilog, true
 	case normalizeString(languageTextChromaStr):
 		return LanguageText, true
+	case normalizeString(languageTransactSQLChromaStr):
+		return LanguageTransactSQL, true
+	case normalizeString(languageTypoScriptCSSDataChromaStr):
+		return LanguageTypoScript, true
+	case normalizeString(languageTypoScriptHTMLDataChromaStr):
+		return LanguageTypoScript, true
 	case normalizeString(languageVHDLChromaStr):
 		return LanguageVHDL, true
 	case normalizeString(languageVueJSChromaStr):
@@ -3599,18 +3753,76 @@ func (l Language) String() string {
 		return languageSYSTEMDStr
 	case LanguageSystemVerilog:
 		return languageSystemVerilogStr
+	case LanguageTableGen:
+		return languageTableGenStr
+	case LanguageTADS3:
+		return languageTADS3Str
+	case LanguageTAP:
+		return languageTAPStr
+	case LanguageTASM:
+		return languageTASMStr
+	case LanguageTcl:
+		return languageTclStr
+	case LanguageTcsh:
+		return languageTcshStr
+	case LanguageTcshSession:
+		return languageTcshSessionStr
+	case LanguageTea:
+		return languageTeaStr
+	case LanguageTeraTerm:
+		return languageTeraTermStr
+	case LanguageTermcap:
+		return languageTermcapStr
+	case LanguageTerminfo:
+		return languageTerminfoStr
+	case LanguageTerra:
+		return languageTerraStr
+	case LanguageTerraform:
+		return languageTerraformStr
 	case LanguageTeX:
 		return languageTeXStr
+	case LanguageTexinfo:
+		return languageTexinfoStr
 	case LanguageText:
 		return languageTextStr
+	case LanguageTextile:
+		return languageTextileStr
 	case LanguageThrift:
 		return languageThriftStr
+	case LanguageTiddler:
+		return languageTiddlerStr
+	case LanguageTIProgram:
+		return languageTIProgramStr
+	case LanguageTLA:
+		return languageTLAStr
+	case LanguageTNT:
+		return languageTNTStr
+	case LanguageTodotxt:
+		return languageTodotxtStr
 	case LanguageTOML:
 		return languageTOMLStr
+	case LanguageTradingView:
+		return languageTradingViewStr
+	case LanguageTrafficScript:
+		return languageTrafficScriptStr
+	case LanguageTransactSQL:
+		return languageTransactSQLStr
+	case LanguageTreetop:
+		return languageTreetopStr
+	case LanguageTSV:
+		return languageTSVStr
+	case LanguageTSX:
+		return languageTSXStr
 	case LanguageTuring:
 		return languageTuringStr
+	case LanguageTurtle:
+		return languageTurtleStr
 	case LanguageTwig:
 		return languageTwigStr
+	case LanguageTXL:
+		return languageTXLStr
+	case LanguageTypeLanguage:
+		return languageTypeLanguageStr
 	case LanguageTypeScript:
 		return languageTypeScriptStr
 	case LanguageTypoScript:
@@ -3690,6 +3902,8 @@ func (l Language) StringChroma() string {
 		return languageSystemVerilogChromaStr
 	case LanguageText:
 		return languageTextChromaStr
+	case LanguageTransactSQL:
+		return languageTransactSQLChromaStr
 	case LanguageVHDL:
 		return languageVHDLChromaStr
 	case LanguageVueJS:
