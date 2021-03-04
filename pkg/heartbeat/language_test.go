@@ -527,14 +527,50 @@ func languageTests() map[string]heartbeat.Language {
 		"Typographic Number Theory":     heartbeat.LanguageTNT,
 		"TypeScript":                    heartbeat.LanguageTypeScript,
 		"TypoScript":                    heartbeat.LanguageTypoScript,
+		"ucode":                         heartbeat.LanguageUcode,
+		"Unicon":                        heartbeat.LanguageUnicon,
+		"Unified Parallel C":            heartbeat.LanguageUnifiedParallelC,
+		"Unity3D Asset":                 heartbeat.LanguageUnity3DAsset,
+		"Unix Assembly":                 heartbeat.LanguageUnixAssembly,
+		"Uno":                           heartbeat.LanguageUno,
+		"UnrealScript":                  heartbeat.LanguageUnrealScript,
+		"UrbiScript":                    heartbeat.LanguageUrbiScript,
+		"UrWeb":                         heartbeat.LanguageUrWeb,
+		"USD":                           heartbeat.LanguageUSD,
+		"V":                             heartbeat.LanguageV,
+		"Vala":                          heartbeat.LanguageVala,
 		"VB":                            heartbeat.LanguageVB,
-		"VB.net":                        heartbeat.LanguageVBNet,
+		"VBA":                           heartbeat.LanguageVBA,
+		"VB.NET":                        heartbeat.LanguageVBNet,
+		"VBScript":                      heartbeat.LanguageVBScript,
 		"VCL":                           heartbeat.LanguageVCL,
+		"VCLSnippets":                   heartbeat.LanguageVCLSnippets,
+		"VCTreeStatus":                  heartbeat.LanguageVCTreeStatus,
 		"Velocity":                      heartbeat.LanguageVelocity,
 		"Verilog":                       heartbeat.LanguageVerilog,
-		"vhdl":                          heartbeat.LanguageVHDL,
+		"VGL":                           heartbeat.LanguageVGL,
+		"VHDL":                          heartbeat.LanguageVHDL,
+		"Vim Help File":                 heartbeat.LanguageVimHelpFile,
 		"VimL":                          heartbeat.LanguageVimL,
+		"Vim script":                    heartbeat.LanguageVimScript,
+		"Vim Snippet":                   heartbeat.LanguageVimSnippet,
+		"Volt":                          heartbeat.LanguageVolt,
 		"Vue.js":                        heartbeat.LanguageVueJS,
+		"Wavefront Material":            heartbeat.LanguageWavefrontMaterial,
+		"Wavefront Object":              heartbeat.LanguageWavefrontObject,
+		"wdl":                           heartbeat.LanguageWdl,
+		"WDTE":                          heartbeat.LanguageWDTE,
+		"WDiff":                         heartbeat.LanguageWDiff,
+		"WebAssembly":                   heartbeat.LanguageWebAssembly,
+		"WebIDL":                        heartbeat.LanguageWebIDL,
+		"Web Ontology Language":         heartbeat.LanguageWebOntologyLanguage,
+		"WebVTT":                        heartbeat.LanguageWebVTT,
+		"Wget Config":                   heartbeat.LanguageWgetConfig,
+		"Whiley":                        heartbeat.LanguageWhiley,
+		"Windows Registry Entries":      heartbeat.LanguageWindowsRegistryEntries,
+		"wisp":                          heartbeat.LanguageWisp,
+		"Wollok":                        heartbeat.LanguageWollok,
+		"World of Warcraft Addon Data":  heartbeat.LanguageWowAddonData,
 		"XAML":                          heartbeat.LanguageXAML,
 		"XML":                           heartbeat.LanguageXML,
 		"XSLT":                          heartbeat.LanguageXSLT,
@@ -637,8 +673,10 @@ func TestParseLanguageFromChroma(t *testing.T) {
 		"Transact-SQL":       heartbeat.LanguageTransactSQL,
 		"TypoScriptCssData":  heartbeat.LanguageTypoScript,
 		"TypoScriptHtmlData": heartbeat.LanguageTypoScript,
-		"VHDL":               heartbeat.LanguageVHDL,
+		"VB.net":             heartbeat.LanguageVBNet,
+		"verilog":            heartbeat.LanguageVerilog,
 		"vue":                heartbeat.LanguageVueJS,
+		"Web IDL":            heartbeat.LanguageWebIDL,
 		// lowercase
 		"zig": heartbeat.LanguageZig,
 		// missing blank space
@@ -677,7 +715,7 @@ func TestParseLanguageFromChroma_AllLexersSupported(t *testing.T) {
 		// language support was already ensured. Has to be adjusted to cover more letters,
 		// once another issue is resolved. Has to be removed finally, once all issues
 		// are done.
-		rgx := regexp.MustCompile(`^[a-tA-T]`)
+		rgx := regexp.MustCompile(`^[a-wA-W]`)
 		if !rgx.MatchString(config.Name) {
 			continue
 		}
@@ -755,8 +793,10 @@ func TestLanguage_StringChroma(t *testing.T) {
 		"Rexx":            heartbeat.LanguageRexx,
 		"SWIG":            heartbeat.LanguageSwig,
 		"systemverilog":   heartbeat.LanguageSystemVerilog,
-		"VHDL":            heartbeat.LanguageVHDL,
+		"VB.net":          heartbeat.LanguageVBNet,
+		"verilog":         heartbeat.LanguageVerilog,
 		"vue":             heartbeat.LanguageVueJS,
+		"Web IDL":         heartbeat.LanguageWebIDL,
 	}
 
 	for lexerName, language := range tests {
@@ -775,7 +815,7 @@ func TestLanguage_StringChroma_AllLexersSupported(t *testing.T) {
 		// language support was already ensured. Has to be adjust to cover more letters,
 		// once another issue is resolved. Has to be removed finally, once all issues
 		// are done.
-		rgx := regexp.MustCompile(`^[a-tA-T]`)
+		rgx := regexp.MustCompile(`^[a-wA-W]`)
 		if !rgx.MatchString(config.Name) {
 			continue
 		}
