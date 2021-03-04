@@ -1133,16 +1133,68 @@ const (
 	LanguageWollok
 	// LanguageWowAddonData represents the WowAddonData programming language.
 	LanguageWowAddonData
+	// LanguageX10 represents the X10 programming language.
+	LanguageX10
 	// LanguageXAML represents the XAML programming language.
 	LanguageXAML
+	// LanguageXBase represents the XBase programming language.
+	LanguageXBase
+	// LanguageXBitMap represents the XBitMap programming language.
+	LanguageXBitMap
+	// LanguageXC represents the XC programming language.
+	LanguageXC
+	// LanguageXCompose represents the XCompose programming language.
+	LanguageXCompose
+	// LanguageXFontDirectoryIndex represents the XFontDirectoryIndex programming language.
+	LanguageXFontDirectoryIndex
 	// LanguageXML represents the XML programming language.
 	LanguageXML
+	// LanguageXMLPropertyList represents the XMLPropertyList programming language.
+	LanguageXMLPropertyList
+	// LanguageXojo represents the Xojo programming language.
+	LanguageXojo
+	// LanguageXorg represents the Xorg programming language.
+	LanguageXorg
+	// LanguageXPages represents the XPages programming language.
+	LanguageXPages
+	// LanguageXPixMap represents the XPixMap programming language.
+	LanguageXPixMap
+	// LanguageXProc represents the XProc programming language.
+	LanguageXProc
+	// LanguageXQuery represents the XQuery programming language.
+	LanguageXQuery
+	// LanguageXS represents the XS programming language.
+	LanguageXS
 	// LanguageXSLT represents the XSLT programming language.
 	LanguageXSLT
+	// LanguageXtend represents the Xtend programming language.
+	LanguageXtend
+	// LanguageXtlang represents the Xtlang programming language.
+	LanguageXtlang
+	// LanguageYacc represents the Yacc programming language.
+	LanguageYacc
 	// LanguageYAML represents the YAML programming language.
 	LanguageYAML
+	// LanguageYANG represents the YANG programming language.
+	LanguageYANG
+	// LanguageYARA represents the YARA programming language.
+	LanguageYARA
+	// LanguageYASnippet represents the YASnippet programming language.
+	LanguageYASnippet
+	// LanguageZAP represents the ZAP programming language.
+	LanguageZAP
+	// LanguageZeek represents the Zeek programming language.
+	LanguageZeek
+	// LanguageZenScript represents the ZenScript programming language.
+	LanguageZenScript
+	// LanguageZephir represents the Zephir programming language.
+	LanguageZephir
 	// LanguageZig represents the Zig programming language.
 	LanguageZig
+	// LanguageZIL represents the ZIL programming language.
+	LanguageZIL
+	// LanguageZimpl represents the Zimpl programming language.
+	LanguageZimpl
 )
 
 const (
@@ -1706,11 +1758,37 @@ const (
 	languageWispStr                   = "wisp"
 	languageWollokStr                 = "Wollok"
 	languageWowAddonDataStr           = "World of Warcraft Addon Data"
+	languageX10Str                    = "X10"
 	languageXAMLStr                   = "XAML"
+	languageXBaseStr                  = "xBase"
+	languageXBitMapStr                = "X BitMap"
+	languageXCStr                     = "XC"
+	languageXComposeStr               = "XCompose"
+	languageXFontDirectoryIndexStr    = "X Font Directory Index"
 	languageXMLStr                    = "XML"
+	languageXMLPropertyListStr        = "XML Property List"
+	languageXojoStr                   = "Xojo"
+	languageXorgStr                   = "Xorg"
+	languageXPagesStr                 = "XPages"
+	languageXPixMapStr                = "X PixMap"
+	languageXProcStr                  = "XProc"
+	languageXQueryStr                 = "XQuery"
+	languageXSStr                     = "XS"
 	languageXSLTStr                   = "XSLT"
+	languageXtendStr                  = "Xtend"
+	languageXtlangStr                 = "xtlang"
+	languageYaccStr                   = "Yacc"
 	languageYAMLStr                   = "YAML"
+	languageYANGStr                   = "YANG"
+	languageYARAStr                   = "YARA"
+	languageYASnippetStr              = "YASnippet"
+	languageZAPStr                    = "ZAP"
+	languageZeekStr                   = "Zeek"
+	languageZenScriptStr              = "ZenScript"
+	languageZephirStr                 = "Zephir"
 	languageZigStr                    = "Zig"
+	languageZILStr                    = "ZIL"
+	languageZimplStr                  = "Zimpl"
 )
 
 const (
@@ -2869,16 +2947,68 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageWollok, true
 	case normalizeString(languageWowAddonDataStr):
 		return LanguageWowAddonData, true
+	case normalizeString(languageX10Str):
+		return LanguageX10, true
 	case normalizeString(languageXAMLStr):
 		return LanguageXAML, true
+	case normalizeString(languageXBaseStr):
+		return LanguageXBase, true
+	case normalizeString(languageXBitMapStr):
+		return LanguageXBitMap, true
+	case normalizeString(languageXCStr):
+		return LanguageXC, true
+	case normalizeString(languageXComposeStr):
+		return LanguageXCompose, true
+	case normalizeString(languageXFontDirectoryIndexStr):
+		return LanguageXFontDirectoryIndex, true
 	case normalizeString(languageXMLStr):
 		return LanguageXML, true
+	case normalizeString(languageXMLPropertyListStr):
+		return LanguageXMLPropertyList, true
+	case normalizeString(languageXojoStr):
+		return LanguageXojo, true
+	case normalizeString(languageXorgStr):
+		return LanguageXorg, true
+	case normalizeString(languageXPagesStr):
+		return LanguageXPages, true
+	case normalizeString(languageXPixMapStr):
+		return LanguageXPixMap, true
+	case normalizeString(languageXProcStr):
+		return LanguageXProc, true
+	case normalizeString(languageXQueryStr):
+		return LanguageXQuery, true
+	case normalizeString(languageXSStr):
+		return LanguageXS, true
 	case normalizeString(languageXSLTStr):
 		return LanguageXSLT, true
+	case normalizeString(languageXtendStr):
+		return LanguageXtend, true
+	case normalizeString(languageXtlangStr):
+		return LanguageXtlang, true
+	case normalizeString(languageYaccStr):
+		return LanguageYacc, true
 	case normalizeString(languageYAMLStr):
 		return LanguageYAML, true
+	case normalizeString(languageYANGStr):
+		return LanguageYANG, true
+	case normalizeString(languageYARAStr):
+		return LanguageYARA, true
+	case normalizeString(languageYASnippetStr):
+		return LanguageYASnippet, true
+	case normalizeString(languageZAPStr):
+		return LanguageZAP, true
+	case normalizeString(languageZeekStr):
+		return LanguageZeek, true
+	case normalizeString(languageZenScriptStr):
+		return LanguageZenScript, true
+	case normalizeString(languageZephirStr):
+		return LanguageZephir, true
 	case normalizeString(languageZigStr):
 		return LanguageZig, true
+	case normalizeString(languageZILStr):
+		return LanguageZIL, true
+	case normalizeString(languageZimplStr):
+		return LanguageZimpl, true
 	default:
 		return LanguageUnknown, false
 	}
@@ -4101,16 +4231,69 @@ func (l Language) String() string {
 		return languageWollokStr
 	case LanguageWowAddonData:
 		return languageWowAddonDataStr
+	case LanguageX10:
+		return languageX10Str
 	case LanguageXAML:
 		return languageXAMLStr
+	case LanguageXBase:
+		return languageXBaseStr
+	case LanguageXBitMap:
+		return languageXBitMapStr
+	case LanguageXC:
+		return languageXCStr
+	case LanguageXCompose:
+		return languageXComposeStr
+	case LanguageXFontDirectoryIndex:
+		return languageXFontDirectoryIndexStr
 	case LanguageXML:
 		return languageXMLStr
+	case LanguageXMLPropertyList:
+		return languageXMLPropertyListStr
+	case LanguageXojo:
+		return languageXojoStr
+	case LanguageXorg:
+		return languageXorgStr
+	case LanguageXPages:
+		return languageXPagesStr
+	case LanguageXPixMap:
+		return languageXPixMapStr
+	case LanguageXProc:
+		return languageXProcStr
+	case LanguageXQuery:
+		return languageXQueryStr
+	case LanguageXS:
+		return languageXSStr
 	case LanguageXSLT:
 		return languageXSLTStr
+	case LanguageXtend:
+		return languageXtendStr
+	case LanguageXtlang:
+		return languageXtlangStr
+	case LanguageYacc:
+		return languageYaccStr
 	case LanguageYAML:
 		return languageYAMLStr
+	case LanguageYANG:
+		return languageYANGStr
+	case LanguageYARA:
+		return languageYARAStr
+	case LanguageYASnippet:
+		return languageYASnippetStr
+	case LanguageZAP:
+		return languageZAPStr
+	case LanguageZeek:
+		return languageZeekStr
+	case LanguageZenScript:
+		return languageZenScriptStr
+	case LanguageZephir:
+		return languageZephirStr
 	case LanguageZig:
 		return languageZigStr
+	case LanguageZIL:
+		return languageZILStr
+	case LanguageZimpl:
+		return languageZimplStr
+
 	default:
 		return languageUnkownStr
 	}

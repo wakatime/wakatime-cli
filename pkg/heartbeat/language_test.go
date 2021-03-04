@@ -571,11 +571,37 @@ func languageTests() map[string]heartbeat.Language {
 		"wisp":                          heartbeat.LanguageWisp,
 		"Wollok":                        heartbeat.LanguageWollok,
 		"World of Warcraft Addon Data":  heartbeat.LanguageWowAddonData,
+		"X10":                           heartbeat.LanguageX10,
 		"XAML":                          heartbeat.LanguageXAML,
+		"xBase":                         heartbeat.LanguageXBase,
+		"X BitMap":                      heartbeat.LanguageXBitMap,
+		"XC":                            heartbeat.LanguageXC,
+		"XCompose":                      heartbeat.LanguageXCompose,
+		"X Font Directory Index":        heartbeat.LanguageXFontDirectoryIndex,
 		"XML":                           heartbeat.LanguageXML,
+		"XML Property List":             heartbeat.LanguageXMLPropertyList,
+		"Xojo":                          heartbeat.LanguageXojo,
+		"Xorg":                          heartbeat.LanguageXorg,
+		"XPages":                        heartbeat.LanguageXPages,
+		"X PixMap":                      heartbeat.LanguageXPixMap,
+		"XProc":                         heartbeat.LanguageXProc,
+		"XQuery":                        heartbeat.LanguageXQuery,
+		"XS":                            heartbeat.LanguageXS,
 		"XSLT":                          heartbeat.LanguageXSLT,
+		"Xtend":                         heartbeat.LanguageXtend,
+		"xtlang":                        heartbeat.LanguageXtlang,
+		"Yacc":                          heartbeat.LanguageYacc,
 		"YAML":                          heartbeat.LanguageYAML,
+		"YANG":                          heartbeat.LanguageYANG,
+		"YARA":                          heartbeat.LanguageYARA,
+		"YASnippet":                     heartbeat.LanguageYASnippet,
+		"ZAP":                           heartbeat.LanguageZAP,
+		"Zeek":                          heartbeat.LanguageZeek,
+		"ZenScript":                     heartbeat.LanguageZenScript,
+		"Zephir":                        heartbeat.LanguageZephir,
 		"Zig":                           heartbeat.LanguageZig,
+		"ZIL":                           heartbeat.LanguageZIL,
+		"Zimpl":                         heartbeat.LanguageZimpl,
 	}
 }
 
@@ -715,7 +741,7 @@ func TestParseLanguageFromChroma_AllLexersSupported(t *testing.T) {
 		// language support was already ensured. Has to be adjusted to cover more letters,
 		// once another issue is resolved. Has to be removed finally, once all issues
 		// are done.
-		rgx := regexp.MustCompile(`^[a-wA-W]`)
+		rgx := regexp.MustCompile(`^[a-zA-Z]`)
 		if !rgx.MatchString(config.Name) {
 			continue
 		}
@@ -815,7 +841,7 @@ func TestLanguage_StringChroma_AllLexersSupported(t *testing.T) {
 		// language support was already ensured. Has to be adjust to cover more letters,
 		// once another issue is resolved. Has to be removed finally, once all issues
 		// are done.
-		rgx := regexp.MustCompile(`^[a-wA-W]`)
+		rgx := regexp.MustCompile(`^[a-zA-Z]`)
 		if !rgx.MatchString(config.Name) {
 			continue
 		}
