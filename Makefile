@@ -5,9 +5,10 @@ BINARY_NAME=wakatime-cli
 COMMIT?=$(shell git rev-parse --short HEAD)
 DATE?=$(shell date -u '+%Y-%m-%dT%H:%M:%SZ')
 REPO=github.com/wakatime/wakatime-cli
+VERSION=<local-build>
 
 # ld flags for go build
-LD_FLAGS=-s -w -X ${REPO}/pkg/version.BuildDate=${DATE} -X ${REPO}/pkg/version.Commit=${COMMIT} -X ${REPO}/pkg/version.Version=<local-build>
+LD_FLAGS=-s -w -X ${REPO}/pkg/version.BuildDate=${DATE} -X ${REPO}/pkg/version.Commit=${COMMIT} -X ${REPO}/pkg/version.Version=${VERSION}
 
 # basic Go commands
 GOCMD=go
