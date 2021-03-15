@@ -171,6 +171,11 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 	)
 	flags.Float64("time", 0, "Optional floating-point unix epoch timestamp. Uses current time by default.")
 	flags.Bool("today", false, "Prints dashboard time for Today, then exits.")
+	flags.String(
+		"today-goal",
+		"",
+		"Prints time for the given goal id Today, then exits"+
+			" Visit wakatime.com/api/v1/users/current/goals to find your goal id.")
 	flags.Bool("verbose", false, "Turns on debug messages in log file.")
 	flags.Bool("version", false, "Prints the wakatime-cli version number, then exits.")
 	flags.Bool("write", false, "When set, tells api this heartbeat was triggered from writing to a file.")

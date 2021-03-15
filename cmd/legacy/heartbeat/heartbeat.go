@@ -62,7 +62,7 @@ func SendHeartbeats(v *viper.Viper) error {
 	jww.DEBUG.Printf("heartbeat params: %s", params)
 
 	withAuth, err := api.WithAuth(api.BasicAuth{
-		Secret: params.APIKey,
+		Secret: params.API.Key,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to set up auth option on api client: %w", err)
@@ -70,7 +70,7 @@ func SendHeartbeats(v *viper.Viper) error {
 
 	clientOpts := []api.Option{
 		withAuth,
-		api.WithTimeout(params.Timeout),
+		api.WithTimeout(params.API.Timeout),
 	}
 
 	if params.Network.DisableSSLVerify {
@@ -117,15 +117,15 @@ func SendHeartbeats(v *viper.Viper) error {
 	}
 
 	var userAgent string
-	if params.Plugin != "" {
-		userAgent = heartbeat.UserAgent(params.Plugin)
-		clientOpts = append(clientOpts, api.WithUserAgent(params.Plugin))
+	if params.API.Plugin != "" {
+		userAgent = heartbeat.UserAgent(params.API.Plugin)
+		clientOpts = append(clientOpts, api.WithUserAgent(params.API.Plugin))
 	} else {
 		userAgent = heartbeat.UserAgentUnknownPlugin()
 		clientOpts = append(clientOpts, api.WithUserAgentUnknownPlugin())
 	}
 
-	c := api.NewClient(params.APIUrl, http.DefaultClient, clientOpts...)
+	c := api.NewClient(params.API.URL, http.DefaultClient, clientOpts...)
 
 	heartbeats := []heartbeat.Heartbeat{
 		heartbeat.New(

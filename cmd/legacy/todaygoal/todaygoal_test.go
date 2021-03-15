@@ -1,4 +1,4 @@
-package today_test
+package todaygoal_test
 
 import (
 	"errors"
@@ -6,13 +6,12 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/wakatime/wakatime-cli/cmd/legacy/legacyparams"
-	"github.com/wakatime/wakatime-cli/cmd/legacy/today"
+	"github.com/wakatime/wakatime-cli/cmd/legacy/todaygoal"
 	"github.com/wakatime/wakatime-cli/pkg/api"
 
 	"github.com/spf13/viper"
@@ -20,73 +19,68 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestSummary(t *testing.T) {
+func TestGoal(t *testing.T) {
 	testServerURL, router, tearDown := setupTestServer()
 	defer tearDown()
 
 	var (
-		dateToday = time.Now().Format("2006-01-02")
-		plugin    = "plugin/0.0.1"
-		numCalls  int
+		plugin   = "plugin/0.0.1"
+		numCalls int
 	)
 
-	router.HandleFunc("/v1/users/current/summaries", func(w http.ResponseWriter, req *http.Request) {
-		numCalls++
+	router.HandleFunc(
+		"/v1/users/current/goals/00000000-0000-4000-8000-000000000000", func(w http.ResponseWriter, req *http.Request) {
+			numCalls++
 
-		// check request
-		assert.Equal(t, http.MethodGet, req.Method)
-		assert.Equal(t, []string{"application/json"}, req.Header["Accept"])
-		assert.Equal(t, []string{"Basic MDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAw"}, req.Header["Authorization"])
-		assert.True(t, strings.HasSuffix(req.Header["User-Agent"][0], plugin), fmt.Sprintf(
-			"%q should have suffix %q",
-			req.Header["User-Agent"][0],
-			plugin,
-		))
+			// check request
+			assert.Equal(t, http.MethodGet, req.Method)
+			assert.Equal(t, []string{"application/json"}, req.Header["Accept"])
+			assert.Equal(t, []string{"Basic MDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAw"}, req.Header["Authorization"])
+			assert.True(t, strings.HasSuffix(req.Header["User-Agent"][0], plugin), fmt.Sprintf(
+				"%q should have suffix %q",
+				req.Header["User-Agent"][0],
+				plugin,
+			))
 
-		values, err := url.ParseQuery(req.URL.RawQuery)
-		require.NoError(t, err)
+			// write response
+			data, err := ioutil.ReadFile("testdata/api_goals_id_response.json")
+			require.NoError(t, err)
 
-		assert.Equal(t, url.Values(map[string][]string{
-			"start": {dateToday},
-			"end":   {dateToday},
-		}), values)
-
-		// write response
-		data, err := ioutil.ReadFile("testdata/api_summaries_response_template.json")
-		require.NoError(t, err)
-
-		_, err = w.Write([]byte(fmt.Sprintf(string(data), dateToday)))
-		require.NoError(t, err)
-	})
+			_, err = w.Write([]byte(string(data)))
+			require.NoError(t, err)
+		})
 
 	v := viper.New()
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("api-url", testServerURL)
 	v.Set("plugin", plugin)
+	v.Set("today-goal", "00000000-0000-4000-8000-000000000000")
 
-	output, err := today.Summary(v)
+	output, err := todaygoal.Goal(v)
 	require.NoError(t, err)
 
-	assert.Equal(t, "10 secs", output)
+	assert.Equal(t, "3 hrs 23 mins", output)
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
 
-func TestSummary_ErrApi(t *testing.T) {
+func TestGoal_ErrApi(t *testing.T) {
 	testServerURL, router, tearDown := setupTestServer()
 	defer tearDown()
 
 	var numCalls int
 
-	router.HandleFunc("/v1/users/current/summaries", func(w http.ResponseWriter, req *http.Request) {
-		numCalls++
-		w.WriteHeader(http.StatusInternalServerError)
-	})
+	router.HandleFunc(
+		"/v1/users/current/goals/00000000-0000-4000-8000-000000000000", func(w http.ResponseWriter, req *http.Request) {
+			numCalls++
+			w.WriteHeader(http.StatusInternalServerError)
+		})
 
 	v := viper.New()
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("api-url", testServerURL)
+	v.Set("today-goal", "00000000-0000-4000-8000-000000000000")
 
-	_, err := today.Summary(v)
+	_, err := todaygoal.Goal(v)
 	require.Error(t, err)
 
 	var errapi api.Err
@@ -94,30 +88,33 @@ func TestSummary_ErrApi(t *testing.T) {
 	assert.True(t, errors.As(err, &errapi))
 
 	expectedMsg := fmt.Sprintf(
-		`failed fetching summaries from api: `+
-			`invalid response status from "%s/v1/users/current/summaries". got: 500, want: 200. body: ""`,
+		`failed fetching todays goal from api: `+
+			`invalid response status from "%s/v1/users/current/goals/00000000-0000-4000-8000-000000000000". `+
+			`got: 500, want: 200. body: ""`,
 		testServerURL,
 	)
 	assert.Equal(t, expectedMsg, err.Error())
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
 
-func TestSummary_ErrAuth(t *testing.T) {
+func TestGoal_ErrAuth(t *testing.T) {
 	testServerURL, router, tearDown := setupTestServer()
 	defer tearDown()
 
 	var numCalls int
 
-	router.HandleFunc("/v1/users/current/summaries", func(w http.ResponseWriter, req *http.Request) {
-		numCalls++
-		w.WriteHeader(http.StatusUnauthorized)
-	})
+	router.HandleFunc(
+		"/v1/users/current/goals/00000000-0000-4000-8000-000000000000", func(w http.ResponseWriter, req *http.Request) {
+			numCalls++
+			w.WriteHeader(http.StatusUnauthorized)
+		})
 
 	v := viper.New()
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("api-url", testServerURL)
+	v.Set("today-goal", "00000000-0000-4000-8000-000000000000")
 
-	_, err := today.Summary(v)
+	_, err := todaygoal.Goal(v)
 	require.Error(t, err)
 
 	var errauth api.ErrAuth
@@ -125,17 +122,17 @@ func TestSummary_ErrAuth(t *testing.T) {
 	assert.True(t, errors.As(err, &errauth))
 
 	expectedMsg := fmt.Sprintf(
-		`failed fetching summaries from api: `+
-			`authentication failed at "%s/v1/users/current/summaries". body: ""`,
+		`failed fetching todays goal from api: `+
+			`authentication failed at "%s/v1/users/current/goals/00000000-0000-4000-8000-000000000000". body: ""`,
 		testServerURL,
 	)
 	assert.Equal(t, expectedMsg, err.Error())
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
 
-func TestSummary_ErrAuth_UnsetAPIKey(t *testing.T) {
+func TestGoal_ErrAuth_UnsetAPIKey(t *testing.T) {
 	v := viper.New()
-	_, err := today.Summary(v)
+	_, err := todaygoal.Goal(v)
 	require.Error(t, err)
 
 	var errauth api.ErrAuth
@@ -149,36 +146,39 @@ func TestLoadParams_APIKey(t *testing.T) {
 		ViperAPIKey          string
 		ViperAPIKeyConfig    string
 		ViperAPIKeyConfigOld string
-		Expected             today.Params
+		Expected             todaygoal.Params
 	}{
 		"api key flag takes preceedence": {
 			ViperAPIKey:          "00000000-0000-4000-8000-000000000000",
 			ViperAPIKeyConfig:    "10000000-0000-4000-8000-000000000000",
 			ViperAPIKeyConfigOld: "20000000-0000-4000-8000-000000000000",
-			Expected: today.Params{
+			Expected: todaygoal.Params{
 				API: legacyparams.APIParams{
 					Key: "00000000-0000-4000-8000-000000000000",
 					URL: "https://api.wakatime.com/api",
 				},
+				GoalID: "00000000-0000-4000-8000-000000000000",
 			},
 		},
 		"api from config takes preceedence": {
 			ViperAPIKeyConfig:    "00000000-0000-4000-8000-000000000000",
 			ViperAPIKeyConfigOld: "10000000-0000-4000-8000-000000000000",
-			Expected: today.Params{
+			Expected: todaygoal.Params{
 				API: legacyparams.APIParams{
 					Key: "00000000-0000-4000-8000-000000000000",
 					URL: "https://api.wakatime.com/api",
 				},
+				GoalID: "00000000-0000-4000-8000-000000000000",
 			},
 		},
 		"api key from config deprecated": {
 			ViperAPIKeyConfigOld: "00000000-0000-4000-8000-000000000000",
-			Expected: today.Params{
+			Expected: todaygoal.Params{
 				API: legacyparams.APIParams{
 					Key: "00000000-0000-4000-8000-000000000000",
 					URL: "https://api.wakatime.com/api",
 				},
+				GoalID: "00000000-0000-4000-8000-000000000000",
 			},
 		},
 	}
@@ -189,8 +189,9 @@ func TestLoadParams_APIKey(t *testing.T) {
 			v.Set("key", test.ViperAPIKey)
 			v.Set("settings.api_key", test.ViperAPIKeyConfig)
 			v.Set("settings.apikey", test.ViperAPIKeyConfigOld)
+			v.Set("today-goal", "00000000-0000-4000-8000-000000000000")
 
-			params, err := today.LoadParams(v)
+			params, err := todaygoal.LoadParams(v)
 			require.NoError(t, err)
 
 			assert.Equal(t, test.Expected, params)
@@ -203,36 +204,39 @@ func TestLoadParams_APIUrl(t *testing.T) {
 		ViperAPIUrl       string
 		ViperAPIUrlConfig string
 		ViperAPIUrlOld    string
-		Expected          today.Params
+		Expected          todaygoal.Params
 	}{
 		"api url flag takes preceedence": {
 			ViperAPIUrl:       "http://localhost:8080",
 			ViperAPIUrlConfig: "http://localhost:8081",
 			ViperAPIUrlOld:    "http://localhost:8082",
-			Expected: today.Params{
+			Expected: todaygoal.Params{
 				API: legacyparams.APIParams{
 					Key: "00000000-0000-4000-8000-000000000000",
 					URL: "http://localhost:8080",
 				},
+				GoalID: "00000000-0000-4000-8000-000000000000",
 			},
 		},
 		"api url deprecated flag takes preceedence": {
 			ViperAPIUrlConfig: "http://localhost:8081",
 			ViperAPIUrlOld:    "http://localhost:8082",
-			Expected: today.Params{
+			Expected: todaygoal.Params{
 				API: legacyparams.APIParams{
 					Key: "00000000-0000-4000-8000-000000000000",
 					URL: "http://localhost:8082",
 				},
+				GoalID: "00000000-0000-4000-8000-000000000000",
 			},
 		},
 		"api url from config": {
 			ViperAPIUrlConfig: "http://localhost:8081",
-			Expected: today.Params{
+			Expected: todaygoal.Params{
 				API: legacyparams.APIParams{
 					Key: "00000000-0000-4000-8000-000000000000",
 					URL: "http://localhost:8081",
 				},
+				GoalID: "00000000-0000-4000-8000-000000000000",
 			},
 		},
 	}
@@ -244,8 +248,9 @@ func TestLoadParams_APIUrl(t *testing.T) {
 			v.Set("api-url", test.ViperAPIUrl)
 			v.Set("apiurl", test.ViperAPIUrlOld)
 			v.Set("settings.api_url", test.ViperAPIUrlConfig)
+			v.Set("today-goal", "00000000-0000-4000-8000-000000000000")
 
-			params, err := today.LoadParams(v)
+			params, err := todaygoal.LoadParams(v)
 			require.NoError(t, err)
 
 			assert.Equal(t, test.Expected, params)
@@ -257,16 +262,18 @@ func TestLoadParams_Plugin(t *testing.T) {
 	v := viper.New()
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("plugin", "plugin/10.0.0")
+	v.Set("today-goal", "00000000-0000-4000-8000-000000000000")
 
-	params, err := today.LoadParams(v)
+	params, err := todaygoal.LoadParams(v)
 	require.NoError(t, err)
 
-	assert.Equal(t, today.Params{
+	assert.Equal(t, todaygoal.Params{
 		API: legacyparams.APIParams{
 			Key:    "00000000-0000-4000-8000-000000000000",
 			URL:    "https://api.wakatime.com/api",
 			Plugin: "plugin/10.0.0",
 		},
+		GoalID: "00000000-0000-4000-8000-000000000000",
 	}, params)
 }
 
@@ -275,8 +282,9 @@ func TestLoadParams_Timeout_FlagTakesPreceedence(t *testing.T) {
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("timeout", 5)
 	v.Set("settings.timeout", 10)
+	v.Set("today-goal", "00000000-0000-4000-8000-000000000000")
 
-	params, err := today.LoadParams(v)
+	params, err := todaygoal.LoadParams(v)
 	require.NoError(t, err)
 
 	assert.Equal(t, 5*time.Second, params.API.Timeout)
@@ -286,8 +294,9 @@ func TestLoadParams_Timeout_FromConfig(t *testing.T) {
 	v := viper.New()
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("settings.timeout", 10)
+	v.Set("today-goal", "00000000-0000-4000-8000-000000000000")
 
-	params, err := today.LoadParams(v)
+	params, err := todaygoal.LoadParams(v)
 	require.NoError(t, err)
 
 	assert.Equal(t, 10*time.Second, params.API.Timeout)
@@ -306,7 +315,7 @@ func TestLoadParamsErr_InvalidAPIKey(t *testing.T) {
 			v := viper.New()
 			v.Set("key", value)
 
-			_, err := today.LoadParams(v)
+			_, err := todaygoal.LoadParams(v)
 			require.Error(t, err)
 
 			var errauth api.ErrAuth
@@ -321,8 +330,9 @@ func TestLoadParams_Network_DisableSSLVerify_FlagTakesPrecedence(t *testing.T) {
 	v.Set("entity", "/path/to/file")
 	v.Set("no-ssl-verify", true)
 	v.Set("settings.no_ssl_verify", false)
+	v.Set("today-goal", "00000000-0000-4000-8000-000000000000")
 
-	params, err := today.LoadParams(v)
+	params, err := todaygoal.LoadParams(v)
 	require.NoError(t, err)
 
 	assert.True(t, params.Network.DisableSSLVerify)
@@ -333,8 +343,9 @@ func TestLoadParams_Network_DisableSSLVerify_FromConfig(t *testing.T) {
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 	v.Set("settings.no_ssl_verify", true)
+	v.Set("today-goal", "00000000-0000-4000-8000-000000000000")
 
-	params, err := today.LoadParams(v)
+	params, err := todaygoal.LoadParams(v)
 	require.NoError(t, err)
 
 	assert.True(t, params.Network.DisableSSLVerify)
@@ -344,8 +355,9 @@ func TestLoadParams_Network_DisableSSLVerify_Default(t *testing.T) {
 	v := viper.New()
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
+	v.Set("today-goal", "00000000-0000-4000-8000-000000000000")
 
-	params, err := today.LoadParams(v)
+	params, err := todaygoal.LoadParams(v)
 	require.NoError(t, err)
 
 	assert.False(t, params.Network.DisableSSLVerify)
@@ -365,8 +377,9 @@ func TestLoadParams_Network_ProxyURL(t *testing.T) {
 			v.Set("key", "00000000-0000-4000-8000-000000000000")
 			v.Set("entity", "/path/to/file")
 			v.Set("proxy", proxyURL)
+			v.Set("today-goal", "00000000-0000-4000-8000-000000000000")
 
-			params, err := today.LoadParams(v)
+			params, err := todaygoal.LoadParams(v)
 			require.NoError(t, err)
 
 			assert.Equal(t, proxyURL, params.Network.ProxyURL)
@@ -380,8 +393,9 @@ func TestLoadParams_Network_ProxyURL_FlagTakesPrecedence(t *testing.T) {
 	v.Set("entity", "/path/to/file")
 	v.Set("proxy", "https://john:secret@example.org:8888")
 	v.Set("settings.proxy", "ignored")
+	v.Set("today-goal", "00000000-0000-4000-8000-000000000000")
 
-	params, err := today.LoadParams(v)
+	params, err := todaygoal.LoadParams(v)
 	require.NoError(t, err)
 
 	assert.Equal(t, "https://john:secret@example.org:8888", params.Network.ProxyURL)
@@ -392,8 +406,9 @@ func TestLoadParams_Network_ProxyURL_FromConfig(t *testing.T) {
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 	v.Set("settings.proxy", "https://john:secret@example.org:8888")
+	v.Set("today-goal", "00000000-0000-4000-8000-000000000000")
 
-	params, err := today.LoadParams(v)
+	params, err := todaygoal.LoadParams(v)
 	require.NoError(t, err)
 
 	assert.Equal(t, "https://john:secret@example.org:8888", params.Network.ProxyURL)
@@ -407,7 +422,7 @@ func TestLoadParams_Network_ProxyURL_InvalidFormat(t *testing.T) {
 	v.Set("entity", "/path/to/file")
 	v.Set("proxy", proxyURL)
 
-	_, err := today.LoadParams(v)
+	_, err := todaygoal.LoadParams(v)
 	require.Error(t, err)
 }
 
@@ -416,8 +431,9 @@ func TestLoadParams_Network_SSLCertFilepath_FlagTakesPrecedence(t *testing.T) {
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 	v.Set("ssl-certs-file", "/path/to/cert.pem")
+	v.Set("today-goal", "00000000-0000-4000-8000-000000000000")
 
-	params, err := today.LoadParams(v)
+	params, err := todaygoal.LoadParams(v)
 	require.NoError(t, err)
 
 	assert.Equal(t, "/path/to/cert.pem", params.Network.SSLCertFilepath)
@@ -428,8 +444,9 @@ func TestLoadParams_Network_SSLCertFilepath_FromConfig(t *testing.T) {
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 	v.Set("settings.ssl_certs_file", "/path/to/cert.pem")
+	v.Set("today-goal", "00000000-0000-4000-8000-000000000000")
 
-	params, err := today.LoadParams(v)
+	params, err := todaygoal.LoadParams(v)
 	require.NoError(t, err)
 
 	assert.Equal(t, "/path/to/cert.pem", params.Network.SSLCertFilepath)
