@@ -19,15 +19,6 @@ import (
 // Run executes legacy commands following the interface of the old python implementation of the WakaTime script.
 func Run(v *viper.Viper) {
 	logfile.Set(v)
-	setVerbose(v)
-
-	if v.GetBool("version") {
-		jww.DEBUG.Println("command: version")
-
-		runVersion(v.GetBool("verbose"))
-
-		os.Exit(exitcode.Success)
-	}
 
 	if err := config.ReadInConfig(v, config.FilePath); err != nil {
 		jww.CRITICAL.Printf("err: %s", err)
@@ -38,6 +29,16 @@ func Run(v *viper.Viper) {
 		}
 
 		os.Exit(exitcode.ErrDefault)
+	}
+
+	setVerbose(v)
+
+	if v.GetBool("version") {
+		jww.DEBUG.Println("command: version")
+
+		runVersion(v.GetBool("verbose"))
+
+		os.Exit(exitcode.Success)
 	}
 
 	if v.IsSet("config-read") {
@@ -64,7 +65,12 @@ func Run(v *viper.Viper) {
 }
 
 func setVerbose(v *viper.Viper) {
-	if v.GetBool("verbose") {
+	var debug bool
+	if b := v.GetBool("settings.debug"); v.IsSet("settings.debug") {
+		debug = b
+	}
+
+	if v.GetBool("verbose") || debug {
 		jww.SetStdoutThreshold(jww.LevelDebug)
 	}
 }

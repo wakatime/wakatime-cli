@@ -67,8 +67,6 @@ func ReadInConfig(v *viper.Viper, filepathFn func(v *viper.Viper) (string, error
 		return ErrFileParse(fmt.Sprintf("error getting filepath: %s", err))
 	}
 
-	jww.DEBUG.Println("wakatime path: ", configFilepath)
-
 	v.SetConfigType("ini")
 	v.SetConfigFile(configFilepath)
 

@@ -58,9 +58,6 @@ func LoadParams(v *viper.Viper) (Params, error) {
 	section := strings.TrimSpace(v.GetString("config-section"))
 	key := strings.TrimSpace(v.GetString("config-read"))
 
-	jww.DEBUG.Println("section:", section)
-	jww.DEBUG.Println("key:", key)
-
 	if section == "" || key == "" {
 		return Params{},
 			ErrFileRead("failed reading wakatime config file. neither section nor key can be empty")
