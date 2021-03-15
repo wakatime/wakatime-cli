@@ -31,6 +31,8 @@ var (
 	proxyRegex = regexp.MustCompile(`^((https?|socks5)://)?([^:@]+(:([^:@])+)?@)?[^:]+(:\d+)?$`)
 	// nolint
 	ntlmProxyRegex = regexp.MustCompile(`^.*\\.+$`)
+	// nolint
+	pluginRegex = regexp.MustCompile(`(?i)([a-z\/0-9.]+\s)?(?P<editor>[a-z-]+)\-wakatime\/[0-9.]+`)
 )
 
 // Params contains heartbeat command parameters.
@@ -547,19 +549,43 @@ func loadLanguage(v *viper.Viper, plugin string) (*heartbeat.Language, error) {
 		return nil, errors.New("viper instance unset")
 	}
 
+	editor, err := parseEditorFromPlugin(plugin)
+	if err != nil {
+		jww.WARN.Printf("could not parse editor from plugin. %s", err)
+
+		editor = plugin
+	}
+
 	lang, _ := vipertools.FirstNonEmptyString(v, "language", "alternate-language")
 
 	if lang == "" {
 		return nil, nil
 	}
 
-	parsed, ok := language.Parse(lang, plugin)
+	parsed, ok := language.Parse(lang, editor)
 	if !ok {
-		jww.WARN.Printf("failed to parse language from string %q. plugin: %q", lang, plugin)
+		jww.WARN.Printf("failed to parse language from string %q. editor: %q", lang, editor)
 		return nil, nil
 	}
 
 	return &parsed, nil
+}
+
+func parseEditorFromPlugin(plugin string) (string, error) {
+	match := pluginRegex.FindStringSubmatch(plugin)
+	paramsMap := make(map[string]string)
+
+	for i, name := range pluginRegex.SubexpNames() {
+		if i > 0 && i <= len(match) {
+			paramsMap[name] = match[i]
+		}
+	}
+
+	if len(paramsMap) == 0 || paramsMap["editor"] == "" {
+		return "", fmt.Errorf("plugin malformed: %s", plugin)
+	}
+
+	return paramsMap["editor"], nil
 }
 
 func loadFilterParams(v *viper.Viper) FilterParams {
