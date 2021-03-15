@@ -9,6 +9,7 @@ import (
 	"github.com/wakatime/wakatime-cli/cmd/legacy/heartbeat"
 	"github.com/wakatime/wakatime-cli/cmd/legacy/logfile"
 	"github.com/wakatime/wakatime-cli/cmd/legacy/today"
+	"github.com/wakatime/wakatime-cli/cmd/legacy/todaygoal"
 	"github.com/wakatime/wakatime-cli/pkg/config"
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
 
@@ -57,6 +58,12 @@ func Run(v *viper.Viper) {
 		jww.DEBUG.Println("command: today")
 
 		today.Run(v)
+	}
+
+	if v.IsSet("today-goal") {
+		jww.DEBUG.Println("command: today-goal")
+
+		todaygoal.Run(v)
 	}
 
 	jww.DEBUG.Println("command: heartbeat")
