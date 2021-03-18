@@ -15,7 +15,6 @@ import (
 	cmd "github.com/wakatime/wakatime-cli/cmd/legacy/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 
-	_ "github.com/mattn/go-sqlite3" // not used directly
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

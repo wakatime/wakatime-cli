@@ -35,17 +35,17 @@ endif
 build-all: build-darwin build-linux build-windows
 
 build-darwin: generate
-	CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 $(GOBUILD) -v \
+	GOOS=darwin GOARCH=amd64 $(GOBUILD) -v \
 		-ldflags "${LD_FLAGS} -X ${REPO}/pkg/version.OS=darwin -X ${REPO}/pkg/version.Arch=amd64" \
 		-o ./build/darwin/amd64/$(BINARY_NAME)
 
 build-linux: generate
-	CGO_ENABLED=1 GOOS=linux GOARCH=amd64 $(GOBUILD) -v \
+	GOOS=linux GOARCH=amd64 $(GOBUILD) -v \
 		-ldflags "${LD_FLAGS} -X ${REPO}/pkg/version.OS=linux -X ${REPO}/pkg/version.Arch=amd64" \
 		-o ./build/linux/amd64/$(BINARY_NAME)
 
 build-windows: generate
-	CGO_ENABLED=1 GOOS=windows GOARCH=amd64 $(GOBUILD) -v \
+	GOOS=windows GOARCH=amd64 $(GOBUILD) -v \
 		-ldflags "${LD_FLAGS} -X ${REPO}/pkg/version.OS=windows -X ${REPO}/pkg/version.Arch=amd64" \
 		-o ./build/windows/amd64/$(BINARY_NAME).exe
 

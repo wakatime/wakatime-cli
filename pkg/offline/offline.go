@@ -1,8 +1,8 @@
 package offline
 
 import (
-	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -10,14 +10,14 @@ import (
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 
-	_ "github.com/mattn/go-sqlite3" // not used directly
 	"github.com/mitchellh/go-homedir"
 	jww "github.com/spf13/jwalterweatherman"
+	bolt "go.etcd.io/bbolt"
 )
 
 const (
-	tableName  = "heartbeat_2"
-	dbFilename = ".wakatime.db"
+	dbFilename = ".wakatime.bdb"
+	dbBucket   = "heartbeats"
 )
 
 // QueueFilepath returns the path for offline queue db file.
@@ -44,31 +44,32 @@ func QueueFilepath() (string, error) {
 // used in a heartbeat processing pipeline for automatic handling of failures
 // of heartbeat sending to the API. Upon inability to send due to missing or
 // failing connection to API, failed sending or errors returned by API, the
-// heartbeats will be temporarily stored in a sqlite DB and sending will be
-// retried at next usages of the wakatime cli.
+// heartbeats will be temporarily stored in a DB and sending will be retried
+// at next usages of the wakatime cli.
 func WithQueue(filepath string, syncLimit int) (heartbeat.HandleOption, error) {
-	conn, err := sql.Open("sqlite3", filepath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open db connection: %s", err)
-	}
-
-	_, err = conn.Exec(fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s (id TEXT, heartbeat TEXT)", tableName))
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize db: %s", err)
-	}
-
 	return func(next heartbeat.Handle) heartbeat.Handle {
 		return func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+			db, err := bolt.Open(filepath, 0600, nil)
+			if err != nil {
+				return nil, fmt.Errorf("failed to open db connection: %s", err)
+			}
+
+			defer db.Close()
+
 			// start transaction
-			tx, err := conn.Begin()
+			tx, err := db.Begin(true)
 			if err != nil {
 				jww.ERROR.Fatalf("failed to start offline queue db transaction: %s", err)
 				return next(hh)
 			}
+
 			// nolint
 			defer tx.Rollback()
 
-			queue := NewQueue(tx)
+			queue, err := NewQueue(tx)
+			if err != nil {
+				return nil, fmt.Errorf("failed initialize new queue: %s", err)
+			}
 
 			queued, err := queue.PopMany(syncLimit)
 			if err != nil {
@@ -147,105 +148,83 @@ func WithQueue(filepath string, syncLimit int) (heartbeat.HandleOption, error) {
 	}, nil
 }
 
-// DB is a minimal database connection interface satisfied by both sql.DB and sql.Tx.
-type DB interface {
-	Exec(query string, args ...interface{}) (sql.Result, error)
-	Prepare(query string) (*sql.Stmt, error)
-	Query(query string, args ...interface{}) (*sql.Rows, error)
-}
-
-// Queue is a queue to temporarily store heartbeats.
+// Queue is a db client to temporarily store heartbeats in bolt db, in case heartbeat
+// sending to wakatime api is not possible. Transaction handling is left to the user
+// via the passed in transaction.
 type Queue struct {
-	conn DB
+	tx *bolt.Tx
 }
 
-// NewQueue creates a new Queue instance.
-func NewQueue(conn DB) *Queue {
+// NewQueue creates a new instance of Queue.
+func NewQueue(tx *bolt.Tx) (*Queue, error) {
+	_, err := tx.CreateBucketIfNotExists([]byte(dbBucket))
+	if err != nil {
+		return nil, fmt.Errorf("failed to init bucket: %s", err)
+	}
+
 	return &Queue{
-		conn: conn,
-	}
+		tx: tx,
+	}, nil
 }
 
-// PushMany adds multiple heartbeats to the queue.
-func (q *Queue) PushMany(hh []heartbeat.Heartbeat) error {
-	stmt, err := q.conn.Prepare(fmt.Sprintf("INSERT INTO %s VALUES ($1, $2);", tableName))
-	if err != nil {
-		return fmt.Errorf("failed to prepare db statement: %s", err)
-	}
-	defer stmt.Close()
-
-	for _, h := range hh {
-		data, err := json.Marshal(h)
-		if err != nil {
-			return fmt.Errorf("failed to json encode heartbeat: %s", err)
-		}
-
-		result, err := stmt.Exec(h.ID(), data)
-		if err != nil {
-			return fmt.Errorf("failed to execute db query: %s", err)
-		}
-
-		affected, err := result.RowsAffected()
-		if err != nil {
-			return fmt.Errorf("checking number of affected rows failed: %s", err)
-		}
-
-		if affected != 1 {
-			return fmt.Errorf("unexpected number of affected rows. got: %d, want: %d", affected, 1)
-		}
-	}
-
-	return nil
-}
-
-// PopMany takes multiple heartbeats from the queue.
+// PopMany retrieves heartbeats with the specified ids from db.
 func (q *Queue) PopMany(limit int) ([]heartbeat.Heartbeat, error) {
-	rows, err := q.conn.Query(fmt.Sprintf("SELECT id, heartbeat FROM %s LIMIT $1;", tableName), limit)
-	if err != nil {
-		return nil, fmt.Errorf("failed to execute select db query: %s", err)
+	b := q.tx.Bucket([]byte(dbBucket))
+	if b == nil {
+		return nil, errors.New("failed to retrieve bucket by name")
 	}
 
 	var (
-		ids        []string
 		heartbeats []heartbeat.Heartbeat
+		ids        []string
 	)
 
-	for rows.Next() {
-		var (
-			id   string
-			data string
-		)
+	// load values
+	c := b.Cursor()
 
-		err := rows.Scan(
-			&id,
-			&data,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("failed to scan row: %s", err)
+	for key, value := c.First(); key != nil; key, value = c.Next() {
+		if len(heartbeats) >= limit {
+			break
 		}
-
-		ids = append(ids, id)
 
 		var h heartbeat.Heartbeat
 
-		err = json.Unmarshal([]byte(data), &h)
+		err := json.Unmarshal(value, &h)
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse heartbeat json data: %s", err)
+			return nil, fmt.Errorf("failed to json unmarshal heartbeat data: %s", err)
 		}
 
 		heartbeats = append(heartbeats, h)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("row error: %s", err)
+		ids = append(ids, string(key))
 	}
 
 	for _, id := range ids {
-		_, err = q.conn.Exec(fmt.Sprintf("DELETE FROM %s WHERE id = $1", tableName), id)
-		if err != nil {
-			return nil, fmt.Errorf("failed to execute delete db query: %s", err)
+		if err := b.Delete([]byte(id)); err != nil {
+			return nil, fmt.Errorf("failed to delete key %q: %s", id, err)
 		}
 	}
 
 	return heartbeats, nil
+}
+
+// PushMany stores the provided heartbeats in the db.
+func (q *Queue) PushMany(hh []heartbeat.Heartbeat) error {
+	b := q.tx.Bucket([]byte(dbBucket))
+	if b == nil {
+		return errors.New("failed to retrieve bucket by name")
+	}
+
+	for _, h := range hh {
+		data, err := json.Marshal(h)
+		if err != nil {
+			return fmt.Errorf("failed to json marshal heartbeat: %s", err)
+		}
+
+		err = b.Put([]byte(h.ID()), data)
+		if err != nil {
+			return fmt.Errorf("failed to store heartbeat with id %q: %s", h.ID(), err)
+		}
+	}
+
+	return nil
 }

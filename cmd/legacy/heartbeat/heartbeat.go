@@ -18,7 +18,6 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/project"
 
 	"github.com/certifi/gocertifi"
-	_ "github.com/mattn/go-sqlite3" // not used directly
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
 )
