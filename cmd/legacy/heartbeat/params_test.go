@@ -81,7 +81,7 @@ func TestLoadParams_APIKey_FlagTakesPrecedence(t *testing.T) {
 	params, err := cmd.LoadParams(v)
 	require.NoError(t, err)
 
-	assert.Equal(t, "00000000-0000-4000-8000-000000000000", params.APIKey)
+	assert.Equal(t, "00000000-0000-4000-8000-000000000000", params.API.Key)
 }
 
 func TestLoadParams_APIKey_FromConfigTakesPrecedence(t *testing.T) {
@@ -93,7 +93,7 @@ func TestLoadParams_APIKey_FromConfigTakesPrecedence(t *testing.T) {
 	params, err := cmd.LoadParams(v)
 	require.NoError(t, err)
 
-	assert.Equal(t, "00000000-0000-4000-8000-000000000000", params.APIKey)
+	assert.Equal(t, "00000000-0000-4000-8000-000000000000", params.API.Key)
 }
 
 func TestLoadParams_APIKey_FromConfigDeprecated(t *testing.T) {
@@ -104,7 +104,7 @@ func TestLoadParams_APIKey_FromConfigDeprecated(t *testing.T) {
 	params, err := cmd.LoadParams(v)
 	require.NoError(t, err)
 
-	assert.Equal(t, "00000000-0000-4000-8000-000000000000", params.APIKey)
+	assert.Equal(t, "00000000-0000-4000-8000-000000000000", params.API.Key)
 }
 
 func TestLoadParams_InvalidAPIKey(t *testing.T) {
@@ -141,7 +141,7 @@ func TestLoadParams_APIUrl_FlagTakesPrecedence(t *testing.T) {
 	params, err := cmd.LoadParams(v)
 	require.NoError(t, err)
 
-	assert.Equal(t, "http://localhost:8080", params.APIUrl)
+	assert.Equal(t, "http://localhost:8080", params.API.URL)
 }
 
 func TestLoadParams_APIUrl_FlagDeprecatedTakesPrecedence(t *testing.T) {
@@ -154,7 +154,7 @@ func TestLoadParams_APIUrl_FlagDeprecatedTakesPrecedence(t *testing.T) {
 	params, err := cmd.LoadParams(v)
 	require.NoError(t, err)
 
-	assert.Equal(t, "http://localhost:8080", params.APIUrl)
+	assert.Equal(t, "http://localhost:8080", params.API.URL)
 }
 
 func TestLoadParams_APIUrl_FromConfig(t *testing.T) {
@@ -166,7 +166,7 @@ func TestLoadParams_APIUrl_FromConfig(t *testing.T) {
 	params, err := cmd.LoadParams(v)
 	require.NoError(t, err)
 
-	assert.Equal(t, "http://localhost:8080", params.APIUrl)
+	assert.Equal(t, "http://localhost:8080", params.API.URL)
 }
 
 func TestLoadParams_APIUrl_Default(t *testing.T) {
@@ -177,7 +177,7 @@ func TestLoadParams_APIUrl_Default(t *testing.T) {
 	params, err := cmd.LoadParams(v)
 	require.NoError(t, err)
 
-	assert.Equal(t, api.BaseURL, params.APIUrl)
+	assert.Equal(t, api.BaseURL, params.API.URL)
 }
 
 func TestLoadParams_Category(t *testing.T) {
@@ -782,7 +782,7 @@ func TestLoadParams_Plugin(t *testing.T) {
 	params, err := cmd.LoadParams(v)
 	require.NoError(t, err)
 
-	assert.Equal(t, "plugin/10.0.0", params.Plugin)
+	assert.Equal(t, "plugin/10.0.0", params.API.Plugin)
 }
 
 func TestLoadParams_Plugin_Unset(t *testing.T) {
@@ -793,7 +793,7 @@ func TestLoadParams_Plugin_Unset(t *testing.T) {
 	params, err := cmd.LoadParams(v)
 	require.NoError(t, err)
 
-	assert.Empty(t, params.Plugin)
+	assert.Empty(t, params.API.Plugin)
 }
 
 func TestLoadParams_Project(t *testing.T) {
@@ -875,7 +875,7 @@ func TestLoadParams_Timeout_FlagTakesPreceedence(t *testing.T) {
 	params, err := cmd.LoadParams(v)
 	require.NoError(t, err)
 
-	assert.Equal(t, 5*time.Second, params.Timeout)
+	assert.Equal(t, 5*time.Second, params.API.Timeout)
 }
 
 func TestLoadParams_Timeout_FromConfig(t *testing.T) {
@@ -887,7 +887,7 @@ func TestLoadParams_Timeout_FromConfig(t *testing.T) {
 	params, err := cmd.LoadParams(v)
 	require.NoError(t, err)
 
-	assert.Equal(t, 10*time.Second, params.Timeout)
+	assert.Equal(t, 10*time.Second, params.API.Timeout)
 }
 
 func TestLoadParams_Time(t *testing.T) {

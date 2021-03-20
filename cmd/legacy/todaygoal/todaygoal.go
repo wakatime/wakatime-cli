@@ -1,32 +1,34 @@
-package today
+package todaygoal
 
 import (
 	"errors"
 	"fmt"
 	"net/http"
 	"os"
+	"regexp"
 	"strings"
-	"time"
 
+	"github.com/certifi/gocertifi"
 	"github.com/wakatime/wakatime-cli/cmd/legacy/legacyparams"
 	"github.com/wakatime/wakatime-cli/pkg/api"
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
-	"github.com/wakatime/wakatime-cli/pkg/summary"
 
-	"github.com/certifi/gocertifi"
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
 )
 
-// Params contains today command parameters.
+var uuid4Regex = regexp.MustCompile("^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$") // nolint
+
+// Params contains today-goal command parameters.
 type Params struct {
+	GoalID  string
 	API     legacyparams.APIParams
 	Network legacyparams.NetworkParams
 }
 
-// Run executes the today command.
+// Run executes the today-goal command.
 func Run(v *viper.Viper) {
-	output, err := Summary(v)
+	output, err := Goal(v)
 	if err != nil {
 		var errauth api.ErrAuth
 		if errors.As(err, &errauth) {
@@ -51,8 +53,8 @@ func Run(v *viper.Viper) {
 	os.Exit(exitcode.Success)
 }
 
-// Summary returns a rendered summary of todays coding activity.
-func Summary(v *viper.Viper) (string, error) {
+// Goal returns total time of given goal id for todays coding activity.
+func Goal(v *viper.Viper) (string, error) {
 	params, err := LoadParams(v)
 	if err != nil {
 		return "", fmt.Errorf("failed to load command parameters: %w", err)
@@ -126,24 +128,15 @@ func Summary(v *viper.Viper) (string, error) {
 
 	c := api.NewClient(url, http.DefaultClient, opts...)
 
-	now := time.Now()
-	todayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
-	todayEnd := time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 59, int(time.Second-time.Nanosecond), now.Location())
-
-	summaries, err := c.Summaries(todayStart, todayEnd)
+	goal, err := c.Goal(params.GoalID)
 	if err != nil {
-		return "", fmt.Errorf("failed fetching summaries from api: %w", err)
+		return "", fmt.Errorf("failed fetching todays goal from api: %w", err)
 	}
 
-	output, err := summary.RenderToday(summaries)
-	if err != nil {
-		return "", fmt.Errorf("failed generating today summary output: %s", err)
-	}
-
-	return output, nil
+	return goal.Total, nil
 }
 
-// LoadParams loads today config params from viper.Viper instance. Returns ErrAuth
+// LoadParams loads todaygoal config params from viper.Viper instance. Returns ErrAuth
 // if failed to retrieve api key.
 func LoadParams(v *viper.Viper) (Params, error) {
 	params := Params{}
@@ -155,6 +148,17 @@ func LoadParams(v *viper.Viper) (Params, error) {
 
 	params.API = apiParams
 	params.Network = networkParams
+
+	if !v.IsSet("today-goal") {
+		return Params{}, fmt.Errorf("goal id unset")
+	}
+
+	goalID := v.GetString("today-goal")
+	if !uuid4Regex.Match([]byte(goalID)) {
+		return Params{}, fmt.Errorf("goal id invalid")
+	}
+
+	params.GoalID = goalID
 
 	return params, nil
 }

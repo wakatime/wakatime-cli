@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/wakatime/wakatime-cli/pkg/api"
+	"github.com/wakatime/wakatime-cli/cmd/legacy/legacyparams"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/language"
 	"github.com/wakatime/wakatime-cli/pkg/project"
@@ -24,21 +24,13 @@ import (
 
 var (
 	// nolint
-	apiKeyRegex = regexp.MustCompile("^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$")
-	// nolint
 	matchAllRegex = regexp.MustCompile(".*")
-	// nolint
-	proxyRegex = regexp.MustCompile(`^((https?|socks5)://)?([^:@]+(:([^:@])+)?@)?[^:]+(:\d+)?$`)
-	// nolint
-	ntlmProxyRegex = regexp.MustCompile(`^.*\\.+$`)
 	// nolint
 	pluginRegex = regexp.MustCompile(`(?i)([a-z\/0-9.]+\s)?(?P<editor>[a-z-]+)\-wakatime\/[0-9.]+`)
 )
 
 // Params contains heartbeat command parameters.
 type Params struct {
-	APIKey          string
-	APIUrl          string
 	Category        heartbeat.Category
 	CursorPosition  *int
 	Entity          string
@@ -52,11 +44,10 @@ type Params struct {
 	LocalFile       string
 	OfflineDisabled bool
 	OfflineSyncMax  int
-	Plugin          string
 	Time            float64
-	Timeout         time.Duration
+	API             legacyparams.APIParams
 	Filter          FilterParams
-	Network         NetworkParams
+	Network         legacyparams.NetworkParams
 	Project         ProjectParams
 	Sanitize        SanitizeParams
 }
@@ -93,8 +84,8 @@ func (p Params) String() string {
 			" language: %q, line number: %q, lines in file: %q, offline disabled: %t, "+
 			" offline sync max: %d, plugin: %q, time: %.5f, timeout: %s, filter params: (%s), "+
 			"network params: (%s), project params: (%s), sanitize params: (%s)",
-		p.APIKey[:4]+"...",
-		p.APIUrl,
+		p.API.Key[:4]+"...",
+		p.API.URL,
 		p.Category,
 		cursorPosition,
 		p.Entity,
@@ -107,9 +98,9 @@ func (p Params) String() string {
 		linesInFile,
 		p.OfflineDisabled,
 		p.OfflineSyncMax,
-		p.Plugin,
+		p.API.Plugin,
 		p.Time,
-		p.Timeout,
+		p.API.Timeout,
 		p.Filter,
 		p.Network,
 		p.Project,
@@ -132,22 +123,6 @@ func (p FilterParams) String() string {
 		p.ExcludeUnknownProject,
 		p.Include,
 		p.IncludeOnlyWithProjectFile,
-	)
-}
-
-// NetworkParams contains network related command parameters.
-type NetworkParams struct {
-	DisableSSLVerify bool
-	ProxyURL         string
-	SSLCertFilepath  string
-}
-
-func (p NetworkParams) String() string {
-	return fmt.Sprintf(
-		"disable ssl verify: %t, proxy url: %q, ssl cert filepath: %q",
-		p.DisableSSLVerify,
-		p.ProxyURL,
-		p.SSLCertFilepath,
 	)
 }
 
@@ -188,18 +163,9 @@ func (p SanitizeParams) String() string {
 // LoadParams loads heartbeat config params from viper.Viper instance. Returns ErrAuth
 // if failed to retrieve api key.
 func LoadParams(v *viper.Viper) (Params, error) {
-	apiKey, ok := vipertools.FirstNonEmptyString(v, "key", "settings.api_key", "settings.apikey")
-	if !ok {
-		return Params{}, api.ErrAuth("failed to load api key")
-	}
-
-	if !apiKeyRegex.Match([]byte(apiKey)) {
-		return Params{}, api.ErrAuth("invalid api key format")
-	}
-
-	apiURL := api.BaseURL
-	if url, ok := vipertools.FirstNonEmptyString(v, "api-url", "apiurl", "settings.api_url"); ok {
-		apiURL = url
+	apiParams, networkParams, err := legacyparams.LoadParams(v)
+	if err != nil {
+		return Params{}, err
 	}
 
 	var category heartbeat.Category
@@ -234,10 +200,7 @@ func LoadParams(v *viper.Viper) (Params, error) {
 		entityType = parsed
 	}
 
-	var (
-		extraHeartbeats []heartbeat.Heartbeat
-		err             error
-	)
+	var extraHeartbeats []heartbeat.Heartbeat
 
 	if v.GetBool("extra-heartbeats") {
 		extraHeartbeats, err = readExtraHeartbeats()
@@ -293,28 +256,14 @@ func LoadParams(v *viper.Viper) (Params, error) {
 		return Params{}, errors.New("argument --sync-offline-activity must be \"none\" or a positive integer number")
 	}
 
-	plugin := v.GetString("plugin")
-
 	timeSecs := v.GetFloat64("time")
 	if timeSecs == 0 {
 		timeSecs = float64(time.Now().UnixNano()) / 1000000000
 	}
 
-	var timeout time.Duration
-
-	timeoutSecs, ok := vipertools.FirstNonEmptyInt(v, "timeout", "settings.timeout")
-	if ok {
-		timeout = time.Duration(timeoutSecs) * time.Second
-	}
-
-	language, err := loadLanguage(v, plugin)
+	language, err := loadLanguage(v, apiParams.Plugin)
 	if err != nil {
 		return Params{}, fmt.Errorf("failed to parse language params: %s", err)
-	}
-
-	networkParams, err := loadNetworkParams(v)
-	if err != nil {
-		return Params{}, fmt.Errorf("failed to parse network params: %s", err)
 	}
 
 	projectParams, err := loadProjectParams(v)
@@ -328,8 +277,6 @@ func LoadParams(v *viper.Viper) (Params, error) {
 	}
 
 	return Params{
-		APIKey:          apiKey,
-		APIUrl:          apiURL,
 		Category:        category,
 		CursorPosition:  cursorPosition,
 		Entity:          entity,
@@ -343,9 +290,8 @@ func LoadParams(v *viper.Viper) (Params, error) {
 		LocalFile:       v.GetString("local-file"),
 		OfflineDisabled: offlineDisabled,
 		OfflineSyncMax:  offlineSyncMax,
-		Plugin:          plugin,
 		Time:            timeSecs,
-		Timeout:         timeout,
+		API:             apiParams,
 		Filter:          loadFilterParams(v),
 		Network:         networkParams,
 		Project:         projectParams,
@@ -634,36 +580,6 @@ func loadFilterParams(v *viper.Viper) FilterParams {
 			"settings.include_only_with_project_file",
 		),
 	}
-}
-
-func loadNetworkParams(v *viper.Viper) (NetworkParams, error) {
-	if v == nil {
-		return NetworkParams{}, errors.New("viper instance unset")
-	}
-
-	errMsgTemplate := "Invalid url %%q. Must be in format" +
-		"'https://user:pass@host:port' or " +
-		"'socks5://user:pass@host:port' or " +
-		"'domain\\\\user:pass.'"
-
-	proxyURL, _ := vipertools.FirstNonEmptyString(v, "proxy", "settings.proxy")
-
-	rgx := proxyRegex
-	if strings.Contains(proxyURL, `\\`) {
-		rgx = ntlmProxyRegex
-	}
-
-	if proxyURL != "" && !rgx.MatchString(proxyURL) {
-		return NetworkParams{}, fmt.Errorf(errMsgTemplate, proxyURL)
-	}
-
-	sslCertFilepath, _ := vipertools.FirstNonEmptyString(v, "ssl-certs-file", "settings.ssl_certs_file")
-
-	return NetworkParams{
-		DisableSSLVerify: vipertools.FirstNonEmptyBool(v, "no-ssl-verify", "settings.no_ssl_verify"),
-		ProxyURL:         proxyURL,
-		SSLCertFilepath:  sslCertFilepath,
-	}, nil
 }
 
 func loadSanitizeParams(v *viper.Viper) (SanitizeParams, error) {
