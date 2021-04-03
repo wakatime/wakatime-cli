@@ -2,7 +2,6 @@ package offline
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -152,26 +151,23 @@ func WithQueue(filepath string, syncLimit int) (heartbeat.HandleOption, error) {
 // sending to wakatime api is not possible. Transaction handling is left to the user
 // via the passed in transaction.
 type Queue struct {
-	tx *bolt.Tx
+	Bucket string
+	tx     *bolt.Tx
 }
 
 // NewQueue creates a new instance of Queue.
 func NewQueue(tx *bolt.Tx) (*Queue, error) {
-	_, err := tx.CreateBucketIfNotExists([]byte(dbBucket))
-	if err != nil {
-		return nil, fmt.Errorf("failed to init bucket: %s", err)
-	}
-
 	return &Queue{
-		tx: tx,
+		Bucket: dbBucket,
+		tx:     tx,
 	}, nil
 }
 
 // PopMany retrieves heartbeats with the specified ids from db.
 func (q *Queue) PopMany(limit int) ([]heartbeat.Heartbeat, error) {
-	b := q.tx.Bucket([]byte(dbBucket))
-	if b == nil {
-		return nil, errors.New("failed to retrieve bucket by name")
+	b, err := q.tx.CreateBucketIfNotExists([]byte(q.Bucket))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create/load bucket: %s", err)
 	}
 
 	var (
@@ -209,9 +205,9 @@ func (q *Queue) PopMany(limit int) ([]heartbeat.Heartbeat, error) {
 
 // PushMany stores the provided heartbeats in the db.
 func (q *Queue) PushMany(hh []heartbeat.Heartbeat) error {
-	b := q.tx.Bucket([]byte(dbBucket))
-	if b == nil {
-		return errors.New("failed to retrieve bucket by name")
+	b, err := q.tx.CreateBucketIfNotExists([]byte(q.Bucket))
+	if err != nil {
+		return fmt.Errorf("failed to create/load bucket: %s", err)
 	}
 
 	for _, h := range hh {

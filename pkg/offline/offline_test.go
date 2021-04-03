@@ -66,7 +66,7 @@ func TestWithQueue(t *testing.T) {
 	dataPy, err := ioutil.ReadFile("testdata/heartbeat_py.json")
 	require.NoError(t, err)
 
-	insertHeartbeatRecords(t, db, []heartbeatRecord{
+	insertHeartbeatRecords(t, db, "heartbeats", []heartbeatRecord{
 		{
 			ID:        "1592868386.079084-file-debugging-wakatime-summary-/tmp/main.py-false",
 			Heartbeat: string(dataPy),
@@ -350,7 +350,7 @@ func TestQueue_PopMany(t *testing.T) {
 	dataJs, err := ioutil.ReadFile("testdata/heartbeat_js.json")
 	require.NoError(t, err)
 
-	insertHeartbeatRecords(t, db, []heartbeatRecord{
+	insertHeartbeatRecords(t, db, "test_bucket", []heartbeatRecord{
 		{
 			ID:        "1592868367.219124-file-coding-wakatime-cli-heartbeat-/tmp/main.go-true",
 			Heartbeat: string(dataGo),
@@ -372,6 +372,8 @@ func TestQueue_PopMany(t *testing.T) {
 	q, err := offline.NewQueue(tx)
 	require.NoError(t, err)
 
+	q.Bucket = "test_bucket"
+
 	hh, err := q.PopMany(2)
 	require.NoError(t, err)
 
@@ -386,7 +388,7 @@ func TestQueue_PopMany(t *testing.T) {
 	var stored []heartbeatRecord
 
 	err = db.View(func(tx *bolt.Tx) error {
-		c := tx.Bucket([]byte("heartbeats")).Cursor()
+		c := tx.Bucket([]byte("test_bucket")).Cursor()
 
 		for key, value := c.First(); key != nil; key, value = c.Next() {
 			stored = append(stored, heartbeatRecord{
@@ -412,7 +414,7 @@ func TestQueue_PushMany(t *testing.T) {
 	dataGo, err := ioutil.ReadFile("testdata/heartbeat_go.json")
 	require.NoError(t, err)
 
-	insertHeartbeatRecord(t, db, heartbeatRecord{
+	insertHeartbeatRecord(t, db, "test_bucket", heartbeatRecord{
 		ID:        "1592868367.219124-file-coding-wakatime-cli-heartbeat-/tmp/main.go-true",
 		Heartbeat: string(dataGo),
 	})
@@ -440,6 +442,8 @@ func TestQueue_PushMany(t *testing.T) {
 	q, err := offline.NewQueue(tx)
 	require.NoError(t, err)
 
+	q.Bucket = "test_bucket"
+
 	err = q.PushMany([]heartbeat.Heartbeat{heartbeatPy, heartbeatJs})
 	require.NoError(t, err)
 
@@ -450,7 +454,7 @@ func TestQueue_PushMany(t *testing.T) {
 	var stored []heartbeatRecord
 
 	err = db.View(func(tx *bolt.Tx) error {
-		c := tx.Bucket([]byte("heartbeats")).Cursor()
+		c := tx.Bucket([]byte("test_bucket")).Cursor()
 
 		for key, value := c.First(); key != nil; key, value = c.Next() {
 			stored = append(stored, heartbeatRecord{
@@ -530,17 +534,17 @@ type heartbeatRecord struct {
 	Heartbeat string
 }
 
-func insertHeartbeatRecords(t *testing.T, db *bolt.DB, hh []heartbeatRecord) {
+func insertHeartbeatRecords(t *testing.T, db *bolt.DB, bucket string, hh []heartbeatRecord) {
 	for _, h := range hh {
-		insertHeartbeatRecord(t, db, h)
+		insertHeartbeatRecord(t, db, bucket, h)
 	}
 }
 
-func insertHeartbeatRecord(t *testing.T, db *bolt.DB, h heartbeatRecord) {
+func insertHeartbeatRecord(t *testing.T, db *bolt.DB, bucket string, h heartbeatRecord) {
 	t.Helper()
 
 	err := db.Update(func(tx *bolt.Tx) error {
-		b, err := tx.CreateBucketIfNotExists([]byte("heartbeats"))
+		b, err := tx.CreateBucketIfNotExists([]byte(bucket))
 		if err != nil {
 			return fmt.Errorf("failed to create bucket: %s", err)
 		}
