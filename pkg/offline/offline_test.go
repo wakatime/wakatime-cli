@@ -1,61 +1,22 @@
 package offline_test
 
 import (
-	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
 	"testing"
-	"time"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/offline"
 
-	_ "github.com/mattn/go-sqlite3" // not used directly
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	bolt "go.etcd.io/bbolt"
 )
-
-func openDB(t *testing.T, filepath string) *sql.DB {
-	// connect to DB
-	conn, err := sql.Open("sqlite3", filepath)
-	if err != nil {
-		panic(err)
-	}
-
-	// check DB connection
-	for i := 0; i < 10; i++ {
-		err = conn.Ping()
-		if err == nil {
-			break
-		}
-
-		time.Sleep(500 * time.Millisecond)
-	}
-
-	require.NoError(t, err)
-
-	return conn
-}
-
-func initDB(t *testing.T) (*sql.DB, func()) {
-	f, err := ioutil.TempFile(os.TempDir(), "")
-	if err != nil {
-		panic(err)
-	}
-
-	conn := openDB(t, f.Name())
-
-	_, err = conn.Exec("CREATE TABLE heartbeat_2 (id TEXT, heartbeat TEXT)")
-	require.NoError(t, err)
-
-	return conn, func() {
-		os.Remove(f.Name())
-	}
-}
 
 func TestQueueFilepath(t *testing.T) {
 	home, err := os.UserHomeDir()
@@ -67,15 +28,15 @@ func TestQueueFilepath(t *testing.T) {
 		Expected   string
 	}{
 		"default": {
-			Expected: filepath.Join(home, ".wakatime.db"),
+			Expected: filepath.Join(home, ".wakatime.bdb"),
 		},
 		"env_trailling_slash": {
 			EnvVar:   "~/path2/",
-			Expected: filepath.Join(home, "path2", ".wakatime.db"),
+			Expected: filepath.Join(home, "path2", ".wakatime.bdb"),
 		},
 		"env_without_trailling_slash": {
 			EnvVar:   "~/path2",
-			Expected: filepath.Join(home, "path2", ".wakatime.db"),
+			Expected: filepath.Join(home, "path2", ".wakatime.bdb"),
 		},
 	}
 
@@ -93,33 +54,34 @@ func TestQueueFilepath(t *testing.T) {
 }
 
 func TestWithQueue(t *testing.T) {
+	// setup
 	f, err := ioutil.TempFile(os.TempDir(), "")
-	if err != nil {
-		panic(err)
-	}
+	require.NoError(t, err)
 
 	defer os.Remove(f.Name())
 
-	conn := openDB(t, f.Name())
-
-	_, err = conn.Exec("CREATE TABLE heartbeat_2 (id TEXT, heartbeat TEXT)")
+	db, err := bolt.Open(f.Name(), 0600, nil)
 	require.NoError(t, err)
 
-	data, err := ioutil.ReadFile("testdata/heartbeat_two.json")
+	dataPy, err := ioutil.ReadFile("testdata/heartbeat_py.json")
 	require.NoError(t, err)
 
-	insertHearbeatRecords(t, conn, []heartbeatRecord{
+	insertHeartbeatRecords(t, db, "heartbeats", []heartbeatRecord{
 		{
 			ID:        "1592868386.079084-file-debugging-wakatime-summary-/tmp/main.py-false",
-			Heartbeat: string(data),
+			Heartbeat: string(dataPy),
 		},
 	})
+
+	db.Close()
 
 	opt, err := offline.WithQueue(f.Name(), 10)
 	require.NoError(t, err)
 
 	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
-		assert.Equal(t, hh, testHeartbeats())
+		assert.Len(t, hh, 2)
+		assert.Contains(t, hh, testHeartbeats()[0])
+		assert.Contains(t, hh, testHeartbeats()[1])
 
 		return []heartbeat.Result{
 			{
@@ -133,9 +95,11 @@ func TestWithQueue(t *testing.T) {
 		}, nil
 	})
 
+	// run
 	results, err := handle([]heartbeat.Heartbeat{testHeartbeats()[0]})
 	require.NoError(t, err)
 
+	// check
 	assert.Equal(t, []heartbeat.Result{
 		{
 			Status:    http.StatusCreated,
@@ -147,31 +111,36 @@ func TestWithQueue(t *testing.T) {
 		},
 	}, results)
 
-	rows, err := conn.Query("SELECT id, heartbeat FROM heartbeat_2;")
+	db, err = bolt.Open(f.Name(), 0600, nil)
 	require.NoError(t, err)
 
-	assert.False(t, rows.Next())
+	var stored []heartbeatRecord
+
+	err = db.View(func(tx *bolt.Tx) error {
+		c := tx.Bucket([]byte("heartbeats")).Cursor()
+
+		for key, value := c.First(); key != nil; key, value = c.Next() {
+			stored = append(stored, heartbeatRecord{
+				ID:        string(key),
+				Heartbeat: string(value),
+			})
+		}
+
+		return nil
+	})
+	require.NoError(t, err)
+
+	db.Close()
+
+	assert.Len(t, stored, 0)
 }
 
 func TestWithQueue_ApiError(t *testing.T) {
+	// setup
 	f, err := ioutil.TempFile(os.TempDir(), "")
-	if err != nil {
-		panic(err)
-	}
-
-	defer os.Remove(f.Name())
-
-	conn := openDB(t, f.Name())
-
-	_, err = conn.Exec("CREATE TABLE heartbeat_2 (id TEXT, heartbeat TEXT)")
 	require.NoError(t, err)
 
-	defer func() {
-		_, err := conn.Exec(`DROP TABLE heartbeat_2;`)
-		if err != nil {
-			panic(err)
-		}
-	}()
+	defer os.Remove(f.Name())
 
 	opt, err := offline.WithQueue(f.Name(), 10)
 	require.NoError(t, err)
@@ -182,88 +151,53 @@ func TestWithQueue_ApiError(t *testing.T) {
 		return []heartbeat.Result{}, errors.New("error")
 	})
 
+	// run
 	_, err = handle(testHeartbeats())
 	require.Error(t, err)
 
-	rows, err := conn.Query("SELECT id, heartbeat FROM heartbeat_2;")
+	// check
+	db, err := bolt.Open(f.Name(), 0600, nil)
 	require.NoError(t, err)
 
-	var heartbeats []heartbeat.Heartbeat
+	var stored []heartbeatRecord
 
-	for rows.Next() {
-		var (
-			id   string
-			data string
-		)
+	err = db.View(func(tx *bolt.Tx) error {
+		c := tx.Bucket([]byte("heartbeats")).Cursor()
 
-		err := rows.Scan(
-			&id,
-			&data,
-		)
-		require.NoError(t, err)
+		for key, value := c.First(); key != nil; key, value = c.Next() {
+			stored = append(stored, heartbeatRecord{
+				ID:        string(key),
+				Heartbeat: string(value),
+			})
+		}
 
-		var h heartbeat.Heartbeat
-		err = json.Unmarshal([]byte(data), &h)
-		require.NoError(t, err)
-
-		assert.Equal(t, h.ID(), id)
-
-		heartbeats = append(heartbeats, h)
-	}
-	require.NoError(t, rows.Err())
-
-	assert.Len(t, heartbeats, 2)
-	assert.Contains(t, heartbeats, heartbeat.Heartbeat{
-		Branch:         heartbeat.String("heartbeat"),
-		Category:       heartbeat.CodingCategory,
-		CursorPosition: heartbeat.Int(12),
-		Dependencies:   []string{"dep1", "dep2"},
-		Entity:         "/tmp/main.go",
-		EntityType:     heartbeat.FileType,
-		IsWrite:        heartbeat.Bool(true),
-		Language:       heartbeat.LanguagePtr(heartbeat.LanguageGo),
-		LineNumber:     heartbeat.Int(42),
-		Lines:          heartbeat.Int(100),
-		Project:        heartbeat.String("wakatime-cli"),
-		Time:           1592868367.219124,
-		UserAgent:      "wakatime/13.0.6",
+		return nil
 	})
-	assert.Contains(t, heartbeats, heartbeat.Heartbeat{
-		Branch:         heartbeat.String("summary"),
-		Category:       heartbeat.DebuggingCategory,
-		CursorPosition: heartbeat.Int(13),
-		Dependencies:   []string{"dep3", "dep4"},
-		Entity:         "/tmp/main.py",
-		EntityType:     heartbeat.FileType,
-		IsWrite:        heartbeat.Bool(false),
-		Language:       heartbeat.LanguagePtr(heartbeat.LanguagePython),
-		LineNumber:     heartbeat.Int(43),
-		Lines:          heartbeat.Int(101),
-		Project:        heartbeat.String("wakatime"),
-		Time:           1592868386.079084,
-		UserAgent:      "wakatime/13.0.7",
-	})
+	require.NoError(t, err)
+
+	db.Close()
+
+	dataGo, err := ioutil.ReadFile("testdata/heartbeat_go.json")
+	require.NoError(t, err)
+
+	dataPy, err := ioutil.ReadFile("testdata/heartbeat_py.json")
+	require.NoError(t, err)
+
+	assert.Len(t, stored, 2)
+
+	assert.Equal(t, "1592868367.219124-file-coding-wakatime-cli-heartbeat-/tmp/main.go-true", stored[0].ID)
+	assert.JSONEq(t, string(dataGo), stored[0].Heartbeat)
+
+	assert.Equal(t, "1592868386.079084-file-debugging-wakatime-summary-/tmp/main.py-false", stored[1].ID)
+	assert.JSONEq(t, string(dataPy), stored[1].Heartbeat)
 }
 
 func TestWithQueue_InvalidResults(t *testing.T) {
+	// setup
 	f, err := ioutil.TempFile(os.TempDir(), "")
-	if err != nil {
-		panic(err)
-	}
-
-	defer os.Remove(f.Name())
-
-	conn := openDB(t, f.Name())
-
-	_, err = conn.Exec("CREATE TABLE heartbeat_2 (id TEXT, heartbeat TEXT)")
 	require.NoError(t, err)
 
-	defer func() {
-		_, err := conn.Exec(`DROP TABLE heartbeat_2;`)
-		if err != nil {
-			panic(err)
-		}
-	}()
+	defer os.Remove(f.Name())
 
 	opt, err := offline.WithQueue(f.Name(), 10)
 	require.NoError(t, err)
@@ -283,9 +217,11 @@ func TestWithQueue_InvalidResults(t *testing.T) {
 		}, nil
 	})
 
+	// run
 	results, err := handle(testHeartbeats())
 	require.NoError(t, err)
 
+	// check
 	assert.Equal(t, []heartbeat.Result{
 		{
 			Status:    500,
@@ -297,85 +233,48 @@ func TestWithQueue_InvalidResults(t *testing.T) {
 		},
 	}, results)
 
-	rows, err := conn.Query("SELECT id, heartbeat FROM heartbeat_2;")
+	db, err := bolt.Open(f.Name(), 0600, nil)
 	require.NoError(t, err)
 
-	var heartbeats []heartbeat.Heartbeat
+	var stored []heartbeatRecord
 
-	for rows.Next() {
-		var (
-			id   string
-			data string
-		)
+	err = db.View(func(tx *bolt.Tx) error {
+		c := tx.Bucket([]byte("heartbeats")).Cursor()
 
-		err := rows.Scan(
-			&id,
-			&data,
-		)
-		require.NoError(t, err)
+		for key, value := c.First(); key != nil; key, value = c.Next() {
+			stored = append(stored, heartbeatRecord{
+				ID:        string(key),
+				Heartbeat: string(value),
+			})
+		}
 
-		var h heartbeat.Heartbeat
-		err = json.Unmarshal([]byte(data), &h)
-		require.NoError(t, err)
-
-		assert.Equal(t, h.ID(), id)
-
-		heartbeats = append(heartbeats, h)
-	}
-	require.NoError(t, rows.Err())
-
-	assert.Len(t, heartbeats, 2)
-	assert.Contains(t, heartbeats, heartbeat.Heartbeat{
-		Branch:         heartbeat.String("heartbeat"),
-		Category:       heartbeat.CodingCategory,
-		CursorPosition: heartbeat.Int(12),
-		Dependencies:   []string{"dep1", "dep2"},
-		Entity:         "/tmp/main.go",
-		EntityType:     heartbeat.FileType,
-		IsWrite:        heartbeat.Bool(true),
-		Language:       heartbeat.LanguagePtr(heartbeat.LanguageGo),
-		LineNumber:     heartbeat.Int(42),
-		Lines:          heartbeat.Int(100),
-		Project:        heartbeat.String("wakatime-cli"),
-		Time:           1592868367.219124,
-		UserAgent:      "wakatime/13.0.6",
+		return nil
 	})
-	assert.Contains(t, heartbeats, heartbeat.Heartbeat{
-		Branch:         heartbeat.String("summary"),
-		Category:       heartbeat.DebuggingCategory,
-		CursorPosition: heartbeat.Int(13),
-		Dependencies:   []string{"dep3", "dep4"},
-		Entity:         "/tmp/main.py",
-		EntityType:     heartbeat.FileType,
-		IsWrite:        heartbeat.Bool(false),
-		Language:       heartbeat.LanguagePtr(heartbeat.LanguagePython),
-		LineNumber:     heartbeat.Int(43),
-		Lines:          heartbeat.Int(101),
-		Project:        heartbeat.String("wakatime"),
-		Time:           1592868386.079084,
-		UserAgent:      "wakatime/13.0.7",
-	})
+	require.NoError(t, err)
+
+	db.Close()
+
+	dataGo, err := ioutil.ReadFile("testdata/heartbeat_go.json")
+	require.NoError(t, err)
+
+	dataPy, err := ioutil.ReadFile("testdata/heartbeat_py.json")
+	require.NoError(t, err)
+
+	assert.Len(t, stored, 2)
+
+	assert.Equal(t, "1592868367.219124-file-coding-wakatime-cli-heartbeat-/tmp/main.go-true", stored[0].ID)
+	assert.JSONEq(t, string(dataGo), stored[0].Heartbeat)
+
+	assert.Equal(t, "1592868386.079084-file-debugging-wakatime-summary-/tmp/main.py-false", stored[1].ID)
+	assert.JSONEq(t, string(dataPy), stored[1].Heartbeat)
 }
 
 func TestWithQueue_HandleLeftovers(t *testing.T) {
+	// setup
 	f, err := ioutil.TempFile(os.TempDir(), "")
-	if err != nil {
-		panic(err)
-	}
-
-	defer os.Remove(f.Name())
-
-	conn := openDB(t, f.Name())
-
-	_, err = conn.Exec("CREATE TABLE heartbeat_2 (id TEXT, heartbeat TEXT)")
 	require.NoError(t, err)
 
-	defer func() {
-		_, err := conn.Exec(`DROP TABLE heartbeat_2;`)
-		if err != nil {
-			panic(err)
-		}
-	}()
+	defer os.Remove(f.Name())
 
 	opt, err := offline.WithQueue(f.Name(), 10)
 	require.NoError(t, err)
@@ -391,9 +290,11 @@ func TestWithQueue_HandleLeftovers(t *testing.T) {
 		}, nil
 	})
 
+	// run
 	results, err := handle(testHeartbeats())
 	require.NoError(t, err)
 
+	// check
 	assert.Equal(t, []heartbeat.Result{
 		{
 			Status:    201,
@@ -401,267 +302,196 @@ func TestWithQueue_HandleLeftovers(t *testing.T) {
 		},
 	}, results)
 
-	rows, err := conn.Query("SELECT id, heartbeat FROM heartbeat_2;")
+	db, err := bolt.Open(f.Name(), 0600, nil)
 	require.NoError(t, err)
 
-	var heartbeats []heartbeat.Heartbeat
+	var stored []heartbeatRecord
 
-	for rows.Next() {
-		var (
-			id   string
-			data string
-		)
+	err = db.View(func(tx *bolt.Tx) error {
+		c := tx.Bucket([]byte("heartbeats")).Cursor()
 
-		err := rows.Scan(
-			&id,
-			&data,
-		)
-		require.NoError(t, err)
+		for key, value := c.First(); key != nil; key, value = c.Next() {
+			stored = append(stored, heartbeatRecord{
+				ID:        string(key),
+				Heartbeat: string(value),
+			})
+		}
 
-		var h heartbeat.Heartbeat
-		err = json.Unmarshal([]byte(data), &h)
-		require.NoError(t, err)
-
-		assert.Equal(t, h.ID(), id)
-
-		heartbeats = append(heartbeats, h)
-	}
-	require.NoError(t, rows.Err())
-	assert.Equal(t, []heartbeat.Heartbeat{
-		{
-			Branch:         heartbeat.String("summary"),
-			Category:       heartbeat.DebuggingCategory,
-			CursorPosition: heartbeat.Int(13),
-			Dependencies:   []string{"dep3", "dep4"},
-			Entity:         "/tmp/main.py",
-			EntityType:     heartbeat.FileType,
-			IsWrite:        heartbeat.Bool(false),
-			Language:       heartbeat.LanguagePtr(heartbeat.LanguagePython),
-			LineNumber:     heartbeat.Int(43),
-			Lines:          heartbeat.Int(101),
-			Project:        heartbeat.String("wakatime"),
-			Time:           1592868386.079084,
-			UserAgent:      "wakatime/13.0.7",
-		},
-	}, heartbeats)
-}
-
-func TestQueue_PushMany(t *testing.T) {
-	conn, cleanup := initDB(t)
-	defer cleanup()
-
-	q := offline.NewQueue(conn)
-	err := q.PushMany(testHeartbeats())
-	require.NoError(t, err)
-
-	rows, err := conn.Query("SELECT id, heartbeat FROM heartbeat_2;")
-	require.NoError(t, err)
-
-	var heartbeats []heartbeat.Heartbeat
-
-	for rows.Next() {
-		var (
-			id   string
-			data string
-		)
-
-		err := rows.Scan(
-			&id,
-			&data,
-		)
-		require.NoError(t, err)
-
-		var h heartbeat.Heartbeat
-		err = json.Unmarshal([]byte(data), &h)
-		require.NoError(t, err)
-
-		assert.Equal(t, h.ID(), id)
-
-		heartbeats = append(heartbeats, h)
-	}
-	require.NoError(t, rows.Err())
-
-	assert.Len(t, heartbeats, 2)
-	assert.Contains(t, heartbeats, heartbeat.Heartbeat{
-		Branch:         heartbeat.String("heartbeat"),
-		Category:       heartbeat.CodingCategory,
-		CursorPosition: heartbeat.Int(12),
-		Dependencies:   []string{"dep1", "dep2"},
-		Entity:         "/tmp/main.go",
-		EntityType:     heartbeat.FileType,
-		IsWrite:        heartbeat.Bool(true),
-		Language:       heartbeat.LanguagePtr(heartbeat.LanguageGo),
-		LineNumber:     heartbeat.Int(42),
-		Lines:          heartbeat.Int(100),
-		Project:        heartbeat.String("wakatime-cli"),
-		Time:           1592868367.219124,
-		UserAgent:      "wakatime/13.0.6",
+		return nil
 	})
-	assert.Contains(t, heartbeats, heartbeat.Heartbeat{
-		Branch:         heartbeat.String("summary"),
-		Category:       heartbeat.DebuggingCategory,
-		CursorPosition: heartbeat.Int(13),
-		Dependencies:   []string{"dep3", "dep4"},
-		Entity:         "/tmp/main.py",
-		EntityType:     heartbeat.FileType,
-		IsWrite:        heartbeat.Bool(false),
-		Language:       heartbeat.LanguagePtr(heartbeat.LanguagePython),
-		LineNumber:     heartbeat.Int(43),
-		Lines:          heartbeat.Int(101),
-		Project:        heartbeat.String("wakatime"),
-		Time:           1592868386.079084,
-		UserAgent:      "wakatime/13.0.7",
-	})
+	require.NoError(t, err)
+
+	db.Close()
+
+	dataPy, err := ioutil.ReadFile("testdata/heartbeat_py.json")
+	require.NoError(t, err)
+
+	assert.Len(t, stored, 1)
+	assert.Equal(t, "1592868386.079084-file-debugging-wakatime-summary-/tmp/main.py-false", stored[0].ID)
+	assert.JSONEq(t, string(dataPy), stored[0].Heartbeat)
 }
 
 func TestQueue_PopMany(t *testing.T) {
-	conn, cleanup := initDB(t)
-	defer cleanup()
-
-	data, err := ioutil.ReadFile("testdata/heartbeat_one.json")
+	// setup
+	f, err := ioutil.TempFile(os.TempDir(), "")
 	require.NoError(t, err)
 
-	insertHearbeatRecords(t, conn, []heartbeatRecord{
+	defer os.Remove(f.Name())
+
+	db, err := bolt.Open(f.Name(), 0600, nil)
+	require.NoError(t, err)
+
+	dataGo, err := ioutil.ReadFile("testdata/heartbeat_go.json")
+	require.NoError(t, err)
+
+	dataPy, err := ioutil.ReadFile("testdata/heartbeat_py.json")
+	require.NoError(t, err)
+
+	dataJs, err := ioutil.ReadFile("testdata/heartbeat_js.json")
+	require.NoError(t, err)
+
+	insertHeartbeatRecords(t, db, "test_bucket", []heartbeatRecord{
 		{
-			ID:        "1592868313.541149-file-coding-wakatime-cli-heartbeat-/tmp/main.go-true",
-			Heartbeat: string(data),
+			ID:        "1592868367.219124-file-coding-wakatime-cli-heartbeat-/tmp/main.go-true",
+			Heartbeat: string(dataGo),
 		},
-	})
-
-	data, err = ioutil.ReadFile("testdata/heartbeat_two.json")
-	require.NoError(t, err)
-
-	insertHearbeatRecords(t, conn, []heartbeatRecord{
 		{
 			ID:        "1592868386.079084-file-debugging-wakatime-summary-/tmp/main.py-false",
-			Heartbeat: string(data),
+			Heartbeat: string(dataPy),
+		},
+		{
+			ID:        "1592868394.084354-file-building-wakatime-todaygoal-/tmp/main.js-false",
+			Heartbeat: string(dataJs),
 		},
 	})
 
-	q := offline.NewQueue(conn)
-	hh, err := q.PopMany(99)
+	tx, err := db.Begin(true)
 	require.NoError(t, err)
 
+	// run
+	q, err := offline.NewQueue(tx)
+	require.NoError(t, err)
+
+	q.Bucket = "test_bucket"
+
+	hh, err := q.PopMany(2)
+	require.NoError(t, err)
+
+	err = tx.Commit()
+	require.NoError(t, err)
+
+	// check
 	assert.Len(t, hh, 2)
-	assert.Contains(t, hh, heartbeat.Heartbeat{
-		Branch:         heartbeat.String("heartbeat"),
-		Category:       heartbeat.CodingCategory,
-		CursorPosition: heartbeat.Int(12),
-		Dependencies:   []string{"dep1", "dep2"},
-		Entity:         "/tmp/main.go",
-		EntityType:     heartbeat.FileType,
-		IsWrite:        heartbeat.Bool(true),
-		Language:       heartbeat.LanguagePtr(heartbeat.LanguageGo),
-		LineNumber:     heartbeat.Int(42),
-		Lines:          heartbeat.Int(100),
-		Project:        heartbeat.String("wakatime-cli"),
-		Time:           1592868367.219124,
-		UserAgent:      "wakatime/13.0.6",
-	})
-	assert.Contains(t, hh, heartbeat.Heartbeat{
-		Branch:         heartbeat.String("summary"),
-		Category:       heartbeat.DebuggingCategory,
-		CursorPosition: heartbeat.Int(13),
-		Dependencies:   []string{"dep3", "dep4"},
-		Entity:         "/tmp/main.py",
-		EntityType:     heartbeat.FileType,
-		IsWrite:        heartbeat.Bool(false),
-		Language:       heartbeat.LanguagePtr(heartbeat.LanguagePython),
-		LineNumber:     heartbeat.Int(43),
-		Lines:          heartbeat.Int(101),
-		Project:        heartbeat.String("wakatime"),
-		Time:           1592868386.079084,
-		UserAgent:      "wakatime/13.0.7",
-	})
+	assert.Contains(t, hh, testHeartbeats()[0])
+	assert.Contains(t, hh, testHeartbeats()[1])
 
-	rows, err := conn.Query("SELECT id, heartbeat FROM heartbeat_2;")
+	var stored []heartbeatRecord
+
+	err = db.View(func(tx *bolt.Tx) error {
+		c := tx.Bucket([]byte("test_bucket")).Cursor()
+
+		for key, value := c.First(); key != nil; key, value = c.Next() {
+			stored = append(stored, heartbeatRecord{
+				ID:        string(key),
+				Heartbeat: string(value),
+			})
+		}
+
+		return nil
+	})
 	require.NoError(t, err)
 
-	assert.False(t, rows.Next())
+	assert.Len(t, stored, 1)
+	assert.Equal(t, "1592868394.084354-file-building-wakatime-todaygoal-/tmp/main.js-false", stored[0].ID)
+	assert.JSONEq(t, string(dataJs), stored[0].Heartbeat)
 }
 
-func TestQueue_PopMany_Limit(t *testing.T) {
-	conn, cleanup := initDB(t)
+func TestQueue_PushMany(t *testing.T) {
+	// setup
+	db, cleanup := initDB(t)
 	defer cleanup()
 
-	data, err := ioutil.ReadFile("testdata/heartbeat_one.json")
+	dataGo, err := ioutil.ReadFile("testdata/heartbeat_go.json")
 	require.NoError(t, err)
 
-	insertHearbeatRecords(t, conn, []heartbeatRecord{
-		{
-			ID:        "1592868313.541149-file-coding-wakatime-cli-heartbeat-/tmp/main.go-true",
-			Heartbeat: string(data),
-		},
+	insertHeartbeatRecord(t, db, "test_bucket", heartbeatRecord{
+		ID:        "1592868367.219124-file-coding-wakatime-cli-heartbeat-/tmp/main.go-true",
+		Heartbeat: string(dataGo),
 	})
 
-	data, err = ioutil.ReadFile("testdata/heartbeat_two.json")
+	var heartbeatPy heartbeat.Heartbeat
+
+	dataPy, err := ioutil.ReadFile("testdata/heartbeat_py.json")
 	require.NoError(t, err)
 
-	insertHearbeatRecords(t, conn, []heartbeatRecord{
-		{
-			ID:        "1592868386.079084-file-debugging-wakatime-summary-/tmp/main.py-false",
-			Heartbeat: string(data),
-		},
+	err = json.Unmarshal(dataPy, &heartbeatPy)
+	require.NoError(t, err)
+
+	var heartbeatJs heartbeat.Heartbeat
+
+	dataJs, err := ioutil.ReadFile("testdata/heartbeat_js.json")
+	require.NoError(t, err)
+
+	err = json.Unmarshal(dataJs, &heartbeatJs)
+	require.NoError(t, err)
+
+	tx, err := db.Begin(true)
+	require.NoError(t, err)
+
+	// run
+	q, err := offline.NewQueue(tx)
+	require.NoError(t, err)
+
+	q.Bucket = "test_bucket"
+
+	err = q.PushMany([]heartbeat.Heartbeat{heartbeatPy, heartbeatJs})
+	require.NoError(t, err)
+
+	err = tx.Commit()
+	require.NoError(t, err)
+
+	// check
+	var stored []heartbeatRecord
+
+	err = db.View(func(tx *bolt.Tx) error {
+		c := tx.Bucket([]byte("test_bucket")).Cursor()
+
+		for key, value := c.First(); key != nil; key, value = c.Next() {
+			stored = append(stored, heartbeatRecord{
+				ID:        string(key),
+				Heartbeat: string(value),
+			})
+		}
+
+		return nil
 	})
-
-	q := offline.NewQueue(conn)
-	hh, err := q.PopMany(1)
 	require.NoError(t, err)
 
-	assert.Len(t, hh, 1)
-	assert.Contains(t, testHeartbeats(), hh[0])
+	assert.Len(t, stored, 3)
 
-	rows, err := conn.Query("SELECT id, heartbeat FROM heartbeat_2;")
+	assert.Equal(t, "1592868367.219124-file-coding-wakatime-cli-heartbeat-/tmp/main.go-true", stored[0].ID)
+	assert.JSONEq(t, string(dataGo), stored[0].Heartbeat)
+
+	assert.Equal(t, "1592868386.079084-file-debugging-wakatime-summary-/tmp/main.py-false", stored[1].ID)
+	assert.JSONEq(t, string(dataPy), stored[1].Heartbeat)
+
+	assert.Equal(t, "1592868394.084354-file-building-wakatime-todaygoal-/tmp/main.js-false", stored[2].ID)
+	assert.JSONEq(t, string(dataJs), stored[2].Heartbeat)
+}
+
+func initDB(t *testing.T) (*bolt.DB, func()) {
+	// create tmp file
+	f, err := ioutil.TempFile(os.TempDir(), "")
 	require.NoError(t, err)
 
-	var (
-		ids        []string
-		heartbeats []heartbeat.Heartbeat
-	)
+	// init db
+	db, err := bolt.Open(f.Name(), 0600, nil)
+	require.NoError(t, err)
 
-	for rows.Next() {
-		var (
-			id   string
-			data string
-		)
-
-		err := rows.Scan(
-			&id,
-			&data,
-		)
-		require.NoError(t, err)
-
-		ids = append(ids, id)
-
-		var h heartbeat.Heartbeat
-		err = json.Unmarshal([]byte(data), &h)
-		require.NoError(t, err)
-
-		assert.Equal(t, h.ID(), id)
-
-		heartbeats = append(heartbeats, h)
+	return db, func() {
+		defer os.Remove(f.Name())
+		defer db.Close()
 	}
-	require.NoError(t, rows.Err())
-
-	assert.Equal(t, []string{"1592868386.079084-file-debugging-wakatime-summary-/tmp/main.py-false"}, ids)
-	assert.Equal(t, []heartbeat.Heartbeat{
-		{
-
-			Branch:         heartbeat.String("summary"),
-			Category:       heartbeat.DebuggingCategory,
-			CursorPosition: heartbeat.Int(13),
-			Dependencies:   []string{"dep3", "dep4"},
-			Entity:         "/tmp/main.py",
-			EntityType:     heartbeat.FileType,
-			IsWrite:        heartbeat.Bool(false),
-			Language:       heartbeat.LanguagePtr(heartbeat.LanguagePython),
-			LineNumber:     heartbeat.Int(43),
-			Lines:          heartbeat.Int(101),
-			Project:        heartbeat.String("wakatime"),
-			Time:           1592868386.079084,
-			UserAgent:      "wakatime/13.0.7",
-		},
-	}, heartbeats)
 }
 
 func testHeartbeats() []heartbeat.Heartbeat {
@@ -704,19 +534,27 @@ type heartbeatRecord struct {
 	Heartbeat string
 }
 
-func insertHearbeatRecords(t *testing.T, conn *sql.DB, hh []heartbeatRecord) {
+func insertHeartbeatRecords(t *testing.T, db *bolt.DB, bucket string, hh []heartbeatRecord) {
 	for _, h := range hh {
-		insertHearbeatRecord(t, conn, h)
+		insertHeartbeatRecord(t, db, bucket, h)
 	}
 }
 
-func insertHearbeatRecord(t *testing.T, conn *sql.DB, h heartbeatRecord) {
+func insertHeartbeatRecord(t *testing.T, db *bolt.DB, bucket string, h heartbeatRecord) {
 	t.Helper()
 
-	_, err := conn.Exec(
-		"INSERT INTO heartbeat_2 VALUES ($1, $2)",
-		h.ID,
-		h.Heartbeat,
-	)
+	err := db.Update(func(tx *bolt.Tx) error {
+		b, err := tx.CreateBucketIfNotExists([]byte(bucket))
+		if err != nil {
+			return fmt.Errorf("failed to create bucket: %s", err)
+		}
+
+		err = b.Put([]byte(h.ID), []byte(h.Heartbeat))
+		if err != nil {
+			return fmt.Errorf("failed put hearbeat: %s", err)
+		}
+
+		return nil
+	})
 	require.NoError(t, err)
 }

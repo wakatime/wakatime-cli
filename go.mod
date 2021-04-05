@@ -9,7 +9,6 @@ require (
 	github.com/danwakefield/fnmatch v0.0.0-20160403171240-cbb64ac3d964
 	github.com/dlclark/regexp2 v1.4.0
 	github.com/matishsiao/goInfo v0.0.0-20200404012835-b5f882ee2288
-	github.com/mattn/go-sqlite3 v1.14.4
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/slongfield/pyfmt v0.0.0-20180124071345-020a7cb18bca
 	github.com/spf13/cobra v1.1.1
@@ -18,6 +17,7 @@ require (
 	github.com/spf13/viper v1.7.1
 	github.com/stretchr/testify v1.6.1
 	github.com/yookoala/realpath v1.0.0
+	go.etcd.io/bbolt v1.3.5
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9 // indirect
 	golang.org/x/text v0.3.4 // indirect
 	gopkg.in/ini.v1 v1.62.0

@@ -18,14 +18,19 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/project"
 
 	"github.com/certifi/gocertifi"
-	_ "github.com/mattn/go-sqlite3" // not used directly
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
 )
 
 // Run executes the heartbeat command.
 func Run(v *viper.Viper) {
-	err := SendHeartbeats(v)
+	queueFilepath, err := offline.QueueFilepath()
+	if err != nil {
+		jww.CRITICAL.Printf("failed to load offline queue filepath: %s", err)
+		os.Exit(exitcode.ErrDefault)
+	}
+
+	err = SendHeartbeats(v, queueFilepath)
 	if err != nil {
 		var errauth api.ErrAuth
 		if errors.As(err, &errauth) {
@@ -53,7 +58,7 @@ func Run(v *viper.Viper) {
 // SendHeartbeats sends a heartbeat to the wakatime api and includes additional
 // heartbeats from the offline queue, if available and offline sync is not
 // explicitly disabled.
-func SendHeartbeats(v *viper.Viper) error {
+func SendHeartbeats(v *viper.Viper, queueFilepath string) error {
 	params, err := LoadParams(v)
 	if err != nil {
 		return fmt.Errorf("failed to load command parameters: %w", err)
@@ -192,12 +197,7 @@ func SendHeartbeats(v *viper.Viper) error {
 	}
 
 	if !params.OfflineDisabled {
-		filepath, err := offline.QueueFilepath()
-		if err != nil {
-			return fmt.Errorf("failed to load offline queue filepath: %w", err)
-		}
-
-		offlineHandleOpt, err := offline.WithQueue(filepath, params.OfflineSyncMax)
+		offlineHandleOpt, err := offline.WithQueue(queueFilepath, params.OfflineSyncMax)
 		if err != nil {
 			return fmt.Errorf("failed to initialize offline queue handle option: %w", err)
 		}

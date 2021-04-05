@@ -15,7 +15,6 @@ import (
 	cmd "github.com/wakatime/wakatime-cli/cmd/legacy/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 
-	_ "github.com/mattn/go-sqlite3" // not used directly
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -90,7 +89,12 @@ func TestSendHeartbeats(t *testing.T) {
 	v.Set("timeout", 5)
 	v.Set("write", true)
 
-	err := cmd.SendHeartbeats(v)
+	f, err := ioutil.TempFile(os.TempDir(), "")
+	require.NoError(t, err)
+
+	defer os.Remove(f.Name())
+
+	err = cmd.SendHeartbeats(v, f.Name())
 	require.NoError(t, err)
 
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
@@ -120,7 +124,12 @@ func TestSendHeartbeats_WithFiltering_Exclude(t *testing.T) {
 	v.Set("timeout", 5)
 	v.Set("write", true)
 
-	err := cmd.SendHeartbeats(v)
+	f, err := ioutil.TempFile(os.TempDir(), "")
+	require.NoError(t, err)
+
+	defer os.Remove(f.Name())
+
+	err = cmd.SendHeartbeats(v, f.Name())
 	require.NoError(t, err)
 
 	assert.Equal(t, 0, numCalls)
@@ -220,7 +229,12 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 	v.Set("timeout", 5)
 	v.Set("write", true)
 
-	err = cmd.SendHeartbeats(v)
+	f, err := ioutil.TempFile(os.TempDir(), "")
+	require.NoError(t, err)
+
+	defer os.Remove(f.Name())
+
+	err = cmd.SendHeartbeats(v, f.Name())
 	require.NoError(t, err)
 
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)

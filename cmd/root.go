@@ -158,7 +158,7 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 	flags.String(
 		"sync-offline-activity",
 		defaultOfflineSync,
-		"Amount of offline activity to sync from your local ~/.wakatime.db sqlite3"+
+		"Amount of offline activity to sync from your local ~/.wakatime.bdb bolt"+
 			" file to your WakaTime Dashboard before exiting. Can be \"none\" or"+
 			" a positive integer. Defaults to 100, meaning for every heartbeat sent"+
 			" while online, 100 offline heartbeats are synced. Can be used without"+
