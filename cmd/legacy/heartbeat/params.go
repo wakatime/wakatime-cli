@@ -301,6 +301,7 @@ func LoadParams(v *viper.Viper) (Params, error) {
 
 func readExtraHeartbeats() ([]heartbeat.Heartbeat, error) {
 	in := bufio.NewReader(os.Stdin)
+
 	input, err := in.ReadString('\n')
 	if err != nil {
 		return nil, fmt.Errorf("failed to read data from stdin: %s", err)
