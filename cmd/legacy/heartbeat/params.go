@@ -1,10 +1,10 @@
 package heartbeat
 
 import (
+	"bufio"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"regexp"
 	"strconv"
@@ -300,18 +300,19 @@ func LoadParams(v *viper.Viper) (Params, error) {
 }
 
 func readExtraHeartbeats() ([]heartbeat.Heartbeat, error) {
-	data, err := ioutil.ReadAll(os.Stdin)
+	in := bufio.NewReader(os.Stdin)
+	input, err := in.ReadString('\n')
 	if err != nil {
 		return nil, fmt.Errorf("failed to read data from stdin: %s", err)
 	}
 
-	heartbeats, errFirst := parseExtraHeartbeat(data)
+	heartbeats, errFirst := parseExtraHeartbeat(input)
 	if errFirst == nil {
 		return heartbeats, nil
 	}
 
 	// try again accepting string properties for int values
-	heartbeats, errSecond := parseExtraHeartbeatWithStringValues(data)
+	heartbeats, errSecond := parseExtraHeartbeatWithStringValues(input)
 	if errSecond != nil {
 		return nil, fmt.Errorf(
 			"failed to json decode: %s: failed to json decode again, accepting string values: %s",
@@ -323,7 +324,7 @@ func readExtraHeartbeats() ([]heartbeat.Heartbeat, error) {
 	return heartbeats, nil
 }
 
-func parseExtraHeartbeat(data []byte) ([]heartbeat.Heartbeat, error) {
+func parseExtraHeartbeat(data string) ([]heartbeat.Heartbeat, error) {
 	var incoming []struct {
 		Category         heartbeat.Category  `json:"category"`
 		CursorPosition   *int                `json:"cursorpos"`
@@ -341,7 +342,7 @@ func parseExtraHeartbeat(data []byte) ([]heartbeat.Heartbeat, error) {
 		UserAgent        string              `json:"user_agent"`
 	}
 
-	err := json.Unmarshal(data, &incoming)
+	err := json.Unmarshal([]byte(data), &incoming)
 	if err != nil {
 		return nil, fmt.Errorf("failed to json decode from data %q: %s", string(data), err)
 	}
@@ -390,7 +391,7 @@ func parseExtraHeartbeat(data []byte) ([]heartbeat.Heartbeat, error) {
 	return heartbeats, nil
 }
 
-func parseExtraHeartbeatWithStringValues(data []byte) ([]heartbeat.Heartbeat, error) {
+func parseExtraHeartbeatWithStringValues(data string) ([]heartbeat.Heartbeat, error) {
 	var incoming []struct {
 		Category         heartbeat.Category  `json:"category"`
 		CursorPosition   *string             `json:"cursorpos"`
@@ -408,7 +409,7 @@ func parseExtraHeartbeatWithStringValues(data []byte) ([]heartbeat.Heartbeat, er
 		UserAgent        string              `json:"user_agent"`
 	}
 
-	err := json.Unmarshal(data, &incoming)
+	err := json.Unmarshal([]byte(data), &incoming)
 	if err != nil {
 		return nil, fmt.Errorf("failed to json decode from data %q: %s", string(data), err)
 	}
