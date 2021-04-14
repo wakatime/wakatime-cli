@@ -131,10 +131,18 @@ const (
 	LanguageBBCode
 	// LanguageBC represents the BC programming language.
 	LanguageBC
+	// LanguageBeef represents the Beef programming language.
+	LanguageBeef
 	// LanguageBefunge represents the Befunge programming language.
 	LanguageBefunge
 	// LanguageBibTeX represents the BibTeX programming language.
 	LanguageBibTeX
+	// LanguageBison represents the Bison programming language.
+	LanguageBison
+	// LanguageBitBake represents the BitBake programming language.
+	LanguageBitBake
+	// LanguageBlade represents the Blade programming language.
+	LanguageBlade
 	// LanguageBladeTemplate represents the BladeTemplate programming language.
 	LanguageBladeTemplate
 	// LanguageBlazor represent the Blazor programming language.
@@ -143,6 +151,8 @@ const (
 	LanguageBlitzBasic
 	// LanguageBlitzMax represents the BlitzMax programming language.
 	LanguageBlitzMax
+	// LanguageBluespec represents the Bluespec programming language.
+	LanguageBluespec
 	// LanguageBNF represents the BNF programming language.
 	LanguageBNF
 	// LanguageBoa represents the Boa programming language.
@@ -157,6 +167,8 @@ const (
 	LanguageBrightScript
 	// LanguageBro represents the Bro programming language.
 	LanguageBro
+	// LanguageBrowserslist represents the Browserslist programming language.
+	LanguageBrowserslist
 	// LanguageBST represents the BST programming language.
 	LanguageBST
 	// LanguageBUGS represents the BUGS programming language.
@@ -1292,12 +1304,17 @@ const (
 	languageBBCBasicStr               = "BBC Basic"
 	languageBBCodeStr                 = "BBCode"
 	languageBCStr                     = "BC"
+	languageBeefStr                   = "Beef"
 	languageBefungeStr                = "Befunge"
 	languageBibTeXStr                 = "BibTeX"
+	languageBisonStr                  = "Bison"
+	languageBitBakeStr                = "BitBake"
+	languageBladeStr                  = "Blade"
 	languageBladeTemplateStr          = "Blade Template"
 	languageBlazorStr                 = "Blazor"
 	languageBlitzBasicStr             = "BlitzBasic"
 	languageBlitzMaxStr               = "BlitzMax"
+	languageBluespecStr               = "Bluespec"
 	languageBNFStr                    = "BNF"
 	languageBoaStr                    = "Boa"
 	languageBooStr                    = "Boo"
@@ -1305,6 +1322,7 @@ const (
 	languageBrainfuckStr              = "Brainfuck"
 	languageBrightScriptStr           = "BrightScript"
 	languageBroStr                    = "Bro"
+	languageBrowserslistStr           = "Browserslist"
 	languageBSTStr                    = "BST"
 	languageBUGSStr                   = "BUGS"
 	languageCStr                      = "C"
@@ -2000,10 +2018,18 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageBBCode, true
 	case normalizeString(languageBCStr):
 		return LanguageBC, true
+	case normalizeString(languageBeefStr):
+		return LanguageBeef, true
 	case normalizeString(languageBefungeStr):
 		return LanguageBefunge, true
 	case normalizeString(languageBibTeXStr):
 		return LanguageBibTeX, true
+	case normalizeString(languageBisonStr):
+		return LanguageBison, true
+	case normalizeString(languageBitBakeStr):
+		return LanguageBitBake, true
+	case normalizeString(languageBladeStr):
+		return LanguageBlade, true
 	case normalizeString(languageBladeTemplateStr):
 		return LanguageBladeTemplate, true
 	case normalizeString(languageBlazorStr):
@@ -2012,6 +2038,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageBlitzBasic, true
 	case normalizeString(languageBlitzMaxStr):
 		return LanguageBlitzMax, true
+	case normalizeString(languageBluespecStr):
+		return LanguageBluespec, true
 	case normalizeString(languageBNFStr):
 		return LanguageBNF, true
 	case normalizeString(languageBoaStr):
@@ -2026,6 +2054,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageBrightScript, true
 	case normalizeString(languageBroStr):
 		return LanguageBro, true
+	case normalizeString(languageBrowserslistStr):
+		return LanguageBrowserslist, true
 	case normalizeString(languageBSTStr):
 		return LanguageBST, true
 	case normalizeString(languageBUGSStr):
@@ -3316,10 +3346,18 @@ func (l Language) String() string {
 		return languageBBCodeStr
 	case LanguageBC:
 		return languageBCStr
+	case LanguageBeef:
+		return languageBeefStr
 	case LanguageBefunge:
 		return languageBefungeStr
 	case LanguageBibTeX:
 		return languageBibTeXStr
+	case LanguageBison:
+		return languageBisonStr
+	case LanguageBitBake:
+		return languageBitBakeStr
+	case LanguageBlade:
+		return languageBladeStr
 	case LanguageBladeTemplate:
 		return languageBladeTemplateStr
 	case LanguageBlazor:
@@ -3328,6 +3366,8 @@ func (l Language) String() string {
 		return languageBlitzBasicStr
 	case LanguageBlitzMax:
 		return languageBlitzMaxStr
+	case LanguageBluespec:
+		return languageBluespecStr
 	case LanguageBNF:
 		return languageBNFStr
 	case LanguageBoa:
@@ -3342,6 +3382,8 @@ func (l Language) String() string {
 		return languageBrightScriptStr
 	case LanguageBro:
 		return languageBroStr
+	case LanguageBrowserslist:
+		return languageBrowserslistStr
 	case LanguageBST:
 		return languageBSTStr
 	case LanguageBUGS:
