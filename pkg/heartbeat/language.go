@@ -11,6 +11,10 @@ type Language int
 const (
 	// LanguageUnknown represents the Unknown programming language.
 	LanguageUnknown Language = iota
+	// Language1CEnterprise represents the 1CEnterprise programming language.
+	Language1CEnterprise
+	// Language4D represents the 4D programming language.
+	Language4D
 	// LanguageABAP represents the ABAP programming language.
 	LanguageABAP
 	// LanguageABNF represents the ABNF programming language.
@@ -1199,6 +1203,8 @@ const (
 
 const (
 	languageUnkownStr                 = "Unknown"
+	language1CEnterpriseStr           = "1C Enterprise"
+	language4DStr                     = "4D"
 	languageABAPStr                   = "ABAP"
 	languageABNFStr                   = "ABNF"
 	languageActionScriptStr           = "ActionScript"
@@ -1829,6 +1835,10 @@ const (
 // nolint:gocyclo
 func ParseLanguage(s string) (Language, bool) {
 	switch normalizeString(s) {
+	case normalizeString(language1CEnterpriseStr):
+		return Language1CEnterprise, true
+	case normalizeString(language4DStr):
+		return Language4D, true
 	case normalizeString(languageABNFStr):
 		return LanguageABNF, true
 	case normalizeString(languageABAPStr):
@@ -3113,6 +3123,10 @@ func (l *Language) UnmarshalJSON(v []byte) error {
 // nolint:gocyclo
 func (l Language) String() string {
 	switch l {
+	case Language1CEnterprise:
+		return language1CEnterpriseStr
+	case Language4D:
+		return language4DStr
 	case LanguageABAP:
 		return languageABAPStr
 	case LanguageABNF:

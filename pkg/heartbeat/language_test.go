@@ -15,6 +15,8 @@ import (
 
 func languageTests() map[string]heartbeat.Language {
 	return map[string]heartbeat.Language{
+		"1C Enterprise":                 heartbeat.Language1CEnterprise,
+		"4D":                            heartbeat.Language4D,
 		"ABAP":                          heartbeat.LanguageABAP,
 		"ABNF":                          heartbeat.LanguageABNF,
 		"ActionScript":                  heartbeat.LanguageActionScript,
