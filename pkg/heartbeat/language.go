@@ -27,30 +27,48 @@ const (
 	LanguageAda
 	// LanguageADL represents the ADL programming language.
 	LanguageADL
+	// LanguageAdobeFontMetrics represents the AdobeFontMetrics programming language.
+	LanguageAdobeFontMetrics
 	// LanguageAdvPL represents the AdvPL programming language.
 	LanguageAdvPL
 	// LanguageAgda represents the Agda programming language.
 	LanguageAgda
+	// LanguageAGSScript represents the AGSScript programming language.
+	LanguageAGSScript
 	// LanguageAheui represents the Aheui programming language.
 	LanguageAheui
+	// LanguageAL represents the AL programming language.
+	LanguageAL
 	// LanguageAlloy represents the Alloy programming language.
 	LanguageAlloy
+	// LanguageAlpineAbuild represents the AlpineAbuild programming language.
+	LanguageAlpineAbuild
+	// LanguageAltiumDesigner represents the AltiumDesigner programming language.
+	LanguageAltiumDesigner
 	// LanguageAmbientTalk represents the AmbientTalk programming language.
 	LanguageAmbientTalk
-	// LanguageAmpl represents the Ampl programming language.
-	LanguageAmpl
+	// LanguageAMPL represents the AMPL programming language.
+	LanguageAMPL
+	// LanguageAngelScript represents the AngelScript programming language.
+	LanguageAngelScript
 	// LanguageAngular2 represents the Angular2 programming language.
 	LanguageAngular2
 	// LanguageAnsible represents the Ansible programming language.
 	LanguageAnsible
+	// LanguageAntBuildSystem represents the AntBuildSystem programming language.
+	LanguageAntBuildSystem
 	// LanguageANTLR represents the ANTLR programming language.
 	LanguageANTLR
 	// LanguageApacheConfig represents the Apache Config programming language.
 	LanguageApacheConfig
 	// LanguageApex represents the Apex programming language.
 	LanguageApex
+	// LanguageAPIBlueprint represents the APIBlueprint programming language.
+	LanguageAPIBlueprint
 	// LanguageAPL represents the APL programming language.
 	LanguageAPL
+	// LanguageApolloGuidanceComputer represents the ApolloGuidanceComputer programming language.
+	LanguageApolloGuidanceComputer
 	// LanguageAppleScript represents the AppleScript programming language.
 	LanguageAppleScript
 	// LanguageArc represents the Arc programming language.
@@ -59,6 +77,12 @@ const (
 	LanguageArduino
 	// LanguageArrow represents the Arrow programming language.
 	LanguageArrow
+	// LanguageASCIIDoc represents the ASCIIDoc programming language.
+	LanguageASCIIDoc
+	// LanguageASL represents the ASL programming language.
+	LanguageASL
+	// LanguageASN1 represents the ASN1 programming language.
+	LanguageASN1
 	// LanguageASPClassic represents the ASP Classic programming language.
 	LanguageASPClassic
 	// LanguageASPDotNet represents the ASPDotNet programming language.
@@ -73,6 +97,8 @@ const (
 	LanguageAssembly
 	// LanguageAsymptote represents the Asymptote programming language.
 	LanguageAsymptote
+	// LanguageATS represents the ATS programming language.
+	LanguageATS
 	// LanguageAugeas represents the Augeas programming language.
 	LanguageAugeas
 	// LanguageAutoconf represents the Autoconf programming language.
@@ -81,6 +107,8 @@ const (
 	LanguageAutoHotkey
 	// LanguageAutoIt represents the AutoIt programming language.
 	LanguageAutoIt
+	// LanguageAvroIDL represents the AvroIDL programming language.
+	LanguageAvroIDL
 	// LanguageAwk represents the Awk programming language.
 	LanguageAwk
 	// LanguageBallerina represents the Ballerina programming language.
@@ -1211,22 +1239,35 @@ const (
 	languageActionScript3Str          = "ActionScript 3"
 	languageAdaStr                    = "Ada"
 	languageADLStr                    = "ADL"
+	languageAdobeFontMetricsStr       = "Adobe Font Metrics"
 	languageAdvPLStr                  = "AdvPL"
 	languageAgdaStr                   = "Agda"
+	languageAGSScriptStr              = "AGS Script"
 	languageAheuiStr                  = "Aheui"
+	languageALStr                     = "AL"
 	languageAlloyStr                  = "Alloy"
+	languageAlpineAbuildStr           = "Alpine Abuild"
+	languageAltiumDesignerStr         = "Altium Designer"
 	languageAmbientTalkStr            = "AmbientTalk"
-	languageAmplStr                   = "Ampl"
+	languageAMPLStr                   = "AMPL"
+	languageAngelScriptStr            = "AngelScript"
 	languageAngular2Str               = "Angular2"
 	languageAnsibleStr                = "Ansible"
+	languageAntBuildSystemStr         = "Ant Build System"
 	languageANTLRStr                  = "ANTLR"
+	languageApacheConfStr             = "ApacheConf"
 	languageApacheConfigStr           = "Apache Config"
 	languageApexStr                   = "Apex"
+	languageAPIBlueprintStr           = "API Blueprint"
 	languageAPLStr                    = "APL"
+	languageApolloGuidanceComputerStr = "Apollo Guidance Computer"
 	languageAppleScriptStr            = "AppleScript"
 	languageArcStr                    = "Arc"
 	languageArduinoStr                = "Arduino"
 	languageArrowStr                  = "Arrow"
+	languageASCIIDocStr               = "AsciiDoc"
+	languageASLStr                    = "ASL"
+	languageASN1Str                   = "ASN.1"
 	languageASPClassicStr             = "ASP Classic"
 	languageASPDotNetStr              = "ASP.NET"
 	languageAspectJStr                = "AspectJ"
@@ -1234,10 +1275,12 @@ const (
 	languageAspxVBNetStr              = "aspx-vb"
 	languageAssemblyStr               = "Assembly"
 	languageAsymptoteStr              = "Asymptote"
+	languageATSStr                    = "ATS"
 	languageAugeasStr                 = "Augeas"
 	languageAutoconfStr               = "Autoconf"
 	languageAutoHotkeyStr             = "AutoHotkey"
 	languageAutoItStr                 = "AutoIt"
+	languageAvroIDLStr                = "Avro IDL"
 	languageAwkStr                    = "Awk"
 	languageBallerinaStr              = "Ballerina"
 	languageBAREStr                   = "BARE"
@@ -1847,6 +1890,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageAda, true
 	case normalizeString(languageADLStr):
 		return LanguageADL, true
+	case normalizeString(languageAdobeFontMetricsStr):
+		return LanguageAdobeFontMetrics, true
 	case normalizeString(languageAdvPLStr):
 		return LanguageAdvPL, true
 	case normalizeString(languageActionScriptStr):
@@ -1855,26 +1900,44 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageActionScript3, true
 	case normalizeString(languageAgdaStr):
 		return LanguageAgda, true
+	case normalizeString(languageAGSScriptStr):
+		return LanguageAGSScript, true
 	case normalizeString(languageAheuiStr):
 		return LanguageAheui, true
+	case normalizeString(languageALStr):
+		return LanguageAL, true
 	case normalizeString(languageAlloyStr):
 		return LanguageAlloy, true
+	case normalizeString(languageAlpineAbuildStr):
+		return LanguageAlpineAbuild, true
+	case normalizeString(languageAltiumDesignerStr):
+		return LanguageAltiumDesigner, true
 	case normalizeString(languageAmbientTalkStr):
 		return LanguageAmbientTalk, true
-	case normalizeString(languageAmplStr):
-		return LanguageAmpl, true
+	case normalizeString(languageAMPLStr):
+		return LanguageAMPL, true
+	case normalizeString(languageAngelScriptStr):
+		return LanguageAngelScript, true
 	case normalizeString(languageAngular2Str):
 		return LanguageAngular2, true
 	case normalizeString(languageAnsibleStr):
 		return LanguageAnsible, true
+	case normalizeString(languageAntBuildSystemStr):
+		return LanguageAntBuildSystem, true
 	case normalizeString(languageANTLRStr):
 		return LanguageANTLR, true
+	case normalizeString(languageApacheConfStr):
+		return LanguageApacheConfig, true
 	case normalizeString(languageApacheConfigStr):
 		return LanguageApacheConfig, true
 	case normalizeString(languageApexStr):
 		return LanguageApex, true
+	case normalizeString(languageAPIBlueprintStr):
+		return LanguageAPIBlueprint, true
 	case normalizeString(languageAPLStr):
 		return LanguageAPL, true
+	case normalizeString(languageApolloGuidanceComputerStr):
+		return LanguageApolloGuidanceComputer, true
 	case normalizeString(languageAppleScriptStr):
 		return LanguageAppleScript, true
 	case normalizeString(languageArcStr):
@@ -1883,6 +1946,12 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageArduino, true
 	case normalizeString(languageArrowStr):
 		return LanguageArrow, true
+	case normalizeString(languageASCIIDocStr):
+		return LanguageASCIIDoc, true
+	case normalizeString(languageASLStr):
+		return LanguageASL, true
+	case normalizeString(languageASN1Str):
+		return LanguageASN1, true
 	case normalizeString(languageASPClassicStr):
 		return LanguageASPClassic, true
 	case normalizeString(languageASPDotNetStr):
@@ -1897,6 +1966,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageAssembly, true
 	case normalizeString(languageAsymptoteStr):
 		return LanguageAsymptote, true
+	case normalizeString(languageATSStr):
+		return LanguageATS, true
 	case normalizeString(languageAugeasStr):
 		return LanguageAugeas, true
 	case normalizeString(languageAutoconfStr):
@@ -1905,6 +1976,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageAutoHotkey, true
 	case normalizeString(languageAutoItStr):
 		return LanguageAutoIt, true
+	case normalizeString(languageAvroIDLStr):
+		return LanguageAvroIDL, true
 	case normalizeString(languageAwkStr):
 		return LanguageAwk, true
 	case normalizeString(languageBallerinaStr):
@@ -3135,6 +3208,8 @@ func (l Language) String() string {
 		return languageAdaStr
 	case LanguageADL:
 		return languageADLStr
+	case LanguageAdobeFontMetrics:
+		return languageAdobeFontMetricsStr
 	case LanguageAdvPL:
 		return languageAdvPLStr
 	case LanguageActionScript:
@@ -3143,26 +3218,42 @@ func (l Language) String() string {
 		return languageActionScript3Str
 	case LanguageAgda:
 		return languageAgdaStr
+	case LanguageAGSScript:
+		return languageAGSScriptStr
 	case LanguageAheui:
 		return languageAheuiStr
+	case LanguageAL:
+		return languageALStr
 	case LanguageAlloy:
 		return languageAlloyStr
+	case LanguageAlpineAbuild:
+		return languageAlpineAbuildStr
+	case LanguageAltiumDesigner:
+		return languageAltiumDesignerStr
 	case LanguageAmbientTalk:
 		return languageAmbientTalkStr
-	case LanguageAmpl:
-		return languageAmplStr
+	case LanguageAMPL:
+		return languageAMPLStr
+	case LanguageAngelScript:
+		return languageAngelScriptStr
 	case LanguageAngular2:
 		return languageAngular2Str
 	case LanguageAnsible:
 		return languageAnsibleStr
+	case LanguageAntBuildSystem:
+		return languageAntBuildSystemStr
 	case LanguageANTLR:
 		return languageANTLRStr
 	case LanguageApacheConfig:
 		return languageApacheConfigStr
 	case LanguageApex:
 		return languageApexStr
+	case LanguageAPIBlueprint:
+		return languageAPIBlueprintStr
 	case LanguageAPL:
 		return languageAPLStr
+	case LanguageApolloGuidanceComputer:
+		return languageApolloGuidanceComputerStr
 	case LanguageAppleScript:
 		return languageAppleScriptStr
 	case LanguageArc:
@@ -3171,6 +3262,12 @@ func (l Language) String() string {
 		return languageArduinoStr
 	case LanguageArrow:
 		return languageArrowStr
+	case LanguageASCIIDoc:
+		return languageASCIIDocStr
+	case LanguageASL:
+		return languageASLStr
+	case LanguageASN1:
+		return languageASN1Str
 	case LanguageASPClassic:
 		return languageASPClassicStr
 	case LanguageASPDotNet:
@@ -3185,6 +3282,8 @@ func (l Language) String() string {
 		return languageAssemblyStr
 	case LanguageAsymptote:
 		return languageAsymptoteStr
+	case LanguageATS:
+		return languageATSStr
 	case LanguageAugeas:
 		return languageAugeasStr
 	case LanguageAutoconf:
@@ -3193,6 +3292,8 @@ func (l Language) String() string {
 		return languageAutoHotkeyStr
 	case LanguageAutoIt:
 		return languageAutoItStr
+	case LanguageAvroIDL:
+		return languageAvroIDLStr
 	case LanguageAwk:
 		return languageAwkStr
 	case LanguageBallerina:

@@ -23,22 +23,34 @@ func languageTests() map[string]heartbeat.Language {
 		"ActionScript 3":                heartbeat.LanguageActionScript3,
 		"Ada":                           heartbeat.LanguageAda,
 		"ADL":                           heartbeat.LanguageADL,
+		"Adobe Font Metrics":            heartbeat.LanguageAdobeFontMetrics,
 		"AdvPL":                         heartbeat.LanguageAdvPL,
 		"Agda":                          heartbeat.LanguageAgda,
+		"AGS Script":                    heartbeat.LanguageAGSScript,
 		"Aheui":                         heartbeat.LanguageAheui,
+		"AL":                            heartbeat.LanguageAL,
 		"Alloy":                         heartbeat.LanguageAlloy,
+		"Alpine Abuild":                 heartbeat.LanguageAlpineAbuild,
+		"Altium Designer":               heartbeat.LanguageAltiumDesigner,
 		"AmbientTalk":                   heartbeat.LanguageAmbientTalk,
-		"Ampl":                          heartbeat.LanguageAmpl,
+		"AMPL":                          heartbeat.LanguageAMPL,
+		"AngelScript":                   heartbeat.LanguageAngelScript,
 		"Angular2":                      heartbeat.LanguageAngular2,
 		"Ansible":                       heartbeat.LanguageAnsible,
+		"Ant Build System":              heartbeat.LanguageAntBuildSystem,
 		"ANTLR":                         heartbeat.LanguageANTLR,
 		"APL":                           heartbeat.LanguageAPL,
 		"AppleScript":                   heartbeat.LanguageAppleScript,
 		"Apache Config":                 heartbeat.LanguageApacheConfig,
 		"Apex":                          heartbeat.LanguageApex,
+		"API Blueprint":                 heartbeat.LanguageAPIBlueprint,
+		"Apollo Guidance Computer":      heartbeat.LanguageApolloGuidanceComputer,
 		"Arc":                           heartbeat.LanguageArc,
 		"Arduino":                       heartbeat.LanguageArduino,
 		"Arrow":                         heartbeat.LanguageArrow,
+		"AsciiDoc":                      heartbeat.LanguageASCIIDoc,
+		"ASL":                           heartbeat.LanguageASL,
+		"ASN.1":                         heartbeat.LanguageASN1,
 		"ASP Classic":                   heartbeat.LanguageASPClassic,
 		"ASP.NET":                       heartbeat.LanguageASPDotNet,
 		"AspectJ":                       heartbeat.LanguageAspectJ,
@@ -46,10 +58,12 @@ func languageTests() map[string]heartbeat.Language {
 		"aspx-vb":                       heartbeat.LanguageAspxVBNet,
 		"Assembly":                      heartbeat.LanguageAssembly,
 		"Asymptote":                     heartbeat.LanguageAsymptote,
+		"ATS":                           heartbeat.LanguageATS,
 		"Augeas":                        heartbeat.LanguageAugeas,
 		"Autoconf":                      heartbeat.LanguageAutoconf,
 		"AutoHotkey":                    heartbeat.LanguageAutoHotkey,
 		"AutoIt":                        heartbeat.LanguageAutoIt,
+		"Avro IDL":                      heartbeat.LanguageAvroIDL,
 		"Awk":                           heartbeat.LanguageAwk,
 		"Ballerina":                     heartbeat.LanguageBallerina,
 		"BARE":                          heartbeat.LanguageBARE,
@@ -119,11 +133,11 @@ func languageTests() map[string]heartbeat.Language {
 		"Crontab":                       heartbeat.LanguageCrontab,
 		"Cryptol":                       heartbeat.LanguageCryptol,
 		"Crystal":                       heartbeat.LanguageCrystal,
+		"CSHTML":                        heartbeat.LanguageCSHTML,
 		"CSON":                          heartbeat.LanguageCSON,
 		"Csound Document":               heartbeat.LanguageCsoundDocument,
 		"Csound Orchestra":              heartbeat.LanguageCsoundOrchestra,
 		"Csound Score":                  heartbeat.LanguageCsoundScore,
-		"CSHTML":                        heartbeat.LanguageCSHTML,
 		"CSS":                           heartbeat.LanguageCSS,
 		"CSV":                           heartbeat.LanguageCSV,
 		"CUDA":                          heartbeat.LanguageCUDA,
@@ -607,8 +621,25 @@ func languageTests() map[string]heartbeat.Language {
 	}
 }
 
+func languageTestsAliases() map[string]heartbeat.Language {
+	return map[string]heartbeat.Language{
+		"Apache Config": heartbeat.LanguageApacheConfig,
+	}
+}
+
 func TestParseLanguage(t *testing.T) {
+	// standard language names
 	for value, language := range languageTests() {
+		t.Run(value, func(t *testing.T) {
+			parsed, ok := heartbeat.ParseLanguage(value)
+			assert.True(t, ok)
+
+			assert.Equal(t, language, parsed, fmt.Sprintf("Got: %q, want: %q", parsed, language))
+		})
+	}
+
+	// alias language names
+	for value, language := range languageTestsAliases() {
 		t.Run(value, func(t *testing.T) {
 			parsed, ok := heartbeat.ParseLanguage(value)
 			assert.True(t, ok)
