@@ -21,7 +21,8 @@ type Subversion struct {
 func (s Subversion) Detect() (Result, bool, error) {
 	binary, ok := findSvnBinary()
 	if !ok {
-		return Result{}, false, Err("svn binary not found")
+		jww.DEBUG.Printf("svn binary not found")
+		return Result{}, false, nil
 	}
 
 	fp, err := realpath.Realpath(s.Filepath)
@@ -105,7 +106,7 @@ func findSvnBinary() (string, bool) {
 
 		err := cmd.Run()
 		if err != nil {
-			jww.ERROR.Printf("failed while calling %s --version: %s", loc, err)
+			jww.DEBUG.Printf("failed while calling %s --version: %s", loc, err)
 			continue
 		}
 
