@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"regexp"
 
+	"github.com/wakatime/wakatime-cli/pkg/log"
+
 	"github.com/dlclark/regexp2"
-	jww "github.com/spf13/jwalterweatherman"
 )
 
 // Regex interface to use regexp.Regexp and regexp2.Regexp interchangeably.
@@ -58,7 +59,7 @@ type regexp2Wrap struct {
 func (re *regexp2Wrap) FindStringSubmatch(s string) []string {
 	m, err := re.rgx.FindStringMatch(s)
 	if err != nil {
-		jww.WARN.Printf("failed to find string match %q: %s", s, err)
+		log.Warnf("failed to find string match %q: %s", s, err)
 		return nil
 	}
 
@@ -82,7 +83,7 @@ func (re *regexp2Wrap) FindStringSubmatch(s string) []string {
 func (re *regexp2Wrap) MatchString(s string) bool {
 	matched, err := re.rgx.MatchString(s)
 	if err != nil {
-		jww.WARN.Printf("failed to match string %q: %s", s, err)
+		log.Warnf("failed to match string %q: %s", s, err)
 		return false
 	}
 

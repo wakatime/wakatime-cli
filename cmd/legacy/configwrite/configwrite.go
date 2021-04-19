@@ -8,8 +8,8 @@ import (
 
 	"github.com/wakatime/wakatime-cli/pkg/config"
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
+	"github.com/wakatime/wakatime-cli/pkg/log"
 
-	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
 )
 
@@ -23,18 +23,17 @@ type Params struct {
 func Run(v *viper.Viper) {
 	w, err := config.NewIniWriter(v, config.FilePath)
 	if err != nil {
-		jww.FATAL.Fatalln(err)
-
 		var cfperr config.ErrFileParse
 		if errors.As(err, &cfperr) {
+			log.Errorf(err.Error())
 			os.Exit(exitcode.ErrConfigFileParse)
 		}
 
-		os.Exit(exitcode.ErrDefault)
+		log.Fatalln(err)
 	}
 
 	if err := Write(v, w); err != nil {
-		jww.FATAL.Printf("failed to write on config file: %s", err)
+		log.Errorf("failed to write on config file: %s", err)
 
 		var cfwerr config.ErrFileWrite
 		if errors.As(err, &cfwerr) {
@@ -66,9 +65,6 @@ func LoadParams(v *viper.Viper) (Params, error) {
 	section := strings.TrimSpace(v.GetString("config-section"))
 	kv := v.GetStringMapString("config-write")
 
-	jww.DEBUG.Println("section:", section)
-	jww.DEBUG.Println("key/value:", flattenKeyValue(kv))
-
 	if section == "" || len(kv) == 0 {
 		return Params{},
 			config.ErrFileWrite("neither section nor key/value can be empty")
@@ -78,13 +74,4 @@ func LoadParams(v *viper.Viper) (Params, error) {
 		Section:  section,
 		KeyValue: kv,
 	}, nil
-}
-
-func flattenKeyValue(kv map[string]string) string {
-	var ret []string
-	for k, v := range kv {
-		ret = append(ret, fmt.Sprintf("%s=%s", k, v))
-	}
-
-	return strings.Join(ret, ",")
 }

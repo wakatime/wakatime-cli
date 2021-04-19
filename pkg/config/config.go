@@ -5,8 +5,9 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/wakatime/wakatime-cli/pkg/log"
+
 	"github.com/mitchellh/go-homedir"
-	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
 	"gopkg.in/ini.v1"
 )
@@ -72,7 +73,7 @@ func ReadInConfig(v *viper.Viper, filepathFn func(v *viper.Viper) (string, error
 
 	// check if file exists
 	if _, err := os.Stat(configFilepath); os.IsNotExist(err) {
-		jww.WARN.Printf("config file not present or not accessible")
+		log.Warnf("config file not present or not accessible")
 
 		return nil
 	}

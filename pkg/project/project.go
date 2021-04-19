@@ -7,9 +7,8 @@ import (
 	"time"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/regex"
-
-	jww "github.com/spf13/jwalterweatherman"
 )
 
 // Detecter is a common interface for project.
@@ -101,7 +100,7 @@ func Detect(entity string, patterns []MapPattern) (project, branch string) {
 	for _, p := range configPlugins {
 		result, detected, err := p.Detect()
 		if err != nil {
-			jww.ERROR.Printf("unexpected error occurred at %q: %s", p.String(), err)
+			log.Errorf("unexpected error occurred at %q: %s", p.String(), err)
 			continue
 		} else if detected {
 			return result.Project, result.Branch
@@ -129,7 +128,7 @@ func DetectWithRevControl(entity string, submodulePatterns []regex.Regex, should
 	for _, p := range revControlPlugins {
 		result, detected, err := p.Detect()
 		if err != nil {
-			jww.ERROR.Printf("unexpected error occurred at %q: %s", p.String(), err)
+			log.Errorf("unexpected error occurred at %q: %s", p.String(), err)
 			continue
 		}
 
@@ -160,7 +159,7 @@ func setProjectName(alternate string, shouldObfuscateProject bool, folder string
 
 	err := Write(folder, project)
 	if err != nil {
-		jww.WARN.Printf("failed to write: %s", err)
+		log.Warnf("failed to write: %s", err)
 	}
 
 	return project

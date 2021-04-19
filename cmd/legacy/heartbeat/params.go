@@ -14,11 +14,11 @@ import (
 	"github.com/wakatime/wakatime-cli/cmd/legacy/legacyparams"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/language"
+	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/project"
 	"github.com/wakatime/wakatime-cli/pkg/regex"
 	"github.com/wakatime/wakatime-cli/pkg/vipertools"
 
-	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
 )
 
@@ -79,13 +79,11 @@ func (p Params) String() string {
 	}
 
 	return fmt.Sprintf(
-		"api key: %q, api url: %q, category: %q, cursor position: %q, entity: %q,"+
-			" entity type: %q, num extra heartbeats: %d, hostname: %q, is write: %t,"+
-			" language: %q, line number: %q, lines in file: %q, offline disabled: %t, "+
-			" offline sync max: %d, plugin: %q, time: %.5f, timeout: %s, filter params: (%s), "+
-			"network params: (%s), project params: (%s), sanitize params: (%s)",
-		p.API.Key[:4]+"...",
-		p.API.URL,
+		"category: '%s', cursor position: '%s', entity: '%s', entity type: '%s',"+
+			" num extra heartbeats: %d, hostname: '%s', is write: %t, language: '%s',"+
+			" line number: '%s', lines in file: '%s', offline disabled: %t, offline sync max: %d,"+
+			" time: %.5f, api params: (%s), filter params: (%s), network params: (%s),"+
+			" project params: (%s), sanitize params: (%s)",
 		p.Category,
 		cursorPosition,
 		p.Entity,
@@ -98,9 +96,8 @@ func (p Params) String() string {
 		linesInFile,
 		p.OfflineDisabled,
 		p.OfflineSyncMax,
-		p.API.Plugin,
 		p.Time,
-		p.API.Timeout,
+		p.API,
 		p.Filter,
 		p.Network,
 		p.Project,
@@ -118,7 +115,7 @@ type FilterParams struct {
 
 func (p FilterParams) String() string {
 	return fmt.Sprintf(
-		"exclude: %q, exclude unknown project: %t, include: %q, include only with project file: %t",
+		"exclude: '%s', exclude unknown project: %t, include: '%s', include only with project file: %t",
 		p.Exclude,
 		p.ExcludeUnknownProject,
 		p.Include,
@@ -136,7 +133,7 @@ type ProjectParams struct {
 
 func (p ProjectParams) String() string {
 	return fmt.Sprintf(
-		"alternate: %q, disable submodule: %q, map patterns: %q, override: %q",
+		"alternate: '%s', disable submodule: '%s', map patterns: '%s', override: '%s'",
 		p.Alternate,
 		p.DisableSubmodule,
 		p.MapPatterns,
@@ -153,7 +150,7 @@ type SanitizeParams struct {
 
 func (p SanitizeParams) String() string {
 	return fmt.Sprintf(
-		"hide branch names: %q, hide file names: %q, hide project names: %q",
+		"hide branch names: '%s', hide file names: '%s', hide project names: '%s'",
 		p.HideBranchNames,
 		p.HideFileNames,
 		p.HideProjectNames,
@@ -205,7 +202,7 @@ func LoadParams(v *viper.Viper) (Params, error) {
 	if v.GetBool("extra-heartbeats") {
 		extraHeartbeats, err = readExtraHeartbeats()
 		if err != nil {
-			jww.ERROR.Printf("failed to read extra heartbeats: %s", err)
+			log.Errorf("failed to read extra heartbeats: %s", err)
 		}
 	}
 
@@ -499,7 +496,7 @@ func loadLanguage(v *viper.Viper, plugin string) (*heartbeat.Language, error) {
 
 	editor, err := parseEditorFromPlugin(plugin)
 	if err != nil {
-		jww.WARN.Printf("could not parse editor from plugin. %s", err)
+		log.Warnf("could not parse editor from plugin. %s", err)
 
 		editor = plugin
 	}
@@ -512,7 +509,7 @@ func loadLanguage(v *viper.Viper, plugin string) (*heartbeat.Language, error) {
 
 	parsed, ok := language.Parse(lang, editor)
 	if !ok {
-		jww.WARN.Printf("failed to parse language from string %q. editor: %q", lang, editor)
+		log.Warnf("failed to parse language from string %q. editor: %q", lang, editor)
 		return nil, nil
 	}
 
@@ -546,7 +543,7 @@ func loadFilterParams(v *viper.Viper) FilterParams {
 	for _, s := range exclude {
 		compiled, err := regex.Compile(s)
 		if err != nil {
-			jww.WARN.Printf("failed to compile exclude regex pattern %q", s)
+			log.Warnf("failed to compile exclude regex pattern %q", s)
 			continue
 		}
 
@@ -561,7 +558,7 @@ func loadFilterParams(v *viper.Viper) FilterParams {
 	for _, s := range include {
 		compiled, err := regex.Compile(s)
 		if err != nil {
-			jww.WARN.Printf("failed to compile include regex pattern %q", s)
+			log.Warnf("failed to compile include regex pattern %q", s)
 			continue
 		}
 
@@ -672,7 +669,7 @@ func loadProjectParams(v *viper.Viper) (ProjectParams, error) {
 	for k, s := range projectMap {
 		compiled, err := regexp.Compile(k)
 		if err != nil {
-			jww.WARN.Printf("failed to compile projectmap regex pattern %q", k)
+			log.Warnf("failed to compile projectmap regex pattern %q", k)
 			continue
 		}
 

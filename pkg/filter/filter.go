@@ -6,10 +6,9 @@ import (
 	"os"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/project"
 	"github.com/wakatime/wakatime-cli/pkg/regex"
-
-	jww "github.com/spf13/jwalterweatherman"
 )
 
 // Config contains filtering configurations.
@@ -33,7 +32,7 @@ func WithFiltering(config Config) heartbeat.HandleOption {
 				if err != nil {
 					var errv Err
 					if errors.As(err, &errv) {
-						jww.DEBUG.Println(errv.Error())
+						log.Debugln(errv.Error())
 						continue
 					}
 
@@ -44,7 +43,7 @@ func WithFiltering(config Config) heartbeat.HandleOption {
 			}
 
 			if len(filtered) == 0 {
-				jww.DEBUG.Println("no heartbeat left after filtering. abort heartbeat handling.")
+				log.Debugln("no heartbeat left after filtering. abort heartbeat handling.")
 				return []heartbeat.Result{}, nil
 			}
 

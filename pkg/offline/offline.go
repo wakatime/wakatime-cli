@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	"github.com/mitchellh/go-homedir"
-	jww "github.com/spf13/jwalterweatherman"
 	bolt "go.etcd.io/bbolt"
 )
 
@@ -58,7 +58,7 @@ func WithQueue(filepath string, syncLimit int) (heartbeat.HandleOption, error) {
 			// start transaction
 			tx, err := db.Begin(true)
 			if err != nil {
-				jww.ERROR.Fatalf("failed to start offline queue db transaction: %s", err)
+				log.Errorf("failed to start offline queue db transaction: %s", err)
 				return next(hh)
 			}
 
@@ -72,28 +72,28 @@ func WithQueue(filepath string, syncLimit int) (heartbeat.HandleOption, error) {
 
 			queued, err := queue.PopMany(syncLimit)
 			if err != nil {
-				jww.ERROR.Fatalf("failed to pop heartbeat(s) from offline queue: %s", err)
+				log.Errorf("failed to pop heartbeat(s) from offline queue: %s", err)
 			}
 
 			if len(queued) > 0 {
-				jww.DEBUG.Printf("include %d heartbeat(s) from offline queue", len(queued))
+				log.Debugf("include %d heartbeat(s) from offline queue", len(queued))
 				hh = append(hh, queued...)
 			}
 
 			results, err := next(hh)
 			if err != nil {
-				jww.DEBUG.Printf("api error: %s", err)
-				jww.DEBUG.Printf("pushing %d heartbeat(s) to offline queue", len(hh))
+				log.Debugf("api error: %s", err)
+				log.Debugf("pushing %d heartbeat(s) to offline queue", len(hh))
 
 				// push to queue on any err
 				queueErr := queue.PushMany(hh)
 				if queueErr != nil {
-					jww.ERROR.Fatalf("failed to push heartbeat(s) to queue: %s", queueErr)
+					log.Errorf("failed to push heartbeat(s) to queue: %s", queueErr)
 				}
 
 				// commit transaction
 				if err := tx.Commit(); err != nil {
-					jww.ERROR.Fatalf("failed to commit offline queue db transaction: %s", err)
+					log.Errorf("failed to commit offline queue db transaction: %s", err)
 				}
 
 				return nil, err
@@ -104,7 +104,7 @@ func WithQueue(filepath string, syncLimit int) (heartbeat.HandleOption, error) {
 
 			for n, result := range results {
 				if n >= len(hh) {
-					jww.WARN.Println("results from api not matching heartbeats sent")
+					log.Warnln("results from api not matching heartbeats sent")
 					break
 				}
 
@@ -116,30 +116,30 @@ func WithQueue(filepath string, syncLimit int) (heartbeat.HandleOption, error) {
 			}
 
 			if len(withInvalidStatus) > 0 {
-				jww.DEBUG.Printf("pushing %d heartbeat(s) with invalid result to offline queue", len(withInvalidStatus))
+				log.Debugf("pushing %d heartbeat(s) with invalid result to offline queue", len(withInvalidStatus))
 
 				err = queue.PushMany(withInvalidStatus)
 				if err != nil {
-					jww.ERROR.Fatalf("failed to push invalid result heartbeat(s) to queue: %s", err)
+					log.Errorf("failed to push invalid result heartbeat(s) to queue: %s", err)
 				}
 			}
 
 			// handle leftovers
 			leftovers := len(hh) - len(results)
 			if leftovers > 0 {
-				jww.WARN.Printf("Missing %d results from api.", leftovers)
+				log.Warnf("Missing %d results from api.", leftovers)
 
 				start := len(hh) - leftovers
 
 				queueErr := queue.PushMany(hh[start:])
 				if queueErr != nil {
-					jww.ERROR.Fatalf("failed to push leftover heartbeat to queue: %s", queueErr)
+					log.Errorf("failed to push leftover heartbeat to queue: %s", queueErr)
 				}
 			}
 
 			// commit transaction
 			if err = tx.Commit(); err != nil {
-				jww.ERROR.Fatalf("failed to commit offline queue db transaction: %s", err)
+				log.Errorf("failed to commit offline queue db transaction: %s", err)
 			}
 
 			return results, nil

@@ -8,12 +8,12 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/certifi/gocertifi"
 	"github.com/wakatime/wakatime-cli/cmd/legacy/legacyparams"
 	"github.com/wakatime/wakatime-cli/pkg/api"
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
+	"github.com/wakatime/wakatime-cli/pkg/log"
 
-	jww "github.com/spf13/jwalterweatherman"
+	"github.com/certifi/gocertifi"
 	"github.com/spf13/viper"
 )
 
@@ -32,7 +32,7 @@ func Run(v *viper.Viper) {
 	if err != nil {
 		var errauth api.ErrAuth
 		if errors.As(err, &errauth) {
-			jww.CRITICAL.Printf(
+			log.Errorf(
 				"%s. Find your api key from wakatime.com/settings/api-key",
 				errauth,
 			)
@@ -41,12 +41,11 @@ func Run(v *viper.Viper) {
 
 		var errapi api.Err
 		if errors.As(err, &errapi) {
-			jww.CRITICAL.Println(err)
+			log.Errorln(err)
 			os.Exit(exitcode.ErrAPI)
 		}
 
-		jww.CRITICAL.Println(err)
-		os.Exit(exitcode.ErrDefault)
+		log.Fatalln(err)
 	}
 
 	fmt.Println(output)

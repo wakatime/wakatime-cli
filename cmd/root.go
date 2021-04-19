@@ -1,14 +1,10 @@
 package cmd
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/wakatime/wakatime-cli/cmd/legacy"
-	"github.com/wakatime/wakatime-cli/pkg/exitcode"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
 	"gopkg.in/ini.v1"
 )
@@ -27,6 +23,7 @@ const (
 func NewRootCMD() *cobra.Command {
 	multilineOption := viper.IniLoadOptions(ini.LoadOptions{AllowPythonMultilineValues: true})
 	v := viper.NewWithOptions(multilineOption)
+
 	cmd := &cobra.Command{
 		Use:   "wakatime-cli",
 		Short: "Command line interface used by all WakaTime text editor plugins.",
@@ -182,8 +179,7 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 
 	err := v.BindPFlags(flags)
 	if err != nil {
-		fmt.Printf("failed to bind cobra flags to viper: %s", err)
-		os.Exit(exitcode.ErrDefault)
+		log.Fatalf("failed to bind cobra flags to viper: %s", err)
 	}
 }
 
@@ -191,7 +187,6 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
 	if err := NewRootCMD().Execute(); err != nil {
-		jww.CRITICAL.Fatalf("failed to run wakatime-cli: %s", err)
-		os.Exit(exitcode.ErrDefault)
+		log.Fatalf("failed to run wakatime-cli: %s", err)
 	}
 }

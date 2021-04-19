@@ -6,11 +6,11 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/version"
 	"github.com/wakatime/wakatime-cli/pkg/windows"
 
 	"github.com/matishsiao/goInfo"
-	jww "github.com/spf13/jwalterweatherman"
 	"github.com/yookoala/realpath"
 )
 
@@ -53,14 +53,14 @@ func New(
 	if entityType == FileType {
 		formatted, err := filepath.Abs(entity)
 		if err != nil {
-			jww.WARN.Printf("failed to resolve the absolute path of %q: %s", entity, err)
+			log.Warnf("failed to resolve the absolute path of %q: %s", entity, err)
 		} else {
 			entity = formatted
 		}
 
 		formatted, err = realpath.Realpath(entity)
 		if err != nil {
-			jww.WARN.Printf("failed to resolve the real path of %q: %s", entity, err)
+			log.Warnf("failed to resolve the real path of %q: %s", entity, err)
 		} else {
 			entity = formatted
 		}
@@ -69,14 +69,14 @@ func New(
 	if entityType == FileType && runtime.GOOS == "windows" {
 		formatted, err := windows.FormatFilePath(entity)
 		if err != nil {
-			jww.WARN.Printf("failed to format windows file path: %q: %s", entity, err)
+			log.Warnf("failed to format windows file path: %q: %s", entity, err)
 		} else {
 			entity = formatted
 		}
 
 		localFile, err = windows.FormatLocalFilePath(localFile, entity)
 		if err != nil {
-			jww.WARN.Printf("failed to format local file path: %s", err)
+			log.Warnf("failed to format local file path: %s", err)
 		}
 	}
 

@@ -14,11 +14,11 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/filter"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/language"
+	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/offline"
 	"github.com/wakatime/wakatime-cli/pkg/project"
 
 	"github.com/certifi/gocertifi"
-	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
 )
 
@@ -26,15 +26,14 @@ import (
 func Run(v *viper.Viper) {
 	queueFilepath, err := offline.QueueFilepath()
 	if err != nil {
-		jww.CRITICAL.Printf("failed to load offline queue filepath: %s", err)
-		os.Exit(exitcode.ErrDefault)
+		log.Fatalf("failed to load offline queue filepath: %s", err)
 	}
 
 	err = SendHeartbeats(v, queueFilepath)
 	if err != nil {
 		var errauth api.ErrAuth
 		if errors.As(err, &errauth) {
-			jww.CRITICAL.Printf(
+			log.Errorf(
 				"failed to send heartbeat: %s. Find your api key from wakatime.com/settings/api-key",
 				errauth,
 			)
@@ -43,15 +42,14 @@ func Run(v *viper.Viper) {
 
 		var errapi api.Err
 		if errors.As(err, &errapi) {
-			jww.CRITICAL.Printf("failed to send heartbeat(s): %s", err)
+			log.Errorf("failed to send heartbeat(s): %s", err)
 			os.Exit(exitcode.ErrAPI)
 		}
 
-		jww.CRITICAL.Printf("failed to send heartbeat(s): %s", err)
-		os.Exit(exitcode.ErrDefault)
+		log.Fatalf("failed to send heartbeat(s): %s", err)
 	}
 
-	jww.DEBUG.Println("successfully handled heartbeat(s)")
+	log.Debugln("successfully handled heartbeat(s)")
 	os.Exit(exitcode.Success)
 }
 
@@ -64,7 +62,9 @@ func SendHeartbeats(v *viper.Viper, queueFilepath string) error {
 		return fmt.Errorf("failed to load command parameters: %w", err)
 	}
 
-	jww.DEBUG.Printf("heartbeat params: %s", params)
+	setLogFields(&params)
+
+	log.Debugf("heartbeat params: %s", params)
 
 	withAuth, err := api.WithAuth(api.BasicAuth{
 		Secret: params.API.Key,
@@ -150,7 +150,7 @@ func SendHeartbeats(v *viper.Viper, queueFilepath string) error {
 	}
 
 	if len(params.ExtraHeartbeats) > 0 {
-		jww.DEBUG.Printf("include %d extra heartbeat(s) from stdin", len(params.ExtraHeartbeats))
+		log.Debugf("include %d extra heartbeat(s) from stdin", len(params.ExtraHeartbeats))
 
 		for _, h := range params.ExtraHeartbeats {
 			heartbeats = append(heartbeats, heartbeat.New(
@@ -213,4 +213,22 @@ func SendHeartbeats(v *viper.Viper, queueFilepath string) error {
 	}
 
 	return nil
+}
+
+func setLogFields(params *Params) {
+	if params.API.Plugin != "" {
+		log.WithField("plugin", params.API.Plugin)
+	}
+
+	log.WithField("time", params.Time)
+
+	if params.LineNumber != nil {
+		log.WithField("lineno", params.LineNumber)
+	}
+
+	if params.IsWrite != nil {
+		log.WithField("is_write", params.IsWrite)
+	}
+
+	log.WithField("file", params.Entity)
 }

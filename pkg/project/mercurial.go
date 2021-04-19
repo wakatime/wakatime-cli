@@ -5,7 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	jww "github.com/spf13/jwalterweatherman"
+	"github.com/wakatime/wakatime-cli/pkg/log"
+
 	"github.com/yookoala/realpath"
 )
 
@@ -36,7 +37,7 @@ func (m Mercurial) Detect() (Result, bool, error) {
 
 		branch, err := findHgBranch(hgDirectory)
 		if err != nil {
-			jww.ERROR.Printf(
+			log.Errorf(
 				"error finding for branch name from %q: %s",
 				hgDirectory,
 				err,
