@@ -439,30 +439,60 @@ const (
 	LanguageFreefem
 	// LanguageFStar represents the FStar programming language.
 	LanguageFStar
+	// LanguageGameMakerLanguage represents the GameMakerLanguage programming language.
+	LanguageGameMakerLanguage
+	// LanguageGAML represents the GAML programming language.
+	LanguageGAML
+	// LanguageGAMS represents the GAMS programming language.
+	LanguageGAMS
 	// LanguageGap represents the Gap programming language.
 	LanguageGap
 	// LanguageGas represents the Gas programming language.
 	LanguageGas
+	// LanguageGCCMachineDescription represents the GCCMachineDescription programming language.
+	LanguageGCCMachineDescription
+	// LanguageGCode represents the GCode programming language.
+	LanguageGCode
+	// LanguageGDB represents the GDB programming language.
+	LanguageGDB
 	// LanguageGDNative represents the GDNative programming language.
 	LanguageGDNative
 	// LanguageGDScript represents the GDScript programming language.
 	LanguageGDScript
+	// LanguageGEDCOM represents the GEDCOM programming language.
+	LanguageGEDCOM
+	// LanguageGenie represents the Genie programming language.
+	LanguageGenie
 	// LanguageGenshi represents the Genshi programming language.
 	LanguageGenshi
 	// LanguageGenshiHTML represents the Genshi HTML programming language.
 	LanguageGenshiHTML
 	// LanguageGenshiText represents the Genshi Text programming language.
 	LanguageGenshiText
+	// LanguageGentooEbuild represents the GentooEbuild programming language.
+	LanguageGentooEbuild
+	// LanguageGentooEclass represents the GentooEclass programming language.
+	LanguageGentooEclass
+	// LanguageGerberImage represents the GerberImage programming language.
+	LanguageGerberImage
 	// LanguageGettextCatalog represents the Gettext Catalog programming language.
 	LanguageGettextCatalog
 	// LanguageGherkin represents the Gherkin programming language.
 	LanguageGherkin
 	// LanguageGit represents the Git programming language.
 	LanguageGit
+	// LanguageGitAttributes represents the GitAttributes programming language.
+	LanguageGitAttributes
 	// LanguageGitConfig represents the Git Config programming language.
 	LanguageGitConfig
 	// LanguageGLSL represents the GLSL programming language.
 	LanguageGLSL
+	// LanguageGlyph represents the Glyph programming language.
+	LanguageGlyph
+	// LanguageGlyphBitmap represents the GlyphBitmap programming language.
+	LanguageGlyphBitmap
+	// LanguageGN represents the GN programming language.
+	LanguageGN
 	// LanguageGnuplot represents the Gnuplot programming language.
 	LanguageGnuplot
 	// LanguageGo represents the Go programming language.
@@ -479,14 +509,26 @@ const (
 	LanguageGosu
 	// LanguageGosuTemplate represents the Gosu Template programming language.
 	LanguageGosuTemplate
+	// LanguageGrace represents the Grace programming language.
+	LanguageGrace
+	// LanguageGradle represents the Gradle programming language.
+	LanguageGradle
 	// LanguageGradleConfig represents the GradleConfig programming language.
 	LanguageGradleConfig
+	// LanguageGrammaticalFramework represents the GrammaticalFramework programming language.
+	LanguageGrammaticalFramework
+	// LanguageGraphModelingLanguage represents the GraphModelingLanguage programming language.
+	LanguageGraphModelingLanguage
 	// LanguageGraphQL represents the GraphQL programming language.
 	LanguageGraphQL
+	// LanguageGraphvizDOT represents the GraphvizDOT programming language.
+	LanguageGraphvizDOT
 	// LanguageGroff represents the Groff programming language.
 	LanguageGroff
 	// LanguageGroovy represents the Groovy programming language.
 	LanguageGroovy
+	// LanguageGroovyServerPages represents the GroovyServerPages programming language.
+	LanguageGroovyServerPages
 	// LanguageHaml represents the Haml programming language.
 	LanguageHaml
 	// LanguageHandlebars represents the Handlebars programming language.
@@ -1502,28 +1544,50 @@ const (
 	languageFoxProStr                      = "FoxPro"
 	languageFreefemStr                     = "Freefem"
 	languageFStarStr                       = "FStar"
+	languageGameMakerLanguageStr           = "Game Maker Language"
+	languageGAMLStr                        = "GAML"
+	languageGAMSStr                        = "GAMS"
 	languageGapStr                         = "GAP"
 	languageGasStr                         = "GAS"
+	languageGCCMachineDescriptionStr       = "GCC Machine Description"
+	languageGCodeStr                       = "G-code"
+	languageGDBStr                         = "GDB"
 	languageGDNativeStr                    = "GDNative"
 	languageGDScriptStr                    = "GDScript"
+	languageGEDCOMStr                      = "GEDCOM"
+	languageGenieStr                       = "Genie"
 	languageGenshiStr                      = "Genshi"
 	languageGenshiHTMLStr                  = "Genshi HTML"
 	languageGenshiTextStr                  = "Genshi Text"
+	languageGentooEbuildStr                = "Gentoo Ebuild"
+	languageGentooEclassStr                = "Gentoo Eclass"
+	languageGerberImageStr                 = "Gerber Image"
 	languageGettextCatalogStr              = "Gettext Catalog"
 	languageGherkinStr                     = "Gherkin"
 	languageGitStr                         = "Git"
+	languageGitAttributesStr               = "Git Attributes"
 	languageGitConfigStr                   = "Git Config"
 	languageGLSLStr                        = "GLSL"
+	languageGlyphStr                       = "Glyph"
+	languageGlyphBitmapStr                 = "Glyph Bitmap Distribution Format"
+	languageGNStr                          = "GN"
 	languageGnuplotStr                     = "Gnuplot"
 	languageGoStr                          = "Go"
+	languageGolangStr                      = "Golang"
 	languageGoloStr                        = "Golo"
 	languageGoodDataCLStr                  = "GoodData-CL"
 	languageGosuStr                        = "Gosu"
 	languageGosuTemplateStr                = "Gosu Template"
+	languageGraceStr                       = "Grace"
+	languageGradleStr                      = "Gradle"
 	languageGradleConfigStr                = "Gradle Config"
+	languageGrammaticalFrameworkStr        = "Grammatical Framework"
+	languageGraphModelingLanguageStr       = "Graph Modeling Language"
 	languageGraphQLStr                     = "GraphQL"
+	languageGraphvizDOTStr                 = "Graphviz (DOT)"
 	languageGroffStr                       = "Groff"
 	languageGroovyStr                      = "Groovy"
+	languageGroovyServerPagesStr           = "Groovy Server Pages"
 	languageHamlStr                        = "Haml"
 	languageHandlebarsStr                  = "Handlebars"
 	languageHaskellStr                     = "Haskell"
@@ -2392,33 +2456,65 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageFreefem, true
 	case normalizeString(languageFStarStr):
 		return LanguageFStar, true
+	case normalizeString(languageGameMakerLanguageStr):
+		return LanguageGameMakerLanguage, true
+	case normalizeString(languageGAMLStr):
+		return LanguageGAML, true
+	case normalizeString(languageGAMSStr):
+		return LanguageGAMS, true
 	case normalizeString(languageGapStr):
 		return LanguageGap, true
 	case normalizeString(languageGasStr):
 		return LanguageGas, true
+	case normalizeString(languageGCCMachineDescriptionStr):
+		return LanguageGCCMachineDescription, true
+	case normalizeString(languageGCodeStr):
+		return LanguageGCode, true
+	case normalizeString(languageGDBStr):
+		return LanguageGDB, true
 	case normalizeString(languageGDNativeStr):
 		return LanguageGDNative, true
 	case normalizeString(languageGDScriptStr):
 		return LanguageGDScript, true
+	case normalizeString(languageGEDCOMStr):
+		return LanguageGEDCOM, true
+	case normalizeString(languageGenieStr):
+		return LanguageGenie, true
 	case normalizeString(languageGenshiStr):
 		return LanguageGenshi, true
 	case normalizeString(languageGenshiHTMLStr):
 		return LanguageGenshiHTML, true
 	case normalizeString(languageGenshiTextStr):
 		return LanguageGenshiText, true
+	case normalizeString(languageGentooEbuildStr):
+		return LanguageGentooEbuild, true
+	case normalizeString(languageGentooEclassStr):
+		return LanguageGentooEclass, true
+	case normalizeString(languageGerberImageStr):
+		return LanguageGerberImage, true
 	case normalizeString(languageGettextCatalogStr):
 		return LanguageGettextCatalog, true
 	case normalizeString(languageGherkinStr):
 		return LanguageGherkin, true
 	case normalizeString(languageGitStr):
 		return LanguageGit, true
+	case normalizeString(languageGitAttributesStr):
+		return LanguageGitAttributes, true
 	case normalizeString(languageGitConfigStr):
 		return LanguageGitConfig, true
 	case normalizeString(languageGLSLStr):
 		return LanguageGLSL, true
+	case normalizeString(languageGlyphStr):
+		return LanguageGlyph, true
+	case normalizeString(languageGlyphBitmapStr):
+		return LanguageGlyphBitmap, true
+	case normalizeString(languageGNStr):
+		return LanguageGN, true
 	case normalizeString(languageGnuplotStr):
 		return LanguageGnuplot, true
 	case normalizeString(languageGoStr):
+		return LanguageGo, true
+	case normalizeString(languageGolangStr):
 		return LanguageGo, true
 	case normalizeString(languageGoloStr):
 		return LanguageGolo, true
@@ -2428,14 +2524,26 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageGosu, true
 	case normalizeString(languageGosuTemplateStr):
 		return LanguageGosuTemplate, true
+	case normalizeString(languageGraceStr):
+		return LanguageGrace, true
+	case normalizeString(languageGradleStr):
+		return LanguageGradle, true
 	case normalizeString(languageGradleConfigStr):
 		return LanguageGradleConfig, true
+	case normalizeString(languageGrammaticalFrameworkStr):
+		return LanguageGrammaticalFramework, true
+	case normalizeString(languageGraphModelingLanguageStr):
+		return LanguageGraphModelingLanguage, true
 	case normalizeString(languageGraphQLStr):
 		return LanguageGraphQL, true
+	case normalizeString(languageGraphvizDOTStr):
+		return LanguageGraphvizDOT, true
 	case normalizeString(languageGroffStr):
 		return LanguageGroff, true
 	case normalizeString(languageGroovyStr):
 		return LanguageGroovy, true
+	case normalizeString(languageGroovyServerPagesStr):
+		return LanguageGroovyServerPages, true
 	case normalizeString(languageHamlStr):
 		return LanguageHaml, true
 	case normalizeString(languageHandlebarsStr):
@@ -3764,18 +3872,40 @@ func (l Language) String() string {
 		return languageFreefemStr
 	case LanguageFStar:
 		return languageFStarStr
+	case LanguageGameMakerLanguage:
+		return languageGameMakerLanguageStr
+	case LanguageGAML:
+		return languageGAMLStr
+	case LanguageGAMS:
+		return languageGAMSStr
 	case LanguageGap:
 		return languageGapStr
 	case LanguageGas:
 		return languageGasStr
+	case LanguageGCCMachineDescription:
+		return languageGCCMachineDescriptionStr
+	case LanguageGCode:
+		return languageGCodeStr
+	case LanguageGDB:
+		return languageGDBStr
 	case LanguageGDScript:
 		return languageGDScriptStr
+	case LanguageGEDCOM:
+		return languageGEDCOMStr
+	case LanguageGenie:
+		return languageGenieStr
 	case LanguageGenshi:
 		return languageGenshiStr
 	case LanguageGenshiHTML:
 		return languageGenshiHTMLStr
 	case LanguageGenshiText:
 		return languageGenshiTextStr
+	case LanguageGentooEbuild:
+		return languageGentooEbuildStr
+	case LanguageGentooEclass:
+		return languageGentooEclassStr
+	case LanguageGerberImage:
+		return languageGerberImageStr
 	case LanguageGettextCatalog:
 		return languageGettextCatalogStr
 	case LanguageGherkin:
@@ -3784,10 +3914,18 @@ func (l Language) String() string {
 		return languageGDNativeStr
 	case LanguageGit:
 		return languageGitStr
+	case LanguageGitAttributes:
+		return languageGitAttributesStr
 	case LanguageGitConfig:
 		return languageGitConfigStr
 	case LanguageGLSL:
 		return languageGLSLStr
+	case LanguageGlyph:
+		return languageGlyphStr
+	case LanguageGlyphBitmap:
+		return languageGlyphBitmapStr
+	case LanguageGN:
+		return languageGNStr
 	case LanguageGnuplot:
 		return languageGnuplotStr
 	case LanguageGo, LanguageGoHTMLTemplate, LanguageGoTextTemplate:
@@ -3800,14 +3938,26 @@ func (l Language) String() string {
 		return languageGosuStr
 	case LanguageGosuTemplate:
 		return languageGosuTemplateStr
+	case LanguageGrace:
+		return languageGraceStr
+	case LanguageGradle:
+		return languageGradleStr
 	case LanguageGradleConfig:
 		return languageGradleConfigStr
+	case LanguageGrammaticalFramework:
+		return languageGrammaticalFrameworkStr
+	case LanguageGraphModelingLanguage:
+		return languageGraphModelingLanguageStr
 	case LanguageGraphQL:
 		return languageGraphQLStr
+	case LanguageGraphvizDOT:
+		return languageGraphvizDOTStr
 	case LanguageGroff:
 		return languageGroffStr
 	case LanguageGroovy:
 		return languageGroovyStr
+	case LanguageGroovyServerPages:
+		return languageGroovyServerPagesStr
 	case LanguageHaml:
 		return languageHamlStr
 	case LanguageHandlebars:
