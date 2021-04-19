@@ -529,10 +529,16 @@ const (
 	LanguageGroovy
 	// LanguageGroovyServerPages represents the GroovyServerPages programming language.
 	LanguageGroovyServerPages
+	// LanguageHack represents the Hack programming language.
+	LanguageHack
 	// LanguageHaml represents the Haml programming language.
 	LanguageHaml
 	// LanguageHandlebars represents the Handlebars programming language.
 	LanguageHandlebars
+	// LanguageHAProxy represents the HAProxy programming language.
+	LanguageHAProxy
+	// LanguageHarbour represents the Harbour programming language.
+	LanguageHarbour
 	// LanguageHaskell represents the Haskell programming language.
 	LanguageHaskell
 	// LanguageHaxe represents the Haxe programming language.
@@ -541,16 +547,32 @@ const (
 	LanguageHCL
 	// LanguageHexdump represents the Hexdump programming language.
 	LanguageHexdump
+	// LanguageHiveQL represents the HiveQL programming language.
+	LanguageHiveQL
 	// LanguageHLB represents the HLB programming language.
 	LanguageHLB
 	// LanguageHLSL represents the HLSL programming language.
 	LanguageHLSL
+	// LanguageHolyC represents the HolyC programming language.
+	LanguageHolyC
 	// LanguageHSAIL represents the HSAIL programming language.
 	LanguageHSAIL
 	// LanguageHspec represents the Hspec programming language.
 	LanguageHspec
 	// LanguageHTML represents the HTML programming language.
 	LanguageHTML
+	// LanguageHTMLDjango represents the HTMLDjango programming language.
+	LanguageHTMLDjango
+	// LanguageHTMLECR represents the HTMLECR programming language.
+	LanguageHTMLECR
+	// LanguageHTMLEEX represents the HTMLEEX programming language.
+	LanguageHTMLEEX
+	// LanguageHTMLERB represents the HTMLERB programming language.
+	LanguageHTMLERB
+	// LanguageHTMLPHP represents the HTMLPHP programming language.
+	LanguageHTMLPHP
+	// LanguageHTMLRazor represents the HTMLRazor programming language.
+	LanguageHTMLRazor
 	// LanguageHTTP represents the HTTP programming language.
 	LanguageHTTP
 	// LanguageHxml represents the Hxml programming language.
@@ -559,6 +581,8 @@ const (
 	LanguageHy
 	// LanguageHybris represents the Hybris programming language.
 	LanguageHybris
+	// LanguageHyPhy represents the HyPhy programming language.
+	LanguageHyPhy
 	// LanguageIcon represents the Icon programming language.
 	LanguageIcon
 	// LanguageIDL represents the IDL programming language.
@@ -1588,21 +1612,33 @@ const (
 	languageGroffStr                       = "Groff"
 	languageGroovyStr                      = "Groovy"
 	languageGroovyServerPagesStr           = "Groovy Server Pages"
+	languageHackStr                        = "Hack"
 	languageHamlStr                        = "Haml"
 	languageHandlebarsStr                  = "Handlebars"
+	languageHAProxyStr                     = "HAProxy"
+	languageHarbourStr                     = "Harbour"
 	languageHaskellStr                     = "Haskell"
 	languageHaxeStr                        = "Haxe"
 	languageHCLStr                         = "HCL"
 	languageHexdumpStr                     = "Hexdump"
+	languageHiveQLStr                      = "HiveQL"
 	languageHLBStr                         = "HLB"
 	languageHLSLStr                        = "HLSL"
+	languageHolyCStr                       = "HolyC"
 	languageHSAILStr                       = "HSAIL"
 	languageHspecStr                       = "Hspec"
 	languageHTMLStr                        = "HTML"
+	languageHTMLDjangoStr                  = "HTML+Django"
+	languageHTMLECRStr                     = "HTML+ECR"
+	languageHTMLEEXStr                     = "HTML+EEX"
+	languageHTMLERBStr                     = "HTML+ERB"
+	languageHTMLPHPStr                     = "HTML+PHP"
+	languageHTMLRazorStr                   = "HTML+Razor"
 	languageHTTPStr                        = "HTTP"
-	languageHxmlStr                        = "Hxml"
+	languageHxmlStr                        = "HXML"
 	languageHyStr                          = "Hy"
 	languageHybrisStr                      = "Hybris"
+	languageHyPhyStr                       = "HyPhy"
 	languageIconStr                        = "Icon"
 	languageIDLStr                         = "IDL"
 	languageIdrisStr                       = "Idris"
@@ -2544,10 +2580,16 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageGroovy, true
 	case normalizeString(languageGroovyServerPagesStr):
 		return LanguageGroovyServerPages, true
+	case normalizeString(languageHackStr):
+		return LanguageHack, true
 	case normalizeString(languageHamlStr):
 		return LanguageHaml, true
 	case normalizeString(languageHandlebarsStr):
 		return LanguageHandlebars, true
+	case normalizeString(languageHAProxyStr):
+		return LanguageHAProxy, true
+	case normalizeString(languageHarbourStr):
+		return LanguageHarbour, true
 	case normalizeString(languageHaskellStr):
 		return LanguageHaskell, true
 	case normalizeString(languageHaxeStr):
@@ -2556,16 +2598,32 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageHCL, true
 	case normalizeString(languageHexdumpStr):
 		return LanguageHexdump, true
+	case normalizeString(languageHiveQLStr):
+		return LanguageHiveQL, true
 	case normalizeString(languageHLBStr):
 		return LanguageHLB, true
 	case normalizeString(languageHLSLStr):
 		return LanguageHLSL, true
+	case normalizeString(languageHolyCStr):
+		return LanguageHolyC, true
 	case normalizeString(languageHSAILStr):
 		return LanguageHSAIL, true
 	case normalizeString(languageHspecStr):
 		return LanguageHspec, true
 	case normalizeString(languageHTMLStr):
 		return LanguageHTML, true
+	case normalizeString(languageHTMLDjangoStr):
+		return LanguageHTMLDjango, true
+	case normalizeString(languageHTMLECRStr):
+		return LanguageHTMLECR, true
+	case normalizeString(languageHTMLEEXStr):
+		return LanguageHTMLEEX, true
+	case normalizeString(languageHTMLERBStr):
+		return LanguageHTMLERB, true
+	case normalizeString(languageHTMLPHPStr):
+		return LanguageHTMLPHP, true
+	case normalizeString(languageHTMLRazorStr):
+		return LanguageHTMLRazor, true
 	case normalizeString(languageHTTPStr):
 		return LanguageHTTP, true
 	case normalizeString(languageHxmlStr):
@@ -2574,6 +2632,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageHy, true
 	case normalizeString(languageHybrisStr):
 		return LanguageHybris, true
+	case normalizeString(languageHyPhyStr):
+		return LanguageHyPhy, true
 	case normalizeString(languageIconStr):
 		return LanguageIcon, true
 	case normalizeString(languageIDLStr):
@@ -3958,10 +4018,16 @@ func (l Language) String() string {
 		return languageGroovyStr
 	case LanguageGroovyServerPages:
 		return languageGroovyServerPagesStr
+	case LanguageHack:
+		return languageHackStr
 	case LanguageHaml:
 		return languageHamlStr
 	case LanguageHandlebars:
 		return languageHandlebarsStr
+	case LanguageHAProxy:
+		return languageHAProxyStr
+	case LanguageHarbour:
+		return languageHarbourStr
 	case LanguageHaskell:
 		return languageHaskellStr
 	case LanguageHaxe:
@@ -3970,16 +4036,32 @@ func (l Language) String() string {
 		return languageHCLStr
 	case LanguageHexdump:
 		return languageHexdumpStr
+	case LanguageHiveQL:
+		return languageHiveQLStr
 	case LanguageHLB:
 		return languageHLBStr
 	case LanguageHLSL:
 		return languageHLSLStr
+	case LanguageHolyC:
+		return languageHolyCStr
 	case LanguageHSAIL:
 		return languageHSAILStr
 	case LanguageHspec:
 		return languageHspecStr
 	case LanguageHTML:
 		return languageHTMLStr
+	case LanguageHTMLDjango:
+		return languageHTMLDjangoStr
+	case LanguageHTMLECR:
+		return languageHTMLECRStr
+	case LanguageHTMLEEX:
+		return languageHTMLEEXStr
+	case LanguageHTMLERB:
+		return languageHTMLERBStr
+	case LanguageHTMLPHP:
+		return languageHTMLPHPStr
+	case LanguageHTMLRazor:
+		return languageHTMLRazorStr
 	case LanguageHTTP:
 		return languageHTTPStr
 	case LanguageHxml:
@@ -3988,6 +4070,8 @@ func (l Language) String() string {
 		return languageHyStr
 	case LanguageHybris:
 		return languageHybrisStr
+	case LanguageHyPhy:
+		return languageHyPhyStr
 	case LanguageIcon:
 		return languageIconStr
 	case LanguageIDL:
