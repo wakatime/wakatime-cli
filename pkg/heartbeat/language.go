@@ -589,8 +589,14 @@ const (
 	LanguageIDL
 	// LanguageIdris represents the Idris programming language.
 	LanguageIdris
+	// LanguageIgnoreList represents the IgnoreList programming language.
+	LanguageIgnoreList
 	// LanguageIgor represents the Igor programming language.
 	LanguageIgor
+	// LanguageIGORPro represents the IGORPro programming language.
+	LanguageIGORPro
+	// LanguageImageJMacro represents the ImageJMacro programming language.
+	LanguageImageJMacro
 	// LanguageImageJPEG represents the Image (jpeg) programming language.
 	LanguageImageJPEG
 	// LanguageImagePNG represents the Image (png) programming language.
@@ -603,6 +609,8 @@ const (
 	LanguageInform7
 	// LanguageINI represents the INI programming language.
 	LanguageINI
+	// LanguageInnoSetup represents the InnoSetup programming language.
+	LanguageInnoSetup
 	// LanguageIo represents the Io programming language.
 	LanguageIo
 	// LanguageIoke represents the Ioke programming language.
@@ -611,6 +619,8 @@ const (
 	LanguageIRCLogs
 	// LanguageIsabelle represents the Isabelle programming language.
 	LanguageIsabelle
+	// LanguageIsabelleRoot represents the IsabelleRoot programming language.
+	LanguageIsabelleRoot
 	// LanguageJ represents the J programming language.
 	LanguageJ
 	// LanguageJAGS represents the JAGS programming language.
@@ -1642,17 +1652,22 @@ const (
 	languageIconStr                        = "Icon"
 	languageIDLStr                         = "IDL"
 	languageIdrisStr                       = "Idris"
+	languageIgnoreListStr                  = "Ignore List"
 	languageIgorStr                        = "Igor"
+	languageIGORProStr                     = "IGOR Pro"
+	languageImageJMacroStr                 = "ImageJ Macro"
 	languageImageJPEGStr                   = "Image (jpeg)"
 	languageImagePNGStr                    = "Image (png)"
 	languageInform6Str                     = "Inform 6"
 	languageInform6TemplateStr             = "Inform 6 template"
 	languageInform7Str                     = "Inform 7"
 	languageINIStr                         = "INI"
+	languageInnoSetupStr                   = "Inno Setup"
 	languageIoStr                          = "Io"
 	languageIokeStr                        = "Ioke"
 	languageIRCLogsStr                     = "IRC Logs"
 	languageIsabelleStr                    = "Isabelle"
+	languageIsabelleRootStr                = "Isabelle ROOT"
 	languageJStr                           = "J"
 	languageJAGSStr                        = "JAGS"
 	languageJadeStr                        = "Jade"
@@ -2640,8 +2655,14 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageIDL, true
 	case normalizeString(languageIdrisStr):
 		return LanguageIdris, true
+	case normalizeString(languageIgnoreListStr):
+		return LanguageIgnoreList, true
 	case normalizeString(languageIgorStr):
 		return LanguageIgor, true
+	case normalizeString(languageIGORProStr):
+		return LanguageIGORPro, true
+	case normalizeString(languageImageJMacroStr):
+		return LanguageImageJMacro, true
 	case normalizeString(languageImageJPEGStr):
 		return LanguageImageJPEG, true
 	case normalizeString(languageImagePNGStr):
@@ -2654,6 +2675,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageInform7, true
 	case normalizeString(languageINIStr):
 		return LanguageINI, true
+	case normalizeString(languageInnoSetupStr):
+		return LanguageInnoSetup, true
 	case normalizeString(languageIoStr):
 		return LanguageIo, true
 	case normalizeString(languageIokeStr):
@@ -2662,6 +2685,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageIRCLogs, true
 	case normalizeString(languageIsabelleStr):
 		return LanguageIsabelle, true
+	case normalizeString(languageIsabelleRootStr):
+		return LanguageIsabelleRoot, true
 	case normalizeString(languageJStr):
 		return LanguageJ, true
 	case normalizeString(languageJAGSStr):
@@ -4078,8 +4103,14 @@ func (l Language) String() string {
 		return languageIDLStr
 	case LanguageIdris:
 		return languageIdrisStr
+	case LanguageIgnoreList:
+		return languageIgnoreListStr
 	case LanguageIgor:
 		return languageIgorStr
+	case LanguageIGORPro:
+		return languageIGORProStr
+	case LanguageImageJMacro:
+		return languageImageJMacroStr
 	case LanguageImageJPEG:
 		return languageImageJPEGStr
 	case LanguageImagePNG:
@@ -4092,6 +4123,8 @@ func (l Language) String() string {
 		return languageInform7Str
 	case LanguageINI:
 		return languageINIStr
+	case LanguageInnoSetup:
+		return languageInnoSetupStr
 	case LanguageIo:
 		return languageIoStr
 	case LanguageIoke:
@@ -4100,6 +4133,8 @@ func (l Language) String() string {
 		return languageIRCLogsStr
 	case LanguageIsabelle:
 		return languageIsabelleStr
+	case LanguageIsabelleRoot:
+		return languageIsabelleRootStr
 	case LanguageJ:
 		return languageJStr
 	case LanguageJAGS:
