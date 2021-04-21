@@ -631,16 +631,36 @@ const (
 	LanguageJasmin
 	// LanguageJava represents the Java programming language.
 	LanguageJava
+	// LanguageJavaProperties represents the JavaProperties programming language.
+	LanguageJavaProperties
 	// LanguageJavaScript represents the JavaScript programming language.
 	LanguageJavaScript
+	// LanguageJavaScriptERB represents the JavaScriptERB programming language.
+	LanguageJavaScriptERB
 	// LanguageJCL represents the JCL programming language.
 	LanguageJCL
+	// LanguageJFlex represents the JFlex programming language.
+	LanguageJFlex
+	// LanguageJison represents the Jison programming language.
+	LanguageJison
+	// LanguageJisonLex represents the JisonLex programming language.
+	LanguageJisonLex
+	// LanguageJolie represents the Jolie programming language.
+	LanguageJolie
 	// LanguageJSGF represents the JSGF programming language.
 	LanguageJSGF
 	// LanguageJSON represents the JSON programming language.
 	LanguageJSON
+	// LanguageJSON5 represents the JSON5 programming language.
+	LanguageJSON5
+	// LanguageJSONiq represents the JSONiq programming language.
+	LanguageJSONiq
 	// LanguageJSONLD represents the JSON-LD programming language.
 	LanguageJSONLD
+	// LanguageJsonnet represents the Jsonnet programming language.
+	LanguageJsonnet
+	// LanguageJSONWithComments represents the JSONWithComments programming language.
+	LanguageJSONWithComments
 	// LanguageJSP represents the Java Server Page programming language.
 	LanguageJSP
 	// LanguageJSX represents the JSX programming language.
@@ -651,6 +671,8 @@ const (
 	LanguageJuliaConsole
 	// LanguageJungle represents the Jungle programming language.
 	LanguageJungle
+	// LanguageJupyterNotebook represents the JupyterNotebook programming language.
+	LanguageJupyterNotebook
 	// LanguageJuttle represents the Juttle console programming language.
 	LanguageJuttle
 	// LanguageKal represents the Kal console programming language.
@@ -1673,16 +1695,27 @@ const (
 	languageJadeStr                        = "Jade"
 	languageJasminStr                      = "Jasmin"
 	languageJavaStr                        = "Java"
+	languageJavaPropertiesStr              = "Java Properties"
 	languageJavaScriptStr                  = "JavaScript"
+	languageJavaScriptERBStr               = "JavaScript+ERB"
 	languageJCLStr                         = "JCL"
+	languageJFlexStr                       = "JFlex"
+	languageJisonStr                       = "Jison"
+	languageJisonLexStr                    = "Jison Lex"
+	languageJolieStr                       = "Jolie"
 	languageJSGFStr                        = "JSGF"
 	languageJSONStr                        = "JSON"
-	languageJSONLDStr                      = "JSON-LD"
+	languageJSON5Str                       = "JSON5"
+	languageJSONiqStr                      = "JSONiq"
+	languageJSONLDStr                      = "JSONLD"
+	languageJsonnetStr                     = "Jsonnet"
+	languageJSONWithCommentsStr            = "JSON with Comments"
 	languageJSPStr                         = "Java Server Page"
 	languageJSXStr                         = "JSX"
 	languageJuliaStr                       = "Julia"
 	languageJuliaConsoleStr                = "Julia console"
 	languageJungleStr                      = "Jungle"
+	languageJupyterNotebookStr             = "Jupyter Notebook"
 	languageJuttleStr                      = "Juttle"
 	languageKalStr                         = "Kal"
 	languageKconfigStr                     = "Kconfig"
@@ -2697,16 +2730,36 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageJasmin, true
 	case normalizeString(languageJavaStr):
 		return LanguageJava, true
+	case normalizeString(languageJavaPropertiesStr):
+		return LanguageJavaProperties, true
 	case normalizeString(languageJavaScriptStr):
 		return LanguageJavaScript, true
+	case normalizeString(languageJavaScriptERBStr):
+		return LanguageJavaScriptERB, true
 	case normalizeString(languageJCLStr):
 		return LanguageJCL, true
+	case normalizeString(languageJFlexStr):
+		return LanguageJFlex, true
+	case normalizeString(languageJisonStr):
+		return LanguageJison, true
+	case normalizeString(languageJisonLexStr):
+		return LanguageJisonLex, true
+	case normalizeString(languageJolieStr):
+		return LanguageJolie, true
 	case normalizeString(languageJSGFStr):
 		return LanguageJSGF, true
 	case normalizeString(languageJSONStr):
 		return LanguageJSON, true
+	case normalizeString(languageJSON5Str):
+		return LanguageJSON5, true
+	case normalizeString(languageJSONiqStr):
+		return LanguageJSONiq, true
 	case normalizeString(languageJSONLDStr):
 		return LanguageJSONLD, true
+	case normalizeString(languageJsonnetStr):
+		return LanguageJsonnet, true
+	case normalizeString(languageJSONWithCommentsStr):
+		return LanguageJSONWithComments, true
 	case normalizeString(languageJSPStr):
 		return LanguageJSP, true
 	case normalizeString(languageJSXStr):
@@ -2717,6 +2770,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageJuliaConsole, true
 	case normalizeString(languageJungleStr):
 		return LanguageJungle, true
+	case normalizeString(languageJupyterNotebookStr):
+		return LanguageJupyterNotebook, true
 	case normalizeString(languageJuttleStr):
 		return LanguageJuttle, true
 	case normalizeString(languageKalStr):
@@ -4145,16 +4200,36 @@ func (l Language) String() string {
 		return languageJasminStr
 	case LanguageJava:
 		return languageJavaStr
+	case LanguageJavaProperties:
+		return languageJavaPropertiesStr
 	case LanguageJavaScript:
 		return languageJavaScriptStr
+	case LanguageJavaScriptERB:
+		return languageJavaScriptERBStr
 	case LanguageJCL:
 		return languageJCLStr
+	case LanguageJFlex:
+		return languageJFlexStr
+	case LanguageJison:
+		return languageJisonStr
+	case LanguageJisonLex:
+		return languageJisonLexStr
+	case LanguageJolie:
+		return languageJolieStr
 	case LanguageJSGF:
 		return languageJSGFStr
 	case LanguageJSON:
 		return languageJSONStr
+	case LanguageJSON5:
+		return languageJSON5Str
+	case LanguageJSONiq:
+		return languageJSONiqStr
 	case LanguageJSONLD:
 		return languageJSONLDStr
+	case LanguageJsonnet:
+		return languageJsonnetStr
+	case LanguageJSONWithComments:
+		return languageJSONWithCommentsStr
 	case LanguageJSP:
 		return languageJSPStr
 	case LanguageJSX:
@@ -4165,6 +4240,8 @@ func (l Language) String() string {
 		return languageJuliaConsoleStr
 	case LanguageJungle:
 		return languageJungleStr
+	case LanguageJupyterNotebook:
+		return languageJupyterNotebookStr
 	case LanguageJuttle:
 		return languageJuttleStr
 	case LanguageKal:
