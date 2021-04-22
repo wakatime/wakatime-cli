@@ -7,6 +7,7 @@ import (
 	"github.com/wakatime/wakatime-cli/cmd/legacy/configread"
 	"github.com/wakatime/wakatime-cli/cmd/legacy/configwrite"
 	"github.com/wakatime/wakatime-cli/cmd/legacy/heartbeat"
+	"github.com/wakatime/wakatime-cli/cmd/legacy/logfile"
 	"github.com/wakatime/wakatime-cli/cmd/legacy/today"
 	"github.com/wakatime/wakatime-cli/cmd/legacy/todaygoal"
 	"github.com/wakatime/wakatime-cli/pkg/config"
@@ -16,7 +17,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-// Run executes legacy commands following the interface of the old python implementation of the WakaTime script.
+// Run executes legacy commands following the interface of the old Python implementation of the WakaTime.
 func Run(v *viper.Viper) {
 	if err := config.ReadInConfig(v, config.FilePath); err != nil {
 		log.LogEntry.Errorf("failed to load configuration file: %s", err)
@@ -29,8 +30,13 @@ func Run(v *viper.Viper) {
 		os.Exit(exitcode.ErrDefault)
 	}
 
-	log.SetOutput(v)
-	log.SetVerbose(v)
+	logfileParams, err := logfile.LoadParams(v)
+	if err != nil {
+		log.LogEntry.Fatalf("failed to load log params: %s", err)
+	}
+
+	log.SetOutput(logfileParams.File)
+	log.SetVerbose(logfileParams.Verbose)
 
 	if v.GetBool("version") {
 		log.LogEntry.Debugln("command: version")

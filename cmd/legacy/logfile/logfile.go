@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 
 	"github.com/mitchellh/go-homedir"
-	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
 	"github.com/wakatime/wakatime-cli/pkg/vipertools"
 )
@@ -15,22 +14,8 @@ const defaultFile = ".wakatime.log"
 
 // Params contains log file parameters.
 type Params struct {
-	File string
-}
-
-// Set define output log to a file.
-func Set(v *viper.Viper) {
-	params, err := LoadParams(v)
-	if err != nil {
-		jww.WARN.Printf("error loading log file params: %s", err)
-	}
-
-	f, err := os.OpenFile(params.File, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
-	if err != nil {
-		jww.WARN.Printf("error opening log file: %s", err)
-	}
-
-	jww.SetStdoutOutput(f)
+	File    string
+	Verbose bool
 }
 
 // LoadParams loads needed data from the configuration file.
@@ -69,7 +54,13 @@ func LoadParams(v *viper.Viper) (Params, error) {
 		}
 	}
 
+	var debug bool
+	if b := v.GetBool("settings.debug"); v.IsSet("settings.debug") {
+		debug = b
+	}
+
 	return Params{
-		File: filepath.Join(home, defaultFile),
+		File:    filepath.Join(home, defaultFile),
+		Verbose: v.GetBool("verbose") || debug,
 	}, nil
 }
