@@ -26,3 +26,5 @@ require (
 replace github.com/alecthomas/chroma => github.com/wakatime/chroma v0.8.2-wakatime.3
 
 replace github.com/spf13/viper => github.com/wakatime/viper v1.7.1-0.20210127133619-3adac62bd70f
+
+replace github.com/matishsiao/goInfo => github.com/wakatime/goInfo v0.1.0-wakatime.2
