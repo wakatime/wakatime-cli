@@ -697,8 +697,12 @@ const (
 	LanguageKotlin
 	// LanguageKRL represent the KRL programming language.
 	LanguageKRL
+	// LanguageLabVIEW represents the LabVIEW programming language.
+	LanguageLabVIEW
 	// LanguageLaravelTemplate represents the Laravel Template programming language.
 	LanguageLaravelTemplate
+	// LanguageLark represents the Lark programming language.
+	LanguageLark
 	// LanguageLasso represents the Lasso programming language.
 	LanguageLasso
 	// LanguageLaTeX represents the LaTeX programming language.
@@ -709,16 +713,26 @@ const (
 	LanguageLean
 	// LanguageLess represents the Less programming language.
 	LanguageLess
+	// LanguageLex represents the Lex programming language.
+	LanguageLex
+	// LanguageLFE represents the LFE programming language.
+	LanguageLFE
 	// LanguageLighttpd represents the Lighttpd configuration file programming language.
 	LanguageLighttpd
+	// LanguageLilyPond represents the LilyPond programming language.
+	LanguageLilyPond
 	// LanguageLimbo represents the Limbo configuration file programming language.
 	LanguageLimbo
 	// LanguageLinkerScript represents the LinkerScript programming language.
 	LanguageLinkerScript
+	// LanguageLinuxKernelModule represents the LinuxKernelModule programming language.
+	LanguageLinuxKernelModule
 	// LanguageLiquid represents the Liquid programming language.
 	LanguageLiquid
 	// LanguageLiterateAgda represents the Literate Agda programming language.
 	LanguageLiterateAgda
+	// LanguageLiterateCoffeeScript represents the LiterateCoffeeScript programming language.
+	LanguageLiterateCoffeeScript
 	// LanguageLiterateCryptol represents the Literate Cryptol programming language.
 	LanguageLiterateCryptol
 	// LanguageLiterateHaskell represents the Literate Haskell programming language.
@@ -739,8 +753,16 @@ const (
 	LanguageLogFile
 	// LanguageLogtalk represents the Logtalk programming language.
 	LanguageLogtalk
+	// LanguageLOLCODE represents the LOLCODE programming language.
+	LanguageLOLCODE
+	// LanguageLookML represents the LookML programming language.
+	LanguageLookML
+	// LanguageLoomScript represents the LoomScript programming language.
+	LanguageLoomScript
 	// LanguageLSL represents the LSL programming language.
 	LanguageLSL
+	// LanguageLTspiceSymbol represents the LTspiceSymbol programming language.
+	LanguageLTspiceSymbol
 	// LanguageLua represents the Lua programming language.
 	LanguageLua
 	// LanguageMakefile represents the Makefile programming language.
@@ -1740,17 +1762,24 @@ const (
 	languageKokaStr                        = "Koka"
 	languageKotlinStr                      = "Kotlin"
 	languageKRLStr                         = "KRL"
+	languageLabVIEWStr                     = "LabVIEW"
 	languageLaravelTemplateStr             = "Laravel Template"
+	languageLarkStr                        = "Lark"
 	languageLassoStr                       = "Lasso"
 	languageLaTeXStr                       = "LaTeX"
 	languageLatteStr                       = "Latte"
 	languageLeanStr                        = "Lean"
 	languageLessStr                        = "LESS"
+	languageLexStr                         = "Lex"
+	languageLFEStr                         = "LFE"
 	languageLighttpdStr                    = "Lighttpd configuration file"
+	languageLilyPondStr                    = "LilyPond"
 	languageLimboStr                       = "Limbo"
 	languageLinkerScriptStr                = "Linker Script"
+	languageLinuxKernelModuleStr           = "Linux Kernel Module"
 	languageLiquidStr                      = "Liquid"
 	languageLiterateAgdaStr                = "Literate Agda"
+	languageLiterateCoffeeScriptStr        = "Literate CoffeeScript"
 	languageLiterateCryptolStr             = "Literate Cryptol"
 	languageLiterateHaskellStr             = "Literate Haskell"
 	languageLiterateIdrisStr               = "Literate Idris"
@@ -1761,7 +1790,11 @@ const (
 	languageLogosStr                       = "Logos"
 	languageLogFileStr                     = "Log File"
 	languageLogtalkStr                     = "Logtalk"
+	languageLOLCODEStr                     = "LOLCODE"
+	languageLookMLStr                      = "LookML"
+	languageLoomScriptStr                  = "LoomScript"
 	languageLSLStr                         = "LSL"
+	languageLTspiceSymbolStr               = "LTspice Symbol"
 	languageLuaStr                         = "Lua"
 	languageMakefileStr                    = "Makefile"
 	languageMakoStr                        = "Mako"
@@ -2814,8 +2847,12 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageKotlin, true
 	case normalizeString(languageKRLStr):
 		return LanguageKRL, true
+	case normalizeString(languageLabVIEWStr):
+		return LanguageLabVIEW, true
 	case normalizeString(languageLaravelTemplateStr):
 		return LanguageLaravelTemplate, true
+	case normalizeString(languageLarkStr):
+		return LanguageLark, true
 	case normalizeString(languageLassoStr):
 		return LanguageLasso, true
 	case normalizeString(languageLaTeXStr):
@@ -2826,16 +2863,26 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageLean, true
 	case normalizeString(languageLessStr):
 		return LanguageLess, true
+	case normalizeString(languageLexStr):
+		return LanguageLex, true
+	case normalizeString(languageLFEStr):
+		return LanguageLFE, true
 	case normalizeString(languageLighttpdStr):
 		return LanguageLighttpd, true
+	case normalizeString(languageLilyPondStr):
+		return LanguageLilyPond, true
 	case normalizeString(languageLimboStr):
 		return LanguageLimbo, true
 	case normalizeString(languageLinkerScriptStr):
 		return LanguageLinkerScript, true
+	case normalizeString(languageLinuxKernelModuleStr):
+		return LanguageLinuxKernelModule, true
 	case normalizeString(languageLiquidStr):
 		return LanguageLiquid, true
 	case normalizeString(languageLiterateAgdaStr):
 		return LanguageLiterateAgda, true
+	case normalizeString(languageLiterateCoffeeScriptStr):
+		return LanguageLiterateCoffeeScript, true
 	case normalizeString(languageLiterateCryptolStr):
 		return LanguageLiterateCryptol, true
 	case normalizeString(languageLiterateHaskellStr):
@@ -2856,8 +2903,16 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageLogFile, true
 	case normalizeString(languageLogtalkStr):
 		return LanguageLogtalk, true
+	case normalizeString(languageLOLCODEStr):
+		return LanguageLOLCODE, true
+	case normalizeString(languageLookMLStr):
+		return LanguageLookML, true
+	case normalizeString(languageLoomScriptStr):
+		return LanguageLoomScript, true
 	case normalizeString(languageLSLStr):
 		return LanguageLSL, true
+	case normalizeString(languageLTspiceSymbolStr):
+		return LanguageLTspiceSymbol, true
 	case normalizeString(languageLuaStr):
 		return LanguageLua, true
 	case normalizeString(languageMakefileStr):
@@ -4296,8 +4351,12 @@ func (l Language) String() string {
 		return languageKotlinStr
 	case LanguageKRL:
 		return languageKRLStr
+	case LanguageLabVIEW:
+		return languageLabVIEWStr
 	case LanguageLaravelTemplate:
 		return languageLaravelTemplateStr
+	case LanguageLark:
+		return languageLarkStr
 	case LanguageLasso:
 		return languageLassoStr
 	case LanguageLaTeX:
@@ -4308,16 +4367,26 @@ func (l Language) String() string {
 		return languageLeanStr
 	case LanguageLess:
 		return languageLessStr
+	case LanguageLex:
+		return languageLexStr
+	case LanguageLFE:
+		return languageLFEStr
 	case LanguageLighttpd:
 		return languageLighttpdStr
+	case LanguageLilyPond:
+		return languageLilyPondStr
 	case LanguageLimbo:
 		return languageLimboStr
 	case LanguageLinkerScript:
 		return languageLinkerScriptStr
+	case LanguageLinuxKernelModule:
+		return languageLinuxKernelModuleStr
 	case LanguageLiquid:
 		return languageLiquidStr
 	case LanguageLiterateAgda:
 		return languageLiterateAgdaStr
+	case LanguageLiterateCoffeeScript:
+		return languageLiterateCoffeeScriptStr
 	case LanguageLiterateCryptol:
 		return languageLiterateCryptolStr
 	case LanguageLiterateHaskell:
@@ -4338,8 +4407,16 @@ func (l Language) String() string {
 		return languageLogFileStr
 	case LanguageLogtalk:
 		return languageLogtalkStr
+	case LanguageLOLCODE:
+		return languageLOLCODEStr
+	case LanguageLookML:
+		return languageLookMLStr
+	case LanguageLoomScript:
+		return languageLoomScriptStr
 	case LanguageLSL:
 		return languageLSLStr
+	case LanguageLTspiceSymbol:
+		return languageLTspiceSymbolStr
 	case LanguageLua:
 		return languageLuaStr
 	case LanguageMakefile:
