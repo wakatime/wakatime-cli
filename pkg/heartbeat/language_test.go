@@ -3,7 +3,6 @@ package heartbeat_test
 import (
 	"encoding/json"
 	"fmt"
-	"regexp"
 	"testing"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
@@ -865,16 +864,6 @@ func TestParseLanguageFromChroma_AllLexersSupported(t *testing.T) {
 	for _, lexer := range lexers.Registry.Lexers {
 		config := lexer.Config()
 
-		// TODO: This condition restricts testing to lexers starting with particular
-		// letters. Currently only lexers are tested, which start with letters, where
-		// language support was already ensured. Has to be adjusted to cover more letters,
-		// once another issue is resolved. Has to be removed finally, once all issues
-		// are done.
-		rgx := regexp.MustCompile(`^[a-zA-Z]`)
-		if !rgx.MatchString(config.Name) {
-			continue
-		}
-
 		parsed, ok := heartbeat.ParseLanguageFromChroma(config.Name)
 
 		assert.True(t, ok, fmt.Sprintf("Failed parsing language from lexer %q", config.Name))
@@ -964,16 +953,6 @@ func TestLanguage_StringChroma(t *testing.T) {
 func TestLanguage_StringChroma_AllLexersSupported(t *testing.T) {
 	for _, lexer := range lexers.Registry.Lexers {
 		config := lexer.Config()
-
-		// TODO: This condition restricts testing to lexers starting with particular
-		// letters. Currently only lexers are testsed, which start with letters, where
-		// language support was already ensured. Has to be adjust to cover more letters,
-		// once another issue is resolved. Has to be removed finally, once all issues
-		// are done.
-		rgx := regexp.MustCompile(`^[a-zA-Z]`)
-		if !rgx.MatchString(config.Name) {
-			continue
-		}
 
 		// Aliases, which match in addition to standard spelling of languages are ignored here.
 		switch config.Name {
