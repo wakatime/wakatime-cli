@@ -675,16 +675,28 @@ const (
 	LanguageJupyterNotebook
 	// LanguageJuttle represents the Juttle console programming language.
 	LanguageJuttle
+	// LanguageKaitai represent the Kaitai programming language.
+	LanguageKaitai
 	// LanguageKal represents the Kal console programming language.
 	LanguageKal
 	// LanguageKconfig represents the Kconfig console programming language.
 	LanguageKconfig
 	// LanguageKernelLog represents the Kernel log console programming language.
 	LanguageKernelLog
+	// LanguageKiCadLayout represent the KiCadLayout programming language.
+	LanguageKiCadLayout
+	// LanguageKiCadLegacyLayout represent the KiCadLegacyLayout programming language.
+	LanguageKiCadLegacyLayout
+	// LanguageKiCadSchematic represent the KiCadSchematic programming language.
+	LanguageKiCadSchematic
+	// LanguageKit represent the Kit programming language.
+	LanguageKit
 	// LanguageKoka represents the Koka console programming language.
 	LanguageKoka
 	// LanguageKotlin represents the Kotlin programming language.
 	LanguageKotlin
+	// LanguageKRL represent the KRL programming language.
+	LanguageKRL
 	// LanguageLaravelTemplate represents the Laravel Template programming language.
 	LanguageLaravelTemplate
 	// LanguageLasso represents the Lasso programming language.
@@ -1717,11 +1729,17 @@ const (
 	languageJungleStr                      = "Jungle"
 	languageJupyterNotebookStr             = "Jupyter Notebook"
 	languageJuttleStr                      = "Juttle"
+	languageKaitaiStr                      = "Kaitai Struct"
 	languageKalStr                         = "Kal"
 	languageKconfigStr                     = "Kconfig"
 	languageKernelLogStr                   = "Kernel log"
+	languageKiCadLayoutStr                 = "KiCad Layout"
+	languageKiCadLegacyLayoutStr           = "KiCad Legacy Layout"
+	languageKiCadSchematicStr              = "KiCad Schematic"
+	languageKitStr                         = "Kit"
 	languageKokaStr                        = "Koka"
 	languageKotlinStr                      = "Kotlin"
+	languageKRLStr                         = "KRL"
 	languageLaravelTemplateStr             = "Laravel Template"
 	languageLassoStr                       = "Lasso"
 	languageLaTeXStr                       = "LaTeX"
@@ -2774,16 +2792,28 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageJupyterNotebook, true
 	case normalizeString(languageJuttleStr):
 		return LanguageJuttle, true
+	case normalizeString(languageKaitaiStr):
+		return LanguageKaitai, true
 	case normalizeString(languageKalStr):
 		return LanguageKal, true
 	case normalizeString(languageKconfigStr):
 		return LanguageKconfig, true
 	case normalizeString(languageKernelLogStr):
 		return LanguageKernelLog, true
+	case normalizeString(languageKiCadLayoutStr):
+		return LanguageKiCadLayout, true
+	case normalizeString(languageKiCadLegacyLayoutStr):
+		return LanguageKiCadLegacyLayout, true
+	case normalizeString(languageKiCadSchematicStr):
+		return LanguageKiCadSchematic, true
+	case normalizeString(languageKitStr):
+		return LanguageKit, true
 	case normalizeString(languageKokaStr):
 		return LanguageKoka, true
 	case normalizeString(languageKotlinStr):
 		return LanguageKotlin, true
+	case normalizeString(languageKRLStr):
+		return LanguageKRL, true
 	case normalizeString(languageLaravelTemplateStr):
 		return LanguageLaravelTemplate, true
 	case normalizeString(languageLassoStr):
@@ -4244,16 +4274,28 @@ func (l Language) String() string {
 		return languageJupyterNotebookStr
 	case LanguageJuttle:
 		return languageJuttleStr
+	case LanguageKaitai:
+		return languageKaitaiStr
 	case LanguageKal:
 		return languageKalStr
 	case LanguageKconfig:
 		return languageKconfigStr
 	case LanguageKernelLog:
 		return languageKernelLogStr
+	case LanguageKiCadLayout:
+		return languageKiCadLayoutStr
+	case LanguageKiCadLegacyLayout:
+		return languageKiCadLegacyLayoutStr
+	case LanguageKiCadSchematic:
+		return languageKiCadSchematicStr
+	case LanguageKit:
+		return languageKitStr
 	case LanguageKoka:
 		return languageKokaStr
 	case LanguageKotlin:
 		return languageKotlinStr
+	case LanguageKRL:
+		return languageKRLStr
 	case LanguageLaravelTemplate:
 		return languageLaravelTemplateStr
 	case LanguageLasso:
