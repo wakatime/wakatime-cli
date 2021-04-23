@@ -738,6 +738,7 @@ func languageTestsAliases() map[string]heartbeat.Language {
 		"Golang":        heartbeat.LanguageGo,
 		"JSON-LD":       heartbeat.LanguageJSONLD,
 		"SaltStack":     heartbeat.LanguageSalt,
+		"Transact-SQL":  heartbeat.LanguageTransactSQL,
 	}
 }
 

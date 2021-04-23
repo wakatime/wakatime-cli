@@ -2090,7 +2090,8 @@ const (
 	languageTOMLStr                        = "TOML"
 	languageTradingViewStr                 = "TradingView"
 	languageTrafficScriptStr               = "TrafficScript"
-	languageTransactSQLStr                 = "TSQL"
+	languageTransactSQLStr                 = "Transact-SQL"
+	languageTSQLStr                        = "TSQL"
 	languageTreetopStr                     = "Treetop"
 	languageTSVStr                         = "TSV"
 	languageTSXStr                         = "TSX"
@@ -3487,6 +3488,8 @@ func ParseLanguage(s string) (Language, bool) {
 	case normalizeString(languageTrafficScriptStr):
 		return LanguageTrafficScript, true
 	case normalizeString(languageTransactSQLStr):
+		return LanguageTransactSQL, true
+	case normalizeString(languageTSQLStr):
 		return LanguageTransactSQL, true
 	case normalizeString(languageTreetopStr):
 		return LanguageTreetop, true
@@ -5025,7 +5028,7 @@ func (l Language) String() string {
 	case LanguageTrafficScript:
 		return languageTrafficScriptStr
 	case LanguageTransactSQL:
-		return languageTransactSQLStr
+		return languageTSQLStr
 	case LanguageTreetop:
 		return languageTreetopStr
 	case LanguageTSV:
