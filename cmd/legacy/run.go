@@ -35,7 +35,12 @@ func Run(v *viper.Viper) {
 		log.LogEntry.Fatalf("failed to load log params: %s", err)
 	}
 
-	log.SetOutput(logfileParams.File)
+	f, err := os.OpenFile(logfileParams.File, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0666)
+	if err != nil {
+		log.LogEntry.Fatalf("error opening log file: %s", err)
+	}
+
+	log.SetOutput(f)
 	log.SetVerbose(logfileParams.Verbose)
 
 	if v.GetBool("version") {
