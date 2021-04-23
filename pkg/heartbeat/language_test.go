@@ -3,7 +3,6 @@ package heartbeat_test
 import (
 	"encoding/json"
 	"fmt"
-	"regexp"
 	"testing"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
@@ -324,33 +323,57 @@ func languageTests() map[string]heartbeat.Language {
 		"JAGS":                             heartbeat.LanguageJAGS,
 		"Jasmin":                           heartbeat.LanguageJasmin,
 		"Java":                             heartbeat.LanguageJava,
+		"Java Properties":                  heartbeat.LanguageJavaProperties,
+		"Java Server Page":                 heartbeat.LanguageJSP,
 		"JavaScript":                       heartbeat.LanguageJavaScript,
+		"JavaScript+ERB":                   heartbeat.LanguageJavaScriptERB,
 		"JCL":                              heartbeat.LanguageJCL,
+		"JFlex":                            heartbeat.LanguageJFlex,
+		"Jison":                            heartbeat.LanguageJison,
+		"Jison Lex":                        heartbeat.LanguageJisonLex,
+		"Jolie":                            heartbeat.LanguageJolie,
 		"JSGF":                             heartbeat.LanguageJSGF,
 		"JSON":                             heartbeat.LanguageJSON,
-		"JSON-LD":                          heartbeat.LanguageJSONLD,
-		"Java Server Page":                 heartbeat.LanguageJSP,
+		"JSON5":                            heartbeat.LanguageJSON5,
+		"JSONiq":                           heartbeat.LanguageJSONiq,
+		"JSONLD":                           heartbeat.LanguageJSONLD,
+		"Jsonnet":                          heartbeat.LanguageJsonnet,
+		"JSON with Comments":               heartbeat.LanguageJSONWithComments,
 		"JSX":                              heartbeat.LanguageJSX,
 		"Julia":                            heartbeat.LanguageJulia,
 		"Julia console":                    heartbeat.LanguageJuliaConsole,
 		"Jungle":                           heartbeat.LanguageJungle,
+		"Jupyter Notebook":                 heartbeat.LanguageJupyterNotebook,
 		"Juttle":                           heartbeat.LanguageJuttle,
+		"Kaitai Struct":                    heartbeat.LanguageKaitai,
 		"Kal":                              heartbeat.LanguageKal,
 		"Kconfig":                          heartbeat.LanguageKconfig,
 		"Kernel log":                       heartbeat.LanguageKernelLog,
+		"KiCad Layout":                     heartbeat.LanguageKiCadLayout,
+		"KiCad Legacy Layout":              heartbeat.LanguageKiCadLegacyLayout,
+		"KiCad Schematic":                  heartbeat.LanguageKiCadSchematic,
+		"Kit":                              heartbeat.LanguageKit,
 		"Koka":                             heartbeat.LanguageKoka,
 		"Kotlin":                           heartbeat.LanguageKotlin,
+		"KRL":                              heartbeat.LanguageKRL,
+		"LabVIEW":                          heartbeat.LanguageLabVIEW,
 		"Laravel Template":                 heartbeat.LanguageLaravelTemplate,
+		"Lark":                             heartbeat.LanguageLark,
 		"Lasso":                            heartbeat.LanguageLasso,
 		"LaTeX":                            heartbeat.LanguageLaTeX,
 		"Latte":                            heartbeat.LanguageLatte,
 		"Lean":                             heartbeat.LanguageLean,
 		"LESS":                             heartbeat.LanguageLess,
+		"Lex":                              heartbeat.LanguageLex,
+		"LFE":                              heartbeat.LanguageLFE,
 		"Lighttpd configuration file":      heartbeat.LanguageLighttpd,
+		"LilyPond":                         heartbeat.LanguageLilyPond,
 		"Limbo":                            heartbeat.LanguageLimbo,
 		"Linker Script":                    heartbeat.LanguageLinkerScript,
+		"Linux Kernel Module":              heartbeat.LanguageLinuxKernelModule,
 		"Liquid":                           heartbeat.LanguageLiquid,
 		"Literate Agda":                    heartbeat.LanguageLiterateAgda,
+		"Literate CoffeeScript":            heartbeat.LanguageLiterateCoffeeScript,
 		"Literate Cryptol":                 heartbeat.LanguageLiterateCryptol,
 		"Literate Haskell":                 heartbeat.LanguageLiterateHaskell,
 		"Literate Idris":                   heartbeat.LanguageLiterateIdris,
@@ -361,7 +384,11 @@ func languageTests() map[string]heartbeat.Language {
 		"Log File":                         heartbeat.LanguageLogFile,
 		"Logos":                            heartbeat.LanguageLogos,
 		"Logtalk":                          heartbeat.LanguageLogtalk,
+		"LOLCODE":                          heartbeat.LanguageLOLCODE,
+		"LookML":                           heartbeat.LanguageLookML,
+		"LoomScript":                       heartbeat.LanguageLoomScript,
 		"LSL":                              heartbeat.LanguageLSL,
+		"LTspice Symbol":                   heartbeat.LanguageLTspiceSymbol,
 		"Lua":                              heartbeat.LanguageLua,
 		"Makefile":                         heartbeat.LanguageMakefile,
 		"Mako":                             heartbeat.LanguageMako,
@@ -691,6 +718,7 @@ func languageTestsAliases() map[string]heartbeat.Language {
 	return map[string]heartbeat.Language{
 		"Apache Config": heartbeat.LanguageApacheConfig,
 		"Golang":        heartbeat.LanguageGo,
+		"JSON-LD":       heartbeat.LanguageJSONLD,
 	}
 }
 
@@ -836,16 +864,6 @@ func TestParseLanguageFromChroma_AllLexersSupported(t *testing.T) {
 	for _, lexer := range lexers.Registry.Lexers {
 		config := lexer.Config()
 
-		// TODO: This condition restricts testing to lexers starting with particular
-		// letters. Currently only lexers are tested, which start with letters, where
-		// language support was already ensured. Has to be adjusted to cover more letters,
-		// once another issue is resolved. Has to be removed finally, once all issues
-		// are done.
-		rgx := regexp.MustCompile(`^[a-zA-Z]`)
-		if !rgx.MatchString(config.Name) {
-			continue
-		}
-
 		parsed, ok := heartbeat.ParseLanguageFromChroma(config.Name)
 
 		assert.True(t, ok, fmt.Sprintf("Failed parsing language from lexer %q", config.Name))
@@ -935,16 +953,6 @@ func TestLanguage_StringChroma(t *testing.T) {
 func TestLanguage_StringChroma_AllLexersSupported(t *testing.T) {
 	for _, lexer := range lexers.Registry.Lexers {
 		config := lexer.Config()
-
-		// TODO: This condition restricts testing to lexers starting with particular
-		// letters. Currently only lexers are testsed, which start with letters, where
-		// language support was already ensured. Has to be adjust to cover more letters,
-		// once another issue is resolved. Has to be removed finally, once all issues
-		// are done.
-		rgx := regexp.MustCompile(`^[a-zA-Z]`)
-		if !rgx.MatchString(config.Name) {
-			continue
-		}
 
 		// Aliases, which match in addition to standard spelling of languages are ignored here.
 		switch config.Name {
