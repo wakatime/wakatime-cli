@@ -698,7 +698,7 @@ func TestDetect_ChromaTopLanguagesRetrofit(t *testing.T) {
 				"path/to/file.swg",
 				"path/to/file.i",
 			},
-			Expected: heartbeat.LanguageSwig,
+			Expected: heartbeat.LanguageSWIG,
 		},
 		"system verilog": {
 			Filepaths: []string{
