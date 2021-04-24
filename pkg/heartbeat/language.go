@@ -1089,6 +1089,8 @@ const (
 	LanguageRust
 	// LanguageS represents the S programming language.
 	LanguageS
+	// LanguageSage represents the LanguageSage programming language.
+	LanguageSage
 	// LanguageSalt represents the Salt programming language.
 	LanguageSalt
 	// LanguageSARL represents the SARL programming language.
@@ -1111,12 +1113,18 @@ const (
 	LanguageScribe
 	// LanguageSCSS represents the SCSS programming language.
 	LanguageSCSS
+	// LanguageSed represents the LanguageSed programming language.
+	LanguageSed
 	// LanguageSelf represents the Self programming language.
 	LanguageSelf
 	// LanguageSGML represents the SGML programming language.
 	LanguageSGML
+	// LanguageShaderLab represents the LanguageShaderLab programming language.
+	LanguageShaderLab
 	// LanguageShell represents the Shell programming language.
 	LanguageShell
+	// LanguageShellSession represents the LanguageShellSession programming language.
+	LanguageShellSession
 	// LanguageShen represents the Shen programming language.
 	LanguageShen
 	// LanguageShExC represents the ShExC programming language.
@@ -1135,6 +1143,8 @@ const (
 	LanguageSKILL
 	// LanguageSlash represents the Slash programming language.
 	LanguageSlash
+	// LanguageSlice represents the LanguageSlice programming language.
+	LanguageSlice
 	// LanguageSlim represents the Slim programming language.
 	LanguageSlim
 	// LanguageSlurm represents the Slurm programming language.
@@ -1151,6 +1161,10 @@ const (
 	LanguageSMIME
 	// LanguageSML represents the Standard ML programming language.
 	LanguageSML
+	// LanguageSmPL represents the LanguageSmPL programming language.
+	LanguageSmPL
+	// LanguageSMT represents the LanguageSMT programming language.
+	LanguageSMT
 	// LanguageSnobol represents the Snobol programming language.
 	LanguageSnobol
 	// LanguageSnowball represents the Snowball programming language.
@@ -1161,32 +1175,54 @@ const (
 	LanguageSourcePawn
 	// LanguageSPARQL represents the SPARQL programming language.
 	LanguageSPARQL
+	// LanguageSplineFontDatabase represents the LanguageSplineFontDatabase programming language.
+	LanguageSplineFontDatabase
 	// LanguageSourcesList represents the Debian Sourcelist programming language.
 	LanguageSourcesList
+	// LanguageSQF represents the LanguageSQF programming language.
+	LanguageSQF
 	// LanguageSQL represents the SQL programming language.
 	LanguageSQL
+	// LanguageSQLPL represents the LanguageSQLPL programming language.
+	LanguageSQLPL
 	// LanguageSqlite3con represents the sqlite3con programming language.
 	LanguageSqlite3con
 	// LanguageSquidConf represents the SquidConf programming language.
 	LanguageSquidConf
+	// LanguageSquirrel represents the LanguageSquirrel programming language.
+	LanguageSquirrel
+	// LanguageSRecodeTemplate represents the LanguageSRecodeTemplate programming language.
+	LanguageSRecodeTemplate
+	// LanguageSSHConfig represents the LanguageSSHConfig programming language.
+	LanguageSSHConfig
 	// LanguageSSP represents the Scalate Server Page programming language.
 	LanguageSSP
 	// LanguageStan represents the Stan programming language.
 	LanguageStan
+	// LanguageStarlark represents the LanguageStarlark programming language.
+	LanguageStarlark
 	// LanguageStata represents the Stata programming language.
 	LanguageStata
+	// LanguageSTON represents the LanguageSTON programming language.
+	LanguageSTON
+	// LanguageSVG represents the LanguageSVG programming language.
+	LanguageSVG
 	// LanguageStylus represents the Stylus programming language.
 	LanguageStylus
 	// LanguageSublimeTextConfig represents the SublimeTextConfig programming language.
 	LanguageSublimeTextConfig
+	// LanguageSubRipText represents the LanguageSubRipText programming language.
+	LanguageSubRipText
+	// LanguageSugarSS represents the LanguageSugarSS programming language.
+	LanguageSugarSS
 	// LanguageSuperCollider represents the SuperCollider programming language.
 	LanguageSuperCollider
 	// LanguageSvelte represents the Svelte programming language.
 	LanguageSvelte
 	// LanguageSwift represents the Swift programming language.
 	LanguageSwift
-	// LanguageSwig represents the Swig programming language.
-	LanguageSwig
+	// LanguageSWIG represents the SWIG programming language.
+	LanguageSWIG
 	// LanguageSYSTEMD represents the SYSTEMD programming language.
 	LanguageSYSTEMD
 	// LanguageSystemVerilog represents the SystemVerilog programming language.
@@ -1958,7 +1994,9 @@ const (
 	languageRUNOFFStr                      = "RUNOFF"
 	languageRustStr                        = "Rust"
 	languageSStr                           = "S"
+	languageSageStr                        = "Sage"
 	languageSaltStr                        = "Salt"
+	languageSaltStackStr                   = "SaltStack"
 	languageSARLStr                        = "SARL"
 	languageSASStr                         = "SAS"
 	languageSassStr                        = "Sass"
@@ -1969,9 +2007,12 @@ const (
 	languageScilabStr                      = "Scilab"
 	languageScribeStr                      = "Scribe"
 	languageSCSSStr                        = "SCSS"
+	languageSedStr                         = "sed"
 	languageSelfStr                        = "Self"
 	languageSGMLStr                        = "SGML"
+	languageShaderLabStr                   = "ShaderLab"
 	languageShellStr                       = "Shell"
+	languageShellSessionStr                = "ShellSession"
 	languageShenStr                        = "Shen"
 	languageShExCStr                       = "ShExC"
 	languageSieveStr                       = "Sieve"
@@ -1981,6 +2022,7 @@ const (
 	languageSketchDrawingStr               = "Sketch Drawing"
 	languageSKILLStr                       = "SKILL"
 	languageSlashStr                       = "Slash"
+	languageSliceStr                       = "Slice"
 	languageSlimStr                        = "Slim"
 	languageSlurmStr                       = "Slurm"
 	languageSmaliStr                       = "Smali"
@@ -1989,25 +2031,38 @@ const (
 	languageSmartyStr                      = "Smarty"
 	languageSMIMEStr                       = "S/MIME"
 	languageSMLStr                         = "Standard ML"
+	languageSmPLStr                        = "SmPL"
+	languageSMTStr                         = "SMT"
 	languageSnobolStr                      = "Snobol"
 	languageSnowballStr                    = "Snowball"
 	languageSolidityStr                    = "Solidity"
 	languageSourcePawnStr                  = "SourcePawn"
 	languageSourcesListStr                 = "Debian Sourcelist"
 	languageSPARQLStr                      = "SPARQL"
+	languageSplineFontDatabaseStr          = "Spline Font Database"
+	languageSQFStr                         = "SQF"
 	languageSQLStr                         = "SQL"
+	languageSQLPLStr                       = "SQLPL"
 	languageSqlite3conStr                  = "sqlite3con"
 	languageSquidConfStr                   = "SquidConf"
+	languageSquirrelStr                    = "Squirrel"
+	languageSRecodeTemplateStr             = "SRecode Template"
+	languageSSHConfigStr                   = "SSH Config"
 	languageSSPStr                         = "Scalate Server Page"
 	languageStanStr                        = "Stan"
+	languageStarlarkStr                    = "Starlark"
 	languageStataStr                       = "Stata"
+	languageSTONStr                        = "STON"
 	languageStylusStr                      = "Stylus"
 	languageSublimeTextConfigStr           = "Sublime Text Config"
+	languageSubRipTextStr                  = "SubRip Text"
+	languageSugarSSStr                     = "SugarSS"
 	languageSuperColliderStr               = "SuperCollider"
 	languageSvelteStr                      = "Svelte"
+	languageSVGStr                         = "SVG"
 	languageSwiftStr                       = "Swift"
-	languageSwigStr                        = "Swig"
-	languageSYSTEMDStr                     = "SYSTEMD"
+	languageSWIGStr                        = "SWIG"
+	languageSYSTEMDStr                     = "systemd"
 	languageSystemVerilogStr               = "SystemVerilog"
 	languageTableGenStr                    = "TableGen"
 	languageTADS3Str                       = "TADS 3"
@@ -2035,7 +2090,8 @@ const (
 	languageTOMLStr                        = "TOML"
 	languageTradingViewStr                 = "TradingView"
 	languageTrafficScriptStr               = "TrafficScript"
-	languageTransactSQLStr                 = "TSQL"
+	languageTransactSQLStr                 = "Transact-SQL"
+	languageTSQLStr                        = "TSQL"
 	languageTreetopStr                     = "Treetop"
 	languageTSVStr                         = "TSV"
 	languageTSXStr                         = "TSX"
@@ -2144,7 +2200,7 @@ const (
 	languageReasonMLChromaStr           = "ReasonML"
 	languageREBOLChromaStr              = "REBOL"
 	languageRexxChromaStr               = "Rexx"
-	languageSWIGChromaStr               = "SWIG"
+	languageSYSTEMDChromaStr            = "SYSTEMD"
 	languageSystemVerilogChromaStr      = "systemverilog"
 	languageTextChromaStr               = "plaintext"
 	languageTransactSQLChromaStr        = "Transact-SQL"
@@ -3239,7 +3295,11 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageRust, true
 	case normalizeString(languageSStr):
 		return LanguageS, true
+	case normalizeString(languageSageStr):
+		return LanguageSage, true
 	case normalizeString(languageSaltStr):
+		return LanguageSalt, true
+	case normalizeString(languageSaltStackStr):
 		return LanguageSalt, true
 	case normalizeString(languageSARLStr):
 		return LanguageSARL, true
@@ -3261,12 +3321,18 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageScribe, true
 	case normalizeString(languageSCSSStr):
 		return LanguageSCSS, true
+	case normalizeString(languageSedStr):
+		return LanguageSed, true
 	case normalizeString(languageSelfStr):
 		return LanguageSelf, true
 	case normalizeString(languageSGMLStr):
 		return LanguageSGML, true
+	case normalizeString(languageShaderLabStr):
+		return LanguageShaderLab, true
 	case normalizeString(languageShellStr):
 		return LanguageShell, true
+	case normalizeString(languageShellSessionStr):
+		return LanguageShellSession, true
 	case normalizeString(languageShenStr):
 		return LanguageShen, true
 	case normalizeString(languageShExCStr):
@@ -3285,6 +3351,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageSKILL, true
 	case normalizeString(languageSlashStr):
 		return LanguageSlash, true
+	case normalizeString(languageSliceStr):
+		return LanguageSlice, true
 	case normalizeString(languageSlimStr):
 		return LanguageSlim, true
 	case normalizeString(languageSlurmStr):
@@ -3301,6 +3369,10 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageSMIME, true
 	case normalizeString(languageSMLStr):
 		return LanguageSML, true
+	case normalizeString(languageSmPLStr):
+		return LanguageSmPL, true
+	case normalizeString(languageSMTStr):
+		return LanguageSMT, true
 	case normalizeString(languageSnobolStr):
 		return LanguageSnobol, true
 	case normalizeString(languageSnowballStr):
@@ -3313,30 +3385,52 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageSourcesList, true
 	case normalizeString(languageSPARQLStr):
 		return LanguageSPARQL, true
+	case normalizeString(languageSplineFontDatabaseStr):
+		return LanguageSplineFontDatabase, true
+	case normalizeString(languageSQFStr):
+		return LanguageSQF, true
 	case normalizeString(languageSQLStr):
 		return LanguageSQL, true
+	case normalizeString(languageSQLPLStr):
+		return LanguageSQLPL, true
 	case normalizeString(languageSqlite3conStr):
 		return LanguageSqlite3con, true
 	case normalizeString(languageSquidConfStr):
 		return LanguageSquidConf, true
+	case normalizeString(languageSquirrelStr):
+		return LanguageSquirrel, true
+	case normalizeString(languageSRecodeTemplateStr):
+		return LanguageSRecodeTemplate, true
+	case normalizeString(languageSSHConfigStr):
+		return LanguageSSHConfig, true
 	case normalizeString(languageSSPStr):
 		return LanguageSSP, true
 	case normalizeString(languageStanStr):
 		return LanguageStan, true
+	case normalizeString(languageStarlarkStr):
+		return LanguageStarlark, true
 	case normalizeString(languageStataStr):
 		return LanguageStata, true
+	case normalizeString(languageSTONStr):
+		return LanguageSTON, true
 	case normalizeString(languageStylusStr):
 		return LanguageStylus, true
 	case normalizeString(languageSublimeTextConfigStr):
 		return LanguageSublimeTextConfig, true
+	case normalizeString(languageSubRipTextStr):
+		return LanguageSubRipText, true
+	case normalizeString(languageSugarSSStr):
+		return LanguageSugarSS, true
 	case normalizeString(languageSuperColliderStr):
 		return LanguageSuperCollider, true
 	case normalizeString(languageSvelteStr):
 		return LanguageSvelte, true
+	case normalizeString(languageSVGStr):
+		return LanguageSVG, true
 	case normalizeString(languageSwiftStr):
 		return LanguageSwift, true
-	case normalizeString(languageSwigStr):
-		return LanguageSwig, true
+	case normalizeString(languageSWIGStr):
+		return LanguageSWIG, true
 	case normalizeString(languageSYSTEMDStr):
 		return LanguageSYSTEMD, true
 	case normalizeString(languageSystemVerilogStr):
@@ -3394,6 +3488,8 @@ func ParseLanguage(s string) (Language, bool) {
 	case normalizeString(languageTrafficScriptStr):
 		return LanguageTrafficScript, true
 	case normalizeString(languageTransactSQLStr):
+		return LanguageTransactSQL, true
+	case normalizeString(languageTSQLStr):
 		return LanguageTransactSQL, true
 	case normalizeString(languageTreetopStr):
 		return LanguageTreetop, true
@@ -3615,8 +3711,6 @@ func ParseLanguageFromChroma(lexerName string) (Language, bool) {
 		return LanguageReasonML, true
 	case normalizeString(languageREBOLChromaStr):
 		return LanguageREBOL, true
-	case normalizeString(languageSWIGChromaStr):
-		return LanguageSwig, true
 	case normalizeString(languageSystemVerilogChromaStr):
 		return LanguageSystemVerilog, true
 	case normalizeString(languageTextChromaStr):
@@ -4743,6 +4837,8 @@ func (l Language) String() string {
 		return languageRustStr
 	case LanguageS:
 		return languageSStr
+	case LanguageSage:
+		return languageSageStr
 	case LanguageSalt:
 		return languageSaltStr
 	case LanguageSARL:
@@ -4765,12 +4861,18 @@ func (l Language) String() string {
 		return languageScribeStr
 	case LanguageSCSS:
 		return languageSCSSStr
+	case LanguageSed:
+		return languageSedStr
 	case LanguageSelf:
 		return languageSelfStr
 	case LanguageSGML:
 		return languageSGMLStr
+	case LanguageShaderLab:
+		return languageShaderLabStr
 	case LanguageShell:
 		return languageShellStr
+	case LanguageShellSession:
+		return languageShellSessionStr
 	case LanguageShen:
 		return languageShenStr
 	case LanguageShExC:
@@ -4789,6 +4891,8 @@ func (l Language) String() string {
 		return languageSKILLStr
 	case LanguageSlash:
 		return languageSlashStr
+	case LanguageSlice:
+		return languageSliceStr
 	case LanguageSlim:
 		return languageSlimStr
 	case LanguageSlurm:
@@ -4805,6 +4909,10 @@ func (l Language) String() string {
 		return languageSMIMEStr
 	case LanguageSML:
 		return languageSMLStr
+	case LanguageSmPL:
+		return languageSmPLStr
+	case LanguageSMT:
+		return languageSMTStr
 	case LanguageSnobol:
 		return languageSnobolStr
 	case LanguageSnowball:
@@ -4817,30 +4925,52 @@ func (l Language) String() string {
 		return languageSourcesListStr
 	case LanguageSPARQL:
 		return languageSPARQLStr
+	case LanguageSplineFontDatabase:
+		return languageSplineFontDatabaseStr
+	case LanguageSQF:
+		return languageSQFStr
 	case LanguageSQL:
 		return languageSQLStr
+	case LanguageSQLPL:
+		return languageSQLPLStr
 	case LanguageSqlite3con:
 		return languageSqlite3conStr
 	case LanguageSquidConf:
 		return languageSquidConfStr
+	case LanguageSquirrel:
+		return languageSquirrelStr
+	case LanguageSRecodeTemplate:
+		return languageSRecodeTemplateStr
+	case LanguageSSHConfig:
+		return languageSSHConfigStr
 	case LanguageSSP:
 		return languageSSPStr
 	case LanguageStan:
 		return languageStanStr
+	case LanguageStarlark:
+		return languageStarlarkStr
 	case LanguageStata:
 		return languageStataStr
+	case LanguageSTON:
+		return languageSTONStr
 	case LanguageStylus:
 		return languageStylusStr
 	case LanguageSublimeTextConfig:
 		return languageSublimeTextConfigStr
+	case LanguageSubRipText:
+		return languageSubRipTextStr
+	case LanguageSugarSS:
+		return languageSugarSSStr
 	case LanguageSuperCollider:
 		return languageSuperColliderStr
 	case LanguageSvelte:
 		return languageSvelteStr
+	case LanguageSVG:
+		return languageSVGStr
 	case LanguageSwift:
 		return languageSwiftStr
-	case LanguageSwig:
-		return languageSwigStr
+	case LanguageSWIG:
+		return languageSWIGStr
 	case LanguageSYSTEMD:
 		return languageSYSTEMDStr
 	case LanguageSystemVerilog:
@@ -4898,7 +5028,7 @@ func (l Language) String() string {
 	case LanguageTrafficScript:
 		return languageTrafficScriptStr
 	case LanguageTransactSQL:
-		return languageTransactSQLStr
+		return languageTSQLStr
 	case LanguageTreetop:
 		return languageTreetopStr
 	case LanguageTSV:
@@ -5113,8 +5243,8 @@ func (l Language) StringChroma() string {
 		return languageRexxChromaStr
 	case LanguageS:
 		return languageRChromaStr
-	case LanguageSwig:
-		return languageSWIGChromaStr
+	case LanguageSYSTEMD:
+		return languageSYSTEMDChromaStr
 	case LanguageSystemVerilog:
 		return languageSystemVerilogChromaStr
 	case LanguageText:
