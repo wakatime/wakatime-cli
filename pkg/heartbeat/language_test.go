@@ -70,7 +70,6 @@ func languageTests() map[string]heartbeat.Language {
 		"Bash Session":                     heartbeat.LanguageBashSession,
 		"Batchfile":                        heartbeat.LanguageBatchfile,
 		"Basic":                            heartbeat.LanguageBasic,
-		"Batch Script":                     heartbeat.LanguageBatchScript,
 		"BBC Basic":                        heartbeat.LanguageBBCBasic,
 		"BBCode":                           heartbeat.LanguageBBCode,
 		"BC":                               heartbeat.LanguageBC,
@@ -735,6 +734,7 @@ func languageTests() map[string]heartbeat.Language {
 func languageTestsAliases() map[string]heartbeat.Language {
 	return map[string]heartbeat.Language{
 		"ApacheConf":   heartbeat.LanguageApacheConfig,
+		"Batch Script": heartbeat.LanguageBatchfile,
 		"Golang":       heartbeat.LanguageGo,
 		"JSON-LD":      heartbeat.LanguageJSONLD,
 		"SaltStack":    heartbeat.LanguageSalt,

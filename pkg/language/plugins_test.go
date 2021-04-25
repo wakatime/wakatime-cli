@@ -25,7 +25,7 @@ func TestParse(t *testing.T) {
 		"awk":              heartbeat.LanguageAwk,
 		"bash":             heartbeat.LanguageBash,
 		"basic":            heartbeat.LanguageBasic,
-		"bat":              heartbeat.LanguageBatchScript,
+		"bat":              heartbeat.LanguageBatchfile,
 		"bibtex":           heartbeat.LanguageBibTeX,
 		"brightscript":     heartbeat.LanguageBrightScript,
 		"c":                heartbeat.LanguageC,

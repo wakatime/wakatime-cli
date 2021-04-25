@@ -123,8 +123,6 @@ const (
 	LanguageBasic
 	// LanguageBatchfile represents the Batchfile programming language.
 	LanguageBatchfile
-	// LanguageBatchScript represents the BatchScript programming language.
-	LanguageBatchScript
 	// LanguageBBCBasic represents the BBCBasic programming language.
 	LanguageBBCBasic
 	// LanguageBBCode represents the BBCode programming language.
@@ -2331,7 +2329,7 @@ func ParseLanguage(s string) (Language, bool) {
 	case normalizeString(languageBatchfileStr):
 		return LanguageBatchfile, true
 	case normalizeString(languageBatchScriptStr):
-		return LanguageBatchScript, true
+		return LanguageBatchfile, true
 	case normalizeString(languageBBCBasicStr):
 		return LanguageBBCBasic, true
 	case normalizeString(languageBBCodeStr):
@@ -3872,8 +3870,6 @@ func (l Language) String() string {
 		return languageBasicStr
 	case LanguageBatchfile:
 		return languageBatchfileStr
-	case LanguageBatchScript:
-		return languageBatchScriptStr
 	case LanguageBBCBasic:
 		return languageBBCBasicStr
 	case LanguageBBCode:

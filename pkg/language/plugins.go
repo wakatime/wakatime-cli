@@ -44,7 +44,7 @@ func parseDefault(language string) (heartbeat.Language, bool) {
 	case strings.ToLower("basic"):
 		return heartbeat.ParseLanguage("basic")
 	case strings.ToLower("bat"):
-		return heartbeat.ParseLanguage("batchscript")
+		return heartbeat.ParseLanguage("batchfile")
 	case strings.ToLower("bibtex"):
 		return heartbeat.ParseLanguage("bibtex")
 	case strings.ToLower("brightscript"):

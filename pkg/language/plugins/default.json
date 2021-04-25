@@ -11,7 +11,7 @@
   "awk": "awk",
   "bash": "bash",
   "basic": "basic",
-  "bat": "batchscript",
+  "bat": "batchfile",
   "bibtex": "bibtex",
   "brightscript": "brightscript",
   "c": "c",
