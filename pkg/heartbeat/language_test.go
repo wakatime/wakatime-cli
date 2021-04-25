@@ -734,11 +734,11 @@ func languageTests() map[string]heartbeat.Language {
 
 func languageTestsAliases() map[string]heartbeat.Language {
 	return map[string]heartbeat.Language{
-		"Apache Config": heartbeat.LanguageApacheConfig,
-		"Golang":        heartbeat.LanguageGo,
-		"JSON-LD":       heartbeat.LanguageJSONLD,
-		"SaltStack":     heartbeat.LanguageSalt,
-		"Transact-SQL":  heartbeat.LanguageTransactSQL,
+		"ApacheConf":   heartbeat.LanguageApacheConfig,
+		"Golang":       heartbeat.LanguageGo,
+		"JSON-LD":      heartbeat.LanguageJSONLD,
+		"SaltStack":    heartbeat.LanguageSalt,
+		"Transact-SQL": heartbeat.LanguageTransactSQL,
 	}
 }
 
