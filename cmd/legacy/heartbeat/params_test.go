@@ -22,32 +22,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestLoadParams_AlternateLanguage(t *testing.T) {
-	v := viper.New()
-	v.Set("entity", "/path/to/file")
-	v.Set("key", "00000000-0000-4000-8000-000000000000")
-	v.Set("alternate-language", "Go")
-
-	params, err := cmd.LoadParams(v)
-	require.NoError(t, err)
-
-	assert.NotNil(t, params.Language)
-	assert.Equal(t, heartbeat.LanguageGo, *params.Language)
-}
-
-func TestLoadParams_AlternateLanguage_DefaultPluginSpecificSpelling(t *testing.T) {
-	v := viper.New()
-	v.Set("entity", "/path/to/file")
-	v.Set("key", "00000000-0000-4000-8000-000000000000")
-	v.Set("language", "ld-script")
-
-	params, err := cmd.LoadParams(v)
-	require.NoError(t, err)
-
-	assert.NotNil(t, params.Language)
-	assert.Equal(t, heartbeat.LanguageLinkerScript, *params.Language)
-}
-
 func TestLoadParams_AlternateProject(t *testing.T) {
 	v := viper.New()
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
@@ -381,9 +355,9 @@ func TestLoadParams_ExtraHeartbeats(t *testing.T) {
 	assert.Len(t, params.ExtraHeartbeats, 2)
 
 	assert.NotNil(t, params.ExtraHeartbeats[0].Language)
-	assert.Equal(t, heartbeat.LanguageGo, *params.ExtraHeartbeats[0].Language)
+	assert.Equal(t, heartbeat.LanguageGo.String(), *params.ExtraHeartbeats[0].Language)
 	assert.NotNil(t, params.ExtraHeartbeats[1].Language)
-	assert.Equal(t, heartbeat.LanguagePython, *params.ExtraHeartbeats[1].Language)
+	assert.Equal(t, heartbeat.LanguagePython.String(), *params.ExtraHeartbeats[1].Language)
 
 	assert.Equal(t, []heartbeat.Heartbeat{
 		{
@@ -451,9 +425,9 @@ func TestLoadParams_ExtraHeartbeats_WithStringValues(t *testing.T) {
 	assert.Len(t, params.ExtraHeartbeats, 2)
 
 	assert.NotNil(t, params.ExtraHeartbeats[0].Language)
-	assert.Equal(t, heartbeat.LanguageGo, *params.ExtraHeartbeats[0].Language)
+	assert.Equal(t, heartbeat.LanguageGo.String(), *params.ExtraHeartbeats[0].Language)
 	assert.NotNil(t, params.ExtraHeartbeats[1].Language)
-	assert.Equal(t, heartbeat.LanguagePython, *params.ExtraHeartbeats[1].Language)
+	assert.Equal(t, heartbeat.LanguagePython.String(), *params.ExtraHeartbeats[1].Language)
 
 	assert.Equal(t, []heartbeat.Heartbeat{
 		{
@@ -564,34 +538,20 @@ func TestLoadParams_Language(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.NotNil(t, params.Language)
-	assert.Equal(t, heartbeat.LanguageGo, *params.Language)
+	assert.Equal(t, heartbeat.LanguageGo.String(), *params.Language)
 }
 
-func TestLoadParams_Language_TakesPrecedence(t *testing.T) {
+func TestLoadParams_LanguageAlternate(t *testing.T) {
 	v := viper.New()
 	v.Set("entity", "/path/to/file")
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
-	v.Set("alternate-language", "Python")
-	v.Set("language", "Go")
+	v.Set("alternate-language", "Go")
 
 	params, err := cmd.LoadParams(v)
 	require.NoError(t, err)
 
-	assert.NotNil(t, params.Language)
-	assert.Equal(t, heartbeat.LanguageGo, *params.Language)
-}
-
-func TestLoadParams_Language_DefaultPluginSpecificSpelling(t *testing.T) {
-	v := viper.New()
-	v.Set("entity", "/path/to/file")
-	v.Set("key", "00000000-0000-4000-8000-000000000000")
-	v.Set("language", "ld-script")
-
-	params, err := cmd.LoadParams(v)
-	require.NoError(t, err)
-
-	assert.NotNil(t, params.Language)
-	assert.Equal(t, heartbeat.LanguageLinkerScript, *params.Language)
+	assert.Equal(t, heartbeat.LanguageGo.String(), params.LanguageAlternate)
+	assert.Nil(t, params.Language)
 }
 
 func TestLoadParams_LineNumber(t *testing.T) {

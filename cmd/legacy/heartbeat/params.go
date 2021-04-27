@@ -13,7 +13,6 @@ import (
 
 	"github.com/wakatime/wakatime-cli/cmd/legacy/legacyparams"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
-	"github.com/wakatime/wakatime-cli/pkg/language"
 	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/project"
 	"github.com/wakatime/wakatime-cli/pkg/regex"
@@ -31,25 +30,26 @@ var (
 
 // Params contains heartbeat command parameters.
 type Params struct {
-	Category        heartbeat.Category
-	CursorPosition  *int
-	Entity          string
-	EntityType      heartbeat.EntityType
-	ExtraHeartbeats []heartbeat.Heartbeat
-	Hostname        string
-	IsWrite         *bool
-	Language        *heartbeat.Language
-	LineNumber      *int
-	LinesInFile     *int
-	LocalFile       string
-	OfflineDisabled bool
-	OfflineSyncMax  int
-	Time            float64
-	API             legacyparams.APIParams
-	Filter          FilterParams
-	Network         legacyparams.NetworkParams
-	Project         ProjectParams
-	Sanitize        SanitizeParams
+	Category          heartbeat.Category
+	CursorPosition    *int
+	Entity            string
+	EntityType        heartbeat.EntityType
+	ExtraHeartbeats   []heartbeat.Heartbeat
+	Hostname          string
+	IsWrite           *bool
+	Language          *string
+	LanguageAlternate string
+	LineNumber        *int
+	LinesInFile       *int
+	LocalFile         string
+	OfflineDisabled   bool
+	OfflineSyncMax    int
+	Time              float64
+	API               legacyparams.APIParams
+	Filter            FilterParams
+	Network           legacyparams.NetworkParams
+	Project           ProjectParams
+	Sanitize          SanitizeParams
 }
 
 func (p Params) String() string {
@@ -65,7 +65,7 @@ func (p Params) String() string {
 
 	var language string
 	if p.Language != nil {
-		language = p.Language.String()
+		language = *p.Language
 	}
 
 	var lineNumber string
@@ -258,11 +258,6 @@ func LoadParams(v *viper.Viper) (Params, error) {
 		timeSecs = float64(time.Now().UnixNano()) / 1000000000
 	}
 
-	language, err := loadLanguage(v, apiParams.Plugin)
-	if err != nil {
-		return Params{}, fmt.Errorf("failed to parse language params: %s", err)
-	}
-
 	projectParams, err := loadProjectParams(v)
 	if err != nil {
 		return Params{}, fmt.Errorf("failed to parse project params: %s", err)
@@ -273,26 +268,32 @@ func LoadParams(v *viper.Viper) (Params, error) {
 		return Params{}, fmt.Errorf("failed to load sanitize params: %s", err)
 	}
 
+	var language *string
+	if l := v.GetString("language"); l != "" {
+		language = &l
+	}
+
 	return Params{
-		Category:        category,
-		CursorPosition:  cursorPosition,
-		Entity:          entity,
-		ExtraHeartbeats: extraHeartbeats,
-		EntityType:      entityType,
-		Hostname:        hostname,
-		IsWrite:         isWrite,
-		Language:        language,
-		LineNumber:      lineNumber,
-		LinesInFile:     linesInFile,
-		LocalFile:       v.GetString("local-file"),
-		OfflineDisabled: offlineDisabled,
-		OfflineSyncMax:  offlineSyncMax,
-		Time:            timeSecs,
-		API:             apiParams,
-		Filter:          loadFilterParams(v),
-		Network:         networkParams,
-		Project:         projectParams,
-		Sanitize:        sanitizeParams,
+		Category:          category,
+		CursorPosition:    cursorPosition,
+		Entity:            entity,
+		ExtraHeartbeats:   extraHeartbeats,
+		EntityType:        entityType,
+		Hostname:          hostname,
+		IsWrite:           isWrite,
+		Language:          language,
+		LanguageAlternate: v.GetString("alternate-language"),
+		LineNumber:        lineNumber,
+		LinesInFile:       linesInFile,
+		LocalFile:         v.GetString("local-file"),
+		OfflineDisabled:   offlineDisabled,
+		OfflineSyncMax:    offlineSyncMax,
+		Time:              timeSecs,
+		API:               apiParams,
+		Filter:            loadFilterParams(v),
+		Network:           networkParams,
+		Project:           projectParams,
+		Sanitize:          sanitizeParams,
 	}, nil
 }
 
@@ -324,20 +325,20 @@ func readExtraHeartbeats() ([]heartbeat.Heartbeat, error) {
 
 func parseExtraHeartbeat(data string) ([]heartbeat.Heartbeat, error) {
 	var incoming []struct {
-		Category         heartbeat.Category  `json:"category"`
-		CursorPosition   *int                `json:"cursorpos"`
-		Entity           string              `json:"entity"`
-		EntityType       string              `json:"entity_type"`
-		Type             string              `json:"type"`
-		IsWrite          *bool               `json:"is_write"`
-		Language         *heartbeat.Language `json:"language"`
-		LineNumber       *int                `json:"lineno"`
-		Lines            *int                `json:"lines"`
-		Project          string              `json:"project"`
-		ProjectAlternate string              `json:"alternate_project"`
-		Time             float64             `json:"time"`
-		Timestamp        float64             `json:"timestamp"`
-		UserAgent        string              `json:"user_agent"`
+		Category         heartbeat.Category `json:"category"`
+		CursorPosition   *int               `json:"cursorpos"`
+		Entity           string             `json:"entity"`
+		EntityType       string             `json:"entity_type"`
+		Type             string             `json:"type"`
+		IsWrite          *bool              `json:"is_write"`
+		Language         *string            `json:"language"`
+		LineNumber       *int               `json:"lineno"`
+		Lines            *int               `json:"lines"`
+		Project          string             `json:"project"`
+		ProjectAlternate string             `json:"alternate_project"`
+		Time             float64            `json:"time"`
+		Timestamp        float64            `json:"timestamp"`
+		UserAgent        string             `json:"user_agent"`
 	}
 
 	err := json.Unmarshal([]byte(data), &incoming)
@@ -391,20 +392,20 @@ func parseExtraHeartbeat(data string) ([]heartbeat.Heartbeat, error) {
 
 func parseExtraHeartbeatWithStringValues(data string) ([]heartbeat.Heartbeat, error) {
 	var incoming []struct {
-		Category         heartbeat.Category  `json:"category"`
-		CursorPosition   *string             `json:"cursorpos"`
-		Entity           string              `json:"entity"`
-		EntityType       string              `json:"entity_type"`
-		Type             string              `json:"type"`
-		IsWrite          *bool               `json:"is_write"`
-		Language         *heartbeat.Language `json:"language"`
-		LineNumber       *string             `json:"lineno"`
-		Lines            *string             `json:"lines"`
-		Time             float64             `json:"time"`
-		Project          string              `json:"project"`
-		ProjectAlternate string              `json:"alternate_project"`
-		Timestamp        float64             `json:"timestamp"`
-		UserAgent        string              `json:"user_agent"`
+		Category         heartbeat.Category `json:"category"`
+		CursorPosition   *string            `json:"cursorpos"`
+		Entity           string             `json:"entity"`
+		EntityType       string             `json:"entity_type"`
+		Type             string             `json:"type"`
+		IsWrite          *bool              `json:"is_write"`
+		Language         *string            `json:"language"`
+		LineNumber       *string            `json:"lineno"`
+		Lines            *string            `json:"lines"`
+		Time             float64            `json:"time"`
+		Project          string             `json:"project"`
+		ProjectAlternate string             `json:"alternate_project"`
+		Timestamp        float64            `json:"timestamp"`
+		UserAgent        string             `json:"user_agent"`
 	}
 
 	err := json.Unmarshal([]byte(data), &incoming)
@@ -487,33 +488,6 @@ func parseExtraHeartbeatWithStringValues(data string) ([]heartbeat.Heartbeat, er
 	}
 
 	return heartbeats, nil
-}
-
-func loadLanguage(v *viper.Viper, plugin string) (*heartbeat.Language, error) {
-	if v == nil {
-		return nil, errors.New("viper instance unset")
-	}
-
-	editor, err := parseEditorFromPlugin(plugin)
-	if err != nil {
-		log.Warnf("could not parse editor from plugin. %s", err)
-
-		editor = plugin
-	}
-
-	lang, _ := vipertools.FirstNonEmptyString(v, "language", "alternate-language")
-
-	if lang == "" {
-		return nil, nil
-	}
-
-	parsed, ok := language.Parse(lang, editor)
-	if !ok {
-		log.Warnf("failed to parse language from string %q. editor: %q", lang, editor)
-		return nil, nil
-	}
-
-	return &parsed, nil
 }
 
 func parseEditorFromPlugin(plugin string) (string, error) {

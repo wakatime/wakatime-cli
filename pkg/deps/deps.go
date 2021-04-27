@@ -50,7 +50,12 @@ func WithDetection(c Config) heartbeat.HandleOption {
 					filepath = h.LocalFile
 				}
 
-				dependencies, err := Detect(filepath, *h.Language)
+				language, ok := heartbeat.ParseLanguage(*h.Language)
+				if !ok {
+					log.Warnf("error parsing language of string %q", *h.Language)
+				}
+
+				dependencies, err := Detect(filepath, language)
 				if err != nil {
 					log.Warnf("error detecting dependencies of heartbeat: %s", err)
 					continue

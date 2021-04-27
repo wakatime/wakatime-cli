@@ -23,7 +23,7 @@ type Heartbeat struct {
 	Entity           string     `json:"entity"`
 	EntityType       EntityType `json:"type"`
 	IsWrite          *bool      `json:"is_write"`
-	Language         *Language  `json:"language"`
+	Language         *string    `json:"language"`
 	LineNumber       *int       `json:"lineno"`
 	Lines            *int       `json:"lines"`
 	LocalFile        string     `json:"-"`
@@ -42,7 +42,7 @@ func New(
 	entity string,
 	entityType EntityType,
 	isWrite *bool,
-	language *Language,
+	language *string,
 	lineNumber *int,
 	localFile string,
 	projectAlternate string,
@@ -198,10 +198,5 @@ func Int(v int) *int {
 
 // String returns a pointer to the string value passed in.
 func String(v string) *string {
-	return &v
-}
-
-// LanguagePtr returns a pointer to the Language value passed in.
-func LanguagePtr(v Language) *Language {
 	return &v
 }

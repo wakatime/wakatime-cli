@@ -35,7 +35,12 @@ func WithDetection() heartbeat.HandleOption {
 					continue
 				}
 
-				hh[n].Language = &language
+				if language == heartbeat.LanguageUnknown {
+					continue
+				}
+
+				l := language.String()
+				hh[n].Language = &l
 			}
 
 			return next(hh)
