@@ -25,6 +25,7 @@ func TestNew(t *testing.T) {
 		heartbeat.FileType,
 		heartbeat.Bool(true),
 		heartbeat.String("Go"),
+		"Golang",
 		heartbeat.Int(42),
 		"/path/to/file",
 		"billing",
@@ -36,18 +37,19 @@ func TestNew(t *testing.T) {
 	assert.True(t, strings.HasSuffix(h.Entity, "testdata/main.go"))
 
 	assert.Equal(t, heartbeat.Heartbeat{
-		Category:         heartbeat.CodingCategory,
-		CursorPosition:   heartbeat.Int(12),
-		EntityType:       heartbeat.FileType,
-		IsWrite:          heartbeat.Bool(true),
-		Language:         heartbeat.String("Go"),
-		LineNumber:       heartbeat.Int(42),
-		LocalFile:        "/path/to/file",
-		ProjectAlternate: "billing",
-		ProjectOverride:  "pci",
-		Time:             1592868313.541149,
-		UserAgent:        "wakatime/13.0.7",
-		Entity:           h.Entity,
+		Category:          heartbeat.CodingCategory,
+		CursorPosition:    heartbeat.Int(12),
+		EntityType:        heartbeat.FileType,
+		IsWrite:           heartbeat.Bool(true),
+		Language:          heartbeat.String("Go"),
+		LanguageAlternate: "Golang",
+		LineNumber:        heartbeat.Int(42),
+		LocalFile:         "/path/to/file",
+		ProjectAlternate:  "billing",
+		ProjectOverride:   "pci",
+		Time:              1592868313.541149,
+		UserAgent:         "wakatime/13.0.7",
+		Entity:            h.Entity,
 	}, h)
 }
 
@@ -63,6 +65,7 @@ func TestNew_Windows(t *testing.T) {
 		heartbeat.FileType,
 		heartbeat.Bool(true),
 		heartbeat.String("Go"),
+		"Golang",
 		heartbeat.Int(42),
 		"/path/to/file",
 		"billing",
@@ -74,18 +77,19 @@ func TestNew_Windows(t *testing.T) {
 	assert.True(t, strings.HasSuffix(h.Entity, "testdata/main.go"))
 
 	assert.Equal(t, heartbeat.Heartbeat{
-		Category:         heartbeat.CodingCategory,
-		CursorPosition:   heartbeat.Int(12),
-		EntityType:       heartbeat.FileType,
-		IsWrite:          heartbeat.Bool(true),
-		Language:         heartbeat.String("Go"),
-		LineNumber:       heartbeat.Int(42),
-		LocalFile:        "/path/to/file",
-		ProjectAlternate: "billing",
-		ProjectOverride:  "pci",
-		Time:             1592868313.541149,
-		UserAgent:        "wakatime/13.0.7",
-		Entity:           h.Entity,
+		Category:          heartbeat.CodingCategory,
+		CursorPosition:    heartbeat.Int(12),
+		EntityType:        heartbeat.FileType,
+		IsWrite:           heartbeat.Bool(true),
+		Language:          heartbeat.String("Go"),
+		LanguageAlternate: "Golang",
+		LineNumber:        heartbeat.Int(42),
+		LocalFile:         "/path/to/file",
+		ProjectAlternate:  "billing",
+		ProjectOverride:   "pci",
+		Time:              1592868313.541149,
+		UserAgent:         "wakatime/13.0.7",
+		Entity:            h.Entity,
 	}, h)
 }
 
@@ -114,19 +118,20 @@ func TestHeartbeat_ID_NilFields(t *testing.T) {
 
 func TestHeartbeat_JSON(t *testing.T) {
 	h := heartbeat.Heartbeat{
-		Branch:         heartbeat.String("heartbeat"),
-		Category:       heartbeat.CodingCategory,
-		CursorPosition: heartbeat.Int(12),
-		Dependencies:   []string{"dep1", "dep2"},
-		Entity:         "/tmp/main.go",
-		EntityType:     heartbeat.FileType,
-		IsWrite:        heartbeat.Bool(true),
-		Language:       heartbeat.String("Go"),
-		LineNumber:     heartbeat.Int(42),
-		Lines:          heartbeat.Int(100),
-		Project:        heartbeat.String("wakatime"),
-		Time:           1585598060.1,
-		UserAgent:      "wakatime/13.0.7",
+		Branch:            heartbeat.String("heartbeat"),
+		Category:          heartbeat.CodingCategory,
+		CursorPosition:    heartbeat.Int(12),
+		Dependencies:      []string{"dep1", "dep2"},
+		Entity:            "/tmp/main.go",
+		EntityType:        heartbeat.FileType,
+		IsWrite:           heartbeat.Bool(true),
+		Language:          heartbeat.String("Go"),
+		LanguageAlternate: "Golang",
+		LineNumber:        heartbeat.Int(42),
+		Lines:             heartbeat.Int(100),
+		Project:           heartbeat.String("wakatime"),
+		Time:              1585598060.1,
+		UserAgent:         "wakatime/13.0.7",
 	}
 
 	jsonEncoded, err := json.Marshal(h)

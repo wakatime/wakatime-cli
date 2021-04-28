@@ -16,22 +16,23 @@ import (
 
 // Heartbeat is a structure representing activity for a user on a some entity.
 type Heartbeat struct {
-	Branch           *string    `json:"branch"`
-	Category         Category   `json:"category"`
-	CursorPosition   *int       `json:"cursorpos"`
-	Dependencies     []string   `json:"dependencies"`
-	Entity           string     `json:"entity"`
-	EntityType       EntityType `json:"type"`
-	IsWrite          *bool      `json:"is_write"`
-	Language         *string    `json:"language"`
-	LineNumber       *int       `json:"lineno"`
-	Lines            *int       `json:"lines"`
-	LocalFile        string     `json:"-"`
-	Project          *string    `json:"project"`
-	ProjectAlternate string     `json:"-"`
-	ProjectOverride  string     `json:"-"`
-	Time             float64    `json:"time"`
-	UserAgent        string     `json:"user_agent"`
+	Branch            *string    `json:"branch"`
+	Category          Category   `json:"category"`
+	CursorPosition    *int       `json:"cursorpos"`
+	Dependencies      []string   `json:"dependencies"`
+	Entity            string     `json:"entity"`
+	EntityType        EntityType `json:"type"`
+	IsWrite           *bool      `json:"is_write"`
+	Language          *string    `json:"language"`
+	LanguageAlternate string     `json:"-"`
+	LineNumber        *int       `json:"lineno"`
+	Lines             *int       `json:"lines"`
+	LocalFile         string     `json:"-"`
+	Project           *string    `json:"project"`
+	ProjectAlternate  string     `json:"-"`
+	ProjectOverride   string     `json:"-"`
+	Time              float64    `json:"time"`
+	UserAgent         string     `json:"user_agent"`
 }
 
 // New creates a new instance of Heartbeat with formatted entity
@@ -43,6 +44,7 @@ func New(
 	entityType EntityType,
 	isWrite *bool,
 	language *string,
+	languageAlternate string,
 	lineNumber *int,
 	localFile string,
 	projectAlternate string,
@@ -81,18 +83,19 @@ func New(
 	}
 
 	return Heartbeat{
-		Category:         category,
-		CursorPosition:   cursorPosition,
-		Entity:           entity,
-		EntityType:       entityType,
-		IsWrite:          isWrite,
-		Language:         language,
-		LineNumber:       lineNumber,
-		LocalFile:        localFile,
-		ProjectAlternate: projectAlternate,
-		ProjectOverride:  projectOverride,
-		Time:             time,
-		UserAgent:        userAgent,
+		Category:          category,
+		CursorPosition:    cursorPosition,
+		Entity:            entity,
+		EntityType:        entityType,
+		IsWrite:           isWrite,
+		Language:          language,
+		LanguageAlternate: languageAlternate,
+		LineNumber:        lineNumber,
+		LocalFile:         localFile,
+		ProjectAlternate:  projectAlternate,
+		ProjectOverride:   projectOverride,
+		Time:              time,
+		UserAgent:         userAgent,
 	}
 }
 
