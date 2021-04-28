@@ -9,7 +9,6 @@ import (
 
 	"github.com/wakatime/wakatime-cli/pkg/project"
 
-	jww "github.com/spf13/jwalterweatherman"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -145,7 +144,6 @@ func findSvnBinary() (string, bool) {
 
 		err := cmd.Run()
 		if err != nil {
-			jww.ERROR.Printf("failed while calling %s --version: %s", loc, err)
 			continue
 		}
 

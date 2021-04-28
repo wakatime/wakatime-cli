@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	"github.com/alecthomas/chroma"
 	"github.com/alecthomas/chroma/lexers"
@@ -39,7 +40,6 @@ import (
 	_ "github.com/alecthomas/chroma/lexers/y"        // not used directly
 	_ "github.com/alecthomas/chroma/lexers/z"        // not used directly
 	"github.com/danwakefield/fnmatch"
-	jww "github.com/spf13/jwalterweatherman"
 )
 
 // detectChromaCustomized returns the best by filename matching lexer. Best lexer is determined
@@ -65,7 +65,7 @@ func detectChromaCustomized(filepath string) (heartbeat.Language, float32, bool)
 
 		language, ok := heartbeat.ParseLanguageFromChroma(bestLexer.Config().Name)
 		if !ok {
-			jww.WARN.Printf("failed to parse language from chroma lexer name %q", bestLexer.Config().Name)
+			log.Warnf("failed to parse language from chroma lexer name %q", bestLexer.Config().Name)
 			return heartbeat.LanguageUnknown, 0, false
 		}
 
@@ -87,7 +87,7 @@ func detectChromaCustomized(filepath string) (heartbeat.Language, float32, bool)
 
 		language, ok := heartbeat.ParseLanguageFromChroma(bestLexer.Config().Name)
 		if !ok {
-			jww.WARN.Printf("failed to parse language from chroma lexer name %q", bestLexer.Config().Name)
+			log.Warnf("failed to parse language from chroma lexer name %q", bestLexer.Config().Name)
 			return heartbeat.LanguageUnknown, 0, false
 		}
 
@@ -122,13 +122,13 @@ func selectByCustomizedPriority(filepath string, lexers chroma.PrioritisedLexers
 
 	extensions, err := loadFolderExtensions(dir)
 	if err != nil {
-		jww.WARN.Printf("failed to load folder extensions: %s", err)
+		log.Warnf("failed to load folder extensions: %s", err)
 		return lexers[0], 0
 	}
 
 	head, err := fileHead(filepath)
 	if err != nil {
-		jww.WARN.Printf("failed to load head from file %q: %s", filepath, err)
+		log.Warnf("failed to load head from file %q: %s", filepath, err)
 		return lexers[0], 0
 	}
 

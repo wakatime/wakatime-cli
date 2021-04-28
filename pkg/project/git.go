@@ -6,9 +6,9 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/regex"
 
-	jww "github.com/spf13/jwalterweatherman"
 	"github.com/yookoala/realpath"
 )
 
@@ -49,7 +49,7 @@ func (g Git) Detect() (Result, bool, error) {
 
 		branch, err := findGitBranch(filepath.Join(gitdirSubmodule, "HEAD"))
 		if err != nil {
-			jww.ERROR.Printf(
+			log.Errorf(
 				"error finding for branch name from %q: %s",
 				filepath.Join(filepath.Dir(gitdirSubmodule), "HEAD"),
 				err,
@@ -71,7 +71,7 @@ func (g Git) Detect() (Result, bool, error) {
 
 		branch, err := findGitBranch(filepath.Join(gitConfigFile, "HEAD"))
 		if err != nil {
-			jww.ERROR.Printf(
+			log.Errorf(
 				"error finding for branch name from %q: %s",
 				filepath.Join(filepath.Dir(gitConfigFile), "HEAD"),
 				err,
@@ -111,7 +111,7 @@ func (g Git) Detect() (Result, bool, error) {
 
 		branch, err := findGitBranch(filepath.Join(gitdir, "HEAD"))
 		if err != nil {
-			jww.ERROR.Printf(
+			log.Errorf(
 				"error finding for branch name from %q: %s",
 				filepath.Join(filepath.Dir(gitConfigFile), "HEAD"),
 				err,
@@ -131,7 +131,7 @@ func (g Git) Detect() (Result, bool, error) {
 
 		branch, err := findGitBranch(filepath.Join(gitdir, "HEAD"))
 		if err != nil {
-			jww.ERROR.Printf(
+			log.Errorf(
 				"error finding for branch name from %q: %s",
 				filepath.Join(filepath.Dir(gitdir), "HEAD"),
 				err,

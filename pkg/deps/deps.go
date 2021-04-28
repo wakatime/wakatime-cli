@@ -4,9 +4,8 @@ import (
 	"fmt"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/regex"
-
-	jww "github.com/spf13/jwalterweatherman"
 )
 
 // maxDependencyLength defines the maximum allowed length of a dependency.
@@ -53,7 +52,7 @@ func WithDetection(c Config) heartbeat.HandleOption {
 
 				dependencies, err := Detect(filepath, *h.Language)
 				if err != nil {
-					jww.WARN.Printf("error detecting dependencies of heartbeat: %s", err)
+					log.Warnf("error detecting dependencies of heartbeat: %s", err)
 					continue
 				}
 
@@ -107,7 +106,8 @@ func Detect(filepath string, language heartbeat.Language) ([]string, error) {
 	case heartbeat.LanguageVBNet:
 		parser = &ParserVbNet{}
 	default:
-		jww.DEBUG.Printf("No parser has been found for language %q. Using Unknown parser to detect dependencies.", language)
+		log.Debugf(
+			"No parser has been found for language %q. Using Unknown parser to detect dependencies.", language)
 
 		parser = &ParserUnknown{}
 	}

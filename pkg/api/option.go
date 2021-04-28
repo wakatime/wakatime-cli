@@ -10,10 +10,10 @@ import (
 	"time"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	"github.com/Azure/go-ntlmssp"
 	"github.com/mitchellh/go-homedir"
-	jww "github.com/spf13/jwalterweatherman"
 )
 
 // Option is a functional option for Client.
@@ -113,7 +113,7 @@ func WithNTLMRequestRetry(creds string) (Option, error) {
 		c.doFunc = func(cl *Client, req *http.Request) (*http.Response, error) {
 			resp, err := next(c, req)
 			if err != nil {
-				jww.ERROR.Printf("request to api failed with error %q. Will retry with ntlm auth", err)
+				log.Errorf("request to api failed with error %q. Will retry with ntlm auth", err)
 
 				clCopy := cl
 				withNTLM(clCopy)

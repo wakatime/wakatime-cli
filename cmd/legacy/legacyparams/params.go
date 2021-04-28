@@ -39,8 +39,8 @@ type NetworkParams struct {
 
 func (p APIParams) String() string {
 	return fmt.Sprintf(
-		"api key: %q, api url: %q, plugin: %q, timeout: %s",
-		p.Key,
+		"api key: '%s', api url: '%s', plugin: '%s', timeout: %s",
+		p.Key[:4]+"...",
 		p.URL,
 		p.Plugin,
 		p.Timeout,
@@ -49,7 +49,7 @@ func (p APIParams) String() string {
 
 func (p NetworkParams) String() string {
 	return fmt.Sprintf(
-		"disable ssl verify: %t, proxy url: %q, ssl cert filepath: %q",
+		"disable ssl verify: %t, proxy url: '%s', ssl cert filepath: '%s'",
 		p.DisableSSLVerify,
 		p.ProxyURL,
 		p.SSLCertFilepath,

@@ -7,7 +7,8 @@ import (
 	"runtime"
 	"strings"
 
-	jww "github.com/spf13/jwalterweatherman"
+	"github.com/wakatime/wakatime-cli/pkg/log"
+
 	"github.com/yookoala/realpath"
 )
 
@@ -21,7 +22,7 @@ type Subversion struct {
 func (s Subversion) Detect() (Result, bool, error) {
 	binary, ok := findSvnBinary()
 	if !ok {
-		jww.DEBUG.Printf("svn binary not found")
+		log.Debugln("svn binary not found")
 		return Result{}, false, nil
 	}
 
@@ -106,7 +107,7 @@ func findSvnBinary() (string, bool) {
 
 		err := cmd.Run()
 		if err != nil {
-			jww.DEBUG.Printf("failed while calling %s --version: %s", loc, err)
+			log.Debugf("failed while calling %s --version: %s", loc, err)
 			continue
 		}
 

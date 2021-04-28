@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
+	"github.com/wakatime/wakatime-cli/pkg/log"
 
-	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
 )
 
@@ -22,14 +22,13 @@ type Params struct {
 func Run(v *viper.Viper) {
 	output, err := Read(v)
 	if err != nil {
-		jww.ERROR.Printf("err: %s", err)
-
 		var cfrerr ErrFileRead
 		if errors.As(err, &cfrerr) {
+			log.Errorf(err.Error())
 			os.Exit(exitcode.ErrConfigFileRead)
 		}
 
-		os.Exit(exitcode.ErrDefault)
+		log.Fatalln(err)
 	}
 
 	fmt.Println(output)

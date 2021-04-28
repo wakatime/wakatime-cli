@@ -3,8 +3,9 @@ package project
 import (
 	"fmt"
 
+	"github.com/wakatime/wakatime-cli/pkg/log"
+
 	"github.com/slongfield/pyfmt"
-	jww "github.com/spf13/jwalterweatherman"
 	"github.com/yookoala/realpath"
 )
 
@@ -63,7 +64,7 @@ func matchPattern(fp string, patterns []MapPattern) (string, bool, error) {
 				result, err := pyfmt.Fmt(pattern.Name, params...)
 
 				if err != nil {
-					jww.ERROR.Printf("error formatting %q: %s", pattern.Name, err)
+					log.Errorf("error formatting %q: %s", pattern.Name, err)
 					continue
 				}
 

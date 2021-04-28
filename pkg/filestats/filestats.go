@@ -7,8 +7,7 @@ import (
 	"os"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
-
-	jww "github.com/spf13/jwalterweatherman"
+	"github.com/wakatime/wakatime-cli/pkg/log"
 )
 
 // Max file size supporting line number count stats. Files larger than this in
@@ -48,12 +47,12 @@ func WithDetection(c Config) heartbeat.HandleOption {
 
 				fileInfo, err := os.Stat(filepath)
 				if err != nil {
-					jww.WARN.Printf("failed to retrieve file stats of file %q: %s", filepath, err)
+					log.Warnf("failed to retrieve file stats of file %q: %s", filepath, err)
 					continue
 				}
 
 				if fileInfo.Size() > maxFileSizeSupported {
-					jww.DEBUG.Printf(
+					log.Debugf(
 						"file %q exceeds max file size of %d bytes. Lines won't be counted",
 						h.Entity,
 						maxFileSizeSupported,
@@ -64,7 +63,7 @@ func WithDetection(c Config) heartbeat.HandleOption {
 
 				lines, err := countLineNumbers(filepath)
 				if err != nil {
-					jww.WARN.Printf("failed to detect the total number of lines in file %q: %s", filepath, err)
+					log.Warnf("failed to detect the total number of lines in file %q: %s", filepath, err)
 					continue
 				}
 

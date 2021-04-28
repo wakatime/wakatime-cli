@@ -8,8 +8,7 @@ import (
 	"strings"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
-
-	jww "github.com/spf13/jwalterweatherman"
+	"github.com/wakatime/wakatime-cli/pkg/log"
 )
 
 // WithDetection initializes and returns a heartbeat handle option, which
@@ -31,7 +30,7 @@ func WithDetection() heartbeat.HandleOption {
 
 				language, err := Detect(filepath)
 				if err != nil {
-					jww.WARN.Printf("failed to detect language on file entity %q: %s", h.Entity, err)
+					log.Warnf("failed to detect language on file entity %q: %s", h.Entity, err)
 
 					continue
 				}
@@ -120,7 +119,7 @@ func detectSpecialCases(fp string) (heartbeat.Language, bool) {
 func folderContainsCFiles(dir string) bool {
 	extensions, err := loadFolderExtensions(dir)
 	if err != nil {
-		jww.WARN.Printf("failed loading folder extensions: %s", err)
+		log.Warnf("failed loading folder extensions: %s", err)
 		return false
 	}
 
@@ -137,7 +136,7 @@ func folderContainsCFiles(dir string) bool {
 func folderContainsCPPFiles(dir string) bool {
 	extensions, err := loadFolderExtensions(dir)
 	if err != nil {
-		jww.WARN.Printf("failed loading folder extensions: %s", err)
+		log.Warnf("failed loading folder extensions: %s", err)
 		return false
 	}
 
