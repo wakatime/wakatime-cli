@@ -19,7 +19,7 @@ func TestParse(t *testing.T) {
 		"ansible":          heartbeat.LanguageAnsible,
 		"apacheconf":       heartbeat.LanguageApacheConfig,
 		"applescript":      heartbeat.LanguageAppleScript,
-		"asp":              heartbeat.LanguageASPClassic,
+		"asp":              heartbeat.LanguageClassicASP,
 		"assembly":         heartbeat.LanguageAssembly,
 		"autoconf":         heartbeat.LanguageAutoconf,
 		"awk":              heartbeat.LanguageAwk,

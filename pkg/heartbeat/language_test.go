@@ -50,7 +50,6 @@ func languageTests() map[string]heartbeat.Language {
 		"AsciiDoc":                         heartbeat.LanguageASCIIDoc,
 		"ASL":                              heartbeat.LanguageASL,
 		"ASN.1":                            heartbeat.LanguageASN1,
-		"ASP Classic":                      heartbeat.LanguageASPClassic,
 		"ASP.NET":                          heartbeat.LanguageASPDotNet,
 		"AspectJ":                          heartbeat.LanguageAspectJ,
 		"aspx-cs":                          heartbeat.LanguageAspxCSharp,
@@ -734,6 +733,7 @@ func languageTests() map[string]heartbeat.Language {
 func languageTestsAliases() map[string]heartbeat.Language {
 	return map[string]heartbeat.Language{
 		"ApacheConf":   heartbeat.LanguageApacheConfig,
+		"ASP Classic":  heartbeat.LanguageClassicASP,
 		"Batch Script": heartbeat.LanguageBatchfile,
 		"Golang":       heartbeat.LanguageGo,
 		"JSON-LD":      heartbeat.LanguageJSONLD,

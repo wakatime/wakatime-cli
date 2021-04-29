@@ -83,8 +83,6 @@ const (
 	LanguageASL
 	// LanguageASN1 represents the ASN1 programming language.
 	LanguageASN1
-	// LanguageASPClassic represents the ASP Classic programming language.
-	LanguageASPClassic
 	// LanguageASPDotNet represents the ASPDotNet programming language.
 	LanguageASPDotNet
 	// LanguageAspectJ represents the AspectJ programming language.
@@ -2289,7 +2287,7 @@ func ParseLanguage(s string) (Language, bool) {
 	case normalizeString(languageASN1Str):
 		return LanguageASN1, true
 	case normalizeString(languageASPClassicStr):
-		return LanguageASPClassic, true
+		return LanguageClassicASP, true
 	case normalizeString(languageASPDotNetStr):
 		return LanguageASPDotNet, true
 	case normalizeString(languageAspectJStr):
@@ -3830,8 +3828,6 @@ func (l Language) String() string {
 		return languageASLStr
 	case LanguageASN1:
 		return languageASN1Str
-	case LanguageASPClassic:
-		return languageASPClassicStr
 	case LanguageASPDotNet:
 		return languageASPDotNetStr
 	case LanguageAspectJ:
