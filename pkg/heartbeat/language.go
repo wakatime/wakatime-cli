@@ -2125,6 +2125,7 @@ const (
 	languageVimLStr                        = "VimL"
 	languageVimScriptStr                   = "Vim script"
 	languageVimSnippetStr                  = "Vim Snippet"
+	languageVisualBasicNet                 = "Visual Basic .NET"
 	languageVoltStr                        = "Volt"
 	languageVueJSStr                       = "Vue.js"
 	languageWavefrontMaterialStr           = "Wavefront Material"
@@ -3560,6 +3561,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageVimScript, true
 	case normalizeString(languageVimSnippetStr):
 		return LanguageVimSnippet, true
+	case normalizeString(languageVisualBasicNet):
+		return LanguageVBNet, true
 	case normalizeString(languageVoltStr):
 		return LanguageVolt, true
 	case normalizeString(languageVueJSStr):

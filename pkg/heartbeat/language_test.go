@@ -732,13 +732,14 @@ func languageTests() map[string]heartbeat.Language {
 
 func languageTestsAliases() map[string]heartbeat.Language {
 	return map[string]heartbeat.Language{
-		"ApacheConf":   heartbeat.LanguageApacheConfig,
-		"ASP Classic":  heartbeat.LanguageClassicASP,
-		"Batch Script": heartbeat.LanguageBatchfile,
-		"Golang":       heartbeat.LanguageGo,
-		"JSON-LD":      heartbeat.LanguageJSONLD,
-		"SaltStack":    heartbeat.LanguageSalt,
-		"Transact-SQL": heartbeat.LanguageTransactSQL,
+		"ApacheConf":        heartbeat.LanguageApacheConfig,
+		"ASP Classic":       heartbeat.LanguageClassicASP,
+		"Batch Script":      heartbeat.LanguageBatchfile,
+		"Golang":            heartbeat.LanguageGo,
+		"JSON-LD":           heartbeat.LanguageJSONLD,
+		"SaltStack":         heartbeat.LanguageSalt,
+		"Transact-SQL":      heartbeat.LanguageTransactSQL,
+		"Visual Basic .NET": heartbeat.LanguageVBNet,
 	}
 }
 
