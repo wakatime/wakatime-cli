@@ -1,0 +1,15 @@
+name: "Pull Request Linter"
+
+on: pull_request
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: lekterable/branchlint-action@v1.0.0
+        with:
+          allowed: |
+            /^hotfix/.+/i
+            /^feature/.+/i
+            /^bugfix/.+/i
+            /^major/.+/i
