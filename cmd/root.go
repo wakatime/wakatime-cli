@@ -173,6 +173,7 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 		"",
 		"Prints time for the given goal id Today, then exits"+
 			" Visit wakatime.com/api/v1/users/current/goals to find your goal id.")
+	flags.Bool("useragent", false, "Prints the wakatime-cli useragent, as it will be sent to the api, then exits.")
 	flags.Bool("verbose", false, "Turns on debug messages in log file.")
 	flags.Bool("version", false, "Prints the wakatime-cli version number, then exits.")
 	flags.Bool("write", false, "When set, tells api this heartbeat was triggered from writing to a file.")
