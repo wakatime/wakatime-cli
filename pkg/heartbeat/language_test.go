@@ -50,7 +50,6 @@ func languageTests() map[string]heartbeat.Language {
 		"AsciiDoc":                         heartbeat.LanguageASCIIDoc,
 		"ASL":                              heartbeat.LanguageASL,
 		"ASN.1":                            heartbeat.LanguageASN1,
-		"ASP Classic":                      heartbeat.LanguageASPClassic,
 		"ASP.NET":                          heartbeat.LanguageASPDotNet,
 		"AspectJ":                          heartbeat.LanguageAspectJ,
 		"aspx-cs":                          heartbeat.LanguageAspxCSharp,
@@ -70,7 +69,6 @@ func languageTests() map[string]heartbeat.Language {
 		"Bash Session":                     heartbeat.LanguageBashSession,
 		"Batchfile":                        heartbeat.LanguageBatchfile,
 		"Basic":                            heartbeat.LanguageBasic,
-		"Batch Script":                     heartbeat.LanguageBatchScript,
 		"BBC Basic":                        heartbeat.LanguageBBCBasic,
 		"BBCode":                           heartbeat.LanguageBBCode,
 		"BC":                               heartbeat.LanguageBC,
@@ -734,11 +732,14 @@ func languageTests() map[string]heartbeat.Language {
 
 func languageTestsAliases() map[string]heartbeat.Language {
 	return map[string]heartbeat.Language{
-		"Apache Config": heartbeat.LanguageApacheConfig,
-		"Golang":        heartbeat.LanguageGo,
-		"JSON-LD":       heartbeat.LanguageJSONLD,
-		"SaltStack":     heartbeat.LanguageSalt,
-		"Transact-SQL":  heartbeat.LanguageTransactSQL,
+		"ApacheConf":        heartbeat.LanguageApacheConfig,
+		"ASP Classic":       heartbeat.LanguageClassicASP,
+		"Batch Script":      heartbeat.LanguageBatchfile,
+		"Golang":            heartbeat.LanguageGo,
+		"JSON-LD":           heartbeat.LanguageJSONLD,
+		"SaltStack":         heartbeat.LanguageSalt,
+		"Transact-SQL":      heartbeat.LanguageTransactSQL,
+		"Visual Basic .NET": heartbeat.LanguageVBNet,
 	}
 }
 

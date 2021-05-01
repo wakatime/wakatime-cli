@@ -83,8 +83,6 @@ const (
 	LanguageASL
 	// LanguageASN1 represents the ASN1 programming language.
 	LanguageASN1
-	// LanguageASPClassic represents the ASP Classic programming language.
-	LanguageASPClassic
 	// LanguageASPDotNet represents the ASPDotNet programming language.
 	LanguageASPDotNet
 	// LanguageAspectJ represents the AspectJ programming language.
@@ -123,8 +121,6 @@ const (
 	LanguageBasic
 	// LanguageBatchfile represents the Batchfile programming language.
 	LanguageBatchfile
-	// LanguageBatchScript represents the BatchScript programming language.
-	LanguageBatchScript
 	// LanguageBBCBasic represents the BBCBasic programming language.
 	LanguageBBCBasic
 	// LanguageBBCode represents the BBCode programming language.
@@ -2129,6 +2125,7 @@ const (
 	languageVimLStr                        = "VimL"
 	languageVimScriptStr                   = "Vim script"
 	languageVimSnippetStr                  = "Vim Snippet"
+	languageVisualBasicNet                 = "Visual Basic .NET"
 	languageVoltStr                        = "Volt"
 	languageVueJSStr                       = "Vue.js"
 	languageWavefrontMaterialStr           = "Wavefront Material"
@@ -2180,7 +2177,6 @@ const (
 )
 
 const (
-	languageApacheConfigChromaStr       = "ApacheConf"
 	languageAssemblyChromaStr           = "GAS"
 	languageColdfusionHTMLChromaStr     = "Coldfusion HTML"
 	languageFSharpChromaStr             = "FSharp"
@@ -2292,7 +2288,7 @@ func ParseLanguage(s string) (Language, bool) {
 	case normalizeString(languageASN1Str):
 		return LanguageASN1, true
 	case normalizeString(languageASPClassicStr):
-		return LanguageASPClassic, true
+		return LanguageClassicASP, true
 	case normalizeString(languageASPDotNetStr):
 		return LanguageASPDotNet, true
 	case normalizeString(languageAspectJStr):
@@ -2332,7 +2328,7 @@ func ParseLanguage(s string) (Language, bool) {
 	case normalizeString(languageBatchfileStr):
 		return LanguageBatchfile, true
 	case normalizeString(languageBatchScriptStr):
-		return LanguageBatchScript, true
+		return LanguageBatchfile, true
 	case normalizeString(languageBBCBasicStr):
 		return LanguageBBCBasic, true
 	case normalizeString(languageBBCodeStr):
@@ -3565,6 +3561,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageVimScript, true
 	case normalizeString(languageVimSnippetStr):
 		return LanguageVimSnippet, true
+	case normalizeString(languageVisualBasicNet):
+		return LanguageVBNet, true
 	case normalizeString(languageVoltStr):
 		return LanguageVolt, true
 	case normalizeString(languageVueJSStr):
@@ -3671,8 +3669,6 @@ func ParseLanguage(s string) (Language, bool) {
 // nolint:gocyclo
 func ParseLanguageFromChroma(lexerName string) (Language, bool) {
 	switch normalizeString(lexerName) {
-	case normalizeString(languageApacheConfigChromaStr):
-		return LanguageApacheConfig, true
 	case normalizeString(languageAssemblyChromaStr):
 		return LanguageAssembly, true
 	case normalizeString(languageColdfusionHTMLChromaStr):
@@ -3835,8 +3831,6 @@ func (l Language) String() string {
 		return languageASLStr
 	case LanguageASN1:
 		return languageASN1Str
-	case LanguageASPClassic:
-		return languageASPClassicStr
 	case LanguageASPDotNet:
 		return languageASPDotNetStr
 	case LanguageAspectJ:
@@ -3875,8 +3869,6 @@ func (l Language) String() string {
 		return languageBasicStr
 	case LanguageBatchfile:
 		return languageBatchfileStr
-	case LanguageBatchScript:
-		return languageBatchScriptStr
 	case LanguageBBCBasic:
 		return languageBBCBasicStr
 	case LanguageBBCode:
@@ -5210,7 +5202,7 @@ func (l Language) String() string {
 func (l Language) StringChroma() string {
 	switch l {
 	case LanguageApacheConfig:
-		return languageApacheConfigChromaStr
+		return languageApacheConfStr
 	case LanguageAssembly:
 		return languageAssemblyChromaStr
 	case LanguageColdfusionHTML:
