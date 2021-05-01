@@ -70,10 +70,11 @@ jobs:
           prerelease_id: "alpha"
       - 
         name: Changelog
-        uses: gandarez/changelog-action@v1.0.3
+        uses: gandarez/changelog-action@v1.0.4
         id: changelog
         with:
-          current_tag: $GITHUB_SHA
+          current_tag: ${{ github.sha }}
+          previous_tag: ${{ steps.semver-tag.outputs.ancestor_tag }}
           exclude: |
             ^Merge pull request .*
       - 
