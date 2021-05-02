@@ -5,9 +5,10 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/wakatime/wakatime-cli/pkg/vipertools"
+
 	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/viper"
-	"github.com/wakatime/wakatime-cli/pkg/vipertools"
 )
 
 const defaultFile = ".wakatime.log"
@@ -20,6 +21,11 @@ type Params struct {
 
 // LoadParams loads needed data from the configuration file.
 func LoadParams(v *viper.Viper) (Params, error) {
+	var debug bool
+	if b := v.GetBool("settings.debug"); v.IsSet("settings.debug") {
+		debug = b
+	}
+
 	logFile, _ := vipertools.FirstNonEmptyString(v, "log-file", "logfile", "settings.log_file")
 
 	if logFile != "" {
@@ -30,7 +36,8 @@ func LoadParams(v *viper.Viper) (Params, error) {
 		}
 
 		return Params{
-			File: p,
+			File:    p,
+			Verbose: v.GetBool("verbose") || debug,
 		}, nil
 	}
 
@@ -52,11 +59,6 @@ func LoadParams(v *viper.Viper) (Params, error) {
 			return Params{},
 				ErrLogFile(fmt.Sprintf("failed getting user's home directory: %s", err))
 		}
-	}
-
-	var debug bool
-	if b := v.GetBool("settings.debug"); v.IsSet("settings.debug") {
-		debug = b
 	}
 
 	return Params{
