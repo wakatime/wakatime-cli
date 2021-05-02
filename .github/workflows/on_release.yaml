@@ -6,6 +6,7 @@ on:
 
 jobs:
   build:
+    if: "!github.event.release.prerelease"
     name: Build release assets
     runs-on: ubuntu-latest
     steps:
@@ -99,7 +100,12 @@ jobs:
         name: "Get version"
         id: version
         run: echo ::set-output name=version::$(echo $GITHUB_REF | cut -d / -f 3)
-      - 
+  notify:
+    name: Send slack notification
+    needs: upload
+    runs-on: ubuntu-latest
+    steps:
+      -
         name: "Slack notification"
         uses: 8398a7/action-slack@v3
         if: ${{ success() }}

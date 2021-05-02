@@ -1,0 +1,33 @@
+name: Notify about new prerelease
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  notify:
+    if: "github.event.release.prerelease"
+    name: Send slack notification
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: "Slack notification"
+        uses: 8398a7/action-slack@v3
+        if: ${{ success() }}
+        with:
+          status: custom
+          fields: message
+          custom_payload: |
+            {
+              username: 'WakaTime Bot',
+              icon_emoji: ':mega:',
+              attachments: [{
+                color: 'good',
+                pretext: 'New <https://github.com/wakatime/wakatime-cli|wakatime-cli> version released',
+                title: `${{ steps.version.outputs.version }}`,
+                title_link: `https://github.com/wakatime/wakatime-cli/releases/tag/${{ steps.version.outputs.version }}`,
+                text: `${process.env.AS_MESSAGE}`
+              }]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
