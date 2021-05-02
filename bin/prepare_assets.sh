@@ -31,20 +31,20 @@ chmod 750 ./build/wakatime-cli-windows-386.exe
 chmod 750 ./build/wakatime-cli-windows-amd64.exe
 
 # create archives
-tar -czf ./release/wakatime-cli-freebsd-386.tar.gz -C ./build/ wakatime-cli-freebsd-386
-tar -czf ./release/wakatime-cli-freebsd-amd64.tar.gz -C ./build/ wakatime-cli-freebsd-amd64
-tar -czf ./release/wakatime-cli-freebsd-arm.tar.gz -C ./build/ wakatime-cli-freebsd-arm
-tar -czf ./release/wakatime-cli-linux-386.tar.gz -C ./build/ wakatime-cli-linux-386
-tar -czf ./release/wakatime-cli-linux-amd64.tar.gz -C ./build/ wakatime-cli-linux-amd64
-tar -czf ./release/wakatime-cli-linux-arm.tar.gz -C ./build/ wakatime-cli-linux-arm
-tar -czf ./release/wakatime-cli-linux-arm64.tar.gz -C ./build/ wakatime-cli-linux-arm64
-tar -czf ./release/wakatime-cli-netbsd-386.tar.gz -C ./build/ wakatime-cli-netbsd-386
-tar -czf ./release/wakatime-cli-netbsd-amd64.tar.gz -C ./build/ wakatime-cli-netbsd-amd64
-tar -czf ./release/wakatime-cli-netbsd-arm.tar.gz -C ./build/ wakatime-cli-netbsd-arm
-tar -czf ./release/wakatime-cli-openbsd-386.tar.gz -C ./build/ wakatime-cli-openbsd-386
-tar -czf ./release/wakatime-cli-openbsd-amd64.tar.gz -C ./build/ wakatime-cli-openbsd-amd64
-tar -czf ./release/wakatime-cli-openbsd-arm.tar.gz -C ./build/ wakatime-cli-openbsd-arm
-tar -czf ./release/wakatime-cli-openbsd-arm64.tar.gz -C ./build/ wakatime-cli-openbsd-arm64
+zip -j ./release/wakatime-cli-freebsd-386.zip ./build/wakatime-cli-freebsd-386
+zip -j ./release/wakatime-cli-freebsd-amd64.zip ./build/wakatime-cli-freebsd-amd64
+zip -j ./release/wakatime-cli-freebsd-arm.zip ./build/wakatime-cli-freebsd-arm
+zip -j ./release/wakatime-cli-linux-386.zip ./build/wakatime-cli-linux-386
+zip -j ./release/wakatime-cli-linux-amd64.zip ./build/wakatime-cli-linux-amd64
+zip -j ./release/wakatime-cli-linux-arm.zip ./build/wakatime-cli-linux-arm
+zip -j ./release/wakatime-cli-linux-arm64.zip ./build/wakatime-cli-linux-arm64
+zip -j ./release/wakatime-cli-netbsd-386.zip ./build/wakatime-cli-netbsd-386
+zip -j ./release/wakatime-cli-netbsd-amd64.zip ./build/wakatime-cli-netbsd-amd64
+zip -j ./release/wakatime-cli-netbsd-arm.zip ./build/wakatime-cli-netbsd-arm
+zip -j ./release/wakatime-cli-openbsd-386.zip ./build/wakatime-cli-openbsd-386
+zip -j ./release/wakatime-cli-openbsd-amd64.zip ./build/wakatime-cli-openbsd-amd64
+zip -j ./release/wakatime-cli-openbsd-arm.zip ./build/wakatime-cli-openbsd-arm
+zip -j ./release/wakatime-cli-openbsd-arm64.zip ./build/wakatime-cli-openbsd-arm64
 zip -j ./release/wakatime-cli-windows-386.zip ./build/wakatime-cli-windows-386.exe
 zip -j ./release/wakatime-cli-windows-amd64.zip ./build/wakatime-cli-windows-amd64.exe
 
