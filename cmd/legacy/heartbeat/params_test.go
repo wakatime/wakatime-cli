@@ -15,6 +15,7 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/project"
 	"github.com/wakatime/wakatime-cli/pkg/regex"
+	"gopkg.in/ini.v1"
 
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
@@ -1724,9 +1725,6 @@ func TestLoadParams_DisableSubmodule_False(t *testing.T) {
 }
 
 func TestLoadParams_DisableSubmodule_List(t *testing.T) {
-	// https://github.com/go-ini/ini/issues/270
-	t.Skip("Skipping because ini parser does not support parsing multiple lines yet")
-
 	tests := map[string]struct {
 		ViperValue string
 		Expected   []regex.Regex
@@ -1748,7 +1746,8 @@ func TestLoadParams_DisableSubmodule_List(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			v := viper.New()
+			multilineOption := viper.IniLoadOptions(ini.LoadOptions{AllowPythonMultilineValues: true})
+			v := viper.NewWithOptions(multilineOption)
 			v.Set("key", "00000000-0000-4000-8000-000000000000")
 			v.Set("entity", "/path/to/file")
 			v.Set("git.submodules_disabled", test.ViperValue)

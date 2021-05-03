@@ -678,6 +678,10 @@ func parseBoolOrRegexList(s string) ([]regex.Regex, error) {
 	default:
 		splitted := strings.Split(s, "\n")
 		for _, s := range splitted {
+			if s == "" {
+				continue
+			}
+
 			compiled, err := regex.Compile(s)
 			if err != nil {
 				return nil, fmt.Errorf("failed to compile regex %q: %s", s, err)
