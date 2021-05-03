@@ -1,4 +1,4 @@
-# Wakatime Cli
+# WakaTime cli
 
 Command line interface to [WakaTime](https://wakatime.com) used by all WakaTime [text editor plugins](https://wakatime.com/editors).
 
@@ -12,4 +12,4 @@ Some more usage information is available in the [FAQ](https://wakatime.com/faq).
 
 ## Contributing
 
-See [Contributing](Contributing.md).
+See [Contributing](CONTRIBUTING.md).
