@@ -12,6 +12,14 @@ If you are building a plugin using the [WakaTime API](https://wakatime.com/devel
 
 Some more usage information is available in the [FAQ](https://wakatime.com/faq).
 
+## Configuring
+
+Options can be passed via command line, or set in the `$WAKATIME_HOME/.wakatime.cfg` config file. Command line arguments take precedence over config file settings. The `$WAKATIME_HOME/.wakatime.cfg` file is in [INI](http://en.wikipedia.org/wiki/INI_file) format. See [Configuring](CONFIGURING.md) for more details.
+
 ## Contributing
 
-See [Contributing](CONTRIBUTING.md).
+Pull requests, issues and comments are welcome! See [Contributing](CONTRIBUTING.md) for more details.
+
+Many thanks to all [contributors](AUTHORS)!
+
+Made with :heart: by WakaTime Team.
