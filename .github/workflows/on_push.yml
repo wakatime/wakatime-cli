@@ -30,6 +30,11 @@ jobs:
       - 
         name: "Linter"
         run: make lint
+      -
+        name: "Send coverage"
+        uses: shogo82148/actions-goveralls@v1
+        with:
+          path-to-profile: coverage.out
   
   test-windows:
     name: Test Windows
