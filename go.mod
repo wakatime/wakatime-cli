@@ -23,7 +23,7 @@ require (
 	gopkg.in/ini.v1 v1.62.0
 )
 
-replace github.com/alecthomas/chroma => github.com/wakatime/chroma v0.8.2-wakatime.3
+replace github.com/alecthomas/chroma => github.com/wakatime/chroma v0.8.2-wakatime.7
 
 replace github.com/spf13/viper => github.com/wakatime/viper v1.7.1-0.20210127133619-3adac62bd70f
 
