@@ -2290,6 +2290,7 @@ const (
 	languageGoHTMLTemplateChromaStr     = "Go HTML Template"
 	languageGoTextTemplateChromaStr     = "Go Text Template"
 	languageJSXChromaStr                = "react"
+	languageJSONLDChromaStr             = "JSON-LD"
 	languageLessChromaStr               = "LessCss"
 	languageLiquidChromaStr             = "liquid"
 	languageMakefileChromaStr           = "Base Makefile"
@@ -5477,6 +5478,8 @@ func (l Language) StringChroma() string {
 		return languageFSharpChromaStr
 	case LanguageFStar:
 		return languageFStarLiteralStr
+	case LanguageJSONLD:
+		return languageJSONLDChromaStr
 	case LanguageJSX:
 		return languageJSXChromaStr
 	case LanguageLess:
