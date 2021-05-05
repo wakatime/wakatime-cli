@@ -2283,6 +2283,7 @@ const (
 	languageCObjdumpChromaStr           = "c-objdump"
 	languageColdfusionCFCChromaStr      = "Coldfusion CFC"
 	languageColdfusionHTMLChromaStr     = "Coldfusion HTML"
+	languageCppObjdumpChromaStr         = "cpp-objdump"
 	languageFSharpChromaStr             = "FSharp"
 	languageEmacsLispChromaStr          = "EmacsLisp"
 	languageGoHTMLTemplateChromaStr     = "Go HTML Template"
@@ -3853,6 +3854,8 @@ func ParseLanguageFromChroma(lexerName string) (Language, bool) {
 		return LanguageColdfusionCFC, true
 	case normalizeString(languageColdfusionHTMLChromaStr):
 		return LanguageColdfusionHTML, true
+	case normalizeString(languageCppObjdumpChromaStr):
+		return LanguageCppObjdump, true
 	case normalizeString(languageEmacsLispChromaStr):
 		return LanguageEmacsLisp, true
 	case normalizeString(languageGoHTMLTemplateChromaStr):
@@ -5461,6 +5464,8 @@ func (l Language) StringChroma() string {
 		return languageColdfusionCFCChromaStr
 	case LanguageColdfusionHTML:
 		return languageColdfusionHTMLChromaStr
+	case LanguageCppObjdump:
+		return languageCppObjdumpChromaStr
 	case LanguageEmacsLisp:
 		return languageEmacsLispChromaStr
 	case LanguageFSharp:
