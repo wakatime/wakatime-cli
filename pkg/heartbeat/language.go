@@ -83,8 +83,6 @@ const (
 	LanguageASL
 	// LanguageASN1 represents the ASN1 programming language.
 	LanguageASN1
-	// LanguageASPClassic represents the ASP Classic programming language.
-	LanguageASPClassic
 	// LanguageASPDotNet represents the ASPDotNet programming language.
 	LanguageASPDotNet
 	// LanguageAspectJ represents the AspectJ programming language.
@@ -123,8 +121,6 @@ const (
 	LanguageBasic
 	// LanguageBatchfile represents the Batchfile programming language.
 	LanguageBatchfile
-	// LanguageBatchScript represents the BatchScript programming language.
-	LanguageBatchScript
 	// LanguageBBCBasic represents the BBCBasic programming language.
 	LanguageBBCBasic
 	// LanguageBBCode represents the BBCode programming language.
@@ -327,10 +323,14 @@ const (
 	LanguageCython
 	// LanguageD represents the D programming language.
 	LanguageD
+	// LanguageDafny represents the Dafny programming language.
+	LanguageDafny
 	// LanguageDarcsPatch represents the DarcsPatch programming language.
 	LanguageDarcsPatch
 	// LanguageDart represents the Dart programming language.
 	LanguageDart
+	// LanguageDataWeave represents the DataWeave programming language.
+	LanguageDataWeave
 	// LanguageDASM16 represents the DASM16 programming language.
 	LanguageDASM16
 	// LanguageDCL represents the DCL programming language.
@@ -341,6 +341,8 @@ const (
 	LanguageDebianControlFile
 	// LanguageDelphi represents the Delphi programming language.
 	LanguageDelphi
+	// LanguageDesktop represents the desktop programming language.
+	LanguageDesktop
 	// LanguageDevicetree represents the Devicetree programming language.
 	LanguageDevicetree
 	// LanguageDG represents the DG programming language.
@@ -349,16 +351,34 @@ const (
 	LanguageDhall
 	// LanguageDiff represents the Diff programming language.
 	LanguageDiff
+	// LanguageDigitalCommand represents the DIGITAL Command Language programming language.
+	LanguageDigitalCommand
+	// LanguageDircolors represents the dircolors programming language.
+	LanguageDircolors
+	// LanguageDirectX3DFile represents the DirectX 3D File programming language.
+	LanguageDirectX3DFile
 	// LanguageDjangoJinja represents the DjangoJinja programming language.
 	LanguageDjangoJinja
+	// LanguageDM represents the DM programming language.
+	LanguageDM
+	// LanguageDNSZone represents the DNS Zone programming language.
+	LanguageDNSZone
 	// LanguageDObjdump represents the DObjdump programming language.
 	LanguageDObjdump
 	// LanguageDocker represents the Docker programming language.
 	LanguageDocker
+	// LanguageDockerfile represents the Dockerfile programming language.
+	LanguageDockerfile
 	// LanguageDocTeX represents the DocTeX programming language.
 	LanguageDocTeX
+	// LanguageDocumentation represents the Documentation programming language.
+	LanguageDocumentation
+	// LanguageDogescript represents the Dogescript programming language.
+	LanguageDogescript
 	// LanguageDTD represents the DTD programming language.
 	LanguageDTD
+	// LanguageDTrace represents the DTrace programming language.
+	LanguageDTrace
 	// LanguageDuel represents the Duel programming language.
 	LanguageDuel
 	// LanguageDylan represents the Dylan programming language.
@@ -369,18 +389,34 @@ const (
 	LanguageDylanSession
 	// LanguageDynASM represents the DynASM programming language.
 	LanguageDynASM
+	// LanguageE represents the E programming language.
+	LanguageE
+	// LanguageEagle represents the Eagle programming language.
+	LanguageEagle
 	// LanguageEMail represents the EMail programming language.
 	LanguageEMail
 	// LanguageEarlGrey represents the EarlGrey programming language.
 	LanguageEarlGrey
+	// LanguageEasybuild represents the Easybuild programming language.
+	LanguageEasybuild
 	// LanguageEasytrieve represents the Easytrieve programming language.
 	LanguageEasytrieve
 	// LanguageEBNF represents the EBNF programming language.
 	LanguageEBNF
 	// LanguageEC represents the EC programming language.
 	LanguageEC
+	// LanguageEcereProjects represents the Ecere Projects programming language.
+	LanguageEcereProjects
 	// LanguageECL represents the ECL programming language.
 	LanguageECL
+	// LanguageEclipse represents the ECLiPSe programming language.
+	LanguageEclipse
+	// LanguageEditorConfig represents the EditorConfig programming language.
+	LanguageEditorConfig
+	// LanguageEdjeDataCollection represents the Edje Data Collection programming language.
+	LanguageEdjeDataCollection
+	// LanguageEdn represents the edn programming language.
+	LanguageEdn
 	// LanguageEiffel represents the Eiffel programming language.
 	LanguageEiffel
 	// LanguageEJS represents the EJS programming language.
@@ -393,6 +429,12 @@ const (
 	LanguageElm
 	// LanguageEmacsLisp represents the EmacsLisp programming language.
 	LanguageEmacsLisp
+	// LanguageEmberScript represents the EmberScript programming language.
+	LanguageEmberScript
+	// LanguageEML represents the EML programming language.
+	LanguageEML
+	// LanguageEQ represents the EQ programming language.
+	LanguageEQ
 	// LanguageERB represents the ERB programming language.
 	LanguageERB
 	// LanguageErlang represents the Erlang programming language.
@@ -413,32 +455,52 @@ const (
 	LanguageFancy
 	// LanguageFantom represents the Fantom programming language.
 	LanguageFantom
+	// LanguageFaust represents the Faust programming language.
+	LanguageFaust
 	// LanguageFelix represents the Felix programming language.
 	LanguageFelix
 	// LanguageFennel represents the Fennel programming language.
 	LanguageFennel
+	// LanguageFIGletFont represents the FIGlet Font programming language.
+	LanguageFIGletFont
+	// LanguageFilebenchWML represents the Filebench WML programming language.
+	LanguageFilebenchWML
+	// LanguageFilterscript represents the Filterscript programming language.
+	LanguageFilterscript
 	// LanguageFlatline represents the Flatline programming language.
 	LanguageFlatline
 	// LanguageFloScript represents the FloScript programming language.
 	LanguageFloScript
-	// LanguageForth represents the Forth programming language.
-	LanguageForth
 	// LanguageFish represents the Fish programming language.
 	LanguageFish
+	// LanguageFLUX represents the FLUX programming language.
+	LanguageFLUX
 	// LanguageFont represents the Font programming language.
 	LanguageFont
+	// LanguageFormatted represents the Formatted programming language.
+	LanguageFormatted
+	// LanguageForth represents the Forth programming language.
+	LanguageForth
 	// LanguageFortran represents the Fortran programming language.
 	LanguageFortran
 	// LanguageFortranFixed represents the FortranFixed programming language.
 	LanguageFortranFixed
+	// LanguageFortranFreeForm represents the Fortran Free Form programming language.
+	LanguageFortranFreeForm
 	// LanguageFSharp represents the FSharp programming language.
 	LanguageFSharp
 	// LanguageFoxPro represents the FoxPro programming language.
 	LanguageFoxPro
 	// LanguageFreefem represents the Freefem programming language.
 	LanguageFreefem
-	// LanguageFStar represents the FStar programming language.
+	// LangauageFreeMarker represents the FreeMarker programming language.
+	LangauageFreeMarker
+	// LangauageFrege represents the Frege programming language.
+	LangauageFrege
+	// LanguageFStar represents the F* programming language.
 	LanguageFStar
+	// LanguageFuthark represents the Futhark programming language.
+	LanguageFuthark
 	// LanguageGameMakerLanguage represents the GameMakerLanguage programming language.
 	LanguageGameMakerLanguage
 	// LanguageGAML represents the GAML programming language.
@@ -1614,32 +1676,52 @@ const (
 	languageCypherStr                      = "Cypher"
 	languageCythonStr                      = "Cython"
 	languageDStr                           = "D"
+	languageDafnyStr                       = "Dafny"
 	languageDarcsPatchStr                  = "Darcs Patch"
 	languageDartStr                        = "Dart"
+	languageDataWeaveStr                   = "DataWeave"
 	languageDASM16Str                      = "DASM16"
 	languageDCLStr                         = "DCL"
 	languageDCPU16AsmStr                   = "DCPU-16 ASM"
 	languageDebianControlFileStr           = "Debian Control file"
 	languageDelphiStr                      = "Delphi"
+	languageDesktopStr                     = "desktop"
 	languageDevicetreeStr                  = "Devicetree"
 	languageDGStr                          = "dg"
 	languageDhallStr                       = "Dhall"
 	languageDiffStr                        = "Diff"
+	languageDigitalCommandStr              = "DIGITAL Command Language"
+	languageDircolorsStr                   = "dircolors"
+	languageDirectX3DFileStr               = "DirectX 3D File"
 	languageDjangoJinjaStr                 = "Django/Jinja"
+	languageDMStr                          = "DM"
+	languageDNSZoneStr                     = "DNS Zone"
 	languageDObjdumpStr                    = "d-objdump"
 	languageDockerStr                      = "Docker"
+	languageDockerfileStr                  = "Dockerfile"
 	languageDocTeXStr                      = "DocTeX"
+	languageDocumentationStr               = "Documentation"
+	languageDogescriptStr                  = "Dogescript"
 	languageDTDStr                         = "DTD"
+	languageDTraceStr                      = "DTrace"
 	languageDuelStr                        = "Duel"
 	languageDylanStr                       = "Dylan"
 	languageDylanLIDStr                    = "DylanLID"
 	languageDylanSessionStr                = "Dylan session"
 	languageDynASMStr                      = "DynASM"
+	languageEStr                           = "E"
+	languageEagleStr                       = "Eagle"
 	languageEarlGreyStr                    = "Earl Grey"
+	languageEasybuildStr                   = "Easybuild"
 	languageEasytrieveStr                  = "Easytrieve"
 	languageEBNFStr                        = "EBNF"
 	languageECStr                          = "eC"
+	languageEcereProjectsStr               = "Ecere Projects"
 	languageECLStr                         = "ECL"
+	languageEclipseStr                     = "ECLiPSe"
+	languageEditorConfigStr                = "EditorConfig"
+	languageEdjeDataCollectionStr          = "Edje Data Collection"
+	languageEdnStr                         = "edn"
 	languageEiffelStr                      = "Eiffel"
 	languageEJSStr                         = "EJS"
 	languageElixirIexSessionStr            = "Elixir iex session"
@@ -1647,6 +1729,9 @@ const (
 	languageElmStr                         = "Elm"
 	languageEmacsLispStr                   = "Emacs Lisp"
 	languageEMailStr                       = "E-mail"
+	languageEmberScriptStr                 = "EmberScript"
+	languageEMLStr                         = "EML"
+	languageEQStr                          = "EQ"
 	languageERBStr                         = "ERB"
 	languageErlangStr                      = "Erlang"
 	languageErlangErlSessionStr            = "Erlang erl session"
@@ -1657,19 +1742,30 @@ const (
 	languageFactorStr                      = "Factor"
 	languageFancyStr                       = "Fancy"
 	languageFantomStr                      = "Fantom"
+	languageFaustStr                       = "Faust"
 	languageFelixStr                       = "Felix"
 	languageFennelStr                      = "Fennel"
+	languageFIGletFontStr                  = "FIGlet Font"
+	languageFilebenchWMLStr                = "Filebench WML"
+	languageFilterscriptStr                = "Filterscript"
 	languageFlatlineStr                    = "Flatline"
 	languageFloScriptStr                   = "FloScript"
-	languageForthStr                       = "Forth"
 	languageFishStr                        = "Fish"
+	languageFLUXStr                        = "FLUX"
 	languageFontStr                        = "Font"
+	languageFormattedStr                   = "Formatted"
+	languageForthStr                       = "Forth"
 	languageFortranStr                     = "Fortran"
 	languageFortranFixedStr                = "FortranFixed"
+	languageFortranFreeFormStr             = "Fortran Free Form"
 	languageFSharpStr                      = "F#"
 	languageFoxProStr                      = "FoxPro"
 	languageFreefemStr                     = "Freefem"
-	languageFStarStr                       = "FStar"
+	langauageFreeMarkerStr                 = "FreeMarker"
+	langauageFregeStr                      = "Frege"
+	languageFutharkStr                     = "Futhark"
+	languageFStarStr                       = "F*"
+	languageFStarLiteralStr                = "FStar"
 	languageGameMakerLanguageStr           = "Game Maker Language"
 	languageGAMLStr                        = "GAML"
 	languageGAMSStr                        = "GAMS"
@@ -2129,6 +2225,7 @@ const (
 	languageVimLStr                        = "VimL"
 	languageVimScriptStr                   = "Vim script"
 	languageVimSnippetStr                  = "Vim Snippet"
+	languageVisualBasicNet                 = "Visual Basic .NET"
 	languageVoltStr                        = "Volt"
 	languageVueJSStr                       = "Vue.js"
 	languageWavefrontMaterialStr           = "Wavefront Material"
@@ -2180,14 +2277,21 @@ const (
 )
 
 const (
-	languageApacheConfigChromaStr       = "ApacheConf"
+	languageAMPLChromaStr               = "Ampl"
 	languageAssemblyChromaStr           = "GAS"
+	languageAutoHotkeyChromaStr         = "autohotkey"
+	languageCObjdumpChromaStr           = "c-objdump"
+	languageColdfusionCFCChromaStr      = "Coldfusion CFC"
 	languageColdfusionHTMLChromaStr     = "Coldfusion HTML"
+	languageCppObjdumpChromaStr         = "cpp-objdump"
+	languageCUDAChromaStr               = "CUDA"
 	languageFSharpChromaStr             = "FSharp"
 	languageEmacsLispChromaStr          = "EmacsLisp"
 	languageGoHTMLTemplateChromaStr     = "Go HTML Template"
 	languageGoTextTemplateChromaStr     = "Go Text Template"
+	languageHxmlChromaStr               = "Hxml"
 	languageJSXChromaStr                = "react"
+	languageJSONLDChromaStr             = "JSON-LD"
 	languageLessChromaStr               = "LessCss"
 	languageLiquidChromaStr             = "liquid"
 	languageMakefileChromaStr           = "Base Makefile"
@@ -2195,6 +2299,7 @@ const (
 	languageNewLispChromaStr            = "NewLisp"
 	languageNimrodChromaStr             = "Nim"
 	languagePython3ChromaStr            = "Python 3"
+	languageOocChromaStr                = "Ooc"
 	languageOrgChromaStr                = "Org Mode"
 	languageRChromaStr                  = "R"
 	languageReasonMLChromaStr           = "ReasonML"
@@ -2292,7 +2397,7 @@ func ParseLanguage(s string) (Language, bool) {
 	case normalizeString(languageASN1Str):
 		return LanguageASN1, true
 	case normalizeString(languageASPClassicStr):
-		return LanguageASPClassic, true
+		return LanguageClassicASP, true
 	case normalizeString(languageASPDotNetStr):
 		return LanguageASPDotNet, true
 	case normalizeString(languageAspectJStr):
@@ -2332,7 +2437,7 @@ func ParseLanguage(s string) (Language, bool) {
 	case normalizeString(languageBatchfileStr):
 		return LanguageBatchfile, true
 	case normalizeString(languageBatchScriptStr):
-		return LanguageBatchScript, true
+		return LanguageBatchfile, true
 	case normalizeString(languageBBCBasicStr):
 		return LanguageBBCBasic, true
 	case normalizeString(languageBBCodeStr):
@@ -2535,10 +2640,14 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageCython, true
 	case normalizeString(languageDStr):
 		return LanguageD, true
+	case normalizeString(languageDafnyStr):
+		return LanguageDafny, true
 	case normalizeString(languageDarcsPatchStr):
 		return LanguageDarcsPatch, true
 	case normalizeString(languageDartStr):
 		return LanguageDart, true
+	case normalizeString(languageDataWeaveStr):
+		return LanguageDataWeave, true
 	case normalizeString(languageDASM16Str):
 		return LanguageDASM16, true
 	case normalizeString(languageDCLStr):
@@ -2549,6 +2658,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageDebianControlFile, true
 	case normalizeString(languageDelphiStr):
 		return LanguageDelphi, true
+	case normalizeString(languageDesktopStr):
+		return LanguageDesktop, true
 	case normalizeString(languageDevicetreeStr):
 		return LanguageDevicetree, true
 	case normalizeString(languageDGStr):
@@ -2557,16 +2668,34 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageDhall, true
 	case normalizeString(languageDiffStr):
 		return LanguageDiff, true
+	case normalizeString(languageDigitalCommandStr):
+		return LanguageDigitalCommand, true
+	case normalizeString(languageDircolorsStr):
+		return LanguageDircolors, true
+	case normalizeString(languageDirectX3DFileStr):
+		return LanguageDirectX3DFile, true
 	case normalizeString(languageDjangoJinjaStr):
 		return LanguageDjangoJinja, true
+	case normalizeString(languageDMStr):
+		return LanguageDM, true
+	case normalizeString(languageDNSZoneStr):
+		return LanguageDNSZone, true
 	case normalizeString(languageDObjdumpStr):
 		return LanguageDObjdump, true
 	case normalizeString(languageDockerStr):
 		return LanguageDocker, true
+	case normalizeString(languageDockerfileStr):
+		return LanguageDockerfile, true
 	case normalizeString(languageDocTeXStr):
 		return LanguageDocTeX, true
+	case normalizeString(languageDocumentationStr):
+		return LanguageDocumentation, true
+	case normalizeString(languageDogescriptStr):
+		return LanguageDogescript, true
 	case normalizeString(languageDTDStr):
 		return LanguageDTD, true
+	case normalizeString(languageDTraceStr):
+		return LanguageDTrace, true
 	case normalizeString(languageDuelStr):
 		return LanguageDuel, true
 	case normalizeString(languageDylanStr):
@@ -2577,18 +2706,32 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageDylanSession, true
 	case normalizeString(languageDynASMStr):
 		return LanguageDynASM, true
-	case normalizeString(languageEMailStr):
-		return LanguageEMail, true
+	case normalizeString(languageEStr):
+		return LanguageE, true
+	case normalizeString(languageEagleStr):
+		return LanguageEagle, true
 	case normalizeString(languageEarlGreyStr):
 		return LanguageEarlGrey, true
+	case normalizeString(languageEasybuildStr):
+		return LanguageEasybuild, true
 	case normalizeString(languageEasytrieveStr):
 		return LanguageEasytrieve, true
 	case normalizeString(languageEBNFStr):
 		return LanguageEBNF, true
 	case normalizeString(languageECStr):
 		return LanguageEC, true
+	case normalizeString(languageEcereProjectsStr):
+		return LanguageEcereProjects, true
 	case normalizeString(languageECLStr):
 		return LanguageECL, true
+	case normalizeString(languageEclipseStr):
+		return LanguageEclipse, true
+	case normalizeString(languageEditorConfigStr):
+		return LanguageEditorConfig, true
+	case normalizeString(languageEdjeDataCollectionStr):
+		return LanguageEdjeDataCollection, true
+	case normalizeString(languageEdnStr):
+		return LanguageEdn, true
 	case normalizeString(languageEiffelStr):
 		return LanguageEiffel, true
 	case normalizeString(languageEJSStr):
@@ -2601,6 +2744,14 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageElm, true
 	case normalizeString(languageEmacsLispStr):
 		return LanguageEmacsLisp, true
+	case normalizeString(languageEMailStr):
+		return LanguageEMail, true
+	case normalizeString(languageEmberScriptStr):
+		return LanguageEmberScript, true
+	case normalizeString(languageEMLStr):
+		return LanguageEML, true
+	case normalizeString(languageEQStr):
+		return LanguageEQ, true
 	case normalizeString(languageERBStr):
 		return LanguageERB, true
 	case normalizeString(languageErlangStr):
@@ -2621,31 +2772,53 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageFancy, true
 	case normalizeString(languageFantomStr):
 		return LanguageFantom, true
+	case normalizeString(languageFaustStr):
+		return LanguageFaust, true
 	case normalizeString(languageFelixStr):
 		return LanguageFelix, true
 	case normalizeString(languageFennelStr):
 		return LanguageFennel, true
+	case normalizeString(languageFIGletFontStr):
+		return LanguageFIGletFont, true
+	case normalizeString(languageFilebenchWMLStr):
+		return LanguageFilebenchWML, true
+	case normalizeString(languageFilterscriptStr):
+		return LanguageFilterscript, true
 	case normalizeString(languageFlatlineStr):
 		return LanguageFlatline, true
 	case normalizeString(languageFloScriptStr):
 		return LanguageFloScript, true
-	case normalizeString(languageForthStr):
-		return LanguageForth, true
 	case normalizeString(languageFishStr):
 		return LanguageFish, true
+	case normalizeString(languageFLUXStr):
+		return LanguageFLUX, true
 	case normalizeString(languageFontStr):
 		return LanguageFont, true
+	case normalizeString(languageFormattedStr):
+		return LanguageFormatted, true
+	case normalizeString(languageForthStr):
+		return LanguageForth, true
 	case normalizeString(languageFortranStr):
 		return LanguageFortran, true
 	case normalizeString(languageFortranFixedStr):
 		return LanguageFortranFixed, true
+	case normalizeString(languageFortranFreeFormStr):
+		return LanguageFortranFreeForm, true
 	case normalizeString(languageFSharpStr):
 		return LanguageFSharp, true
 	case normalizeString(languageFoxProStr):
 		return LanguageFoxPro, true
 	case normalizeString(languageFreefemStr):
 		return LanguageFreefem, true
+	case normalizeString(langauageFreeMarkerStr):
+		return LangauageFreeMarker, true
+	case normalizeString(langauageFregeStr):
+		return LangauageFrege, true
+	case normalizeString(languageFutharkStr):
+		return LanguageFuthark, true
 	case normalizeString(languageFStarStr):
+		return LanguageFStar, true
+	case normalizeString(languageFStarLiteralStr):
 		return LanguageFStar, true
 	case normalizeString(languageGameMakerLanguageStr):
 		return LanguageGameMakerLanguage, true
@@ -3565,6 +3738,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageVimScript, true
 	case normalizeString(languageVimSnippetStr):
 		return LanguageVimSnippet, true
+	case normalizeString(languageVisualBasicNet):
+		return LanguageVBNet, true
 	case normalizeString(languageVoltStr):
 		return LanguageVolt, true
 	case normalizeString(languageVueJSStr):
@@ -3671,12 +3846,22 @@ func ParseLanguage(s string) (Language, bool) {
 // nolint:gocyclo
 func ParseLanguageFromChroma(lexerName string) (Language, bool) {
 	switch normalizeString(lexerName) {
-	case normalizeString(languageApacheConfigChromaStr):
-		return LanguageApacheConfig, true
+	case normalizeString(languageAMPLChromaStr):
+		return LanguageAMPL, true
 	case normalizeString(languageAssemblyChromaStr):
 		return LanguageAssembly, true
+	case normalizeString(languageAutoHotkeyChromaStr):
+		return LanguageAutoHotkey, true
+	case normalizeString(languageCObjdumpChromaStr):
+		return LanguageCObjdump, true
+	case normalizeString(languageColdfusionCFCChromaStr):
+		return LanguageColdfusionCFC, true
 	case normalizeString(languageColdfusionHTMLChromaStr):
 		return LanguageColdfusionHTML, true
+	case normalizeString(languageCppObjdumpChromaStr):
+		return LanguageCppObjdump, true
+	case normalizeString(languageCUDAChromaStr):
+		return LanguageCUDA, true
 	case normalizeString(languageEmacsLispChromaStr):
 		return LanguageEmacsLisp, true
 	case normalizeString(languageGoHTMLTemplateChromaStr):
@@ -3685,6 +3870,8 @@ func ParseLanguageFromChroma(lexerName string) (Language, bool) {
 		return LanguageGo, true
 	case normalizeString(languageFSharpChromaStr):
 		return LanguageFSharp, true
+	case normalizeString(languageHxmlChromaStr):
+		return LanguageHxml, true
 	case normalizeString(languageJSXChromaStr):
 		return LanguageJSX, true
 	case normalizeString(languageLessChromaStr):
@@ -3699,6 +3886,8 @@ func ParseLanguageFromChroma(lexerName string) (Language, bool) {
 		return LanguageNewLisp, true
 	case normalizeString(languageNimrodChromaStr):
 		return LanguageNimrod, true
+	case normalizeString(languageOocChromaStr):
+		return LanguageOoc, true
 	case normalizeString(languageOrgChromaStr):
 		return LanguageOrg, true
 	case normalizeString(languagePython3ChromaStr):
@@ -3835,8 +4024,6 @@ func (l Language) String() string {
 		return languageASLStr
 	case LanguageASN1:
 		return languageASN1Str
-	case LanguageASPClassic:
-		return languageASPClassicStr
 	case LanguageASPDotNet:
 		return languageASPDotNetStr
 	case LanguageAspectJ:
@@ -3875,8 +4062,6 @@ func (l Language) String() string {
 		return languageBasicStr
 	case LanguageBatchfile:
 		return languageBatchfileStr
-	case LanguageBatchScript:
-		return languageBatchScriptStr
 	case LanguageBBCBasic:
 		return languageBBCBasicStr
 	case LanguageBBCode:
@@ -4079,10 +4264,14 @@ func (l Language) String() string {
 		return languageCythonStr
 	case LanguageD:
 		return languageDStr
+	case LanguageDafny:
+		return languageDafnyStr
 	case LanguageDarcsPatch:
 		return languageDarcsPatchStr
 	case LanguageDart:
 		return languageDartStr
+	case LanguageDataWeave:
+		return languageDataWeaveStr
 	case LanguageDASM16:
 		return languageDASM16Str
 	case LanguageDCL:
@@ -4093,6 +4282,8 @@ func (l Language) String() string {
 		return languageDebianControlFileStr
 	case LanguageDelphi:
 		return languageDelphiStr
+	case LanguageDesktop:
+		return languageDesktopStr
 	case LanguageDevicetree:
 		return languageDevicetreeStr
 	case LanguageDG:
@@ -4101,16 +4292,34 @@ func (l Language) String() string {
 		return languageDhallStr
 	case LanguageDiff:
 		return languageDiffStr
+	case LanguageDigitalCommand:
+		return languageDigitalCommandStr
+	case LanguageDircolors:
+		return languageDircolorsStr
+	case LanguageDirectX3DFile:
+		return languageDirectX3DFileStr
 	case LanguageDjangoJinja:
 		return languageDjangoJinjaStr
+	case LanguageDM:
+		return languageDMStr
+	case LanguageDNSZone:
+		return languageDNSZoneStr
 	case LanguageDObjdump:
 		return languageDObjdumpStr
 	case LanguageDocker:
 		return languageDockerStr
+	case LanguageDockerfile:
+		return languageDockerfileStr
 	case LanguageDocTeX:
 		return languageDocTeXStr
+	case LanguageDocumentation:
+		return languageDocumentationStr
+	case LanguageDogescript:
+		return languageDogescriptStr
 	case LanguageDTD:
 		return languageDTDStr
+	case LanguageDTrace:
+		return languageDTraceStr
 	case LanguageDuel:
 		return languageDuelStr
 	case LanguageDylan:
@@ -4121,16 +4330,32 @@ func (l Language) String() string {
 		return languageDylanSessionStr
 	case LanguageDynASM:
 		return languageDynASMStr
+	case LanguageE:
+		return languageEStr
+	case LanguageEagle:
+		return languageEagleStr
 	case LanguageEarlGrey:
 		return languageEarlGreyStr
+	case LanguageEasybuild:
+		return languageEasybuildStr
 	case LanguageEasytrieve:
 		return languageEasytrieveStr
 	case LanguageEBNF:
 		return languageEBNFStr
 	case LanguageEC:
 		return languageECStr
+	case LanguageEcereProjects:
+		return languageEcereProjectsStr
 	case LanguageECL:
 		return languageECLStr
+	case LanguageEclipse:
+		return languageEclipseStr
+	case LanguageEditorConfig:
+		return languageEditorConfigStr
+	case LanguageEdjeDataCollection:
+		return languageEdjeDataCollectionStr
+	case LanguageEdn:
+		return languageEdnStr
 	case LanguageEiffel:
 		return languageEiffelStr
 	case LanguageEJS:
@@ -4145,6 +4370,12 @@ func (l Language) String() string {
 		return languageEmacsLispStr
 	case LanguageEMail:
 		return languageEMailStr
+	case LanguageEmberScript:
+		return languageEmberScriptStr
+	case LanguageEML:
+		return languageEMLStr
+	case LanguageEQ:
+		return languageEQStr
 	case LanguageERB:
 		return languageERBStr
 	case LanguageErlang:
@@ -4165,30 +4396,50 @@ func (l Language) String() string {
 		return languageFancyStr
 	case LanguageFantom:
 		return languageFantomStr
+	case LanguageFaust:
+		return languageFaustStr
 	case LanguageFelix:
 		return languageFelixStr
 	case LanguageFennel:
 		return languageFennelStr
+	case LanguageFIGletFont:
+		return languageFIGletFontStr
+	case LanguageFilebenchWML:
+		return languageFilebenchWMLStr
+	case LanguageFilterscript:
+		return languageFilterscriptStr
 	case LanguageFlatline:
 		return languageFlatlineStr
 	case LanguageFloScript:
 		return languageFloScriptStr
-	case LanguageForth:
-		return languageForthStr
 	case LanguageFish:
 		return languageFishStr
+	case LanguageFLUX:
+		return languageFLUXStr
 	case LanguageFont:
 		return languageFontStr
+	case LanguageFormatted:
+		return languageFormattedStr
+	case LanguageForth:
+		return languageForthStr
 	case LanguageFortran:
 		return languageFortranStr
 	case LanguageFortranFixed:
 		return languageFortranFixedStr
+	case LanguageFortranFreeForm:
+		return languageFortranFreeFormStr
 	case LanguageFSharp:
 		return languageFSharpStr
 	case LanguageFoxPro:
 		return languageFoxProStr
 	case LanguageFreefem:
 		return languageFreefemStr
+	case LangauageFreeMarker:
+		return langauageFreeMarkerStr
+	case LangauageFrege:
+		return langauageFregeStr
+	case LanguageFuthark:
+		return languageFutharkStr
 	case LanguageFStar:
 		return languageFStarStr
 	case LanguageGameMakerLanguage:
@@ -5209,16 +5460,34 @@ func (l Language) String() string {
 // nolint:gocyclo
 func (l Language) StringChroma() string {
 	switch l {
+	case LanguageAMPL:
+		return languageAMPLChromaStr
 	case LanguageApacheConfig:
-		return languageApacheConfigChromaStr
+		return languageApacheConfStr
 	case LanguageAssembly:
 		return languageAssemblyChromaStr
+	case LanguageAutoHotkey:
+		return languageAutoHotkeyChromaStr
+	case LanguageCObjdump:
+		return languageCObjdumpChromaStr
+	case LanguageColdfusionCFC:
+		return languageColdfusionCFCChromaStr
 	case LanguageColdfusionHTML:
 		return languageColdfusionHTMLChromaStr
+	case LanguageCppObjdump:
+		return languageCppObjdumpChromaStr
+	case LanguageCUDA:
+		return languageCUDAChromaStr
 	case LanguageEmacsLisp:
 		return languageEmacsLispChromaStr
 	case LanguageFSharp:
 		return languageFSharpChromaStr
+	case LanguageFStar:
+		return languageFStarLiteralStr
+	case LanguageHxml:
+		return languageHxmlChromaStr
+	case LanguageJSONLD:
+		return languageJSONLDChromaStr
 	case LanguageJSX:
 		return languageJSXChromaStr
 	case LanguageLess:
@@ -5233,6 +5502,8 @@ func (l Language) StringChroma() string {
 		return languageNewLispChromaStr
 	case LanguageNimrod:
 		return languageNimrodChromaStr
+	case LanguageOoc:
+		return languageOocChromaStr
 	case LanguageOrg:
 		return languageOrgChromaStr
 	case LanguageReasonML:

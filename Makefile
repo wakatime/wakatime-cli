@@ -110,11 +110,6 @@ build-binary-windows:
 		-ldflags "${LD_FLAGS} -X ${REPO}/pkg/version.OS=$(GOOS) -X ${REPO}/pkg/version.Arch=$(GOARCH)" \
 		-o ./build/$(BINARY_NAME)-$(GOOS)-$(GOARCH).exe
 
-# generate plugin language mapping code
-.PHONY: generate
-generate:
-	go run ./cmd/generate/main.go
-
 # install linter
 .PHONY: install-linter
 install-linter:
@@ -129,5 +124,5 @@ lint: install-linter
 	golangci-lint run ./...
 
 .PHONY: test
-test: generate
+test:
 	go test -cover -race ./...

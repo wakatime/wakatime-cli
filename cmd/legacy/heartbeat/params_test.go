@@ -15,38 +15,13 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/project"
 	"github.com/wakatime/wakatime-cli/pkg/regex"
+	"gopkg.in/ini.v1"
 
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-func TestLoadParams_AlternateLanguage(t *testing.T) {
-	v := viper.New()
-	v.Set("entity", "/path/to/file")
-	v.Set("key", "00000000-0000-4000-8000-000000000000")
-	v.Set("alternate-language", "Go")
-
-	params, err := cmd.LoadParams(v)
-	require.NoError(t, err)
-
-	assert.NotNil(t, params.Language)
-	assert.Equal(t, heartbeat.LanguageGo, *params.Language)
-}
-
-func TestLoadParams_AlternateLanguage_DefaultPluginSpecificSpelling(t *testing.T) {
-	v := viper.New()
-	v.Set("entity", "/path/to/file")
-	v.Set("key", "00000000-0000-4000-8000-000000000000")
-	v.Set("language", "ld-script")
-
-	params, err := cmd.LoadParams(v)
-	require.NoError(t, err)
-
-	assert.NotNil(t, params.Language)
-	assert.Equal(t, heartbeat.LanguageLinkerScript, *params.Language)
-}
 
 func TestLoadParams_AlternateProject(t *testing.T) {
 	v := viper.New()
@@ -381,36 +356,40 @@ func TestLoadParams_ExtraHeartbeats(t *testing.T) {
 	assert.Len(t, params.ExtraHeartbeats, 2)
 
 	assert.NotNil(t, params.ExtraHeartbeats[0].Language)
-	assert.Equal(t, heartbeat.LanguageGo, *params.ExtraHeartbeats[0].Language)
+	assert.Equal(t, heartbeat.LanguageGo.String(), *params.ExtraHeartbeats[0].Language)
 	assert.NotNil(t, params.ExtraHeartbeats[1].Language)
-	assert.Equal(t, heartbeat.LanguagePython, *params.ExtraHeartbeats[1].Language)
+	assert.Equal(t, heartbeat.LanguagePython.String(), *params.ExtraHeartbeats[1].Language)
 
 	assert.Equal(t, []heartbeat.Heartbeat{
 		{
-			Category:         heartbeat.CodingCategory,
-			CursorPosition:   heartbeat.Int(12),
-			Entity:           "testdata/main.go",
-			EntityType:       heartbeat.FileType,
-			IsWrite:          heartbeat.Bool(true),
-			Language:         params.ExtraHeartbeats[0].Language,
-			LineNumber:       heartbeat.Int(42),
-			Lines:            heartbeat.Int(45),
-			ProjectAlternate: "billing",
-			ProjectOverride:  "wakatime-cli",
-			Time:             1585598059,
-			UserAgent:        "wakatime/13.0.6",
+			Category:          heartbeat.CodingCategory,
+			CursorPosition:    heartbeat.Int(12),
+			Entity:            "testdata/main.go",
+			EntityType:        heartbeat.FileType,
+			IsWrite:           heartbeat.Bool(true),
+			LanguageAlternate: "Golang",
+			LineNumber:        heartbeat.Int(42),
+			Lines:             heartbeat.Int(45),
+			ProjectAlternate:  "billing",
+			ProjectOverride:   "wakatime-cli",
+			Time:              1585598059,
+			UserAgent:         "wakatime/13.0.6",
+			// tested above
+			Language: params.ExtraHeartbeats[0].Language,
 		},
 		{
-			Category:        heartbeat.DebuggingCategory,
-			Entity:          "testdata/main.py",
-			EntityType:      heartbeat.FileType,
-			IsWrite:         nil,
-			Language:        params.ExtraHeartbeats[1].Language,
-			LineNumber:      nil,
-			Lines:           nil,
-			ProjectOverride: "wakatime-cli",
-			Time:            1585598060,
-			UserAgent:       "wakatime/13.0.7",
+			Category:          heartbeat.DebuggingCategory,
+			Entity:            "testdata/main.py",
+			EntityType:        heartbeat.FileType,
+			IsWrite:           nil,
+			LanguageAlternate: "Py",
+			LineNumber:        nil,
+			Lines:             nil,
+			ProjectOverride:   "wakatime-cli",
+			Time:              1585598060,
+			UserAgent:         "wakatime/13.0.7",
+			// tested above
+			Language: params.ExtraHeartbeats[1].Language,
 		},
 	}, params.ExtraHeartbeats)
 }
@@ -451,9 +430,9 @@ func TestLoadParams_ExtraHeartbeats_WithStringValues(t *testing.T) {
 	assert.Len(t, params.ExtraHeartbeats, 2)
 
 	assert.NotNil(t, params.ExtraHeartbeats[0].Language)
-	assert.Equal(t, heartbeat.LanguageGo, *params.ExtraHeartbeats[0].Language)
+	assert.Equal(t, heartbeat.LanguageGo.String(), *params.ExtraHeartbeats[0].Language)
 	assert.NotNil(t, params.ExtraHeartbeats[1].Language)
-	assert.Equal(t, heartbeat.LanguagePython, *params.ExtraHeartbeats[1].Language)
+	assert.Equal(t, heartbeat.LanguagePython.String(), *params.ExtraHeartbeats[1].Language)
 
 	assert.Equal(t, []heartbeat.Heartbeat{
 		{
@@ -564,34 +543,20 @@ func TestLoadParams_Language(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.NotNil(t, params.Language)
-	assert.Equal(t, heartbeat.LanguageGo, *params.Language)
+	assert.Equal(t, heartbeat.LanguageGo.String(), *params.Language)
 }
 
-func TestLoadParams_Language_TakesPrecedence(t *testing.T) {
+func TestLoadParams_LanguageAlternate(t *testing.T) {
 	v := viper.New()
 	v.Set("entity", "/path/to/file")
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
-	v.Set("alternate-language", "Python")
-	v.Set("language", "Go")
+	v.Set("alternate-language", "Go")
 
 	params, err := cmd.LoadParams(v)
 	require.NoError(t, err)
 
-	assert.NotNil(t, params.Language)
-	assert.Equal(t, heartbeat.LanguageGo, *params.Language)
-}
-
-func TestLoadParams_Language_DefaultPluginSpecificSpelling(t *testing.T) {
-	v := viper.New()
-	v.Set("entity", "/path/to/file")
-	v.Set("key", "00000000-0000-4000-8000-000000000000")
-	v.Set("language", "ld-script")
-
-	params, err := cmd.LoadParams(v)
-	require.NoError(t, err)
-
-	assert.NotNil(t, params.Language)
-	assert.Equal(t, heartbeat.LanguageLinkerScript, *params.Language)
+	assert.Equal(t, heartbeat.LanguageGo.String(), params.LanguageAlternate)
+	assert.Nil(t, params.Language)
 }
 
 func TestLoadParams_LineNumber(t *testing.T) {
@@ -1760,9 +1725,6 @@ func TestLoadParams_DisableSubmodule_False(t *testing.T) {
 }
 
 func TestLoadParams_DisableSubmodule_List(t *testing.T) {
-	// https://github.com/go-ini/ini/issues/270
-	t.Skip("Skipping because ini parser does not support parsing multiple lines yet")
-
 	tests := map[string]struct {
 		ViperValue string
 		Expected   []regex.Regex
@@ -1784,7 +1746,8 @@ func TestLoadParams_DisableSubmodule_List(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			v := viper.New()
+			multilineOption := viper.IniLoadOptions(ini.LoadOptions{AllowPythonMultilineValues: true})
+			v := viper.NewWithOptions(multilineOption)
 			v.Set("key", "00000000-0000-4000-8000-000000000000")
 			v.Set("entity", "/path/to/file")
 			v.Set("git.submodules_disabled", test.ViperValue)

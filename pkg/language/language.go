@@ -29,13 +29,19 @@ func WithDetection() heartbeat.HandleOption {
 				}
 
 				language, err := Detect(filepath)
+				if err != nil && hh[n].LanguageAlternate != "" {
+					hh[n].Language = heartbeat.String(hh[n].LanguageAlternate)
+
+					continue
+				}
+
 				if err != nil {
 					log.Warnf("failed to detect language on file entity %q: %s", h.Entity, err)
 
 					continue
 				}
 
-				hh[n].Language = &language
+				hh[n].Language = heartbeat.String(language.String())
 			}
 
 			return next(hh)

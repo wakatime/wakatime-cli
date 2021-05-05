@@ -156,6 +156,6 @@ func findSvnBinary() (string, bool) {
 func skipIfBinaryNotFound(t *testing.T) {
 	_, found := findSvnBinary()
 	if !found {
-		t.Skip("Skipping because the lack of svn binary in this machine.")
+		t.Skip("Skipping because svn binary is not installed in this machine.")
 	}
 }

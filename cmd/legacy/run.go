@@ -2,16 +2,18 @@ package legacy
 
 import (
 	"errors"
+	"fmt"
 	"os"
 
 	"github.com/wakatime/wakatime-cli/cmd/legacy/configread"
 	"github.com/wakatime/wakatime-cli/cmd/legacy/configwrite"
-	"github.com/wakatime/wakatime-cli/cmd/legacy/heartbeat"
+	heartbeatcmd "github.com/wakatime/wakatime-cli/cmd/legacy/heartbeat"
 	"github.com/wakatime/wakatime-cli/cmd/legacy/logfile"
 	"github.com/wakatime/wakatime-cli/cmd/legacy/today"
 	"github.com/wakatime/wakatime-cli/cmd/legacy/todaygoal"
 	"github.com/wakatime/wakatime-cli/pkg/config"
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
+	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	"github.com/spf13/viper"
@@ -42,6 +44,20 @@ func Run(v *viper.Viper) {
 
 	log.SetOutput(f)
 	log.SetVerbose(logfileParams.Verbose)
+
+	if v.GetBool("useragent") {
+		log.Debugln("command: useragent")
+
+		if plugin := v.GetString("plugin"); plugin != "" {
+			fmt.Println(heartbeat.UserAgent(plugin))
+
+			os.Exit(exitcode.Success)
+		}
+
+		fmt.Println(heartbeat.UserAgentUnknownPlugin())
+
+		os.Exit(exitcode.Success)
+	}
 
 	if v.GetBool("version") {
 		log.Debugln("command: version")
@@ -77,5 +93,5 @@ func Run(v *viper.Viper) {
 
 	log.Debugln("command: heartbeat")
 
-	heartbeat.Run(v)
+	heartbeatcmd.Run(v)
 }

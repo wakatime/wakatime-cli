@@ -16,7 +16,7 @@ func TestWithDetection(t *testing.T) {
 
 	h := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		assert.Len(t, hh, 1)
-		assert.Equal(t, heartbeat.LanguageGo, *(hh[0].Language))
+		assert.Equal(t, heartbeat.LanguageGo.String(), *hh[0].Language)
 		assert.Equal(t, []heartbeat.Heartbeat{
 			{
 				Entity:     "testdata/codefiles/golang.go",
@@ -52,7 +52,7 @@ func TestWithDetection_Override(t *testing.T) {
 
 	h := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		assert.Len(t, hh, 1)
-		assert.Equal(t, heartbeat.LanguagePython, *(hh[0].Language))
+		assert.Equal(t, heartbeat.LanguagePython.String(), *hh[0].Language)
 		assert.Equal(t, []heartbeat.Heartbeat{
 			{
 				Entity:     "testdata/codefiles/golang.go",
@@ -72,7 +72,44 @@ func TestWithDetection_Override(t *testing.T) {
 		{
 			Entity:     "testdata/codefiles/golang.go",
 			EntityType: heartbeat.FileType,
-			Language:   heartbeat.LanguagePtr(heartbeat.LanguagePython),
+			Language:   heartbeat.String("Python"),
+		},
+	})
+	require.NoError(t, err)
+
+	assert.Equal(t, []heartbeat.Result{
+		{
+			Status: 201,
+		},
+	}, result)
+}
+
+func TestWithDetection_Alternate(t *testing.T) {
+	opt := language.WithDetection()
+
+	h := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		assert.Len(t, hh, 1)
+		assert.Equal(t, []heartbeat.Heartbeat{
+			{
+				Entity:            "testdata/codefiles/unknown.xyz",
+				EntityType:        heartbeat.FileType,
+				Language:          heartbeat.String("Golang"),
+				LanguageAlternate: "Golang",
+			},
+		}, hh)
+
+		return []heartbeat.Result{
+			{
+				Status: 201,
+			},
+		}, nil
+	})
+
+	result, err := h([]heartbeat.Heartbeat{
+		{
+			Entity:            "testdata/codefiles/unknown.xyz",
+			EntityType:        heartbeat.FileType,
+			LanguageAlternate: "Golang",
 		},
 	})
 	require.NoError(t, err)

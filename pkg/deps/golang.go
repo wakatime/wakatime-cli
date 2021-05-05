@@ -11,7 +11,7 @@ import (
 	"github.com/alecthomas/chroma/lexers/g"
 )
 
-var goExcludeRegex = regexp.MustCompile(`(?i)^"fmt"$`)
+var goExcludeRegex = regexp.MustCompile(`^"fmt"$`)
 
 // StateGo is a token parsing state.
 type StateGo int
