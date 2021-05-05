@@ -2277,13 +2277,21 @@ const (
 )
 
 const (
+	languageAMPLChromaStr               = "Ampl"
 	languageAssemblyChromaStr           = "GAS"
+	languageAutoHotkeyChromaStr         = "autohotkey"
+	languageCObjdumpChromaStr           = "c-objdump"
+	languageColdfusionCFCChromaStr      = "Coldfusion CFC"
 	languageColdfusionHTMLChromaStr     = "Coldfusion HTML"
+	languageCppObjdumpChromaStr         = "cpp-objdump"
+	languageCUDAChromaStr               = "CUDA"
 	languageFSharpChromaStr             = "FSharp"
 	languageEmacsLispChromaStr          = "EmacsLisp"
 	languageGoHTMLTemplateChromaStr     = "Go HTML Template"
 	languageGoTextTemplateChromaStr     = "Go Text Template"
+	languageHxmlChromaStr               = "Hxml"
 	languageJSXChromaStr                = "react"
+	languageJSONLDChromaStr             = "JSON-LD"
 	languageLessChromaStr               = "LessCss"
 	languageLiquidChromaStr             = "liquid"
 	languageMakefileChromaStr           = "Base Makefile"
@@ -2291,6 +2299,7 @@ const (
 	languageNewLispChromaStr            = "NewLisp"
 	languageNimrodChromaStr             = "Nim"
 	languagePython3ChromaStr            = "Python 3"
+	languageOocChromaStr                = "Ooc"
 	languageOrgChromaStr                = "Org Mode"
 	languageRChromaStr                  = "R"
 	languageReasonMLChromaStr           = "ReasonML"
@@ -3837,10 +3846,22 @@ func ParseLanguage(s string) (Language, bool) {
 // nolint:gocyclo
 func ParseLanguageFromChroma(lexerName string) (Language, bool) {
 	switch normalizeString(lexerName) {
+	case normalizeString(languageAMPLChromaStr):
+		return LanguageAMPL, true
 	case normalizeString(languageAssemblyChromaStr):
 		return LanguageAssembly, true
+	case normalizeString(languageAutoHotkeyChromaStr):
+		return LanguageAutoHotkey, true
+	case normalizeString(languageCObjdumpChromaStr):
+		return LanguageCObjdump, true
+	case normalizeString(languageColdfusionCFCChromaStr):
+		return LanguageColdfusionCFC, true
 	case normalizeString(languageColdfusionHTMLChromaStr):
 		return LanguageColdfusionHTML, true
+	case normalizeString(languageCppObjdumpChromaStr):
+		return LanguageCppObjdump, true
+	case normalizeString(languageCUDAChromaStr):
+		return LanguageCUDA, true
 	case normalizeString(languageEmacsLispChromaStr):
 		return LanguageEmacsLisp, true
 	case normalizeString(languageGoHTMLTemplateChromaStr):
@@ -3849,6 +3870,8 @@ func ParseLanguageFromChroma(lexerName string) (Language, bool) {
 		return LanguageGo, true
 	case normalizeString(languageFSharpChromaStr):
 		return LanguageFSharp, true
+	case normalizeString(languageHxmlChromaStr):
+		return LanguageHxml, true
 	case normalizeString(languageJSXChromaStr):
 		return LanguageJSX, true
 	case normalizeString(languageLessChromaStr):
@@ -3863,6 +3886,8 @@ func ParseLanguageFromChroma(lexerName string) (Language, bool) {
 		return LanguageNewLisp, true
 	case normalizeString(languageNimrodChromaStr):
 		return LanguageNimrod, true
+	case normalizeString(languageOocChromaStr):
+		return LanguageOoc, true
 	case normalizeString(languageOrgChromaStr):
 		return LanguageOrg, true
 	case normalizeString(languagePython3ChromaStr):
@@ -5435,18 +5460,34 @@ func (l Language) String() string {
 // nolint:gocyclo
 func (l Language) StringChroma() string {
 	switch l {
+	case LanguageAMPL:
+		return languageAMPLChromaStr
 	case LanguageApacheConfig:
 		return languageApacheConfStr
 	case LanguageAssembly:
 		return languageAssemblyChromaStr
+	case LanguageAutoHotkey:
+		return languageAutoHotkeyChromaStr
+	case LanguageCObjdump:
+		return languageCObjdumpChromaStr
+	case LanguageColdfusionCFC:
+		return languageColdfusionCFCChromaStr
 	case LanguageColdfusionHTML:
 		return languageColdfusionHTMLChromaStr
+	case LanguageCppObjdump:
+		return languageCppObjdumpChromaStr
+	case LanguageCUDA:
+		return languageCUDAChromaStr
 	case LanguageEmacsLisp:
 		return languageEmacsLispChromaStr
 	case LanguageFSharp:
 		return languageFSharpChromaStr
 	case LanguageFStar:
 		return languageFStarLiteralStr
+	case LanguageHxml:
+		return languageHxmlChromaStr
+	case LanguageJSONLD:
+		return languageJSONLDChromaStr
 	case LanguageJSX:
 		return languageJSXChromaStr
 	case LanguageLess:
@@ -5461,6 +5502,8 @@ func (l Language) StringChroma() string {
 		return languageNewLispChromaStr
 	case LanguageNimrod:
 		return languageNimrodChromaStr
+	case LanguageOoc:
+		return languageOocChromaStr
 	case LanguageOrg:
 		return languageOrgChromaStr
 	case LanguageReasonML:
