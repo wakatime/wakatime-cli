@@ -88,7 +88,11 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 		"When set, any activity where the project cannot be detected will be ignored.",
 	)
 	flags.Bool("extra-heartbeats", false, "Reads extra heartbeats from STDIN as a JSON array until EOF.")
-	flags.String("file", "", "(deprecated) Absolute path to file for the heartbeat.")
+	flags.String(
+		"file",
+		"",
+		"(deprecated) Absolute path to file for the heartbeat."+
+			" Can also be a url, domain or app when --entity-type is not file.")
 	flags.String("hide-branch-names", "", "Obfuscate branch names. Will not send revision control branch names to api.")
 	flags.String("hide-file-names", "", "Obfuscate filenames. Will not send file names to api.")
 	flags.String("hide-filenames", "", "(deprecated) Obfuscate filenames. Will not send file names to api.")
@@ -177,6 +181,13 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 	flags.Bool("verbose", false, "Turns on debug messages in log file.")
 	flags.Bool("version", false, "Prints the wakatime-cli version number, then exits.")
 	flags.Bool("write", false, "When set, tells api this heartbeat was triggered from writing to a file.")
+
+	_ = flags.MarkDeprecated("apiurl", "please use --api-url instead.")
+	_ = flags.MarkDeprecated("disableoffline", "please use --disable-offline instead.")
+	_ = flags.MarkDeprecated("file", "please use --entity instead.")
+	_ = flags.MarkDeprecated("hide-filenames", "please use --hide-file-names instead.")
+	_ = flags.MarkDeprecated("hidefilenames", "please use --hide-file-names instead.")
+	_ = flags.MarkDeprecated("logfile", "please use --log-file instead.")
 
 	err := v.BindPFlags(flags)
 	if err != nil {
