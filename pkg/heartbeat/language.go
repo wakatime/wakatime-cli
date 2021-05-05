@@ -2281,6 +2281,7 @@ const (
 	languageAssemblyChromaStr           = "GAS"
 	languageAutoHotkeyChromaStr         = "autohotkey"
 	languageCObjdumpChromaStr           = "c-objdump"
+	languageColdfusionCFCChromaStr      = "Coldfusion CFC"
 	languageColdfusionHTMLChromaStr     = "Coldfusion HTML"
 	languageFSharpChromaStr             = "FSharp"
 	languageEmacsLispChromaStr          = "EmacsLisp"
@@ -3848,6 +3849,8 @@ func ParseLanguageFromChroma(lexerName string) (Language, bool) {
 		return LanguageAutoHotkey, true
 	case normalizeString(languageCObjdumpChromaStr):
 		return LanguageCObjdump, true
+	case normalizeString(languageColdfusionCFCChromaStr):
+		return LanguageColdfusionCFC, true
 	case normalizeString(languageColdfusionHTMLChromaStr):
 		return LanguageColdfusionHTML, true
 	case normalizeString(languageEmacsLispChromaStr):
@@ -5454,6 +5457,8 @@ func (l Language) StringChroma() string {
 		return languageAutoHotkeyChromaStr
 	case LanguageCObjdump:
 		return languageCObjdumpChromaStr
+	case LanguageColdfusionCFC:
+		return languageColdfusionCFCChromaStr
 	case LanguageColdfusionHTML:
 		return languageColdfusionHTMLChromaStr
 	case LanguageEmacsLisp:
