@@ -2277,6 +2277,7 @@ const (
 )
 
 const (
+	languageAMPLChromaStr               = "Ampl"
 	languageAssemblyChromaStr           = "GAS"
 	languageColdfusionHTMLChromaStr     = "Coldfusion HTML"
 	languageFSharpChromaStr             = "FSharp"
@@ -3837,6 +3838,8 @@ func ParseLanguage(s string) (Language, bool) {
 // nolint:gocyclo
 func ParseLanguageFromChroma(lexerName string) (Language, bool) {
 	switch normalizeString(lexerName) {
+	case normalizeString(languageAMPLChromaStr):
+		return LanguageAMPL, true
 	case normalizeString(languageAssemblyChromaStr):
 		return LanguageAssembly, true
 	case normalizeString(languageColdfusionHTMLChromaStr):
@@ -5435,6 +5438,8 @@ func (l Language) String() string {
 // nolint:gocyclo
 func (l Language) StringChroma() string {
 	switch l {
+	case LanguageAMPL:
+		return languageAMPLChromaStr
 	case LanguageApacheConfig:
 		return languageApacheConfStr
 	case LanguageAssembly:

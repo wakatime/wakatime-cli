@@ -857,6 +857,7 @@ func TestParseLanguage_Unknown(t *testing.T) {
 
 func TestParseLanguageFromChroma(t *testing.T) {
 	tests := map[string]heartbeat.Language{
+		"Ampl":               heartbeat.LanguageAMPL,
 		"Base Makefile":      heartbeat.LanguageMakefile,
 		"Coldfusion HTML":    heartbeat.LanguageColdfusionHTML,
 		"EmacsLisp":          heartbeat.LanguageEmacsLisp,
@@ -973,6 +974,7 @@ func TestLanguage_String_UnknownLanguage(t *testing.T) {
 func TestLanguage_StringChroma(t *testing.T) {
 	tests := map[string]heartbeat.Language{
 		"ApacheConf":      heartbeat.LanguageApacheConfig,
+		"Ampl":            heartbeat.LanguageAMPL,
 		"Base Makefile":   heartbeat.LanguageMakefile,
 		"Coldfusion HTML": heartbeat.LanguageColdfusionHTML,
 		"EmacsLisp":       heartbeat.LanguageEmacsLisp,
