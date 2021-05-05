@@ -2299,6 +2299,7 @@ const (
 	languageNewLispChromaStr            = "NewLisp"
 	languageNimrodChromaStr             = "Nim"
 	languagePython3ChromaStr            = "Python 3"
+	languageOocChromaStr                = "Ooc"
 	languageOrgChromaStr                = "Org Mode"
 	languageRChromaStr                  = "R"
 	languageReasonMLChromaStr           = "ReasonML"
@@ -3885,6 +3886,8 @@ func ParseLanguageFromChroma(lexerName string) (Language, bool) {
 		return LanguageNewLisp, true
 	case normalizeString(languageNimrodChromaStr):
 		return LanguageNimrod, true
+	case normalizeString(languageOocChromaStr):
+		return LanguageOoc, true
 	case normalizeString(languageOrgChromaStr):
 		return LanguageOrg, true
 	case normalizeString(languagePython3ChromaStr):
@@ -5499,6 +5502,8 @@ func (l Language) StringChroma() string {
 		return languageNewLispChromaStr
 	case LanguageNimrod:
 		return languageNimrodChromaStr
+	case LanguageOoc:
+		return languageOocChromaStr
 	case LanguageOrg:
 		return languageOrgChromaStr
 	case LanguageReasonML:
