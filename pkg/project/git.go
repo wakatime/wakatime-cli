@@ -154,7 +154,7 @@ func findGitConfigFile(fp string, directory string, match string) (string, bool)
 	}
 
 	dir := filepath.Clean(filepath.Join(fp, ".."))
-	if dir == "/" || driveLetterRegex.MatchString(dir) {
+	if dir == "." || dir == "/" || driveLetterRegex.MatchString(dir) {
 		return "", false
 	}
 

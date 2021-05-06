@@ -61,7 +61,7 @@ func findHgConfigDir(fp string) (string, bool) {
 	}
 
 	dir := filepath.Clean(filepath.Join(fp, ".."))
-	if dir == "/" {
+	if dir == "." || dir == "/" || driveLetterRegex.MatchString(dir) {
 		return "", false
 	}
 
