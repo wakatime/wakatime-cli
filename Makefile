@@ -1,7 +1,7 @@
 .DEFAULT_GOAL := build-all
 
 # globals
-BINARY_NAME=wakatime-cli
+BINARY_NAME?=wakatime-cli
 COMMIT?=$(shell git rev-parse --short HEAD)
 DATE?=$(shell date -u '+%Y-%m-%dT%H:%M:%SZ')
 REPO=github.com/wakatime/wakatime-cli
