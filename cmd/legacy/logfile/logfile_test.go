@@ -33,6 +33,7 @@ func TestLoadParams(t *testing.T) {
 		ViperLogFile       string
 		ViperLogFileConfig string
 		ViperLogFileOld    string
+		ViperToStdout      bool
 		EnvVar             string
 		ViperDebug         bool
 		ViperDebugConfig   bool
@@ -84,6 +85,13 @@ func TestLoadParams(t *testing.T) {
 				File: filepath.Join(home, ".wakatime.log"),
 			},
 		},
+		"log to stdout": {
+			ViperToStdout: true,
+			Expected: logfile.Params{
+				File:     filepath.Join(home, ".wakatime.log"),
+				ToStdout: true,
+			},
+		},
 	}
 
 	for name, test := range tests {
@@ -91,6 +99,7 @@ func TestLoadParams(t *testing.T) {
 			v := viper.New()
 			v.Set("log-file", test.ViperLogFile)
 			v.Set("logfile", test.ViperLogFileOld)
+			v.Set("log-to-stdout", test.ViperToStdout)
 			v.Set("settings.log_file", test.ViperLogFileConfig)
 			v.Set("settings.debug", test.ViperDebug)
 			v.Set("verbose", test.ViperDebugConfig)

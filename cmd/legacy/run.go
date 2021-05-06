@@ -37,12 +37,17 @@ func Run(v *viper.Viper) {
 		log.Fatalf("failed to load log params: %s", err)
 	}
 
-	f, err := os.OpenFile(logfileParams.File, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0666)
-	if err != nil {
-		log.Fatalf("error opening log file: %s", err)
+	if !logfileParams.ToStdout {
+		log.Debugf("log to file %s", logfileParams.File)
+
+		f, err := os.OpenFile(logfileParams.File, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0666)
+		if err != nil {
+			log.Fatalf("error opening log file: %s", err)
+		}
+
+		log.SetOutput(f)
 	}
 
-	log.SetOutput(f)
 	log.SetVerbose(logfileParams.Verbose)
 
 	if v.GetBool("useragent") {

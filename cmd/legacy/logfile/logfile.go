@@ -15,8 +15,9 @@ const defaultFile = ".wakatime.log"
 
 // Params contains log file parameters.
 type Params struct {
-	File    string
-	Verbose bool
+	File     string
+	ToStdout bool
+	Verbose  bool
 }
 
 // LoadParams loads needed data from the configuration file.
@@ -62,7 +63,8 @@ func LoadParams(v *viper.Viper) (Params, error) {
 	}
 
 	return Params{
-		File:    filepath.Join(home, defaultFile),
-		Verbose: v.GetBool("verbose") || debug,
+		File:     filepath.Join(home, defaultFile),
+		ToStdout: v.GetBool("log-to-stdout"),
+		Verbose:  v.GetBool("verbose") || debug,
 	}, nil
 }
