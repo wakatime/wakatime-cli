@@ -182,12 +182,16 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 	flags.Bool("version", false, "Prints the wakatime-cli version number, then exits.")
 	flags.Bool("write", false, "When set, tells api this heartbeat was triggered from writing to a file.")
 
-	_ = flags.MarkDeprecated("apiurl", "please use --api-url instead.")
-	_ = flags.MarkDeprecated("disableoffline", "please use --disable-offline instead.")
-	_ = flags.MarkDeprecated("file", "please use --entity instead.")
-	_ = flags.MarkDeprecated("hide-filenames", "please use --hide-file-names instead.")
-	_ = flags.MarkDeprecated("hidefilenames", "please use --hide-file-names instead.")
-	_ = flags.MarkDeprecated("logfile", "please use --log-file instead.")
+	// hide deprecated flags
+	_ = flags.MarkHidden("apiurl")
+	_ = flags.MarkHidden("disableoffline")
+	_ = flags.MarkHidden("file")
+	_ = flags.MarkHidden("hide-filenames")
+	_ = flags.MarkHidden("hidefilenames")
+	_ = flags.MarkHidden("logfile")
+
+	// hide internal flags
+	_ = flags.MarkHidden("useragent")
 
 	err := v.BindPFlags(flags)
 	if err != nil {
