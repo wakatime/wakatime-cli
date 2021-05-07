@@ -55,17 +55,25 @@ func (m Mercurial) Detect() (Result, bool, error) {
 }
 
 func findHgConfigDir(fp string) (string, bool) {
-	p := filepath.Join(fp, ".hg")
-	if fileExists(p) {
-		return p, true
+	i := 0
+	for i < maxRecursiveIteration {
+		p := filepath.Join(fp, ".hg")
+		if fileExists(p) {
+			return p, true
+		}
+
+		dir := filepath.Clean(filepath.Join(fp, ".."))
+		if dir == "." || dir == "/" || driveLetterRegex.MatchString(dir) {
+			return "", false
+		}
+
+		fp = dir
+		i++
 	}
 
-	dir := filepath.Clean(filepath.Join(fp, ".."))
-	if dir == "." || dir == "/" || driveLetterRegex.MatchString(dir) {
-		return "", false
-	}
+	log.Warnf("max recursive calls reached for mercurial project detection")
 
-	return findHgConfigDir(dir)
+	return "", false
 }
 
 func findHgBranch(fp string) (string, error) {

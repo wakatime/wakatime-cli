@@ -3,7 +3,6 @@ package project
 import (
 	"fmt"
 	"path/filepath"
-	"regexp"
 	"strings"
 
 	"github.com/wakatime/wakatime-cli/pkg/log"
@@ -11,9 +10,6 @@ import (
 
 	"github.com/yookoala/realpath"
 )
-
-// nolint
-var driveLetterRegex = regexp.MustCompile(`^[a-zA-Z]:\\$`)
 
 // Git contains git data.
 type Git struct {
@@ -148,17 +144,25 @@ func (g Git) Detect() (Result, bool, error) {
 	return Result{}, false, nil
 }
 
-func findGitConfigFile(fp string, directory string, match string) (string, bool) {
-	if fileExists(filepath.Join(fp, directory, match)) {
-		return filepath.Join(fp, directory), true
+func findGitConfigFile(fp, directory, match string) (string, bool) {
+	i := 0
+	for i < maxRecursiveIteration {
+		if fileExists(filepath.Join(fp, directory, match)) {
+			return filepath.Join(fp, directory), true
+		}
+
+		dir := filepath.Clean(filepath.Join(fp, ".."))
+		if dir == "." || dir == "/" || driveLetterRegex.MatchString(dir) {
+			return "", false
+		}
+
+		fp = dir
+		i++
 	}
 
-	dir := filepath.Clean(filepath.Join(fp, ".."))
-	if dir == "." || dir == "/" || driveLetterRegex.MatchString(dir) {
-		return "", false
-	}
+	log.Warnf("max recursive calls reached for git project detection")
 
-	return findGitConfigFile(dir, directory, match)
+	return "", false
 }
 
 func findSubmodule(fp string, patterns []regex.Regex) (string, bool, error) {

@@ -2,6 +2,7 @@ package project
 
 import (
 	"math/rand"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -10,6 +11,12 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/regex"
 )
+
+// nolint: gochecknoglobals
+var driveLetterRegex = regexp.MustCompile(`^[a-zA-Z]:\\$`)
+
+// maxRecursiveIteration limits the number of a func will be called recursively.
+const maxRecursiveIteration = 500
 
 // Detecter is a common interface for project.
 type Detecter interface {
