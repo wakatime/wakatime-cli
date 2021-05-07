@@ -56,6 +56,8 @@ type MapPattern struct {
 func WithDetection(c Config) heartbeat.HandleOption {
 	return func(next heartbeat.Handle) heartbeat.Handle {
 		return func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+			log.Debugln("execute project detection")
+
 			for n, h := range hh {
 				if h.EntityType != heartbeat.FileType {
 					project := firstNonEmptyString(h.ProjectOverride, h.ProjectAlternate)

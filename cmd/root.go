@@ -134,6 +134,7 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 	)
 	flags.String("log-file", "", "Optional log file. Defaults to '~/.wakatime.log'.")
 	flags.String("logfile", "", "(deprecated) Optional log file. Defaults to '~/.wakatime.log'.")
+	flags.Bool("log-to-stdout", false, "If enabled, logs will go to stdout. Will overwrite logfile configs.")
 	flags.Bool(
 		"no-ssl-verify",
 		false,
