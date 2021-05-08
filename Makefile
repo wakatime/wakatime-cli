@@ -127,3 +127,7 @@ lint: install-linter
 .PHONY: test
 test:
 	go test -race -covermode=atomic -coverprofile=coverage.out ./...
+
+.PHONY: test-integration
+test-integration:
+	go test -race -tags=integration ./main_test.go
