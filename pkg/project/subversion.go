@@ -58,17 +58,24 @@ func (s Subversion) Detect() (Result, bool, error) {
 	return Result{}, false, nil
 }
 
-func findSvnConfigFile(fp string, directory string, match string) (string, bool) {
-	if fileExists(filepath.Join(fp, directory, match)) {
-		return filepath.Join(fp, directory), true
+func findSvnConfigFile(fp, dir, match string) (string, bool) {
+	i := 0
+	for i < maxRecursiveIteration {
+		if fileExists(filepath.Join(fp, dir, match)) {
+			return filepath.Join(fp, dir), true
+		}
+
+		fp = filepath.Clean(filepath.Join(fp, ".."))
+		if fp == "." || fp == "/" || driveLetterRegex.MatchString(fp) {
+			return "", false
+		}
+
+		i++
 	}
 
-	dir := filepath.Clean(filepath.Join(fp, ".."))
-	if dir == "/" {
-		return "", false
-	}
+	log.Warnf("didn't find subversion config file after %d iterations", maxRecursiveIteration)
 
-	return findSvnConfigFile(dir, directory, match)
+	return "", false
 }
 
 func svnInfo(fp string, binary string) (map[string]string, bool, error) {
