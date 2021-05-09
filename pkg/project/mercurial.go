@@ -62,16 +62,15 @@ func findHgConfigDir(fp string) (string, bool) {
 			return p, true
 		}
 
-		dir := filepath.Clean(filepath.Join(fp, ".."))
-		if dir == "." || dir == "/" || driveLetterRegex.MatchString(dir) {
+		fp = filepath.Clean(filepath.Join(fp, ".."))
+		if fp == "." || fp == "/" || driveLetterRegex.MatchString(fp) {
 			return "", false
 		}
 
-		fp = dir
 		i++
 	}
 
-	log.Warnf("max recursive calls reached for mercurial project detection")
+	log.Warnf("didn't find mercurial config dir after %d iterations", maxRecursiveIteration)
 
 	return "", false
 }

@@ -144,23 +144,22 @@ func (g Git) Detect() (Result, bool, error) {
 	return Result{}, false, nil
 }
 
-func findGitConfigFile(fp, directory, match string) (string, bool) {
+func findGitConfigFile(fp, dir, match string) (string, bool) {
 	i := 0
 	for i < maxRecursiveIteration {
-		if fileExists(filepath.Join(fp, directory, match)) {
-			return filepath.Join(fp, directory), true
+		if fileExists(filepath.Join(fp, dir, match)) {
+			return filepath.Join(fp, dir), true
 		}
 
-		dir := filepath.Clean(filepath.Join(fp, ".."))
-		if dir == "." || dir == "/" || driveLetterRegex.MatchString(dir) {
+		fp = filepath.Clean(filepath.Join(fp, ".."))
+		if fp == "." || fp == "/" || driveLetterRegex.MatchString(fp) {
 			return "", false
 		}
 
-		fp = dir
 		i++
 	}
 
-	log.Warnf("max recursive calls reached for git project detection")
+	log.Warnf("didn't find git config file after %d iterations", maxRecursiveIteration)
 
 	return "", false
 }
