@@ -30,48 +30,27 @@ func (m Mercurial) Detect() (Result, bool, error) {
 	}
 
 	// Find for .hg folder
-	hgDirectory, ok := findHgConfigDir(fp)
-	if ok {
-		project := filepath.Base(filepath.Join(hgDirectory, ".."))
-
-		branch, err := findHgBranch(hgDirectory)
-		if err != nil {
-			log.Errorf(
-				"error finding for branch name from %q: %s",
-				hgDirectory,
-				err,
-			)
-		}
-
-		return Result{
-			Project: project,
-			Branch:  branch,
-			Folder:  filepath.Dir(filepath.Join(hgDirectory, "..")),
-		}, true, nil
+	hgDirectory, ok := findFileOrDirectory(fp, "", ".hg")
+	if !ok {
+		return Result{}, false, nil
 	}
 
-	return Result{}, false, nil
-}
+	project := filepath.Base(filepath.Join(hgDirectory, ".."))
 
-func findHgConfigDir(fp string) (string, bool) {
-	i := 0
-	for i < maxRecursiveIteration {
-		p := filepath.Join(fp, ".hg")
-		if fileExists(p) {
-			return p, true
-		}
-
-		fp = filepath.Clean(filepath.Join(fp, ".."))
-		if fp == "." || fp == "/" || driveLetterRegex.MatchString(fp) {
-			return "", false
-		}
-
-		i++
+	branch, err := findHgBranch(hgDirectory)
+	if err != nil {
+		log.Errorf(
+			"error finding for branch name from %q: %s",
+			hgDirectory,
+			err,
+		)
 	}
 
-	log.Warnf("didn't find mercurial config dir after %d iterations", maxRecursiveIteration)
-
-	return "", false
+	return Result{
+		Project: project,
+		Branch:  branch,
+		Folder:  filepath.Dir(filepath.Join(hgDirectory, "..")),
+	}, true, nil
 }
 
 func findHgBranch(fp string) (string, error) {

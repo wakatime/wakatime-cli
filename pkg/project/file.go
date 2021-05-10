@@ -80,7 +80,7 @@ func FindFile(fp string) (string, bool, error) {
 	return "", false, nil
 }
 
-// fileExists checks if a file exist and is not a directory.
+// fileExists checks if a file or directory exist.
 func fileExists(fp string) bool {
 	_, err := os.Stat(fp)
 	return err == nil || os.IsExist(err)
