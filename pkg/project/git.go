@@ -13,7 +13,7 @@ import (
 
 // Git contains git data.
 type Git struct {
-	// Filepath conaints the entity path.
+	// Filepath contains the entity path.
 	Filepath string
 	// SubmodulePatterns will be matched against the submodule path and if matching, will skip it.
 	SubmodulePatterns []regex.Regex

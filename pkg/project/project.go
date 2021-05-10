@@ -132,6 +132,9 @@ func DetectWithRevControl(entity string, submodulePatterns []regex.Regex, should
 		Subversion{
 			Filepath: entity,
 		},
+		Tfvc{
+			Filepath: entity,
+		},
 	}
 
 	for _, p := range revControlPlugins {

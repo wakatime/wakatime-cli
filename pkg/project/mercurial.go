@@ -12,7 +12,7 @@ import (
 
 // Mercurial contains mercurial data.
 type Mercurial struct {
-	// Filepath conaints the entity path.
+	// Filepath contains the entity path.
 	Filepath string
 }
 
@@ -31,7 +31,6 @@ func (m Mercurial) Detect() (Result, bool, error) {
 
 	// Find for .hg folder
 	hgDirectory, ok := findHgConfigDir(fp)
-
 	if ok {
 		project := filepath.Base(filepath.Join(hgDirectory, ".."))
 
