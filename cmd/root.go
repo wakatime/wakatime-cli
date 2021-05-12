@@ -142,14 +142,14 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 	flags.String(
 		"proxy",
 		"",
-		"Optional proxy configuration. Supports HTTPS and SOCKS proxies."+
+		"Optional proxy configuration. Supports HTTPS SOCKS and NTLM proxies."+
 			" For example: 'https://user:pass@host:port' or 'socks5://user:pass@host:port'"+
 			" or 'domain\\user:pass'",
 	)
 	flags.String(
 		"ssl-certs-file",
 		"",
-		"Override the bundled Python Requests CA certs file. By default, uses"+
+		"Override the bundled CA certs file. By default, uses"+
 			" system ca certs.",
 	)
 	flags.String(

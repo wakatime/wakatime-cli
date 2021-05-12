@@ -1,5 +1,7 @@
 # Configuring
 
+Here's an example config file with all available options:
+
 ```ini
 [settings]
 debug = false
@@ -32,7 +34,7 @@ projects/foo = new project name
 submodules_disabled = false
 ```
 
-## Settigs Section
+## Settings Section
 
 | option                         | description | allowed values |
 | ---                            | ---         | ---            |
@@ -49,9 +51,9 @@ submodules_disabled = false
 | status_bar_enabled             | Turns on wakatime status bar for certain editors. | true;false |
 | status_bar_coding_activity     | Prints today's coding activity. | true;false |
 | offline                        | Enables offline mode. All activity and logged time will be queued. | true;false |
-| proxy                          | Optional proxy configuration. Supports HTTPS and SOCKS proxies. | `https://user:pass@host:port` or `socks5://user:pass@host:port` or `domain\\user:pass` |
+| proxy                          | Optional proxy configuration. Supports HTTPS, SOCKS and NTLM proxies. | `https://user:pass@host:port` or `socks5://user:pass@host:port` or `domain\\user:pass` |
 | no_ssl_verify                  | Disables SSL certificate verification for HTTPS requests. By default, SSL certificates are verified. | true;false |
-| ssl_certs_file                 | Override the bundled Python Requests CA certs file. By default, uses  system ca certs. | _filepath_ |
+| ssl_certs_file                 | Override the bundled CA certs file. By default, uses system ca certs. | _filepath_ |
 | timeout                        | Number of seconds to wait when sending heartbeats to api. Defaults to 60 seconds. | _integer_ |
 | hostname                       | Optional name of local machine. Defaults to local machine name read from system. | _machinename_ |
 
