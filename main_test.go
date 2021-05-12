@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 	"testing"
@@ -25,33 +26,22 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const testVersion = "v0.0.1-test"
+const (
+	binaryPathLinux   = "./build/wakatime-cli-linux-amd64"
+	binaryPathWindows = "./build/wakatime-cli-windows-amd64.exe"
+	testVersion       = "v0.0.1-test"
+)
 
-// nolint: gochecknoglobals
-var binaryPath string
-
-func TestMain(m *testing.M) {
-	// build binary
-	cmd := exec.Command("make", fmt.Sprintf("build-%s-%s", runtime.GOOS, runtime.GOARCH))
-	cmd.Env = os.Environ()
-	cmd.Env = append(cmd.Env, "COMMIT=ac109fe")
-	cmd.Env = append(cmd.Env, "DATE=2021-05-05T14:05:11Z")
-	cmd.Env = append(cmd.Env, fmt.Sprintf("VERSION=%s", testVersion))
-
-	run(cmd)
-
-	binaryPath = filepath.Join("./build", fmt.Sprintf(
-		"wakatime-cli-%s-%s",
-		runtime.GOOS,
-		runtime.GOARCH,
-	))
-
-	if runtime.GOOS == "windows" {
-		binaryPath = binaryPath + ".exe"
+func binaryPath(t *testing.T) string {
+	switch runtime.GOOS {
+	case "linux":
+		return binaryPathLinux
+	case "windows":
+		return binaryPathWindows
+	default:
+		t.Fatalf("OS %q not supported", runtime.GOOS)
+		return ""
 	}
-
-	// run tests
-	defer os.Exit(m.Run())
 }
 
 func TestSendHeartbeats(t *testing.T) {
@@ -113,7 +103,7 @@ func testSendHeartbeats(t *testing.T, entity, project string) {
 	version.Version = testVersion
 
 	cmd := exec.Command(
-		binaryPath,
+		binaryPath(t),
 		"--api-url", apiUrl,
 		"--key", "00000000-0000-4000-8000-000000000000",
 		"--config", "testdata/wakatime.cfg",
@@ -161,7 +151,7 @@ func TestTodayGoal(t *testing.T) {
 	version.Version = testVersion
 
 	out := run(exec.Command(
-		binaryPath,
+		binaryPath(t),
 		"--api-url", apiUrl,
 		"--key", "00000000-0000-4000-8000-000000000000",
 		"--config", "testdata/wakatime.cfg",
@@ -214,7 +204,7 @@ func TestTodaySummary(t *testing.T) {
 	version.Version = testVersion
 
 	out := run(exec.Command(
-		binaryPath,
+		binaryPath(t),
 		"--api-url", apiUrl,
 		"--key", "00000000-0000-4000-8000-000000000000",
 		"--config", "testdata/wakatime.cfg",
@@ -228,19 +218,19 @@ func TestTodaySummary(t *testing.T) {
 }
 
 func TestUseragent(t *testing.T) {
-	out := run(exec.Command(binaryPath, "--useragent"))
+	out := run(exec.Command(binaryPath(t), "--useragent"))
 
 	assert.Equal(t, fmt.Sprintf("%s\n", heartbeat.UserAgentUnknownPlugin()), out)
 }
 
 func TestUseragentWithPlugin(t *testing.T) {
-	out := run(exec.Command(binaryPath, "--useragent", "--plugin", "Wakatime/1.0.4"))
+	out := run(exec.Command(binaryPath(t), "--useragent", "--plugin", "Wakatime/1.0.4"))
 
 	assert.Equal(t, fmt.Sprintf("%s\n", heartbeat.UserAgent("Wakatime/1.0.4")), out)
 }
 
 func TestVersion(t *testing.T) {
-	out := run(exec.Command(binaryPath, "--version"))
+	out := run(exec.Command(binaryPath(t), "--version"))
 
 	assert.Equal(t, "v0.0.1-test\n", out)
 }
