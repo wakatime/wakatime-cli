@@ -24,9 +24,11 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/yookoala/realpath"
 )
 
 const (
+	binaryPathDarwin  = "./build/wakatime-cli-darwin-amd64"
 	binaryPathLinux   = "./build/wakatime-cli-linux-amd64"
 	binaryPathWindows = "./build/wakatime-cli-windows-amd64.exe"
 	testVersion       = "v0.0.1-test"
@@ -34,6 +36,8 @@ const (
 
 func binaryPath(t *testing.T) string {
 	switch runtime.GOOS {
+	case "darwin":
+		return binaryPathDarwin
 	case "linux":
 		return binaryPathLinux
 	case "windows":
@@ -75,7 +79,7 @@ func testSendHeartbeats(t *testing.T, entity, project string) {
 		expectedBodyTpl, err := ioutil.ReadFile("testdata/api_heartbeats_request.json.tpl")
 		require.NoError(t, err)
 
-		entityPath, err := filepath.Abs(entity)
+		entityPath, err := realpath.Realpath(entity)
 		require.NoError(t, err)
 
 		entityPath = strings.ReplaceAll(entityPath, `\`, `/`)
