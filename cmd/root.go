@@ -104,7 +104,7 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 			" using the folder name as the project, a .wakatime-project file is"+
 			" created with a random project name.",
 	)
-	flags.String("hostname", "", "Optional name of local machine. Defaults to local machine name read from system")
+	flags.String("hostname", "", "Optional name of local machine. Defaults to local machine name read from system.")
 	flags.StringSlice(
 		"include",
 		nil,
@@ -147,15 +147,15 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 	flags.String(
 		"proxy",
 		"",
-		"Optional proxy configuration. Supports HTTPS and SOCKS proxies."+
+		"Optional proxy configuration. Supports HTTPS SOCKS and NTLM proxies."+
 			" For example: 'https://user:pass@host:port' or 'socks5://user:pass@host:port'"+
 			" or 'domain\\user:pass'",
 	)
 	flags.String(
 		"ssl-certs-file",
 		"",
-		"Override the bundled Python Requests CA certs file. By default, uses"+
-			"system ca certs.",
+		"Override the bundled CA certs file. By default, uses"+
+			" system ca certs.",
 	)
 	flags.String(
 		"sync-offline-activity",
