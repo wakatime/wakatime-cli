@@ -21,6 +21,28 @@ import (
 
 // Run executes legacy commands following the interface of the old python implementation of the WakaTime script.
 func Run(v *viper.Viper) {
+	if v.GetBool("useragent") {
+		log.Debugln("command: useragent")
+
+		if plugin := v.GetString("plugin"); plugin != "" {
+			fmt.Println(heartbeat.UserAgent(plugin))
+
+			os.Exit(exitcode.Success)
+		}
+
+		fmt.Println(heartbeat.UserAgentUnknownPlugin())
+
+		os.Exit(exitcode.Success)
+	}
+
+	if v.GetBool("version") {
+		log.Debugln("command: version")
+
+		runVersion(v.GetBool("verbose"))
+
+		os.Exit(exitcode.Success)
+	}
+
 	if err := config.ReadInConfig(v, config.FilePath); err != nil {
 		log.Errorf("failed to load configuration file: %s", err)
 
@@ -49,28 +71,6 @@ func Run(v *viper.Viper) {
 	}
 
 	log.SetVerbose(logfileParams.Verbose)
-
-	if v.GetBool("useragent") {
-		log.Debugln("command: useragent")
-
-		if plugin := v.GetString("plugin"); plugin != "" {
-			fmt.Println(heartbeat.UserAgent(plugin))
-
-			os.Exit(exitcode.Success)
-		}
-
-		fmt.Println(heartbeat.UserAgentUnknownPlugin())
-
-		os.Exit(exitcode.Success)
-	}
-
-	if v.GetBool("version") {
-		log.Debugln("command: version")
-
-		runVersion(v.GetBool("verbose"))
-
-		os.Exit(exitcode.Success)
-	}
 
 	if v.IsSet("config-read") {
 		log.Debugln("command: config-read")
