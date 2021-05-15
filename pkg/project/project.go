@@ -2,6 +2,7 @@ package project
 
 import (
 	"math/rand"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -132,6 +133,9 @@ func DetectWithRevControl(entity string, submodulePatterns []regex.Regex, should
 		Subversion{
 			Filepath: entity,
 		},
+		Tfvc{
+			Filepath: entity,
+		},
 	}
 
 	for _, p := range revControlPlugins {
@@ -213,6 +217,29 @@ func generateProjectName() string {
 	str = append(str, strconv.Itoa(rand.Intn(100))) //nolint:gosec
 
 	return strings.Join(str, " ")
+}
+
+// findFileOrDirectory searches for a file or directory with name `filename`.
+// Search starts in `startDir` and will traverse through all parent directories until the file is found,
+// root directory is reached or `maxRecursiveIteration` is exceeded.
+func findFileOrDirectory(startDir, fileDir, filename string) (string, bool) {
+	i := 0
+	for i < maxRecursiveIteration {
+		if fileExists(filepath.Join(startDir, fileDir, filename)) {
+			return filepath.Join(startDir, fileDir, filename), true
+		}
+
+		startDir = filepath.Clean(filepath.Join(startDir, ".."))
+		if startDir == "." || startDir == "/" || driveLetterRegex.MatchString(startDir) {
+			return "", false
+		}
+
+		i++
+	}
+
+	log.Warnf("didn't find %s after %d iterations", filename, maxRecursiveIteration)
+
+	return "", false
 }
 
 // firstNonEmptyString accepts multiple values and return the first non empty string value.

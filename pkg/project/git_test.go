@@ -189,7 +189,7 @@ func setupTestGitBasic(t *testing.T) (fp string, tearDown func()) {
 	tmpFile, err := os.Create(filepath.Join(tmpDir, "wakatime-cli/src/pkg/file.go"))
 	require.NoError(t, err)
 
-	tmpFile.Close()
+	defer tmpFile.Close()
 
 	err = os.Mkdir(filepath.Join(tmpDir, "wakatime-cli/.git"), os.FileMode(int(0700)))
 	require.NoError(t, err)
@@ -210,7 +210,7 @@ func setupTestGitBasicBranchWithSlash(t *testing.T) (fp string, tearDown func())
 	tmpFile, err := os.Create(filepath.Join(tmpDir, "wakatime-cli/src/pkg/file.go"))
 	require.NoError(t, err)
 
-	tmpFile.Close()
+	defer tmpFile.Close()
 
 	err = os.Mkdir(filepath.Join(tmpDir, "wakatime-cli/.git"), os.FileMode(int(0700)))
 	require.NoError(t, err)
@@ -231,7 +231,7 @@ func setupTestGitBasicDetachedHead(t *testing.T) (fp string, tearDown func()) {
 	tmpFile, err := os.Create(filepath.Join(tmpDir, "wakatime-cli/src/pkg/file.go"))
 	require.NoError(t, err)
 
-	tmpFile.Close()
+	defer tmpFile.Close()
 
 	err = os.Mkdir(filepath.Join(tmpDir, "wakatime-cli/.git"), os.FileMode(int(0700)))
 	require.NoError(t, err)
@@ -260,17 +260,17 @@ func setupTestGitFile(t *testing.T) (fp string, tearDown func()) {
 	tmpFile, err := os.Create(filepath.Join(tmpDir, "wakatime-cli/src/pkg/file.go"))
 	require.NoError(t, err)
 
-	tmpFile.Close()
+	defer tmpFile.Close()
 
 	tmpFile, err = os.Create(filepath.Join(tmpDir, "feed/src/pkg/file.go"))
 	require.NoError(t, err)
 
-	tmpFile.Close()
+	defer tmpFile.Close()
 
 	tmpFile, err = os.Create(filepath.Join(tmpDir, "mobile/src/pkg/file.go"))
 	require.NoError(t, err)
 
-	tmpFile.Close()
+	defer tmpFile.Close()
 
 	// Setup basic git
 	err = os.Mkdir(filepath.Join(tmpDir, "wakatime-cli/.git"), os.FileMode(int(0700)))
@@ -314,12 +314,12 @@ func setupTestGitWorktree(t *testing.T) (fp string, tearDown func()) {
 	tmpFile, err := os.Create(filepath.Join(tmpDir, "wakatime-cli/src/pkg/file.go"))
 	require.NoError(t, err)
 
-	tmpFile.Close()
+	defer tmpFile.Close()
 
 	tmpFile, err = os.Create(filepath.Join(tmpDir, "api/src/pkg/file.go"))
 	require.NoError(t, err)
 
-	tmpFile.Close()
+	defer tmpFile.Close()
 
 	// Setup basic git
 	copyFile(t, "testdata/git_basic/config", filepath.Join(tmpDir, "wakatime-cli/.git/config"))
@@ -364,17 +364,17 @@ func setupTestGitSubmodule(t *testing.T) (fp string, tearDown func()) {
 	tmpFile, err := os.Create(filepath.Join(tmpDir, "wakatime-cli/src/pkg/file.go"))
 	require.NoError(t, err)
 
-	tmpFile.Close()
+	defer tmpFile.Close()
 
 	tmpFile, err = os.Create(filepath.Join(tmpDir, "wakatime-cli/lib/billing/src/lib/lib.cpp"))
 	require.NoError(t, err)
 
-	tmpFile.Close()
+	defer tmpFile.Close()
 
 	tmpFile, err = os.Create(filepath.Join(tmpDir, "billing/src/lib/lib.cpp"))
 	require.NoError(t, err)
 
-	tmpFile.Close()
+	defer tmpFile.Close()
 
 	// Setup basic git
 	copyFile(t, "testdata/git_basic/config", filepath.Join(tmpDir, "wakatime-cli/.git/config"))

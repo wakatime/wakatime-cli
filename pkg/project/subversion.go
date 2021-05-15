@@ -37,45 +37,25 @@ func (s Subversion) Detect() (Result, bool, error) {
 	}
 
 	// Find for .svn/wc.db file
-	svnConfigFile, ok := findSvnConfigFile(fp, ".svn", "wc.db")
+	svnConfigFile, ok := findFileOrDirectory(fp, ".svn", "wc.db")
 	if !ok {
 		return Result{}, false, nil
 	}
 
-	info, ok, err := svnInfo(filepath.Join(svnConfigFile, ".."), binary)
+	info, ok, err := svnInfo(filepath.Join(svnConfigFile, "../.."), binary)
 	if err != nil {
 		return Result{}, false, Err(fmt.Errorf("failed to get svn info: %w", err).Error())
 	}
 
-	if ok {
-		return Result{
-			Project: resolveSvnInfo(info, "Repository Root"),
-			Branch:  resolveSvnInfo(info, "URL"),
-			Folder:  strings.ReplaceAll(info["Repository Root"], "\r", ""),
-		}, true, nil
+	if !ok {
+		return Result{}, false, nil
 	}
 
-	return Result{}, false, nil
-}
-
-func findSvnConfigFile(fp, dir, match string) (string, bool) {
-	i := 0
-	for i < maxRecursiveIteration {
-		if fileExists(filepath.Join(fp, dir, match)) {
-			return filepath.Join(fp, dir), true
-		}
-
-		fp = filepath.Clean(filepath.Join(fp, ".."))
-		if fp == "." || fp == "/" || driveLetterRegex.MatchString(fp) {
-			return "", false
-		}
-
-		i++
-	}
-
-	log.Warnf("didn't find subversion config file after %d iterations", maxRecursiveIteration)
-
-	return "", false
+	return Result{
+		Project: resolveSvnInfo(info, "Repository Root"),
+		Branch:  resolveSvnInfo(info, "URL"),
+		Folder:  strings.ReplaceAll(info["Repository Root"], "\r", ""),
+	}, true, nil
 }
 
 func svnInfo(fp string, binary string) (map[string]string, bool, error) {

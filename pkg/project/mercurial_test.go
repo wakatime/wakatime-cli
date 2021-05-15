@@ -82,7 +82,7 @@ func setupTestMercurial(t *testing.T) (fp string, tearDown func()) {
 	tmpFile, err := os.Create(filepath.Join(tmpDir, "wakatime-cli/src/pkg/file.go"))
 	require.NoError(t, err)
 
-	tmpFile.Close()
+	defer tmpFile.Close()
 
 	err = os.Mkdir(filepath.Join(tmpDir, "wakatime-cli/.hg"), os.FileMode(int(0700)))
 	require.NoError(t, err)
@@ -102,7 +102,7 @@ func setupTestMercurialBranchWithSlash(t *testing.T) (fp string, tearDown func()
 	tmpFile, err := os.Create(filepath.Join(tmpDir, "wakatime-cli/src/pkg/file.go"))
 	require.NoError(t, err)
 
-	tmpFile.Close()
+	defer tmpFile.Close()
 
 	err = os.Mkdir(filepath.Join(tmpDir, "wakatime-cli/.hg"), os.FileMode(int(0700)))
 	require.NoError(t, err)
@@ -122,7 +122,7 @@ func setupTestMercurialNoBranch(t *testing.T) (fp string, tearDown func()) {
 	tmpFile, err := os.Create(filepath.Join(tmpDir, "wakatime-cli/src/pkg/file.go"))
 	require.NoError(t, err)
 
-	tmpFile.Close()
+	defer tmpFile.Close()
 
 	err = os.Mkdir(filepath.Join(tmpDir, "wakatime-cli/.hg"), os.FileMode(int(0700)))
 	require.NoError(t, err)
