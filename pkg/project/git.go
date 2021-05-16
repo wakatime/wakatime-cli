@@ -63,22 +63,22 @@ func (g Git) Detect() (Result, bool, error) {
 	gitConfigFile, ok := findFileOrDirectory(fp, ".git", "config")
 
 	if ok {
-		dir, _ := filepath.Split(gitConfigFile)
-		project := filepath.Base(filepath.Join(dir, ".."))
+		gitDir := filepath.Dir(gitConfigFile)
+		projectDir := filepath.Join(gitDir, "..")
 
-		branch, err := findGitBranch(filepath.Join(gitConfigFile, "../HEAD"))
+		branch, err := findGitBranch(filepath.Join(gitDir, "HEAD"))
 		if err != nil {
 			log.Errorf(
 				"error finding for branch name from %q: %s",
-				filepath.Join(filepath.Dir(filepath.Join(gitConfigFile, "..")), "HEAD"),
+				filepath.Join(gitDir, "HEAD"),
 				err,
 			)
 		}
 
 		return Result{
-			Project: project,
+			Project: filepath.Base(projectDir),
 			Branch:  branch,
-			Folder:  filepath.Join(dir, ".."),
+			Folder:  projectDir,
 		}, true, nil
 	}
 
