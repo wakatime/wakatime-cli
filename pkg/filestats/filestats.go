@@ -25,6 +25,8 @@ type Config struct {
 func WithDetection(c Config) heartbeat.HandleOption {
 	return func(next heartbeat.Handle) heartbeat.Handle {
 		return func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+			log.Debugln("execute filestats detection")
+
 			for n, h := range hh {
 				if h.EntityType != heartbeat.FileType {
 					continue

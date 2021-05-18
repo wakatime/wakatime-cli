@@ -48,6 +48,8 @@ func QueueFilepath() (string, error) {
 func WithQueue(filepath string, syncLimit int) (heartbeat.HandleOption, error) {
 	return func(next heartbeat.Handle) heartbeat.Handle {
 		return func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+			log.Debugln("execute offline queue")
+
 			db, err := bolt.Open(filepath, 0600, nil)
 			if err != nil {
 				return nil, fmt.Errorf("failed to open db connection: %s", err)

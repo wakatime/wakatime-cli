@@ -3,7 +3,6 @@ package project
 import (
 	"fmt"
 	"path/filepath"
-	"regexp"
 	"strings"
 
 	"github.com/wakatime/wakatime-cli/pkg/log"
@@ -12,12 +11,9 @@ import (
 	"github.com/yookoala/realpath"
 )
 
-// nolint
-var driveLetterRegex = regexp.MustCompile(`^[a-zA-Z]:\\$`)
-
 // Git contains git data.
 type Git struct {
-	// Filepath conaints the entity path.
+	// Filepath contains the entity path.
 	Filepath string
 	// SubmodulePatterns will be matched against the submodule path and if matching, will skip it.
 	SubmodulePatterns []regex.Regex
@@ -64,35 +60,36 @@ func (g Git) Detect() (Result, bool, error) {
 	}
 
 	// Find for .git/config file
-	gitConfigFile, ok := findGitConfigFile(fp, ".git", "config")
+	gitConfigFile, ok := findFileOrDirectory(fp, ".git", "config")
 
 	if ok {
-		project := filepath.Base(filepath.Join(gitConfigFile, ".."))
+		gitDir := filepath.Dir(gitConfigFile)
+		projectDir := filepath.Join(gitDir, "..")
 
-		branch, err := findGitBranch(filepath.Join(gitConfigFile, "HEAD"))
+		branch, err := findGitBranch(filepath.Join(gitDir, "HEAD"))
 		if err != nil {
 			log.Errorf(
 				"error finding for branch name from %q: %s",
-				filepath.Join(filepath.Dir(gitConfigFile), "HEAD"),
+				filepath.Join(gitDir, "HEAD"),
 				err,
 			)
 		}
 
 		return Result{
-			Project: project,
+			Project: filepath.Base(projectDir),
 			Branch:  branch,
-			Folder:  filepath.Join(gitConfigFile, ".."),
+			Folder:  projectDir,
 		}, true, nil
 	}
 
 	// Find for .git file
-	gitConfigFile, ok = findGitConfigFile(fp, "", ".git")
+	gitConfigFile, ok = findFileOrDirectory(fp, "", ".git")
 	if !ok {
 		return Result{}, false, nil
 	}
 
 	// Find for gitdir path
-	gitdir, err := findGitdir(filepath.Join(gitConfigFile, ".git"))
+	gitdir, err := findGitdir(gitConfigFile)
 	if err != nil {
 		return Result{}, false,
 			Err(fmt.Sprintf("error finding gitdir: %s", err))
@@ -127,7 +124,7 @@ func (g Git) Detect() (Result, bool, error) {
 
 	if gitdir != "" {
 		// Otherwise it's only a plain .git file
-		project := filepath.Base(gitConfigFile)
+		project := filepath.Base(filepath.Join(gitConfigFile, ".."))
 
 		branch, err := findGitBranch(filepath.Join(gitdir, "HEAD"))
 		if err != nil {
@@ -141,24 +138,11 @@ func (g Git) Detect() (Result, bool, error) {
 		return Result{
 			Project: project,
 			Branch:  branch,
-			Folder:  gitdir,
+			Folder:  filepath.Join(gitdir, ".."),
 		}, true, nil
 	}
 
 	return Result{}, false, nil
-}
-
-func findGitConfigFile(fp string, directory string, match string) (string, bool) {
-	if fileExists(filepath.Join(fp, directory, match)) {
-		return filepath.Join(fp, directory), true
-	}
-
-	dir := filepath.Clean(filepath.Join(fp, ".."))
-	if dir == "/" || driveLetterRegex.MatchString(dir) {
-		return "", false
-	}
-
-	return findGitConfigFile(dir, directory, match)
 }
 
 func findSubmodule(fp string, patterns []regex.Regex) (string, bool, error) {
@@ -166,12 +150,12 @@ func findSubmodule(fp string, patterns []regex.Regex) (string, bool, error) {
 		return "", false, nil
 	}
 
-	gitConfigFile, ok := findGitConfigFile(fp, "", ".git")
+	gitConfigFile, ok := findFileOrDirectory(fp, "", ".git")
 	if !ok {
 		return "", false, nil
 	}
 
-	gitdir, err := findGitdir(filepath.Join(gitConfigFile, ".git"))
+	gitdir, err := findGitdir(gitConfigFile)
 	if err != nil {
 		return "", false,
 			Err(fmt.Sprintf("error finding gitdir for submodule: %s", err))

@@ -25,6 +25,8 @@ type Config struct {
 func WithFiltering(config Config) heartbeat.HandleOption {
 	return func(next heartbeat.Handle) heartbeat.Handle {
 		return func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+			log.Debugln("execute heartbeat filtering")
+
 			var filtered []heartbeat.Heartbeat
 
 			for _, h := range hh {

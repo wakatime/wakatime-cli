@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/yookoala/realpath"
 )
 
@@ -50,28 +51,36 @@ func (f File) Detect() (Result, bool, error) {
 
 // FindFile find for .wakatime-project file in the given path.
 func FindFile(fp string) (string, bool, error) {
-	resolved, err := realpath.Realpath(fp)
-	if err != nil {
-		return "", false, Err(fmt.Sprintf("failed to get the real path for file %q: %s", fp, err))
+	i := 0
+	for i < maxRecursiveIteration {
+		resolved, err := realpath.Realpath(fp)
+		if err != nil {
+			return "", false, Err(fmt.Sprintf("failed to get the real path for file %q: %s", fp, err))
+		}
+
+		fp = resolved
+
+		dir, _ := filepath.Split(fp)
+		if fileExists(filepath.Join(dir, defaultProjectFile)) {
+			fp = filepath.Join(dir, defaultProjectFile)
+			return fp, true, nil
+		}
+
+		dir, file := filepath.Split(fp)
+		if len(file) == 0 {
+			return "", false, nil
+		}
+
+		fp = dir
+		i++
 	}
 
-	fp = resolved
+	log.Warnf("didn't find .wakatime-project file after %d iterations", maxRecursiveIteration)
 
-	dir, _ := filepath.Split(fp)
-	if fileExists(filepath.Join(dir, defaultProjectFile)) {
-		fp = filepath.Join(dir, defaultProjectFile)
-		return fp, true, nil
-	}
-
-	dir, file := filepath.Split(fp)
-	if len(file) == 0 {
-		return "", false, nil
-	}
-
-	return FindFile(dir)
+	return "", false, nil
 }
 
-// fileExists checks if a file exist and is not a directory.
+// fileExists checks if a file or directory exist.
 func fileExists(fp string) bool {
 	_, err := os.Stat(fp)
 	return err == nil || os.IsExist(err)

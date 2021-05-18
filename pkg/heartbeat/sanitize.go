@@ -3,6 +3,7 @@ package heartbeat
 import (
 	"path/filepath"
 
+	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/regex"
 )
 
@@ -23,6 +24,8 @@ type SanitizeConfig struct {
 func WithSanitization(config SanitizeConfig) HandleOption {
 	return func(next Handle) Handle {
 		return func(hh []Heartbeat) ([]Result, error) {
+			log.Debugln("execute heartbeat sanitization")
+
 			for n, h := range hh {
 				hh[n] = Sanitize(h, config)
 			}

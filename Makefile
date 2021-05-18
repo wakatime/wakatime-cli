@@ -1,7 +1,8 @@
 .DEFAULT_GOAL := build-all
 
 # globals
-BINARY_NAME=wakatime-cli
+BINARY_NAME?=wakatime-cli
+BUILD_DIR?="./build"
 COMMIT?=$(shell git rev-parse --short HEAD)
 DATE?=$(shell date -u '+%Y-%m-%dT%H:%M:%SZ')
 REPO=github.com/wakatime/wakatime-cli
@@ -103,12 +104,12 @@ build-windows-amd64:
 build-binary:
 	CGO_ENABLED="0" GOOS=$(GOOS) GOARCH=$(GOARCH) $(GOBUILD) -v \
 		-ldflags "${LD_FLAGS} -X ${REPO}/pkg/version.OS=$(GOOS) -X ${REPO}/pkg/version.Arch=$(GOARCH)" \
-		-o ./build/$(BINARY_NAME)-$(GOOS)-$(GOARCH)
+		-o ${BUILD_DIR}/$(BINARY_NAME)-$(GOOS)-$(GOARCH)
 
 build-binary-windows:
 	CGO_ENABLED="0" GOOS=$(GOOS) GOARCH=$(GOARCH) $(GOBUILD) -v \
 		-ldflags "${LD_FLAGS} -X ${REPO}/pkg/version.OS=$(GOOS) -X ${REPO}/pkg/version.Arch=$(GOARCH)" \
-		-o ./build/$(BINARY_NAME)-$(GOOS)-$(GOARCH).exe
+		-o ${BUILD_DIR}/$(BINARY_NAME)-$(GOOS)-$(GOARCH).exe
 
 # install linter
 .PHONY: install-linter
@@ -125,4 +126,8 @@ lint: install-linter
 
 .PHONY: test
 test:
-	go test -cover -race ./...
+	go test -race -covermode=atomic -coverprofile=coverage.out ./...
+
+.PHONY: test-integration
+test-integration:
+	go test -race -tags=integration ./main_test.go

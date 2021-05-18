@@ -17,6 +17,8 @@ import (
 func WithDetection() heartbeat.HandleOption {
 	return func(next heartbeat.Handle) heartbeat.Handle {
 		return func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+			log.Debugln("execute language detection")
+
 			for n, h := range hh {
 				if hh[n].Language != nil {
 					continue

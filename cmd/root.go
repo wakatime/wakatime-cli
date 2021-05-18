@@ -104,7 +104,7 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 			" using the folder name as the project, a .wakatime-project file is"+
 			" created with a random project name.",
 	)
-	flags.String("hostname", "", "Optional name of local machine. Defaults to local machine name read from system")
+	flags.String("hostname", "", "Optional name of local machine. Defaults to local machine name read from system.")
 	flags.StringSlice(
 		"include",
 		nil,
@@ -134,6 +134,7 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 	)
 	flags.String("log-file", "", "Optional log file. Defaults to '~/.wakatime.log'.")
 	flags.String("logfile", "", "(deprecated) Optional log file. Defaults to '~/.wakatime.log'.")
+	flags.Bool("log-to-stdout", false, "If enabled, logs will go to stdout. Will overwrite logfile configs.")
 	flags.Bool(
 		"no-ssl-verify",
 		false,
@@ -146,15 +147,15 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 	flags.String(
 		"proxy",
 		"",
-		"Optional proxy configuration. Supports HTTPS and SOCKS proxies."+
+		"Optional proxy configuration. Supports HTTPS SOCKS and NTLM proxies."+
 			" For example: 'https://user:pass@host:port' or 'socks5://user:pass@host:port'"+
 			" or 'domain\\user:pass'",
 	)
 	flags.String(
 		"ssl-certs-file",
 		"",
-		"Override the bundled Python Requests CA certs file. By default, uses"+
-			"system ca certs.",
+		"Override the bundled CA certs file. By default, uses"+
+			" system ca certs.",
 	)
 	flags.String(
 		"sync-offline-activity",
@@ -182,12 +183,16 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 	flags.Bool("version", false, "Prints the wakatime-cli version number, then exits.")
 	flags.Bool("write", false, "When set, tells api this heartbeat was triggered from writing to a file.")
 
-	_ = flags.MarkDeprecated("apiurl", "please use --api-url instead.")
-	_ = flags.MarkDeprecated("disableoffline", "please use --disable-offline instead.")
-	_ = flags.MarkDeprecated("file", "please use --entity instead.")
-	_ = flags.MarkDeprecated("hide-filenames", "please use --hide-file-names instead.")
-	_ = flags.MarkDeprecated("hidefilenames", "please use --hide-file-names instead.")
-	_ = flags.MarkDeprecated("logfile", "please use --log-file instead.")
+	// hide deprecated flags
+	_ = flags.MarkHidden("apiurl")
+	_ = flags.MarkHidden("disableoffline")
+	_ = flags.MarkHidden("file")
+	_ = flags.MarkHidden("hide-filenames")
+	_ = flags.MarkHidden("hidefilenames")
+	_ = flags.MarkHidden("logfile")
+
+	// hide internal flags
+	_ = flags.MarkHidden("useragent")
 
 	err := v.BindPFlags(flags)
 	if err != nil {

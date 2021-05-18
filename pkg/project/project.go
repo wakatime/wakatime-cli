@@ -2,6 +2,8 @@ package project
 
 import (
 	"math/rand"
+	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -10,6 +12,12 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/regex"
 )
+
+// nolint: gochecknoglobals
+var driveLetterRegex = regexp.MustCompile(`^[a-zA-Z]:\\$`)
+
+// maxRecursiveIteration limits the number of a func will be called recursively.
+const maxRecursiveIteration = 500
 
 // Detecter is a common interface for project.
 type Detecter interface {
@@ -49,6 +57,8 @@ type MapPattern struct {
 func WithDetection(c Config) heartbeat.HandleOption {
 	return func(next heartbeat.Handle) heartbeat.Handle {
 		return func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+			log.Debugln("execute project detection")
+
 			for n, h := range hh {
 				if h.EntityType != heartbeat.FileType {
 					project := firstNonEmptyString(h.ProjectOverride, h.ProjectAlternate)
@@ -121,6 +131,9 @@ func DetectWithRevControl(entity string, submodulePatterns []regex.Regex, should
 			Filepath: entity,
 		},
 		Subversion{
+			Filepath: entity,
+		},
+		Tfvc{
 			Filepath: entity,
 		},
 	}
@@ -204,6 +217,29 @@ func generateProjectName() string {
 	str = append(str, strconv.Itoa(rand.Intn(100))) //nolint:gosec
 
 	return strings.Join(str, " ")
+}
+
+// findFileOrDirectory searches for a file or directory with name `filename`.
+// Search starts in `startDir` and will traverse through all parent directories until the file is found,
+// root directory is reached or `maxRecursiveIteration` is exceeded.
+func findFileOrDirectory(startDir, fileDir, filename string) (string, bool) {
+	i := 0
+	for i < maxRecursiveIteration {
+		if fileExists(filepath.Join(startDir, fileDir, filename)) {
+			return filepath.Join(startDir, fileDir, filename), true
+		}
+
+		startDir = filepath.Clean(filepath.Join(startDir, ".."))
+		if startDir == "." || startDir == "/" || driveLetterRegex.MatchString(startDir) {
+			return "", false
+		}
+
+		i++
+	}
+
+	log.Warnf("didn't find %s after %d iterations", filename, maxRecursiveIteration)
+
+	return "", false
 }
 
 // firstNonEmptyString accepts multiple values and return the first non empty string value.

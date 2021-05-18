@@ -65,7 +65,7 @@ func setupTestSvn(t *testing.T) (fp string, tearDown func()) {
 	tmpFile, err := os.Create(filepath.Join(tmpDir, "wakatime-cli/src/pkg/file.go"))
 	require.NoError(t, err)
 
-	tmpFile.Close()
+	defer tmpFile.Close()
 
 	copyDir(t, "testdata/svn", filepath.Join(tmpDir, "wakatime-cli/.svn"))
 
@@ -82,7 +82,7 @@ func setupTestSvnBranch(t *testing.T) (fp string, tearDown func()) {
 	tmpFile, err := os.Create(filepath.Join(tmpDir, "wakatime-cli/src/pkg/file.go"))
 	require.NoError(t, err)
 
-	tmpFile.Close()
+	defer tmpFile.Close()
 
 	copyDir(t, "testdata/svn_branch", filepath.Join(tmpDir, "wakatime-cli/.svn"))
 
