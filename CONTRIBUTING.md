@@ -6,14 +6,12 @@ To contribute to this project please carefully read this document.
 
 `wakatime-cli` is written in [Go](https://golang.org/).
 
-**Note:** wakatime-cli uses [Go Modules](https://github.com/golang/go/wiki/Modules) to manage dependencies.
-
 Prerequisites:
 
-- `make` - We use make to build and run tests.
+- We use `make` to build and run tests.
 - [Go 1.16](https://golang.org/doc/install)
 
-After cloning it first run `make test` to make sure everything is properly set.
+After cloning, install dependencies with `make install`.
 
 ## Branches
 
@@ -24,7 +22,7 @@ This project currently has two branches
 
 ## Testing and Linting
 
-Before any commit make sure to always run `make lint` and `make test` consecutively. It guarantees there's no linting error and all tests pass.
+Run `make test-all` before creating any pull requests, or your PR won’t pass the automated checks.
 
 ## Branching Stratgegy
 
