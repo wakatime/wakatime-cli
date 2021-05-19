@@ -12,6 +12,7 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/api"
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
 	"github.com/wakatime/wakatime-cli/pkg/log"
+	"github.com/wakatime/wakatime-cli/pkg/vipertools"
 
 	"github.com/certifi/gocertifi"
 	"github.com/spf13/viper"
@@ -152,7 +153,7 @@ func LoadParams(v *viper.Viper) (Params, error) {
 		return Params{}, fmt.Errorf("goal id unset")
 	}
 
-	goalID := v.GetString("today-goal")
+	goalID := vipertools.GetString(v, "today-goal")
 	if !uuid4Regex.Match([]byte(goalID)) {
 		return Params{}, fmt.Errorf("goal id invalid")
 	}

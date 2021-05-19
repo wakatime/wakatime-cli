@@ -15,6 +15,7 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/log"
+	"github.com/wakatime/wakatime-cli/pkg/vipertools"
 
 	"github.com/spf13/viper"
 )
@@ -45,7 +46,7 @@ func Run(v *viper.Viper) {
 	if v.GetBool("useragent") {
 		log.Debugln("command: useragent")
 
-		if plugin := v.GetString("plugin"); plugin != "" {
+		if plugin := vipertools.GetString(v, "plugin"); plugin != "" {
 			fmt.Println(heartbeat.UserAgent(plugin))
 
 			os.Exit(exitcode.Success)

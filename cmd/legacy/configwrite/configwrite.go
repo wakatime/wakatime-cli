@@ -9,6 +9,7 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/config"
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
 	"github.com/wakatime/wakatime-cli/pkg/log"
+	"github.com/wakatime/wakatime-cli/pkg/vipertools"
 
 	"github.com/spf13/viper"
 )
@@ -62,7 +63,7 @@ func Write(v *viper.Viper, w config.Writer) error {
 
 // LoadParams loads needed data from the configuration file.
 func LoadParams(v *viper.Viper) (Params, error) {
-	section := strings.TrimSpace(v.GetString("config-section"))
+	section := strings.TrimSpace(vipertools.GetString(v, "config-section"))
 	kv := v.GetStringMapString("config-write")
 
 	if section == "" || len(kv) == 0 {
