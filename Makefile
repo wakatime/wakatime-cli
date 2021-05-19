@@ -35,7 +35,7 @@ endif
 # targets
 build-all: build-darwin build-freebsd build-linux build-netbsd build-openbsd build-windows
 
-build-darwin-all: build-darwin-amd64 build-darwin-arm64
+build-darwin: build-darwin-amd64 build-darwin-arm64
 
 build-darwin-amd64:
 	GOOS=darwin GOARCH=amd64 make build-binary
