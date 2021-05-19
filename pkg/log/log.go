@@ -10,6 +10,7 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/version"
 
 	l "github.com/sirupsen/logrus"
+	jww "github.com/spf13/jwalterweatherman"
 )
 
 // nolint:gochecknoglobals
@@ -78,6 +79,14 @@ func SetVerbose(verbose bool) {
 		logEntry.Logger.SetLevel(l.DebugLevel)
 	} else {
 		logEntry.Logger.SetLevel(l.InfoLevel)
+	}
+}
+
+// SetJww sets jww log when debug enabled.
+func SetJww(verbose bool, w io.Writer) {
+	if verbose {
+		jww.SetLogThreshold(jww.LevelDebug)
+		jww.SetLogOutput(w)
 	}
 }
 
