@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/wakatime/wakatime-cli/pkg/config"
+	"github.com/wakatime/wakatime-cli/pkg/vipertools"
 	"gopkg.in/ini.v1"
 
 	"github.com/spf13/viper"
@@ -24,9 +25,9 @@ func TestReadInConfig(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	assert.Equal(t, "b9485572-74bf-419a-916b-22056ca3a24c", v.GetString("settings.api_key"))
-	assert.Equal(t, "true", v.GetString("settings.debug"))
-	assert.Equal(t, "true", v.GetString("test.pandemia"))
+	assert.Equal(t, "b9485572-74bf-419a-916b-22056ca3a24c", vipertools.GetString(v, "settings.api_key"))
+	assert.Equal(t, "true", vipertools.GetString(v, "settings.debug"))
+	assert.Equal(t, "true", vipertools.GetString(v, "test.pandemia"))
 }
 
 func TestReadInConfig_Multiline(t *testing.T) {
@@ -38,10 +39,10 @@ func TestReadInConfig_Multiline(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	ignoreConfig := strings.ReplaceAll(v.GetString("settings.ignore"), "\r", "")
+	ignoreConfig := strings.ReplaceAll(vipertools.GetString(v, "settings.ignore"), "\r", "")
 	assert.Equal(t, "\nCOMMIT_EDITMSG$\nPULLREQ_EDITMSG$\nMERGE_MSG$\nTAG_EDITMSG$", ignoreConfig)
 
-	gitConfig := strings.ReplaceAll(v.GetString("git.submodules_disabled"), "\r", "")
+	gitConfig := strings.ReplaceAll(vipertools.GetString(v, "git.submodules_disabled"), "\r", "")
 	assert.Equal(t, "\n.*secret.*\nfix.*", gitConfig)
 }
 
@@ -82,11 +83,15 @@ func TestFilePath(t *testing.T) {
 			ViperValue: "~/path/.wakatime.cfg",
 			Expected:   filepath.Join(home, "path", ".wakatime.cfg"),
 		},
-		"env_trailling_slash": {
+		"surrounding double quotes": {
+			ViperValue: `"~/path/.wakatime.cfg"`,
+			Expected:   filepath.Join(home, "path", ".wakatime.cfg"),
+		},
+		"env trailling slash": {
 			EnvVar:   "~/path2/",
 			Expected: filepath.Join(home, "path2", ".wakatime.cfg"),
 		},
-		"env_without_trailling_slash": {
+		"env without trailling slash": {
 			EnvVar:   "~/path2",
 			Expected: filepath.Join(home, "path2", ".wakatime.cfg"),
 		},

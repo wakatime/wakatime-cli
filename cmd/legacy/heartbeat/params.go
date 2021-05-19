@@ -167,7 +167,7 @@ func LoadParams(v *viper.Viper) (Params, error) {
 
 	var category heartbeat.Category
 
-	if categoryStr := v.GetString("category"); categoryStr != "" {
+	if categoryStr := vipertools.GetString(v, "category"); categoryStr != "" {
 		parsed, err := heartbeat.ParseCategory(categoryStr)
 		if err != nil {
 			return Params{}, fmt.Errorf("failed to parse category: %s", err)
@@ -188,7 +188,7 @@ func LoadParams(v *viper.Viper) (Params, error) {
 
 	var entityType heartbeat.EntityType
 
-	if entityTypeStr := v.GetString("entity-type"); entityTypeStr != "" {
+	if entityTypeStr := vipertools.GetString(v, "entity-type"); entityTypeStr != "" {
 		parsed, err := heartbeat.ParseEntityType(entityTypeStr)
 		if err != nil {
 			return Params{}, fmt.Errorf("failed to parse entity type: %s", err)
@@ -240,10 +240,10 @@ func LoadParams(v *viper.Viper) (Params, error) {
 	case !v.IsSet("sync-offline-activity"):
 		// use default
 		offlineSyncMax = v.GetInt("sync-offline-activity")
-	case v.GetString("sync-offline-activity") == "none":
+	case vipertools.GetString(v, "sync-offline-activity") == "none":
 		break
 	default:
-		offlineSyncMax, err = strconv.Atoi(v.GetString("sync-offline-activity"))
+		offlineSyncMax, err = strconv.Atoi(vipertools.GetString(v, "sync-offline-activity"))
 		if err != nil {
 			return Params{}, errors.New("argument --sync-offline-activity must be \"none\" or a positive integer number: %s")
 		}
@@ -269,7 +269,7 @@ func LoadParams(v *viper.Viper) (Params, error) {
 	}
 
 	var language *string
-	if l := v.GetString("language"); l != "" {
+	if l := vipertools.GetString(v, "language"); l != "" {
 		language = &l
 	}
 
@@ -282,10 +282,10 @@ func LoadParams(v *viper.Viper) (Params, error) {
 		Hostname:          hostname,
 		IsWrite:           isWrite,
 		Language:          language,
-		LanguageAlternate: v.GetString("alternate-language"),
+		LanguageAlternate: vipertools.GetString(v, "alternate-language"),
 		LineNumber:        lineNumber,
 		LinesInFile:       linesInFile,
-		LocalFile:         v.GetString("local-file"),
+		LocalFile:         vipertools.GetString(v, "local-file"),
 		OfflineDisabled:   offlineDisabled,
 		OfflineSyncMax:    offlineSyncMax,
 		Time:              timeSecs,
@@ -632,7 +632,7 @@ func loadProjectParams(v *viper.Viper) (ProjectParams, error) {
 		return ProjectParams{}, errors.New("viper instance unset")
 	}
 
-	disableSubmodule, err := parseBoolOrRegexList(v.GetString("git.submodules_disabled"))
+	disableSubmodule, err := parseBoolOrRegexList(vipertools.GetString(v, "git.submodules_disabled"))
 	if err != nil {
 		return ProjectParams{}, fmt.Errorf(
 			"failed to parse regex submodules disabled param: %s",
@@ -658,10 +658,10 @@ func loadProjectParams(v *viper.Viper) (ProjectParams, error) {
 	}
 
 	return ProjectParams{
-		Alternate:        v.GetString("alternate-project"),
+		Alternate:        vipertools.GetString(v, "alternate-project"),
 		DisableSubmodule: disableSubmodule,
 		MapPatterns:      mapPatterns,
-		Override:         v.GetString("project"),
+		Override:         vipertools.GetString(v, "project"),
 	}, nil
 }
 
