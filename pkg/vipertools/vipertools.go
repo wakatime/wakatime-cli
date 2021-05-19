@@ -1,6 +1,8 @@
 package vipertools
 
 import (
+	"strings"
+
 	"github.com/spf13/viper"
 )
 
@@ -47,7 +49,7 @@ func FirstNonEmptyString(v *viper.Viper, keys ...string) (string, bool) {
 
 	for _, key := range keys {
 		if value := v.GetString(key); value != "" {
-			return value, true
+			return strings.Trim(value, `"'`), true
 		}
 	}
 
