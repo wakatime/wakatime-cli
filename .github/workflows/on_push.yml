@@ -173,6 +173,7 @@ jobs:
           tag_name: ${{ steps.semver-tag.outputs.semver_tag }}
           body: ${{ steps.changelog.outputs.changelog }}
           prerelease: ${{ steps.semver-tag.outputs.is_prerelease }}
+          target_commitish: ${{ github.sha }} 
         env:
           # PAT is mandatory here to trigger new workflows
           # https://docs.github.com/en/actions/reference/authentication-in-a-workflow#using-the-github_token-in-a-workflow
