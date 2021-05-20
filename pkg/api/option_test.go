@@ -53,7 +53,7 @@ func TestOption_WithAuth(t *testing.T) {
 			req, err := http.NewRequest(http.MethodGet, url, nil)
 			require.NoError(t, err)
 
-			c := api.NewClient("", httpClient(), []api.Option{withAuth}...)
+			c := api.NewClient("", []api.Option{withAuth}...)
 			resp, err := c.Do(req)
 			require.NoError(t, err)
 
@@ -81,7 +81,7 @@ func TestOption_WithHostname(t *testing.T) {
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	require.NoError(t, err)
 
-	c := api.NewClient("", httpClient(), opts...)
+	c := api.NewClient("", opts...)
 	resp, err := c.Do(req)
 	require.NoError(t, err)
 
@@ -129,7 +129,7 @@ func TestOption_WithNTLM(t *testing.T) {
 			req, err := http.NewRequest(http.MethodGet, url, nil)
 			require.NoError(t, err)
 
-			c := api.NewClient("", &http.Client{}, []api.Option{withNTLM}...)
+			c := api.NewClient("", []api.Option{withNTLM}...)
 			resp, err := c.Do(req)
 			require.NoError(t, err)
 
@@ -186,7 +186,7 @@ func TestOption_WithNTLMRequestRetry(t *testing.T) {
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	require.NoError(t, err)
 
-	c := api.NewClient("", &http.Client{}, []api.Option{withNTLMRetry}...)
+	c := api.NewClient("", []api.Option{withNTLMRetry}...)
 	resp, err := c.Do(req)
 	require.NoError(t, err)
 
@@ -213,7 +213,7 @@ func TestOption_WithProxy(t *testing.T) {
 	req, err := http.NewRequest(http.MethodGet, "http://example.org", nil)
 	require.NoError(t, err)
 
-	c := api.NewClient("", httpClient(), opts...)
+	c := api.NewClient("", opts...)
 	resp, err := c.Do(req)
 	require.NoError(t, err)
 
@@ -248,7 +248,7 @@ func TestOption_WithUserAgent(t *testing.T) {
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	require.NoError(t, err)
 
-	c := api.NewClient("", httpClient(), opts...)
+	c := api.NewClient("", opts...)
 	resp, err := c.Do(req)
 	require.NoError(t, err)
 
@@ -283,7 +283,7 @@ func TestOption_WithUserAgentUnknownPlugin(t *testing.T) {
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	require.NoError(t, err)
 
-	c := api.NewClient("", httpClient(), opts...)
+	c := api.NewClient("", opts...)
 	resp, err := c.Do(req)
 	require.NoError(t, err)
 
