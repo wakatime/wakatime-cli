@@ -155,7 +155,8 @@ jobs:
         id: semver-tag
         uses: wakatime/semver-action@v1.3.2
         with:
-          prerelease_id: "alpha"
+          prerelease_id: alpha
+          main_branch_name: release
       -
         name: Changelog
         uses: gandarez/changelog-action@v1.0.4
