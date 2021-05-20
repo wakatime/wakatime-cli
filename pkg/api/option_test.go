@@ -291,12 +291,3 @@ func TestOption_WithUserAgentUnknownPlugin(t *testing.T) {
 
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
-
-func httpClient() *http.Client {
-	transport := http.DefaultTransport.(*http.Transport).Clone()
-	transport.DisableKeepAlives = true
-
-	return &http.Client{
-		Transport: transport,
-	}
-}

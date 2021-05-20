@@ -5,6 +5,7 @@ import (
 	"time"
 )
 
+// NewTransport creates a new http.Transport, with default 30 second TLS timeout.
 func NewTransport() *http.Transport {
 	return &http.Transport{
 		Proxy:               nil,
