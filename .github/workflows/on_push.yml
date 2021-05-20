@@ -153,7 +153,7 @@ jobs:
       -
         name: "Calculate semver tag"
         id: semver-tag
-        uses: wakatime/semver-action@v1.3.1
+        uses: wakatime/semver-action@v1.3.2
         with:
           prerelease_id: "alpha"
       -
