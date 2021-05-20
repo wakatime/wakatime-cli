@@ -1,6 +1,11 @@
 name: "Tests"
 
-on: push
+on:
+  push:
+    branches:
+      - "**"
+    tags-ignore:
+      - "**"
 
 env:
   GO_VERSION: "1.16"
@@ -55,7 +60,6 @@ jobs:
       -
         name: "Integration tests"
         run: make test-integration
-
 
   test-windows:
     name: Unit tests windows
@@ -139,11 +143,80 @@ jobs:
         name: "Integration tests"
         run: make test-integration
 
-  release:
-    name: Release
+  build:
+    name: Build
     if: ${{ github.ref == 'refs/heads/release' || github.ref == 'refs/heads/develop' }}
     runs-on: ubuntu-latest
     needs: [test, test-integration, test-windows, test-integration-windows, test-macos, test-integration-macos]
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v2
+      -
+        name: Setup go
+        uses: actions/setup-go@master
+        with:
+          go-version: "1.16"
+      -
+        name: Build binaries
+        env:
+          VERSION: ${{ github.event.release.tag_name }}
+        run: make build-all
+        shell: bash
+      -
+        name: Upload artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: binaries
+          path: build/
+
+  sign:
+    name: Sign Apple binaries
+    needs: build
+    runs-on: macos-latest
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v2
+      -
+        name: Download artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: binaries
+          path: build/
+      -
+        name: Import Code-Signing Certificates
+        uses: Apple-Actions/import-codesign-certs@v1
+        with:
+          # The certificates in a PKCS12 file encoded as a base64 string
+          p12-file-base64: ${{ secrets.APPLE_DEVELOPER_CERTIFICATE_P12_BASE64 }}
+          # The password used to import the PKCS12 file.
+          p12-password: ${{ secrets.APPLE_DEVELOPER_CERTIFICATE_PASSWORD }}
+      -
+        name: Install gon via Homebrew for code signing and app notarization
+        run: |
+          brew tap mitchellh/gon
+          brew install mitchellh/gon/gon
+      -
+        name: Sign and notarize mac binaries with gon
+        env:
+          AC_USERNAME: ${{ secrets.AC_USERNAME }}
+          AC_PASSWORD: ${{ secrets.AC_PASSWORD }}
+        run: gon -log-level=debug -log-json ./gon.hcl
+      -
+        name: Move zip file
+        run: mv ./wakatime-cli-darwin.zip ./build/
+      -
+        name: Upload artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: binaries
+          path: build/
+
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    needs: [build, sign]
     steps:
       -
         name: "Checkout"
@@ -167,6 +240,15 @@ jobs:
           exclude: |
             ^Merge pull request .*
       -
+        name: Download artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: binaries
+          path: build/
+      -
+        name: Prepare release assets
+        run: ./bin/prepare_assets.sh
+      -
         name: "Create release"
         uses: softprops/action-gh-release@v1
         with:
@@ -174,8 +256,28 @@ jobs:
           tag_name: ${{ steps.semver-tag.outputs.semver_tag }}
           body: ${{ steps.changelog.outputs.changelog }}
           prerelease: ${{ steps.semver-tag.outputs.is_prerelease }}
-          target_commitish: ${{ github.sha }} 
+          target_commitish: ${{ github.sha }}
+          files: ./release/*
         env:
-          # PAT is mandatory here to trigger new workflows
-          # https://docs.github.com/en/actions/reference/authentication-in-a-workflow#using-the-github_token-in-a-workflow
-          GITHUB_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - 
+        name: "Slack notification"
+        uses: 8398a7/action-slack@v3
+        if: ${{ success() }}
+        with:
+          status: custom
+          fields: message
+          custom_payload: |
+            {
+              username: 'WakaTime Bot',
+              icon_emoji: ':mega:',
+              attachments: [{
+                color: 'good',
+                pretext: 'New <https://github.com/wakatime/wakatime-cli|wakatime-cli> version released',
+                title: `${{ steps.semver-tag.outputs.semver_tag }}`,
+                title_link: `https://github.com/wakatime/wakatime-cli/releases/tag/${{ steps.semver-tag.outputs.semver_tag }}`,
+                text: `${process.env.AS_MESSAGE}`
+              }]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
