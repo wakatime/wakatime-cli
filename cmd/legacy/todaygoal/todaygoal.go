@@ -3,7 +3,6 @@ package todaygoal
 import (
 	"errors"
 	"fmt"
-	"net/http"
 	"os"
 	"regexp"
 	"strings"
@@ -126,7 +125,7 @@ func Goal(v *viper.Viper) (string, error) {
 		url = params.API.URL
 	}
 
-	c := api.NewClient(url, http.DefaultClient, opts...)
+	c := api.NewClient(url, opts...)
 
 	goal, err := c.Goal(params.GoalID)
 	if err != nil {
