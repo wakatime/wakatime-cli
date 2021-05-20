@@ -15,16 +15,38 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/log"
+	"github.com/wakatime/wakatime-cli/pkg/vipertools"
 
 	"github.com/spf13/viper"
 )
 
 // Run executes legacy commands following the interface of the old python implementation of the WakaTime script.
 func Run(v *viper.Viper) {
+	logfileParams, err := logfile.LoadParams(v)
+	if err != nil {
+		log.Fatalf("failed to load log params: %s", err)
+	}
+
+	logFile := os.Stdout
+
+	if !logfileParams.ToStdout {
+		log.Debugf("log to file %s", logfileParams.File)
+
+		logFile, err = os.OpenFile(logfileParams.File, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0666)
+		if err != nil {
+			log.Fatalf("error opening log file: %s", err)
+		}
+
+		log.SetOutput(logFile)
+	}
+
+	log.SetVerbose(logfileParams.Verbose)
+	log.SetJww(logfileParams.Verbose, logFile)
+
 	if v.GetBool("useragent") {
 		log.Debugln("command: useragent")
 
-		if plugin := v.GetString("plugin"); plugin != "" {
+		if plugin := vipertools.GetString(v, "plugin"); plugin != "" {
 			fmt.Println(heartbeat.UserAgent(plugin))
 
 			os.Exit(exitcode.Success)
@@ -53,24 +75,6 @@ func Run(v *viper.Viper) {
 
 		os.Exit(exitcode.ErrDefault)
 	}
-
-	logfileParams, err := logfile.LoadParams(v)
-	if err != nil {
-		log.Fatalf("failed to load log params: %s", err)
-	}
-
-	if !logfileParams.ToStdout {
-		log.Debugf("log to file %s", logfileParams.File)
-
-		f, err := os.OpenFile(logfileParams.File, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0666)
-		if err != nil {
-			log.Fatalf("error opening log file: %s", err)
-		}
-
-		log.SetOutput(f)
-	}
-
-	log.SetVerbose(logfileParams.Verbose)
 
 	if v.IsSet("config-read") {
 		log.Debugln("command: config-read")

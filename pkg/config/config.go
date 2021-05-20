@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/wakatime/wakatime-cli/pkg/log"
+	"github.com/wakatime/wakatime-cli/pkg/vipertools"
 
 	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/viper"
@@ -87,7 +88,7 @@ func ReadInConfig(v *viper.Viper, filepathFn func(v *viper.Viper) (string, error
 
 // FilePath returns the path for wakatime config file.
 func FilePath(v *viper.Viper) (string, error) {
-	configFilepath := v.GetString("config")
+	configFilepath := vipertools.GetString(v, "config")
 	if configFilepath != "" {
 		p, err := homedir.Expand(configFilepath)
 		if err != nil {

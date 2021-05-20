@@ -1,6 +1,8 @@
 package vipertools
 
 import (
+	"strings"
+
 	"github.com/spf13/viper"
 )
 
@@ -46,10 +48,15 @@ func FirstNonEmptyString(v *viper.Viper, keys ...string) (string, bool) {
 	}
 
 	for _, key := range keys {
-		if value := v.GetString(key); value != "" {
-			return value, true
+		if value := GetString(v, key); value != "" {
+			return strings.Trim(value, `"'`), true
 		}
 	}
 
 	return "", false
+}
+
+// GetString gets a parameter/setting by key and strips any quotes.
+func GetString(v *viper.Viper, key string) string {
+	return strings.Trim(v.GetString(key), `"'`)
 }

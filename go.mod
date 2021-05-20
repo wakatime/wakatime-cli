@@ -13,6 +13,7 @@ require (
 	github.com/sirupsen/logrus v1.8.1
 	github.com/slongfield/pyfmt v0.0.0-20180124071345-020a7cb18bca
 	github.com/spf13/cobra v1.1.1
+	github.com/spf13/jwalterweatherman v1.0.0
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.7.1
 	github.com/stretchr/testify v1.7.0

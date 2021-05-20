@@ -20,7 +20,7 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
       -
         name: "Pull dependencies"
-        run: go mod vendor
+        run: make install-go-modules
       -
         name: "Unit tests"
         run: make test
@@ -46,7 +46,7 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
       -
         name: "Pull dependencies"
-        run: go mod vendor
+        run: make install-go-modules
       -
         name: "Build binary"
         env:
@@ -70,7 +70,7 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
       -
         name: "Pull dependencies"
-        run: go mod vendor
+        run: make install-go-modules
       -
         name: "Unit tests"
         run: make test
@@ -88,7 +88,7 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
       -
         name: "Pull dependencies"
-        run: go mod vendor
+        run: make install-go-modules
       -
         name: "Build binary"
         env:
@@ -111,7 +111,7 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
       -
         name: "Pull dependencies"
-        run: go mod vendor
+        run: make install-go-modules
       -
         name: "Unit tests"
         run: make test
@@ -129,7 +129,7 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
       -
         name: "Pull dependencies"
-        run: go mod vendor
+        run: make install-go-modules
       -
         name: "Build binary"
         env:
@@ -153,7 +153,7 @@ jobs:
       -
         name: "Calculate semver tag"
         id: semver-tag
-        uses: wakatime/semver-action@v1.2.2
+        uses: wakatime/semver-action@v1.3.1
         with:
           prerelease_id: "alpha"
       -

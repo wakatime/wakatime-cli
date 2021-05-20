@@ -101,3 +101,19 @@ func TestFirstNonEmptyString_NotFound(t *testing.T) {
 	_, ok := vipertools.FirstNonEmptyString(viper.New(), "key")
 	assert.False(t, ok)
 }
+
+func TestGetString(t *testing.T) {
+	v := viper.New()
+	v.Set("some", "value")
+
+	value := vipertools.GetString(v, "some")
+	assert.Equal(t, "value", value)
+}
+
+func TestGetString_DoubleQuotes(t *testing.T) {
+	v := viper.New()
+	v.Set("some", "\"value\"")
+
+	value := vipertools.GetString(v, "some")
+	assert.Equal(t, "value", value)
+}

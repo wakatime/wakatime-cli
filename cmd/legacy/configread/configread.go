@@ -8,6 +8,7 @@ import (
 
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
 	"github.com/wakatime/wakatime-cli/pkg/log"
+	"github.com/wakatime/wakatime-cli/pkg/vipertools"
 
 	"github.com/spf13/viper"
 )
@@ -42,7 +43,7 @@ func Read(v *viper.Viper) (string, error) {
 		return "", err
 	}
 
-	value := strings.TrimSpace(v.GetString(params.ViperKey()))
+	value := strings.TrimSpace(vipertools.GetString(v, params.ViperKey()))
 	if value == "" {
 		return "", ErrFileRead(
 			fmt.Sprintf("given section and key %q returned an empty string", params.ViperKey()),
@@ -54,8 +55,8 @@ func Read(v *viper.Viper) (string, error) {
 
 // LoadParams loads needed data from the configuration file.
 func LoadParams(v *viper.Viper) (Params, error) {
-	section := strings.TrimSpace(v.GetString("config-section"))
-	key := strings.TrimSpace(v.GetString("config-read"))
+	section := strings.TrimSpace(vipertools.GetString(v, "config-section"))
+	key := strings.TrimSpace(vipertools.GetString(v, "config-read"))
 
 	if section == "" || key == "" {
 		return Params{},

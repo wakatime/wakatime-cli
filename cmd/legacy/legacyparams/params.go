@@ -74,7 +74,7 @@ func LoadParams(v *viper.Viper) (APIParams, NetworkParams, error) {
 
 	apiParams := APIParams{
 		Key:    apiKey,
-		Plugin: v.GetString("plugin"),
+		Plugin: vipertools.GetString(v, "plugin"),
 	}
 
 	apiParams.URL = api.BaseURL
