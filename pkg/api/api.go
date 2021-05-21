@@ -1,6 +1,9 @@
 package api
 
-import "net/http"
+import (
+	"net/http"
+	"time"
+)
 
 // BaseURL is the base url of the wakatime api.
 const BaseURL = "https://api.wakatime.com/api"
@@ -25,10 +28,14 @@ type Client struct {
 }
 
 // NewClient creates a new Client. Any number of Options can be provided.
-func NewClient(baseURL string, client *http.Client, opts ...Option) *Client {
+func NewClient(baseURL string, opts ...Option) *Client {
 	c := &Client{
 		baseURL: baseURL,
-		client:  client,
+		client: &http.Client{
+			Transport:     NewTransport(),
+			CheckRedirect: nil, // defaults to following up to 10 redirects
+			Timeout:       30 * time.Second,
+		},
 		doFunc: func(c *Client, req *http.Request) (*http.Response, error) {
 			req.Header.Set("Accept", "application/json")
 			return c.client.Do(req)

@@ -3,7 +3,6 @@ package today
 import (
 	"errors"
 	"fmt"
-	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -123,7 +122,7 @@ func Summary(v *viper.Viper) (string, error) {
 		url = params.API.URL
 	}
 
-	c := api.NewClient(url, http.DefaultClient, opts...)
+	c := api.NewClient(url, opts...)
 
 	now := time.Now()
 	todayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())

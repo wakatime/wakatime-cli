@@ -3,7 +3,6 @@ package heartbeat
 import (
 	"errors"
 	"fmt"
-	"net/http"
 	"os"
 	"strings"
 
@@ -130,7 +129,7 @@ func SendHeartbeats(v *viper.Viper, queueFilepath string) error {
 		clientOpts = append(clientOpts, api.WithUserAgentUnknownPlugin())
 	}
 
-	c := api.NewClient(params.API.URL, http.DefaultClient, clientOpts...)
+	c := api.NewClient(params.API.URL, clientOpts...)
 
 	heartbeats := []heartbeat.Heartbeat{
 		heartbeat.New(
