@@ -18,7 +18,7 @@ After cloning, install dependencies with `make install`.
 This project currently has two branches
 
 - `develop` - Default branch for every new `feature` or `fix`
-- `master` - Branch for production releases and hotfixes
+- `release` - Branch for production releases and hotfixes
 
 ## Testing and Linting
 
