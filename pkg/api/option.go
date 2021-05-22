@@ -49,12 +49,7 @@ func WithHostname(hostname string) Option {
 // WithDisableSSLVerify disables verification of insecure certificates.
 func WithDisableSSLVerify() Option {
 	return func(c *Client) {
-		var transport *http.Transport
-		if c.client.Transport == nil {
-			transport = http.DefaultTransport.(*http.Transport).Clone()
-		} else {
-			transport = c.client.Transport.(*http.Transport).Clone()
-		}
+		var transport *http.Transport = GetOrCreateTransport(c)
 
 		tlsConfig := transport.TLSClientConfig
 		tlsConfig.InsecureSkipVerify = true
@@ -88,15 +83,8 @@ func WithNTLM(creds string) (Option, error) {
 	return func(c *Client) {
 		withAuth(c)
 
-		var transport http.RoundTripper
-		if c.client.Transport == nil {
-			transport = http.DefaultTransport
-		} else {
-			transport = c.client.Transport.(*http.Transport).Clone()
-		}
-
 		c.client.Transport = ntlmssp.Negotiator{
-			RoundTripper: transport,
+			RoundTripper: GetOrCreateTransport(c),
 		}
 	}, nil
 }
@@ -134,13 +122,8 @@ func WithProxy(proxyURL string) (Option, error) {
 	}
 
 	return func(c *Client) {
-		transport := http.DefaultTransport.(*http.Transport).Clone()
-		if c.client.Transport != nil {
-			transport = c.client.Transport.(*http.Transport).Clone()
-		}
-
+		var transport *http.Transport = GetOrCreateTransport(c)
 		transport.Proxy = http.ProxyURL(u)
-
 		c.client.Transport = transport
 	}, nil
 }
@@ -166,13 +149,7 @@ func WithSSLCertFile(filepath string) (Option, error) {
 // WithSSLCertPool overrides the default CA cert pool to trust specified cert pool.
 func WithSSLCertPool(caCertPool *x509.CertPool) (Option, error) {
 	return func(c *Client) {
-		var transport *http.Transport
-		if c.client.Transport == nil {
-			transport = http.DefaultTransport.(*http.Transport).Clone()
-		} else {
-			transport = c.client.Transport.(*http.Transport).Clone()
-		}
-
+		var transport *http.Transport = GetOrCreateTransport(c)
 		tlsConfig := transport.TLSClientConfig
 		tlsConfig.RootCAs = caCertPool
 		transport.TLSClientConfig = tlsConfig

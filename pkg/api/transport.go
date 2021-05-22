@@ -6,8 +6,12 @@ import (
 	"time"
 )
 
-// NewTransport creates a new http.Transport, with default 30 second TLS timeout.
-func NewTransport() *http.Transport {
+// HTTPTransport gets the client's Transport if already exists, or initializes a new one.
+func HTTPTransport(c *Client) *http.Transport {
+	if c.client.Transport != nil {
+		return c.client.Transport.(*http.Transport).Clone()
+	}
+
 	return &http.Transport{
 		Proxy:               nil,
 		TLSHandshakeTimeout: 30 * time.Second,
