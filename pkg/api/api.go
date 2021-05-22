@@ -32,7 +32,7 @@ func NewClient(baseURL string, opts ...Option) *Client {
 	c := &Client{
 		baseURL: baseURL,
 		client: &http.Client{
-			Transport:     NewTransport(),
+			Transport:     HTTPTransport(nil),
 			CheckRedirect: nil, // defaults to following up to 10 redirects
 			Timeout:       30 * time.Second,
 		},

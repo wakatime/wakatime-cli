@@ -8,7 +8,7 @@ import (
 
 // HTTPTransport gets the client's Transport if already exists, or initializes a new one.
 func HTTPTransport(c *Client) *http.Transport {
-	if c.client.Transport != nil {
+	if c != nil && c.client != nil && c.client.Transport != nil {
 		return c.client.Transport.(*http.Transport).Clone()
 	}
 

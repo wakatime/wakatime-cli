@@ -49,7 +49,7 @@ func WithHostname(hostname string) Option {
 // WithDisableSSLVerify disables verification of insecure certificates.
 func WithDisableSSLVerify() Option {
 	return func(c *Client) {
-		var transport *http.Transport = GetOrCreateTransport(c)
+		var transport *http.Transport = HTTPTransport(c)
 
 		tlsConfig := transport.TLSClientConfig
 		tlsConfig.InsecureSkipVerify = true
@@ -84,7 +84,7 @@ func WithNTLM(creds string) (Option, error) {
 		withAuth(c)
 
 		c.client.Transport = ntlmssp.Negotiator{
-			RoundTripper: GetOrCreateTransport(c),
+			RoundTripper: HTTPTransport(c),
 		}
 	}, nil
 }
@@ -122,7 +122,7 @@ func WithProxy(proxyURL string) (Option, error) {
 	}
 
 	return func(c *Client) {
-		var transport *http.Transport = GetOrCreateTransport(c)
+		var transport *http.Transport = HTTPTransport(c)
 		transport.Proxy = http.ProxyURL(u)
 		c.client.Transport = transport
 	}, nil
@@ -149,7 +149,7 @@ func WithSSLCertFile(filepath string) (Option, error) {
 // WithSSLCertPool overrides the default CA cert pool to trust specified cert pool.
 func WithSSLCertPool(caCertPool *x509.CertPool) (Option, error) {
 	return func(c *Client) {
-		var transport *http.Transport = GetOrCreateTransport(c)
+		var transport *http.Transport = HTTPTransport(c)
 		tlsConfig := transport.TLSClientConfig
 		tlsConfig.RootCAs = caCertPool
 		transport.TLSClientConfig = tlsConfig
