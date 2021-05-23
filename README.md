@@ -1,6 +1,7 @@
 # WakaTime CLI
 
-![Tests](https://img.shields.io/github/workflow/status/wakatime/wakatime-cli/Create%20Release/release?label=%20tests) ![Build](https://img.shields.io/github/workflow/status/wakatime/wakatime-cli/Build%20and%20upload%20release%20assets) [![Coverage Status](https://coveralls.io/repos/github/wakatime/wakatime-cli/badge.svg?branch=release)](https://coveralls.io/github/wakatime/wakatime-cli?branch=release)
+![Tests](https://img.shields.io/github/workflow/status/wakatime/wakatime-cli/Tests/develop?label=tests)
+[![Coverage](https://coveralls.io/repos/github/wakatime/wakatime-cli/badge.svg?branch=develop)](https://coveralls.io/github/wakatime/wakatime-cli?branch=develop)
 
 Command line interface to [WakaTime](https://wakatime.com) used by all WakaTime [text editor plugins](https://wakatime.com/editors).
 
