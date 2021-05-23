@@ -13,7 +13,6 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/vipertools"
 
-	"github.com/certifi/gocertifi"
 	"github.com/spf13/viper"
 )
 
@@ -83,12 +82,7 @@ func Goal(v *viper.Viper) (string, error) {
 
 		opts = append(opts, withSSLCert)
 	} else if !params.Network.DisableSSLVerify {
-		certPool, err := gocertifi.CACerts()
-		if err != nil {
-			return "", fmt.Errorf("failed to build certifi cert pool: %s", err)
-		}
-
-		withSSLCert, err := api.WithSSLCertPool(certPool)
+		withSSLCert, err := api.WithSSLCertPool(api.CACerts())
 		if err != nil {
 			return "", fmt.Errorf("failed to set up ssl cert pool option on api client: %s", err)
 		}
