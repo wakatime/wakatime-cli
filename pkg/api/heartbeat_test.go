@@ -55,7 +55,7 @@ func TestClient_Send(t *testing.T) {
 				require.NoError(t, err)
 			})
 
-			c := api.NewClient(url, http.DefaultClient)
+			c := api.NewClient(url)
 			results, err := c.Send(testHeartbeats())
 			require.NoError(t, err)
 
@@ -115,7 +115,7 @@ func TestClient_Send_Err(t *testing.T) {
 		w.WriteHeader(http.StatusInternalServerError)
 	})
 
-	c := api.NewClient(url, http.DefaultClient)
+	c := api.NewClient(url)
 	_, err := c.Send(testHeartbeats())
 
 	var errapi api.Err
@@ -136,7 +136,7 @@ func TestClient_Send_ErrAuth(t *testing.T) {
 		w.WriteHeader(http.StatusUnauthorized)
 	})
 
-	c := api.NewClient(url, http.DefaultClient)
+	c := api.NewClient(url)
 	_, err := c.Send(testHeartbeats())
 
 	var errauth api.ErrAuth
@@ -147,7 +147,7 @@ func TestClient_Send_ErrAuth(t *testing.T) {
 }
 
 func TestClient_Send_ErrRequest(t *testing.T) {
-	c := api.NewClient("invalid-url", http.DefaultClient)
+	c := api.NewClient("invalid-url")
 	_, err := c.Send(testHeartbeats())
 
 	var errreq api.ErrRequest
