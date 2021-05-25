@@ -4,11 +4,13 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/wakatime/wakatime-cli/cmd/legacy/configread"
 	"github.com/wakatime/wakatime-cli/cmd/legacy/configwrite"
 	heartbeatcmd "github.com/wakatime/wakatime-cli/cmd/legacy/heartbeat"
 	"github.com/wakatime/wakatime-cli/cmd/legacy/logfile"
+	"github.com/wakatime/wakatime-cli/cmd/legacy/offlinesync"
 	"github.com/wakatime/wakatime-cli/cmd/legacy/today"
 	"github.com/wakatime/wakatime-cli/cmd/legacy/todaygoal"
 	"github.com/wakatime/wakatime-cli/pkg/config"
@@ -100,7 +102,26 @@ func Run(v *viper.Viper) {
 		todaygoal.Run(v)
 	}
 
-	log.Debugln("command: heartbeat")
+	if v.IsSet("entity") {
+		log.Debugln("command: heartbeat")
 
-	heartbeatcmd.Run(v)
+		heartbeatcmd.Run(v)
+	}
+
+	if v.IsSet("sync-offline-activity") {
+		log.Debugln("command: sync-offline-activity")
+
+		offlinesync.Run(v)
+	}
+
+	log.Fatalf("One of the following parameters has to be provided: %s", strings.Join([]string{
+		"--config-read",
+		"--config-write",
+		"--entity",
+		"--sync-offline-activity",
+		"--today",
+		"--today-goal",
+		"--useragent",
+		"--version",
+	}, ", "))
 }

@@ -48,7 +48,7 @@ func QueueFilepath() (string, error) {
 func WithQueue(filepath string, syncLimit int) (heartbeat.HandleOption, error) {
 	return func(next heartbeat.Handle) heartbeat.Handle {
 		return func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
-			log.Debugln("execute offline queue")
+			log.Debugf("execute offline queue with file %s", filepath)
 
 			db, err := bolt.Open(filepath, 0600, nil)
 			if err != nil {
@@ -72,6 +72,8 @@ func WithQueue(filepath string, syncLimit int) (heartbeat.HandleOption, error) {
 				return nil, fmt.Errorf("failed initialize new queue: %s", err)
 			}
 
+			log.Debugf("using offline queue bucket %s with sync limit %d", queue.Bucket, syncLimit)
+
 			queued, err := queue.PopMany(syncLimit)
 			if err != nil {
 				log.Errorf("failed to pop heartbeat(s) from offline queue: %s", err)
@@ -80,6 +82,12 @@ func WithQueue(filepath string, syncLimit int) (heartbeat.HandleOption, error) {
 			if len(queued) > 0 {
 				log.Debugf("include %d heartbeat(s) from offline queue", len(queued))
 				hh = append(hh, queued...)
+			}
+
+			if len(hh) == 0 {
+				log.Debugln("abort execution, as there are no heartbeats ready for sending")
+
+				return nil, nil
 			}
 
 			results, err := next(hh)
