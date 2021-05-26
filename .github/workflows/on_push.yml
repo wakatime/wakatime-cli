@@ -256,11 +256,12 @@ jobs:
           tag_name: ${{ steps.semver-tag.outputs.semver_tag }}
           body: ${{ steps.changelog.outputs.changelog }}
           prerelease: ${{ steps.semver-tag.outputs.is_prerelease }}
+          draft: false
           target_commitish: ${{ github.sha }}
           files: ./release/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - 
+      -
         name: "Slack notification"
         uses: 8398a7/action-slack@v3
         if: ${{ success() }}
