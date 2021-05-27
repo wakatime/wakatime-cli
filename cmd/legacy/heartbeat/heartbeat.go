@@ -60,6 +60,10 @@ func SendHeartbeats(v *viper.Viper, queueFilepath string) error {
 		return fmt.Errorf("failed to load command parameters: %w", err)
 	}
 
+	if params.EntityType == heartbeat.FileType && !isFile(params.Entity) {
+		return fmt.Errorf("file '%s' does not exist. ignoring this heartbeat", params.Entity)
+	}
+
 	setLogFields(&params)
 
 	log.Debugf("heartbeat params: %s", params)
@@ -147,6 +151,10 @@ func SendHeartbeats(v *viper.Viper, queueFilepath string) error {
 		log.Debugf("include %d extra heartbeat(s) from stdin", len(params.ExtraHeartbeats))
 
 		for _, h := range params.ExtraHeartbeats {
+			if h.EntityType == heartbeat.FileType && !isFile(h.Entity) {
+				return fmt.Errorf("file '%s' does not exist. ignoring this extra heartbeat", h.Entity)
+			}
+
 			heartbeats = append(heartbeats, heartbeat.New(
 				h.Category,
 				h.CursorPosition,
@@ -226,4 +234,10 @@ func setLogFields(params *Params) {
 	}
 
 	log.WithField("file", params.Entity)
+}
+
+// isFile checks if the passed in filepath is a valid file.
+func isFile(filepath string) bool {
+	info, err := os.Stat(filepath)
+	return !(os.IsNotExist(err) || info.IsDir())
 }
