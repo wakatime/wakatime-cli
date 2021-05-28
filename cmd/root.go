@@ -1,7 +1,10 @@
 package cmd
 
 import (
+	"os"
+
 	"github.com/wakatime/wakatime-cli/cmd/legacy"
+	"github.com/wakatime/wakatime-cli/pkg/exitcode"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -19,6 +22,15 @@ const (
 	defaultOfflineSync = "100"
 )
 
+// nolint:gochecknoglobals
+var requiredArgs = [...]string{
+	"entity",
+	"today",
+	"today-goal",
+	"version",
+	"sync-offline-activity",
+	"help"}
+
 // NewRootCMD creates a rootCmd, which represents the base command when called without any subcommands.
 func NewRootCMD() *cobra.Command {
 	multilineOption := viper.IniLoadOptions(ini.LoadOptions{AllowPythonMultilineValues: true})
@@ -28,6 +40,10 @@ func NewRootCMD() *cobra.Command {
 		Use:   "wakatime-cli",
 		Short: "Command line interface used by all WakaTime text editor plugins.",
 		Run: func(cmd *cobra.Command, args []string) {
+			if len(args) == 0 || !isOneOfRequiredArgsFilled(args) {
+				_ = cmd.Help()
+				os.Exit(exitcode.ErrDefault)
+			}
 			legacy.Run(v)
 		},
 	}
@@ -198,6 +214,18 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 	if err != nil {
 		log.Fatalf("failed to bind cobra flags to viper: %s", err)
 	}
+}
+
+func isOneOfRequiredArgsFilled(args []string) bool {
+	for _, value := range requiredArgs {
+		for _, b := range args {
+			if b == value {
+				return true
+			}
+		}
+	}
+
+	return false
 }
 
 // Execute adds all child commands to the root command sets flags appropriately.
