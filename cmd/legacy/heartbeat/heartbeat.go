@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"strings"
 
+	"github.com/wakatime/wakatime-cli/cmd/legacy/legacyapi"
 	"github.com/wakatime/wakatime-cli/pkg/api"
 	"github.com/wakatime/wakatime-cli/pkg/deps"
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
@@ -68,66 +68,10 @@ func SendHeartbeats(v *viper.Viper, queueFilepath string) error {
 
 	log.Debugf("heartbeat params: %s", params)
 
-	withAuth, err := api.WithAuth(api.BasicAuth{
-		Secret: params.API.Key,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to set up auth option on api client: %w", err)
-	}
-
-	clientOpts := []api.Option{
-		withAuth,
-		api.WithTimeout(params.API.Timeout),
-	}
-
-	if params.Network.DisableSSLVerify {
-		clientOpts = append(clientOpts, api.WithDisableSSLVerify())
-	}
-
-	if !params.Network.DisableSSLVerify && params.Network.SSLCertFilepath != "" {
-		withSSLCert, err := api.WithSSLCertFile(params.Network.SSLCertFilepath)
-		if err != nil {
-			return fmt.Errorf("failed to set up ssl cert file option on api client: %s", err)
-		}
-
-		clientOpts = append(clientOpts, withSSLCert)
-	} else if !params.Network.DisableSSLVerify {
-		withSSLCert, err := api.WithSSLCertPool(api.CACerts())
-		if err != nil {
-			return fmt.Errorf("failed to set up ssl cert pool option on api client: %s", err)
-		}
-
-		clientOpts = append(clientOpts, withSSLCert)
-	}
-
-	if params.Network.ProxyURL != "" {
-		withProxy, err := api.WithProxy(params.Network.ProxyURL)
-		if err != nil {
-			return fmt.Errorf("failed to set up proxy option on api client: %w", err)
-		}
-
-		clientOpts = append(clientOpts, withProxy)
-
-		if strings.Contains(params.Network.ProxyURL, `\\`) {
-			withNTLMRetry, err := api.WithNTLMRequestRetry(params.Network.ProxyURL)
-			if err != nil {
-				return fmt.Errorf("failed to set up ntlm request retry option on api client: %w", err)
-			}
-
-			clientOpts = append(clientOpts, withNTLMRetry)
-		}
-	}
-
-	var userAgent string
+	userAgent := heartbeat.UserAgentUnknownPlugin()
 	if params.API.Plugin != "" {
 		userAgent = heartbeat.UserAgent(params.API.Plugin)
-		clientOpts = append(clientOpts, api.WithUserAgent(params.API.Plugin))
-	} else {
-		userAgent = heartbeat.UserAgentUnknownPlugin()
-		clientOpts = append(clientOpts, api.WithUserAgentUnknownPlugin())
 	}
-
-	c := api.NewClient(params.API.URL, clientOpts...)
 
 	heartbeats := []heartbeat.Heartbeat{
 		heartbeat.New(
@@ -208,7 +152,12 @@ func SendHeartbeats(v *viper.Viper, queueFilepath string) error {
 		handleOpts = append(handleOpts, offlineHandleOpt)
 	}
 
-	handle := heartbeat.NewHandle(c, handleOpts...)
+	apiClient, err := legacyapi.NewClient(params.API)
+	if err != nil {
+		return fmt.Errorf("failed to initialize api client: %w", err)
+	}
+
+	handle := heartbeat.NewHandle(apiClient, handleOpts...)
 
 	_, err = handle(heartbeats)
 	if err != nil {

@@ -45,9 +45,8 @@ type Params struct {
 	OfflineDisabled   bool
 	OfflineSyncMax    int
 	Time              float64
-	API               legacyparams.APIParams
+	API               legacyparams.API
 	Filter            FilterParams
-	Network           legacyparams.NetworkParams
 	Project           ProjectParams
 	Sanitize          SanitizeParams
 }
@@ -82,7 +81,7 @@ func (p Params) String() string {
 		"category: '%s', cursor position: '%s', entity: '%s', entity type: '%s',"+
 			" num extra heartbeats: %d, hostname: '%s', is write: %t, language: '%s',"+
 			" line number: '%s', lines in file: '%s', offline disabled: %t, offline sync max: %d,"+
-			" time: %.5f, api params: (%s), filter params: (%s), network params: (%s),"+
+			" time: %.5f, api params: (%s), filter params: (%s),"+
 			" project params: (%s), sanitize params: (%s)",
 		p.Category,
 		cursorPosition,
@@ -99,7 +98,6 @@ func (p Params) String() string {
 		p.Time,
 		p.API,
 		p.Filter,
-		p.Network,
 		p.Project,
 		p.Sanitize,
 	)
@@ -160,7 +158,7 @@ func (p SanitizeParams) String() string {
 // LoadParams loads heartbeat config params from viper.Viper instance. Returns ErrAuth
 // if failed to retrieve api key.
 func LoadParams(v *viper.Viper) (Params, error) {
-	apiParams, networkParams, err := legacyparams.LoadParams(v)
+	params, err := legacyparams.Load(v)
 	if err != nil {
 		return Params{}, err
 	}
@@ -229,30 +227,6 @@ func LoadParams(v *viper.Viper) (Params, error) {
 		linesInFile = heartbeat.Int(num)
 	}
 
-	offlineDisabled := vipertools.FirstNonEmptyBool(v, "disableoffline", "disable-offline")
-	if b := v.GetBool("settings.offline"); v.IsSet("settings.offline") {
-		offlineDisabled = !b
-	}
-
-	var offlineSyncMax int
-
-	switch {
-	case !v.IsSet("sync-offline-activity"):
-		// use default
-		offlineSyncMax = v.GetInt("sync-offline-activity")
-	case vipertools.GetString(v, "sync-offline-activity") == "none":
-		break
-	default:
-		offlineSyncMax, err = strconv.Atoi(vipertools.GetString(v, "sync-offline-activity"))
-		if err != nil {
-			return Params{}, errors.New("argument --sync-offline-activity must be \"none\" or a positive integer number: %s")
-		}
-	}
-
-	if offlineSyncMax < 0 {
-		return Params{}, errors.New("argument --sync-offline-activity must be \"none\" or a positive integer number")
-	}
-
 	timeSecs := v.GetFloat64("time")
 	if timeSecs == 0 {
 		timeSecs = float64(time.Now().UnixNano()) / 1000000000
@@ -286,12 +260,11 @@ func LoadParams(v *viper.Viper) (Params, error) {
 		LineNumber:        lineNumber,
 		LinesInFile:       linesInFile,
 		LocalFile:         vipertools.GetString(v, "local-file"),
-		OfflineDisabled:   offlineDisabled,
-		OfflineSyncMax:    offlineSyncMax,
+		OfflineDisabled:   params.OfflineDisabled,
+		OfflineSyncMax:    params.OfflineSyncMax,
 		Time:              timeSecs,
-		API:               apiParams,
+		API:               params.API,
 		Filter:            loadFilterParams(v),
-		Network:           networkParams,
 		Project:           projectParams,
 		Sanitize:          sanitizeParams,
 	}, nil
