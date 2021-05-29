@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"os"
+	"strings"
 
 	"github.com/wakatime/wakatime-cli/cmd/legacy"
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
@@ -39,11 +40,13 @@ func NewRootCMD() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "wakatime-cli",
 		Short: "Command line interface used by all WakaTime text editor plugins.",
-		Run: func(cmd *cobra.Command, args []string) {
-			if len(args) == 0 || !isOneOfRequiredArgsFilled(args) {
+		PreRun: func(cmd *cobra.Command, args []string) {
+			if !isOneOfRequiredArgsFilled(v.AllKeys()) {
 				_ = cmd.Help()
 				os.Exit(exitcode.ErrDefault)
 			}
+		},
+		Run: func(cmd *cobra.Command, args []string) {
 			legacy.Run(v)
 		},
 	}
@@ -217,9 +220,13 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 }
 
 func isOneOfRequiredArgsFilled(args []string) bool {
+	if len(args) == 0 {
+		return false
+	}
+
 	for _, value := range requiredArgs {
 		for _, b := range args {
-			if b == value {
+			if strings.Contains(b, value) {
 				return true
 			}
 		}
