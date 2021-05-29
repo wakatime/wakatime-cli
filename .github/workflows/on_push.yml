@@ -1,4 +1,4 @@
-name: "Tests"
+name: Build
 
 on:
   push:
@@ -17,23 +17,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       -
-        name: "Checkout"
+        name: Checkout
         uses: actions/checkout@v2
       -
         uses: actions/setup-go@v2
         with:
           go-version: ${{ env.GO_VERSION }}
       -
-        name: "Pull dependencies"
+        name: Pull dependencies
         run: make install-go-modules
       -
-        name: "Unit tests"
+        name: Unit tests
         run: make test
       -
-        name: "Linter"
+        name: Linter
         run: make lint
       -
-        name: "Send coverage"
+        name: Send coverage
         uses: shogo82148/actions-goveralls@v1
         with:
           path-to-profile: coverage.out
@@ -43,22 +43,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       -
-        name: "Checkout"
+        name: Checkout
         uses: actions/checkout@v2
       -
         uses: actions/setup-go@v2
         with:
           go-version: ${{ env.GO_VERSION }}
       -
-        name: "Pull dependencies"
+        name: Pull dependencies
         run: make install-go-modules
       -
-        name: "Build binary"
+        name: Build binary
         env:
           VERSION: ${{ env.TEST_VERSION }}
         run: make build-linux-amd64
       -
-        name: "Integration tests"
+        name: Integration tests
         run: make test-integration
 
   test-windows:
@@ -66,17 +66,17 @@ jobs:
     runs-on: windows-latest
     steps:
       -
-        name: "Checkout"
+        name: Checkout
         uses: actions/checkout@v2
       -
         uses: actions/setup-go@v2
         with:
           go-version: ${{ env.GO_VERSION }}
       -
-        name: "Pull dependencies"
+        name: Pull dependencies
         run: make install-go-modules
       -
-        name: "Unit tests"
+        name: Unit tests
         run: make test
 
   test-integration-windows:
@@ -84,22 +84,22 @@ jobs:
     runs-on: windows-latest
     steps:
       -
-        name: "Checkout"
+        name: Checkout
         uses: actions/checkout@v2
       -
         uses: actions/setup-go@v2
         with:
           go-version: ${{ env.GO_VERSION }}
       -
-        name: "Pull dependencies"
+        name: Pull dependencies
         run: make install-go-modules
       -
-        name: "Build binary"
+        name: Build binary
         env:
           VERSION: ${{ env.TEST_VERSION }}
         run: make build-windows-amd64
       -
-        name: "Integration tests"
+        name: Integration tests
         run: make test-integration
 
   test-macos:
@@ -107,17 +107,17 @@ jobs:
     runs-on: macos-latest
     steps:
       -
-        name: "Checkout"
+        name: Checkout
         uses: actions/checkout@v2
       -
         uses: actions/setup-go@v2
         with:
           go-version: ${{ env.GO_VERSION }}
       -
-        name: "Pull dependencies"
+        name: Pull dependencies
         run: make install-go-modules
       -
-        name: "Unit tests"
+        name: Unit tests
         run: make test
 
   test-integration-macos:
@@ -125,22 +125,22 @@ jobs:
     runs-on: macos-latest
     steps:
       -
-        name: "Checkout"
+        name: Checkout
         uses: actions/checkout@v2
       -
         uses: actions/setup-go@v2
         with:
           go-version: ${{ env.GO_VERSION }}
       -
-        name: "Pull dependencies"
+        name: Pull dependencies
         run: make install-go-modules
       -
-        name: "Build binary"
+        name: Build binary
         env:
           VERSION: ${{ env.TEST_VERSION }}
         run: make build-darwin-amd64
       -
-        name: "Integration tests"
+        name: Integration tests
         run: make test-integration
 
   tag:
@@ -155,7 +155,7 @@ jobs:
       changelog: ${{ steps.changelog.outputs.changelog }}
     steps:
       -
-        name: "Calculate semver"
+        name: Calculate semver
         id: semver
         uses: wakatime/semver-action@v1.3.2
         with:
@@ -171,7 +171,7 @@ jobs:
           exclude: |
             ^Merge pull request .*
       -
-        name: "Create tag"
+        name: Create tag
         uses: actions/github-script@v4
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -260,7 +260,7 @@ jobs:
     needs: [tag, build, sign]
     steps:
       -
-        name: "Checkout"
+        name: Checkout
         uses: actions/checkout@v2
         with:
           fetch-depth: 0
@@ -274,7 +274,7 @@ jobs:
         name: Prepare release assets
         run: ./bin/prepare_assets.sh
       -
-        name: "Create release"
+        name: Create release
         uses: softprops/action-gh-release@master
         with:
           name: ${{ needs.tag.outputs.version }}
@@ -287,7 +287,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       -
-        name: "Slack notification"
+        name: Slack notification
         uses: 8398a7/action-slack@v3
         if: ${{ success() }}
         with:
