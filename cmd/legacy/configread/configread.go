@@ -23,12 +23,6 @@ type Params struct {
 func Run(v *viper.Viper) {
 	output, err := Read(v)
 	if err != nil {
-		var cfrerr ErrFileRead
-		if errors.As(err, &cfrerr) {
-			log.Errorf(err.Error())
-			os.Exit(exitcode.ErrConfigFileRead)
-		}
-
 		log.Fatalln(err)
 	}
 
@@ -45,8 +39,9 @@ func Read(v *viper.Viper) (string, error) {
 
 	value := strings.TrimSpace(vipertools.GetString(v, params.ViperKey()))
 	if value == "" {
-		return "", ErrFileRead(
-			fmt.Sprintf("given section and key %q returned an empty string", params.ViperKey()),
+		return "", fmt.Errorf(
+			"given section and key %q returned an empty string",
+			params.ViperKey(),
 		)
 	}
 
@@ -59,8 +54,9 @@ func LoadParams(v *viper.Viper) (Params, error) {
 	key := strings.TrimSpace(vipertools.GetString(v, "config-read"))
 
 	if section == "" || key == "" {
-		return Params{},
-			ErrFileRead("failed reading wakatime config file. neither section nor key can be empty")
+		return Params{}, errors.New(
+			"failed reading wakatime config file. neither section nor key can be empty",
+		)
 	}
 
 	return Params{

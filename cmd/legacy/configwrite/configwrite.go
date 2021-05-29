@@ -24,24 +24,13 @@ type Params struct {
 func Run(v *viper.Viper) {
 	w, err := config.NewIniWriter(v, config.FilePath)
 	if err != nil {
-		var cfperr config.ErrFileParse
-		if errors.As(err, &cfperr) {
-			log.Errorf(err.Error())
-			os.Exit(exitcode.ErrConfigFileParse)
-		}
-
 		log.Fatalln(err)
 	}
 
 	if err := Write(v, w); err != nil {
 		log.Errorf("failed to write on config file: %s", err)
 
-		var cfwerr config.ErrFileWrite
-		if errors.As(err, &cfwerr) {
-			os.Exit(exitcode.ErrConfigFileWrite)
-		}
-
-		os.Exit(exitcode.ErrDefault)
+		os.Exit(exitcode.ErrConfigFileWrite)
 	}
 
 	os.Exit(exitcode.Success)
@@ -67,8 +56,9 @@ func LoadParams(v *viper.Viper) (Params, error) {
 	kv := v.GetStringMapString("config-write")
 
 	if section == "" || len(kv) == 0 {
-		return Params{},
-			config.ErrFileWrite("neither section nor key/value can be empty")
+		return Params{}, errors.New(
+			"neither section nor key/value can be empty",
+		)
 	}
 
 	return Params{

@@ -1,7 +1,6 @@
 package legacy
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -71,12 +70,7 @@ func Run(cmd *cobra.Command, v *viper.Viper) {
 	if err := config.ReadInConfig(v, config.FilePath); err != nil {
 		log.Errorf("failed to load configuration file: %s", err)
 
-		var cfperr ErrConfigFileParse
-		if errors.As(err, &cfperr) {
-			os.Exit(exitcode.ErrConfigFileParse)
-		}
-
-		os.Exit(exitcode.ErrDefault)
+		os.Exit(exitcode.ErrConfigFileParse)
 	}
 
 	if v.IsSet("config-read") {
