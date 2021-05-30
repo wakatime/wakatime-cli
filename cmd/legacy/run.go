@@ -1,18 +1,24 @@
 package legacy
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"os"
+	"runtime/debug"
 	"strings"
 
 	"github.com/wakatime/wakatime-cli/cmd/legacy/configread"
 	"github.com/wakatime/wakatime-cli/cmd/legacy/configwrite"
 	heartbeatcmd "github.com/wakatime/wakatime-cli/cmd/legacy/heartbeat"
+	"github.com/wakatime/wakatime-cli/cmd/legacy/legacyapi"
+	"github.com/wakatime/wakatime-cli/cmd/legacy/legacyparams"
 	"github.com/wakatime/wakatime-cli/cmd/legacy/logfile"
 	"github.com/wakatime/wakatime-cli/cmd/legacy/offlinesync"
 	"github.com/wakatime/wakatime-cli/cmd/legacy/today"
 	"github.com/wakatime/wakatime-cli/cmd/legacy/todaygoal"
 	"github.com/wakatime/wakatime-cli/pkg/config"
+	"github.com/wakatime/wakatime-cli/pkg/diagnostic"
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/log"
@@ -62,9 +68,7 @@ func Run(cmd *cobra.Command, v *viper.Viper) {
 	if v.GetBool("version") {
 		log.Debugln("command: version")
 
-		runVersion(v.GetBool("verbose"))
-
-		os.Exit(exitcode.Success)
+		runCmd(v, runVersion)
 	}
 
 	if err := config.ReadInConfig(v, config.FilePath); err != nil {
@@ -76,37 +80,37 @@ func Run(cmd *cobra.Command, v *viper.Viper) {
 	if v.IsSet("config-read") {
 		log.Debugln("command: config-read")
 
-		configread.Run(v)
+		runCmd(v, configread.Run)
 	}
 
 	if v.IsSet("config-write") {
 		log.Debugln("command: config-write")
 
-		configwrite.Run(v)
+		runCmd(v, configwrite.Run)
 	}
 
 	if v.GetBool("today") {
 		log.Debugln("command: today")
 
-		today.Run(v)
+		runCmd(v, today.Run)
 	}
 
 	if v.IsSet("today-goal") {
 		log.Debugln("command: today-goal")
 
-		todaygoal.Run(v)
+		runCmd(v, todaygoal.Run)
 	}
 
 	if v.IsSet("entity") {
 		log.Debugln("command: heartbeat")
 
-		heartbeatcmd.Run(v)
+		runCmd(v, heartbeatcmd.Run)
 	}
 
 	if v.IsSet("sync-offline-activity") {
 		log.Debugln("command: sync-offline-activity")
 
-		offlinesync.Run(v)
+		runCmd(v, offlinesync.Run)
 	}
 
 	log.Warnf("One of the following parameters has to be provided: %s", strings.Join([]string{
@@ -123,4 +127,72 @@ func Run(cmd *cobra.Command, v *viper.Viper) {
 	_ = cmd.Help()
 
 	os.Exit(exitcode.ErrDefault)
+}
+
+type cmdFn func(v *viper.Viper) (int, error)
+
+func runCmd(v *viper.Viper, cmd cmdFn) {
+	logs := bytes.NewBuffer(nil)
+	resetLogs := captureLogs(logs)
+
+	// catch panics
+	defer func() {
+		if err := recover(); err != nil {
+			resetLogs()
+			sendDiagnostics(v, logs.String(), string(debug.Stack()))
+		}
+
+		os.Exit(exitcode.ErrDefault)
+	}()
+
+	// run command
+	exitCode, err := cmd(v)
+	if err != nil {
+		log.Errorln(err.Error())
+
+		resetLogs()
+		sendDiagnostics(v, logs.String(), string(debug.Stack()))
+	}
+
+	// nolint: gocritic
+	os.Exit(exitCode)
+}
+
+func sendDiagnostics(v *viper.Viper, logs, stack string) {
+	params, err := legacyparams.Load(v)
+	if err != nil {
+		log.Errorf("failed to load parameters for sending diagnostics: %s", err)
+
+		return
+	}
+
+	c, err := legacyapi.NewClient(params.API)
+	if err != nil {
+		log.Errorf("failed to initialize api client for sending diagnostics: %s", err)
+
+		return
+	}
+
+	diagnostics := []diagnostic.Diagnostic{
+		diagnostic.Logs(logs),
+		diagnostic.Stack(stack),
+	}
+
+	err = c.SendDiagnostics(params.API.Plugin, diagnostics...)
+	if err != nil {
+		log.Errorf("failed to send diagnostics: %s", err)
+	}
+}
+
+func captureLogs(dest io.Writer) func() {
+	logOutput := log.Output()
+
+	// will write to log output and dest
+	mw := io.MultiWriter(logOutput, dest)
+
+	log.SetOutput(mw)
+
+	return func() {
+		log.SetOutput(logOutput)
+	}
 }

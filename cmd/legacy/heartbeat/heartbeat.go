@@ -21,34 +21,42 @@ import (
 )
 
 // Run executes the heartbeat command.
-func Run(v *viper.Viper) {
+func Run(v *viper.Viper) (int, error) {
 	queueFilepath, err := offline.QueueFilepath()
 	if err != nil {
-		log.Fatalf("failed to load offline queue filepath: %s", err)
+		return exitcode.ErrDefault, fmt.Errorf(
+			"failed to load offline queue filepath: %s",
+			err,
+		)
 	}
 
 	err = SendHeartbeats(v, queueFilepath)
 	if err != nil {
 		var errauth api.ErrAuth
 		if errors.As(err, &errauth) {
-			log.Errorf(
+			return exitcode.ErrAuth, fmt.Errorf(
 				"failed to send heartbeat: %s. Find your api key from wakatime.com/settings/api-key",
 				errauth,
 			)
-			os.Exit(exitcode.ErrAuth)
 		}
 
 		var errapi api.Err
 		if errors.As(err, &errapi) {
-			log.Errorf("failed to send heartbeat(s): %s", err)
-			os.Exit(exitcode.ErrAPI)
+			return exitcode.ErrAPI, fmt.Errorf(
+				"failed to send heartbeat(s) due to api error: %s",
+				err,
+			)
 		}
 
-		log.Fatalf("failed to send heartbeat(s): %s", err)
+		return exitcode.ErrDefault, fmt.Errorf(
+			"failed to send heartbeat(s): %s",
+			err,
+		)
 	}
 
-	log.Debugln("successfully handled heartbeat(s)")
-	os.Exit(exitcode.Success)
+	log.Debugln("successfully sent heartbeat(s)")
+
+	return exitcode.Success, nil
 }
 
 // SendHeartbeats sends a heartbeat to the wakatime api and includes additional

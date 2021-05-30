@@ -68,7 +68,12 @@ func new() *l.Entry {
 	return entry
 }
 
-// SetOutput defines output log to a file.
+// Output returns the current log output.
+func Output() io.Writer {
+	return logEntry.Logger.Out
+}
+
+// SetOutput defines sets the log output to io.Writer.
 func SetOutput(w io.Writer) {
 	logEntry.Logger.Out = w
 }

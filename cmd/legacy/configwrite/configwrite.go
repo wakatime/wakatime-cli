@@ -3,12 +3,10 @@ package configwrite
 import (
 	"errors"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/wakatime/wakatime-cli/pkg/config"
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
-	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/vipertools"
 
 	"github.com/spf13/viper"
@@ -21,19 +19,23 @@ type Params struct {
 }
 
 // Run loads wakatime config file and call Write().
-func Run(v *viper.Viper) {
+func Run(v *viper.Viper) (int, error) {
 	w, err := config.NewIniWriter(v, config.FilePath)
 	if err != nil {
-		log.Fatalln(err)
+		return exitcode.ErrConfigFileParse, fmt.Errorf(
+			"failed to parse config file: %s",
+			err,
+		)
 	}
 
 	if err := Write(v, w); err != nil {
-		log.Errorf("failed to write on config file: %s", err)
-
-		os.Exit(exitcode.ErrConfigFileWrite)
+		return exitcode.ErrDefault, fmt.Errorf(
+			"failed to write to config file: %s",
+			err,
+		)
 	}
 
-	os.Exit(exitcode.Success)
+	return exitcode.Success, nil
 }
 
 // Write writes value(s) to given config key(s) and persist on disk.

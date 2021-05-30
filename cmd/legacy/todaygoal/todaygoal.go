@@ -3,7 +3,6 @@ package todaygoal
 import (
 	"errors"
 	"fmt"
-	"os"
 	"regexp"
 
 	"github.com/wakatime/wakatime-cli/cmd/legacy/legacyapi"
@@ -25,29 +24,35 @@ type Params struct {
 }
 
 // Run executes the today-goal command.
-func Run(v *viper.Viper) {
+func Run(v *viper.Viper) (int, error) {
 	output, err := Goal(v)
 	if err != nil {
 		var errauth api.ErrAuth
 		if errors.As(err, &errauth) {
-			log.Errorf(
-				"%s. Find your api key from wakatime.com/settings/api-key",
+			return exitcode.ErrAuth, fmt.Errorf(
+				"failed to fetch today goal: %s. Find your api key from wakatime.com/settings/api-key",
 				errauth,
 			)
-			os.Exit(exitcode.ErrAuth)
 		}
 
 		var errapi api.Err
 		if errors.As(err, &errapi) {
-			log.Errorln(err)
-			os.Exit(exitcode.ErrAPI)
+			return exitcode.ErrAPI, fmt.Errorf(
+				"failed to fetch today goal due to api error: %s",
+				err,
+			)
 		}
 
-		log.Fatalln(err)
+		return exitcode.ErrDefault, fmt.Errorf(
+			"failed to fetch today goal: %s",
+			err,
+		)
 	}
 
+	log.Debugln("successfully fetched today goal")
 	fmt.Println(output)
-	os.Exit(exitcode.Success)
+
+	return exitcode.Success, nil
 }
 
 // Goal returns total time of given goal id for todays coding activity.

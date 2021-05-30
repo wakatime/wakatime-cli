@@ -3,11 +3,9 @@ package configread
 import (
 	"errors"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
-	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/vipertools"
 
 	"github.com/spf13/viper"
@@ -20,14 +18,18 @@ type Params struct {
 }
 
 // Run prints the value for the given config key.
-func Run(v *viper.Viper) {
+func Run(v *viper.Viper) (int, error) {
 	output, err := Read(v)
 	if err != nil {
-		log.Fatalln(err)
+		return exitcode.ErrConfigFileRead, fmt.Errorf(
+			"failed to read in config: %s",
+			err,
+		)
 	}
 
 	fmt.Println(output)
-	os.Exit(exitcode.Success)
+
+	return exitcode.Success, nil
 }
 
 // Read returns the value for the given config key.

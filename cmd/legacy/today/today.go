@@ -3,7 +3,6 @@ package today
 import (
 	"errors"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/wakatime/wakatime-cli/cmd/legacy/legacyapi"
@@ -17,29 +16,35 @@ import (
 )
 
 // Run executes the today command.
-func Run(v *viper.Viper) {
+func Run(v *viper.Viper) (int, error) {
 	output, err := Summary(v)
 	if err != nil {
 		var errauth api.ErrAuth
 		if errors.As(err, &errauth) {
-			log.Errorf(
-				"%s. Find your api key from wakatime.com/settings/api-key",
+			return exitcode.ErrAuth, fmt.Errorf(
+				"failed to fetch today summary: %s. Find your api key from wakatime.com/settings/api-key",
 				errauth,
 			)
-			os.Exit(exitcode.ErrAuth)
 		}
 
 		var errapi api.Err
 		if errors.As(err, &errapi) {
-			log.Errorln(err)
-			os.Exit(exitcode.ErrAPI)
+			return exitcode.ErrAPI, fmt.Errorf(
+				"failed to fetch today summary due to api error: %s",
+				err,
+			)
 		}
 
-		log.Fatalln(err)
+		return exitcode.ErrDefault, fmt.Errorf(
+			"failed to fetch today summary: %s",
+			err,
+		)
 	}
 
+	log.Debugln("successfully fetched today summary")
 	fmt.Println(output)
-	os.Exit(exitcode.Success)
+
+	return exitcode.Success, nil
 }
 
 // Summary returns a rendered summary of todays coding activity.
