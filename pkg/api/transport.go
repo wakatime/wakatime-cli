@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-// NewTransport creates a new http.Transport, with default 30 second TLS timeout.
+// NewTransport initializes a new http.Transport.
 func NewTransport() *http.Transport {
 	return &http.Transport{
 		Proxy:               nil,
@@ -16,6 +16,15 @@ func NewTransport() *http.Transport {
 		MaxConnsPerHost:     1,
 		ForceAttemptHTTP2:   true,
 	}
+}
+
+// LazyCreateNewTransport uses the client's Transport if exists, or creates a new one.
+func LazyCreateNewTransport(c *Client) *http.Transport {
+	if c != nil && c.client != nil && c.client.Transport != nil {
+		return c.client.Transport.(*http.Transport).Clone()
+	}
+
+	return NewTransport()
 }
 
 const letsencryptCerts string = `
