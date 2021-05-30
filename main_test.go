@@ -243,7 +243,7 @@ func TestVersionVerbose(t *testing.T) {
 	out := run(exec.Command(binaryPath(t), "--version", "--verbose"))
 
 	assert.Regexp(t, regexp.MustCompile(fmt.Sprintf(
-		"wakatime-cli\n  Version: v0.0.1-test\n  Commit: [0-9a-f]{7}\n  Built: [0-9-:TZ]{20}\n  OS/Arch: %s/%s\n",
+		"wakatime-cli\n  Version: v0.0.1-test\n  Commit: [0-9a-f]{7}\n  Built: [0-9-:T]{19} UTC\n  OS/Arch: %s/%s\n",
 		runtime.GOOS,
 		runtime.GOARCH,
 	)), out)
