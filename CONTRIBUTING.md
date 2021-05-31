@@ -24,6 +24,8 @@ This project currently has two branches
 
 Run `make test-all` before creating any pull requests, or your PR won’t pass the automated checks.
 
+> make sure you build binary by setting its version otherwise integration tests will fail. `VERSION=v0.0.1-test make build-<os>-<architecture>`.
+
 ## Branching Stratgegy
 
 Please follow our guideline for branch names [here](https://github.com/wakatime/semver-action#branch-names). Branches off the pattern won't be accepted.
