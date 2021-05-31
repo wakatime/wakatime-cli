@@ -1,0 +1,9 @@
+blank_issues_enabled: false
+contact_links:
+  - name: ❓ Ask a question
+    url: https://github.com/wakatime/wakatime-cli/discussions/new?category=q-a
+    about: Ask and discuss questions with other WakaTime community members
+
+  - name: 💬 Slack channel
+    url: https://wakaslack.herokuapp.com
+    about: Please ask and answer questions here
