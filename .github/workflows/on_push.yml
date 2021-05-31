@@ -1,4 +1,4 @@
-name: "Tests"
+name: Tests
 
 on:
   push:
@@ -13,134 +13,134 @@ env:
 
 jobs:
   test:
-    name: Unit tests
+    name: Unit Tests
     runs-on: ubuntu-latest
     steps:
       -
-        name: "Checkout"
+        name: Checkout
         uses: actions/checkout@v2
       -
         uses: actions/setup-go@v2
         with:
           go-version: ${{ env.GO_VERSION }}
       -
-        name: "Pull dependencies"
+        name: Pull dependencies
         run: make install-go-modules
       -
-        name: "Unit tests"
+        name: Unit tests
         run: make test
       -
-        name: "Linter"
+        name: Linter
         run: make lint
       -
-        name: "Send coverage"
+        name: Send coverage
         uses: shogo82148/actions-goveralls@v1
         with:
           path-to-profile: coverage.out
 
   test-integration:
-    name: Integration tests
+    name: Integration Tests
     runs-on: ubuntu-latest
     steps:
       -
-        name: "Checkout"
+        name: Checkout
         uses: actions/checkout@v2
       -
         uses: actions/setup-go@v2
         with:
           go-version: ${{ env.GO_VERSION }}
       -
-        name: "Pull dependencies"
+        name: Pull dependencies
         run: make install-go-modules
       -
-        name: "Build binary"
+        name: Build binary
         env:
           VERSION: ${{ env.TEST_VERSION }}
         run: make build-linux-amd64
       -
-        name: "Integration tests"
+        name: Integration tests
         run: make test-integration
 
   test-windows:
-    name: Unit tests windows
+    name: Unit Tests Windows
     runs-on: windows-latest
     steps:
       -
-        name: "Checkout"
+        name: Checkout
         uses: actions/checkout@v2
       -
         uses: actions/setup-go@v2
         with:
           go-version: ${{ env.GO_VERSION }}
       -
-        name: "Pull dependencies"
+        name: Pull dependencies
         run: make install-go-modules
       -
-        name: "Unit tests"
+        name: Unit tests
         run: make test
 
   test-integration-windows:
-    name: Integration tests windows
+    name: Integration Tests Windows
     runs-on: windows-latest
     steps:
       -
-        name: "Checkout"
+        name: Checkout
         uses: actions/checkout@v2
       -
         uses: actions/setup-go@v2
         with:
           go-version: ${{ env.GO_VERSION }}
       -
-        name: "Pull dependencies"
+        name: Pull dependencies
         run: make install-go-modules
       -
-        name: "Build binary"
+        name: Build binary
         env:
           VERSION: ${{ env.TEST_VERSION }}
         run: make build-windows-amd64
       -
-        name: "Integration tests"
+        name: Integration tests
         run: make test-integration
 
   test-macos:
-    name: Unit tests macos
+    name: Unit Tests macOS
     runs-on: macos-latest
     steps:
       -
-        name: "Checkout"
+        name: Checkout
         uses: actions/checkout@v2
       -
         uses: actions/setup-go@v2
         with:
           go-version: ${{ env.GO_VERSION }}
       -
-        name: "Pull dependencies"
+        name: Pull dependencies
         run: make install-go-modules
       -
-        name: "Unit tests"
+        name: Unit tests
         run: make test
 
   test-integration-macos:
-    name: Integration tests macos
+    name: Integration Tests macOS
     runs-on: macos-latest
     steps:
       -
-        name: "Checkout"
+        name: Checkout
         uses: actions/checkout@v2
       -
         uses: actions/setup-go@v2
         with:
           go-version: ${{ env.GO_VERSION }}
       -
-        name: "Pull dependencies"
+        name: Pull dependencies
         run: make install-go-modules
       -
-        name: "Build binary"
+        name: Build binary
         env:
           VERSION: ${{ env.TEST_VERSION }}
         run: make build-darwin-amd64
       -
-        name: "Integration tests"
+        name: Integration tests
         run: make test-integration
 
   version:
@@ -184,10 +184,9 @@ jobs:
               sha: context.sha
             })
 
-  build:
-    name: Build
-    if: ${{ github.ref == 'refs/heads/release' || github.ref == 'refs/heads/develop' }}
-    runs-on: ubuntu-latest
+  build-linux:
+    name: Build Linux
+    runs-on: macos-latest
     needs: [version]
     steps:
       -
@@ -201,9 +200,193 @@ jobs:
       -
         name: Build binaries
         shell: bash
-        env:
-          VERSION: ${{ needs.version.outputs.semver_tag }}
-        run: make build-all
+        # 3 is the number of virtual cpus for macOS. Linux is only 2.
+        run: make -j3 build-linux
+      -
+        name: Upload artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: binaries
+          path: build/
+      - 
+        name: Remove tag if failure
+        if: ${{ failure() }}
+        uses: actions/github-script@v4
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            github.git.deleteRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: "refs/tags/${{ needs.version.outputs.semver_tag }}"
+            })
+
+  build-freebsd:
+    name: Build FreeBSD
+    runs-on: macos-latest
+    needs: [version]
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v2
+      -
+        name: Setup go
+        uses: actions/setup-go@master
+        with:
+          go-version: "1.16"
+      -
+        name: Build binaries
+        shell: bash
+        # 3 is the number of virtual cpus for macOS. Linux is only 2.
+        run: make -j3 build-freebsd
+      -
+        name: Upload artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: binaries
+          path: build/
+      - 
+        name: Remove tag if failure
+        if: ${{ failure() }}
+        uses: actions/github-script@v4
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            github.git.deleteRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: "refs/tags/${{ needs.version.outputs.semver_tag }}"
+            })
+
+  build-netbsd:
+    name: Build NetBSD
+    runs-on: macos-latest
+    needs: [version]
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v2
+      -
+        name: Setup go
+        uses: actions/setup-go@master
+        with:
+          go-version: "1.16"
+      -
+        name: Build binaries
+        shell: bash
+        # 3 is the number of virtual cpus for macOS. Linux is only 2.
+        run: make -j3 build-netbsd
+      -
+        name: Upload artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: binaries
+          path: build/
+      - 
+        name: Remove tag if failure
+        if: ${{ failure() }}
+        uses: actions/github-script@v4
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            github.git.deleteRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: "refs/tags/${{ needs.version.outputs.semver_tag }}"
+            })
+
+  build-openbsd:
+    name: Build OpenBSD
+    runs-on: macos-latest
+    needs: [version]
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v2
+      -
+        name: Setup go
+        uses: actions/setup-go@master
+        with:
+          go-version: "1.16"
+      -
+        name: Build binaries
+        shell: bash
+        # 3 is the number of virtual cpus for macOS. Linux is only 2.
+        run: make -j3 build-openbsd
+      -
+        name: Upload artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: binaries
+          path: build/
+      - 
+        name: Remove tag if failure
+        if: ${{ failure() }}
+        uses: actions/github-script@v4
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            github.git.deleteRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: "refs/tags/${{ needs.version.outputs.semver_tag }}"
+            })
+
+  build-darwin:
+    name: Build Darwin
+    runs-on: macos-latest
+    needs: [version]
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v2
+      -
+        name: Setup go
+        uses: actions/setup-go@master
+        with:
+          go-version: "1.16"
+      -
+        name: Build binaries
+        shell: bash
+        # 3 is the number of virtual cpus for macOS. Linux is only 2.
+        run: make -j3 build-darwin
+      -
+        name: Upload artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: binaries
+          path: build/
+      - 
+        name: Remove tag if failure
+        if: ${{ failure() }}
+        uses: actions/github-script@v4
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            github.git.deleteRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: "refs/tags/${{ needs.version.outputs.semver_tag }}"
+            })
+
+  build-windows:
+    name: Build Windows
+    runs-on: macos-latest
+    needs: [version]
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v2
+      -
+        name: Setup go
+        uses: actions/setup-go@master
+        with:
+          go-version: "1.16"
+      -
+        name: Build binaries
+        shell: bash
+        # 3 is the number of virtual cpus for macOS. Linux is only 2.
+        run: make -j3 build-windows
       -
         name: Upload artifacts
         uses: actions/upload-artifact@v2
@@ -225,7 +408,7 @@ jobs:
 
   sign:
     name: Sign Apple binaries
-    needs: [version, build]
+    needs: [version, build-darwin]
     runs-on: macos-latest
     steps:
       -
@@ -281,10 +464,18 @@ jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
-    needs: [version, build, sign]
+    needs: [
+      version,
+      build-linux,
+      build-freebsd,
+      build-netbsd,
+      build-openbsd,
+      build-darwin,
+      build-windows,
+      sign]
     steps:
       -
-        name: "Checkout"
+        name: Checkout
         uses: actions/checkout@v2
         with:
           fetch-depth: 0
