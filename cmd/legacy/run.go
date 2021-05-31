@@ -19,11 +19,12 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/vipertools"
 
+	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
 // Run executes legacy commands following the interface of the old python implementation of the WakaTime script.
-func Run(v *viper.Viper) {
+func Run(cmd *cobra.Command, v *viper.Viper) {
 	logfileParams, err := logfile.LoadParams(v)
 	if err != nil {
 		log.Fatalf("failed to load log params: %s", err)
@@ -114,7 +115,7 @@ func Run(v *viper.Viper) {
 		offlinesync.Run(v)
 	}
 
-	log.Fatalf("One of the following parameters has to be provided: %s", strings.Join([]string{
+	log.Warnf("One of the following parameters has to be provided: %s", strings.Join([]string{
 		"--config-read",
 		"--config-write",
 		"--entity",
@@ -124,4 +125,8 @@ func Run(v *viper.Viper) {
 		"--useragent",
 		"--version",
 	}, ", "))
+
+	_ = cmd.Help()
+
+	os.Exit(exitcode.ErrDefault)
 }
