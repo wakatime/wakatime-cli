@@ -203,8 +203,29 @@ func TestParseHeartbeatResponses(t *testing.T) {
 	})
 }
 
-func TestParseHeartbeatResponsesErr(t *testing.T) {
+func TestParseHeartbeatResponses_Error(t *testing.T) {
 	data, err := ioutil.ReadFile("testdata/api_heartbeats_response_error.json")
+	require.NoError(t, err)
+
+	results, err := api.ParseHeartbeatResponses(data)
+	require.NoError(t, err)
+
+	// asserting here the exact order of results, which is assumed to exactly match the request order
+	assert.Len(t, results, 4)
+
+	// valid responses
+	assert.Equal(t, 201, results[0].Status)
+	assert.Equal(t, 201, results[1].Status)
+
+	// error responses
+	assert.Equal(t, 429, results[2].Status)
+	assert.Equal(t, results[2].Errors, []string{"Too many heartbeats"})
+	assert.Equal(t, 429, results[3].Status)
+	assert.Equal(t, results[3].Errors, []string{"Too many heartbeats"})
+}
+
+func TestParseHeartbeatResponses_Errors(t *testing.T) {
+	data, err := ioutil.ReadFile("testdata/api_heartbeats_response_errors.json")
 	require.NoError(t, err)
 
 	results, err := api.ParseHeartbeatResponses(data)
