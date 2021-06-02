@@ -17,6 +17,7 @@ import (
 	"github.com/wakatime/wakatime-cli/cmd/legacy/offlinesync"
 	"github.com/wakatime/wakatime-cli/cmd/legacy/today"
 	"github.com/wakatime/wakatime-cli/cmd/legacy/todaygoal"
+	"github.com/wakatime/wakatime-cli/pkg/api"
 	"github.com/wakatime/wakatime-cli/pkg/config"
 	"github.com/wakatime/wakatime-cli/pkg/diagnostic"
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
@@ -178,10 +179,16 @@ func sendDiagnostics(v *viper.Viper, logs, stack string) {
 		diagnostic.Stack(stack),
 	}
 
+	api.WithDisableSSLVerify()(c)
+
 	err = c.SendDiagnostics(params.API.Plugin, diagnostics...)
 	if err != nil {
 		log.Errorf("failed to send diagnostics: %s", err)
+
+		return
 	}
+
+	log.Debugln("successfully sent diagnostics")
 }
 
 func captureLogs(dest io.Writer) func() {
