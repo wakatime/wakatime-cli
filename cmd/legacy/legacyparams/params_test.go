@@ -52,6 +52,18 @@ func TestLoad_OfflineDisabled_FromFlag(t *testing.T) {
 	assert.True(t, params.OfflineDisabled)
 }
 
+func TestLoad_OfflineQueueFile(t *testing.T) {
+	v := viper.New()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("entity", "/path/to/file")
+	v.Set("offline-queue-file", "/path/to/file")
+
+	params, err := legacyparams.Load(v)
+	require.NoError(t, err)
+
+	assert.Equal(t, "/path/to/file", params.OfflineQueueFile)
+}
+
 func TestLoad_OfflineSyncMax(t *testing.T) {
 	v := viper.New()
 	v.Set("key", "00000000-0000-4000-8000-000000000000")

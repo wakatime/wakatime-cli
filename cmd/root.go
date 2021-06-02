@@ -141,6 +141,11 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 		"Disables SSL certificate verification for HTTPS requests. By default,"+
 			" SSL certificates are verified.",
 	)
+	flags.String(
+		"offline-queue-file",
+		"",
+		"(internal) Specify a offline queue file, which will be used instead of the default one.",
+	)
 	flags.String("plugin", "", "Optional text editor plugin name and version for User-Agent header.")
 	flags.String("project", "", "Override auto-detected project."+
 		" Use --alternate-project to supply a fallback project if one can't be auto-detected.")
@@ -178,7 +183,11 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 		"",
 		"Prints time for the given goal id Today, then exits"+
 			" Visit wakatime.com/api/v1/users/current/goals to find your goal id.")
-	flags.Bool("useragent", false, "Prints the wakatime-cli useragent, as it will be sent to the api, then exits.")
+	flags.Bool(
+		"useragent",
+		false,
+		"(internal) Prints the wakatime-cli useragent, as it will be sent to the api, then exits.",
+	)
 	flags.Bool("verbose", false, "Turns on debug messages in log file.")
 	flags.Bool("version", false, "Prints the wakatime-cli version number, then exits.")
 	flags.Bool("write", false, "When set, tells api this heartbeat was triggered from writing to a file.")
@@ -192,6 +201,7 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 	_ = flags.MarkHidden("logfile")
 
 	// hide internal flags
+	_ = flags.MarkHidden("offline-queue-file")
 	_ = flags.MarkHidden("useragent")
 
 	err := v.BindPFlags(flags)

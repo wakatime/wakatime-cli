@@ -144,6 +144,10 @@ func SendHeartbeats(v *viper.Viper, queueFilepath string) error {
 	}
 
 	if !params.OfflineDisabled {
+		if params.OfflineQueueFile != "" {
+			queueFilepath = params.OfflineQueueFile
+		}
+
 		offlineHandleOpt, err := offline.WithQueue(queueFilepath, params.OfflineSyncMax)
 		if err != nil {
 			return fmt.Errorf("failed to initialize offline queue handle option: %w", err)

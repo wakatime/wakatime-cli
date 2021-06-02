@@ -43,6 +43,7 @@ type Params struct {
 	LinesInFile       *int
 	LocalFile         string
 	OfflineDisabled   bool
+	OfflineQueueFile  string
 	OfflineSyncMax    int
 	Time              float64
 	API               legacyparams.API
@@ -80,9 +81,9 @@ func (p Params) String() string {
 	return fmt.Sprintf(
 		"category: '%s', cursor position: '%s', entity: '%s', entity type: '%s',"+
 			" num extra heartbeats: %d, hostname: '%s', is write: %t, language: '%s',"+
-			" line number: '%s', lines in file: '%s', offline disabled: %t, offline sync max: %d,"+
-			" time: %.5f, api params: (%s), filter params: (%s),"+
-			" project params: (%s), sanitize params: (%s)",
+			" line number: '%s', lines in file: '%s', offline disabled: %t,"+
+			" offline queue file: '%s', offline sync max: %d, time: %.5f, api params: (%s),"+
+			" filter params: (%s), project params: (%s), sanitize params: (%s)",
 		p.Category,
 		cursorPosition,
 		p.Entity,
@@ -94,6 +95,7 @@ func (p Params) String() string {
 		lineNumber,
 		linesInFile,
 		p.OfflineDisabled,
+		p.OfflineQueueFile,
 		p.OfflineSyncMax,
 		p.Time,
 		p.API,
@@ -261,6 +263,7 @@ func LoadParams(v *viper.Viper) (Params, error) {
 		LinesInFile:       linesInFile,
 		LocalFile:         vipertools.GetString(v, "local-file"),
 		OfflineDisabled:   params.OfflineDisabled,
+		OfflineQueueFile:  params.OfflineQueueFile,
 		OfflineSyncMax:    params.OfflineSyncMax,
 		Time:              timeSecs,
 		API:               params.API,
