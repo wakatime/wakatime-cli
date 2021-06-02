@@ -106,6 +106,11 @@ func testSendHeartbeats(t *testing.T, entity, project string) {
 
 	version.Version = testVersion
 
+	offlineQueueFile, err := ioutil.TempFile(os.TempDir(), "")
+	require.NoError(t, err)
+
+	defer os.Remove(offlineQueueFile.Name())
+
 	cmd := exec.Command(
 		binaryPath(t),
 		"--api-url", apiUrl,
@@ -113,6 +118,7 @@ func testSendHeartbeats(t *testing.T, entity, project string) {
 		"--config", "testdata/wakatime.cfg",
 		"--entity", entity,
 		"--cursorpos", "12",
+		"--offline-queue-file", offlineQueueFile.Name(),
 		"--lineno", "42",
 		"--lines-in-file", "100",
 		"--time", "1585598059",
@@ -138,7 +144,6 @@ func TestTodayGoal(t *testing.T) {
 
 		// check request
 		assert.Equal(t, http.MethodGet, req.Method)
-		t.Logf("%#v\n", req.Header)
 		assert.Equal(t, []string{"application/json"}, req.Header["Accept"])
 		assert.Equal(t, []string{"Basic MDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAw"}, req.Header["Authorization"])
 		assert.Equal(t, []string{heartbeat.UserAgentUnknownPlugin()}, req.Header["User-Agent"])
@@ -179,7 +184,6 @@ func TestTodaySummary(t *testing.T) {
 
 		// check request
 		assert.Equal(t, http.MethodGet, req.Method)
-		t.Logf("%#v\n", req.Header)
 		assert.Equal(t, []string{"application/json"}, req.Header["Accept"])
 		assert.Equal(t, []string{"Basic MDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAw"}, req.Header["Authorization"])
 		assert.Equal(t, []string{heartbeat.UserAgentUnknownPlugin()}, req.Header["User-Agent"])
