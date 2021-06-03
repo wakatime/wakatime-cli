@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"testing"
@@ -145,12 +146,15 @@ func TestLoadParams_Entity_EntityFlagTakesPrecedence(t *testing.T) {
 func TestLoadParams_Entity_FileFlag(t *testing.T) {
 	v := viper.New()
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
-	v.Set("file", "/path/to/file")
+	v.Set("file", "~/path/to/file")
+
+	home, err := os.UserHomeDir()
+	require.NoError(t, err)
 
 	params, err := cmd.LoadParams(v)
 	require.NoError(t, err)
 
-	assert.Equal(t, "/path/to/file", params.Entity)
+	assert.Equal(t, filepath.Join(home, "/path/to/file"), params.Entity)
 }
 
 func TestLoadParams_Entity_Unset(t *testing.T) {

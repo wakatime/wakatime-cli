@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mitchellh/go-homedir"
 	"github.com/wakatime/wakatime-cli/cmd/legacy/legacyparams"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/log"
@@ -181,7 +182,16 @@ func LoadParams(v *viper.Viper) (Params, error) {
 		cursorPosition = heartbeat.Int(pos)
 	}
 
+	var entity string
+
 	entity, ok := vipertools.FirstNonEmptyString(v, "entity", "file")
+	if ok {
+		entity, err = homedir.Expand(entity)
+		if err != nil {
+			return Params{}, fmt.Errorf("failed expanding entity: %s", err)
+		}
+	}
+
 	if !ok && !v.IsSet("sync-offline-activity") {
 		return Params{}, errors.New("failed to retrieve entity")
 	}
@@ -326,6 +336,11 @@ func parseExtraHeartbeat(data string) ([]heartbeat.Heartbeat, error) {
 	var heartbeats []heartbeat.Heartbeat
 
 	for _, h := range incoming {
+		h.Entity, err = homedir.Expand(h.Entity)
+		if err != nil {
+			return nil, fmt.Errorf("failed expanding entity: %s", err)
+		}
+
 		var entityType heartbeat.EntityType
 
 		// Both type or entity_type are acceptable here. Type takes precedence.
@@ -404,6 +419,11 @@ func parseExtraHeartbeatWithStringValues(data string) ([]heartbeat.Heartbeat, er
 			}
 
 			cursorPosition = &parsed
+		}
+
+		h.Entity, err = homedir.Expand(h.Entity)
+		if err != nil {
+			return nil, fmt.Errorf("failed expanding entity: %s", err)
 		}
 
 		var entityType heartbeat.EntityType

@@ -2,6 +2,8 @@ package legacyparams_test
 
 import (
 	"errors"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -420,12 +422,15 @@ func TestLoad_API_SSLCertFilepath_FlagTakesPrecedence(t *testing.T) {
 	v := viper.New()
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
-	v.Set("ssl-certs-file", "/path/to/cert.pem")
+	v.Set("ssl-certs-file", "~/path/to/cert.pem")
+
+	home, err := os.UserHomeDir()
+	require.NoError(t, err)
 
 	params, err := legacyparams.Load(v)
 	require.NoError(t, err)
 
-	assert.Equal(t, "/path/to/cert.pem", params.API.SSLCertFilepath)
+	assert.Equal(t, filepath.Join(home, "/path/to/cert.pem"), params.API.SSLCertFilepath)
 }
 
 func TestLoad_API_SSLCertFilepath_FromConfig(t *testing.T) {

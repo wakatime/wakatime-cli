@@ -36,15 +36,15 @@ func WithDetection(c Config) heartbeat.HandleOption {
 					continue
 				}
 
-				filepath := h.Entity
-				if h.LocalFile != "" {
-					filepath = h.LocalFile
-				}
-
 				if c.LinesInFile != nil {
 					hh[n].Lines = heartbeat.Int(*c.LinesInFile)
 
 					continue
+				}
+
+				filepath := h.Entity
+				if h.LocalFile != "" {
+					filepath = h.LocalFile
 				}
 
 				fileInfo, err := os.Stat(filepath)
