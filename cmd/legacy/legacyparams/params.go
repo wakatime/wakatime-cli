@@ -30,9 +30,10 @@ var (
 
 // Params contains legacy params.
 type Params struct {
-	OfflineDisabled bool
-	OfflineSyncMax  int
-	API             API
+	OfflineDisabled  bool
+	OfflineQueueFile string
+	OfflineSyncMax   int
+	API              API
 }
 
 // API contains api related parameters.
@@ -98,9 +99,10 @@ func Load(v *viper.Viper) (Params, error) {
 	}
 
 	return Params{
-		OfflineDisabled: offlineDisabled,
-		OfflineSyncMax:  offlineSyncMax,
-		API:             apiParams,
+		OfflineDisabled:  offlineDisabled,
+		OfflineQueueFile: vipertools.GetString(v, "offline-queue-file"),
+		OfflineSyncMax:   offlineSyncMax,
+		API:              apiParams,
 	}, nil
 }
 
