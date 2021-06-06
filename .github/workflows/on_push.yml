@@ -490,16 +490,26 @@ jobs:
           exclude: |
             ^Merge pull request .*
       -
+        if: ${{ github.ref == 'refs/heads/develop' }}
+        name: Prepare changelog (develop)
+        id: changelog-develop
+        shell: bash
+        run: |
+          changelog=${{ steps.changelog.outputs.changelog }}
+          changelog="${changelog//\`/\"}"
+          changelog="${changelog//'/\"}"
+          echo "::set-output name=changelog::$changelog"
+      -
         if: ${{ github.ref == 'refs/heads/release' }}
-        name: Changelog for release (stable version)
+        name: Get related pull request
         uses: 8BitJonny/gh-get-current-pr@1.1.0
         id: pr
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
       - 
         if: ${{ github.ref == 'refs/heads/release' }}
-        name: Prepare changelog
-        id: changelog-pr
+        name: Prepare changelog for release (stable version)
+        id: changelog-release
         shell: bash
         run: |
           body="${{ fromJson(steps.pr.outputs.pr).body }}"
@@ -559,7 +569,7 @@ jobs:
                 pretext: 'New <https://github.com/wakatime/wakatime-cli|wakatime-cli> version released',
                 title: `${{ needs.version.outputs.semver_tag }}`,
                 title_link: `https://github.com/wakatime/wakatime-cli/releases/tag/${{ needs.version.outputs.semver_tag }}`,
-                text: `${{ steps.changelog.outputs.changelog || steps.changelog-pr.outputs.changelog }}`
+                text: `${{ steps.changelog-develop.outputs.changelog || steps.changelog-release.outputs.changelog }}`
               }]
             }
         env:
