@@ -495,7 +495,7 @@ jobs:
         id: changelog-develop
         shell: bash
         run: |
-          changelog=${{ steps.changelog.outputs.changelog }}
+          changelog="${{ steps.changelog.outputs.changelog }}"
           changelog="${changelog//\`/\"}"
           changelog="${changelog//'/\"}"
           echo "::set-output name=changelog::$changelog"
