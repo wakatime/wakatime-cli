@@ -26,6 +26,7 @@ func TestClient_SendDiagnostics(t *testing.T) {
 		// check method and headers
 		assert.Equal(t, http.MethodPost, req.Method)
 		assert.Equal(t, []string{"application/json"}, req.Header["Content-Type"])
+		assert.Nil(t, req.Header["Authorization"])
 
 		// check body
 		expectedBody, err := ioutil.ReadFile("testdata/diagnostics_request.json")

@@ -18,10 +18,18 @@ func NewClient(params legacyparams.API) (*api.Client, error) {
 		return nil, fmt.Errorf("failed to set up auth option on api client: %w", err)
 	}
 
-	opts := []api.Option{
-		withAuth,
-		api.WithTimeout(params.Timeout),
-	}
+	return newClient(params, withAuth)
+}
+
+// NewClientWithoutAuth initializes a new api client with all options following the
+// passed in parameters and disabled authentication.
+func NewClientWithoutAuth(params legacyparams.API) (*api.Client, error) {
+	return newClient(params)
+}
+
+// newClient contains the logic of client initialization, except auth initialization.
+func newClient(params legacyparams.API, opts ...api.Option) (*api.Client, error) {
+	opts = append(opts, api.WithTimeout(params.Timeout))
 
 	if params.DisableSSLVerify {
 		opts = append(opts, api.WithDisableSSLVerify())

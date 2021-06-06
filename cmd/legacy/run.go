@@ -69,7 +69,7 @@ func Run(cmd *cobra.Command, v *viper.Viper) {
 	if v.GetBool("version") {
 		log.Debugln("command: version")
 
-		runCmd(v, runVersion)
+		RunCmd(v, runVersion)
 	}
 
 	if err := config.ReadInConfig(v, config.FilePath); err != nil {
@@ -81,37 +81,37 @@ func Run(cmd *cobra.Command, v *viper.Viper) {
 	if v.IsSet("config-read") {
 		log.Debugln("command: config-read")
 
-		runCmd(v, configread.Run)
+		RunCmd(v, configread.Run)
 	}
 
 	if v.IsSet("config-write") {
 		log.Debugln("command: config-write")
 
-		runCmd(v, configwrite.Run)
+		RunCmd(v, configwrite.Run)
 	}
 
 	if v.GetBool("today") {
 		log.Debugln("command: today")
 
-		runCmd(v, today.Run)
+		RunCmd(v, today.Run)
 	}
 
 	if v.IsSet("today-goal") {
 		log.Debugln("command: today-goal")
 
-		runCmd(v, todaygoal.Run)
+		RunCmd(v, todaygoal.Run)
 	}
 
 	if v.IsSet("entity") {
 		log.Debugln("command: heartbeat")
 
-		runCmd(v, heartbeatcmd.Run)
+		RunCmd(v, heartbeatcmd.Run)
 	}
 
 	if v.IsSet("sync-offline-activity") {
 		log.Debugln("command: sync-offline-activity")
 
-		runCmd(v, offlinesync.Run)
+		RunCmd(v, offlinesync.Run)
 	}
 
 	log.Warnf("One of the following parameters has to be provided: %s", strings.Join([]string{
@@ -132,7 +132,9 @@ func Run(cmd *cobra.Command, v *viper.Viper) {
 
 type cmdFn func(v *viper.Viper) (int, error)
 
-func runCmd(v *viper.Viper, cmd cmdFn) {
+// RunCmd runs a command function and exits with the exit code returned by
+// the command function. Will send diagnostic on any errors or panics.
+func RunCmd(v *viper.Viper, cmd cmdFn) {
 	logs := bytes.NewBuffer(nil)
 	resetLogs := captureLogs(logs)
 
@@ -149,7 +151,7 @@ func runCmd(v *viper.Viper, cmd cmdFn) {
 	// run command
 	exitCode, err := cmd(v)
 	if err != nil {
-		log.Errorln(err.Error())
+		log.Errorf("failed to run command: %s", err.Error())
 
 		resetLogs()
 		sendDiagnostics(v, logs.String(), string(debug.Stack()))
@@ -167,7 +169,7 @@ func sendDiagnostics(v *viper.Viper, logs, stack string) {
 		return
 	}
 
-	c, err := legacyapi.NewClient(params.API)
+	c, err := legacyapi.NewClientWithoutAuth(params.API)
 	if err != nil {
 		log.Errorf("failed to initialize api client for sending diagnostics: %s", err)
 
