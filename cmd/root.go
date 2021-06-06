@@ -16,7 +16,7 @@ const (
 	defaultTimeoutSecs = 60
 	// defaultOfflineSync is the default maximum number of heartbeats from the
 	// offline queue, which will be synced upon sending heartbeats to the API.
-	defaultOfflineSync = "100"
+	defaultOfflineSync = "24"
 )
 
 // NewRootCMD creates a rootCmd, which represents the base command when called without any subcommands.
