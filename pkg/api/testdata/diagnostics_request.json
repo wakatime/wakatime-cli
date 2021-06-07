@@ -1,0 +1,7 @@
+{
+	"platform": "linux",
+	"architecture": "amd64",
+	"editor": "vim",
+	"logs": "some logs",
+	"stacktrace": "some stack"
+}

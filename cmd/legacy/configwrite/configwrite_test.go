@@ -62,9 +62,7 @@ func TestLoadParamsErr(t *testing.T) {
 			v.Set("config-write", test.Value)
 
 			_, err := configwrite.LoadParams(v)
-
-			var fwerr config.ErrFileWrite
-			assert.True(t, errors.As(err, &fwerr))
+			assert.Error(t, err)
 		})
 	}
 }
@@ -121,16 +119,13 @@ func TestWriteErr(t *testing.T) {
 			v.Set("config-write", test.Value)
 
 			err := configwrite.Write(v, w)
+			require.Error(t, err)
 
-			var fwerr config.ErrFileWrite
-			errMsg := fmt.Sprintf("error %q differs from the string set", err)
-
-			assert.True(t, errors.As(err, &fwerr))
 			assert.Equal(
 				t,
 				err.Error(),
 				"failed loading params: neither section nor key/value can be empty",
-				errMsg,
+				fmt.Sprintf("error %q differs from the string set", err),
 			)
 		})
 	}
@@ -142,7 +137,8 @@ func TestWriteSaveErr(t *testing.T) {
 		WriteFn: func(section string, keyValue map[string]string) error {
 			assert.Equal(t, "settings", section)
 			assert.Equal(t, map[string]string{"debug": "false"}, keyValue)
-			return config.ErrFileWrite("error")
+
+			return errors.New("error")
 		},
 	}
 
@@ -150,10 +146,7 @@ func TestWriteSaveErr(t *testing.T) {
 	v.Set("config-write", map[string]string{"debug": "false"})
 
 	err := configwrite.Write(v, w)
-
-	var fwerr config.ErrFileWrite
-
-	assert.True(t, errors.As(err, &fwerr))
+	assert.Error(t, err)
 }
 
 type writerMock struct {

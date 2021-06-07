@@ -3,7 +3,6 @@ package offlinesync
 import (
 	"errors"
 	"fmt"
-	"os"
 
 	"github.com/wakatime/wakatime-cli/cmd/legacy/legacyapi"
 	"github.com/wakatime/wakatime-cli/cmd/legacy/legacyparams"
@@ -17,34 +16,42 @@ import (
 )
 
 // Run executes the sync-offline-activity command.
-func Run(v *viper.Viper) {
+func Run(v *viper.Viper) (int, error) {
 	queueFilepath, err := offline.QueueFilepath()
 	if err != nil {
-		log.Fatalf("failed to load offline queue filepath: %s", err)
+		return exitcode.ErrDefault, fmt.Errorf(
+			"failed to load offline queue filepath: %s",
+			err,
+		)
 	}
 
 	err = SyncOfflineActivity(v, queueFilepath)
 	if err != nil {
 		var errauth api.ErrAuth
 		if errors.As(err, &errauth) {
-			log.Errorf(
+			return exitcode.ErrAuth, fmt.Errorf(
 				"failed to sync offline activity: %s. Find your api key from wakatime.com/settings/api-key",
 				errauth,
 			)
-			os.Exit(exitcode.ErrAuth)
 		}
 
 		var errapi api.Err
 		if errors.As(err, &errapi) {
-			log.Errorf("failed to sync offline activity: %s", err)
-			os.Exit(exitcode.ErrAPI)
+			return exitcode.ErrAPI, fmt.Errorf(
+				"failed to sync offline activity due to api error: %s",
+				err,
+			)
 		}
 
-		log.Fatalf("failed to sync offline activity: %s", err)
+		return exitcode.ErrDefault, fmt.Errorf(
+			"failed to sync offline activity: %s",
+			err,
+		)
 	}
 
 	log.Debugln("successfully synced offline activity")
-	os.Exit(exitcode.Success)
+
+	return exitcode.Success, nil
 }
 
 // SyncOfflineActivity syncs offline activity by sending heartbeats

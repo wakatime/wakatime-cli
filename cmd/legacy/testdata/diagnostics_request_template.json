@@ -1,0 +1,7 @@
+{
+	"platform": "some os",
+	"architecture": "some architecture",
+	"editor": "vim",
+	"logs": "%s",
+	"stacktrace": "%s"
+}

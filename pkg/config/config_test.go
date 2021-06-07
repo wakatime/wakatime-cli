@@ -61,10 +61,7 @@ func TestReadInConfigErr(t *testing.T) {
 		assert.Equal(t, v, vp)
 		return "", errors.New("error")
 	})
-
-	var cfperr config.ErrFileParse
-
-	assert.True(t, errors.As(err, &cfperr))
+	assert.Error(t, err)
 }
 
 func TestFilePath(t *testing.T) {
@@ -130,10 +127,8 @@ func TestNewIniWriterErr(t *testing.T) {
 		assert.Equal(t, v, vp)
 		return "", errors.New("error")
 	})
+	require.Error(t, err)
 
-	var cfperr config.ErrFileParse
-
-	assert.True(t, errors.As(err, &cfperr))
 	assert.Contains(t, err.Error(), "error getting filepath")
 }
 
@@ -180,9 +175,7 @@ func TestWriteErr(t *testing.T) {
 	w := config.IniWriter{}
 
 	err := w.Write("settings", map[string]string{"debug": "true"})
+	require.Error(t, err)
 
-	var cfwerr config.ErrFileWrite
-
-	assert.True(t, errors.As(err, &cfwerr))
 	assert.Equal(t, "got undefined wakatime config file instance", err.Error())
 }
