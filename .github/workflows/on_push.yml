@@ -497,7 +497,7 @@ jobs:
         run: |
           changelog="${{ steps.changelog.outputs.changelog }}"
           changelog="${changelog//\`/\"}"
-          changelog="${changelog//'/\"}"
+          changelog="${changelog//\'/\"}"
           echo "::set-output name=changelog::$changelog"
       -
         if: ${{ github.ref == 'refs/heads/release' }}
