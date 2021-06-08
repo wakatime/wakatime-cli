@@ -34,6 +34,7 @@ no_ssl_verify = false
 ssl_certs_file =
 timeout = 30
 hostname = machinename
+log_file = 
 [projectmap]
 projects/foo = new project name
 ^/home/user/projects/bar(\d+)/ = project{0}
@@ -63,6 +64,7 @@ submodules_disabled = false
 | ssl_certs_file                 | Override the bundled CA certs file. By default, uses system ca certs. | _filepath_ |
 | timeout                        | Number of seconds to wait when sending heartbeats to api. Defaults to 60 seconds. | _integer_ |
 | hostname                       | Optional name of local machine. Defaults to local machine name read from system. | _machinename_ |
+| log_file                       | Optional log file path. Defaults to `~/.wakatime.log`. | _filepath_ |
 
 ### Project Map Section
 

@@ -8,13 +8,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mitchellh/go-homedir"
 	"github.com/wakatime/wakatime-cli/pkg/api"
 	"github.com/wakatime/wakatime-cli/pkg/vipertools"
 
 	"github.com/spf13/viper"
 )
 
-const errMsgTemplate = "Invalid url %q. Must be in format" +
+const errMsgTemplate = "invalid url %q. Must be in format" +
 	"'https://user:pass@host:port' or " +
 	"'socks5://user:pass@host:port' or " +
 	"'domain\\\\user:pass.'"
@@ -133,7 +134,21 @@ func loadAPIParams(v *viper.Viper) (API, error) {
 		return API{}, fmt.Errorf(errMsgTemplate, proxyURL)
 	}
 
-	sslCertFilepath, _ := vipertools.FirstNonEmptyString(v, "ssl-certs-file", "settings.ssl_certs_file")
+	var (
+		sslCertFilepath string
+		err             error
+	)
+
+	sslCertFilepath, ok = vipertools.FirstNonEmptyString(v, "ssl-certs-file", "settings.ssl_certs_file")
+	if ok {
+		sslCertFilepath, err = homedir.Expand(sslCertFilepath)
+		if err != nil {
+			if err != nil {
+				return API{},
+					fmt.Errorf("failed expanding ssl certs file: %s", err)
+			}
+		}
+	}
 
 	var timeout time.Duration
 

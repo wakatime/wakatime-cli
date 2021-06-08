@@ -13,7 +13,6 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	"github.com/Azure/go-ntlmssp"
-	"github.com/mitchellh/go-homedir"
 )
 
 // Option is a functional option for Client.
@@ -130,12 +129,7 @@ func WithProxy(proxyURL string) (Option, error) {
 
 // WithSSLCertFile overrides the default CA certs file to trust specified cert file.
 func WithSSLCertFile(filepath string) (Option, error) {
-	expanded, err := homedir.Expand(filepath)
-	if err != nil {
-		return nil, fmt.Errorf("failed expanding filepath %q: %s", filepath, err)
-	}
-
-	caCert, err := ioutil.ReadFile(expanded)
+	caCert, err := ioutil.ReadFile(filepath)
 	if err != nil {
 		return nil, err
 	}
