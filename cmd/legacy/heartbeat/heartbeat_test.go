@@ -29,7 +29,7 @@ func TestSendHeartbeats(t *testing.T) {
 		numCalls int
 	)
 
-	router.HandleFunc("/v1/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
+	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
 		// check request
 		assert.Equal(t, http.MethodPost, req.Method)
 		assert.Equal(t, []string{"application/json"}, req.Header["Accept"])
@@ -107,7 +107,7 @@ func TestSendHeartbeats_WithFiltering_Exclude(t *testing.T) {
 
 	var numCalls int
 
-	router.HandleFunc("/v1/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
+	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
 		w.WriteHeader(500)
 
 		numCalls++
@@ -145,7 +145,7 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 		numCalls int
 	)
 
-	router.HandleFunc("/v1/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
+	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
 		// check request
 		expectedBody, err := ioutil.ReadFile("testdata/api_heartbeats_request_extra_heartbeats_template.json")
 		require.NoError(t, err)

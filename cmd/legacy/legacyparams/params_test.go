@@ -156,7 +156,7 @@ func TestLoad_API_APIKey(t *testing.T) {
 			Expected: legacyparams.Params{
 				API: legacyparams.API{
 					Key: "00000000-0000-4000-8000-000000000000",
-					URL: "https://api.wakatime.com/api",
+					URL: "https://api.wakatime.com/api/v1",
 				},
 			},
 		},
@@ -166,7 +166,7 @@ func TestLoad_API_APIKey(t *testing.T) {
 			Expected: legacyparams.Params{
 				API: legacyparams.API{
 					Key: "00000000-0000-4000-8000-000000000000",
-					URL: "https://api.wakatime.com/api",
+					URL: "https://api.wakatime.com/api/v1",
 				},
 			},
 		},
@@ -175,7 +175,7 @@ func TestLoad_API_APIKey(t *testing.T) {
 			Expected: legacyparams.Params{
 				API: legacyparams.API{
 					Key: "00000000-0000-4000-8000-000000000000",
-					URL: "https://api.wakatime.com/api",
+					URL: "https://api.wakatime.com/api/v1",
 				},
 			},
 		},
@@ -255,6 +255,33 @@ func TestLoad_API_APIUrl(t *testing.T) {
 				},
 			},
 		},
+		"api url with legacy heartbeats endpoint": {
+			ViperAPIUrl: "http://localhost:8080/api/v1/heartbeats.bulk",
+			Expected: legacyparams.Params{
+				API: legacyparams.API{
+					Key: "00000000-0000-4000-8000-000000000000",
+					URL: "http://localhost:8080/api/v1",
+				},
+			},
+		},
+		"api url with trailing slash": {
+			ViperAPIUrl: "http://localhost:8080/api/",
+			Expected: legacyparams.Params{
+				API: legacyparams.API{
+					Key: "00000000-0000-4000-8000-000000000000",
+					URL: "http://localhost:8080/api",
+				},
+			},
+		},
+		"api url with wakapi style endpoint": {
+			ViperAPIUrl: "http://localhost:8080/api/heartbeat",
+			Expected: legacyparams.Params{
+				API: legacyparams.API{
+					Key: "00000000-0000-4000-8000-000000000000",
+					URL: "http://localhost:8080/api",
+				},
+			},
+		},
 	}
 
 	for name, test := range tests {
@@ -294,7 +321,7 @@ func TestLoad_API_Plugin(t *testing.T) {
 
 	assert.Equal(t, legacyparams.API{
 		Key:    "00000000-0000-4000-8000-000000000000",
-		URL:    "https://api.wakatime.com/api",
+		URL:    "https://api.wakatime.com/api/v1",
 		Plugin: "plugin/10.0.0",
 	}, params.API)
 }

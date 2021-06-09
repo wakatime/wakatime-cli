@@ -22,7 +22,7 @@ type diagnosticsBody struct {
 
 // SendDiagnostics sends diagnostics to the WakaTime api.
 func (c *Client) SendDiagnostics(plugin string, diagnostics ...diagnostic.Diagnostic) error {
-	url := c.baseURL + "/v1/plugins/errors"
+	url := c.baseURL + "/plugins/errors"
 
 	log.Debugf("sending diagnostic data to api at %s", url)
 

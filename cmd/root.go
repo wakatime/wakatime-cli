@@ -41,8 +41,17 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 	flags := cmd.Flags()
 	flags.String("alternate-language", "", "Optional alternate language name. Auto-detected language takes priority.")
 	flags.String("alternate-project", "", "Optional alternate project name. Auto-detected project takes priority.")
-	flags.String("api-url", "", "Heartbeats api url. For debugging with a local server.")
-	flags.String("apiurl", "", "(deprecated) Heartbeats api url. For debugging with a local server.")
+	flags.String(
+		"api-url",
+		"",
+		"API base url used when sending heartbeats and fetching code stats. Defaults to https://api.wakatime.com/api/v1/.",
+	)
+	flags.String(
+		"apiurl",
+		"",
+		"(deprecated) API base url used when sending heartbeats and fetching code stats. Defaults to"+
+			" https://api.wakatime.com/api/v1/.",
+	)
 	flags.String(
 		"category",
 		"",

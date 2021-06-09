@@ -25,7 +25,7 @@ func TestClient_Summaries(t *testing.T) {
 
 	var numCalls int
 
-	router.HandleFunc("/v1/users/current/summaries", func(w http.ResponseWriter, req *http.Request) {
+	router.HandleFunc("/users/current/summaries", func(w http.ResponseWriter, req *http.Request) {
 		numCalls++
 
 		// check request
@@ -76,7 +76,7 @@ func TestClient_SummariesByCategory(t *testing.T) {
 
 	var numCalls int
 
-	router.HandleFunc("/v1/users/current/summaries", func(w http.ResponseWriter, req *http.Request) {
+	router.HandleFunc("/users/current/summaries", func(w http.ResponseWriter, req *http.Request) {
 		numCalls++
 
 		f, err := os.Open("testdata/api_summaries_by_category_response.json")
@@ -132,7 +132,7 @@ func TestClient_SummariesWithTimeout(t *testing.T) {
 	called := make(chan struct{})
 	defer close(called)
 
-	router.HandleFunc("/v1/users/current/summaries", func(w http.ResponseWriter, req *http.Request) {
+	router.HandleFunc("/users/current/summaries", func(w http.ResponseWriter, req *http.Request) {
 		<-block
 		called <- struct{}{}
 	})
@@ -163,7 +163,7 @@ func TestClient_Summaries_Err(t *testing.T) {
 
 	var numCalls int
 
-	router.HandleFunc("/v1/users/current/summaries", func(w http.ResponseWriter, req *http.Request) {
+	router.HandleFunc("/users/current/summaries", func(w http.ResponseWriter, req *http.Request) {
 		numCalls++
 		w.WriteHeader(http.StatusInternalServerError)
 	})
@@ -186,7 +186,7 @@ func TestClient_Summaries_ErrAuth(t *testing.T) {
 
 	var numCalls int
 
-	router.HandleFunc("/v1/users/current/summaries", func(w http.ResponseWriter, req *http.Request) {
+	router.HandleFunc("/users/current/summaries", func(w http.ResponseWriter, req *http.Request) {
 		numCalls++
 		w.WriteHeader(http.StatusUnauthorized)
 	})

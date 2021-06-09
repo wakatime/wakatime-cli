@@ -21,7 +21,7 @@ import (
 // ErrAuth is returned upon receiving a 401 Unauthorized api response.
 // Err is returned on any other api response related error.
 func (c *Client) Send(heartbeats []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
-	url := c.baseURL + "/v1/users/current/heartbeats.bulk"
+	url := c.baseURL + "/users/current/heartbeats.bulk"
 
 	log.Debugf("sending %d heartbeat(s) to api at %s", len(heartbeats), url)
 

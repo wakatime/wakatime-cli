@@ -18,7 +18,7 @@ const dateFormat = "2006-01-02"
 // ErrAuth is returned upon receiving a 401 Unauthorized api response.
 // Err is returned on any other api response related error.
 func (c *Client) Summaries(startDate, endDate time.Time) ([]summary.Summary, error) {
-	url := c.baseURL + "/v1/users/current/summaries"
+	url := c.baseURL + "/users/current/summaries"
 
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
