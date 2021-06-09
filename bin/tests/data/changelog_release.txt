@@ -1,0 +1,7 @@
+This PR adds new feature to wakatime-cli
+
+It also fixes x509 bug.
+
+Changelog:
+- Add sync offline
+- Fix x509

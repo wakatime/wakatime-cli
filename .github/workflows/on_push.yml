@@ -143,6 +143,30 @@ jobs:
         name: Integration tests
         run: make test-integration
 
+  test-shell-script:
+    name: Unit Tests Shell Script
+    runs-on: macos-latest
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+      -
+        name: Run ShellCheck
+        uses: ludeeus/action-shellcheck@master
+        with:
+          ignore: 'bin/tests/libs'
+      - 
+        name: Setup bats
+        uses: mig4/setup-bats@v1
+        with:
+          bats-version: 1.3.0
+      -
+        name: Unit tests
+        run: |
+          make test-shell-script
+
   version:
     name: Version
     concurrency: tagging
@@ -154,7 +178,8 @@ jobs:
       test-windows,
       test-integration-windows,
       test-macos,
-      test-integration-macos]
+      test-integration-macos,
+      test-shell-script]
     outputs:
       semver_tag: ${{ steps.semver-tag.outputs.semver_tag }}
       ancestor_tag: ${{ steps.semver-tag.outputs.ancestor_tag }}
@@ -218,7 +243,7 @@ jobs:
             github.git.deleteRef({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              ref: "refs/tags/${{ needs.version.outputs.semver_tag }}"
+              ref: "tags/${{ needs.version.outputs.semver_tag }}"
             })
 
   build-freebsd:
@@ -255,7 +280,7 @@ jobs:
             github.git.deleteRef({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              ref: "refs/tags/${{ needs.version.outputs.semver_tag }}"
+              ref: "tags/${{ needs.version.outputs.semver_tag }}"
             })
 
   build-netbsd:
@@ -292,7 +317,7 @@ jobs:
             github.git.deleteRef({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              ref: "refs/tags/${{ needs.version.outputs.semver_tag }}"
+              ref: "tags/${{ needs.version.outputs.semver_tag }}"
             })
 
   build-openbsd:
@@ -329,7 +354,7 @@ jobs:
             github.git.deleteRef({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              ref: "refs/tags/${{ needs.version.outputs.semver_tag }}"
+              ref: "tags/${{ needs.version.outputs.semver_tag }}"
             })
 
   build-darwin:
@@ -366,7 +391,7 @@ jobs:
             github.git.deleteRef({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              ref: "refs/tags/${{ needs.version.outputs.semver_tag }}"
+              ref: "tags/${{ needs.version.outputs.semver_tag }}"
             })
 
   build-windows:
@@ -403,7 +428,7 @@ jobs:
             github.git.deleteRef({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              ref: "refs/tags/${{ needs.version.outputs.semver_tag }}"
+              ref: "tags/${{ needs.version.outputs.semver_tag }}"
             })
 
   sign:
@@ -458,7 +483,7 @@ jobs:
             github.git.deleteRef({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              ref: "refs/tags/${{ needs.version.outputs.semver_tag }}"
+              ref: "tags/${{ needs.version.outputs.semver_tag }}"
             })
 
   release:
@@ -480,46 +505,31 @@ jobs:
         with:
           fetch-depth: 0
       -
+        # Run only for develop branch
         if: ${{ github.ref == 'refs/heads/develop' }}
         name: Changelog for develop
         uses: gandarez/changelog-action@v1.0.4
-        id: changelog
+        id: changelog-develop
         with:
           current_tag: ${{ github.sha }}
           previous_tag: ${{ needs.version.outputs.ancestor_tag }}
           exclude: |
             ^Merge pull request .*
       -
-        if: ${{ github.ref == 'refs/heads/develop' }}
-        name: Prepare changelog (develop)
-        id: changelog-develop
-        shell: bash
-        run: |
-          changelog="${{ steps.changelog.outputs.changelog }}"
-          changelog="${changelog//\`/\"}"
-          changelog="${changelog//\'/\"}"
-          echo "::set-output name=changelog::$changelog"
-      -
+        # Run only for release branch
         if: ${{ github.ref == 'refs/heads/release' }}
         name: Get related pull request
         uses: 8BitJonny/gh-get-current-pr@1.1.0
-        id: pr
+        id: changelog-release
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-      - 
-        if: ${{ github.ref == 'refs/heads/release' }}
-        name: Prepare changelog for release (stable version)
-        id: changelog-release
-        shell: bash
-        run: |
-          body="${{ fromJson(steps.pr.outputs.pr).body }}"
-          body="$(awk 'f;/Changelog:/{f=1}' <<< $body)"
-          body="${body//'%'/'%25'}"
-          body="${body//$'\n'/'%0A'}"
-          body="${body//$'\r'/'%0D'}"
-          body="## Changelog%0A$body"
-          echo "::set-output name=changelog::$body"
       -
+        name: Prepare changelog
+        id: changelog
+        run: |
+          changelog="${{ steps.changelog-develop.outputs.changelog || fromJson(steps.changelog-release.outputs.changelog).body }}"
+          ./bin/prepare_changelog.sh $(echo ${GITHUB_REF#refs/heads/}) "$changelog"
+      - 
         name: Download artifacts
         uses: actions/download-artifact@v2
         with:
@@ -534,7 +544,7 @@ jobs:
         with:
           name: ${{ needs.version.outputs.semver_tag }}
           tag_name: ${{ needs.version.outputs.semver_tag }}
-          body: ${{ steps.changelog.outputs.changelog || steps.changelog-pr.outputs.changelog }}
+          body: "## Changelog\n${{ steps.changelog.outputs.changelog }}"
           prerelease: ${{ needs.version.outputs.is_prerelease }}
           target_commitish: ${{ github.sha }}
           draft: false
@@ -551,7 +561,7 @@ jobs:
             github.git.deleteRef({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              ref: "refs/tags/${{ needs.version.outputs.semver_tag }}"
+              ref: "tags/${{ needs.version.outputs.semver_tag }}"
             })
       -
         name: "Slack notification"
@@ -564,13 +574,24 @@ jobs:
             {
               username: 'WakaTime Bot',
               icon_emoji: ':mega:',
-              attachments: [{
-                color: 'good',
-                pretext: 'New <https://github.com/wakatime/wakatime-cli|wakatime-cli> version released',
-                title: `${{ needs.version.outputs.semver_tag }}`,
-                title_link: `https://github.com/wakatime/wakatime-cli/releases/tag/${{ needs.version.outputs.semver_tag }}`,
-                text: `${{ steps.changelog-develop.outputs.changelog || steps.changelog-release.outputs.changelog }}`
-              }]
+              blocks: [
+                {
+                  type: 'section',
+                  text: {
+                    type: 'mrkdwn',
+                    text: `New <https://github.com/wakatime/wakatime-cli|wakatime-cli> version <https://github.com/wakatime/wakatime-cli/releases/tag/${{ needs.version.outputs.semver_tag }}|${{ needs.version.outputs.semver_tag }}> released`
+                  }
+                },
+                {
+                  type: 'context',
+                  elements: [
+                    {
+                      type: 'mrkdwn',
+                      text: `${{ steps.changelog.outputs.slack }}`
+                    }
+                  ]
+                }
+              ]
             }
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
