@@ -57,7 +57,7 @@ zip -j ./release/wakatime-cli-darwin-arm64.zip ./build/wakatime-cli-darwin-arm64
 
 # calculate checksums
 for file in  ./release/*; do
-	checksum=$(sha256sum ${file} | cut -d' ' -f1)
-	filename=$(echo ${file} | rev | cut -d/ -f1 | rev)
+	checksum=$(sha256sum "${file}" | cut -d' ' -f1)
+	filename=$(echo "${file}" | rev | cut -d/ -f1 | rev)
 	echo "${checksum} ${filename}" >> ./release/checksums_sha256.txt
 done

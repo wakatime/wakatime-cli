@@ -1,0 +1,4 @@
+## Changelog
+
+8bb1d12 Break single quote for replace `string`
+0b138bb "Ensure" error response parsing for '4xx' and '5xx' heartbeat response errors

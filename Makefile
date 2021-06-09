@@ -137,4 +137,8 @@ test:
 test-integration:
 	go test -race -tags=integration ./main_test.go
 
-test-all: lint test test-integration
+.PHONY: test-shell-script
+test-shell-script:
+	bats --formatter tap ./bin/tests
+
+test-all: lint test test-integration test-shell-script

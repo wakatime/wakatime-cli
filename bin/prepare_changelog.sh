@@ -27,14 +27,23 @@ replace_for_release() {
 slack_output_for_develop() {
     local IFS=$'\n' # make newlines the only separator
     local temp=
-    for j in $(echo "${changelog}")
+    for j in ${changelog}
     do
-        hash=${j:0:7}
-        link="<https://github.com/wakatime/wakatime-cli/commit/${hash}|${hash}>"
         temp="${temp}$(echo "$j" | awk '{printf "<https://github.com/wakatime/wakatime-cli/commit/"$1"|"$1">";$1=""; print $0 }')\n"
     done
 
-    slack=$(echo "*Changelog*\n${temp}")
+    slack="*Changelog*\n${temp}"
+}
+
+slack_output_for_release() {
+    local IFS=$'\n' # make newlines the only separator
+    local temp=
+    for j in ${changelog}
+    do
+        temp="${temp}${j}\n"
+    done
+
+    slack="*Changelog*\n${temp}"
 }
 
 parse_for_develop() {
@@ -42,20 +51,21 @@ parse_for_develop() {
 }
 
 parse_for_release() {
-    changelog=$(awk 'f;/Changelog:/{f=1}' <<< "$changelog")
+    changelog=$(awk 'f;/Changelog\:/{f=1}' <<< "$changelog")
 }
 
 case $branch in
     develop) 
         parse_for_develop
-        slack_output_for_develop
         clean_up
+        slack_output_for_develop
         replace_for_release
         ;;
     release)
         parse_for_release
+        [ -z "$changelog" ] && exit 1
         clean_up
-        slack=$(echo "*Changelog*\n${changelog}")
+        slack_output_for_release
         replace_for_release
         ;;
     *) exit 1 ;;

@@ -8,7 +8,8 @@ To contribute to this project please carefully read this document.
 
 Prerequisites:
 
-- We use `make` to build and run tests.
+- We use `make` to build and run tests
+- We use `bats` to test shell scripts. Documentation can be found [here](https://bats-core.readthedocs.io/en/latest/installation.html)
 - [Go 1.16](https://golang.org/doc/install)
 
 After cloning, install dependencies with `make install`.
@@ -24,7 +25,7 @@ This project currently has two branches
 
 Run `make test-all` before creating any pull requests, or your PR won’t pass the automated checks.
 
-> make sure you build binary by setting its version otherwise integration tests will fail. `VERSION=v0.0.1-test make build-<os>-<architecture>`.
+> make sure you build binary by setting its version otherwise integration tests will fail. `VERSION=v0.0.1-test make build-<os>-<architecture>`. For testing shell scripts you might initialize submodules by running `git submodule update --init --recursive`.
 
 ## Branching Stratgegy
 
