@@ -20,7 +20,7 @@ func TestClient_SendDiagnostics(t *testing.T) {
 
 	var numCalls int
 
-	router.HandleFunc("/v1/plugins/errors", func(w http.ResponseWriter, req *http.Request) {
+	router.HandleFunc("/plugins/errors", func(w http.ResponseWriter, req *http.Request) {
 		numCalls++
 
 		// check method and headers

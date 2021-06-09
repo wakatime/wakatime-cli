@@ -123,6 +123,13 @@ func loadAPIParams(v *viper.Viper) (API, error) {
 		apiURL = u
 	}
 
+	// remove endpoint from api base url to support legacy api_url param
+	apiURL = strings.TrimSuffix(apiURL, "/")
+	apiURL = strings.TrimSuffix(apiURL, ".bulk")
+	apiURL = strings.TrimSuffix(apiURL, "/users/current/heartbeats")
+	apiURL = strings.TrimSuffix(apiURL, "/heartbeats")
+	apiURL = strings.TrimSuffix(apiURL, "/heartbeat")
+
 	proxyURL, _ := vipertools.FirstNonEmptyString(v, "proxy", "settings.proxy")
 
 	rgx := proxyRegex

@@ -28,7 +28,7 @@ func TestSyncOfflineActivity(t *testing.T) {
 		numCalls int
 	)
 
-	router.HandleFunc("/v1/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
+	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
 		numCalls++
 
 		// check request

@@ -50,7 +50,7 @@ func TestRunCmd_SendDiagnostics(t *testing.T) {
 	testServerURL, router, tearDown := setupTestServer()
 	defer tearDown()
 
-	router.HandleFunc("/v1/plugins/errors", func(w http.ResponseWriter, req *http.Request) {
+	router.HandleFunc("/plugins/errors", func(w http.ResponseWriter, req *http.Request) {
 		// check request
 		assert.Equal(t, http.MethodPost, req.Method)
 		assert.Nil(t, req.Header["Authorization"])

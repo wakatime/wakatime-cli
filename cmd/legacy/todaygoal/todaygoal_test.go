@@ -28,7 +28,7 @@ func TestGoal(t *testing.T) {
 	)
 
 	router.HandleFunc(
-		"/v1/users/current/goals/00000000-0000-4000-8000-000000000000", func(w http.ResponseWriter, req *http.Request) {
+		"/users/current/goals/00000000-0000-4000-8000-000000000000", func(w http.ResponseWriter, req *http.Request) {
 			numCalls++
 
 			// check request
@@ -69,7 +69,7 @@ func TestGoal_ErrApi(t *testing.T) {
 	var numCalls int
 
 	router.HandleFunc(
-		"/v1/users/current/goals/00000000-0000-4000-8000-000000000000", func(w http.ResponseWriter, req *http.Request) {
+		"/users/current/goals/00000000-0000-4000-8000-000000000000", func(w http.ResponseWriter, req *http.Request) {
 			numCalls++
 			w.WriteHeader(http.StatusInternalServerError)
 		})
@@ -88,7 +88,7 @@ func TestGoal_ErrApi(t *testing.T) {
 
 	expectedMsg := fmt.Sprintf(
 		`failed fetching todays goal from api: `+
-			`invalid response status from "%s/v1/users/current/goals/00000000-0000-4000-8000-000000000000". `+
+			`invalid response status from "%s/users/current/goals/00000000-0000-4000-8000-000000000000". `+
 			`got: 500, want: 200. body: ""`,
 		testServerURL,
 	)
@@ -103,7 +103,7 @@ func TestGoal_ErrAuth(t *testing.T) {
 	var numCalls int
 
 	router.HandleFunc(
-		"/v1/users/current/goals/00000000-0000-4000-8000-000000000000", func(w http.ResponseWriter, req *http.Request) {
+		"/users/current/goals/00000000-0000-4000-8000-000000000000", func(w http.ResponseWriter, req *http.Request) {
 			numCalls++
 			w.WriteHeader(http.StatusUnauthorized)
 		})
@@ -122,7 +122,7 @@ func TestGoal_ErrAuth(t *testing.T) {
 
 	expectedMsg := fmt.Sprintf(
 		`failed fetching todays goal from api: `+
-			`authentication failed at "%s/v1/users/current/goals/00000000-0000-4000-8000-000000000000". body: ""`,
+			`authentication failed at "%s/users/current/goals/00000000-0000-4000-8000-000000000000". body: ""`,
 		testServerURL,
 	)
 	assert.Equal(t, expectedMsg, err.Error())

@@ -29,7 +29,7 @@ func TestSummary(t *testing.T) {
 		numCalls  int
 	)
 
-	router.HandleFunc("/v1/users/current/summaries", func(w http.ResponseWriter, req *http.Request) {
+	router.HandleFunc("/users/current/summaries", func(w http.ResponseWriter, req *http.Request) {
 		numCalls++
 
 		// check request
@@ -76,7 +76,7 @@ func TestSummary_ErrApi(t *testing.T) {
 
 	var numCalls int
 
-	router.HandleFunc("/v1/users/current/summaries", func(w http.ResponseWriter, req *http.Request) {
+	router.HandleFunc("/users/current/summaries", func(w http.ResponseWriter, req *http.Request) {
 		numCalls++
 		w.WriteHeader(http.StatusInternalServerError)
 	})
@@ -94,7 +94,7 @@ func TestSummary_ErrApi(t *testing.T) {
 
 	expectedMsg := fmt.Sprintf(
 		`failed fetching summaries from api: `+
-			`invalid response status from "%s/v1/users/current/summaries". got: 500, want: 200. body: ""`,
+			`invalid response status from "%s/users/current/summaries". got: 500, want: 200. body: ""`,
 		testServerURL,
 	)
 	assert.Equal(t, expectedMsg, err.Error())
@@ -107,7 +107,7 @@ func TestSummary_ErrAuth(t *testing.T) {
 
 	var numCalls int
 
-	router.HandleFunc("/v1/users/current/summaries", func(w http.ResponseWriter, req *http.Request) {
+	router.HandleFunc("/users/current/summaries", func(w http.ResponseWriter, req *http.Request) {
 		numCalls++
 		w.WriteHeader(http.StatusUnauthorized)
 	})
@@ -125,7 +125,7 @@ func TestSummary_ErrAuth(t *testing.T) {
 
 	expectedMsg := fmt.Sprintf(
 		`failed fetching summaries from api: `+
-			`authentication failed at "%s/v1/users/current/summaries". body: ""`,
+			`authentication failed at "%s/users/current/summaries". body: ""`,
 		testServerURL,
 	)
 	assert.Equal(t, expectedMsg, err.Error())

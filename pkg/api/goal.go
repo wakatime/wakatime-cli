@@ -15,7 +15,7 @@ import (
 // ErrAuth is returned upon receiving a 401 Unauthorized api response.
 // Err is returned on any other api response related error.
 func (c *Client) Goal(id string) (*goal.Goal, error) {
-	url := c.baseURL + "/v1/users/current/goals/" + id
+	url := c.baseURL + "/users/current/goals/" + id
 
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {

@@ -65,7 +65,7 @@ func testSendHeartbeats(t *testing.T, entity, project string) {
 
 	var numCalls int
 
-	router.HandleFunc("/v1/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
+	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
 		numCalls++
 
 		// check headers
@@ -139,7 +139,7 @@ func TestTodayGoal(t *testing.T) {
 
 	var numCalls int
 
-	router.HandleFunc("/v1/users/current/goals/11111111-1111-4111-8111-111111111111", func(w http.ResponseWriter, req *http.Request) {
+	router.HandleFunc("/users/current/goals/11111111-1111-4111-8111-111111111111", func(w http.ResponseWriter, req *http.Request) {
 		numCalls++
 
 		// check request
@@ -179,7 +179,7 @@ func TestTodaySummary(t *testing.T) {
 
 	var numCalls int
 
-	router.HandleFunc("/v1/users/current/summaries", func(w http.ResponseWriter, req *http.Request) {
+	router.HandleFunc("/users/current/summaries", func(w http.ResponseWriter, req *http.Request) {
 		numCalls++
 
 		// check request
