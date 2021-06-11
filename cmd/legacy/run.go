@@ -105,7 +105,7 @@ func Run(cmd *cobra.Command, v *viper.Viper) {
 	if v.IsSet("entity") {
 		log.Debugln("command: heartbeat")
 
-		RunCmd(v, heartbeatcmd.Run)
+		RunCmdWithOfflineSync(v, heartbeatcmd.Run)
 	}
 
 	if v.IsSet("sync-offline-activity") {
@@ -130,11 +130,31 @@ func Run(cmd *cobra.Command, v *viper.Viper) {
 	os.Exit(exitcode.ErrDefault)
 }
 
+// cmdFn represents a command function.
 type cmdFn func(v *viper.Viper) (int, error)
 
 // RunCmd runs a command function and exits with the exit code returned by
 // the command function. Will send diagnostic on any errors or panics.
 func RunCmd(v *viper.Viper, cmd cmdFn) {
+	exitCode := runCmd(v, cmd)
+
+	os.Exit(exitCode)
+}
+
+// RunCmdWithOfflineSync runs a command function and exits with the exit code
+// returned by the command function. If command run was successful, it will execute
+// offline sync command afterwards. Will send diagnostic on any errors or panics.
+func RunCmdWithOfflineSync(v *viper.Viper, cmd cmdFn) {
+	exitCode := runCmd(v, cmd)
+	if exitCode != exitcode.Success {
+		os.Exit(exitCode)
+	}
+
+	os.Exit(runCmd(v, offlinesync.Run))
+}
+
+// runCmd contains the main logic of RunCmd.
+func runCmd(v *viper.Viper, cmd cmdFn) int {
 	logs := bytes.NewBuffer(nil)
 	resetLogs := captureLogs(logs)
 
@@ -143,9 +163,9 @@ func RunCmd(v *viper.Viper, cmd cmdFn) {
 		if err := recover(); err != nil {
 			resetLogs()
 			sendDiagnostics(v, logs.String(), string(debug.Stack()))
-		}
 
-		os.Exit(exitcode.ErrDefault)
+			os.Exit(exitcode.ErrDefault)
+		}
 	}()
 
 	// run command
@@ -157,8 +177,7 @@ func RunCmd(v *viper.Viper, cmd cmdFn) {
 		sendDiagnostics(v, logs.String(), string(debug.Stack()))
 	}
 
-	// nolint: gocritic
-	os.Exit(exitCode)
+	return exitCode
 }
 
 func sendDiagnostics(v *viper.Viper, logs, stack string) {
