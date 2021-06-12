@@ -61,10 +61,6 @@ func SyncOfflineActivity(v *viper.Viper, queueFilepath string) error {
 		return fmt.Errorf("failed to load command parameters: %w", err)
 	}
 
-	if params.OfflineDisabled {
-		return fmt.Errorf("sync offline is disabled. cannot sync offline activity: %w", err)
-	}
-
 	apiClient, err := legacyapi.NewClient(params.API)
 	if err != nil {
 		return fmt.Errorf("failed to initialize api client: %w", err)
