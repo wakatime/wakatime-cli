@@ -66,6 +66,10 @@ func SyncOfflineActivity(v *viper.Viper, queueFilepath string) error {
 		return fmt.Errorf("failed to initialize api client: %w", err)
 	}
 
+	if params.OfflineQueueFile != "" {
+		queueFilepath = params.OfflineQueueFile
+	}
+
 	syncFn := offline.Sync(queueFilepath, params.OfflineSyncMax)
 
 	err = syncFn(apiClient.SendHeartbeats)
