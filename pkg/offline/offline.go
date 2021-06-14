@@ -3,9 +3,11 @@ package offline
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/log"
@@ -15,8 +17,13 @@ import (
 )
 
 const (
+	// dbFilename is the default bolt db filename.
 	dbFilename = ".wakatime.bdb"
-	dbBucket   = "heartbeats"
+	// dbBucket is the standard bolt db bucket name.
+	dbBucket = "heartbeats"
+	// maxRequeueAttempts defines the maximum number of attempts to requeue heartbeats,
+	// which could not successfully be sent to the WakaTime API.
+	maxRequeueAttempts = 3
 	// sendLimit is the maximum number of heartbeats, which will be sent at once
 	// to the WakaTime API.
 	sendLimit = 24
@@ -140,7 +147,7 @@ func WithQueue(filepath string, syncLimit int) (heartbeat.HandleOption, error) {
 			// handle leftovers
 			leftovers := len(hh) - len(results)
 			if leftovers > 0 {
-				log.Warnf("Missing %d results from api.", leftovers)
+				log.Warnf("missing %d results from api", leftovers)
 
 				start := len(hh) - leftovers
 
@@ -178,9 +185,32 @@ func Sync(filepath string, syncLimit int) func(next heartbeat.Handle) error {
 
 		results, err := next(hh)
 		if err != nil {
-			requeueErr := pushHeartbeats(filepath, hh)
-			if requeueErr != nil {
-				log.Errorf("failed to push heatbeats after api error to queue: %s", requeueErr)
+			var count int
+
+			for {
+				if count >= maxRequeueAttempts {
+					log.Errorf("abort requeuing after %d unsuccessful attempts", count)
+					break
+				}
+
+				requeueErr := pushHeartbeats(filepath, hh)
+				if requeueErr != nil {
+					data, jsonErr := json.Marshal(hh)
+					if jsonErr != nil {
+						log.Warnf("failed to json marshal heartbeats: %s. heartbeats: %#v", jsonErr, hh)
+					}
+
+					log.Warnf("failed to push heatbeats after api error to queue: %s. heartbeats: %s", requeueErr, string(data))
+					count++
+
+					sleepSeconds := math.Pow(2, float64(count))
+
+					time.Sleep(time.Duration(sleepSeconds) * time.Second)
+
+					continue
+				}
+
+				break
 			}
 
 			return err
