@@ -185,32 +185,9 @@ func Sync(filepath string, syncLimit int) func(next heartbeat.Handle) error {
 
 		results, err := next(hh)
 		if err != nil {
-			var count int
-
-			for {
-				if count >= maxRequeueAttempts {
-					log.Errorf("abort requeuing after %d unsuccessful attempts", count)
-					break
-				}
-
-				requeueErr := pushHeartbeats(filepath, hh)
-				if requeueErr != nil {
-					data, jsonErr := json.Marshal(hh)
-					if jsonErr != nil {
-						log.Warnf("failed to json marshal heartbeats: %s. heartbeats: %#v", jsonErr, hh)
-					}
-
-					log.Warnf("failed to push heatbeats after api error to queue: %s. heartbeats: %s", requeueErr, string(data))
-					count++
-
-					sleepSeconds := math.Pow(2, float64(count))
-
-					time.Sleep(time.Duration(sleepSeconds) * time.Second)
-
-					continue
-				}
-
-				break
+			requeueErr := pushHeartbeatsWithRetry(filepath, hh)
+			if requeueErr != nil {
+				log.Warnf("failed to push heatbeats to queue after api error: %s", requeueErr)
 			}
 
 			return err
@@ -298,6 +275,39 @@ func popHeartbeats(filepath string, limit int) ([]heartbeat.Heartbeat, error) {
 	}
 
 	return queued, nil
+}
+
+func pushHeartbeatsWithRetry(filepath string, hh []heartbeat.Heartbeat) error {
+	var (
+		count int
+		err   error
+	)
+
+	for {
+		if count >= maxRequeueAttempts {
+			data, jsonErr := json.Marshal(hh)
+			if jsonErr != nil {
+				log.Warnf("failed to json marshal heartbeats: %s. heartbeats: %#v", jsonErr, hh)
+			}
+
+			return fmt.Errorf("abort requeuing after %d unsuccessful attempts: %s. heartbeats: %s", count, err, string(data))
+		}
+
+		err = pushHeartbeats(filepath, hh)
+		if err != nil {
+			count++
+
+			sleepSeconds := math.Pow(2, float64(count))
+
+			time.Sleep(time.Duration(sleepSeconds) * time.Second)
+
+			continue
+		}
+
+		break
+	}
+
+	return nil
 }
 
 func pushHeartbeats(filepath string, hh []heartbeat.Heartbeat) error {
