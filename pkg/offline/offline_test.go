@@ -64,13 +64,13 @@ func TestWithQueue(t *testing.T) {
 	db, err := bolt.Open(f.Name(), 0600, nil)
 	require.NoError(t, err)
 
-	dataPy, err := ioutil.ReadFile("testdata/heartbeat_py.json")
+	dataJs, err := ioutil.ReadFile("testdata/heartbeat_js.json")
 	require.NoError(t, err)
 
 	insertHeartbeatRecords(t, db, "heartbeats", []heartbeatRecord{
 		{
-			ID:        "1592868386.079084-file-debugging-wakatime-summary-/tmp/main.py-false",
-			Heartbeat: string(dataPy),
+			ID:        "1592868394.084354-file-building-wakatime-todaygoal-/tmp/main.js-false",
+			Heartbeat: string(dataJs),
 		},
 	})
 
@@ -97,7 +97,10 @@ func TestWithQueue(t *testing.T) {
 	})
 
 	// run
-	results, err := handle([]heartbeat.Heartbeat{testHeartbeats()[0]})
+	results, err := handle([]heartbeat.Heartbeat{
+		testHeartbeats()[0],
+		testHeartbeats()[1],
+	})
 	require.NoError(t, err)
 
 	// check
@@ -133,7 +136,10 @@ func TestWithQueue(t *testing.T) {
 
 	db.Close()
 
-	assert.Len(t, stored, 0)
+	require.Len(t, stored, 1)
+
+	assert.Equal(t, "1592868394.084354-file-building-wakatime-todaygoal-/tmp/main.js-false", stored[0].ID)
+	assert.JSONEq(t, string(dataJs), stored[0].Heartbeat)
 }
 
 func TestWithQueue_ApiError(t *testing.T) {
@@ -190,7 +196,7 @@ func TestWithQueue_ApiError(t *testing.T) {
 	dataPy, err := ioutil.ReadFile("testdata/heartbeat_py.json")
 	require.NoError(t, err)
 
-	assert.Len(t, stored, 2)
+	require.Len(t, stored, 2)
 
 	assert.Equal(t, "1592868367.219124-file-coding-wakatime-cli-heartbeat-/tmp/main.go-true", stored[0].ID)
 	assert.JSONEq(t, string(dataGo), stored[0].Heartbeat)
