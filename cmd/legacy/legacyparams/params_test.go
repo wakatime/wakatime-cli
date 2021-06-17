@@ -17,6 +17,7 @@ import (
 
 func TestLoad_OfflineDisabled_ConfigTakesPrecedence(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 	v.Set("disable-offline", false)
@@ -31,6 +32,7 @@ func TestLoad_OfflineDisabled_ConfigTakesPrecedence(t *testing.T) {
 
 func TestLoad_OfflineDisabled_FlagDeprecatedTakesPrecedence(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 	v.Set("disable-offline", false)
@@ -44,6 +46,7 @@ func TestLoad_OfflineDisabled_FlagDeprecatedTakesPrecedence(t *testing.T) {
 
 func TestLoad_OfflineDisabled_FromFlag(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 	v.Set("disable-offline", true)
@@ -56,6 +59,7 @@ func TestLoad_OfflineDisabled_FromFlag(t *testing.T) {
 
 func TestLoad_OfflineQueueFile(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 	v.Set("offline-queue-file", "/path/to/file")
@@ -68,10 +72,10 @@ func TestLoad_OfflineQueueFile(t *testing.T) {
 
 func TestLoad_OfflineSyncMax(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 	v.Set("sync-offline-activity", 42)
-	v.SetDefault("sync-offline-activity", 100)
 
 	params, err := legacyparams.Load(v)
 	require.NoError(t, err)
@@ -81,9 +85,9 @@ func TestLoad_OfflineSyncMax(t *testing.T) {
 
 func TestLoad_OfflineSyncMax_NoEntity(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("sync-offline-activity", 42)
-	v.SetDefault("sync-offline-activity", 100)
 
 	params, err := legacyparams.Load(v)
 	require.NoError(t, err)
@@ -93,10 +97,10 @@ func TestLoad_OfflineSyncMax_NoEntity(t *testing.T) {
 
 func TestLoad_OfflineSyncMax_None(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 	v.Set("sync-offline-activity", "none")
-	v.SetDefault("sync-offline-activity", 100)
 
 	params, err := legacyparams.Load(v)
 	require.NoError(t, err)
@@ -106,22 +110,22 @@ func TestLoad_OfflineSyncMax_None(t *testing.T) {
 
 func TestLoad_OfflineSyncMax_Default(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
-	v.SetDefault("sync-offline-activity", 100)
 
 	params, err := legacyparams.Load(v)
 	require.NoError(t, err)
 
-	assert.Equal(t, 100, params.OfflineSyncMax)
+	assert.Equal(t, 1000, params.OfflineSyncMax)
 }
 
 func TestLoad_OfflineSyncMax_NegativeNumber(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 	v.Set("sync-offline-activity", -1)
-	v.SetDefault("sync-offline-activity", 100)
 
 	_, err := legacyparams.Load(v)
 	require.Error(t, err)
@@ -131,10 +135,10 @@ func TestLoad_OfflineSyncMax_NegativeNumber(t *testing.T) {
 
 func TestLoad_OfflineSyncMax_NonIntegerValue(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 	v.Set("sync-offline-activity", "invalid")
-	v.SetDefault("sync-offline-activity", 100)
 
 	_, err := legacyparams.Load(v)
 	require.Error(t, err)
@@ -184,6 +188,7 @@ func TestLoad_API_APIKey(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			v := viper.New()
+			v.Set("sync-offline-activity", "none")
 			v.Set("key", test.ViperAPIKey)
 			v.Set("settings.api_key", test.ViperAPIKeyConfig)
 			v.Set("settings.apikey", test.ViperAPIKeyConfigOld)
@@ -207,6 +212,7 @@ func TestLoad_API_APIKeyInvalid(t *testing.T) {
 	for name, value := range tests {
 		t.Run(name, func(t *testing.T) {
 			v := viper.New()
+			v.SetDefault("sync-offline-activity", 1000)
 			v.Set("key", value)
 
 			_, err := legacyparams.Load(v)
@@ -287,6 +293,7 @@ func TestLoad_API_APIUrl(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			v := viper.New()
+			v.Set("sync-offline-activity", "none")
 			v.Set("key", "00000000-0000-4000-8000-000000000000")
 			v.Set("api-url", test.ViperAPIUrl)
 			v.Set("apiurl", test.ViperAPIUrlOld)
@@ -302,6 +309,7 @@ func TestLoad_API_APIUrl(t *testing.T) {
 
 func TestLoad_APIUrl_Default(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 
@@ -313,6 +321,7 @@ func TestLoad_APIUrl_Default(t *testing.T) {
 
 func TestLoad_API_Plugin(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("plugin", "plugin/10.0.0")
 
@@ -328,6 +337,7 @@ func TestLoad_API_Plugin(t *testing.T) {
 
 func TestLoad_API_Timeout_FlagTakesPreceedence(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("timeout", 5)
 	v.Set("settings.timeout", 10)
@@ -340,6 +350,7 @@ func TestLoad_API_Timeout_FlagTakesPreceedence(t *testing.T) {
 
 func TestLoad_API_Timeout_FromConfig(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("settings.timeout", 10)
 
@@ -351,6 +362,7 @@ func TestLoad_API_Timeout_FromConfig(t *testing.T) {
 
 func TestLoad_API_DisableSSLVerify_FlagTakesPrecedence(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 	v.Set("no-ssl-verify", true)
@@ -364,6 +376,7 @@ func TestLoad_API_DisableSSLVerify_FlagTakesPrecedence(t *testing.T) {
 
 func TestLoad_API_DisableSSLVerify_FromConfig(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 	v.Set("settings.no_ssl_verify", true)
@@ -376,6 +389,7 @@ func TestLoad_API_DisableSSLVerify_FromConfig(t *testing.T) {
 
 func TestLoad_API_DisableSSLVerify_Default(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 
@@ -396,6 +410,7 @@ func TestLoad_API_ProxyURL(t *testing.T) {
 	for name, proxyURL := range tests {
 		t.Run(name, func(t *testing.T) {
 			v := viper.New()
+			v.SetDefault("sync-offline-activity", 1000)
 			v.Set("key", "00000000-0000-4000-8000-000000000000")
 			v.Set("entity", "/path/to/file")
 			v.Set("proxy", proxyURL)
@@ -410,6 +425,7 @@ func TestLoad_API_ProxyURL(t *testing.T) {
 
 func TestLoad_API_ProxyURL_FlagTakesPrecedence(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 	v.Set("proxy", "https://john:secret@example.org:8888")
@@ -423,6 +439,7 @@ func TestLoad_API_ProxyURL_FlagTakesPrecedence(t *testing.T) {
 
 func TestLoad_API_ProxyURL_FromConfig(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 	v.Set("settings.proxy", "https://john:secret@example.org:8888")
@@ -437,6 +454,7 @@ func TestLoad_API_ProxyURL_InvalidFormat(t *testing.T) {
 	proxyURL := "ftp://john:secret@example.org:8888"
 
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 	v.Set("proxy", proxyURL)
@@ -447,6 +465,7 @@ func TestLoad_API_ProxyURL_InvalidFormat(t *testing.T) {
 
 func TestLoad_API_SSLCertFilepath_FlagTakesPrecedence(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 	v.Set("ssl-certs-file", "~/path/to/cert.pem")
@@ -462,6 +481,7 @@ func TestLoad_API_SSLCertFilepath_FlagTakesPrecedence(t *testing.T) {
 
 func TestLoad_API_SSLCertFilepath_FromConfig(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 	v.Set("settings.ssl_certs_file", "/path/to/cert.pem")

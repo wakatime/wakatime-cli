@@ -17,6 +17,12 @@ import (
 )
 
 const (
+	// SyncMaxDefault is the default maximum number of heartbeats from the
+	// offline queue, which will be synced upon sending heartbeats to the API.
+	SyncMaxDefault = 1000
+)
+
+const (
 	// dbFilename is the default bolt db filename.
 	dbFilename = ".wakatime.bdb"
 	// dbBucket is the standard bolt db bucket name.
@@ -68,6 +74,8 @@ func WithQueue(filepath string, syncLimit int) (heartbeat.HandleOption, error) {
 
 			results, err := next(hh)
 			if err != nil {
+				log.Debugf("pushing %d heartbeat(s) to queue due to error", len(hh))
+
 				requeueErr := pushHeartbeatsWithRetry(filepath, hh)
 				if requeueErr != nil {
 					log.Errorf("failed to push heatbeats to queue after api error: %s", requeueErr)
@@ -91,28 +99,55 @@ func Sync(filepath string, syncLimit int) func(next heartbeat.Handle) error {
 	return func(next heartbeat.Handle) error {
 		log.Debugf("execute offline sync with file %s", filepath)
 
-		hh, err := popHeartbeats(filepath, sendLimit)
-		if err != nil {
-			return fmt.Errorf("failed to fetch heartbeat from offline queue: %s", err)
-		}
+		var (
+			alreadySent int
+			run         int
+		)
 
-		if len(hh) == 0 {
-			log.Debugln("abort execution, as there are no queued heartbeats ready for sending")
+		for {
+			run++
 
-			return nil
-		}
-
-		results, err := next(hh)
-		if err != nil {
-			requeueErr := pushHeartbeatsWithRetry(filepath, hh)
-			if requeueErr != nil {
-				log.Warnf("failed to push heatbeats to queue after api error: %s", requeueErr)
+			if alreadySent >= syncLimit {
+				break
 			}
 
-			return err
+			var num = sendLimit
+
+			if alreadySent+sendLimit > syncLimit {
+				num = syncLimit - alreadySent
+				alreadySent += num
+			}
+
+			hh, err := popHeartbeats(filepath, num)
+			if err != nil {
+				return fmt.Errorf("failed to fetch heartbeat from offline queue: %s", err)
+			}
+
+			if len(hh) == 0 {
+				log.Debugln("no queued heartbeats ready for sending")
+
+				break
+			}
+
+			log.Debugf("send %d heartbeats on sync run %d", len(hh), run)
+
+			results, err := next(hh)
+			if err != nil {
+				requeueErr := pushHeartbeatsWithRetry(filepath, hh)
+				if requeueErr != nil {
+					log.Warnf("failed to push heatbeats to queue after api error: %s", requeueErr)
+				}
+
+				return err
+			}
+
+			err = handleResults(filepath, results, hh)
+			if err != nil {
+				return fmt.Errorf("failed to handle heatbeats api results: %s", err)
+			}
 		}
 
-		return handleResults(filepath, results, hh)
+		return nil
 	}
 }
 
@@ -129,9 +164,23 @@ func handleResults(filepath string, results []heartbeat.Result, hh []heartbeat.H
 			break
 		}
 
+		if result.Status == http.StatusBadRequest {
+			serialized, jsonErr := json.Marshal(result.Heartbeat)
+			if jsonErr != nil {
+				log.Warnf(
+					"failed to json marshal heartbeat: %s. heartbeat: %#v",
+					jsonErr,
+					result.Heartbeat,
+				)
+			}
+
+			log.Debugf("heartbeat result status bad request: %s", string(serialized))
+
+			continue
+		}
+
 		if result.Status != http.StatusCreated &&
-			result.Status != http.StatusAccepted &&
-			result.Status != http.StatusBadRequest {
+			result.Status != http.StatusAccepted {
 			withInvalidStatus = append(withInvalidStatus, hh[n])
 		}
 	}
@@ -139,9 +188,9 @@ func handleResults(filepath string, results []heartbeat.Result, hh []heartbeat.H
 	if len(withInvalidStatus) > 0 {
 		log.Debugf("pushing %d heartbeat(s) with invalid result to queue", len(withInvalidStatus))
 
-		err = pushHeartbeats(filepath, withInvalidStatus)
+		err = pushHeartbeatsWithRetry(filepath, withInvalidStatus)
 		if err != nil {
-			log.Errorf("failed to push heatbeats with invalid status to queue: %s", err)
+			log.Warnf("failed to push heatbeats with invalid status to queue: %s", err)
 		}
 	}
 
@@ -152,9 +201,9 @@ func handleResults(filepath string, results []heartbeat.Result, hh []heartbeat.H
 
 		start := len(hh) - leftovers
 
-		err = pushHeartbeats(filepath, hh[start:])
+		err = pushHeartbeatsWithRetry(filepath, hh[start:])
 		if err != nil {
-			log.Errorf("failed to push leftover heatbeats to queue: %s", err)
+			log.Warnf("failed to push leftover heatbeats to queue: %s", err)
 		}
 	}
 
@@ -204,12 +253,17 @@ func pushHeartbeatsWithRetry(filepath string, hh []heartbeat.Heartbeat) error {
 
 	for {
 		if count >= maxRequeueAttempts {
-			data, jsonErr := json.Marshal(hh)
+			serialized, jsonErr := json.Marshal(hh)
 			if jsonErr != nil {
 				log.Warnf("failed to json marshal heartbeats: %s. heartbeats: %#v", jsonErr, hh)
 			}
 
-			return fmt.Errorf("abort requeuing after %d unsuccessful attempts: %s. heartbeats: %s", count, err, string(data))
+			return fmt.Errorf(
+				"abort requeuing after %d unsuccessful attempts: %s. heartbeats: %s",
+				count,
+				err,
+				string(serialized),
+			)
 		}
 
 		err = pushHeartbeats(filepath, hh)

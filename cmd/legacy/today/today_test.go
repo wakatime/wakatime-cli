@@ -59,6 +59,7 @@ func TestSummary(t *testing.T) {
 	})
 
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("api-url", testServerURL)
 	v.Set("plugin", plugin)
@@ -82,6 +83,7 @@ func TestSummary_ErrApi(t *testing.T) {
 	})
 
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("api-url", testServerURL)
 
@@ -113,6 +115,7 @@ func TestSummary_ErrAuth(t *testing.T) {
 	})
 
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("api-url", testServerURL)
 

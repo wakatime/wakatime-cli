@@ -50,6 +50,7 @@ func TestGoal(t *testing.T) {
 		})
 
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("api-url", testServerURL)
 	v.Set("plugin", plugin)
@@ -75,6 +76,7 @@ func TestGoal_ErrApi(t *testing.T) {
 		})
 
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("api-url", testServerURL)
 	v.Set("today-goal", "00000000-0000-4000-8000-000000000000")
@@ -109,6 +111,7 @@ func TestGoal_ErrAuth(t *testing.T) {
 		})
 
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("api-url", testServerURL)
 	v.Set("today-goal", "00000000-0000-4000-8000-000000000000")
@@ -146,6 +149,7 @@ func TestGoal_ErrAuth_UnsetAPIKey(t *testing.T) {
 
 func TestLoadParams_GoalID(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("today-goal", "00000000-0000-4000-8000-000000000001")
 

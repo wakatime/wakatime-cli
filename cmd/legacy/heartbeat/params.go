@@ -185,15 +185,13 @@ func LoadParams(v *viper.Viper) (Params, error) {
 	var entity string
 
 	entity, ok := vipertools.FirstNonEmptyString(v, "entity", "file")
-	if ok {
-		entity, err = homedir.Expand(entity)
-		if err != nil {
-			return Params{}, fmt.Errorf("failed expanding entity: %s", err)
-		}
+	if !ok {
+		return Params{}, errors.New("failed to retrieve entity")
 	}
 
-	if !ok && !v.IsSet("sync-offline-activity") {
-		return Params{}, errors.New("failed to retrieve entity")
+	entityExpanded, err := homedir.Expand(entity)
+	if err != nil {
+		return Params{}, fmt.Errorf("failed expanding entity: %s", err)
 	}
 
 	var entityType heartbeat.EntityType
@@ -262,7 +260,7 @@ func LoadParams(v *viper.Viper) (Params, error) {
 	return Params{
 		Category:          category,
 		CursorPosition:    cursorPosition,
-		Entity:            entity,
+		Entity:            entityExpanded,
 		ExtraHeartbeats:   extraHeartbeats,
 		EntityType:        entityType,
 		Hostname:          hostname,

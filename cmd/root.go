@@ -1,7 +1,10 @@
 package cmd
 
 import (
+	"strconv"
+
 	"github.com/wakatime/wakatime-cli/cmd/legacy"
+	"github.com/wakatime/wakatime-cli/pkg/offline"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -14,9 +17,6 @@ const (
 	defaultConfigSection = "settings"
 	// defaultTimeoutSecs is the default timeout used for requests to the wakatime api.
 	defaultTimeoutSecs = 60
-	// defaultOfflineSync is the default maximum number of heartbeats from the
-	// offline queue, which will be synced upon sending heartbeats to the API.
-	defaultOfflineSync = "24"
 )
 
 // NewRootCMD creates a rootCmd, which represents the base command when called without any subcommands.
@@ -173,12 +173,13 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 	)
 	flags.String(
 		"sync-offline-activity",
-		defaultOfflineSync,
+		strconv.Itoa(offline.SyncMaxDefault),
 		"Amount of offline activity to sync from your local ~/.wakatime.bdb bolt"+
 			" file to your WakaTime Dashboard before exiting. Can be \"none\" or"+
-			" a positive integer. Defaults to 100, meaning for every heartbeat sent"+
-			" while online, 100 offline heartbeats are synced. Can be used without"+
-			" --entity to only sync offline activity without generating new heartbeats.",
+			" a positive integer. Defaults to 1000, meaning after sending a heartbeat"+
+			" while online, all queued offline heartbeats are sent to WakaTime API, up"+
+			" to a limit of 1000. Can be used without --entity to only sync offline"+
+			" activity without generating new heartbeats.",
 	)
 	flags.Int(
 		"timeout",

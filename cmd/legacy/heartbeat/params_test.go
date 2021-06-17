@@ -23,6 +23,7 @@ import (
 
 func TestLoadParams_AlternateProject(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 	v.Set("alternate-project", "web")
@@ -35,6 +36,7 @@ func TestLoadParams_AlternateProject(t *testing.T) {
 
 func TestLoadParams_AlternateProject_Unset(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 
@@ -61,6 +63,7 @@ func TestLoadParams_Category(t *testing.T) {
 	for name, category := range tests {
 		t.Run(name, func(t *testing.T) {
 			v := viper.New()
+			v.SetDefault("sync-offline-activity", 1000)
 			v.Set("key", "00000000-0000-4000-8000-000000000000")
 			v.Set("entity", "/path/to/file")
 			v.Set("category", name)
@@ -75,6 +78,7 @@ func TestLoadParams_Category(t *testing.T) {
 
 func TestLoadParams_Category_Default(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 
@@ -86,6 +90,7 @@ func TestLoadParams_Category_Default(t *testing.T) {
 
 func TestLoadParams_Category_Invalid(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 	v.Set("category", "invalid")
@@ -98,6 +103,7 @@ func TestLoadParams_Category_Invalid(t *testing.T) {
 
 func TestLoadParams_CursorPosition(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("entity", "/path/to/file")
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("cursorpos", 42)
@@ -110,6 +116,7 @@ func TestLoadParams_CursorPosition(t *testing.T) {
 
 func TestLoadParams_CursorPosition_Zero(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("entity", "/path/to/file")
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("cursorpos", 0)
@@ -122,6 +129,7 @@ func TestLoadParams_CursorPosition_Zero(t *testing.T) {
 
 func TestLoadParams_CursorPosition_Unset(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("entity", "/path/to/file")
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 
@@ -133,6 +141,7 @@ func TestLoadParams_CursorPosition_Unset(t *testing.T) {
 
 func TestLoadParams_Entity_EntityFlagTakesPrecedence(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 	v.Set("file", "ignored")
@@ -145,6 +154,7 @@ func TestLoadParams_Entity_EntityFlagTakesPrecedence(t *testing.T) {
 
 func TestLoadParams_Entity_FileFlag(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("file", "~/path/to/file")
 
@@ -159,6 +169,7 @@ func TestLoadParams_Entity_FileFlag(t *testing.T) {
 
 func TestLoadParams_Entity_Unset(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 
 	_, err := cmd.LoadParams(v)
@@ -177,6 +188,7 @@ func TestLoadParams_EntityType(t *testing.T) {
 	for name, entityType := range tests {
 		t.Run(name, func(t *testing.T) {
 			v := viper.New()
+			v.SetDefault("sync-offline-activity", 1000)
 			v.Set("key", "00000000-0000-4000-8000-000000000000")
 			v.Set("entity", "/path/to/file")
 			v.Set("entity-type", name)
@@ -191,6 +203,7 @@ func TestLoadParams_EntityType(t *testing.T) {
 
 func TestLoadParams_EntityType_Default(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 
@@ -202,6 +215,7 @@ func TestLoadParams_EntityType_Default(t *testing.T) {
 
 func TestLoadParams_EntityType_Invalid(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 	v.Set("entity-type", "invalid")
@@ -238,6 +252,7 @@ func TestLoadParams_ExtraHeartbeats(t *testing.T) {
 	}()
 
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 	v.Set("extra-heartbeats", true)
@@ -312,6 +327,7 @@ func TestLoadParams_ExtraHeartbeats_WithStringValues(t *testing.T) {
 	}()
 
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 	v.Set("extra-heartbeats", true)
@@ -356,6 +372,7 @@ func TestLoadParams_ExtraHeartbeats_WithStringValues(t *testing.T) {
 
 func TestLoadParams_Hostname_FlagTakesPrecedence(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 	v.Set("hostname", "my-machine")
@@ -369,6 +386,7 @@ func TestLoadParams_Hostname_FlagTakesPrecedence(t *testing.T) {
 
 func TestLoadParams_Hostname_FromConfig(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 	v.Set("settings.hostname", "my-machine")
@@ -381,6 +399,7 @@ func TestLoadParams_Hostname_FromConfig(t *testing.T) {
 
 func TestLoadParams_Hostname_DefaultFromSystem(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 
@@ -402,6 +421,7 @@ func TestLoadParams_IsWrite(t *testing.T) {
 	for name, isWrite := range tests {
 		t.Run(name, func(t *testing.T) {
 			v := viper.New()
+			v.SetDefault("sync-offline-activity", 1000)
 			v.Set("key", "00000000-0000-4000-8000-000000000000")
 			v.Set("entity", "/path/to/file")
 			v.Set("write", isWrite)
@@ -416,6 +436,7 @@ func TestLoadParams_IsWrite(t *testing.T) {
 
 func TestLoadParams_IsWrite_Unset(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 
@@ -427,6 +448,7 @@ func TestLoadParams_IsWrite_Unset(t *testing.T) {
 
 func TestLoadParams_Language(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("entity", "/path/to/file")
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("language", "Go")
@@ -440,6 +462,7 @@ func TestLoadParams_Language(t *testing.T) {
 
 func TestLoadParams_LanguageAlternate(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("entity", "/path/to/file")
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("alternate-language", "Go")
@@ -453,6 +476,7 @@ func TestLoadParams_LanguageAlternate(t *testing.T) {
 
 func TestLoadParams_LineNumber(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("entity", "/path/to/file")
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("lineno", 42)
@@ -465,6 +489,7 @@ func TestLoadParams_LineNumber(t *testing.T) {
 
 func TestLoadParams_LineNumber_Zero(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("entity", "/path/to/file")
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("lineno", 0)
@@ -477,6 +502,7 @@ func TestLoadParams_LineNumber_Zero(t *testing.T) {
 
 func TestLoadParams_LineNumber_Unset(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("entity", "/path/to/file")
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 
@@ -488,6 +514,7 @@ func TestLoadParams_LineNumber_Unset(t *testing.T) {
 
 func TestLoadParams_LocalFile(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("entity", "/path/to/file")
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("local-file", "/path/to/file")
@@ -500,6 +527,7 @@ func TestLoadParams_LocalFile(t *testing.T) {
 
 func TestLoadParams_Plugin(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 	v.Set("plugin", "plugin/10.0.0")
@@ -512,6 +540,7 @@ func TestLoadParams_Plugin(t *testing.T) {
 
 func TestLoadParams_Plugin_Unset(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 
@@ -523,6 +552,7 @@ func TestLoadParams_Plugin_Unset(t *testing.T) {
 
 func TestLoadParams_Project(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 	v.Set("project", "billing")
@@ -535,6 +565,7 @@ func TestLoadParams_Project(t *testing.T) {
 
 func TestLoadParams_Project_Unset(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 
@@ -578,6 +609,7 @@ func TestLoadParams_ProjectMap(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			v := viper.New()
+			v.SetDefault("sync-offline-activity", 1000)
 			v.Set("key", "00000000-0000-4000-8000-000000000000")
 			v.Set("entity", test.Entity)
 			v.Set(fmt.Sprintf("projectmap.%s", test.Regex.String()), test.Project)
@@ -592,6 +624,7 @@ func TestLoadParams_ProjectMap(t *testing.T) {
 
 func TestLoadParams_Timeout_FlagTakesPreceedence(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 	v.Set("timeout", 5)
@@ -605,6 +638,7 @@ func TestLoadParams_Timeout_FlagTakesPreceedence(t *testing.T) {
 
 func TestLoadParams_Timeout_FromConfig(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("entity", "/path/to/file")
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("settings.timeout", 10)
@@ -617,6 +651,7 @@ func TestLoadParams_Timeout_FromConfig(t *testing.T) {
 
 func TestLoadParams_Time(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 	v.Set("time", 1590609206.1)
@@ -629,6 +664,7 @@ func TestLoadParams_Time(t *testing.T) {
 
 func TestLoadParams_Time_Default(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 
@@ -642,6 +678,7 @@ func TestLoadParams_Time_Default(t *testing.T) {
 
 func TestLoadParams_Filter_Exclude(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 	v.Set("exclude", []string{".*", "wakatime.*"})
@@ -662,6 +699,7 @@ func TestLoadParams_Filter_Exclude(t *testing.T) {
 
 func TestLoadParams_Filter_Exclude_IgnoresInvalidRegex(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 	v.Set("exclude", []string{".*", "["})
@@ -682,6 +720,7 @@ func TestLoadParams_Filter_Exclude_PerlRegexPatterns(t *testing.T) {
 	for name, pattern := range tests {
 		t.Run(name, func(t *testing.T) {
 			v := viper.New()
+			v.SetDefault("sync-offline-activity", 1000)
 			v.Set("key", "00000000-0000-4000-8000-000000000000")
 			v.Set("entity", "/path/to/file")
 			v.Set("exclude", []string{pattern})
@@ -697,6 +736,7 @@ func TestLoadParams_Filter_Exclude_PerlRegexPatterns(t *testing.T) {
 
 func TestLoadParams_Filter_ExcludeUnknownProject(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 	v.Set("exclude-unknown-project", true)
@@ -709,6 +749,7 @@ func TestLoadParams_Filter_ExcludeUnknownProject(t *testing.T) {
 
 func TestLoadParams_Filter_ExcludeUnknownProject_FromConfig(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 	v.Set("exclude-unknown-project", false)
@@ -722,6 +763,7 @@ func TestLoadParams_Filter_ExcludeUnknownProject_FromConfig(t *testing.T) {
 
 func TestLoadParams_Filter_Include(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 	v.Set("include", []string{".*", "wakatime.*"})
@@ -739,6 +781,7 @@ func TestLoadParams_Filter_Include(t *testing.T) {
 
 func TestLoadParams_Filter_Include_IgnoresInvalidRegex(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 	v.Set("include", []string{".*", "["})
@@ -759,6 +802,7 @@ func TestLoadParams_Filter_Include_PerlRegexPatterns(t *testing.T) {
 	for name, pattern := range tests {
 		t.Run(name, func(t *testing.T) {
 			v := viper.New()
+			v.SetDefault("sync-offline-activity", 1000)
 			v.Set("key", "00000000-0000-4000-8000-000000000000")
 			v.Set("entity", "/path/to/file")
 			v.Set("include", []string{pattern})
@@ -774,6 +818,7 @@ func TestLoadParams_Filter_Include_PerlRegexPatterns(t *testing.T) {
 
 func TestLoadParams_Filter_IncludeOnlyWithProjectFile(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 	v.Set("include-only-with-project-file", true)
@@ -786,6 +831,7 @@ func TestLoadParams_Filter_IncludeOnlyWithProjectFile(t *testing.T) {
 
 func TestLoadParams_Filter_IncludeOnlyWithProjectFile_FromConfig(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 	v.Set("include-only-with-project-file", false)
@@ -807,6 +853,7 @@ func TestLoadParams_SanitizeParams_HideBranchNames_True(t *testing.T) {
 	for name, viperValue := range tests {
 		t.Run(name, func(t *testing.T) {
 			v := viper.New()
+			v.SetDefault("sync-offline-activity", 1000)
 			v.Set("key", "00000000-0000-4000-8000-000000000000")
 			v.Set("entity", "/path/to/file")
 			v.Set("hide-branch-names", viperValue)
@@ -831,6 +878,7 @@ func TestLoadParams_SanitizeParams_HideBranchNames_False(t *testing.T) {
 	for name, viperValue := range tests {
 		t.Run(name, func(t *testing.T) {
 			v := viper.New()
+			v.SetDefault("sync-offline-activity", 1000)
 			v.Set("key", "00000000-0000-4000-8000-000000000000")
 			v.Set("entity", "/path/to/file")
 			v.Set("hide-branch-names", viperValue)
@@ -866,6 +914,7 @@ func TestLoadParams_SanitizeParams_HideBranchNames_List(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			v := viper.New()
+			v.SetDefault("sync-offline-activity", 1000)
 			v.Set("key", "00000000-0000-4000-8000-000000000000")
 			v.Set("entity", "/path/to/file")
 			v.Set("hide-branch-names", test.ViperValue)
@@ -882,6 +931,7 @@ func TestLoadParams_SanitizeParams_HideBranchNames_List(t *testing.T) {
 
 func TestLoadParams_SanitizeParams_HideBranchNames_FlagTakesPrecedence(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 	v.Set("hide-branch-names", "true")
@@ -899,6 +949,7 @@ func TestLoadParams_SanitizeParams_HideBranchNames_FlagTakesPrecedence(t *testin
 
 func TestLoadParams_SanitizeParams_HideBranchNames_ConfigTakesPrecedence(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 	v.Set("settings.hide_branch_names", "true")
@@ -915,6 +966,7 @@ func TestLoadParams_SanitizeParams_HideBranchNames_ConfigTakesPrecedence(t *test
 
 func TestLoadParams_SanitizeParams_HideBranchNames_ConfigDeprecatedOneTakesPrecedence(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 	v.Set("settings.hide_branchnames", "true")
@@ -930,6 +982,7 @@ func TestLoadParams_SanitizeParams_HideBranchNames_ConfigDeprecatedOneTakesPrece
 
 func TestLoadParams_SanitizeParams_HideBranchNames_ConfigDeprecatedTwo(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 	v.Set("settings.hidebranchnames", "true")
@@ -944,6 +997,7 @@ func TestLoadParams_SanitizeParams_HideBranchNames_ConfigDeprecatedTwo(t *testin
 
 func TestLoadParams_SanitizeParams_HideBranchNames_InvalidRegex(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 	v.Set("hide-branch-names", ".*secret.*\n[0-9+")
@@ -969,6 +1023,7 @@ func TestLoadParams_SanitizeParams_HideProjectNames_True(t *testing.T) {
 	for name, viperValue := range tests {
 		t.Run(name, func(t *testing.T) {
 			v := viper.New()
+			v.SetDefault("sync-offline-activity", 1000)
 			v.Set("key", "00000000-0000-4000-8000-000000000000")
 			v.Set("entity", "/path/to/file")
 			v.Set("hide-project-names", viperValue)
@@ -993,6 +1048,7 @@ func TestLoadParams_SanitizeParams_HideProjectNames_False(t *testing.T) {
 	for name, viperValue := range tests {
 		t.Run(name, func(t *testing.T) {
 			v := viper.New()
+			v.SetDefault("sync-offline-activity", 1000)
 			v.Set("key", "00000000-0000-4000-8000-000000000000")
 			v.Set("entity", "/path/to/file")
 			v.Set("hide-project-names", viperValue)
@@ -1028,6 +1084,7 @@ func TestLoadParams_SanitizeParams_HideProjecthNames_List(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			v := viper.New()
+			v.SetDefault("sync-offline-activity", 1000)
 			v.Set("key", "00000000-0000-4000-8000-000000000000")
 			v.Set("entity", "/path/to/file")
 			v.Set("hide-project-names", test.ViperValue)
@@ -1044,6 +1101,7 @@ func TestLoadParams_SanitizeParams_HideProjecthNames_List(t *testing.T) {
 
 func TestLoadParams_SanitizeParams_HideProjectNames_FlagTakesPrecedence(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 	v.Set("hide-project-names", "true")
@@ -1061,6 +1119,7 @@ func TestLoadParams_SanitizeParams_HideProjectNames_FlagTakesPrecedence(t *testi
 
 func TestLoadParams_SanitizeParams_HideProjectNames_ConfigTakesPrecedence(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 	v.Set("settings.hide_project_names", "true")
@@ -1077,6 +1136,7 @@ func TestLoadParams_SanitizeParams_HideProjectNames_ConfigTakesPrecedence(t *tes
 
 func TestLoadParams_SanitizeParams_HideProjectNames_ConfigDeprecatedOneTakesPrecedence(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 	v.Set("settings.hide_projectnames", "true")
@@ -1092,6 +1152,7 @@ func TestLoadParams_SanitizeParams_HideProjectNames_ConfigDeprecatedOneTakesPrec
 
 func TestLoadParams_SanitizeParams_HideProjectNames_ConfigDeprecatedTwo(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 	v.Set("settings.hideprojectnames", "true")
@@ -1106,6 +1167,7 @@ func TestLoadParams_SanitizeParams_HideProjectNames_ConfigDeprecatedTwo(t *testi
 
 func TestLoadParams_SanitizeParams_HideProjectNames_InvalidRegex(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 	v.Set("hide-project-names", ".*secret.*\n[0-9+")
@@ -1131,6 +1193,7 @@ func TestLoadParams_SanitizeParams_HideFileNames_True(t *testing.T) {
 	for name, viperValue := range tests {
 		t.Run(name, func(t *testing.T) {
 			v := viper.New()
+			v.SetDefault("sync-offline-activity", 1000)
 			v.Set("key", "00000000-0000-4000-8000-000000000000")
 			v.Set("entity", "/path/to/file")
 			v.Set("hide-file-names", viperValue)
@@ -1155,6 +1218,7 @@ func TestLoadParams_SanitizeParams_HideFileNames_False(t *testing.T) {
 	for name, viperValue := range tests {
 		t.Run(name, func(t *testing.T) {
 			v := viper.New()
+			v.SetDefault("sync-offline-activity", 1000)
 			v.Set("key", "00000000-0000-4000-8000-000000000000")
 			v.Set("entity", "/path/to/file")
 			v.Set("hide-file-names", viperValue)
@@ -1190,6 +1254,7 @@ func TestLoadParams_SanitizeParams_HideFilehNames_List(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			v := viper.New()
+			v.SetDefault("sync-offline-activity", 1000)
 			v.Set("key", "00000000-0000-4000-8000-000000000000")
 			v.Set("entity", "/path/to/file")
 			v.Set("hide-file-names", test.ViperValue)
@@ -1206,6 +1271,7 @@ func TestLoadParams_SanitizeParams_HideFilehNames_List(t *testing.T) {
 
 func TestLoadParams_SanitizeParams_HideFileNames_FlagTakesPrecedence(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 	v.Set("hide-file-names", "true")
@@ -1225,6 +1291,7 @@ func TestLoadParams_SanitizeParams_HideFileNames_FlagTakesPrecedence(t *testing.
 
 func TestLoadParams_SanitizeParams_HideFileNames_FlagDeprecatedOneTakesPrecedence(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 	v.Set("hide-filenames", "true")
@@ -1243,6 +1310,7 @@ func TestLoadParams_SanitizeParams_HideFileNames_FlagDeprecatedOneTakesPrecedenc
 
 func TestLoadParams_SanitizeParams_HideFileNames_FlagDeprecatedTwoTakesPrecedence(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 	v.Set("hidefilenames", "true")
@@ -1260,6 +1328,7 @@ func TestLoadParams_SanitizeParams_HideFileNames_FlagDeprecatedTwoTakesPrecedenc
 
 func TestLoadParams_SanitizeParams_HideFileNames_ConfigTakesPrecedence(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 	v.Set("settings.hide_file_names", "true")
@@ -1276,6 +1345,7 @@ func TestLoadParams_SanitizeParams_HideFileNames_ConfigTakesPrecedence(t *testin
 
 func TestLoadParams_SanitizeParams_HideFileNames_ConfigDeprecatedOneTakesPrecedence(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 	v.Set("settings.hide_filenames", "true")
@@ -1291,6 +1361,7 @@ func TestLoadParams_SanitizeParams_HideFileNames_ConfigDeprecatedOneTakesPrecede
 
 func TestLoadParams_SanitizeParams_HideFileNames_ConfigDeprecatedTwo(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 	v.Set("settings.hidefilenames", "true")
@@ -1305,6 +1376,7 @@ func TestLoadParams_SanitizeParams_HideFileNames_ConfigDeprecatedTwo(t *testing.
 
 func TestLoadParams_SanitizeParams_HideFileNames_InvalidRegex(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 	v.Set("hide-file-names", ".*secret.*\n[0-9+")
@@ -1330,6 +1402,7 @@ func TestLoadParams_DisableSubmodule_True(t *testing.T) {
 	for name, viperValue := range tests {
 		t.Run(name, func(t *testing.T) {
 			v := viper.New()
+			v.SetDefault("sync-offline-activity", 1000)
 			v.Set("key", "00000000-0000-4000-8000-000000000000")
 			v.Set("entity", "/path/to/file")
 			v.Set("git.submodules_disabled", viperValue)
@@ -1352,6 +1425,7 @@ func TestLoadParams_DisableSubmodule_False(t *testing.T) {
 	for name, viperValue := range tests {
 		t.Run(name, func(t *testing.T) {
 			v := viper.New()
+			v.SetDefault("sync-offline-activity", 1000)
 			v.Set("key", "00000000-0000-4000-8000-000000000000")
 			v.Set("entity", "/path/to/file")
 			v.Set("git.submodules_disabled", viperValue)
@@ -1388,6 +1462,7 @@ func TestLoadParams_DisableSubmodule_List(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			multilineOption := viper.IniLoadOptions(ini.LoadOptions{AllowPythonMultilineValues: true})
 			v := viper.NewWithOptions(multilineOption)
+			v.SetDefault("sync-offline-activity", 1000)
 			v.Set("key", "00000000-0000-4000-8000-000000000000")
 			v.Set("entity", "/path/to/file")
 			v.Set("git.submodules_disabled", test.ViperValue)
