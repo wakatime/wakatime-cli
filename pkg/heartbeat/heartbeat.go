@@ -136,7 +136,7 @@ type Result struct {
 
 // Sender sends heartbeats to the wakatime api.
 type Sender interface {
-	Send(hh []Heartbeat) ([]Result, error)
+	SendHeartbeats(hh []Heartbeat) ([]Result, error)
 }
 
 // Handle does processing of heartbeats.
@@ -149,7 +149,7 @@ type HandleOption func(next Handle) Handle
 // with a sender eventually sending the heartbeats.
 func NewHandle(sender Sender, opts ...HandleOption) Handle {
 	return func(hh []Heartbeat) ([]Result, error) {
-		var h Handle = sender.Send
+		var h Handle = sender.SendHeartbeats
 		for i := len(opts) - 1; i >= 0; i-- {
 			h = opts[i](h)
 		}

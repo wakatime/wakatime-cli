@@ -173,7 +173,7 @@ func TestHeartbeat_JSON_NilFields(t *testing.T) {
 
 func TestNewHandle(t *testing.T) {
 	sender := mockSender{
-		SendFn: func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		SendHeartbeatsFn: func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 			assert.Equal(t, []heartbeat.Heartbeat{
 				{
 					Branch:     heartbeat.String("test"),
@@ -252,11 +252,11 @@ func TestPluginFromUserAgent(t *testing.T) {
 }
 
 type mockSender struct {
-	SendFn        func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error)
-	SendFnInvoked bool
+	SendHeartbeatsFn        func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error)
+	SendHeartbeatsFnInvoked bool
 }
 
-func (m *mockSender) Send(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
-	m.SendFnInvoked = true
-	return m.SendFn(hh)
+func (m *mockSender) SendHeartbeats(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+	m.SendHeartbeatsFnInvoked = true
+	return m.SendHeartbeatsFn(hh)
 }

@@ -8,7 +8,6 @@ import (
 	"github.com/wakatime/wakatime-cli/cmd/legacy/legacyparams"
 	"github.com/wakatime/wakatime-cli/pkg/api"
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
-	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/offline"
 
@@ -62,23 +61,18 @@ func SyncOfflineActivity(v *viper.Viper, queueFilepath string) error {
 		return fmt.Errorf("failed to load command parameters: %w", err)
 	}
 
-	if params.OfflineDisabled {
-		return fmt.Errorf("sync offline is disabled. cannot sync offline activity: %w", err)
-	}
-
-	offlineHandleOpt, err := offline.WithQueue(queueFilepath, params.OfflineSyncMax)
-	if err != nil {
-		return fmt.Errorf("failed to initialize offline queue handle option: %w", err)
-	}
-
 	apiClient, err := legacyapi.NewClient(params.API)
 	if err != nil {
 		return fmt.Errorf("failed to initialize api client: %w", err)
 	}
 
-	handle := heartbeat.NewHandle(apiClient, []heartbeat.HandleOption{offlineHandleOpt}...)
+	if params.OfflineQueueFile != "" {
+		queueFilepath = params.OfflineQueueFile
+	}
 
-	_, err = handle(nil)
+	syncFn := offline.Sync(queueFilepath, params.OfflineSyncMax)
+
+	err = syncFn(apiClient.SendHeartbeats)
 	if err != nil {
 		return fmt.Errorf("failed to sync offline activity via api client: %w", err)
 	}
