@@ -39,7 +39,7 @@ func (c *Client) SendDiagnostics(plugin string, diagnostics ...diagnostic.Diagno
 		case diagnostic.TypeStack:
 			body.Stack = d.Value
 		default:
-			return fmt.Errorf("Unknown diagnostic type %d", d.Type)
+			return fmt.Errorf("unknown diagnostic type %d", d.Type)
 		}
 	}
 

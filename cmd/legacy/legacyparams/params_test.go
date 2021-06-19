@@ -159,8 +159,9 @@ func TestLoad_API_APIKey(t *testing.T) {
 			ViperAPIKeyConfigOld: "20000000-0000-4000-8000-000000000000",
 			Expected: legacyparams.Params{
 				API: legacyparams.API{
-					Key: "00000000-0000-4000-8000-000000000000",
-					URL: "https://api.wakatime.com/api/v1",
+					Key:      "00000000-0000-4000-8000-000000000000",
+					URL:      "https://api.wakatime.com/api/v1",
+					Hostname: "my-computer",
 				},
 			},
 		},
@@ -169,8 +170,9 @@ func TestLoad_API_APIKey(t *testing.T) {
 			ViperAPIKeyConfigOld: "10000000-0000-4000-8000-000000000000",
 			Expected: legacyparams.Params{
 				API: legacyparams.API{
-					Key: "00000000-0000-4000-8000-000000000000",
-					URL: "https://api.wakatime.com/api/v1",
+					Key:      "00000000-0000-4000-8000-000000000000",
+					URL:      "https://api.wakatime.com/api/v1",
+					Hostname: "my-computer",
 				},
 			},
 		},
@@ -178,8 +180,9 @@ func TestLoad_API_APIKey(t *testing.T) {
 			ViperAPIKeyConfigOld: "00000000-0000-4000-8000-000000000000",
 			Expected: legacyparams.Params{
 				API: legacyparams.API{
-					Key: "00000000-0000-4000-8000-000000000000",
-					URL: "https://api.wakatime.com/api/v1",
+					Key:      "00000000-0000-4000-8000-000000000000",
+					URL:      "https://api.wakatime.com/api/v1",
+					Hostname: "my-computer",
 				},
 			},
 		},
@@ -192,6 +195,7 @@ func TestLoad_API_APIKey(t *testing.T) {
 			v.Set("key", test.ViperAPIKey)
 			v.Set("settings.api_key", test.ViperAPIKeyConfig)
 			v.Set("settings.apikey", test.ViperAPIKeyConfigOld)
+			v.Set("hostname", "my-computer")
 
 			params, err := legacyparams.Load(v)
 			require.NoError(t, err)
@@ -237,8 +241,9 @@ func TestLoad_API_APIUrl(t *testing.T) {
 			ViperAPIUrlOld:    "http://localhost:8082",
 			Expected: legacyparams.Params{
 				API: legacyparams.API{
-					Key: "00000000-0000-4000-8000-000000000000",
-					URL: "http://localhost:8080",
+					Key:      "00000000-0000-4000-8000-000000000000",
+					URL:      "http://localhost:8080",
+					Hostname: "my-computer",
 				},
 			},
 		},
@@ -247,8 +252,9 @@ func TestLoad_API_APIUrl(t *testing.T) {
 			ViperAPIUrlOld:    "http://localhost:8082",
 			Expected: legacyparams.Params{
 				API: legacyparams.API{
-					Key: "00000000-0000-4000-8000-000000000000",
-					URL: "http://localhost:8082",
+					Key:      "00000000-0000-4000-8000-000000000000",
+					URL:      "http://localhost:8082",
+					Hostname: "my-computer",
 				},
 			},
 		},
@@ -256,8 +262,9 @@ func TestLoad_API_APIUrl(t *testing.T) {
 			ViperAPIUrlConfig: "http://localhost:8081",
 			Expected: legacyparams.Params{
 				API: legacyparams.API{
-					Key: "00000000-0000-4000-8000-000000000000",
-					URL: "http://localhost:8081",
+					Key:      "00000000-0000-4000-8000-000000000000",
+					URL:      "http://localhost:8081",
+					Hostname: "my-computer",
 				},
 			},
 		},
@@ -265,8 +272,9 @@ func TestLoad_API_APIUrl(t *testing.T) {
 			ViperAPIUrl: "http://localhost:8080/api/v1/heartbeats.bulk",
 			Expected: legacyparams.Params{
 				API: legacyparams.API{
-					Key: "00000000-0000-4000-8000-000000000000",
-					URL: "http://localhost:8080/api/v1",
+					Key:      "00000000-0000-4000-8000-000000000000",
+					URL:      "http://localhost:8080/api/v1",
+					Hostname: "my-computer",
 				},
 			},
 		},
@@ -274,8 +282,9 @@ func TestLoad_API_APIUrl(t *testing.T) {
 			ViperAPIUrl: "http://localhost:8080/api/",
 			Expected: legacyparams.Params{
 				API: legacyparams.API{
-					Key: "00000000-0000-4000-8000-000000000000",
-					URL: "http://localhost:8080/api",
+					Key:      "00000000-0000-4000-8000-000000000000",
+					URL:      "http://localhost:8080/api",
+					Hostname: "my-computer",
 				},
 			},
 		},
@@ -283,8 +292,9 @@ func TestLoad_API_APIUrl(t *testing.T) {
 			ViperAPIUrl: "http://localhost:8080/api/heartbeat",
 			Expected: legacyparams.Params{
 				API: legacyparams.API{
-					Key: "00000000-0000-4000-8000-000000000000",
-					URL: "http://localhost:8080/api",
+					Key:      "00000000-0000-4000-8000-000000000000",
+					URL:      "http://localhost:8080/api",
+					Hostname: "my-computer",
 				},
 			},
 		},
@@ -298,6 +308,7 @@ func TestLoad_API_APIUrl(t *testing.T) {
 			v.Set("api-url", test.ViperAPIUrl)
 			v.Set("apiurl", test.ViperAPIUrlOld)
 			v.Set("settings.api_url", test.ViperAPIUrlConfig)
+			v.Set("hostname", "my-computer")
 
 			params, err := legacyparams.Load(v)
 			require.NoError(t, err)
@@ -324,14 +335,16 @@ func TestLoad_API_Plugin(t *testing.T) {
 	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("plugin", "plugin/10.0.0")
+	v.Set("hostname", "my-computer")
 
 	params, err := legacyparams.Load(v)
 	require.NoError(t, err)
 
 	assert.Equal(t, legacyparams.API{
-		Key:    "00000000-0000-4000-8000-000000000000",
-		URL:    "https://api.wakatime.com/api/v1",
-		Plugin: "plugin/10.0.0",
+		Key:      "00000000-0000-4000-8000-000000000000",
+		URL:      "https://api.wakatime.com/api/v1",
+		Plugin:   "plugin/10.0.0",
+		Hostname: "my-computer",
 	}, params.API)
 }
 
@@ -490,4 +503,43 @@ func TestLoad_API_SSLCertFilepath_FromConfig(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, "/path/to/cert.pem", params.API.SSLCertFilepath)
+}
+
+func TestLoadParams_Hostname_FlagTakesPrecedence(t *testing.T) {
+	v := viper.New()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("entity", "/path/to/file")
+	v.Set("hostname", "my-machine")
+	v.Set("settings.hostname", "ignored")
+
+	params, err := legacyparams.Load(v)
+	require.NoError(t, err)
+
+	assert.Equal(t, "my-machine", params.API.Hostname)
+}
+
+func TestLoadParams_Hostname_FromConfig(t *testing.T) {
+	v := viper.New()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("entity", "/path/to/file")
+	v.Set("settings.hostname", "my-machine")
+
+	params, err := legacyparams.Load(v)
+	require.NoError(t, err)
+
+	assert.Equal(t, "my-machine", params.API.Hostname)
+}
+
+func TestLoadParams_Hostname_DefaultFromSystem(t *testing.T) {
+	v := viper.New()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("entity", "/path/to/file")
+
+	params, err := legacyparams.Load(v)
+	require.NoError(t, err)
+
+	expected, err := os.Hostname()
+	require.NoError(t, err)
+
+	assert.Equal(t, expected, params.API.Hostname)
 }
