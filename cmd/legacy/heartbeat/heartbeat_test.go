@@ -73,6 +73,7 @@ func TestSendHeartbeats(t *testing.T) {
 	})
 
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("api-url", testServerURL)
 	v.Set("category", "debugging")
 	v.Set("cursorpos", 42)
@@ -114,6 +115,7 @@ func TestSendHeartbeats_WithFiltering_Exclude(t *testing.T) {
 	})
 
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("api-url", testServerURL)
 	v.Set("category", "debugging")
 	v.Set("entity", "/tmp/main.go")
@@ -214,6 +216,7 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 	}()
 
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("api-url", testServerURL)
 	v.Set("category", "debugging")
 	v.Set("cursorpos", 42)
@@ -244,6 +247,7 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 
 func TestSendHeartbeats_NonExistingEntity(t *testing.T) {
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("api-url", "https://example.org")
 	v.Set("entity", "nonexisting")
 	v.Set("entity-type", "file")
@@ -286,6 +290,7 @@ func TestSendHeartbeats_NonExistingExtraHeartbeatsEntity(t *testing.T) {
 	}()
 
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("api-url", "https://example.org")
 	v.Set("entity", "testdata/main.go")
 	v.Set("entity-type", "file")
