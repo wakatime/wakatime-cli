@@ -30,6 +30,7 @@ func NewClientWithoutAuth(params legacyparams.API) (*api.Client, error) {
 // newClient contains the logic of client initialization, except auth initialization.
 func newClient(params legacyparams.API, opts ...api.Option) (*api.Client, error) {
 	opts = append(opts, api.WithTimeout(params.Timeout))
+	opts = append(opts, api.WithHostname(params.Hostname))
 
 	if params.DisableSSLVerify {
 		opts = append(opts, api.WithDisableSSLVerify())

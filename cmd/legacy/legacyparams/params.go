@@ -3,6 +3,7 @@ package legacyparams
 import (
 	"errors"
 	"fmt"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -40,6 +41,7 @@ type Params struct {
 // API contains api related parameters.
 type API struct {
 	DisableSSLVerify bool
+	Hostname         string
 	Key              string
 	Plugin           string
 	ProxyURL         string
@@ -51,10 +53,11 @@ type API struct {
 // String implements fmt.Stringer interface.
 func (p API) String() string {
 	return fmt.Sprintf(
-		"api key: '%s', api url: '%s', plugin: '%s', timeout: %s, disable ssl verify: %t,"+
-			"proxy url: '%s', ssl cert filepath: '%s'",
+		"api key: '%s', api url: '%s', hostname: '%s', plugin: '%s', timeout: %s,"+
+			" disable ssl verify: %t, proxy url: '%s', ssl cert filepath: '%s'",
 		p.Key[:4]+"...",
 		p.URL,
+		p.Hostname,
 		p.Plugin,
 		p.Timeout,
 		p.DisableSSLVerify,
@@ -130,6 +133,19 @@ func loadAPIParams(v *viper.Viper) (API, error) {
 	apiURL = strings.TrimSuffix(apiURL, "/heartbeats")
 	apiURL = strings.TrimSuffix(apiURL, "/heartbeat")
 
+	var (
+		hostname string
+		err      error
+	)
+
+	hostname, ok = vipertools.FirstNonEmptyString(v, "hostname", "settings.hostname")
+	if !ok {
+		hostname, err = os.Hostname()
+		if err != nil {
+			return API{}, fmt.Errorf("failed to retrieve hostname from system: %s", err)
+		}
+	}
+
 	proxyURL, _ := vipertools.FirstNonEmptyString(v, "proxy", "settings.proxy")
 
 	rgx := proxyRegex
@@ -141,10 +157,7 @@ func loadAPIParams(v *viper.Viper) (API, error) {
 		return API{}, fmt.Errorf(errMsgTemplate, proxyURL)
 	}
 
-	var (
-		sslCertFilepath string
-		err             error
-	)
+	var sslCertFilepath string
 
 	sslCertFilepath, ok = vipertools.FirstNonEmptyString(v, "ssl-certs-file", "settings.ssl_certs_file")
 	if ok {
@@ -166,6 +179,7 @@ func loadAPIParams(v *viper.Viper) (API, error) {
 
 	return API{
 		DisableSSLVerify: vipertools.FirstNonEmptyBool(v, "no-ssl-verify", "settings.no_ssl_verify"),
+		Hostname:         hostname,
 		Key:              apiKey,
 		Plugin:           vipertools.GetString(v, "plugin"),
 		ProxyURL:         proxyURL,

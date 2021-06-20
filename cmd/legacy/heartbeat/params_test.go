@@ -370,48 +370,6 @@ func TestLoadParams_ExtraHeartbeats_WithStringValues(t *testing.T) {
 	}, params.ExtraHeartbeats)
 }
 
-func TestLoadParams_Hostname_FlagTakesPrecedence(t *testing.T) {
-	v := viper.New()
-	v.SetDefault("sync-offline-activity", 1000)
-	v.Set("key", "00000000-0000-4000-8000-000000000000")
-	v.Set("entity", "/path/to/file")
-	v.Set("hostname", "my-machine")
-	v.Set("settings.hostname", "ignored")
-
-	params, err := cmd.LoadParams(v)
-	require.NoError(t, err)
-
-	assert.Equal(t, "my-machine", params.Hostname)
-}
-
-func TestLoadParams_Hostname_FromConfig(t *testing.T) {
-	v := viper.New()
-	v.SetDefault("sync-offline-activity", 1000)
-	v.Set("key", "00000000-0000-4000-8000-000000000000")
-	v.Set("entity", "/path/to/file")
-	v.Set("settings.hostname", "my-machine")
-
-	params, err := cmd.LoadParams(v)
-	require.NoError(t, err)
-
-	assert.Equal(t, "my-machine", params.Hostname)
-}
-
-func TestLoadParams_Hostname_DefaultFromSystem(t *testing.T) {
-	v := viper.New()
-	v.SetDefault("sync-offline-activity", 1000)
-	v.Set("key", "00000000-0000-4000-8000-000000000000")
-	v.Set("entity", "/path/to/file")
-
-	params, err := cmd.LoadParams(v)
-	require.NoError(t, err)
-
-	expected, err := os.Hostname()
-	require.NoError(t, err)
-
-	assert.Equal(t, expected, params.Hostname)
-}
-
 func TestLoadParams_IsWrite(t *testing.T) {
 	tests := map[string]bool{
 		"is write":    true,

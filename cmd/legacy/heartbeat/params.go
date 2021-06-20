@@ -36,7 +36,6 @@ type Params struct {
 	Entity            string
 	EntityType        heartbeat.EntityType
 	ExtraHeartbeats   []heartbeat.Heartbeat
-	Hostname          string
 	IsWrite           *bool
 	Language          *string
 	LanguageAlternate string
@@ -81,7 +80,7 @@ func (p Params) String() string {
 
 	return fmt.Sprintf(
 		"category: '%s', cursor position: '%s', entity: '%s', entity type: '%s',"+
-			" num extra heartbeats: %d, hostname: '%s', is write: %t, language: '%s',"+
+			" num extra heartbeats: %d, is write: %t, language: '%s',"+
 			" line number: '%s', lines in file: '%s', offline disabled: %t,"+
 			" offline queue file: '%s', offline sync max: %d, time: %.5f, api params: (%s),"+
 			" filter params: (%s), project params: (%s), sanitize params: (%s)",
@@ -90,7 +89,6 @@ func (p Params) String() string {
 		p.Entity,
 		p.EntityType,
 		len(p.ExtraHeartbeats),
-		p.Hostname,
 		isWrite,
 		language,
 		lineNumber,
@@ -214,14 +212,6 @@ func LoadParams(v *viper.Viper) (Params, error) {
 		}
 	}
 
-	hostname, ok := vipertools.FirstNonEmptyString(v, "hostname", "settings.hostname")
-	if !ok {
-		hostname, err = os.Hostname()
-		if err != nil {
-			return Params{}, fmt.Errorf("failed to retrieve hostname from system: %s", err)
-		}
-	}
-
 	var isWrite *bool
 	if b := v.GetBool("write"); v.IsSet("write") {
 		isWrite = heartbeat.Bool(b)
@@ -263,7 +253,6 @@ func LoadParams(v *viper.Viper) (Params, error) {
 		Entity:            entityExpanded,
 		ExtraHeartbeats:   extraHeartbeats,
 		EntityType:        entityType,
-		Hostname:          hostname,
 		IsWrite:           isWrite,
 		Language:          language,
 		LanguageAlternate: vipertools.GetString(v, "alternate-language"),
