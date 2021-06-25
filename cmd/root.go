@@ -181,6 +181,7 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 			" to a limit of 1000. Can be used without --entity to only sync offline"+
 			" activity without generating new heartbeats.",
 	)
+	flags.Bool("offline-count", false, "Prints the number of heartbeats in the offline db, then exits.")
 	flags.Int(
 		"timeout",
 		defaultTimeoutSecs,

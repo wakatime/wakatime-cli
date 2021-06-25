@@ -225,6 +225,68 @@ func TestTodaySummary(t *testing.T) {
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
 
+func TestOfflineCountEmpty(t *testing.T) {
+	offlineQueueFile, err := ioutil.TempFile(os.TempDir(), "")
+	require.NoError(t, err)
+
+	defer os.Remove(offlineQueueFile.Name())
+
+	out := run(exec.Command(
+		binaryPath(t),
+		"--key", "00000000-0000-4000-8000-000000000000",
+		"--offline-queue-file", offlineQueueFile.Name(),
+		"--offline-count",
+		"--verbose",
+	))
+
+	assert.Equal(t, "0\n", out)
+}
+
+func TestOfflineCountWithOneHeartbeat(t *testing.T) {
+	apiUrl, router, close := setupTestServer()
+	defer close()
+
+	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, err := io.Copy(w, strings.NewReader("500 error test"))
+		require.NoError(t, err)
+	})
+
+	version.Version = testVersion
+
+	offlineQueueFile, err := ioutil.TempFile(os.TempDir(), "")
+	require.NoError(t, err)
+
+	defer os.Remove(offlineQueueFile.Name())
+
+	runExpectingError(exec.Command(
+		binaryPath(t),
+		"--api-url", apiUrl,
+		"--key", "00000000-0000-4000-8000-000000000000",
+		"--config", "testdata/wakatime.cfg",
+		"--entity", "testdata/main.go",
+		"--cursorpos", "12",
+		"--offline-queue-file", offlineQueueFile.Name(),
+		"--lineno", "42",
+		"--lines-in-file", "100",
+		"--time", "1585598059",
+		"--hide-branch-names", ".*",
+		"--log-to-stdout",
+		"--write",
+		"--verbose",
+	))
+
+	out := run(exec.Command(
+		binaryPath(t),
+		"--key", "00000000-0000-4000-8000-000000000000",
+		"--offline-queue-file", offlineQueueFile.Name(),
+		"--offline-count",
+		"--verbose",
+	))
+
+	assert.Equal(t, "1\n", out)
+}
+
 func TestUseragent(t *testing.T) {
 	out := run(exec.Command(binaryPath(t), "--useragent"))
 
@@ -266,6 +328,25 @@ func run(cmd *exec.Cmd) string {
 		fmt.Println(stdout.String())
 		fmt.Println(stderr.String())
 		fmt.Printf("failed to run command %s\n", cmd)
+		os.Exit(1)
+	}
+
+	return stdout.String()
+}
+
+func runExpectingError(cmd *exec.Cmd) string {
+	fmt.Println(cmd.String())
+	var stdout bytes.Buffer
+	cmd.Stdout = &stdout
+
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+
+	err := cmd.Run()
+	if err == nil {
+		fmt.Println(stdout.String())
+		fmt.Println(stderr.String())
+		fmt.Printf("ran command successfully, but was expecting error: %s\n", cmd)
 		os.Exit(1)
 	}
 

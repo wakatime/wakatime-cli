@@ -14,6 +14,7 @@ import (
 	"github.com/wakatime/wakatime-cli/cmd/legacy/legacyapi"
 	"github.com/wakatime/wakatime-cli/cmd/legacy/legacyparams"
 	"github.com/wakatime/wakatime-cli/cmd/legacy/logfile"
+	"github.com/wakatime/wakatime-cli/cmd/legacy/offlinecount"
 	"github.com/wakatime/wakatime-cli/cmd/legacy/offlinesync"
 	"github.com/wakatime/wakatime-cli/cmd/legacy/today"
 	"github.com/wakatime/wakatime-cli/cmd/legacy/todaygoal"
@@ -114,10 +115,17 @@ func Run(cmd *cobra.Command, v *viper.Viper) {
 		RunCmd(v, offlinesync.Run)
 	}
 
+	if v.GetBool("offline-count") {
+		log.Debugln("command: offline-count")
+
+		RunCmd(v, offlinecount.Run)
+	}
+
 	log.Warnf("One of the following parameters has to be provided: %s", strings.Join([]string{
 		"--config-read",
 		"--config-write",
 		"--entity",
+		"--offline-count",
 		"--sync-offline-activity",
 		"--today",
 		"--today-goal",
