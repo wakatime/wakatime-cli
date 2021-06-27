@@ -4,6 +4,8 @@ import (
 	"crypto/x509"
 	"net/http"
 	"time"
+
+	"github.com/wakatime/wakatime-cli/pkg/log"
 )
 
 // NewTransport initializes a new http.Transport.
@@ -103,8 +105,14 @@ emyPxgcYxn/eR44/KJ4EBs+lVDR3veyJm+kXQ99b21/+jh5Xos1AnX5iItreGCc=
 
 // CACerts returns a root cert pool with the system's cacerts and LetsEncrypt's root certs.
 func CACerts() *x509.CertPool {
-	certs, _ := x509.SystemCertPool()
+	certs, err := x509.SystemCertPool()
+	if err != nil {
+		log.Warnf("unable to use system cert pool: %s", err)
+	}
+
 	if certs == nil {
+		log.Warnf("system cert pool empty")
+
 		certs = x509.NewCertPool()
 	}
 
