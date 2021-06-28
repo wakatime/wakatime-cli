@@ -33,10 +33,12 @@ jobs:
         name: Linter
         run: make lint
       -
-        name: Send coverage
-        uses: shogo82148/actions-goveralls@v1
+        name: Coverage
+        uses: codecov/codecov-action@v1
         with:
-          path-to-profile: coverage.out
+          token: ${{ secrets.CODECOV_TOKEN }}
+          flags: unittests
+          comment: false
 
   test-integration:
     name: Integration Tests
@@ -157,7 +159,7 @@ jobs:
         uses: ludeeus/action-shellcheck@master
         with:
           ignore: 'bin/tests/libs'
-      - 
+      -
         name: Setup bats
         uses: mig4/setup-bats@v1
         with:
@@ -233,7 +235,7 @@ jobs:
         with:
           name: binaries
           path: build/
-      - 
+      -
         name: Remove tag if failure
         if: ${{ failure() }}
         uses: actions/github-script@v4
@@ -270,7 +272,7 @@ jobs:
         with:
           name: binaries
           path: build/
-      - 
+      -
         name: Remove tag if failure
         if: ${{ failure() }}
         uses: actions/github-script@v4
@@ -307,7 +309,7 @@ jobs:
         with:
           name: binaries
           path: build/
-      - 
+      -
         name: Remove tag if failure
         if: ${{ failure() }}
         uses: actions/github-script@v4
@@ -344,7 +346,7 @@ jobs:
         with:
           name: binaries
           path: build/
-      - 
+      -
         name: Remove tag if failure
         if: ${{ failure() }}
         uses: actions/github-script@v4
@@ -381,7 +383,7 @@ jobs:
         with:
           name: binaries
           path: build/
-      - 
+      -
         name: Remove tag if failure
         if: ${{ failure() }}
         uses: actions/github-script@v4
@@ -418,7 +420,7 @@ jobs:
         with:
           name: binaries
           path: build/
-      - 
+      -
         name: Remove tag if failure
         if: ${{ failure() }}
         uses: actions/github-script@v4
@@ -473,7 +475,7 @@ jobs:
         with:
           name: binaries
           path: build/
-      - 
+      -
         name: Remove tag if failure
         if: ${{ failure() }}
         uses: actions/github-script@v4
@@ -529,7 +531,7 @@ jobs:
         run: |
           changelog="${{ steps.changelog-develop.outputs.changelog || fromJson(steps.changelog-release.outputs.changelog).body }}"
           ./bin/prepare_changelog.sh $(echo ${GITHUB_REF#refs/heads/}) "$changelog"
-      - 
+      -
         name: Download artifacts
         uses: actions/download-artifact@v2
         with:
@@ -551,7 +553,7 @@ jobs:
           files: ./release/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - 
+      -
         name: Remove tag if failure
         if: ${{ failure() }}
         uses: actions/github-script@v4
