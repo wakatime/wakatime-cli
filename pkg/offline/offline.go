@@ -223,10 +223,7 @@ func popHeartbeats(filepath string, limit int) ([]heartbeat.Heartbeat, error) {
 		return nil, fmt.Errorf("failed to start db transaction: %s", err)
 	}
 
-	queue, err := NewQueue(tx)
-	if err != nil {
-		return nil, fmt.Errorf("failed initialize new queue: %s", err)
-	}
+	queue := NewQueue(tx)
 
 	queued, err := queue.PopMany(limit)
 	if err != nil {
@@ -296,10 +293,7 @@ func pushHeartbeats(filepath string, hh []heartbeat.Heartbeat) error {
 		return fmt.Errorf("failed to start db transaction: %s", err)
 	}
 
-	queue, err := NewQueue(tx)
-	if err != nil {
-		return fmt.Errorf("failed initialize new queue: %s", err)
-	}
+	queue := NewQueue(tx)
 
 	err = queue.PushMany(hh)
 	if err != nil {
@@ -313,6 +307,39 @@ func pushHeartbeats(filepath string, hh []heartbeat.Heartbeat) error {
 	return nil
 }
 
+// CountHeartbeats returns the total number of heartbeats in the offline db.
+func CountHeartbeats(filepath string) (int, error) {
+	db, err := bolt.Open(filepath, 0600, nil)
+	if err != nil {
+		return 0, fmt.Errorf("failed to open db connection: %s", err)
+	}
+
+	defer db.Close()
+
+	tx, err := db.Begin(true)
+	if err != nil {
+		return 0, fmt.Errorf("failed to start db transaction: %s", err)
+	}
+
+	queue := NewQueue(tx)
+
+	count, err := queue.Count()
+	if err != nil {
+		log.Errorf("failed to count offline heartbeats: %s", err)
+
+		_ = tx.Rollback()
+
+		return count, err
+	}
+
+	err = tx.Rollback()
+	if err != nil {
+		log.Warnf("failed to rollback transaction: %s", err)
+	}
+
+	return count, nil
+}
+
 // Queue is a db client to temporarily store heartbeats in bolt db, in case heartbeat
 // sending to wakatime api is not possible. Transaction handling is left to the user
 // via the passed in transaction.
@@ -322,11 +349,11 @@ type Queue struct {
 }
 
 // NewQueue creates a new instance of Queue.
-func NewQueue(tx *bolt.Tx) (*Queue, error) {
+func NewQueue(tx *bolt.Tx) *Queue {
 	return &Queue{
 		Bucket: dbBucket,
 		tx:     tx,
-	}, nil
+	}
 }
 
 // PopMany retrieves heartbeats with the specified ids from db.
@@ -389,4 +416,14 @@ func (q *Queue) PushMany(hh []heartbeat.Heartbeat) error {
 	}
 
 	return nil
+}
+
+// Count returns the total number of heartbeats in the offline db.
+func (q *Queue) Count() (int, error) {
+	b, err := q.tx.CreateBucketIfNotExists([]byte(q.Bucket))
+	if err != nil {
+		return 0, fmt.Errorf("failed to create/load bucket: %s", err)
+	}
+
+	return b.Stats().KeyN, nil
 }

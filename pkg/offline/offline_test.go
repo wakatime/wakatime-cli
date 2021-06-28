@@ -840,11 +840,8 @@ func TestQueue_PopMany(t *testing.T) {
 	require.NoError(t, err)
 
 	// run
-	q, err := offline.NewQueue(tx)
-	require.NoError(t, err)
-
+	q := offline.NewQueue(tx)
 	q.Bucket = "test_bucket"
-
 	hh, err := q.PopMany(2)
 	require.NoError(t, err)
 
@@ -910,11 +907,8 @@ func TestQueue_PushMany(t *testing.T) {
 	require.NoError(t, err)
 
 	// run
-	q, err := offline.NewQueue(tx)
-	require.NoError(t, err)
-
+	q := offline.NewQueue(tx)
 	q.Bucket = "test_bucket"
-
 	err = q.PushMany([]heartbeat.Heartbeat{heartbeatPy, heartbeatJs})
 	require.NoError(t, err)
 
@@ -948,6 +942,66 @@ func TestQueue_PushMany(t *testing.T) {
 
 	assert.Equal(t, "1592868394.084354-file-building-wakatime-todaygoal-/tmp/main.js-false", stored[2].ID)
 	assert.JSONEq(t, string(dataJs), stored[2].Heartbeat)
+}
+
+func TestQueue_Count(t *testing.T) {
+	// setup
+	db, cleanup := initDB(t)
+	defer cleanup()
+
+	tx, err := db.Begin(true)
+	require.NoError(t, err)
+
+	q := offline.NewQueue(tx)
+	q.Bucket = "test_bucket"
+
+	count, err := q.Count()
+	require.NoError(t, err)
+	assert.Equal(t, 0, count)
+
+	err = tx.Rollback()
+	require.NoError(t, err)
+
+	var heartbeatPy heartbeat.Heartbeat
+
+	dataPy, err := ioutil.ReadFile("testdata/heartbeat_py.json")
+	require.NoError(t, err)
+
+	err = json.Unmarshal(dataPy, &heartbeatPy)
+	require.NoError(t, err)
+
+	var heartbeatJs heartbeat.Heartbeat
+
+	dataJs, err := ioutil.ReadFile("testdata/heartbeat_js.json")
+	require.NoError(t, err)
+
+	err = json.Unmarshal(dataJs, &heartbeatJs)
+	require.NoError(t, err)
+
+	tx, err = db.Begin(true)
+	require.NoError(t, err)
+
+	// run
+	q = offline.NewQueue(tx)
+	q.Bucket = "test_bucket"
+	err = q.PushMany([]heartbeat.Heartbeat{heartbeatPy, heartbeatJs})
+	require.NoError(t, err)
+
+	err = tx.Commit()
+	require.NoError(t, err)
+
+	tx, err = db.Begin(true)
+	require.NoError(t, err)
+
+	q = offline.NewQueue(tx)
+	q.Bucket = "test_bucket"
+
+	count, err = q.Count()
+	require.NoError(t, err)
+	assert.Equal(t, 2, count)
+
+	err = tx.Rollback()
+	require.NoError(t, err)
 }
 
 func initDB(t *testing.T) (*bolt.DB, func()) {
