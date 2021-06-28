@@ -1,7 +1,7 @@
 # WakaTime CLI
 
 [![Tests](https://img.shields.io/github/workflow/status/wakatime/wakatime-cli/Tests/develop?label=tests)](https://github.com/wakatime/wakatime-cli/actions)
-[![Coverage](https://codecov.io/gh/wakatime/wakatime-cli/branch/develop/graph/badge.svg)](https://codecov.io/gh/wakatime/wakatime-cli)
+[![Coverage](https://img.shields.io/codecov/c/gh/wakatime/wakatime-cli/develop)](https://codecov.io/gh/wakatime/wakatime-cli)
 
 Command line interface to [WakaTime](https://wakatime.com) used by all WakaTime [text editor plugins](https://wakatime.com/editors).
 
