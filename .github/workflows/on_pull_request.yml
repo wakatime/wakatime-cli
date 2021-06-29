@@ -10,7 +10,7 @@ jobs:
         with:
           allowed: |
             /^bugfix/.+/i
-            /^doc/.+/i
+            /^docs?/.+/i
             /^feature/.+/i
             /^hotfix/.+/i
             /^major/.+/i
