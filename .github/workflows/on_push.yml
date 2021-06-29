@@ -38,7 +38,6 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           flags: unittests
-          comment: false
 
   test-integration:
     name: Integration Tests
