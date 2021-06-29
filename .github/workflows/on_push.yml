@@ -195,7 +195,7 @@ jobs:
       -
         name: Calculate semver tag
         id: semver-tag
-        uses: wakatime/semver-action@v1.3.2
+        uses: wakatime/semver-action@master
         with:
           prerelease_id: alpha
           main_branch_name: release
