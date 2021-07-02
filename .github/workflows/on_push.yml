@@ -225,6 +225,8 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
       -
         name: Build binaries
+        env:
+          VERSION: ${{ needs.version.outputs.semver_tag }}
         shell: bash
         # 3 is the number of virtual cpus for macOS. Linux is only 2.
         run: make -j3 build-linux
@@ -262,6 +264,8 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
       -
         name: Build binaries
+        env:
+          VERSION: ${{ needs.version.outputs.semver_tag }}
         shell: bash
         # 3 is the number of virtual cpus for macOS. Linux is only 2.
         run: make -j3 build-freebsd
@@ -299,6 +303,8 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
       -
         name: Build binaries
+        env:
+          VERSION: ${{ needs.version.outputs.semver_tag }}
         shell: bash
         # 3 is the number of virtual cpus for macOS. Linux is only 2.
         run: make -j3 build-netbsd
@@ -336,6 +342,8 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
       -
         name: Build binaries
+        env:
+          VERSION: ${{ needs.version.outputs.semver_tag }}
         shell: bash
         # 3 is the number of virtual cpus for macOS. Linux is only 2.
         run: make -j3 build-openbsd
@@ -373,6 +381,8 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
       -
         name: Build binaries
+        env:
+          VERSION: ${{ needs.version.outputs.semver_tag }}
         shell: bash
         # 3 is the number of virtual cpus for macOS. Linux is only 2.
         run: make -j3 build-darwin
@@ -410,6 +420,8 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
       -
         name: Build binaries
+        env:
+          VERSION: ${{ needs.version.outputs.semver_tag }}
         shell: bash
         # 3 is the number of virtual cpus for macOS. Linux is only 2.
         run: make -j3 build-windows
