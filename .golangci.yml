@@ -1,5 +1,7 @@
 run:
   deadline: 5m
+  build-tags:
+    - integration
 linters:
   enable:
     - bodyclose
@@ -19,10 +21,6 @@ linters:
     - unparam
     - whitespace
     - wsl
-linters-settings:
-  gosec:
-    excludes:
-      - G204
 issues:
   include:
     - EXC0002
