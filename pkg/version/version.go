@@ -11,5 +11,5 @@ var (
 	// OS specifies the target operating system of the wakatime-cli build.
 	OS = "unset"
 	// Version states the version of the wakatime-cli build.
-	Version = "v1"
+	Version = "unset"
 )

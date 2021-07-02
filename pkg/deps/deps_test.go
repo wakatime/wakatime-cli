@@ -300,3 +300,15 @@ func TestDetect_LongDependenciesRemoved(t *testing.T) {
 		"notlongenoughnotlongenoughnotlongenoughnotlongenoughnotlongenoughnotlongenoughnotlongenoughnotlongenoughnotlongenoughnotlongenoughnotlongenoughnotlongenoughnotlongenoughnotlongenoughnotlongenoughnotlo",
 	}, deps)
 }
+
+func TestDetect_EmptyDependenciesRemoved(t *testing.T) {
+	deps, err := deps.Detect(
+		"testdata/bower_empty_dependency.json",
+		heartbeat.LanguageJSON,
+	)
+	require.NoError(t, err)
+
+	assert.Equal(t, []string{
+		"bootstrap",
+	}, deps)
+}
