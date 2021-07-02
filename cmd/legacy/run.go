@@ -32,26 +32,7 @@ import (
 
 // Run executes legacy commands following the interface of the old python implementation of the WakaTime script.
 func Run(cmd *cobra.Command, v *viper.Viper) {
-	logfileParams, err := logfile.LoadParams(v)
-	if err != nil {
-		log.Fatalf("failed to load log params: %s", err)
-	}
-
-	logFile := os.Stdout
-
-	if !logfileParams.ToStdout {
-		log.Debugf("log to file %s", logfileParams.File)
-
-		logFile, err = os.OpenFile(logfileParams.File, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0666)
-		if err != nil {
-			log.Fatalf("error opening log file: %s", err)
-		}
-
-		log.SetOutput(logFile)
-	}
-
-	log.SetVerbose(logfileParams.Verbose)
-	log.SetJww(logfileParams.Verbose, logFile)
+	SetupLogging(v)
 
 	if v.GetBool("useragent") {
 		log.Debugln("command: useragent")
@@ -136,6 +117,30 @@ func Run(cmd *cobra.Command, v *viper.Viper) {
 	_ = cmd.Help()
 
 	os.Exit(exitcode.ErrDefault)
+}
+
+// SetupLogging uses the --log-file param to configure logging to file or stdout.
+func SetupLogging(v *viper.Viper) {
+	logfileParams, err := logfile.LoadParams(v)
+	if err != nil {
+		log.Fatalf("failed to load log params: %s", err)
+	}
+
+	logFile := os.Stdout
+
+	if !logfileParams.ToStdout {
+		log.Debugf("log to file %s", logfileParams.File)
+
+		logFile, err = os.OpenFile(logfileParams.File, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0666)
+		if err != nil {
+			log.Fatalf("error opening log file: %s", err)
+		}
+
+		log.SetOutput(logFile)
+	}
+
+	log.SetVerbose(logfileParams.Verbose)
+	log.SetJww(logfileParams.Verbose, logFile)
 }
 
 // cmdFn represents a command function.

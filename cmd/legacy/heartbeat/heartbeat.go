@@ -69,7 +69,8 @@ func SendHeartbeats(v *viper.Viper, queueFilepath string) error {
 	}
 
 	if params.EntityType == heartbeat.FileType && !isFile(params.Entity) {
-		return fmt.Errorf("file '%s' does not exist. ignoring this heartbeat", params.Entity)
+		log.Warnf("file '%s' does not exist. ignoring this heartbeat", params.Entity)
+		return nil
 	}
 
 	setLogFields(&params)
@@ -104,7 +105,8 @@ func SendHeartbeats(v *viper.Viper, queueFilepath string) error {
 
 		for _, h := range params.ExtraHeartbeats {
 			if h.EntityType == heartbeat.FileType && !isFile(h.Entity) {
-				return fmt.Errorf("file '%s' does not exist. ignoring this extra heartbeat", h.Entity)
+				log.Warnf("file '%s' does not exist. ignoring this extra heartbeat", h.Entity)
+				return nil
 			}
 
 			heartbeats = append(heartbeats, heartbeat.New(
