@@ -139,8 +139,8 @@ func filterDependencies(deps []string) []string {
 			continue
 		}
 
-		// filter dependencies exceeding max length
-		if len(d) > maxDependencyLength {
+		// filter dependencies off size
+		if d == "" || len(d) > maxDependencyLength {
 			continue
 		}
 
