@@ -32,6 +32,12 @@ import (
 
 // Run executes legacy commands following the interface of the old python implementation of the WakaTime script.
 func Run(cmd *cobra.Command, v *viper.Viper) {
+	if err := config.ReadInConfig(v, config.FilePath); err != nil {
+		fmt.Fprintf(os.Stderr, "failed to load configuration file: %s", err)
+
+		os.Exit(exitcode.ErrConfigFileParse)
+	}
+
 	SetupLogging(v)
 
 	if v.GetBool("useragent") {
@@ -52,12 +58,6 @@ func Run(cmd *cobra.Command, v *viper.Viper) {
 		log.Debugln("command: version")
 
 		RunCmd(v, runVersion)
-	}
-
-	if err := config.ReadInConfig(v, config.FilePath); err != nil {
-		log.Errorf("failed to load configuration file: %s", err)
-
-		os.Exit(exitcode.ErrConfigFileParse)
 	}
 
 	if v.IsSet("config-read") {
@@ -123,6 +123,7 @@ func Run(cmd *cobra.Command, v *viper.Viper) {
 func SetupLogging(v *viper.Viper) {
 	logfileParams, err := logfile.LoadParams(v)
 	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to load log params: %s", err)
 		log.Fatalf("failed to load log params: %s", err)
 	}
 
@@ -133,6 +134,7 @@ func SetupLogging(v *viper.Viper) {
 
 		logFile, err = os.OpenFile(logfileParams.File, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0666)
 		if err != nil {
+			fmt.Fprintf(os.Stderr, "error opening log file: %s", err)
 			log.Fatalf("error opening log file: %s", err)
 		}
 
