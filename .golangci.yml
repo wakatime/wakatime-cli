@@ -1,5 +1,7 @@
 run:
   deadline: 5m
+  build-tags:
+    - integration
 linters:
   enable:
     - bodyclose
