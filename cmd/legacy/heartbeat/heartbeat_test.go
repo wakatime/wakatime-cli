@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/wakatime/wakatime-cli/cmd/legacy"
 	cmd "github.com/wakatime/wakatime-cli/cmd/legacy/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 
@@ -246,12 +247,20 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 }
 
 func TestSendHeartbeats_NonExistingEntity(t *testing.T) {
+	logFile, err := ioutil.TempFile(os.TempDir(), "")
+	require.NoError(t, err)
+
+	defer os.Remove(logFile.Name())
+
 	v := viper.New()
 	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("api-url", "https://example.org")
 	v.Set("entity", "nonexisting")
 	v.Set("entity-type", "file")
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("log-file", logFile.Name())
+
+	legacy.SetupLogging(v)
 
 	f, err := ioutil.TempFile(os.TempDir(), "")
 	require.NoError(t, err)
@@ -259,35 +268,43 @@ func TestSendHeartbeats_NonExistingEntity(t *testing.T) {
 	defer os.Remove(f.Name())
 
 	err = cmd.SendHeartbeats(v, f.Name())
-	require.Error(t, err)
+	require.NoError(t, err)
 
-	assert.Equal(t, "file 'nonexisting' does not exist. ignoring this heartbeat", err.Error())
+	output, err := ioutil.ReadAll(logFile)
+	require.NoError(t, err)
+
+	assert.Contains(t, string(output), "file 'nonexisting' does not exist. ignoring this heartbeat")
 }
 
 func TestSendHeartbeats_NonExistingExtraHeartbeatsEntity(t *testing.T) {
-	r, w, err := os.Pipe()
+	inr, inw, err := os.Pipe()
 	require.NoError(t, err)
 
 	defer func() {
-		r.Close()
-		w.Close()
+		inr.Close()
+		inw.Close()
 	}()
 
 	origStdin := os.Stdin
 
 	defer func() { os.Stdin = origStdin }()
 
-	os.Stdin = r
+	os.Stdin = inr
 
 	data, err := ioutil.ReadFile("testdata/extra_heartbeats_nonexisting_entity.json")
 	require.NoError(t, err)
 
 	go func() {
-		_, err := w.Write(data)
+		_, err := inw.Write(data)
 		require.NoError(t, err)
 
-		w.Close()
+		inw.Close()
 	}()
+
+	logFile, err := ioutil.TempFile(os.TempDir(), "")
+	require.NoError(t, err)
+
+	defer os.Remove(logFile.Name())
 
 	v := viper.New()
 	v.SetDefault("sync-offline-activity", 1000)
@@ -296,6 +313,10 @@ func TestSendHeartbeats_NonExistingExtraHeartbeatsEntity(t *testing.T) {
 	v.Set("entity-type", "file")
 	v.Set("extra-heartbeats", true)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("log-file", logFile.Name())
+	v.Set("verbose", true)
+
+	legacy.SetupLogging(v)
 
 	f, err := ioutil.TempFile(os.TempDir(), "")
 	require.NoError(t, err)
@@ -303,9 +324,12 @@ func TestSendHeartbeats_NonExistingExtraHeartbeatsEntity(t *testing.T) {
 	defer os.Remove(f.Name())
 
 	err = cmd.SendHeartbeats(v, f.Name())
-	require.Error(t, err)
+	require.NoError(t, err)
 
-	assert.Equal(t, "file 'nonexisting' does not exist. ignoring this extra heartbeat", err.Error())
+	output, err := ioutil.ReadAll(logFile)
+	require.NoError(t, err)
+
+	assert.Contains(t, string(output), "file 'nonexisting' does not exist. ignoring this extra heartbeat")
 }
 
 func setupTestServer() (string, *http.ServeMux, func()) {
