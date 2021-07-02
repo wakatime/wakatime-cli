@@ -21,10 +21,6 @@ linters:
     - unparam
     - whitespace
     - wsl
-linters-settings:
-  gosec:
-    excludes:
-      - G204
 issues:
   include:
     - EXC0002
