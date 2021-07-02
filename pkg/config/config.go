@@ -75,7 +75,7 @@ func ReadInConfig(v *viper.Viper, filepathFn func(v *viper.Viper) (string, error
 
 	// check if file exists
 	if _, err := os.Stat(configFilepath); os.IsNotExist(err) {
-		log.Warnf("config file not present or not accessible")
+		log.Debugf("config file not present or not accessible")
 
 		return nil
 	}

@@ -9,7 +9,7 @@ on:
 
 env:
   GO_VERSION: "1.16"
-  TEST_VERSION: "v0.0.1-test"
+  TEST_VERSION: "<local-build>"
 
 jobs:
   test:

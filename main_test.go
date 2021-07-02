@@ -31,7 +31,7 @@ const (
 	binaryPathDarwin  = "./build/wakatime-cli-darwin-amd64"
 	binaryPathLinux   = "./build/wakatime-cli-linux-amd64"
 	binaryPathWindows = "./build/wakatime-cli-windows-amd64.exe"
-	testVersion       = "v0.0.1-test"
+	testVersion       = "<local-build>"
 )
 
 func binaryPath(t *testing.T) string {
@@ -60,7 +60,7 @@ func TestSendHeartbeats_EntityFileInTempDir(t *testing.T) {
 }
 
 func testSendHeartbeats(t *testing.T, entity, project string) {
-	apiUrl, router, close := setupTestServer()
+	apiURL, router, close := setupTestServer()
 	defer close()
 
 	var numCalls int
@@ -104,8 +104,6 @@ func testSendHeartbeats(t *testing.T, entity, project string) {
 		require.NoError(t, err)
 	})
 
-	version.Version = testVersion
-
 	offlineQueueFile, err := ioutil.TempFile(os.TempDir(), "")
 	require.NoError(t, err)
 
@@ -113,7 +111,7 @@ func testSendHeartbeats(t *testing.T, entity, project string) {
 
 	runWakatimeCli(
 		t,
-		"--api-url", apiUrl,
+		"--api-url", apiURL,
 		"--key", "00000000-0000-4000-8000-000000000000",
 		"--config", "testdata/wakatime.cfg",
 		"--entity", entity,
@@ -131,7 +129,7 @@ func testSendHeartbeats(t *testing.T, entity, project string) {
 }
 
 func TestTodayGoal(t *testing.T) {
-	apiUrl, router, close := setupTestServer()
+	apiURL, router, close := setupTestServer()
 	defer close()
 
 	var numCalls int
@@ -154,11 +152,9 @@ func TestTodayGoal(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	version.Version = testVersion
-
 	out := runWakatimeCli(
 		t,
-		"--api-url", apiUrl,
+		"--api-url", apiURL,
 		"--key", "00000000-0000-4000-8000-000000000000",
 		"--config", "testdata/wakatime.cfg",
 		"--today-goal", "11111111-1111-4111-8111-111111111111",
@@ -171,7 +167,7 @@ func TestTodayGoal(t *testing.T) {
 }
 
 func TestTodaySummary(t *testing.T) {
-	apiUrl, router, close := setupTestServer()
+	apiURL, router, close := setupTestServer()
 	defer close()
 
 	var numCalls int
@@ -206,11 +202,9 @@ func TestTodaySummary(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	version.Version = testVersion
-
 	out := runWakatimeCli(
 		t,
-		"--api-url", apiUrl,
+		"--api-url", apiURL,
 		"--key", "00000000-0000-4000-8000-000000000000",
 		"--config", "testdata/wakatime.cfg",
 		"--today",
@@ -240,7 +234,7 @@ func TestOfflineCountEmpty(t *testing.T) {
 }
 
 func TestOfflineCountWithOneHeartbeat(t *testing.T) {
-	apiUrl, router, close := setupTestServer()
+	apiURL, router, close := setupTestServer()
 	defer close()
 
 	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
@@ -249,8 +243,6 @@ func TestOfflineCountWithOneHeartbeat(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	version.Version = testVersion
-
 	offlineQueueFile, err := ioutil.TempFile(os.TempDir(), "")
 	require.NoError(t, err)
 
@@ -258,7 +250,7 @@ func TestOfflineCountWithOneHeartbeat(t *testing.T) {
 
 	runWakatimeCliExpectErr(
 		t,
-		"--api-url", apiUrl,
+		"--api-url", apiURL,
 		"--key", "00000000-0000-4000-8000-000000000000",
 		"--config", "testdata/wakatime.cfg",
 		"--entity", "testdata/main.go",
@@ -298,14 +290,14 @@ func TestUseragentWithPlugin(t *testing.T) {
 func TestVersion(t *testing.T) {
 	out := runWakatimeCli(t, "--version")
 
-	assert.Equal(t, "v0.0.1-test\n", out)
+	assert.Equal(t, "<local-build>\n", out)
 }
 
 func TestVersionVerbose(t *testing.T) {
 	out := runWakatimeCli(t, "--version", "--verbose")
 
 	assert.Regexp(t, regexp.MustCompile(fmt.Sprintf(
-		"wakatime-cli\n  Version: v0.0.1-test\n  Commit: [0-9a-f]{7}\n  Built: [0-9-:T]{19} UTC\n  OS/Arch: %s/%s\n",
+		"wakatime-cli\n  Version: <local-build>\n  Commit: [0-9a-f]{7}\n  Built: [0-9-:T]{19} UTC\n  OS/Arch: %s/%s\n",
 		runtime.GOOS,
 		runtime.GOARCH,
 	)), out)
@@ -351,11 +343,14 @@ func runWakatimeCliExpectErr(t *testing.T, args ...string) string {
 
 func runCmd(cmd *exec.Cmd) string {
 	fmt.Println(cmd.String())
+
 	var stdout bytes.Buffer
 	cmd.Stdout = &stdout
 
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
+
+	version.Version = testVersion
 
 	err := cmd.Run()
 	if err != nil {
@@ -370,11 +365,14 @@ func runCmd(cmd *exec.Cmd) string {
 
 func runCmdExpectErr(cmd *exec.Cmd) string {
 	fmt.Println(cmd.String())
+
 	var stdout bytes.Buffer
 	cmd.Stdout = &stdout
 
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
+
+	version.Version = testVersion
 
 	err := cmd.Run()
 	if err == nil {
