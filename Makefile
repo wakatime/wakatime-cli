@@ -4,12 +4,12 @@
 BINARY_NAME?=wakatime-cli
 BUILD_DIR?="./build"
 COMMIT?=$(shell git rev-parse --short HEAD)
-DATE?=$(shell date -u '+%Y-%m-%dT%H:%M:%SZ')
+DATE?=$(shell date -u '+%Y-%m-%dT%H:%M:%S %Z')
 REPO=github.com/wakatime/wakatime-cli
 VERSION?=<local-build>
 
 # ld flags for go build
-LD_FLAGS=-s -w -X ${REPO}/pkg/version.BuildDate=${DATE} -X ${REPO}/pkg/version.Commit=${COMMIT} -X ${REPO}/pkg/version.Version=${VERSION}
+LD_FLAGS=-s -w -X '${REPO}/pkg/version.BuildDate=${DATE}' -X ${REPO}/pkg/version.Commit=${COMMIT} -X ${REPO}/pkg/version.Version=${VERSION}
 
 # basic Go commands
 GOCMD=go
@@ -137,4 +137,8 @@ test:
 test-integration:
 	go test -race -tags=integration ./main_test.go
 
-test-all: lint test test-integration
+.PHONY: test-shell-script
+test-shell-script:
+	bats --formatter tap ./bin/tests
+
+test-all: lint test test-integration test-shell-script

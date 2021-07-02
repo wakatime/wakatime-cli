@@ -13,7 +13,6 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	"github.com/Azure/go-ntlmssp"
-	"github.com/mitchellh/go-homedir"
 )
 
 // Option is a functional option for Client.
@@ -49,12 +48,7 @@ func WithHostname(hostname string) Option {
 // WithDisableSSLVerify disables verification of insecure certificates.
 func WithDisableSSLVerify() Option {
 	return func(c *Client) {
-		var transport *http.Transport
-		if c.client.Transport == nil {
-			transport = http.DefaultTransport.(*http.Transport).Clone()
-		} else {
-			transport = c.client.Transport.(*http.Transport).Clone()
-		}
+		var transport *http.Transport = LazyCreateNewTransport(c)
 
 		tlsConfig := transport.TLSClientConfig
 		tlsConfig.InsecureSkipVerify = true
@@ -88,15 +82,8 @@ func WithNTLM(creds string) (Option, error) {
 	return func(c *Client) {
 		withAuth(c)
 
-		var transport http.RoundTripper
-		if c.client.Transport == nil {
-			transport = http.DefaultTransport
-		} else {
-			transport = c.client.Transport.(*http.Transport).Clone()
-		}
-
 		c.client.Transport = ntlmssp.Negotiator{
-			RoundTripper: transport,
+			RoundTripper: LazyCreateNewTransport(c),
 		}
 	}, nil
 }
@@ -134,25 +121,15 @@ func WithProxy(proxyURL string) (Option, error) {
 	}
 
 	return func(c *Client) {
-		transport := http.DefaultTransport.(*http.Transport).Clone()
-		if c.client.Transport != nil {
-			transport = c.client.Transport.(*http.Transport).Clone()
-		}
-
+		var transport *http.Transport = LazyCreateNewTransport(c)
 		transport.Proxy = http.ProxyURL(u)
-
 		c.client.Transport = transport
 	}, nil
 }
 
 // WithSSLCertFile overrides the default CA certs file to trust specified cert file.
 func WithSSLCertFile(filepath string) (Option, error) {
-	expanded, err := homedir.Expand(filepath)
-	if err != nil {
-		return nil, fmt.Errorf("failed expanding filepath %q: %s", filepath, err)
-	}
-
-	caCert, err := ioutil.ReadFile(expanded)
+	caCert, err := ioutil.ReadFile(filepath)
 	if err != nil {
 		return nil, err
 	}
@@ -166,13 +143,7 @@ func WithSSLCertFile(filepath string) (Option, error) {
 // WithSSLCertPool overrides the default CA cert pool to trust specified cert pool.
 func WithSSLCertPool(caCertPool *x509.CertPool) (Option, error) {
 	return func(c *Client) {
-		var transport *http.Transport
-		if c.client.Transport == nil {
-			transport = http.DefaultTransport.(*http.Transport).Clone()
-		} else {
-			transport = c.client.Transport.(*http.Transport).Clone()
-		}
-
+		var transport *http.Transport = LazyCreateNewTransport(c)
 		tlsConfig := transport.TLSClientConfig
 		tlsConfig.RootCAs = caCertPool
 		transport.TLSClientConfig = tlsConfig

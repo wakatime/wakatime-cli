@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"strings"
 
+	"github.com/wakatime/wakatime-cli/cmd/legacy/legacyapi"
 	"github.com/wakatime/wakatime-cli/pkg/api"
 	"github.com/wakatime/wakatime-cli/pkg/deps"
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
@@ -21,34 +21,42 @@ import (
 )
 
 // Run executes the heartbeat command.
-func Run(v *viper.Viper) {
+func Run(v *viper.Viper) (int, error) {
 	queueFilepath, err := offline.QueueFilepath()
 	if err != nil {
-		log.Fatalf("failed to load offline queue filepath: %s", err)
+		return exitcode.ErrDefault, fmt.Errorf(
+			"failed to load offline queue filepath: %s",
+			err,
+		)
 	}
 
 	err = SendHeartbeats(v, queueFilepath)
 	if err != nil {
 		var errauth api.ErrAuth
 		if errors.As(err, &errauth) {
-			log.Errorf(
+			return exitcode.ErrAuth, fmt.Errorf(
 				"failed to send heartbeat: %s. Find your api key from wakatime.com/settings/api-key",
 				errauth,
 			)
-			os.Exit(exitcode.ErrAuth)
 		}
 
 		var errapi api.Err
 		if errors.As(err, &errapi) {
-			log.Errorf("failed to send heartbeat(s): %s", err)
-			os.Exit(exitcode.ErrAPI)
+			return exitcode.ErrAPI, fmt.Errorf(
+				"failed to send heartbeat(s) due to api error: %s",
+				err,
+			)
 		}
 
-		log.Fatalf("failed to send heartbeat(s): %s", err)
+		return exitcode.ErrDefault, fmt.Errorf(
+			"failed to send heartbeat(s): %s",
+			err,
+		)
 	}
 
-	log.Debugln("successfully handled heartbeat(s)")
-	os.Exit(exitcode.Success)
+	log.Debugln("successfully sent heartbeat(s)")
+
+	return exitcode.Success, nil
 }
 
 // SendHeartbeats sends a heartbeat to the wakatime api and includes additional
@@ -60,70 +68,18 @@ func SendHeartbeats(v *viper.Viper, queueFilepath string) error {
 		return fmt.Errorf("failed to load command parameters: %w", err)
 	}
 
+	if params.EntityType == heartbeat.FileType && !isFile(params.Entity) {
+		return fmt.Errorf("file '%s' does not exist. ignoring this heartbeat", params.Entity)
+	}
+
 	setLogFields(&params)
 
 	log.Debugf("heartbeat params: %s", params)
 
-	withAuth, err := api.WithAuth(api.BasicAuth{
-		Secret: params.API.Key,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to set up auth option on api client: %w", err)
-	}
-
-	clientOpts := []api.Option{
-		withAuth,
-		api.WithTimeout(params.API.Timeout),
-	}
-
-	if params.Network.DisableSSLVerify {
-		clientOpts = append(clientOpts, api.WithDisableSSLVerify())
-	}
-
-	if !params.Network.DisableSSLVerify && params.Network.SSLCertFilepath != "" {
-		withSSLCert, err := api.WithSSLCertFile(params.Network.SSLCertFilepath)
-		if err != nil {
-			return fmt.Errorf("failed to set up ssl cert file option on api client: %s", err)
-		}
-
-		clientOpts = append(clientOpts, withSSLCert)
-	} else if !params.Network.DisableSSLVerify {
-		withSSLCert, err := api.WithSSLCertPool(api.CACerts())
-		if err != nil {
-			return fmt.Errorf("failed to set up ssl cert pool option on api client: %s", err)
-		}
-
-		clientOpts = append(clientOpts, withSSLCert)
-	}
-
-	if params.Network.ProxyURL != "" {
-		withProxy, err := api.WithProxy(params.Network.ProxyURL)
-		if err != nil {
-			return fmt.Errorf("failed to set up proxy option on api client: %w", err)
-		}
-
-		clientOpts = append(clientOpts, withProxy)
-
-		if strings.Contains(params.Network.ProxyURL, `\\`) {
-			withNTLMRetry, err := api.WithNTLMRequestRetry(params.Network.ProxyURL)
-			if err != nil {
-				return fmt.Errorf("failed to set up ntlm request retry option on api client: %w", err)
-			}
-
-			clientOpts = append(clientOpts, withNTLMRetry)
-		}
-	}
-
-	var userAgent string
+	userAgent := heartbeat.UserAgentUnknownPlugin()
 	if params.API.Plugin != "" {
 		userAgent = heartbeat.UserAgent(params.API.Plugin)
-		clientOpts = append(clientOpts, api.WithUserAgent(params.API.Plugin))
-	} else {
-		userAgent = heartbeat.UserAgentUnknownPlugin()
-		clientOpts = append(clientOpts, api.WithUserAgentUnknownPlugin())
 	}
-
-	c := api.NewClient(params.API.URL, clientOpts...)
 
 	heartbeats := []heartbeat.Heartbeat{
 		heartbeat.New(
@@ -147,6 +103,10 @@ func SendHeartbeats(v *viper.Viper, queueFilepath string) error {
 		log.Debugf("include %d extra heartbeat(s) from stdin", len(params.ExtraHeartbeats))
 
 		for _, h := range params.ExtraHeartbeats {
+			if h.EntityType == heartbeat.FileType && !isFile(h.Entity) {
+				return fmt.Errorf("file '%s' does not exist. ignoring this extra heartbeat", h.Entity)
+			}
+
 			heartbeats = append(heartbeats, heartbeat.New(
 				h.Category,
 				h.CursorPosition,
@@ -192,6 +152,10 @@ func SendHeartbeats(v *viper.Viper, queueFilepath string) error {
 	}
 
 	if !params.OfflineDisabled {
+		if params.OfflineQueueFile != "" {
+			queueFilepath = params.OfflineQueueFile
+		}
+
 		offlineHandleOpt, err := offline.WithQueue(queueFilepath, params.OfflineSyncMax)
 		if err != nil {
 			return fmt.Errorf("failed to initialize offline queue handle option: %w", err)
@@ -200,7 +164,12 @@ func SendHeartbeats(v *viper.Viper, queueFilepath string) error {
 		handleOpts = append(handleOpts, offlineHandleOpt)
 	}
 
-	handle := heartbeat.NewHandle(c, handleOpts...)
+	apiClient, err := legacyapi.NewClient(params.API)
+	if err != nil {
+		return fmt.Errorf("failed to initialize api client: %w", err)
+	}
+
+	handle := heartbeat.NewHandle(apiClient, handleOpts...)
 
 	_, err = handle(heartbeats)
 	if err != nil {
@@ -226,4 +195,10 @@ func setLogFields(params *Params) {
 	}
 
 	log.WithField("file", params.Entity)
+}
+
+// isFile checks if the passed in filepath is a valid file.
+func isFile(filepath string) bool {
+	info, err := os.Stat(filepath)
+	return !(os.IsNotExist(err) || info.IsDir())
 }

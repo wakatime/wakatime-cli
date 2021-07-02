@@ -16,7 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestClient_Send(t *testing.T) {
+func TestClient_SendHeartbeats(t *testing.T) {
 	tests := []int{
 		http.StatusCreated,
 		http.StatusAccepted,
@@ -29,7 +29,7 @@ func TestClient_Send(t *testing.T) {
 
 			var numCalls int
 
-			router.HandleFunc("/v1/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
+			router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
 				numCalls++
 
 				// check headers
@@ -56,7 +56,7 @@ func TestClient_Send(t *testing.T) {
 			})
 
 			c := api.NewClient(url)
-			results, err := c.Send(testHeartbeats())
+			results, err := c.SendHeartbeats(testHeartbeats())
 			require.NoError(t, err)
 
 			// check via assert.Equal on complete slice here, to assert exact order of results,
@@ -104,19 +104,19 @@ func TestClient_Send(t *testing.T) {
 	}
 }
 
-func TestClient_Send_Err(t *testing.T) {
+func TestClient_SendHeartbeats_Err(t *testing.T) {
 	url, router, close := setupTestServer()
 	defer close()
 
 	var numCalls int
 
-	router.HandleFunc("/v1/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
+	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
 		numCalls++
 		w.WriteHeader(http.StatusInternalServerError)
 	})
 
 	c := api.NewClient(url)
-	_, err := c.Send(testHeartbeats())
+	_, err := c.SendHeartbeats(testHeartbeats())
 
 	var errapi api.Err
 
@@ -125,19 +125,19 @@ func TestClient_Send_Err(t *testing.T) {
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
 
-func TestClient_Send_ErrAuth(t *testing.T) {
+func TestClient_SendHeartbeats_ErrAuth(t *testing.T) {
 	url, router, close := setupTestServer()
 	defer close()
 
 	var numCalls int
 
-	router.HandleFunc("/v1/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
+	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
 		numCalls++
 		w.WriteHeader(http.StatusUnauthorized)
 	})
 
 	c := api.NewClient(url)
-	_, err := c.Send(testHeartbeats())
+	_, err := c.SendHeartbeats(testHeartbeats())
 
 	var errauth api.ErrAuth
 
@@ -146,9 +146,9 @@ func TestClient_Send_ErrAuth(t *testing.T) {
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
 
-func TestClient_Send_ErrRequest(t *testing.T) {
+func TestClient_SendHeartbeats_ErrRequest(t *testing.T) {
 	c := api.NewClient("invalid-url")
-	_, err := c.Send(testHeartbeats())
+	_, err := c.SendHeartbeats(testHeartbeats())
 
 	var errreq api.ErrRequest
 
@@ -203,8 +203,29 @@ func TestParseHeartbeatResponses(t *testing.T) {
 	})
 }
 
-func TestParseHeartbeatResponsesErr(t *testing.T) {
+func TestParseHeartbeatResponses_Error(t *testing.T) {
 	data, err := ioutil.ReadFile("testdata/api_heartbeats_response_error.json")
+	require.NoError(t, err)
+
+	results, err := api.ParseHeartbeatResponses(data)
+	require.NoError(t, err)
+
+	// asserting here the exact order of results, which is assumed to exactly match the request order
+	assert.Len(t, results, 4)
+
+	// valid responses
+	assert.Equal(t, 201, results[0].Status)
+	assert.Equal(t, 201, results[1].Status)
+
+	// error responses
+	assert.Equal(t, 429, results[2].Status)
+	assert.Equal(t, results[2].Errors, []string{"Too many heartbeats"})
+	assert.Equal(t, 429, results[3].Status)
+	assert.Equal(t, results[3].Errors, []string{"Too many heartbeats"})
+}
+
+func TestParseHeartbeatResponses_Errors(t *testing.T) {
+	data, err := ioutil.ReadFile("testdata/api_heartbeats_response_errors.json")
 	require.NoError(t, err)
 
 	results, err := api.ParseHeartbeatResponses(data)

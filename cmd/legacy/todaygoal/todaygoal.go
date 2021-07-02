@@ -3,10 +3,9 @@ package todaygoal
 import (
 	"errors"
 	"fmt"
-	"os"
 	"regexp"
-	"strings"
 
+	"github.com/wakatime/wakatime-cli/cmd/legacy/legacyapi"
 	"github.com/wakatime/wakatime-cli/cmd/legacy/legacyparams"
 	"github.com/wakatime/wakatime-cli/pkg/api"
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
@@ -20,35 +19,40 @@ var uuid4Regex = regexp.MustCompile("^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab
 
 // Params contains today-goal command parameters.
 type Params struct {
-	GoalID  string
-	API     legacyparams.APIParams
-	Network legacyparams.NetworkParams
+	GoalID string
+	API    legacyparams.API
 }
 
 // Run executes the today-goal command.
-func Run(v *viper.Viper) {
+func Run(v *viper.Viper) (int, error) {
 	output, err := Goal(v)
 	if err != nil {
 		var errauth api.ErrAuth
 		if errors.As(err, &errauth) {
-			log.Errorf(
-				"%s. Find your api key from wakatime.com/settings/api-key",
+			return exitcode.ErrAuth, fmt.Errorf(
+				"failed to fetch today goal: %s. Find your api key from wakatime.com/settings/api-key",
 				errauth,
 			)
-			os.Exit(exitcode.ErrAuth)
 		}
 
 		var errapi api.Err
 		if errors.As(err, &errapi) {
-			log.Errorln(err)
-			os.Exit(exitcode.ErrAPI)
+			return exitcode.ErrAPI, fmt.Errorf(
+				"failed to fetch today goal due to api error: %s",
+				err,
+			)
 		}
 
-		log.Fatalln(err)
+		return exitcode.ErrDefault, fmt.Errorf(
+			"failed to fetch today goal: %s",
+			err,
+		)
 	}
 
+	log.Debugln("successfully fetched today goal")
 	fmt.Println(output)
-	os.Exit(exitcode.Success)
+
+	return exitcode.Success, nil
 }
 
 // Goal returns total time of given goal id for todays coding activity.
@@ -58,70 +62,12 @@ func Goal(v *viper.Viper) (string, error) {
 		return "", fmt.Errorf("failed to load command parameters: %w", err)
 	}
 
-	auth, err := api.WithAuth(api.BasicAuth{
-		Secret: params.API.Key,
-	})
+	apiClient, err := legacyapi.NewClient(params.API)
 	if err != nil {
-		return "", fmt.Errorf("error setting up auth option on api client: %w", err)
+		return "", fmt.Errorf("failed to initialize api client: %w", err)
 	}
 
-	opts := []api.Option{
-		auth,
-		api.WithTimeout(params.API.Timeout),
-	}
-
-	if params.Network.DisableSSLVerify {
-		opts = append(opts, api.WithDisableSSLVerify())
-	}
-
-	if !params.Network.DisableSSLVerify && params.Network.SSLCertFilepath != "" {
-		withSSLCert, err := api.WithSSLCertFile(params.Network.SSLCertFilepath)
-		if err != nil {
-			return "", fmt.Errorf("failed to set up ssl cert file option on api client: %s", err)
-		}
-
-		opts = append(opts, withSSLCert)
-	} else if !params.Network.DisableSSLVerify {
-		withSSLCert, err := api.WithSSLCertPool(api.CACerts())
-		if err != nil {
-			return "", fmt.Errorf("failed to set up ssl cert pool option on api client: %s", err)
-		}
-
-		opts = append(opts, withSSLCert)
-	}
-
-	if params.Network.ProxyURL != "" {
-		withProxy, err := api.WithProxy(params.Network.ProxyURL)
-		if err != nil {
-			return "", fmt.Errorf("failed to set up proxy option on api client: %w", err)
-		}
-
-		opts = append(opts, withProxy)
-
-		if strings.Contains(params.Network.ProxyURL, `\\`) {
-			withNTLMRetry, err := api.WithNTLMRequestRetry(params.Network.ProxyURL)
-			if err != nil {
-				return "", fmt.Errorf("failed to set up ntlm request retry option on api client: %w", err)
-			}
-
-			opts = append(opts, withNTLMRetry)
-		}
-	}
-
-	if params.API.Plugin != "" {
-		opts = append(opts, api.WithUserAgent(params.API.Plugin))
-	} else {
-		opts = append(opts, api.WithUserAgentUnknownPlugin())
-	}
-
-	url := api.BaseURL
-	if params.API.URL != "" {
-		url = params.API.URL
-	}
-
-	c := api.NewClient(url, opts...)
-
-	goal, err := c.Goal(params.GoalID)
+	goal, err := apiClient.Goal(params.GoalID)
 	if err != nil {
 		return "", fmt.Errorf("failed fetching todays goal from api: %w", err)
 	}
@@ -132,15 +78,10 @@ func Goal(v *viper.Viper) (string, error) {
 // LoadParams loads todaygoal config params from viper.Viper instance. Returns ErrAuth
 // if failed to retrieve api key.
 func LoadParams(v *viper.Viper) (Params, error) {
-	params := Params{}
-
-	apiParams, networkParams, err := legacyparams.LoadParams(v)
+	params, err := legacyparams.Load(v)
 	if err != nil {
-		return Params{}, err
+		return Params{}, fmt.Errorf("failed to load params: %w", err)
 	}
-
-	params.API = apiParams
-	params.Network = networkParams
 
 	if !v.IsSet("today-goal") {
 		return Params{}, fmt.Errorf("goal id unset")
@@ -151,7 +92,8 @@ func LoadParams(v *viper.Viper) (Params, error) {
 		return Params{}, fmt.Errorf("goal id invalid")
 	}
 
-	params.GoalID = goalID
-
-	return params, nil
+	return Params{
+		GoalID: goalID,
+		API:    params.API,
+	}, nil
 }

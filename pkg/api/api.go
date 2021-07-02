@@ -6,7 +6,7 @@ import (
 )
 
 // BaseURL is the base url of the wakatime api.
-const BaseURL = "https://api.wakatime.com/api"
+const BaseURL = "https://api.wakatime.com/api/v1"
 
 // Client communicates with the wakatime api.
 type Client struct {

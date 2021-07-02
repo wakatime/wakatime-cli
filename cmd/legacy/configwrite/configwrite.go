@@ -3,12 +3,10 @@ package configwrite
 import (
 	"errors"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/wakatime/wakatime-cli/pkg/config"
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
-	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/vipertools"
 
 	"github.com/spf13/viper"
@@ -21,30 +19,23 @@ type Params struct {
 }
 
 // Run loads wakatime config file and call Write().
-func Run(v *viper.Viper) {
+func Run(v *viper.Viper) (int, error) {
 	w, err := config.NewIniWriter(v, config.FilePath)
 	if err != nil {
-		var cfperr config.ErrFileParse
-		if errors.As(err, &cfperr) {
-			log.Errorf(err.Error())
-			os.Exit(exitcode.ErrConfigFileParse)
-		}
-
-		log.Fatalln(err)
+		return exitcode.ErrConfigFileParse, fmt.Errorf(
+			"failed to parse config file: %s",
+			err,
+		)
 	}
 
 	if err := Write(v, w); err != nil {
-		log.Errorf("failed to write on config file: %s", err)
-
-		var cfwerr config.ErrFileWrite
-		if errors.As(err, &cfwerr) {
-			os.Exit(exitcode.ErrConfigFileWrite)
-		}
-
-		os.Exit(exitcode.ErrDefault)
+		return exitcode.ErrDefault, fmt.Errorf(
+			"failed to write to config file: %s",
+			err,
+		)
 	}
 
-	os.Exit(exitcode.Success)
+	return exitcode.Success, nil
 }
 
 // Write writes value(s) to given config key(s) and persist on disk.
@@ -67,8 +58,9 @@ func LoadParams(v *viper.Viper) (Params, error) {
 	kv := v.GetStringMapString("config-write")
 
 	if section == "" || len(kv) == 0 {
-		return Params{},
-			config.ErrFileWrite("neither section nor key/value can be empty")
+		return Params{}, errors.New(
+			"neither section nor key/value can be empty",
+		)
 	}
 
 	return Params{

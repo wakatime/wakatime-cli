@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mitchellh/go-homedir"
 	"github.com/wakatime/wakatime-cli/cmd/legacy/legacyparams"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/log"
@@ -35,7 +36,6 @@ type Params struct {
 	Entity            string
 	EntityType        heartbeat.EntityType
 	ExtraHeartbeats   []heartbeat.Heartbeat
-	Hostname          string
 	IsWrite           *bool
 	Language          *string
 	LanguageAlternate string
@@ -43,11 +43,11 @@ type Params struct {
 	LinesInFile       *int
 	LocalFile         string
 	OfflineDisabled   bool
+	OfflineQueueFile  string
 	OfflineSyncMax    int
 	Time              float64
-	API               legacyparams.APIParams
+	API               legacyparams.API
 	Filter            FilterParams
-	Network           legacyparams.NetworkParams
 	Project           ProjectParams
 	Sanitize          SanitizeParams
 }
@@ -80,26 +80,25 @@ func (p Params) String() string {
 
 	return fmt.Sprintf(
 		"category: '%s', cursor position: '%s', entity: '%s', entity type: '%s',"+
-			" num extra heartbeats: %d, hostname: '%s', is write: %t, language: '%s',"+
-			" line number: '%s', lines in file: '%s', offline disabled: %t, offline sync max: %d,"+
-			" time: %.5f, api params: (%s), filter params: (%s), network params: (%s),"+
-			" project params: (%s), sanitize params: (%s)",
+			" num extra heartbeats: %d, is write: %t, language: '%s',"+
+			" line number: '%s', lines in file: '%s', offline disabled: %t,"+
+			" offline queue file: '%s', offline sync max: %d, time: %.5f, api params: (%s),"+
+			" filter params: (%s), project params: (%s), sanitize params: (%s)",
 		p.Category,
 		cursorPosition,
 		p.Entity,
 		p.EntityType,
 		len(p.ExtraHeartbeats),
-		p.Hostname,
 		isWrite,
 		language,
 		lineNumber,
 		linesInFile,
 		p.OfflineDisabled,
+		p.OfflineQueueFile,
 		p.OfflineSyncMax,
 		p.Time,
 		p.API,
 		p.Filter,
-		p.Network,
 		p.Project,
 		p.Sanitize,
 	)
@@ -160,7 +159,7 @@ func (p SanitizeParams) String() string {
 // LoadParams loads heartbeat config params from viper.Viper instance. Returns ErrAuth
 // if failed to retrieve api key.
 func LoadParams(v *viper.Viper) (Params, error) {
-	apiParams, networkParams, err := legacyparams.LoadParams(v)
+	params, err := legacyparams.Load(v)
 	if err != nil {
 		return Params{}, err
 	}
@@ -181,9 +180,16 @@ func LoadParams(v *viper.Viper) (Params, error) {
 		cursorPosition = heartbeat.Int(pos)
 	}
 
+	var entity string
+
 	entity, ok := vipertools.FirstNonEmptyString(v, "entity", "file")
-	if !ok && !v.IsSet("sync-offline-activity") {
+	if !ok {
 		return Params{}, errors.New("failed to retrieve entity")
+	}
+
+	entityExpanded, err := homedir.Expand(entity)
+	if err != nil {
+		return Params{}, fmt.Errorf("failed expanding entity: %s", err)
 	}
 
 	var entityType heartbeat.EntityType
@@ -206,14 +212,6 @@ func LoadParams(v *viper.Viper) (Params, error) {
 		}
 	}
 
-	hostname, ok := vipertools.FirstNonEmptyString(v, "hostname", "settings.hostname")
-	if !ok {
-		hostname, err = os.Hostname()
-		if err != nil {
-			return Params{}, fmt.Errorf("failed to retrieve hostname from system: %s", err)
-		}
-	}
-
 	var isWrite *bool
 	if b := v.GetBool("write"); v.IsSet("write") {
 		isWrite = heartbeat.Bool(b)
@@ -227,30 +225,6 @@ func LoadParams(v *viper.Viper) (Params, error) {
 	var linesInFile *int
 	if num := v.GetInt("lines-in-file"); v.IsSet("lines-in-file") {
 		linesInFile = heartbeat.Int(num)
-	}
-
-	offlineDisabled := vipertools.FirstNonEmptyBool(v, "disableoffline", "disable-offline")
-	if b := v.GetBool("settings.offline"); v.IsSet("settings.offline") {
-		offlineDisabled = !b
-	}
-
-	var offlineSyncMax int
-
-	switch {
-	case !v.IsSet("sync-offline-activity"):
-		// use default
-		offlineSyncMax = v.GetInt("sync-offline-activity")
-	case vipertools.GetString(v, "sync-offline-activity") == "none":
-		break
-	default:
-		offlineSyncMax, err = strconv.Atoi(vipertools.GetString(v, "sync-offline-activity"))
-		if err != nil {
-			return Params{}, errors.New("argument --sync-offline-activity must be \"none\" or a positive integer number: %s")
-		}
-	}
-
-	if offlineSyncMax < 0 {
-		return Params{}, errors.New("argument --sync-offline-activity must be \"none\" or a positive integer number")
 	}
 
 	timeSecs := v.GetFloat64("time")
@@ -276,22 +250,21 @@ func LoadParams(v *viper.Viper) (Params, error) {
 	return Params{
 		Category:          category,
 		CursorPosition:    cursorPosition,
-		Entity:            entity,
+		Entity:            entityExpanded,
 		ExtraHeartbeats:   extraHeartbeats,
 		EntityType:        entityType,
-		Hostname:          hostname,
 		IsWrite:           isWrite,
 		Language:          language,
 		LanguageAlternate: vipertools.GetString(v, "alternate-language"),
 		LineNumber:        lineNumber,
 		LinesInFile:       linesInFile,
 		LocalFile:         vipertools.GetString(v, "local-file"),
-		OfflineDisabled:   offlineDisabled,
-		OfflineSyncMax:    offlineSyncMax,
+		OfflineDisabled:   params.OfflineDisabled,
+		OfflineQueueFile:  params.OfflineQueueFile,
+		OfflineSyncMax:    params.OfflineSyncMax,
 		Time:              timeSecs,
-		API:               apiParams,
+		API:               params.API,
 		Filter:            loadFilterParams(v),
-		Network:           networkParams,
 		Project:           projectParams,
 		Sanitize:          sanitizeParams,
 	}, nil
@@ -350,6 +323,11 @@ func parseExtraHeartbeat(data string) ([]heartbeat.Heartbeat, error) {
 	var heartbeats []heartbeat.Heartbeat
 
 	for _, h := range incoming {
+		h.Entity, err = homedir.Expand(h.Entity)
+		if err != nil {
+			return nil, fmt.Errorf("failed expanding entity: %s", err)
+		}
+
 		var entityType heartbeat.EntityType
 
 		// Both type or entity_type are acceptable here. Type takes precedence.
@@ -428,6 +406,11 @@ func parseExtraHeartbeatWithStringValues(data string) ([]heartbeat.Heartbeat, er
 			}
 
 			cursorPosition = &parsed
+		}
+
+		h.Entity, err = homedir.Expand(h.Entity)
+		if err != nil {
+			return nil, fmt.Errorf("failed expanding entity: %s", err)
 		}
 
 		var entityType heartbeat.EntityType

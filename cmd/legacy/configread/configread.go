@@ -3,11 +3,9 @@ package configread
 import (
 	"errors"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
-	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/vipertools"
 
 	"github.com/spf13/viper"
@@ -20,20 +18,18 @@ type Params struct {
 }
 
 // Run prints the value for the given config key.
-func Run(v *viper.Viper) {
+func Run(v *viper.Viper) (int, error) {
 	output, err := Read(v)
 	if err != nil {
-		var cfrerr ErrFileRead
-		if errors.As(err, &cfrerr) {
-			log.Errorf(err.Error())
-			os.Exit(exitcode.ErrConfigFileRead)
-		}
-
-		log.Fatalln(err)
+		return exitcode.ErrConfigFileRead, fmt.Errorf(
+			"failed to read in config: %s",
+			err,
+		)
 	}
 
 	fmt.Println(output)
-	os.Exit(exitcode.Success)
+
+	return exitcode.Success, nil
 }
 
 // Read returns the value for the given config key.
@@ -45,8 +41,9 @@ func Read(v *viper.Viper) (string, error) {
 
 	value := strings.TrimSpace(vipertools.GetString(v, params.ViperKey()))
 	if value == "" {
-		return "", ErrFileRead(
-			fmt.Sprintf("given section and key %q returned an empty string", params.ViperKey()),
+		return "", fmt.Errorf(
+			"given section and key %q returned an empty string",
+			params.ViperKey(),
 		)
 	}
 
@@ -59,8 +56,9 @@ func LoadParams(v *viper.Viper) (Params, error) {
 	key := strings.TrimSpace(vipertools.GetString(v, "config-read"))
 
 	if section == "" || key == "" {
-		return Params{},
-			ErrFileRead("failed reading wakatime config file. neither section nor key can be empty")
+		return Params{}, errors.New(
+			"failed reading wakatime config file. neither section nor key can be empty",
+		)
 	}
 
 	return Params{

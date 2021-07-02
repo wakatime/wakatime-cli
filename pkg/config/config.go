@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -31,12 +32,12 @@ type IniWriter struct {
 func NewIniWriter(v *viper.Viper, filepathFn func(v *viper.Viper) (string, error)) (*IniWriter, error) {
 	configFilepath, err := filepathFn(v)
 	if err != nil {
-		return nil, ErrFileParse(fmt.Sprintf("error getting filepath: %s", err))
+		return nil, fmt.Errorf("error getting filepath: %s", err)
 	}
 
 	ini, err := ini.Load(configFilepath)
 	if err != nil {
-		return nil, ErrFileParse(fmt.Sprintf("error loading config file: %s", err))
+		return nil, fmt.Errorf("error loading config file: %s", err)
 	}
 
 	return &IniWriter{
@@ -48,7 +49,7 @@ func NewIniWriter(v *viper.Viper, filepathFn func(v *viper.Viper) (string, error
 // Write persists key(s) and value(s) on disk.
 func (w *IniWriter) Write(section string, keyValue map[string]string) error {
 	if w.File == nil || w.ConfigFilepath == "" {
-		return ErrFileWrite("got undefined wakatime config file instance")
+		return errors.New("got undefined wakatime config file instance")
 	}
 
 	for key, value := range keyValue {
@@ -56,7 +57,7 @@ func (w *IniWriter) Write(section string, keyValue map[string]string) error {
 	}
 
 	if err := w.File.SaveTo(w.ConfigFilepath); err != nil {
-		return ErrFileWrite(fmt.Sprintf("error saving wakatime config: %s", err))
+		return fmt.Errorf("error saving wakatime config: %s", err)
 	}
 
 	return nil
@@ -66,7 +67,7 @@ func (w *IniWriter) Write(section string, keyValue map[string]string) error {
 func ReadInConfig(v *viper.Viper, filepathFn func(v *viper.Viper) (string, error)) error {
 	configFilepath, err := filepathFn(v)
 	if err != nil {
-		return ErrFileParse(fmt.Sprintf("error getting filepath: %s", err))
+		return fmt.Errorf("error getting filepath: %s", err)
 	}
 
 	v.SetConfigType("ini")
@@ -80,7 +81,7 @@ func ReadInConfig(v *viper.Viper, filepathFn func(v *viper.Viper) (string, error
 	}
 
 	if err := v.ReadInConfig(); err != nil {
-		return ErrFileParse(fmt.Sprintf("error parsing config file: %s", err))
+		return fmt.Errorf("error parsing config file: %s", err)
 	}
 
 	return nil

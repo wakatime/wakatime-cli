@@ -29,7 +29,7 @@ func TestSendHeartbeats(t *testing.T) {
 		numCalls int
 	)
 
-	router.HandleFunc("/v1/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
+	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
 		// check request
 		assert.Equal(t, http.MethodPost, req.Method)
 		assert.Equal(t, []string{"application/json"}, req.Header["Accept"])
@@ -73,6 +73,7 @@ func TestSendHeartbeats(t *testing.T) {
 	})
 
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("api-url", testServerURL)
 	v.Set("category", "debugging")
 	v.Set("cursorpos", 42)
@@ -107,13 +108,14 @@ func TestSendHeartbeats_WithFiltering_Exclude(t *testing.T) {
 
 	var numCalls int
 
-	router.HandleFunc("/v1/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
+	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
 		w.WriteHeader(500)
 
 		numCalls++
 	})
 
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("api-url", testServerURL)
 	v.Set("category", "debugging")
 	v.Set("entity", "/tmp/main.go")
@@ -145,7 +147,7 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 		numCalls int
 	)
 
-	router.HandleFunc("/v1/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
+	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
 		// check request
 		expectedBody, err := ioutil.ReadFile("testdata/api_heartbeats_request_extra_heartbeats_template.json")
 		require.NoError(t, err)
@@ -214,6 +216,7 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 	}()
 
 	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("api-url", testServerURL)
 	v.Set("category", "debugging")
 	v.Set("cursorpos", 42)
@@ -240,6 +243,69 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+}
+
+func TestSendHeartbeats_NonExistingEntity(t *testing.T) {
+	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
+	v.Set("api-url", "https://example.org")
+	v.Set("entity", "nonexisting")
+	v.Set("entity-type", "file")
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+
+	f, err := ioutil.TempFile(os.TempDir(), "")
+	require.NoError(t, err)
+
+	defer os.Remove(f.Name())
+
+	err = cmd.SendHeartbeats(v, f.Name())
+	require.Error(t, err)
+
+	assert.Equal(t, "file 'nonexisting' does not exist. ignoring this heartbeat", err.Error())
+}
+
+func TestSendHeartbeats_NonExistingExtraHeartbeatsEntity(t *testing.T) {
+	r, w, err := os.Pipe()
+	require.NoError(t, err)
+
+	defer func() {
+		r.Close()
+		w.Close()
+	}()
+
+	origStdin := os.Stdin
+
+	defer func() { os.Stdin = origStdin }()
+
+	os.Stdin = r
+
+	data, err := ioutil.ReadFile("testdata/extra_heartbeats_nonexisting_entity.json")
+	require.NoError(t, err)
+
+	go func() {
+		_, err := w.Write(data)
+		require.NoError(t, err)
+
+		w.Close()
+	}()
+
+	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
+	v.Set("api-url", "https://example.org")
+	v.Set("entity", "testdata/main.go")
+	v.Set("entity-type", "file")
+	v.Set("extra-heartbeats", true)
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+
+	f, err := ioutil.TempFile(os.TempDir(), "")
+	require.NoError(t, err)
+
+	defer os.Remove(f.Name())
+
+	err = cmd.SendHeartbeats(v, f.Name())
+	require.Error(t, err)
+
+	assert.Equal(t, "file 'nonexisting' does not exist. ignoring this extra heartbeat", err.Error())
 }
 
 func setupTestServer() (string, *http.ServeMux, func()) {

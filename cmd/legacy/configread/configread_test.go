@@ -1,7 +1,6 @@
 package configread_test
 
 import (
-	"errors"
 	"fmt"
 	"testing"
 
@@ -47,9 +46,7 @@ func TestLoadParamsErr(t *testing.T) {
 			v.Set("config-read", test.Key)
 
 			_, err := configread.LoadParams(v)
-
-			var cfrerr configread.ErrFileRead
-			assert.True(t, errors.As(err, &cfrerr))
+			assert.Error(t, err)
 		})
 	}
 }
@@ -102,16 +99,13 @@ func TestReadErr(t *testing.T) {
 			v.Set("config-read", test.Key)
 
 			output, err := configread.Read(v)
+			require.Error(t, err)
 
-			var cfrerr configread.ErrFileRead
-			errMsg := fmt.Sprintf("error %q differs from the string set", err)
-
-			assert.True(t, errors.As(err, &cfrerr))
 			assert.Equal(
 				t,
 				err.Error(),
 				test.ErrorMsg,
-				errMsg,
+				fmt.Sprintf("error %q differs from the string set", err),
 			)
 
 			assert.Empty(t, output)

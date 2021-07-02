@@ -1,7 +1,10 @@
 package cmd
 
 import (
+	"strconv"
+
 	"github.com/wakatime/wakatime-cli/cmd/legacy"
+	"github.com/wakatime/wakatime-cli/pkg/offline"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -14,9 +17,6 @@ const (
 	defaultConfigSection = "settings"
 	// defaultTimeoutSecs is the default timeout used for requests to the wakatime api.
 	defaultTimeoutSecs = 60
-	// defaultOfflineSync is the default maximum number of heartbeats from the
-	// offline queue, which will be synced upon sending heartbeats to the API.
-	defaultOfflineSync = "100"
 )
 
 // NewRootCMD creates a rootCmd, which represents the base command when called without any subcommands.
@@ -28,7 +28,7 @@ func NewRootCMD() *cobra.Command {
 		Use:   "wakatime-cli",
 		Short: "Command line interface used by all WakaTime text editor plugins.",
 		Run: func(cmd *cobra.Command, args []string) {
-			legacy.Run(v)
+			legacy.Run(cmd, v)
 		},
 	}
 
@@ -41,8 +41,17 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 	flags := cmd.Flags()
 	flags.String("alternate-language", "", "Optional alternate language name. Auto-detected language takes priority.")
 	flags.String("alternate-project", "", "Optional alternate project name. Auto-detected project takes priority.")
-	flags.String("api-url", "", "Heartbeats api url. For debugging with a local server.")
-	flags.String("apiurl", "", "(deprecated) Heartbeats api url. For debugging with a local server.")
+	flags.String(
+		"api-url",
+		"",
+		"API base url used when sending heartbeats and fetching code stats. Defaults to https://api.wakatime.com/api/v1/.",
+	)
+	flags.String(
+		"apiurl",
+		"",
+		"(deprecated) API base url used when sending heartbeats and fetching code stats. Defaults to"+
+			" https://api.wakatime.com/api/v1/.",
+	)
 	flags.String(
 		"category",
 		"",
@@ -141,6 +150,11 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 		"Disables SSL certificate verification for HTTPS requests. By default,"+
 			" SSL certificates are verified.",
 	)
+	flags.String(
+		"offline-queue-file",
+		"",
+		"(internal) Specify a offline queue file, which will be used instead of the default one.",
+	)
 	flags.String("plugin", "", "Optional text editor plugin name and version for User-Agent header.")
 	flags.String("project", "", "Override auto-detected project."+
 		" Use --alternate-project to supply a fallback project if one can't be auto-detected.")
@@ -159,13 +173,15 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 	)
 	flags.String(
 		"sync-offline-activity",
-		defaultOfflineSync,
+		strconv.Itoa(offline.SyncMaxDefault),
 		"Amount of offline activity to sync from your local ~/.wakatime.bdb bolt"+
 			" file to your WakaTime Dashboard before exiting. Can be \"none\" or"+
-			" a positive integer. Defaults to 100, meaning for every heartbeat sent"+
-			" while online, 100 offline heartbeats are synced. Can be used without"+
-			" --entity to only sync offline activity without generating new heartbeats.",
+			" a positive integer. Defaults to 1000, meaning after sending a heartbeat"+
+			" while online, all queued offline heartbeats are sent to WakaTime API, up"+
+			" to a limit of 1000. Can be used without --entity to only sync offline"+
+			" activity without generating new heartbeats.",
 	)
+	flags.Bool("offline-count", false, "Prints the number of heartbeats in the offline db, then exits.")
 	flags.Int(
 		"timeout",
 		defaultTimeoutSecs,
@@ -178,7 +194,11 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 		"",
 		"Prints time for the given goal id Today, then exits"+
 			" Visit wakatime.com/api/v1/users/current/goals to find your goal id.")
-	flags.Bool("useragent", false, "Prints the wakatime-cli useragent, as it will be sent to the api, then exits.")
+	flags.Bool(
+		"useragent",
+		false,
+		"(internal) Prints the wakatime-cli useragent, as it will be sent to the api, then exits.",
+	)
 	flags.Bool("verbose", false, "Turns on debug messages in log file.")
 	flags.Bool("version", false, "Prints the wakatime-cli version number, then exits.")
 	flags.Bool("write", false, "When set, tells api this heartbeat was triggered from writing to a file.")
@@ -192,6 +212,7 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 	_ = flags.MarkHidden("logfile")
 
 	// hide internal flags
+	_ = flags.MarkHidden("offline-queue-file")
 	_ = flags.MarkHidden("useragent")
 
 	err := v.BindPFlags(flags)
