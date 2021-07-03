@@ -189,7 +189,10 @@ func runCmd(v *viper.Viper, cmd cmdFn) int {
 		log.Errorf("failed to run command: %s", err.Error())
 
 		resetLogs()
-		sendDiagnostics(v, logs.String(), string(debug.Stack()))
+
+		if exitCode != exitcode.ErrAuth {
+			sendDiagnostics(v, logs.String(), string(debug.Stack()))
+		}
 	}
 
 	return exitCode
