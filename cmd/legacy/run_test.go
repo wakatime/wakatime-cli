@@ -27,6 +27,7 @@ func TestRunCmd_SendDiagnostics_Error(t *testing.T) {
 	if os.Getenv("TEST_RUN") == "1" {
 		version.OS = "some os"
 		version.Arch = "some architecture"
+		version.Version = "some version"
 
 		offlineQueueFile, err := ioutil.TempFile(os.TempDir(), "")
 		require.NoError(t, err)
@@ -72,6 +73,7 @@ func TestRunCmd_SendDiagnostics_Error(t *testing.T) {
 		var diagnostics struct {
 			Platform     string `json:"platform"`
 			Architecture string `json:"architecture"`
+			CliVersion   string `json:"cli_version"`
 			Editor       string `json:"editor"`
 			Logs         string `json:"logs"`
 			Stack        string `json:"stacktrace"`
@@ -110,6 +112,7 @@ func TestRunCmd_SendDiagnostics_Panic(t *testing.T) {
 	if os.Getenv("TEST_RUN") == "1" {
 		version.OS = "some os"
 		version.Arch = "some architecture"
+		version.Version = "some version"
 
 		offlineQueueFile, err := ioutil.TempFile(os.TempDir(), "")
 		require.NoError(t, err)
@@ -155,6 +158,7 @@ func TestRunCmd_SendDiagnostics_Panic(t *testing.T) {
 		var diagnostics struct {
 			Platform     string `json:"platform"`
 			Architecture string `json:"architecture"`
+			CliVersion   string `json:"cli_version"`
 			Editor       string `json:"editor"`
 			Logs         string `json:"logs"`
 			Stack        string `json:"stacktrace"`
@@ -192,6 +196,7 @@ func TestRunCmdWithOfflineSync(t *testing.T) {
 	if os.Getenv("TEST_RUN") == "1" {
 		version.OS = "some os"
 		version.Arch = "some architecture"
+		version.Version = "some version"
 
 		logFile, err := ioutil.TempFile(os.TempDir(), "")
 		require.NoError(t, err)

@@ -134,23 +134,24 @@ func TestTodayGoal(t *testing.T) {
 
 	var numCalls int
 
-	router.HandleFunc("/users/current/goals/11111111-1111-4111-8111-111111111111", func(w http.ResponseWriter, req *http.Request) {
-		numCalls++
+	router.HandleFunc("/users/current/goals/11111111-1111-4111-8111-111111111111",
+		func(w http.ResponseWriter, req *http.Request) {
+			numCalls++
 
-		// check request
-		assert.Equal(t, http.MethodGet, req.Method)
-		assert.Equal(t, []string{"application/json"}, req.Header["Accept"])
-		assert.Equal(t, []string{"Basic MDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAw"}, req.Header["Authorization"])
-		assert.Equal(t, []string{heartbeat.UserAgentUnknownPlugin()}, req.Header["User-Agent"])
+			// check request
+			assert.Equal(t, http.MethodGet, req.Method)
+			assert.Equal(t, []string{"application/json"}, req.Header["Accept"])
+			assert.Equal(t, []string{"Basic MDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAw"}, req.Header["Authorization"])
+			assert.Equal(t, []string{heartbeat.UserAgentUnknownPlugin()}, req.Header["User-Agent"])
 
-		// write response
-		f, err := os.Open("testdata/api_goals_id_response.json")
-		require.NoError(t, err)
+			// write response
+			f, err := os.Open("testdata/api_goals_id_response.json")
+			require.NoError(t, err)
 
-		w.WriteHeader(http.StatusOK)
-		_, err = io.Copy(w, f)
-		require.NoError(t, err)
-	})
+			w.WriteHeader(http.StatusOK)
+			_, err = io.Copy(w, f)
+			require.NoError(t, err)
+		})
 
 	out := runWakatimeCli(
 		t,
@@ -319,7 +320,7 @@ func runWakatimeCli(t *testing.T, args ...string) string {
 
 	args = append([]string{"--log-file", f.Name()}, args...)
 
-	return runCmd(exec.Command(binaryPath(t), args...))
+	return runCmd(exec.Command(binaryPath(t), args...)) // #nosec G204
 }
 
 func runWakatimeCliExpectErr(t *testing.T, args ...string) string {
@@ -338,7 +339,7 @@ func runWakatimeCliExpectErr(t *testing.T, args ...string) string {
 
 	args = append([]string{"--log-file", f.Name()}, args...)
 
-	return runCmdExpectErr(exec.Command(binaryPath(t), args...))
+	return runCmdExpectErr(exec.Command(binaryPath(t), args...)) // #nosec G204
 }
 
 func runCmd(cmd *exec.Cmd) string {
