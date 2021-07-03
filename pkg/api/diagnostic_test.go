@@ -43,6 +43,7 @@ func TestClient_SendDiagnostics(t *testing.T) {
 
 	version.OS = "linux"
 	version.Arch = "amd64"
+	version.Version = "<local-build>"
 
 	diagnostics := []diagnostic.Diagnostic{
 		diagnostic.Logs("some logs"),

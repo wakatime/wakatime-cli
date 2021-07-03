@@ -2,6 +2,7 @@
 	"platform": "linux",
 	"architecture": "amd64",
 	"plugin": "vim",
+	"cli_version": "<local-build>",
 	"logs": "some logs",
 	"stacktrace": "some stack"
 }

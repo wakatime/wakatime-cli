@@ -16,6 +16,7 @@ type diagnosticsBody struct {
 	Platform     string `json:"platform"`
 	Architecture string `json:"architecture"`
 	Plugin       string `json:"plugin"`
+	CliVersion   string `json:"cli_version"`
 	Logs         string `json:"logs,omitempty"`
 	Stack        string `json:"stacktrace,omitempty"`
 }
@@ -29,6 +30,7 @@ func (c *Client) SendDiagnostics(plugin string, diagnostics ...diagnostic.Diagno
 	body := diagnosticsBody{
 		Platform:     version.OS,
 		Architecture: version.Arch,
+		CliVersion:   version.Version,
 		Plugin:       plugin,
 	}
 
