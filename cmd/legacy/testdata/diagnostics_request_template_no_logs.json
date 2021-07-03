@@ -1,6 +1,7 @@
 {
 	"platform": "some os",
 	"architecture": "some architecture",
+	"cli_version": "some version",
 	"plugin": "vim",
 	"stacktrace": "%s"
 }
