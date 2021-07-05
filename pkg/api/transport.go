@@ -105,7 +105,7 @@ emyPxgcYxn/eR44/KJ4EBs+lVDR3veyJm+kXQ99b21/+jh5Xos1AnX5iItreGCc=
 
 // CACerts returns a root cert pool with the system's cacerts and LetsEncrypt's root certs.
 func CACerts() *x509.CertPool {
-	certs, err := x509.SystemCertPool()
+	certs, err := loadSystemRoots()
 	if err != nil {
 		log.Warnf("unable to use system cert pool: %s", err)
 	}
