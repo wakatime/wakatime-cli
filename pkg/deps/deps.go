@@ -8,9 +8,13 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/regex"
 )
 
-// maxDependencyLength defines the maximum allowed length of a dependency.
-// Any dependency exceeding this length will be discarded.
-const maxDependencyLength = 200
+const (
+	// maxDependencyLength defines the maximum allowed length of a dependency.
+	// Any dependency exceeding this length will be discarded.
+	maxDependencyLength = 200
+	// maxDependenciesCount defines the maximum number of single items to be sent.
+	maxDependenciesCount = 1000
+)
 
 // Config contains configurations for dependency scanning.
 type Config struct {
@@ -114,7 +118,7 @@ func Detect(filepath string, language heartbeat.Language) ([]string, error) {
 		parser = &ParserVbNet{}
 	default:
 		log.Debugf(
-			"No parser has been found for language %q. Using Unknown parser to detect dependencies.", language)
+			"no parser has been found for language %q. Using Unknown parser to detect dependencies.", language)
 
 		parser = &ParserUnknown{}
 	}
@@ -134,6 +138,12 @@ func filterDependencies(deps []string) []string {
 	)
 
 	for _, d := range deps {
+		// filter max size
+		if len(results) >= maxDependenciesCount {
+			log.Debugf("max size of %d dependencies reached", maxDependenciesCount)
+			break
+		}
+
 		// filter duplicate
 		if _, ok := unique[d]; ok {
 			continue
@@ -141,6 +151,12 @@ func filterDependencies(deps []string) []string {
 
 		// filter dependencies off size
 		if d == "" || len(d) > maxDependencyLength {
+			log.Debugf(
+				"dependency won't be sent because it's either empty or greater than %d characteres: %s",
+				maxDependencyLength,
+				d,
+			)
+
 			continue
 		}
 
