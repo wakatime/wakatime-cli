@@ -301,6 +301,16 @@ func TestDetect_LongDependenciesRemoved(t *testing.T) {
 	}, deps)
 }
 
+func TestDetect_MaxDependenciesCountReached(t *testing.T) {
+	deps, err := deps.Detect(
+		"testdata/python_with_many_imports.py",
+		heartbeat.LanguagePython,
+	)
+	require.NoError(t, err)
+
+	assert.Len(t, deps, 1000)
+}
+
 func TestDetect_EmptyDependenciesRemoved(t *testing.T) {
 	deps, err := deps.Detect(
 		"testdata/bower_empty_dependency.json",

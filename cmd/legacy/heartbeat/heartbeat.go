@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/wakatime/wakatime-cli/cmd/legacy/legacyapi"
 	"github.com/wakatime/wakatime-cli/pkg/api"
@@ -173,9 +174,15 @@ func SendHeartbeats(v *viper.Viper, queueFilepath string) error {
 
 	handle := heartbeat.NewHandle(apiClient, handleOpts...)
 
-	_, err = handle(heartbeats)
+	results, err := handle(heartbeats)
 	if err != nil {
 		return fmt.Errorf("failed to send heartbeats via api client: %w", err)
+	}
+
+	for _, result := range results {
+		if len(result.Errors) > 0 {
+			log.Warnln(strings.Join(result.Errors, " "))
+		}
 	}
 
 	return nil
