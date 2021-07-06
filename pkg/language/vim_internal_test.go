@@ -50,7 +50,7 @@ func TestDetectVimModeline(t *testing.T) {
 			require.True(t, ok)
 
 			assert.Equal(t, float32(0), weight)
-			assert.Equal(t, test.Language, lang, fmt.Sprintf("Got: %q, want: %q", lang, test.Language))
+			assert.Equal(t, test.Language, lang, fmt.Sprintf("got: %q, want: %q", lang, test.Language))
 		})
 	}
 }
@@ -105,7 +105,7 @@ func TestParseVim(t *testing.T) {
 			parsed, ok := parseVim(name)
 			require.True(t, ok)
 
-			assert.Equal(t, lang, parsed, fmt.Sprintf("Got: %q, want: %q", parsed, lang))
+			assert.Equal(t, lang, parsed, fmt.Sprintf("got: %q, want: %q", parsed, lang))
 		})
 	}
 }

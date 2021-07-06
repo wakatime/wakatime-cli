@@ -102,7 +102,7 @@ func Run(cmd *cobra.Command, v *viper.Viper) {
 		RunCmd(v, offlinecount.Run)
 	}
 
-	log.Warnf("One of the following parameters has to be provided: %s", strings.Join([]string{
+	log.Warnf("one of the following parameters has to be provided: %s", strings.Join([]string{
 		"--config-read",
 		"--config-write",
 		"--entity",
