@@ -197,7 +197,7 @@ func handleResults(filepath string, results []heartbeat.Result, hh []heartbeat.H
 	// handle leftover heartbeats
 	leftovers := len(hh) - len(results)
 	if leftovers > 0 {
-		log.Warnf("Missing %d results from api.", leftovers)
+		log.Warnf("missing %d results from api.", leftovers)
 
 		start := len(hh) - leftovers
 

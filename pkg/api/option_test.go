@@ -111,7 +111,7 @@ func TestOption_WithNTLM(t *testing.T) {
 				}
 
 				if strings.HasPrefix(authHeader[0], "Basic ") {
-					w.Header().Set("Www-Authenticate", "NTLM xyxyxyx")
+					w.Header().Set("WWW-Authenticate", "NTLM xyxyxyx")
 					w.WriteHeader(http.StatusUnauthorized)
 					return
 				}
@@ -168,7 +168,7 @@ func TestOption_WithNTLMRequestRetry(t *testing.T) {
 		}
 
 		if strings.HasPrefix(authHeader[0], "Basic ") {
-			w.Header().Set("Www-Authenticate", "NTLM xyxyxyx")
+			w.Header().Set("WWW-Authenticate", "NTLM xyxyxyx")
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}

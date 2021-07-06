@@ -784,7 +784,7 @@ func TestParseLanguage(t *testing.T) {
 			parsed, ok := heartbeat.ParseLanguage(value)
 			assert.True(t, ok)
 
-			assert.Equal(t, language, parsed, fmt.Sprintf("Got: %q, want: %q", parsed, language))
+			assert.Equal(t, language, parsed, fmt.Sprintf("got: %q, want: %q", parsed, language))
 		})
 	}
 
@@ -794,7 +794,7 @@ func TestParseLanguage(t *testing.T) {
 			parsed, ok := heartbeat.ParseLanguage(value)
 			assert.True(t, ok)
 
-			assert.Equal(t, language, parsed, fmt.Sprintf("Got: %q, want: %q", parsed, language))
+			assert.Equal(t, language, parsed, fmt.Sprintf("got: %q, want: %q", parsed, language))
 		})
 	}
 
@@ -912,7 +912,7 @@ func TestParseLanguageFromChroma(t *testing.T) {
 			parsed, ok := heartbeat.ParseLanguageFromChroma(lexerName)
 
 			assert.True(t, ok)
-			assert.Equal(t, language, parsed, fmt.Sprintf("Got: %q, want: %q", parsed, language))
+			assert.Equal(t, language, parsed, fmt.Sprintf("got: %q, want: %q", parsed, language))
 		})
 	}
 }
@@ -930,9 +930,9 @@ func TestParseLanguageFromChroma_AllLexersSupported(t *testing.T) {
 
 		parsed, ok := heartbeat.ParseLanguageFromChroma(config.Name)
 
-		assert.True(t, ok, fmt.Sprintf("Failed parsing language from lexer %q", config.Name))
+		assert.True(t, ok, fmt.Sprintf("failed parsing language from lexer %q", config.Name))
 		assert.NotEqual(t, heartbeat.LanguageUnknown, parsed, fmt.Sprintf(
-			"Parsed language.Unknown. Failed parsing language from lexer %q",
+			"parsed language.Unknown. Failed parsing language from lexer %q",
 			config.Name,
 		))
 	}
