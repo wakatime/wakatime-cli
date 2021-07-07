@@ -30,6 +30,8 @@ func (c *Client) SendHeartbeats(heartbeats []heartbeat.Heartbeat) ([]heartbeat.R
 		return nil, fmt.Errorf("failed to json encode body: %s", err)
 	}
 
+	log.Debugf("heartbeats: %s", string(data))
+
 	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(data))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %s", err)

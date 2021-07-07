@@ -18,6 +18,8 @@ type Mercurial struct {
 
 // Detect gets information about the mercurial project for a given file.
 func (m Mercurial) Detect() (Result, bool, error) {
+	log.Debugln("execute mercurial project detection")
+
 	fp, err := realpath.Realpath(m.Filepath)
 	if err != nil {
 		return Result{}, false,
@@ -30,7 +32,7 @@ func (m Mercurial) Detect() (Result, bool, error) {
 	}
 
 	// Find for .hg folder
-	hgDirectory, ok := findFileOrDirectory(fp, "", ".hg")
+	hgDirectory, ok := FindFileOrDirectory(fp, "", ".hg")
 	if !ok {
 		return Result{}, false, nil
 	}

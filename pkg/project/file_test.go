@@ -1,8 +1,6 @@
 package project_test
 
 import (
-	"errors"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -12,7 +10,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/yookoala/realpath"
 )
 
 func TestFile_Detect_FileExists(t *testing.T) {
@@ -84,25 +81,15 @@ func TestFile_Detect_AnyFileFound(t *testing.T) {
 	assert.Equal(t, expected, result)
 }
 
-func TestFile_Detect_WrongPath(t *testing.T) {
+func TestFile_Detect_InvalidPath(t *testing.T) {
 	f := project.File{
 		Filepath: "path/to/non-file",
 	}
 
 	_, detected, err := f.Detect()
-
-	var pferr project.Err
-
-	errMsg := fmt.Sprintf("error %q differs from the string set", err)
+	require.NoError(t, err)
 
 	assert.False(t, detected)
-	assert.True(t, errors.As(err, &pferr))
-	assert.Contains(
-		t,
-		err.Error(),
-		"failed to get the real path",
-		errMsg,
-	)
 }
 
 func TestFile_String(t *testing.T) {
@@ -111,7 +98,7 @@ func TestFile_String(t *testing.T) {
 	assert.Equal(t, "project-file-detector", f.String())
 }
 
-func TestFindFile(t *testing.T) {
+func TestFindFileOrDirectory(t *testing.T) {
 	tmpDir, err := ioutil.TempDir(os.TempDir(), "wakatime")
 	require.NoError(t, err)
 
@@ -128,14 +115,32 @@ func TestFindFile(t *testing.T) {
 		filepath.Join(tmpDir, ".wakatime-project"),
 	)
 
-	fp, ok, err := project.FindFile(dir)
-	require.NoError(t, err)
-	require.True(t, ok)
+	tests := map[string]struct {
+		Filepath string
+		FileDir  string
+		Filename string
+		Expected string
+	}{
+		"filename": {
+			Filepath: dir,
+			Filename: ".wakatime-project",
+			Expected: filepath.Join(tmpDir, ".wakatime-project"),
+		},
+		"directory": {
+			Filepath: dir,
+			Filename: "src",
+			Expected: filepath.Join(tmpDir, "src"),
+		},
+	}
 
-	realpathTmpDir, err := realpath.Realpath(tmpDir)
-	require.NoError(t, err)
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			fp, ok := project.FindFileOrDirectory(test.Filepath, test.FileDir, test.Filename)
+			require.True(t, ok)
 
-	assert.Equal(t, filepath.Join(realpathTmpDir, ".wakatime-project"), fp)
+			assert.Equal(t, test.Expected, fp)
+		})
+	}
 }
 
 func copyFile(t *testing.T, source, destination string) {

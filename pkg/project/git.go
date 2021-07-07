@@ -22,6 +22,8 @@ type Git struct {
 // Detect gets information about the git project for a given file.
 // It tries to return a project and branch name.
 func (g Git) Detect() (Result, bool, error) {
+	log.Debugln("execute git project detection")
+
 	fp, err := realpath.Realpath(g.Filepath)
 	if err != nil {
 		return Result{}, false,
@@ -60,7 +62,7 @@ func (g Git) Detect() (Result, bool, error) {
 	}
 
 	// Find for .git/config file
-	gitConfigFile, ok := findFileOrDirectory(fp, ".git", "config")
+	gitConfigFile, ok := FindFileOrDirectory(fp, ".git", "config")
 
 	if ok {
 		gitDir := filepath.Dir(gitConfigFile)
@@ -83,7 +85,7 @@ func (g Git) Detect() (Result, bool, error) {
 	}
 
 	// Find for .git file
-	gitConfigFile, ok = findFileOrDirectory(fp, "", ".git")
+	gitConfigFile, ok = FindFileOrDirectory(fp, "", ".git")
 	if !ok {
 		return Result{}, false, nil
 	}
@@ -150,7 +152,7 @@ func findSubmodule(fp string, patterns []regex.Regex) (string, bool, error) {
 		return "", false, nil
 	}
 
-	gitConfigFile, ok := findFileOrDirectory(fp, "", ".git")
+	gitConfigFile, ok := FindFileOrDirectory(fp, "", ".git")
 	if !ok {
 		return "", false, nil
 	}

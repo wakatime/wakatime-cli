@@ -116,11 +116,7 @@ func filterFileEntity(filepath string, includeOnlyWithProjectFile bool) error {
 
 	// check wakatime project file exists
 	if includeOnlyWithProjectFile {
-		_, ok, err := project.FindFile(filepath)
-		if err != nil {
-			return fmt.Errorf("error detecting project file: %s", err)
-		}
-
+		_, ok := project.FindFileOrDirectory(filepath, "", ".wakatime-project")
 		if !ok {
 			return Err("skipping because of missing .wakatime-project file in parent path")
 		}
