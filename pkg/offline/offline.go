@@ -78,7 +78,10 @@ func WithQueue(filepath string, syncLimit int) (heartbeat.HandleOption, error) {
 
 				requeueErr := pushHeartbeatsWithRetry(filepath, hh)
 				if requeueErr != nil {
-					log.Errorf("failed to push heatbeats to queue after api error: %s", requeueErr)
+					return nil, ErrOfflineEnqueue(fmt.Sprintf(
+						"failed to push heatbeats to queue after api error: %s. error: %s",
+						requeueErr,
+						err))
 				}
 
 				return nil, err
