@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"runtime"
 
+	"github.com/wakatime/wakatime-cli/pkg/log"
+
 	"github.com/yookoala/realpath"
 )
 
@@ -16,6 +18,8 @@ type Tfvc struct {
 
 // Detect gets information about the tfvc project for a given file.
 func (t Tfvc) Detect() (Result, bool, error) {
+	log.Debugln("execute tfvc project detection")
+
 	fp, err := realpath.Realpath(t.Filepath)
 	if err != nil {
 		return Result{}, false,
@@ -33,7 +37,7 @@ func (t Tfvc) Detect() (Result, bool, error) {
 	}
 
 	// Find for tf/properties.tf1 file
-	tfDirectory, ok := findFileOrDirectory(fp, tfFolderName, "properties.tf1")
+	tfDirectory, ok := FindFileOrDirectory(fp, tfFolderName, "properties.tf1")
 	if !ok {
 		return Result{}, false, nil
 	}

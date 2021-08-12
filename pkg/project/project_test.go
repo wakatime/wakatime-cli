@@ -145,6 +145,43 @@ func TestWithDetection_ObfuscateProject(t *testing.T) {
 	assert.FileExists(t, filepath.Join(fp, "wakatime-cli/.wakatime-project"))
 }
 
+func TestWithDetection_WakatimeProjectTakesPrecedence(t *testing.T) {
+	fp, tearDown := setupTestGitBasic(t)
+	defer tearDown()
+
+	copyFile(
+		t,
+		"testdata/.wakatime-project-other",
+		filepath.Join(fp, "wakatime-cli", ".wakatime-project"),
+	)
+
+	opt := project.WithDetection(project.Config{
+		ShouldObfuscateProject: true,
+	})
+
+	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		assert.NotEmpty(t, hh[0].Project)
+		assert.Equal(t, []heartbeat.Heartbeat{
+			{
+				Entity:     filepath.Join(fp, "wakatime-cli/src/pkg/file.go"),
+				EntityType: heartbeat.FileType,
+				Project:    heartbeat.String("Rough Surf 20"),
+				Branch:     heartbeat.String("master"),
+			},
+		}, hh)
+
+		return nil, nil
+	})
+
+	_, err := handle([]heartbeat.Heartbeat{
+		{
+			EntityType: heartbeat.FileType,
+			Entity:     filepath.Join(fp, "wakatime-cli/src/pkg/file.go"),
+		},
+	})
+	require.NoError(t, err)
+}
+
 func TestDetect_FileDetected(t *testing.T) {
 	project, branch := project.Detect("testdata/entity.any", []project.MapPattern{})
 

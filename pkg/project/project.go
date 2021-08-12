@@ -219,10 +219,10 @@ func generateProjectName() string {
 	return strings.Join(str, " ")
 }
 
-// findFileOrDirectory searches for a file or directory with name `filename`.
+// FindFileOrDirectory searches for a file or directory with name `filename`.
 // Search starts in `startDir` and will traverse through all parent directories until the file is found,
 // root directory is reached or `maxRecursiveIteration` is exceeded.
-func findFileOrDirectory(startDir, fileDir, filename string) (string, bool) {
+func FindFileOrDirectory(startDir, fileDir, filename string) (string, bool) {
 	i := 0
 	for i < maxRecursiveIteration {
 		if fileExists(filepath.Join(startDir, fileDir, filename)) {
