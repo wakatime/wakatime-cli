@@ -2,7 +2,6 @@ package legacy
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -25,7 +24,6 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/log"
-	"github.com/wakatime/wakatime-cli/pkg/offline"
 	"github.com/wakatime/wakatime-cli/pkg/vipertools"
 
 	"github.com/spf13/cobra"
@@ -181,7 +179,10 @@ func runCmd(v *viper.Viper, verbose bool, cmd cmdFn) int {
 	defer func() {
 		if err := recover(); err != nil {
 			resetLogs()
-			sendDiagnostics(v, logs.String(), string(debug.Stack()))
+
+			if !verbose {
+				sendDiagnostics(v, logs.String(), string(debug.Stack()))
+			}
 
 			os.Exit(exitcode.ErrDefault)
 		}
@@ -194,11 +195,7 @@ func runCmd(v *viper.Viper, verbose bool, cmd cmdFn) int {
 
 		resetLogs()
 
-		var errOfflineEnqueue offline.ErrOfflineEnqueue
-
-		if exitCode != exitcode.ErrAuth &&
-			errors.As(err, &errOfflineEnqueue) &&
-			verbose {
+		if exitCode != exitcode.ErrAuth && verbose {
 			sendDiagnostics(v, logs.String(), string(debug.Stack()))
 		}
 	}
