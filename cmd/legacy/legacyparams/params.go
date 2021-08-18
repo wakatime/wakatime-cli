@@ -78,7 +78,7 @@ func Load(v *viper.Viper) (Params, error) {
 		return Params{}, fmt.Errorf("failed to load api params: %w", err)
 	}
 
-	offlineDisabled := vipertools.FirstNonEmptyBool(v, "disableoffline", "disable-offline")
+	offlineDisabled := vipertools.FirstNonEmptyBool(v, "disable-offline", "disableoffline")
 	if b := v.GetBool("settings.offline"); v.IsSet("settings.offline") {
 		offlineDisabled = !b
 	}

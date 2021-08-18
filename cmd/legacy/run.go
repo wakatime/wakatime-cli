@@ -38,7 +38,7 @@ func Run(cmd *cobra.Command, v *viper.Viper) {
 		os.Exit(exitcode.ErrConfigFileParse)
 	}
 
-	SetupLogging(v)
+	logFileParms := SetupLogging(v)
 
 	if v.GetBool("useragent") {
 		log.Debugln("command: useragent")
@@ -57,49 +57,49 @@ func Run(cmd *cobra.Command, v *viper.Viper) {
 	if v.GetBool("version") {
 		log.Debugln("command: version")
 
-		RunCmd(v, runVersion)
+		RunCmd(v, logFileParms.Verbose, runVersion)
 	}
 
 	if v.IsSet("config-read") {
 		log.Debugln("command: config-read")
 
-		RunCmd(v, configread.Run)
+		RunCmd(v, logFileParms.Verbose, configread.Run)
 	}
 
 	if v.IsSet("config-write") {
 		log.Debugln("command: config-write")
 
-		RunCmd(v, configwrite.Run)
+		RunCmd(v, logFileParms.Verbose, configwrite.Run)
 	}
 
 	if v.GetBool("today") {
 		log.Debugln("command: today")
 
-		RunCmd(v, today.Run)
+		RunCmd(v, logFileParms.Verbose, today.Run)
 	}
 
 	if v.IsSet("today-goal") {
 		log.Debugln("command: today-goal")
 
-		RunCmd(v, todaygoal.Run)
+		RunCmd(v, logFileParms.Verbose, todaygoal.Run)
 	}
 
 	if v.IsSet("entity") {
 		log.Debugln("command: heartbeat")
 
-		RunCmdWithOfflineSync(v, heartbeatcmd.Run)
+		RunCmdWithOfflineSync(v, logFileParms.Verbose, heartbeatcmd.Run)
 	}
 
 	if v.IsSet("sync-offline-activity") {
 		log.Debugln("command: sync-offline-activity")
 
-		RunCmd(v, offlinesync.Run)
+		RunCmd(v, logFileParms.Verbose, offlinesync.Run)
 	}
 
 	if v.GetBool("offline-count") {
 		log.Debugln("command: offline-count")
 
-		RunCmd(v, offlinecount.Run)
+		RunCmd(v, logFileParms.Verbose, offlinecount.Run)
 	}
 
 	log.Warnf("one of the following parameters has to be provided: %s", strings.Join([]string{
@@ -120,7 +120,7 @@ func Run(cmd *cobra.Command, v *viper.Viper) {
 }
 
 // SetupLogging uses the --log-file param to configure logging to file or stdout.
-func SetupLogging(v *viper.Viper) {
+func SetupLogging(v *viper.Viper) *logfile.Params {
 	logfileParams, err := logfile.LoadParams(v)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to load log params: %s", err)
@@ -143,6 +143,8 @@ func SetupLogging(v *viper.Viper) {
 
 	log.SetVerbose(logfileParams.Verbose)
 	log.SetJww(logfileParams.Verbose, logFile)
+
+	return &logfileParams
 }
 
 // cmdFn represents a command function.
@@ -150,8 +152,8 @@ type cmdFn func(v *viper.Viper) (int, error)
 
 // RunCmd runs a command function and exits with the exit code returned by
 // the command function. Will send diagnostic on any errors or panics.
-func RunCmd(v *viper.Viper, cmd cmdFn) {
-	exitCode := runCmd(v, cmd)
+func RunCmd(v *viper.Viper, verbose bool, cmd cmdFn) {
+	exitCode := runCmd(v, verbose, cmd)
 
 	os.Exit(exitCode)
 }
@@ -159,17 +161,17 @@ func RunCmd(v *viper.Viper, cmd cmdFn) {
 // RunCmdWithOfflineSync runs a command function and exits with the exit code
 // returned by the command function. If command run was successful, it will execute
 // offline sync command afterwards. Will send diagnostic on any errors or panics.
-func RunCmdWithOfflineSync(v *viper.Viper, cmd cmdFn) {
-	exitCode := runCmd(v, cmd)
+func RunCmdWithOfflineSync(v *viper.Viper, verbose bool, cmd cmdFn) {
+	exitCode := runCmd(v, verbose, cmd)
 	if exitCode != exitcode.Success {
 		os.Exit(exitCode)
 	}
 
-	os.Exit(runCmd(v, offlinesync.Run))
+	os.Exit(runCmd(v, verbose, offlinesync.Run))
 }
 
 // runCmd contains the main logic of RunCmd.
-func runCmd(v *viper.Viper, cmd cmdFn) int {
+func runCmd(v *viper.Viper, verbose bool, cmd cmdFn) int {
 	logs := bytes.NewBuffer(nil)
 	resetLogs := captureLogs(logs)
 
@@ -177,7 +179,10 @@ func runCmd(v *viper.Viper, cmd cmdFn) int {
 	defer func() {
 		if err := recover(); err != nil {
 			resetLogs()
-			sendDiagnostics(v, logs.String(), string(debug.Stack()))
+
+			if !verbose {
+				sendDiagnostics(v, logs.String(), string(debug.Stack()))
+			}
 
 			os.Exit(exitcode.ErrDefault)
 		}
@@ -190,7 +195,7 @@ func runCmd(v *viper.Viper, cmd cmdFn) int {
 
 		resetLogs()
 
-		if exitCode != exitcode.ErrAuth {
+		if exitCode != exitcode.ErrAuth && verbose {
 			sendDiagnostics(v, logs.String(), string(debug.Stack()))
 		}
 	}
