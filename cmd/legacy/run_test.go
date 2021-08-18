@@ -48,7 +48,7 @@ func TestRunCmd_SendDiagnostics_Error(t *testing.T) {
 		v.Set("offline-queue-file", offlineQueueFile.Name())
 		v.Set("plugin", "vim")
 
-		legacy.RunCmd(v, func(v *viper.Viper) (int, error) {
+		legacy.RunCmd(v, true, func(v *viper.Viper) (int, error) {
 			return 42, errors.New("fail")
 		})
 
@@ -133,7 +133,7 @@ func TestRunCmd_SendDiagnostics_Panic(t *testing.T) {
 		v.Set("offline-queue-file", offlineQueueFile.Name())
 		v.Set("plugin", "vim")
 
-		legacy.RunCmd(v, func(v *viper.Viper) (int, error) {
+		legacy.RunCmd(v, true, func(v *viper.Viper) (int, error) {
 			panic("fail")
 		})
 
@@ -213,7 +213,7 @@ func TestRunCmdWithOfflineSync(t *testing.T) {
 		v.SetDefault("sync-offline-activity", 24)
 		v.Set("plugin", "vim")
 
-		legacy.RunCmdWithOfflineSync(v, func(v *viper.Viper) (int, error) {
+		legacy.RunCmdWithOfflineSync(v, false, func(v *viper.Viper) (int, error) {
 			return 0, nil
 		})
 
