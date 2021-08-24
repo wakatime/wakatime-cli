@@ -382,10 +382,10 @@ func parseExtraHeartbeatWithStringValues(data string) ([]heartbeat.Heartbeat, er
 		LanguageAlternate string             `json:"alternate_language"`
 		LineNumber        *string            `json:"lineno"`
 		Lines             *string            `json:"lines"`
-		Time              float64            `json:"time"`
+		Time              *string            `json:"time"`
 		Project           string             `json:"project"`
 		ProjectAlternate  string             `json:"alternate_project"`
-		Timestamp         float64            `json:"timestamp"`
+		Timestamp         *string            `json:"timestamp"`
 		UserAgent         string             `json:"user_agent"`
 	}
 
@@ -449,10 +449,20 @@ func parseExtraHeartbeatWithStringValues(data string) ([]heartbeat.Heartbeat, er
 		var timestamp float64
 
 		switch {
-		case h.Time != 0:
-			timestamp = h.Time
-		case h.Timestamp != 0:
-			timestamp = h.Timestamp
+		case h.Time != nil:
+			parsed, err := strconv.ParseFloat(*h.Time, 64)
+			if err != nil {
+				return nil, fmt.Errorf("failed to convert time to float64: %s", err)
+			}
+
+			timestamp = parsed
+		case h.Timestamp != nil:
+			parsed, err := strconv.ParseFloat(*h.Timestamp, 64)
+			if err != nil {
+				return nil, fmt.Errorf("failed to convert timestamp to float64: %s", err)
+			}
+
+			timestamp = parsed
 		default:
 			return nil, fmt.Errorf("skipping extra heartbeat, as no valid timestamp was defined")
 		}
