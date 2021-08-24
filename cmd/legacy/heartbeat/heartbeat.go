@@ -69,6 +69,11 @@ func SendHeartbeats(v *viper.Viper, queueFilepath string) error {
 		return fmt.Errorf("failed to load command parameters: %w", err)
 	}
 
+	// Support XCode playgrounds
+	if params.EntityType == heartbeat.FileType && isPlayground(params.Entity) {
+		params.Entity += "/Contents.swift"
+	}
+
 	if params.EntityType == heartbeat.FileType && !isFile(params.Entity) {
 		log.Warnf("file '%s' does not exist. ignoring this heartbeat", params.Entity)
 		return nil
@@ -210,4 +215,19 @@ func setLogFields(params *Params) {
 func isFile(filepath string) bool {
 	info, err := os.Stat(filepath)
 	return !(os.IsNotExist(err) || info.IsDir())
+}
+
+func isDir(filepath string) bool {
+	info, _ := os.Stat(filepath)
+	return info.IsDir()
+}
+
+func isPlayground(filepath string) bool {
+	if !(strings.HasSuffix(filepath, ".playground") ||
+		strings.HasSuffix(filepath, ".xcplayground") ||
+		strings.HasSuffix(filepath, ".xcplaygroundpage")) {
+		return false
+	}
+
+	return isDir(filepath)
 }
