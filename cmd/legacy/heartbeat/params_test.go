@@ -280,7 +280,6 @@ func TestLoadParams_ExtraHeartbeats(t *testing.T) {
 			ProjectAlternate:  "billing",
 			ProjectOverride:   "wakatime-cli",
 			Time:              1585598059,
-			UserAgent:         "wakatime/13.0.6",
 			// tested above
 			Language: params.ExtraHeartbeats[0].Language,
 		},
@@ -294,7 +293,6 @@ func TestLoadParams_ExtraHeartbeats(t *testing.T) {
 			Lines:             nil,
 			ProjectOverride:   "wakatime-cli",
 			Time:              1585598060,
-			UserAgent:         "wakatime/13.0.7",
 			// tested above
 			Language: params.ExtraHeartbeats[1].Language,
 		},
@@ -353,7 +351,6 @@ func TestLoadParams_ExtraHeartbeats_WithStringValues(t *testing.T) {
 			Lines:          heartbeat.Int(45),
 			LineNumber:     heartbeat.Int(42),
 			Time:           1585598059,
-			UserAgent:      "wakatime/13.0.6",
 		},
 		{
 			Category:       heartbeat.CodingCategory,
@@ -365,7 +362,6 @@ func TestLoadParams_ExtraHeartbeats_WithStringValues(t *testing.T) {
 			LineNumber:     heartbeat.Int(43),
 			Lines:          heartbeat.Int(46),
 			Time:           1585598060,
-			UserAgent:      "wakatime/13.0.7",
 		},
 	}, params.ExtraHeartbeats)
 }
