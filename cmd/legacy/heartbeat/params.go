@@ -312,7 +312,6 @@ func parseExtraHeartbeat(data string) ([]heartbeat.Heartbeat, error) {
 		ProjectAlternate  string             `json:"alternate_project"`
 		Time              float64            `json:"time"`
 		Timestamp         float64            `json:"timestamp"`
-		UserAgent         string             `json:"user_agent"`
 	}
 
 	err := json.Unmarshal([]byte(data), &incoming)
@@ -363,7 +362,6 @@ func parseExtraHeartbeat(data string) ([]heartbeat.Heartbeat, error) {
 			ProjectAlternate:  h.ProjectAlternate,
 			ProjectOverride:   h.Project,
 			Time:              timestamp,
-			UserAgent:         h.UserAgent,
 		})
 	}
 
@@ -386,7 +384,6 @@ func parseExtraHeartbeatWithStringValues(data string) ([]heartbeat.Heartbeat, er
 		Project           string             `json:"project"`
 		ProjectAlternate  string             `json:"alternate_project"`
 		Timestamp         *string            `json:"timestamp"`
-		UserAgent         string             `json:"user_agent"`
 	}
 
 	err := json.Unmarshal([]byte(data), &incoming)
@@ -480,7 +477,6 @@ func parseExtraHeartbeatWithStringValues(data string) ([]heartbeat.Heartbeat, er
 			ProjectAlternate:  h.ProjectAlternate,
 			ProjectOverride:   h.Project,
 			Time:              timestamp,
-			UserAgent:         h.UserAgent,
 		})
 	}
 
