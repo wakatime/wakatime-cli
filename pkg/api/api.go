@@ -2,11 +2,14 @@ package api
 
 import (
 	"net/http"
-	"time"
 )
 
-// BaseURL is the base url of the wakatime api.
-const BaseURL = "https://api.wakatime.com/api/v1"
+const (
+	// BaseURL is the base url of the wakatime api.
+	BaseURL = "https://api.wakatime.com/api/v1"
+	// DefaultTimeoutSecs is the default timeout used for requests to the wakatime api.
+	DefaultTimeoutSecs = 120
+)
 
 // Client communicates with the wakatime api.
 type Client struct {
@@ -34,7 +37,6 @@ func NewClient(baseURL string, opts ...Option) *Client {
 		client: &http.Client{
 			Transport:     NewTransport(),
 			CheckRedirect: nil, // defaults to following up to 10 redirects
-			Timeout:       30 * time.Second,
 		},
 		doFunc: func(c *Client, req *http.Request) (*http.Response, error) {
 			req.Header.Set("Accept", "application/json")
