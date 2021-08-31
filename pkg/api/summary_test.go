@@ -41,7 +41,7 @@ func TestClient_Summary(t *testing.T) {
 	})
 
 	c := api.NewClient(u)
-	s, err := c.Summary()
+	s, err := c.Today()
 
 	require.NoError(t, err)
 
@@ -70,7 +70,7 @@ func TestClient_SummaryByCategory(t *testing.T) {
 	})
 
 	c := api.NewClient(u)
-	s, err := c.Summary()
+	s, err := c.Today()
 	require.NoError(t, err)
 
 	assert.Equal(t, s, &summary.Summary{
@@ -106,7 +106,7 @@ func TestClient_SummaryWithTimeout(t *testing.T) {
 
 	opts := []api.Option{api.WithTimeout(20 * time.Millisecond)}
 	c := api.NewClient(u, opts...)
-	_, err := c.Summary()
+	_, err := c.Today()
 	require.Error(t, err)
 
 	errMsg := fmt.Sprintf("error %q does not contain string 'Timeout'", err)
@@ -133,7 +133,7 @@ func TestClient_Summary_Err(t *testing.T) {
 	})
 
 	c := api.NewClient(u)
-	_, err := c.Summary()
+	_, err := c.Today()
 
 	var apierr api.Err
 
@@ -153,7 +153,7 @@ func TestClient_Summary_ErrAuth(t *testing.T) {
 	})
 
 	c := api.NewClient(u)
-	_, err := c.Summary()
+	_, err := c.Today()
 
 	var autherr api.ErrAuth
 
@@ -163,7 +163,7 @@ func TestClient_Summary_ErrAuth(t *testing.T) {
 
 func TestClient_Summary_ErrRequest(t *testing.T) {
 	c := api.NewClient("invalid-url")
-	_, err := c.Summary()
+	_, err := c.Today()
 
 	var reqerr api.ErrRequest
 

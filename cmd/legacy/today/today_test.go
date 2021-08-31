@@ -18,7 +18,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestSummary(t *testing.T) {
+func TestToday(t *testing.T) {
 	testServerURL, router, tearDown := setupTestServer()
 	defer tearDown()
 
@@ -54,14 +54,14 @@ func TestSummary(t *testing.T) {
 	v.Set("api-url", testServerURL)
 	v.Set("plugin", plugin)
 
-	output, err := today.Summary(v)
+	output, err := today.Today(v)
 	require.NoError(t, err)
 
 	assert.Equal(t, "10 secs", output)
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
 
-func TestSummary_ErrApi(t *testing.T) {
+func TestToday_ErrApi(t *testing.T) {
 	testServerURL, router, tearDown := setupTestServer()
 	defer tearDown()
 
@@ -77,7 +77,7 @@ func TestSummary_ErrApi(t *testing.T) {
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("api-url", testServerURL)
 
-	_, err := today.Summary(v)
+	_, err := today.Today(v)
 	require.Error(t, err)
 
 	var errapi api.Err
@@ -93,7 +93,7 @@ func TestSummary_ErrApi(t *testing.T) {
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
 
-func TestSummary_ErrAuth(t *testing.T) {
+func TestToday_ErrAuth(t *testing.T) {
 	testServerURL, router, tearDown := setupTestServer()
 	defer tearDown()
 
@@ -109,7 +109,7 @@ func TestSummary_ErrAuth(t *testing.T) {
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("api-url", testServerURL)
 
-	_, err := today.Summary(v)
+	_, err := today.Today(v)
 	require.Error(t, err)
 
 	var errauth api.ErrAuth
@@ -125,9 +125,9 @@ func TestSummary_ErrAuth(t *testing.T) {
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
 
-func TestSummary_ErrAuth_UnsetAPIKey(t *testing.T) {
+func TestToday_ErrAuth_UnsetAPIKey(t *testing.T) {
 	v := viper.New()
-	_, err := today.Summary(v)
+	_, err := today.Today(v)
 	require.Error(t, err)
 
 	var errauth api.ErrAuth

@@ -9,12 +9,12 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/summary"
 )
 
-// Summary fetches code stats for Today.
+// Today fetches code stats for Today.
 //
 // ErrRequest is returned upon request failure with no received response from api.
 // ErrAuth is returned upon receiving a 401 Unauthorized api response.
 // Err is returned on any other api response related error.
-func (c *Client) Summary() (*summary.Summary, error) {
+func (c *Client) Today() (*summary.Summary, error) {
 	url := c.baseURL + "/users/current/statusbar/today"
 
 	req, err := http.NewRequest(http.MethodGet, url, nil)

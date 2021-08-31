@@ -16,7 +16,7 @@ import (
 
 // Run executes the today command.
 func Run(v *viper.Viper) (int, error) {
-	output, err := Summary(v)
+	output, err := Today(v)
 	if err != nil {
 		var errauth api.ErrAuth
 		if errors.As(err, &errauth) {
@@ -46,8 +46,8 @@ func Run(v *viper.Viper) (int, error) {
 	return exitcode.Success, nil
 }
 
-// Summary returns a rendered summary of todays coding activity.
-func Summary(v *viper.Viper) (string, error) {
+// Today returns a rendered summary of todays coding activity.
+func Today(v *viper.Viper) (string, error) {
 	params, err := legacyparams.Load(v)
 	if err != nil {
 		return "", fmt.Errorf("failed to load command parameters: %w", err)
@@ -58,12 +58,12 @@ func Summary(v *viper.Viper) (string, error) {
 		return "", fmt.Errorf("failed to initialize api client: %w", err)
 	}
 
-	parsed, err := apiClient.Summary()
+	s, err := apiClient.Today()
 	if err != nil {
 		return "", fmt.Errorf("failed fetching today from api: %w", err)
 	}
 
-	output, err := summary.RenderToday(parsed)
+	output, err := summary.RenderToday(s)
 	if err != nil {
 		return "", fmt.Errorf("failed generating today output: %s", err)
 	}
