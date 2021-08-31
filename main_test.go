@@ -9,7 +9,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -109,11 +108,16 @@ func testSendHeartbeats(t *testing.T, entity, project string) {
 
 	defer os.Remove(offlineQueueFile.Name())
 
+	tmpFile, err := ioutil.TempFile(os.TempDir(), "wakatime.cfg")
+	require.NoError(t, err)
+
+	defer os.Remove(tmpFile.Name())
+
 	runWakatimeCli(
 		t,
 		"--api-url", apiURL,
 		"--key", "00000000-0000-4000-8000-000000000000",
-		"--config", "testdata/wakatime.cfg",
+		"--config", tmpFile.Name(),
 		"--entity", entity,
 		"--cursorpos", "12",
 		"--offline-queue-file", offlineQueueFile.Name(),
@@ -133,6 +137,11 @@ func TestTodayGoal(t *testing.T) {
 	defer close()
 
 	var numCalls int
+
+	tmpFile, err := ioutil.TempFile(os.TempDir(), "wakatime.cfg")
+	require.NoError(t, err)
+
+	defer os.Remove(tmpFile.Name())
 
 	router.HandleFunc("/users/current/goals/11111111-1111-4111-8111-111111111111",
 		func(w http.ResponseWriter, req *http.Request) {
@@ -157,7 +166,7 @@ func TestTodayGoal(t *testing.T) {
 		t,
 		"--api-url", apiURL,
 		"--key", "00000000-0000-4000-8000-000000000000",
-		"--config", "testdata/wakatime.cfg",
+		"--config", tmpFile.Name(),
 		"--today-goal", "11111111-1111-4111-8111-111111111111",
 		"--verbose",
 	)
@@ -173,7 +182,12 @@ func TestTodaySummary(t *testing.T) {
 
 	var numCalls int
 
-	router.HandleFunc("/users/current/summaries", func(w http.ResponseWriter, req *http.Request) {
+	tmpFile, err := ioutil.TempFile(os.TempDir(), "wakatime.cfg")
+	require.NoError(t, err)
+
+	defer os.Remove(tmpFile.Name())
+
+	router.HandleFunc("/users/current/statusbar/today", func(w http.ResponseWriter, req *http.Request) {
 		numCalls++
 
 		// check request
@@ -182,24 +196,12 @@ func TestTodaySummary(t *testing.T) {
 		assert.Equal(t, []string{"Basic MDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAw"}, req.Header["Authorization"])
 		assert.Equal(t, []string{heartbeat.UserAgentUnknownPlugin()}, req.Header["User-Agent"])
 
-		values, err := url.ParseQuery(req.URL.RawQuery)
-		require.NoError(t, err)
-
-		today := time.Now().Format("2006-01-02")
-
-		assert.Equal(t, url.Values(map[string][]string{
-			"start": {today},
-			"end":   {today},
-		}), values)
-
 		// write response
-		responseBodyTpl, err := ioutil.ReadFile("testdata/api_summaries_response.json.tpl")
+		f, err := os.Open("testdata/api_statusbar_today_response.json")
 		require.NoError(t, err)
-
-		responseBody := fmt.Sprintf(string(responseBodyTpl), today)
 
 		w.WriteHeader(http.StatusOK)
-		_, err = w.Write([]byte(responseBody))
+		_, err = io.Copy(w, f)
 		require.NoError(t, err)
 	})
 
@@ -207,12 +209,12 @@ func TestTodaySummary(t *testing.T) {
 		t,
 		"--api-url", apiURL,
 		"--key", "00000000-0000-4000-8000-000000000000",
-		"--config", "testdata/wakatime.cfg",
+		"--config", tmpFile.Name(),
 		"--today",
 		"--verbose",
 	)
 
-	assert.Equal(t, "10 secs\n", out)
+	assert.Equal(t, "20 secs\n", out)
 
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
@@ -249,11 +251,16 @@ func TestOfflineCountWithOneHeartbeat(t *testing.T) {
 
 	defer os.Remove(offlineQueueFile.Name())
 
+	tmpFile, err := ioutil.TempFile(os.TempDir(), "wakatime.cfg")
+	require.NoError(t, err)
+
+	defer os.Remove(tmpFile.Name())
+
 	runWakatimeCliExpectErr(
 		t,
 		"--api-url", apiURL,
 		"--key", "00000000-0000-4000-8000-000000000000",
-		"--config", "testdata/wakatime.cfg",
+		"--config", tmpFile.Name(),
 		"--entity", "testdata/main.go",
 		"--cursorpos", "12",
 		"--offline-queue-file", offlineQueueFile.Name(),

@@ -9,6 +9,7 @@ import (
 
 	"github.com/wakatime/wakatime-cli/cmd/legacy/legacyparams"
 	"github.com/wakatime/wakatime-cli/pkg/api"
+	"github.com/wakatime/wakatime-cli/pkg/config"
 
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
@@ -159,6 +160,7 @@ func TestLoad_API_APIKey(t *testing.T) {
 			ViperAPIKeyConfigOld: "20000000-0000-4000-8000-000000000000",
 			Expected: legacyparams.Params{
 				API: legacyparams.API{
+
 					Key:      "00000000-0000-4000-8000-000000000000",
 					URL:      "https://api.wakatime.com/api/v1",
 					Hostname: "my-computer",
@@ -170,6 +172,7 @@ func TestLoad_API_APIKey(t *testing.T) {
 			ViperAPIKeyConfigOld: "10000000-0000-4000-8000-000000000000",
 			Expected: legacyparams.Params{
 				API: legacyparams.API{
+
 					Key:      "00000000-0000-4000-8000-000000000000",
 					URL:      "https://api.wakatime.com/api/v1",
 					Hostname: "my-computer",
@@ -180,6 +183,7 @@ func TestLoad_API_APIKey(t *testing.T) {
 			ViperAPIKeyConfigOld: "00000000-0000-4000-8000-000000000000",
 			Expected: legacyparams.Params{
 				API: legacyparams.API{
+
 					Key:      "00000000-0000-4000-8000-000000000000",
 					URL:      "https://api.wakatime.com/api/v1",
 					Hostname: "my-computer",
@@ -241,6 +245,7 @@ func TestLoad_API_APIUrl(t *testing.T) {
 			ViperAPIUrlOld:    "http://localhost:8082",
 			Expected: legacyparams.Params{
 				API: legacyparams.API{
+
 					Key:      "00000000-0000-4000-8000-000000000000",
 					URL:      "http://localhost:8080",
 					Hostname: "my-computer",
@@ -252,6 +257,7 @@ func TestLoad_API_APIUrl(t *testing.T) {
 			ViperAPIUrlOld:    "http://localhost:8082",
 			Expected: legacyparams.Params{
 				API: legacyparams.API{
+
 					Key:      "00000000-0000-4000-8000-000000000000",
 					URL:      "http://localhost:8082",
 					Hostname: "my-computer",
@@ -262,6 +268,7 @@ func TestLoad_API_APIUrl(t *testing.T) {
 			ViperAPIUrlConfig: "http://localhost:8081",
 			Expected: legacyparams.Params{
 				API: legacyparams.API{
+
 					Key:      "00000000-0000-4000-8000-000000000000",
 					URL:      "http://localhost:8081",
 					Hostname: "my-computer",
@@ -272,6 +279,7 @@ func TestLoad_API_APIUrl(t *testing.T) {
 			ViperAPIUrl: "http://localhost:8080/api/v1/heartbeats.bulk",
 			Expected: legacyparams.Params{
 				API: legacyparams.API{
+
 					Key:      "00000000-0000-4000-8000-000000000000",
 					URL:      "http://localhost:8080/api/v1",
 					Hostname: "my-computer",
@@ -282,6 +290,7 @@ func TestLoad_API_APIUrl(t *testing.T) {
 			ViperAPIUrl: "http://localhost:8080/api/",
 			Expected: legacyparams.Params{
 				API: legacyparams.API{
+
 					Key:      "00000000-0000-4000-8000-000000000000",
 					URL:      "http://localhost:8080/api",
 					Hostname: "my-computer",
@@ -292,6 +301,7 @@ func TestLoad_API_APIUrl(t *testing.T) {
 			ViperAPIUrl: "http://localhost:8080/api/heartbeat",
 			Expected: legacyparams.Params{
 				API: legacyparams.API{
+
 					Key:      "00000000-0000-4000-8000-000000000000",
 					URL:      "http://localhost:8080/api",
 					Hostname: "my-computer",
@@ -328,6 +338,63 @@ func TestLoad_APIUrl_Default(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, api.BaseURL, params.API.URL)
+}
+
+func TestLoad_API_BackoffAt(t *testing.T) {
+	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("hostname", "my-computer")
+	v.Set("internal.backoff_at", "2021-08-30T18:50:42-03:00")
+
+	params, err := legacyparams.Load(v)
+	require.NoError(t, err)
+
+	backoffAt, err := time.Parse(config.DateFormat, "2021-08-30T18:50:42-03:00")
+	require.NoError(t, err)
+
+	assert.Equal(t, legacyparams.API{
+		BackoffAt: backoffAt,
+		Key:       "00000000-0000-4000-8000-000000000000",
+		URL:       "https://api.wakatime.com/api/v1",
+		Hostname:  "my-computer",
+	}, params.API)
+}
+
+func TestLoad_API_BackoffAtErr(t *testing.T) {
+	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("hostname", "my-computer")
+	v.Set("internal.backoff_at", "2021-08-30")
+
+	params, err := legacyparams.Load(v)
+	require.NoError(t, err)
+
+	assert.Equal(t, legacyparams.API{
+		BackoffAt: time.Time{},
+		Key:       "00000000-0000-4000-8000-000000000000",
+		URL:       "https://api.wakatime.com/api/v1",
+		Hostname:  "my-computer",
+	}, params.API)
+}
+
+func TestLoad_API_BackoffRetries(t *testing.T) {
+	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("hostname", "my-computer")
+	v.Set("internal.backoff_retries", "3")
+
+	params, err := legacyparams.Load(v)
+	require.NoError(t, err)
+
+	assert.Equal(t, legacyparams.API{
+		BackoffRetries: 3,
+		Key:            "00000000-0000-4000-8000-000000000000",
+		URL:            "https://api.wakatime.com/api/v1",
+		Hostname:       "my-computer",
+	}, params.API)
 }
 
 func TestLoad_API_Plugin(t *testing.T) {

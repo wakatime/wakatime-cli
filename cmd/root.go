@@ -4,6 +4,7 @@ import (
 	"strconv"
 
 	"github.com/wakatime/wakatime-cli/cmd/legacy"
+	"github.com/wakatime/wakatime-cli/pkg/api"
 	"github.com/wakatime/wakatime-cli/pkg/offline"
 
 	log "github.com/sirupsen/logrus"
@@ -12,12 +13,8 @@ import (
 	"gopkg.in/ini.v1"
 )
 
-const (
-	// defaultConfigSection is the default section in the wakatime ini config file.
-	defaultConfigSection = "settings"
-	// defaultTimeoutSecs is the default timeout used for requests to the wakatime api.
-	defaultTimeoutSecs = 60
-)
+// defaultConfigSection is the default section in the wakatime ini config file.
+const defaultConfigSection = "settings"
 
 // NewRootCMD creates a rootCmd, which represents the base command when called without any subcommands.
 func NewRootCMD() *cobra.Command {
@@ -184,8 +181,8 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 	flags.Bool("offline-count", false, "Prints the number of heartbeats in the offline db, then exits.")
 	flags.Int(
 		"timeout",
-		defaultTimeoutSecs,
-		"Number of seconds to wait when sending heartbeats to api. Defaults to 60 seconds.",
+		api.DefaultTimeoutSecs,
+		"Number of seconds to wait when sending heartbeats to api. Defaults to 120 seconds.",
 	)
 	flags.Float64("time", 0, "Optional floating-point unix epoch timestamp. Uses current time by default.")
 	flags.Bool("today", false, "Prints dashboard time for Today, then exits.")

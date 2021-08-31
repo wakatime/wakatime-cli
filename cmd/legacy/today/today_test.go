@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -19,17 +18,16 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestSummary(t *testing.T) {
+func TestToday(t *testing.T) {
 	testServerURL, router, tearDown := setupTestServer()
 	defer tearDown()
 
 	var (
-		dateToday = time.Now().Format("2006-01-02")
-		plugin    = "plugin/0.0.1"
-		numCalls  int
+		plugin   = "plugin/0.0.1"
+		numCalls int
 	)
 
-	router.HandleFunc("/users/current/summaries", func(w http.ResponseWriter, req *http.Request) {
+	router.HandleFunc("/users/current/statusbar/today", func(w http.ResponseWriter, req *http.Request) {
 		numCalls++
 
 		// check request
@@ -42,19 +40,11 @@ func TestSummary(t *testing.T) {
 			plugin,
 		))
 
-		values, err := url.ParseQuery(req.URL.RawQuery)
-		require.NoError(t, err)
-
-		assert.Equal(t, url.Values(map[string][]string{
-			"start": {dateToday},
-			"end":   {dateToday},
-		}), values)
-
 		// write response
-		data, err := ioutil.ReadFile("testdata/api_summaries_response_template.json")
+		data, err := ioutil.ReadFile("testdata/api_statusbar_today_response_template.json")
 		require.NoError(t, err)
 
-		_, err = w.Write([]byte(fmt.Sprintf(string(data), dateToday)))
+		_, err = w.Write([]byte(string(data)))
 		require.NoError(t, err)
 	})
 
@@ -64,20 +54,20 @@ func TestSummary(t *testing.T) {
 	v.Set("api-url", testServerURL)
 	v.Set("plugin", plugin)
 
-	output, err := today.Summary(v)
+	output, err := today.Today(v)
 	require.NoError(t, err)
 
 	assert.Equal(t, "10 secs", output)
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
 
-func TestSummary_ErrApi(t *testing.T) {
+func TestToday_ErrApi(t *testing.T) {
 	testServerURL, router, tearDown := setupTestServer()
 	defer tearDown()
 
 	var numCalls int
 
-	router.HandleFunc("/users/current/summaries", func(w http.ResponseWriter, req *http.Request) {
+	router.HandleFunc("/users/current/statusbar/today", func(w http.ResponseWriter, req *http.Request) {
 		numCalls++
 		w.WriteHeader(http.StatusInternalServerError)
 	})
@@ -87,7 +77,7 @@ func TestSummary_ErrApi(t *testing.T) {
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("api-url", testServerURL)
 
-	_, err := today.Summary(v)
+	_, err := today.Today(v)
 	require.Error(t, err)
 
 	var errapi api.Err
@@ -95,21 +85,21 @@ func TestSummary_ErrApi(t *testing.T) {
 	assert.True(t, errors.As(err, &errapi))
 
 	expectedMsg := fmt.Sprintf(
-		`failed fetching summaries from api: `+
-			`invalid response status from "%s/users/current/summaries". got: 500, want: 200. body: ""`,
+		`failed fetching today from api: `+
+			`invalid response status from "%s/users/current/statusbar/today". got: 500, want: 200. body: ""`,
 		testServerURL,
 	)
 	assert.Equal(t, expectedMsg, err.Error())
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
 
-func TestSummary_ErrAuth(t *testing.T) {
+func TestToday_ErrAuth(t *testing.T) {
 	testServerURL, router, tearDown := setupTestServer()
 	defer tearDown()
 
 	var numCalls int
 
-	router.HandleFunc("/users/current/summaries", func(w http.ResponseWriter, req *http.Request) {
+	router.HandleFunc("/users/current/statusbar/today", func(w http.ResponseWriter, req *http.Request) {
 		numCalls++
 		w.WriteHeader(http.StatusUnauthorized)
 	})
@@ -119,7 +109,7 @@ func TestSummary_ErrAuth(t *testing.T) {
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("api-url", testServerURL)
 
-	_, err := today.Summary(v)
+	_, err := today.Today(v)
 	require.Error(t, err)
 
 	var errauth api.ErrAuth
@@ -127,17 +117,17 @@ func TestSummary_ErrAuth(t *testing.T) {
 	assert.True(t, errors.As(err, &errauth))
 
 	expectedMsg := fmt.Sprintf(
-		`failed fetching summaries from api: `+
-			`authentication failed at "%s/users/current/summaries". body: ""`,
+		`failed fetching today from api: `+
+			`authentication failed at "%s/users/current/statusbar/today". body: ""`,
 		testServerURL,
 	)
 	assert.Equal(t, expectedMsg, err.Error())
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
 
-func TestSummary_ErrAuth_UnsetAPIKey(t *testing.T) {
+func TestToday_ErrAuth_UnsetAPIKey(t *testing.T) {
 	v := viper.New()
-	_, err := today.Summary(v)
+	_, err := today.Today(v)
 	require.Error(t, err)
 
 	var errauth api.ErrAuth

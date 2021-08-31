@@ -247,8 +247,30 @@ func TestUserAgent(t *testing.T) {
 }
 
 func TestPluginFromUserAgent(t *testing.T) {
-	userAgent := "wakatime/0.0.1 (linux-4.13.0-38-generic-x86_64) go1.15.3 testplugin/14.0.7"
-	assert.Equal(t, "testplugin", heartbeat.PluginFromUserAgent(userAgent))
+	tests := map[string]struct {
+		UserAgent string
+		Expected  string
+	}{
+		"full information": {
+			UserAgent: "wakatime/0.0.1 (linux-4.13.0-38-generic-x86_64) go1.15.3 testplugin/14.0.7",
+			Expected:  "testplugin",
+		},
+		"less information": {
+			UserAgent: "wakatime/0.0.1 testplugin/14.0.7",
+			Expected:  "testplugin",
+		},
+		"minimum information": {
+			UserAgent: "testplugin/14.0.7",
+			Expected:  "testplugin",
+		},
+		"string empty": {},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			assert.Equal(t, test.Expected, heartbeat.PluginFromUserAgent(test.UserAgent))
+		})
+	}
 }
 
 type mockSender struct {

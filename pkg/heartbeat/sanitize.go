@@ -20,7 +20,7 @@ type SanitizeConfig struct {
 }
 
 // WithSanitization initializes and returns a heartbeat handle option, which
-// can be used in a heartbeat processing pipeline.
+// can be used in a heartbeat processing pipeline to hide sensitive data.
 func WithSanitization(config SanitizeConfig) HandleOption {
 	return func(next Handle) Handle {
 		return func(hh []Heartbeat) ([]Result, error) {

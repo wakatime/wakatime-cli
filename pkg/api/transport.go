@@ -12,7 +12,7 @@ import (
 func NewTransport() *http.Transport {
 	return &http.Transport{
 		Proxy:               nil,
-		TLSHandshakeTimeout: 30 * time.Second,
+		TLSHandshakeTimeout: DefaultTimeoutSecs * time.Second,
 		MaxIdleConns:        1,
 		MaxIdleConnsPerHost: 1,
 		MaxConnsPerHost:     1,

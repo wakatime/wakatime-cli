@@ -8,6 +8,7 @@ import (
 
 	"github.com/wakatime/wakatime-cli/cmd/legacy/legacyapi"
 	"github.com/wakatime/wakatime-cli/pkg/api"
+	"github.com/wakatime/wakatime-cli/pkg/backoff"
 	"github.com/wakatime/wakatime-cli/pkg/deps"
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
 	"github.com/wakatime/wakatime-cli/pkg/filestats"
@@ -171,6 +172,12 @@ func SendHeartbeats(v *viper.Viper, queueFilepath string) error {
 
 		handleOpts = append(handleOpts, offlineHandleOpt)
 	}
+
+	handleOpts = append(handleOpts, backoff.WithBackoff(backoff.Config{
+		V:       v,
+		At:      params.API.BackoffAt,
+		Retries: params.API.BackoffRetries,
+	}))
 
 	apiClient, err := legacyapi.NewClient(params.API)
 	if err != nil {
