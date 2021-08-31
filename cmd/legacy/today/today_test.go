@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -24,12 +23,11 @@ func TestSummary(t *testing.T) {
 	defer tearDown()
 
 	var (
-		dateToday = time.Now().Format("2006-01-02")
-		plugin    = "plugin/0.0.1"
-		numCalls  int
+		plugin   = "plugin/0.0.1"
+		numCalls int
 	)
 
-	router.HandleFunc("/users/current/summaries", func(w http.ResponseWriter, req *http.Request) {
+	router.HandleFunc("/users/current/statusbar/today", func(w http.ResponseWriter, req *http.Request) {
 		numCalls++
 
 		// check request
@@ -42,19 +40,11 @@ func TestSummary(t *testing.T) {
 			plugin,
 		))
 
-		values, err := url.ParseQuery(req.URL.RawQuery)
-		require.NoError(t, err)
-
-		assert.Equal(t, url.Values(map[string][]string{
-			"start": {dateToday},
-			"end":   {dateToday},
-		}), values)
-
 		// write response
-		data, err := ioutil.ReadFile("testdata/api_summaries_response_template.json")
+		data, err := ioutil.ReadFile("testdata/api_statusbar_today_response_template.json")
 		require.NoError(t, err)
 
-		_, err = w.Write([]byte(fmt.Sprintf(string(data), dateToday)))
+		_, err = w.Write([]byte(string(data)))
 		require.NoError(t, err)
 	})
 
@@ -77,7 +67,7 @@ func TestSummary_ErrApi(t *testing.T) {
 
 	var numCalls int
 
-	router.HandleFunc("/users/current/summaries", func(w http.ResponseWriter, req *http.Request) {
+	router.HandleFunc("/users/current/statusbar/today", func(w http.ResponseWriter, req *http.Request) {
 		numCalls++
 		w.WriteHeader(http.StatusInternalServerError)
 	})
@@ -95,8 +85,8 @@ func TestSummary_ErrApi(t *testing.T) {
 	assert.True(t, errors.As(err, &errapi))
 
 	expectedMsg := fmt.Sprintf(
-		`failed fetching summaries from api: `+
-			`invalid response status from "%s/users/current/summaries". got: 500, want: 200. body: ""`,
+		`failed fetching today from api: `+
+			`invalid response status from "%s/users/current/statusbar/today". got: 500, want: 200. body: ""`,
 		testServerURL,
 	)
 	assert.Equal(t, expectedMsg, err.Error())
@@ -109,7 +99,7 @@ func TestSummary_ErrAuth(t *testing.T) {
 
 	var numCalls int
 
-	router.HandleFunc("/users/current/summaries", func(w http.ResponseWriter, req *http.Request) {
+	router.HandleFunc("/users/current/statusbar/today", func(w http.ResponseWriter, req *http.Request) {
 		numCalls++
 		w.WriteHeader(http.StatusUnauthorized)
 	})
@@ -127,8 +117,8 @@ func TestSummary_ErrAuth(t *testing.T) {
 	assert.True(t, errors.As(err, &errauth))
 
 	expectedMsg := fmt.Sprintf(
-		`failed fetching summaries from api: `+
-			`authentication failed at "%s/users/current/summaries". body: ""`,
+		`failed fetching today from api: `+
+			`authentication failed at "%s/users/current/statusbar/today". body: ""`,
 		testServerURL,
 	)
 	assert.Equal(t, expectedMsg, err.Error())

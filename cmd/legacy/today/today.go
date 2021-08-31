@@ -3,7 +3,6 @@ package today
 import (
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/wakatime/wakatime-cli/cmd/legacy/legacyapi"
 	"github.com/wakatime/wakatime-cli/cmd/legacy/legacyparams"
@@ -22,7 +21,7 @@ func Run(v *viper.Viper) (int, error) {
 		var errauth api.ErrAuth
 		if errors.As(err, &errauth) {
 			return exitcode.ErrAuth, fmt.Errorf(
-				"failed to fetch today summary: %s. Find your api key from wakatime.com/settings/api-key",
+				"failed to fetch today: %s. Find your api key from wakatime.com/settings/api-key",
 				errauth,
 			)
 		}
@@ -30,18 +29,18 @@ func Run(v *viper.Viper) (int, error) {
 		var errapi api.Err
 		if errors.As(err, &errapi) {
 			return exitcode.ErrAPI, fmt.Errorf(
-				"failed to fetch today summary due to api error: %s",
+				"failed to fetch today due to api error: %s",
 				err,
 			)
 		}
 
 		return exitcode.ErrDefault, fmt.Errorf(
-			"failed to fetch today summary: %s",
+			"failed to fetch today: %s",
 			err,
 		)
 	}
 
-	log.Debugln("successfully fetched today summary")
+	log.Debugln("successfully fetched today for status bar")
 	fmt.Println(output)
 
 	return exitcode.Success, nil
@@ -59,18 +58,14 @@ func Summary(v *viper.Viper) (string, error) {
 		return "", fmt.Errorf("failed to initialize api client: %w", err)
 	}
 
-	now := time.Now()
-	todayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
-	todayEnd := time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 59, int(time.Second-time.Nanosecond), now.Location())
-
-	summaries, err := apiClient.Summaries(todayStart, todayEnd)
+	parsed, err := apiClient.Summary()
 	if err != nil {
-		return "", fmt.Errorf("failed fetching summaries from api: %w", err)
+		return "", fmt.Errorf("failed fetching today from api: %w", err)
 	}
 
-	output, err := summary.RenderToday(summaries)
+	output, err := summary.RenderToday(parsed)
 	if err != nil {
-		return "", fmt.Errorf("failed generating today summary output: %s", err)
+		return "", fmt.Errorf("failed generating today output: %s", err)
 	}
 
 	return output, nil
