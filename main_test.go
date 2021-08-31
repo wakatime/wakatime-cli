@@ -9,7 +9,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -173,7 +172,7 @@ func TestTodaySummary(t *testing.T) {
 
 	var numCalls int
 
-	router.HandleFunc("/users/current/summaries", func(w http.ResponseWriter, req *http.Request) {
+	router.HandleFunc("/users/current/statusbar/today", func(w http.ResponseWriter, req *http.Request) {
 		numCalls++
 
 		// check request
@@ -182,24 +181,12 @@ func TestTodaySummary(t *testing.T) {
 		assert.Equal(t, []string{"Basic MDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAw"}, req.Header["Authorization"])
 		assert.Equal(t, []string{heartbeat.UserAgentUnknownPlugin()}, req.Header["User-Agent"])
 
-		values, err := url.ParseQuery(req.URL.RawQuery)
-		require.NoError(t, err)
-
-		today := time.Now().Format("2006-01-02")
-
-		assert.Equal(t, url.Values(map[string][]string{
-			"start": {today},
-			"end":   {today},
-		}), values)
-
 		// write response
-		responseBodyTpl, err := ioutil.ReadFile("testdata/api_summaries_response.json.tpl")
+		f, err := os.Open("testdata/api_statusbar_today_response.json")
 		require.NoError(t, err)
-
-		responseBody := fmt.Sprintf(string(responseBodyTpl), today)
 
 		w.WriteHeader(http.StatusOK)
-		_, err = w.Write([]byte(responseBody))
+		_, err = io.Copy(w, f)
 		require.NoError(t, err)
 	})
 
@@ -212,7 +199,7 @@ func TestTodaySummary(t *testing.T) {
 		"--verbose",
 	)
 
-	assert.Equal(t, "10 secs\n", out)
+	assert.Equal(t, "20 secs\n", out)
 
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
