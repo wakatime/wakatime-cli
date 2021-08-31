@@ -108,11 +108,16 @@ func testSendHeartbeats(t *testing.T, entity, project string) {
 
 	defer os.Remove(offlineQueueFile.Name())
 
+	tmpFile, err := ioutil.TempFile(os.TempDir(), "wakatime.cfg")
+	require.NoError(t, err)
+
+	defer os.Remove(tmpFile.Name())
+
 	runWakatimeCli(
 		t,
 		"--api-url", apiURL,
 		"--key", "00000000-0000-4000-8000-000000000000",
-		"--config", "testdata/wakatime.cfg",
+		"--config", tmpFile.Name(),
 		"--entity", entity,
 		"--cursorpos", "12",
 		"--offline-queue-file", offlineQueueFile.Name(),
@@ -132,6 +137,11 @@ func TestTodayGoal(t *testing.T) {
 	defer close()
 
 	var numCalls int
+
+	tmpFile, err := ioutil.TempFile(os.TempDir(), "wakatime.cfg")
+	require.NoError(t, err)
+
+	defer os.Remove(tmpFile.Name())
 
 	router.HandleFunc("/users/current/goals/11111111-1111-4111-8111-111111111111",
 		func(w http.ResponseWriter, req *http.Request) {
@@ -156,7 +166,7 @@ func TestTodayGoal(t *testing.T) {
 		t,
 		"--api-url", apiURL,
 		"--key", "00000000-0000-4000-8000-000000000000",
-		"--config", "testdata/wakatime.cfg",
+		"--config", tmpFile.Name(),
 		"--today-goal", "11111111-1111-4111-8111-111111111111",
 		"--verbose",
 	)
@@ -171,6 +181,11 @@ func TestTodaySummary(t *testing.T) {
 	defer close()
 
 	var numCalls int
+
+	tmpFile, err := ioutil.TempFile(os.TempDir(), "wakatime.cfg")
+	require.NoError(t, err)
+
+	defer os.Remove(tmpFile.Name())
 
 	router.HandleFunc("/users/current/statusbar/today", func(w http.ResponseWriter, req *http.Request) {
 		numCalls++
@@ -194,7 +209,7 @@ func TestTodaySummary(t *testing.T) {
 		t,
 		"--api-url", apiURL,
 		"--key", "00000000-0000-4000-8000-000000000000",
-		"--config", "testdata/wakatime.cfg",
+		"--config", tmpFile.Name(),
 		"--today",
 		"--verbose",
 	)
@@ -236,11 +251,16 @@ func TestOfflineCountWithOneHeartbeat(t *testing.T) {
 
 	defer os.Remove(offlineQueueFile.Name())
 
+	tmpFile, err := ioutil.TempFile(os.TempDir(), "wakatime.cfg")
+	require.NoError(t, err)
+
+	defer os.Remove(tmpFile.Name())
+
 	runWakatimeCliExpectErr(
 		t,
 		"--api-url", apiURL,
 		"--key", "00000000-0000-4000-8000-000000000000",
-		"--config", "testdata/wakatime.cfg",
+		"--config", tmpFile.Name(),
 		"--entity", "testdata/main.go",
 		"--cursorpos", "12",
 		"--offline-queue-file", offlineQueueFile.Name(),

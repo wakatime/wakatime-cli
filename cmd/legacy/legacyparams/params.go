@@ -9,10 +9,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mitchellh/go-homedir"
 	"github.com/wakatime/wakatime-cli/pkg/api"
+	"github.com/wakatime/wakatime-cli/pkg/config"
+	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/vipertools"
 
+	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/viper"
 )
 
@@ -40,6 +42,8 @@ type Params struct {
 
 // API contains api related parameters.
 type API struct {
+	BackoffAt        time.Time
+	BackoffRetries   int
 	DisableSSLVerify bool
 	Hostname         string
 	Key              string
@@ -52,11 +56,19 @@ type API struct {
 
 // String implements fmt.Stringer interface.
 func (p API) String() string {
+	var backoffAt string
+	if !p.BackoffAt.IsZero() {
+		backoffAt = p.BackoffAt.Format(config.DateFormat)
+	}
+
 	return fmt.Sprintf(
-		"api key: '%s', api url: '%s', hostname: '%s', plugin: '%s', timeout: %s,"+
-			" disable ssl verify: %t, proxy url: '%s', ssl cert filepath: '%s'",
+		"api key: '%s', api url: '%s', backoff at: '%s', backoff retries: %d,"+
+			" hostname: '%s', plugin: '%s', timeout: %s, disable ssl verify: %t,"+
+			" proxy url: '%s', ssl cert filepath: '%s'",
 		p.Key[:4]+"...",
 		p.URL,
+		backoffAt,
+		p.BackoffRetries,
 		p.Hostname,
 		p.Plugin,
 		p.Timeout,
@@ -133,6 +145,20 @@ func loadAPIParams(v *viper.Viper) (API, error) {
 	apiURL = strings.TrimSuffix(apiURL, "/heartbeats")
 	apiURL = strings.TrimSuffix(apiURL, "/heartbeat")
 
+	var backoffAt time.Time
+
+	backoffAtStr := vipertools.GetString(v, "internal.backoff_at")
+	if backoffAtStr != "" {
+		parsed, err := time.Parse(config.DateFormat, backoffAtStr)
+		if err != nil {
+			log.Warnf("failed to parse backoff_at: %s", err)
+		} else {
+			backoffAt = parsed
+		}
+	}
+
+	backoffRetries, _ := vipertools.FirstNonEmptyInt(v, "internal.backoff_retries")
+
 	var (
 		hostname string
 		err      error
@@ -178,6 +204,8 @@ func loadAPIParams(v *viper.Viper) (API, error) {
 	}
 
 	return API{
+		BackoffAt:        backoffAt,
+		BackoffRetries:   backoffRetries,
 		DisableSSLVerify: vipertools.FirstNonEmptyBool(v, "no-ssl-verify", "settings.no_ssl_verify"),
 		Hostname:         hostname,
 		Key:              apiKey,

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/vipertools"
@@ -14,8 +15,12 @@ import (
 	"gopkg.in/ini.v1"
 )
 
-// defaultFile is the name of the default wakatime config file.
-const defaultFile = ".wakatime.cfg"
+const (
+	// defaultFile is the name of the default wakatime config file.
+	defaultFile = ".wakatime.cfg"
+	// DateFormat is the default format for date in config file.
+	DateFormat = time.RFC3339
+)
 
 // Writer defines the methods to write to config file.
 type Writer interface {
@@ -35,7 +40,7 @@ func NewIniWriter(v *viper.Viper, filepathFn func(v *viper.Viper) (string, error
 		return nil, fmt.Errorf("error getting filepath: %s", err)
 	}
 
-	ini, err := ini.Load(configFilepath)
+	ini, err := ini.LoadSources(ini.LoadOptions{AllowPythonMultilineValues: true}, configFilepath)
 	if err != nil {
 		return nil, fmt.Errorf("error loading config file: %s", err)
 	}

@@ -308,7 +308,7 @@ func TestSanitize_EmptyConfigDoNothing_EmptyDependencies(t *testing.T) {
 	}, r)
 }
 
-func TestSouldSanitize(t *testing.T) {
+func TestShouldSanitize(t *testing.T) {
 	tests := map[string]struct {
 		Subject  string
 		Regex    []regex.Regex
@@ -341,9 +341,9 @@ func TestSouldSanitize(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			souldSanitize := heartbeat.ShouldSanitize(test.Subject, test.Regex)
+			shouldSanitize := heartbeat.ShouldSanitize(test.Subject, test.Regex)
 
-			assert.Equal(t, test.Expected, souldSanitize)
+			assert.Equal(t, test.Expected, shouldSanitize)
 		})
 	}
 }
