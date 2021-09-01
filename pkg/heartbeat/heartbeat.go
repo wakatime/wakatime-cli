@@ -167,7 +167,10 @@ func UserAgentUnknownPlugin() string {
 // UserAgent generates a user agent from various system infos, including a
 // a passed in value for plugin.
 func UserAgent(plugin string) string {
-	info := goInfo.GetInfo()
+	info, err := goInfo.GetInfo()
+	if err != nil {
+		log.Debugf("goInfo.GetInfo error: %s", err)
+	}
 
 	return fmt.Sprintf(
 		"wakatime/%s (%s-%s-%s) %s %s",

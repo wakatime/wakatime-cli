@@ -229,7 +229,9 @@ func TestOption_WithUserAgent(t *testing.T) {
 	var numCalls int
 
 	router.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
-		info := goInfo.GetInfo()
+		info, err := goInfo.GetInfo()
+		require.NoError(t, err)
+
 		expected := fmt.Sprintf(
 			"wakatime/%s (%s-%s-%s) %s testplugin",
 			version.Version,
@@ -264,7 +266,9 @@ func TestOption_WithUserAgentUnknownPlugin(t *testing.T) {
 	var numCalls int
 
 	router.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
-		info := goInfo.GetInfo()
+		info, err := goInfo.GetInfo()
+		require.NoError(t, err)
+
 		expected := fmt.Sprintf(
 			"wakatime/%s (%s-%s-%s) %s Unknown/0",
 			version.Version,

@@ -219,7 +219,9 @@ func TestNewHandle(t *testing.T) {
 }
 
 func TestUserAgentUnknownPlugin(t *testing.T) {
-	info := goInfo.GetInfo()
+	info, err := goInfo.GetInfo()
+	require.NoError(t, err)
+
 	expected := fmt.Sprintf(
 		"wakatime/%s (%s-%s-%s) %s Unknown/0",
 		version.Version,
@@ -233,7 +235,9 @@ func TestUserAgentUnknownPlugin(t *testing.T) {
 }
 
 func TestUserAgent(t *testing.T) {
-	info := goInfo.GetInfo()
+	info, err := goInfo.GetInfo()
+	require.NoError(t, err)
+
 	expected := fmt.Sprintf(
 		"wakatime/%s (%s-%s-%s) %s testplugin",
 		version.Version,
