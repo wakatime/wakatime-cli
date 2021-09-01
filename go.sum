@@ -322,6 +322,14 @@ github.com/wakatime/chroma v0.8.2-wakatime.7 h1:2fXUt39QsD9HwI0X8vMs6hU3lHLGSnsJ
 github.com/wakatime/chroma v0.8.2-wakatime.7/go.mod h1:Mldbmbb8NHiOz8oC1HKR8xUQ0EPvAjZpKDyQl2nGrnQ=
 github.com/wakatime/goInfo v0.1.0-wakatime.2 h1:CaPbE4l8yv6s2Oj+yAEkYHfMY6BJ09tNjdGboUvZu4g=
 github.com/wakatime/goInfo v0.1.0-wakatime.2/go.mod h1:aEt7p9Rvh67BYApmZwNDPpgircTO2kgdmDUoF/1QmwA=
+github.com/wakatime/goInfo v0.1.0-wakatime.3 h1:pw+w/781qONIHDVZIgJo7DBeWSXwRGbbM/TT1+kPt3w=
+github.com/wakatime/goInfo v0.1.0-wakatime.3/go.mod h1:aEt7p9Rvh67BYApmZwNDPpgircTO2kgdmDUoF/1QmwA=
+github.com/wakatime/goInfo v0.1.0-wakatime.4 h1:dB8Zr30MsB7nnJYQJrCoXiExK5F31MKM2pBtpUkqxeg=
+github.com/wakatime/goInfo v0.1.0-wakatime.4/go.mod h1:aEt7p9Rvh67BYApmZwNDPpgircTO2kgdmDUoF/1QmwA=
+github.com/wakatime/goInfo v0.1.0-wakatime.5 h1:UHJH3F1xLtheV0YCwfeVhN4HPHU3tsz8UkHyNxuZUbM=
+github.com/wakatime/goInfo v0.1.0-wakatime.5/go.mod h1:aEt7p9Rvh67BYApmZwNDPpgircTO2kgdmDUoF/1QmwA=
+github.com/wakatime/goInfo v0.1.0-wakatime.6 h1:90ikk7UzuEaO4dpXzOIlL+NdGgij7Bo3DsPh/XGODqA=
+github.com/wakatime/goInfo v0.1.0-wakatime.6/go.mod h1:aEt7p9Rvh67BYApmZwNDPpgircTO2kgdmDUoF/1QmwA=
 github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2/go.mod h1:UETIi67q53MR2AWcXfiuqkDkRtnGDLqkBTpCHuJHxtU=
 github.com/yookoala/realpath v1.0.0 h1:7OA9pj4FZd+oZDsyvXWQvjn5oBdcHRTV44PpdMSuImQ=
 github.com/yookoala/realpath v1.0.0/go.mod h1:gJJMA9wuX7AcqLy1+ffPatSCySA1FQ2S8Ya9AIoYBpE=
