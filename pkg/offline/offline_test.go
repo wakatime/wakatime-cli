@@ -455,7 +455,7 @@ func TestSync_MultipleRequests(t *testing.T) {
 	dataGo, err := ioutil.ReadFile("testdata/heartbeat_go.json")
 	require.NoError(t, err)
 
-	for i := 0; i < 25; i++ {
+	for i := 0; i < 11; i++ {
 		insertHeartbeatRecord(t, db, "heartbeats", heartbeatRecord{
 			ID:        strconv.Itoa(i) + "1592868367.219124-file-coding-wakatime-cli-heartbeat-/tmp/main.go-true",
 			Heartbeat: string(dataGo),
@@ -474,7 +474,7 @@ func TestSync_MultipleRequests(t *testing.T) {
 
 		// first request
 		if numCalls == 1 {
-			assert.Len(t, hh, 24)
+			assert.Len(t, hh, 10)
 
 			result := heartbeat.Result{
 				Status:    http.StatusCreated,
@@ -484,9 +484,7 @@ func TestSync_MultipleRequests(t *testing.T) {
 			return []heartbeat.Result{
 				result, result, result, result, result,
 				result, result, result, result, result,
-				result, result, result, result, result,
-				result, result, result, result, result,
-				result, result, result, result, result,
+				result,
 			}, nil
 		}
 
