@@ -32,7 +32,7 @@ const (
 	maxRequeueAttempts = 3
 	// sendLimit is the maximum number of heartbeats, which will be sent at once
 	// to the WakaTime API.
-	sendLimit = 24
+	sendLimit = 10
 )
 
 // QueueFilepath returns the path for offline queue db file.
