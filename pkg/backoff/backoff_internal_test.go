@@ -3,10 +3,12 @@ package backoff
 import (
 	"io/ioutil"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/wakatime/wakatime-cli/pkg/config"
+	"github.com/wakatime/wakatime-cli/pkg/ini"
 
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
@@ -50,16 +52,16 @@ func TestUpdateBackoffSettings(t *testing.T) {
 	err = updateBackoffSettings(v, 2, at)
 	require.NoError(t, err)
 
-	ini, err := config.NewIniWriter(v, func(vp *viper.Viper) (string, error) {
+	writer, err := config.NewIniWriter(v, func(vp *viper.Viper) (string, error) {
 		assert.Equal(t, v, vp)
 		return tmpFile.Name(), nil
 	})
 	require.NoError(t, err)
 
-	backoffAt := ini.File.Section("internal").Key("backoff_at").MustTimeFormat(config.DateFormat)
+	backoffAt := writer.File.Section("internal").Key("backoff_at").MustTimeFormat(config.DateFormat)
 
 	assert.WithinDuration(t, time.Now(), backoffAt, 15*time.Second)
-	assert.Equal(t, "2", ini.File.Section("internal").Key("backoff_retries").String())
+	assert.Equal(t, "2", writer.File.Section("internal").Key("backoff_retries").String())
 }
 
 func TestUpdateBackoffSettings_NotInBackoff(t *testing.T) {
@@ -75,12 +77,59 @@ func TestUpdateBackoffSettings_NotInBackoff(t *testing.T) {
 	err = updateBackoffSettings(v, 0, time.Time{})
 	require.NoError(t, err)
 
-	ini, err := config.NewIniWriter(v, func(vp *viper.Viper) (string, error) {
+	writer, err := config.NewIniWriter(v, func(vp *viper.Viper) (string, error) {
 		assert.Equal(t, v, vp)
 		return tmpFile.Name(), nil
 	})
 	require.NoError(t, err)
 
-	assert.Empty(t, ini.File.Section("internal").Key("backoff_at").String())
-	assert.Equal(t, "0", ini.File.Section("internal").Key("backoff_retries").String())
+	assert.Empty(t, writer.File.Section("internal").Key("backoff_at").String())
+	assert.Equal(t, "0", writer.File.Section("internal").Key("backoff_retries").String())
+}
+
+func TestUpdateBackoffSettings_NoMultilineSideEffects(t *testing.T) {
+	v := viper.New()
+
+	tmpFile, err := ioutil.TempFile(os.TempDir(), "wakatime")
+	require.NoError(t, err)
+
+	defer os.Remove(tmpFile.Name())
+
+	v.Set("config", tmpFile.Name())
+
+	copyFile(t, "testdata/multiline.cfg", tmpFile.Name())
+
+	err = updateBackoffSettings(v, 0, time.Time{})
+	require.NoError(t, err)
+
+	writer, err := config.NewIniWriter(v, func(vp *viper.Viper) (string, error) {
+		assert.Equal(t, v, vp)
+		return tmpFile.Name(), nil
+	})
+	require.NoError(t, err)
+
+	assert.Equal(t, "\none\ntwo", writer.File.Section("settings").Key("ignore").String())
+	assert.Empty(t, writer.File.Section("internal").Key("backoff_at").String())
+	assert.Equal(t, "0", writer.File.Section("internal").Key("backoff_retries").String())
+
+	item, err := ini.GetKey(tmpFile.Name(), ini.Key{Section: "settings", Name: "ignore"})
+	require.NoError(t, err)
+
+	assert.Equal(t, "\n one\n two", item.Value)
+
+	actual, err := ioutil.ReadFile(tmpFile.Name())
+	require.NoError(t, err)
+
+	expected, err := ioutil.ReadFile("testdata/multiline_expected.cfg")
+	require.NoError(t, err)
+
+	assert.Equal(t, strings.ReplaceAll(string(expected), "\r", ""), string(actual))
+}
+
+func copyFile(t *testing.T, source, destination string) {
+	input, err := ioutil.ReadFile(source)
+	require.NoError(t, err)
+
+	err = ioutil.WriteFile(destination, input, 0600)
+	require.NoError(t, err)
 }
