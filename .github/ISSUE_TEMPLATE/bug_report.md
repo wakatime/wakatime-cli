@@ -4,19 +4,20 @@ about: Report a bug to help us improve WakaTime CLI
 labels: kind/bug
 ---
 <!--
-Thank you for sending a bug report! Here are some tips:
-
-1. Please fill out the template below to make it easier to debug your problem.
-2. If you are not sure if it is a bug or not, you can ask in the WakaTime slack.
+Please fill out the template below to report a bug.
 -->
 
-**Expected behavior (what you expected to happen)**:
+**Expected behavior (what should have happened)**:
 
-**Actual behavior (what actually happened)**:
+**Actual behavior (what went wrong)**:
 
 **Environment**:
 
-- wakatime-cli version:
-- OS/Arch:
+- OS: <!-- win/linux/mac/bsd/etc... -->
+- Platform: <!-- 386/amd64/arm/arm64 -->
 
-**Anything else we should know?**:
+**Logs**:
+
+<!--
+Paste related logs from your ~/.wakatime.log file.
+-->
