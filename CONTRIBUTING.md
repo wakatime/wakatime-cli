@@ -10,7 +10,7 @@ Prerequisites:
 
 - We use `make` to build and run tests
 - We use `bats` to test shell scripts. Documentation can be found [here](https://bats-core.readthedocs.io/en/latest/installation.html)
-- [Go 1.16](https://golang.org/doc/install)
+- [Go 1.17](https://golang.org/doc/install)
 
 After cloning, install dependencies with `make install`.
 
