@@ -2,6 +2,7 @@ package heartbeat
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -205,4 +206,9 @@ func Int(v int) *int {
 // String returns a pointer to the string value passed in.
 func String(v string) *string {
 	return &v
+}
+
+func isDir(filepath string) bool {
+	info, _ := os.Stat(filepath)
+	return info.IsDir()
 }
