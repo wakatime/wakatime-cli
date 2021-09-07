@@ -14,7 +14,7 @@ func TestRenderToday_DayTotal(t *testing.T) {
 		Total: "6hrs 10m",
 	}
 
-	rendered, err := summary.RenderToday(s)
+	rendered, err := summary.RenderToday(s, false)
 	require.NoError(t, err)
 
 	assert.Equal(t, "6hrs 10m", rendered)
@@ -31,7 +31,7 @@ func TestRenderToday_TotalsByCategory_OneCategory(t *testing.T) {
 		},
 	}
 
-	rendered, err := summary.RenderToday(s)
+	rendered, err := summary.RenderToday(s, false)
 	require.NoError(t, err)
 
 	assert.Equal(t, "5hrs 7m", rendered)
@@ -39,21 +39,42 @@ func TestRenderToday_TotalsByCategory_OneCategory(t *testing.T) {
 
 func TestRenderToday_TotalsByCategory_MultipleCategories(t *testing.T) {
 	s := &summary.Summary{
-		Total: "6hrs 10m",
+		Total: "6 hrs 10 mins",
 		ByCategory: []summary.Category{
 			{
 				Category: "coding",
-				Total:    "5hrs 7m",
+				Total:    "5 hrs 7 mins",
 			},
 			{
 				Category: "debugging",
-				Total:    "2hrs 3m",
+				Total:    "2 hrs 3 mins",
 			},
 		},
 	}
 
-	rendered, err := summary.RenderToday(s)
+	rendered, err := summary.RenderToday(s, false)
 	require.NoError(t, err)
 
-	assert.Equal(t, "5hrs 7m coding, 2hrs 3m debugging", rendered)
+	assert.Equal(t, "5 hrs 7 mins coding, 2 hrs 3 mins debugging", rendered)
+}
+
+func TestRenderToday_TotalsByCategory_MultipleCategoriesHidden(t *testing.T) {
+	s := &summary.Summary{
+		Total: "6 hrs 10 mins",
+		ByCategory: []summary.Category{
+			{
+				Category: "coding",
+				Total:    "5 hrs 7 mins",
+			},
+			{
+				Category: "debugging",
+				Total:    "2 hrs 3 mins",
+			},
+		},
+	}
+
+	rendered, err := summary.RenderToday(s, true)
+	require.NoError(t, err)
+
+	assert.Equal(t, "6 hrs 10 mins", rendered)
 }

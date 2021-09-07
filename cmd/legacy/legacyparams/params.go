@@ -34,10 +34,11 @@ var (
 
 // Params contains legacy params.
 type Params struct {
-	OfflineDisabled  bool
-	OfflineQueueFile string
-	OfflineSyncMax   int
-	API              API
+	OfflineDisabled         bool
+	OfflineQueueFile        string
+	OfflineSyncMax          int
+	StatusBarHideCategories bool
+	API                     API
 }
 
 // API contains api related parameters.
@@ -114,11 +115,18 @@ func Load(v *viper.Viper) (Params, error) {
 		return Params{}, errors.New("argument --sync-offline-activity must be \"none\" or a positive integer number")
 	}
 
+	statusBarHideCategories := vipertools.FirstNonEmptyBool(
+		v,
+		"today-hide-categories",
+		"settings.status_bar_hide_categories",
+	)
+
 	return Params{
-		OfflineDisabled:  offlineDisabled,
-		OfflineQueueFile: vipertools.GetString(v, "offline-queue-file"),
-		OfflineSyncMax:   offlineSyncMax,
-		API:              apiParams,
+		OfflineDisabled:         offlineDisabled,
+		OfflineQueueFile:        vipertools.GetString(v, "offline-queue-file"),
+		OfflineSyncMax:          offlineSyncMax,
+		StatusBarHideCategories: statusBarHideCategories,
+		API:                     apiParams,
 	}, nil
 }
 

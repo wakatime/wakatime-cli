@@ -13,7 +13,7 @@ Here's an example `$WAKATIME_HOME/.wakatime.cfg` config file with all available 
 [settings]
 debug = false
 api_key = your-api-key
-api_url = https://new-api-url.com
+api_url = https://api.wakatime.com/api/v1
 hide_file_names = false
 hide_project_names = false
 hide_branch_names =
@@ -28,13 +28,14 @@ include_only_with_project_file = false
 exclude_unknown_project = false
 status_bar_enabled = true
 status_bar_coding_activity = true
+status_bar_hide_categories = false
 offline = true
 proxy = https://user:pass@localhost:8080
 no_ssl_verify = false
 ssl_certs_file =
 timeout = 30
 hostname = machinename
-log_file = 
+log_file =
 [projectmap]
 projects/foo = new project name
 ^/home/user/projects/bar(\d+)/ = project{0}
@@ -44,27 +45,28 @@ submodules_disabled = false
 
 ### Settings Section
 
-| option                         | description | allowed values |
-| ---                            | ---         | ---            |
-| debug                          | Turns on debug messages in log file. | true;false |
-| api_key                        | Your wakatime api key. | _key_ |
-| api_url                        | Heartbeats api url. For debugging with a local server. | _url_ |
-| hide_file_names                | Obfuscate filenames. Will not send file names to api. | true;false;regex list |
-| hide_project_names             | Obfuscate project names. When a project folder is detected instead of using the folder name as the project, a `.wakatime-project file` is created with a random project name. | true;false;regex list |
-| hide_branch_names              | Obfuscate branch names. Will not send revision control branch names to api. | true;false;regex list |
-| exclude                        | Filename patterns to exclude from logging. POSIX regex syntax. | true;false;regex list |
-| include                        | Filename patterns to log. When used in combination with `exclude`, files matching `include` will still be logged. POSIX regex syntax | true;false;regex list |
-| include_only_with_project_file | Disables tracking folders unless they contain a `.wakatime-project file`. | true;false |
-| exclude_unknown_project        | When set, any activity where the project cannot be detected will be ignored. | true;false |
-| status_bar_enabled             | Turns on wakatime status bar for certain editors. | true;false |
-| status_bar_coding_activity     | Prints today's coding activity. | true;false |
-| offline                        | Enables offline mode. All activity and logged time will be queued. | true;false |
-| proxy                          | Optional proxy configuration. Supports HTTPS, SOCKS and NTLM proxies. | `https://user:pass@host:port` or `socks5://user:pass@host:port` or `domain\\user:pass` |
-| no_ssl_verify                  | Disables SSL certificate verification for HTTPS requests. By default, SSL certificates are verified. | true;false |
-| ssl_certs_file                 | Override the bundled CA certs file. By default, uses system ca certs. | _filepath_ |
-| timeout                        | Number of seconds to wait when sending heartbeats to api. Defaults to 60 seconds. | _integer_ |
-| hostname                       | Optional name of local machine. Defaults to local machine name read from system. | _machinename_ |
-| log_file                       | Optional log file path. Defaults to `~/.wakatime.log`. | _filepath_ |
+| option                         | description | type | default value |
+| ---                            | ---         | ---  | ---           |
+| debug                          | Turns on debug messages in log file. | _bool_ | `false` |
+| api_key                        | Your wakatime api key. | _string_ | |
+| api_url                        | The WakaTime API base url. Defaults to `https://api.wakatime.com/api/v1`. | _string_ | |
+| hide_file_names                | Obfuscate filenames. Will not send file names to api. | _bool_;_list_ | `false` |
+| hide_project_names             | Obfuscate project names. When a project folder is detected instead of using the folder name as the project, a `.wakatime-project file` is created with a random project name. | _bool_;_list_ | `false` |
+| hide_branch_names              | Obfuscate branch names. Will not send revision control branch names to api. | _bool_;_list_ | `false` |
+| exclude                        | Filename patterns to exclude from logging. POSIX regex syntax. | _bool_;_list_ | |
+| include                        | Filename patterns to log. When used in combination with `exclude`, files matching `include` will still be logged. POSIX regex syntax | _bool_;_list_ | |
+| include_only_with_project_file | Disables tracking folders unless they contain a `.wakatime-project file`. | _bool_ | `false` |
+| exclude_unknown_project        | When set, any activity where the project cannot be detected will be ignored. | _bool_ | `false` |
+| status_bar_enabled             | Turns on wakatime status bar for certain editors. | _bool_ | `true` |
+| status_bar_coding_activity     | Enables displaying Today's code stats in the status bar of some editors. When false, only the WakaTime icon is displayed in the status bar. | _bool_ | `true` |
+| status_bar_hide_categories     | When `true`, --today only displays the total code stats, never displaying Categories in the output. | _bool_ | `false` |
+| offline                        | Enables saving code stats locally to ~/.wakatime.bdb when offline, and syncing to the dashboard later when back online. | _bool_ | `true` |
+| proxy                          | Optional proxy configuration. Supports HTTPS, SOCKS and NTLM proxies. For ex: `https://user:pass@host:port`, `socks5://user:pass@host:port`, `domain\\user:pass` | _string_ | |
+| no_ssl_verify                  | Disables SSL certificate verification for HTTPS requests. By default, SSL certificates are verified. | _bool_ | `false` |
+| ssl_certs_file                 | Path to a CA certs file. By default, uses bundled Letsencrypt CA cert along with system ca certs. | _filepath_ | |
+| timeout                        | Connection timeout in seconds when communicating with the api. | _int_ | `60` |
+| hostname                       | Optional name of local machine. By default, auto-detects the local machine’s hostname. | _string_ | |
+| log_file                       | Optional log file path. | _filepath_ | `~/.wakatime.log` |
 
 ### Project Map Section
 
@@ -78,9 +80,9 @@ projects/foo = new project name
 
 ### Git Section
 
-| option                         | description | allowed values |
-| ---                            | ---         | ---            |
-| submodules_disabled            | It will be matched against the submodule path and if matching, will skip it. | true;false;regex list |
+| option                         | description | type | default value |
+| ---                            | ---         | ---  | ---           |
+| submodules_disabled            | It will be matched against the submodule path and if matching, will skip it. | _bool_;_list_ | false |
 
 For commonly used configuration options, see examples in the [FAQ](https://wakatime.com/faq).
 

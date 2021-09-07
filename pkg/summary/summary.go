@@ -20,12 +20,12 @@ type Summary struct {
 
 // RenderToday generates a text representation from summary of the current day.
 // Expects exactly one summary for the current day. Will return an error otherwise.
-func RenderToday(summary *Summary) (string, error) {
+func RenderToday(summary *Summary, statusBarHideCategories bool) (string, error) {
 	if summary == nil {
 		return "", errors.New("no summary found for the current day")
 	}
 
-	if len(summary.ByCategory) < 2 {
+	if len(summary.ByCategory) < 2 || statusBarHideCategories {
 		return string(summary.Total), nil
 	}
 
