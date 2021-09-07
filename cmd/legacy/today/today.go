@@ -71,7 +71,7 @@ func Today(v *viper.Viper) (string, error) {
 		return "", fmt.Errorf("failed fetching today from api: %w", err)
 	}
 
-	output, err := summary.RenderToday(s)
+	output, err := summary.RenderToday(s, params.StatusBarHideCategories)
 	if err != nil {
 		return "", fmt.Errorf("failed generating today output: %s", err)
 	}
