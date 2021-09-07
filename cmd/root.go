@@ -186,6 +186,8 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 	)
 	flags.Float64("time", 0, "Optional floating-point unix epoch timestamp. Uses current time by default.")
 	flags.Bool("today", false, "Prints dashboard time for Today, then exits.")
+	flags.Bool("today-hide-categories", false, "When optionally included with --today, causes output to"+
+		" show total code time today without categories.")
 	flags.String(
 		"today-goal",
 		"",
