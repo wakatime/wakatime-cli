@@ -30,7 +30,7 @@ func Run(v *viper.Viper) (int, error) {
 		var errauth api.ErrAuth
 		if errors.As(err, &errauth) {
 			return exitcode.ErrAuth, fmt.Errorf(
-				"failed to fetch today goal: %s. Find your api key from wakatime.com/settings/api-key",
+				"invalid api key... find yours at wakatime.com/settings/api-key. %s",
 				errauth,
 			)
 		}
@@ -38,12 +38,20 @@ func Run(v *viper.Viper) (int, error) {
 		var errapi api.Err
 		if errors.As(err, &errapi) {
 			return exitcode.ErrAPI, fmt.Errorf(
-				"failed to fetch today goal due to api error: %s",
+				"unable to fetch today goal due to api error: %s",
 				err,
 			)
 		}
 
-		return exitcode.ErrDefault, fmt.Errorf(
+		var errbadRequest api.ErrBadRequest
+		if errors.As(err, &errbadRequest) {
+			return exitcode.ErrGeneric, fmt.Errorf(
+				"failed to fetch today goal due to bad request: %s",
+				err,
+			)
+		}
+
+		return exitcode.ErrGeneric, fmt.Errorf(
 			"failed to fetch today goal: %s",
 			err,
 		)

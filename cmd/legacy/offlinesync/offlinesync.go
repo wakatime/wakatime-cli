@@ -18,7 +18,7 @@ import (
 func Run(v *viper.Viper) (int, error) {
 	queueFilepath, err := offline.QueueFilepath()
 	if err != nil {
-		return exitcode.ErrDefault, fmt.Errorf(
+		return exitcode.ErrGeneric, fmt.Errorf(
 			"failed to load offline queue filepath: %s",
 			err,
 		)
@@ -29,21 +29,29 @@ func Run(v *viper.Viper) (int, error) {
 		var errauth api.ErrAuth
 		if errors.As(err, &errauth) {
 			return exitcode.ErrAuth, fmt.Errorf(
-				"failed to sync offline activity: %s. Find your api key from wakatime.com/settings/api-key",
+				"invalid api key... find yours at wakatime.com/settings/api-key. %s",
 				errauth,
+			)
+		}
+
+		var errbadRequest api.Err
+		if errors.As(err, &errbadRequest) {
+			return exitcode.ErrGeneric, fmt.Errorf(
+				"unable to sync offline activity due to api error: %s",
+				err,
 			)
 		}
 
 		var errapi api.Err
 		if errors.As(err, &errapi) {
 			return exitcode.ErrAPI, fmt.Errorf(
-				"failed to sync offline activity due to api error: %s",
+				"unable to sync offline activity due to api error: %s",
 				err,
 			)
 		}
 
-		return exitcode.ErrDefault, fmt.Errorf(
-			"failed to sync offline activity: %s",
+		return exitcode.ErrGeneric, fmt.Errorf(
+			"unable to sync offline activity: %s",
 			err,
 		)
 	}
@@ -72,10 +80,5 @@ func SyncOfflineActivity(v *viper.Viper, queueFilepath string) error {
 
 	syncFn := offline.Sync(queueFilepath, params.OfflineSyncMax)
 
-	err = syncFn(apiClient.SendHeartbeats)
-	if err != nil {
-		return fmt.Errorf("failed to sync offline activity via api client: %w", err)
-	}
-
-	return nil
+	return syncFn(apiClient.SendHeartbeats)
 }

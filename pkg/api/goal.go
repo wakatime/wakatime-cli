@@ -24,7 +24,7 @@ func (c *Client) Goal(id string) (*goal.Goal, error) {
 
 	resp, err := c.Do(req)
 	if err != nil {
-		return nil, ErrRequest(fmt.Sprintf("failed to make request to %q: %s", url, err))
+		return nil, Err(fmt.Sprintf("failed to make request to %q: %s", url, err))
 	}
 	defer resp.Body.Close()
 
@@ -38,6 +38,8 @@ func (c *Client) Goal(id string) (*goal.Goal, error) {
 		break
 	case http.StatusUnauthorized:
 		return nil, ErrAuth(fmt.Sprintf("authentication failed at %q. body: %q", url, string(body)))
+	case http.StatusBadRequest:
+		return nil, ErrBadRequest(fmt.Sprintf("bad request at %q", url))
 	default:
 		return nil, Err(fmt.Sprintf(
 			"invalid response status from %q. got: %d, want: %d. body: %q",

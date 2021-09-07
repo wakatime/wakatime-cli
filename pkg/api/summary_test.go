@@ -155,19 +155,39 @@ func TestClient_Summary_ErrAuth(t *testing.T) {
 	c := api.NewClient(u)
 	_, err := c.Today()
 
-	var autherr api.ErrAuth
+	var errauth api.ErrAuth
 
-	assert.True(t, errors.As(err, &autherr))
+	assert.True(t, errors.As(err, &errauth))
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
 
-func TestClient_Summary_ErrRequest(t *testing.T) {
+func TestClient_Summary_ErrBadRequest(t *testing.T) {
+	u, router, tearDown := setupTestServer()
+	defer tearDown()
+
+	var numCalls int
+
+	router.HandleFunc("/users/current/statusbar/today", func(w http.ResponseWriter, req *http.Request) {
+		numCalls++
+		w.WriteHeader(http.StatusBadRequest)
+	})
+
+	c := api.NewClient(u)
+	_, err := c.Today()
+
+	var errbadRequest api.ErrBadRequest
+
+	assert.True(t, errors.As(err, &errbadRequest))
+	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+}
+
+func TestClient_Summary_InvalidUrl(t *testing.T) {
 	c := api.NewClient("invalid-url")
 	_, err := c.Today()
 
-	var reqerr api.ErrRequest
+	var apierr api.Err
 
-	assert.True(t, errors.As(err, &reqerr))
+	assert.True(t, errors.As(err, &apierr))
 }
 
 func TestParseSummaryResponse_DayTotal(t *testing.T) {

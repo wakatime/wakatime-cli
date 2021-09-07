@@ -26,7 +26,7 @@ import (
 func Run(v *viper.Viper) (int, error) {
 	queueFilepath, err := offline.QueueFilepath()
 	if err != nil {
-		return exitcode.ErrDefault, fmt.Errorf(
+		return exitcode.ErrGeneric, fmt.Errorf(
 			"failed to load offline queue filepath: %s",
 			err,
 		)
@@ -37,21 +37,21 @@ func Run(v *viper.Viper) (int, error) {
 		var errauth api.ErrAuth
 		if errors.As(err, &errauth) {
 			return exitcode.ErrAuth, fmt.Errorf(
-				"failed to send heartbeat: %s. Find your api key from wakatime.com/settings/api-key",
-				errauth,
+				"invalid api key... find yours at wakatime.com/settings/api-key. %w",
+				err,
 			)
 		}
 
 		var errapi api.Err
 		if errors.As(err, &errapi) {
 			return exitcode.ErrAPI, fmt.Errorf(
-				"failed to send heartbeat(s) due to api error: %s",
+				"sending heartbeat(s) later due to api error: %w",
 				err,
 			)
 		}
 
-		return exitcode.ErrDefault, fmt.Errorf(
-			"failed to send heartbeat(s): %s",
+		return exitcode.ErrGeneric, fmt.Errorf(
+			"failed to send heartbeat(s): %w",
 			err,
 		)
 	}
@@ -70,17 +70,12 @@ func SendHeartbeats(v *viper.Viper, queueFilepath string) error {
 		return fmt.Errorf("failed to load command parameters: %w", err)
 	}
 
-	// Support XCode playgrounds
-	if params.EntityType == heartbeat.FileType && isPlayground(params.Entity) {
-		params.Entity += "/Contents.swift"
-	}
+	setLogFields(&params)
 
 	if params.EntityType == heartbeat.FileType && !isFile(params.Entity) {
 		log.Warnf("file '%s' does not exist. ignoring this heartbeat", params.Entity)
 		return nil
 	}
-
-	setLogFields(&params)
 
 	log.Debugf("heartbeat params: %s", params)
 
@@ -141,6 +136,7 @@ func SendHeartbeats(v *viper.Viper, queueFilepath string) error {
 			Include:                    params.Filter.Include,
 			IncludeOnlyWithProjectFile: params.Filter.IncludeOnlyWithProjectFile,
 		}),
+		heartbeat.WithEntityModifer(),
 		filestats.WithDetection(filestats.Config{
 			LinesInFile: params.LinesInFile,
 		}),
@@ -188,7 +184,7 @@ func SendHeartbeats(v *viper.Viper, queueFilepath string) error {
 
 	results, err := handle(heartbeats)
 	if err != nil {
-		return fmt.Errorf("failed to send heartbeats via api client: %w", err)
+		return err
 	}
 
 	for _, result := range results {
@@ -222,19 +218,4 @@ func setLogFields(params *Params) {
 func isFile(filepath string) bool {
 	info, err := os.Stat(filepath)
 	return !(os.IsNotExist(err) || info.IsDir())
-}
-
-func isDir(filepath string) bool {
-	info, _ := os.Stat(filepath)
-	return info.IsDir()
-}
-
-func isPlayground(filepath string) bool {
-	if !(strings.HasSuffix(filepath, ".playground") ||
-		strings.HasSuffix(filepath, ".xcplayground") ||
-		strings.HasSuffix(filepath, ".xcplaygroundpage")) {
-		return false
-	}
-
-	return isDir(filepath)
 }
