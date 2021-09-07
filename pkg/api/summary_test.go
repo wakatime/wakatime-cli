@@ -181,13 +181,13 @@ func TestClient_Summary_ErrBadRequest(t *testing.T) {
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
 
-func TestClient_Summary_ErrRequest(t *testing.T) {
+func TestClient_Summary_InvalidUrl(t *testing.T) {
 	c := api.NewClient("invalid-url")
 	_, err := c.Today()
 
-	var reqerr api.ErrRequest
+	var apierr api.Err
 
-	assert.True(t, errors.As(err, &reqerr))
+	assert.True(t, errors.As(err, &apierr))
 }
 
 func TestParseSummaryResponse_DayTotal(t *testing.T) {

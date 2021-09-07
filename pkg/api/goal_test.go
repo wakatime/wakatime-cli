@@ -144,11 +144,11 @@ func TestClient_Goal_ErrBadRequest(t *testing.T) {
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
 
-func TestClient_Goal_ErrRequest(t *testing.T) {
+func TestClient_Goal_ErrInvalidUrl(t *testing.T) {
 	c := api.NewClient("invalid-url")
 	_, err := c.Goal("00000000-0000-4000-8000-000000000000")
 
-	var reqerr api.ErrRequest
+	var apierr api.Err
 
-	assert.True(t, errors.As(err, &reqerr))
+	assert.True(t, errors.As(err, &apierr))
 }

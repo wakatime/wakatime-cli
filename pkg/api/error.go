@@ -16,18 +16,10 @@ func (e ErrAuth) Error() string {
 	return string(e)
 }
 
-// ErrBadRequest represents a bad request error.
+// ErrBadRequest represents a 400 response from the API.
 type ErrBadRequest string
 
 // Error method to implement error interface.
 func (e ErrBadRequest) Error() string {
-	return string(e)
-}
-
-// ErrRequest represents a request failure, where no response was received from the api.
-type ErrRequest string
-
-// Error method to implement error interface.
-func (e ErrRequest) Error() string {
 	return string(e)
 }

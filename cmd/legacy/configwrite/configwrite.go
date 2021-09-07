@@ -29,7 +29,7 @@ func Run(v *viper.Viper) (int, error) {
 	}
 
 	if err := Write(v, w); err != nil {
-		return exitcode.ErrDefault, fmt.Errorf(
+		return exitcode.ErrGeneric, fmt.Errorf(
 			"failed to write to config file: %s",
 			err,
 		)

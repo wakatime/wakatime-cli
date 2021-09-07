@@ -167,13 +167,13 @@ func TestClient_SendHeartbeats_ErrBadRequest(t *testing.T) {
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
 
-func TestClient_SendHeartbeats_ErrRequest(t *testing.T) {
+func TestClient_SendHeartbeats_InvalidUrl(t *testing.T) {
 	c := api.NewClient("invalid-url")
 	_, err := c.SendHeartbeats(testHeartbeats())
 
-	var errreq api.ErrRequest
+	var apierr api.Err
 
-	assert.True(t, errors.As(err, &errreq))
+	assert.True(t, errors.As(err, &apierr))
 }
 
 func TestParseHeartbeatResponses(t *testing.T) {

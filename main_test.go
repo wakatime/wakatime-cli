@@ -170,7 +170,7 @@ func TestSendHeartbeats_Err(t *testing.T) {
 		assert.JSONEq(t, string(expectedBody), string(body))
 
 		// write response
-		w.WriteHeader(http.StatusBadRequest)
+		w.WriteHeader(http.StatusBadGateway)
 	})
 
 	offlineQueueFile, err := ioutil.TempFile(os.TempDir(), "")
@@ -185,7 +185,7 @@ func TestSendHeartbeats_Err(t *testing.T) {
 
 	out := runWakatimeCliExpectErr(
 		t,
-		exitcode.ErrDefault,
+		exitcode.ErrAPI,
 		"--api-url", apiURL,
 		"--key", "00000000-0000-4000-8000-000000000000",
 		"--config", tmpFile.Name(),

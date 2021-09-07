@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/wakatime/wakatime-cli/pkg/api"
 	"github.com/wakatime/wakatime-cli/pkg/config"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/ini"
@@ -40,7 +41,7 @@ func WithBackoff(c Config) heartbeat.HandleOption {
 			log.Debugln("execute heartbeat backoff algorithm")
 
 			if shouldBackoff(c.Retries, c.At) {
-				return nil, fmt.Errorf("won't send heartbeat due to backoff")
+				return nil, api.Err("won't send heartbeat due to backoff")
 			}
 
 			results, err := next(hh)
@@ -76,7 +77,7 @@ func shouldBackoff(retries int, at time.Time) bool {
 	duration := time.Duration(float64(factor)*math.Pow(2, float64(retries))) * time.Second
 
 	log.Debugf(
-		"exponential backoff tried %s times since %s, will retry at %s",
+		"exponential backoff tried %d times since %s, will retry at %s",
 		retries,
 		at.Format(time.Stamp),
 		at.Add(duration).Format(time.Stamp),

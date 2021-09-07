@@ -19,7 +19,7 @@ func (c *Client) Today() (*summary.Summary, error) {
 
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %s", err)
+		return nil, Err(fmt.Sprintf("failed to create request: %s", err))
 	}
 
 	q := req.URL.Query()
@@ -27,7 +27,7 @@ func (c *Client) Today() (*summary.Summary, error) {
 
 	resp, err := c.Do(req)
 	if err != nil {
-		return nil, ErrRequest(fmt.Sprintf("failed to make request to %q: %s", url, err))
+		return nil, Err(fmt.Sprintf("failed to make request to %q: %s", url, err))
 	}
 	defer resp.Body.Close()
 
