@@ -18,6 +18,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/wakatime/wakatime-cli/pkg/exitcode"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/version"
 
@@ -128,6 +129,78 @@ func testSendHeartbeats(t *testing.T, entity, project string) {
 		"--write",
 		"--verbose",
 	)
+
+	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+}
+
+func TestSendHeartbeats_Err(t *testing.T) {
+	apiURL, router, close := setupTestServer()
+	defer close()
+
+	var numCalls int
+
+	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
+		numCalls++
+
+		// check headers
+		assert.Equal(t, http.MethodPost, req.Method)
+		assert.Equal(t, []string{"application/json"}, req.Header["Accept"])
+		assert.Equal(t, []string{"application/json"}, req.Header["Content-Type"])
+		assert.Equal(t, []string{"Basic MDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAw"}, req.Header["Authorization"])
+		assert.Equal(t, []string{heartbeat.UserAgentUnknownPlugin()}, req.Header["User-Agent"])
+
+		// check body
+		expectedBodyTpl, err := ioutil.ReadFile("testdata/api_heartbeats_request.json.tpl")
+		require.NoError(t, err)
+
+		entityPath, err := realpath.Realpath("testdata/main.go")
+		require.NoError(t, err)
+
+		entityPath = strings.ReplaceAll(entityPath, `\`, `/`)
+		expectedBody := fmt.Sprintf(
+			string(expectedBodyTpl),
+			entityPath,
+			"wakatime-cli",
+			heartbeat.UserAgentUnknownPlugin(),
+		)
+
+		body, err := ioutil.ReadAll(req.Body)
+		require.NoError(t, err)
+
+		assert.JSONEq(t, string(expectedBody), string(body))
+
+		// write response
+		w.WriteHeader(http.StatusBadRequest)
+	})
+
+	offlineQueueFile, err := ioutil.TempFile(os.TempDir(), "")
+	require.NoError(t, err)
+
+	defer os.Remove(offlineQueueFile.Name())
+
+	tmpFile, err := ioutil.TempFile(os.TempDir(), "wakatime.cfg")
+	require.NoError(t, err)
+
+	defer os.Remove(tmpFile.Name())
+
+	out := runWakatimeCliExpectErr(
+		t,
+		exitcode.ErrDefault,
+		"--api-url", apiURL,
+		"--key", "00000000-0000-4000-8000-000000000000",
+		"--config", tmpFile.Name(),
+		"--entity", "testdata/main.go",
+		"--cursorpos", "12",
+		"--offline-queue-file", offlineQueueFile.Name(),
+		"--lineno", "42",
+		"--lines-in-file", "100",
+		"--time", "1585598059",
+		"--hide-branch-names", ".*",
+		"--write",
+		"--verbose",
+	)
+
+	assert.Empty(t, out)
 
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
@@ -256,8 +329,9 @@ func TestOfflineCountWithOneHeartbeat(t *testing.T) {
 
 	defer os.Remove(tmpFile.Name())
 
-	runWakatimeCliExpectErr(
+	out := runWakatimeCliExpectErr(
 		t,
+		exitcode.ErrAPI,
 		"--api-url", apiURL,
 		"--key", "00000000-0000-4000-8000-000000000000",
 		"--config", tmpFile.Name(),
@@ -273,7 +347,9 @@ func TestOfflineCountWithOneHeartbeat(t *testing.T) {
 		"--verbose",
 	)
 
-	out := runWakatimeCli(
+	assert.Empty(t, out)
+
+	out = runWakatimeCli(
 		t,
 		"--key", "00000000-0000-4000-8000-000000000000",
 		"--offline-queue-file", offlineQueueFile.Name(),
@@ -330,7 +406,7 @@ func runWakatimeCli(t *testing.T, args ...string) string {
 	return runCmd(exec.Command(binaryPath(t), args...)) // #nosec G204
 }
 
-func runWakatimeCliExpectErr(t *testing.T, args ...string) string {
+func runWakatimeCliExpectErr(t *testing.T, exitcode int, args ...string) string {
 	f, err := ioutil.TempFile(os.TempDir(), "")
 	require.NoError(t, err)
 
@@ -346,7 +422,11 @@ func runWakatimeCliExpectErr(t *testing.T, args ...string) string {
 
 	args = append([]string{"--log-file", f.Name()}, args...)
 
-	return runCmdExpectErr(exec.Command(binaryPath(t), args...)) // #nosec G204
+	stdout, code := runCmdExpectErr(exec.Command(binaryPath(t), args...)) // #nosec G204
+
+	assert.Equal(t, exitcode, code)
+
+	return stdout
 }
 
 func runCmd(cmd *exec.Cmd) string {
@@ -371,7 +451,7 @@ func runCmd(cmd *exec.Cmd) string {
 	return stdout.String()
 }
 
-func runCmdExpectErr(cmd *exec.Cmd) string {
+func runCmdExpectErr(cmd *exec.Cmd) (string, int) {
 	fmt.Println(cmd.String())
 
 	var stdout bytes.Buffer
@@ -390,7 +470,11 @@ func runCmdExpectErr(cmd *exec.Cmd) string {
 		os.Exit(1)
 	}
 
-	return stdout.String()
+	if exitcode, ok := err.(*exec.ExitError); ok {
+		return stdout.String(), exitcode.ExitCode()
+	}
+
+	return stdout.String(), -1
 }
 
 func setupTestServer() (string, *http.ServeMux, func()) {

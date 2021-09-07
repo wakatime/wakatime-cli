@@ -146,6 +146,27 @@ func TestClient_SendHeartbeats_ErrAuth(t *testing.T) {
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
 
+func TestClient_SendHeartbeats_ErrBadRequest(t *testing.T) {
+	url, router, close := setupTestServer()
+	defer close()
+
+	var numCalls int
+
+	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
+		numCalls++
+		w.WriteHeader(http.StatusBadRequest)
+	})
+
+	c := api.NewClient(url)
+	_, err := c.SendHeartbeats(testHeartbeats())
+
+	var errbadRequest api.ErrBadRequest
+
+	assert.True(t, errors.As(err, &errbadRequest))
+
+	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+}
+
 func TestClient_SendHeartbeats_ErrRequest(t *testing.T) {
 	c := api.NewClient("invalid-url")
 	_, err := c.SendHeartbeats(testHeartbeats())

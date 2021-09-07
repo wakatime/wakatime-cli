@@ -117,9 +117,30 @@ func TestClient_Goal_ErrAuth(t *testing.T) {
 	c := api.NewClient(u)
 	_, err := c.Goal("00000000-0000-4000-8000-000000000000")
 
-	var autherr api.ErrAuth
+	var errauth api.ErrAuth
 
-	assert.True(t, errors.As(err, &autherr))
+	assert.True(t, errors.As(err, &errauth))
+	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+}
+
+func TestClient_Goal_ErrBadRequest(t *testing.T) {
+	u, router, tearDown := setupTestServer()
+	defer tearDown()
+
+	var numCalls int
+
+	router.HandleFunc(
+		"/users/current/goals/00000000-0000-4000-8000-000000000000", func(w http.ResponseWriter, req *http.Request) {
+			numCalls++
+			w.WriteHeader(http.StatusBadRequest)
+		})
+
+	c := api.NewClient(u)
+	_, err := c.Goal("00000000-0000-4000-8000-000000000000")
+
+	var errbadRequest api.ErrBadRequest
+
+	assert.True(t, errors.As(err, &errbadRequest))
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
 
