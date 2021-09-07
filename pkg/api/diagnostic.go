@@ -59,7 +59,7 @@ func (c *Client) SendDiagnostics(plugin string, diagnostics ...diagnostic.Diagno
 
 	resp, err := c.Do(req)
 	if err != nil {
-		return ErrRequest(fmt.Sprintf("failed making request to %q: %s", url, err))
+		return Err(fmt.Sprintf("failed making request to %q: %s", url, err))
 	}
 	defer resp.Body.Close()
 

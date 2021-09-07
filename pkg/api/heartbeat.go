@@ -41,7 +41,7 @@ func (c *Client) SendHeartbeats(heartbeats []heartbeat.Heartbeat) ([]heartbeat.R
 
 	resp, err := c.Do(req)
 	if err != nil {
-		return nil, ErrRequest(fmt.Sprintf("failed making request to %q: %s", url, err))
+		return nil, Err(fmt.Sprintf("failed making request to %q: %s", url, err))
 	}
 	defer resp.Body.Close()
 

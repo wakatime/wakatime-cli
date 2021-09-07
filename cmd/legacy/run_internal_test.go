@@ -32,10 +32,10 @@ func TestRunCmd_Err(t *testing.T) {
 	v := viper.New()
 
 	ret := runCmd(v, false, func(v *viper.Viper) (int, error) {
-		return exitcode.ErrDefault, errors.New("fail")
+		return exitcode.ErrGeneric, errors.New("fail")
 	})
 
-	assert.Equal(t, exitcode.ErrDefault, ret)
+	assert.Equal(t, exitcode.ErrGeneric, ret)
 }
 
 func TestRunCmd_ErrOfflineEnqueue(t *testing.T) {
@@ -89,10 +89,10 @@ func TestRunCmd_ErrOfflineEnqueue(t *testing.T) {
 	v.Set("plugin", "vim")
 
 	ret := runCmd(v, true, func(v *viper.Viper) (int, error) {
-		return exitcode.ErrDefault, offline.ErrOfflineEnqueue("fail")
+		return exitcode.ErrGeneric, offline.ErrOfflineEnqueue("fail")
 	})
 
-	assert.Equal(t, exitcode.ErrDefault, ret)
+	assert.Equal(t, exitcode.ErrGeneric, ret)
 }
 
 func jsonEscape(t *testing.T, i string) string {

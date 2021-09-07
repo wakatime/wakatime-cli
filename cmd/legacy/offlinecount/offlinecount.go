@@ -14,7 +14,7 @@ import (
 func Run(v *viper.Viper) (int, error) {
 	queueFilepath, err := offline.QueueFilepath()
 	if err != nil {
-		return exitcode.ErrDefault, fmt.Errorf(
+		return exitcode.ErrGeneric, fmt.Errorf(
 			"failed to load offline queue filepath: %s",
 			err,
 		)
@@ -22,7 +22,7 @@ func Run(v *viper.Viper) (int, error) {
 
 	params, err := legacyparams.Load(v)
 	if err != nil {
-		return exitcode.ErrDefault, fmt.Errorf("failed to load command parameters: %w", err)
+		return exitcode.ErrGeneric, fmt.Errorf("failed to load command parameters: %w", err)
 	}
 
 	if params.OfflineQueueFile != "" {
@@ -32,7 +32,7 @@ func Run(v *viper.Viper) (int, error) {
 	count, err := offline.CountHeartbeats(queueFilepath)
 	if err != nil {
 		fmt.Println(err)
-		return exitcode.ErrDefault, fmt.Errorf("failed to count offline heartbeats: %w", err)
+		return exitcode.ErrGeneric, fmt.Errorf("failed to count offline heartbeats: %w", err)
 	}
 
 	fmt.Println(count)

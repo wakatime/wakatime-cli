@@ -116,7 +116,7 @@ func Run(cmd *cobra.Command, v *viper.Viper) {
 
 	_ = cmd.Help()
 
-	os.Exit(exitcode.ErrDefault)
+	os.Exit(exitcode.ErrGeneric)
 }
 
 // SetupLogging uses the --log-file param to configure logging to file or stdout.
@@ -184,7 +184,7 @@ func runCmd(v *viper.Viper, verbose bool, cmd cmdFn) int {
 				sendDiagnostics(v, logs.String(), string(debug.Stack()))
 			}
 
-			os.Exit(exitcode.ErrDefault)
+			os.Exit(exitcode.ErrGeneric)
 		}
 	}()
 
