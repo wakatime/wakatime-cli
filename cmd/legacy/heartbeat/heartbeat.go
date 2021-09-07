@@ -27,7 +27,7 @@ func Run(v *viper.Viper) (int, error) {
 	queueFilepath, err := offline.QueueFilepath()
 	if err != nil {
 		return exitcode.ErrGeneric, fmt.Errorf(
-			"failed to load offline queue filepath: %s",
+			"sending heartbeat(s) failed: failed to load offline queue filepath: %s",
 			err,
 		)
 	}
@@ -37,7 +37,15 @@ func Run(v *viper.Viper) (int, error) {
 		var errauth api.ErrAuth
 		if errors.As(err, &errauth) {
 			return exitcode.ErrAuth, fmt.Errorf(
-				"invalid api key... find yours at wakatime.com/settings/api-key. %w",
+				"sending heartbeat(s) failed: invalid api key... find yours at wakatime.com/api-key. %w",
+				err,
+			)
+		}
+
+		var errbadRequest api.ErrBadRequest
+		if errors.As(err, &errbadRequest) {
+			return exitcode.ErrGeneric, fmt.Errorf(
+				"sending heartbeat(s) later due to bad request: %w",
 				err,
 			)
 		}
@@ -51,7 +59,7 @@ func Run(v *viper.Viper) (int, error) {
 		}
 
 		return exitcode.ErrGeneric, fmt.Errorf(
-			"failed to send heartbeat(s): %w",
+			"sending heartbeat(s) failed: %w",
 			err,
 		)
 	}
