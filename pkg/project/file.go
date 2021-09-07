@@ -27,7 +27,7 @@ func (f File) Detect() (Result, bool, error) {
 		return Result{}, false, nil
 	}
 
-	lines, err := readFile(fp)
+	lines, err := readFile(fp, 2)
 	if err != nil {
 		return Result{}, false,
 			Err(fmt.Sprintf("error reading file: %s", err))
@@ -52,8 +52,8 @@ func fileExists(fp string) bool {
 	return err == nil || os.IsExist(err)
 }
 
-// readFile reads a file and return an array of lines.
-func readFile(fp string) ([]string, error) {
+// readFile reads a file until max number of lines and return an array of lines.
+func readFile(fp string, max int) ([]string, error) {
 	if fp == "" {
 		return nil, Err("filepath cannot be empty")
 	}
@@ -68,9 +68,18 @@ func readFile(fp string) ([]string, error) {
 	scanner := bufio.NewScanner(file)
 	scanner.Split(bufio.ScanLines)
 
-	var lines []string
+	var (
+		lines []string
+		i     = 0
+	)
 
 	for scanner.Scan() {
+		i++
+
+		if i > max {
+			break
+		}
+
 		lines = append(lines, scanner.Text())
 	}
 
