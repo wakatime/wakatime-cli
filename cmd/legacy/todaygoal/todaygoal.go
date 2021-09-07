@@ -35,6 +35,14 @@ func Run(v *viper.Viper) (int, error) {
 			)
 		}
 
+		var errbadRequest api.ErrBadRequest
+		if errors.As(err, &errbadRequest) {
+			return exitcode.ErrDefault, fmt.Errorf(
+				"failed to fetch today goal due to api error: %s",
+				err,
+			)
+		}
+
 		var errapi api.Err
 		if errors.As(err, &errapi) {
 			return exitcode.ErrAPI, fmt.Errorf(

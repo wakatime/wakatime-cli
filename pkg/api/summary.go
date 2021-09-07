@@ -41,6 +41,8 @@ func (c *Client) Today() (*summary.Summary, error) {
 		break
 	case http.StatusUnauthorized:
 		return nil, ErrAuth(fmt.Sprintf("authentication failed at %q. body: %q", url, string(body)))
+	case http.StatusBadRequest:
+		return nil, ErrBadRequest(fmt.Sprintf("bad request at %q", url))
 	default:
 		return nil, Err(fmt.Sprintf(
 			"invalid response status from %q. got: %d, want: %d. body: %q",

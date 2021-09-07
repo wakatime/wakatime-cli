@@ -125,6 +125,38 @@ func TestToday_ErrAuth(t *testing.T) {
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
 
+func TestToday_ErrBadRequest(t *testing.T) {
+	testServerURL, router, tearDown := setupTestServer()
+	defer tearDown()
+
+	var numCalls int
+
+	router.HandleFunc("/users/current/statusbar/today", func(w http.ResponseWriter, req *http.Request) {
+		numCalls++
+		w.WriteHeader(http.StatusBadRequest)
+	})
+
+	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("api-url", testServerURL)
+
+	_, err := today.Today(v)
+	require.Error(t, err)
+
+	var errbadRequest api.ErrBadRequest
+
+	assert.True(t, errors.As(err, &errbadRequest))
+
+	expectedMsg := fmt.Sprintf(
+		`failed fetching today from api: `+
+			`bad request at "%s/users/current/statusbar/today"`,
+		testServerURL,
+	)
+	assert.Equal(t, expectedMsg, err.Error())
+	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+}
+
 func TestToday_ErrAuth_UnsetAPIKey(t *testing.T) {
 	v := viper.New()
 	_, err := today.Today(v)

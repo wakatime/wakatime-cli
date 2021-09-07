@@ -55,6 +55,8 @@ func (c *Client) SendHeartbeats(heartbeats []heartbeat.Heartbeat) ([]heartbeat.R
 		break
 	case http.StatusUnauthorized:
 		return nil, ErrAuth(fmt.Sprintf("authentication failed at %q", url))
+	case http.StatusBadRequest:
+		return nil, ErrBadRequest(fmt.Sprintf("bad request at %q", url))
 	default:
 		return nil, Err(fmt.Sprintf(
 			"invalid response status from %q. got: %d, want: %d/%d. body: %q",
