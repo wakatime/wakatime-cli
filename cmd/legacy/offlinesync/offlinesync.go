@@ -19,7 +19,7 @@ func Run(v *viper.Viper) (int, error) {
 	queueFilepath, err := offline.QueueFilepath()
 	if err != nil {
 		return exitcode.ErrGeneric, fmt.Errorf(
-			"failed to load offline queue filepath: %s",
+			"offline sync failed: failed to load offline queue filepath: %s",
 			err,
 		)
 	}
@@ -29,15 +29,15 @@ func Run(v *viper.Viper) (int, error) {
 		var errauth api.ErrAuth
 		if errors.As(err, &errauth) {
 			return exitcode.ErrAuth, fmt.Errorf(
-				"invalid api key... find yours at wakatime.com/settings/api-key. %s",
+				"offline sync failed: invalid api key... find yours at wakatime.com/api-key. %s",
 				errauth,
 			)
 		}
 
-		var errbadRequest api.Err
+		var errbadRequest api.ErrBadRequest
 		if errors.As(err, &errbadRequest) {
 			return exitcode.ErrGeneric, fmt.Errorf(
-				"unable to sync offline activity due to api error: %s",
+				"offline sync failed: bad request: %s",
 				err,
 			)
 		}
@@ -45,13 +45,13 @@ func Run(v *viper.Viper) (int, error) {
 		var errapi api.Err
 		if errors.As(err, &errapi) {
 			return exitcode.ErrAPI, fmt.Errorf(
-				"unable to sync offline activity due to api error: %s",
+				"offline sync failed: api error: %s",
 				err,
 			)
 		}
 
 		return exitcode.ErrGeneric, fmt.Errorf(
-			"unable to sync offline activity: %s",
+			"offline sync failed: %s",
 			err,
 		)
 	}
