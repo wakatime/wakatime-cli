@@ -4,7 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"os/user"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	"github.com/wakatime/wakatime-cli/pkg/log"
@@ -104,20 +106,37 @@ func FilePath(v *viper.Viper) (string, error) {
 		return p, nil
 	}
 
-	home, exists := os.LookupEnv("WAKATIME_HOME")
-	if exists && home != "" {
-		p, err := homedir.Expand(home)
-		if err != nil {
-			return "", fmt.Errorf("failed parsing WAKATIME_HOME environment variable: %s", err)
-		}
-
-		return filepath.Join(p, defaultFile), nil
-	}
-
-	home, err := os.UserHomeDir()
+	home, err := WakaHomeDir()
 	if err != nil {
 		return "", fmt.Errorf("failed getting user's home directory: %s", err)
 	}
 
 	return filepath.Join(home, defaultFile), nil
+}
+
+// WakaHomeDir returns the current user's home directory.
+func WakaHomeDir() (string, error) {
+	home, exists := os.LookupEnv("WAKATIME_HOME")
+	if exists && home != "" {
+		home, err := homedir.Expand(home)
+		if err == nil {
+			return home, nil
+		}
+	}
+
+	home, err := os.UserHomeDir()
+	if err == nil && home != "" {
+		return home, nil
+	}
+
+	var allerrs error = err
+
+	u, err := user.LookupId(strconv.Itoa(os.Getuid()))
+	if err == nil && u.HomeDir != "" {
+		return u.HomeDir, nil
+	}
+
+	allerrs = fmt.Errorf("%s: %s", allerrs, err)
+
+	return "", allerrs
 }

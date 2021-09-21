@@ -5,14 +5,13 @@ import (
 	"fmt"
 	"math"
 	"net/http"
-	"os"
 	"path/filepath"
 	"time"
 
+	"github.com/wakatime/wakatime-cli/pkg/config"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/log"
 
-	"github.com/mitchellh/go-homedir"
 	bolt "go.etcd.io/bbolt"
 )
 
@@ -37,17 +36,7 @@ const (
 
 // QueueFilepath returns the path for offline queue db file.
 func QueueFilepath() (string, error) {
-	home, exists := os.LookupEnv("WAKATIME_HOME")
-	if exists && home != "" {
-		p, err := homedir.Expand(home)
-		if err != nil {
-			return "", fmt.Errorf("failed parsing WAKATIME_HOME environment variable: %s", err)
-		}
-
-		return filepath.Join(p, dbFilename), nil
-	}
-
-	home, err := os.UserHomeDir()
+	home, err := config.WakaHomeDir()
 	if err != nil {
 		return "", fmt.Errorf("failed getting user's home directory: %s", err)
 	}
