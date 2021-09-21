@@ -2,7 +2,6 @@ package offline
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"math"
 	"net/http"
@@ -37,9 +36,9 @@ const (
 
 // QueueFilepath returns the path for offline queue db file.
 func QueueFilepath() (string, error) {
-	home := config.WakaHomeDir()
-	if home == "" {
-		return "", errors.New("failed getting user's home directory")
+	home, err := config.WakaHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("failed getting user's home directory: %s", err)
 	}
 
 	return filepath.Join(home, dbFilename), nil

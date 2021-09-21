@@ -38,10 +38,10 @@ build-all: build-darwin build-freebsd build-linux build-netbsd build-openbsd bui
 build-darwin: build-darwin-amd64 build-darwin-arm64
 
 build-darwin-amd64:
-	GOOS=darwin GOARCH=amd64 make build-binary
+	GOOS=darwin GOARCH=amd64 make build-binary-with-cgo
 
 build-darwin-arm64:
-	GOOS=darwin GOARCH=arm64 make build-binary
+	GOOS=darwin GOARCH=arm64 make build-binary-with-cgo
 
 build-freebsd: build-freebsd-386 build-freebsd-amd64 build-freebsd-arm
 
@@ -57,16 +57,16 @@ build-freebsd-arm:
 build-linux: build-linux-386 build-linux-amd64 build-linux-arm build-linux-arm64
 
 build-linux-386:
-	GOOS=linux GOARCH=386 make build-binary
+	GOOS=linux GOARCH=386 make build-binary-with-cgo
 
 build-linux-amd64:
-	GOOS=linux GOARCH=amd64 make build-binary
+	GOOS=linux GOARCH=amd64 make build-binary-with-cgo
 
 build-linux-arm:
-	GOOS=linux GOARCH=arm make build-binary
+	GOOS=linux GOARCH=arm make build-binary-with-cgo
 
 build-linux-arm64:
-	GOOS=linux GOARCH=arm64 make build-binary
+	GOOS=linux GOARCH=arm64 make build-binary-with-cgo
 
 build-netbsd: build-netbsd-386 build-netbsd-amd64 build-netbsd-arm
 
@@ -102,6 +102,11 @@ build-windows-amd64:
 	GOOS=windows GOARCH=amd64 make build-binary-windows
 
 build-binary:
+	CGO_ENABLED="0" GOOS=$(GOOS) GOARCH=$(GOARCH) $(GOBUILD) -v \
+		-ldflags "${LD_FLAGS} -X ${REPO}/pkg/version.OS=$(GOOS) -X ${REPO}/pkg/version.Arch=$(GOARCH)" \
+		-o ${BUILD_DIR}/$(BINARY_NAME)-$(GOOS)-$(GOARCH)
+
+build-binary-with-cgo:
 	CGO_ENABLED="1" GOOS=$(GOOS) GOARCH=$(GOARCH) $(GOBUILD) -v \
 		-ldflags "${LD_FLAGS} -X ${REPO}/pkg/version.OS=$(GOOS) -X ${REPO}/pkg/version.Arch=$(GOARCH)" \
 		-o ${BUILD_DIR}/$(BINARY_NAME)-$(GOOS)-$(GOARCH)
