@@ -41,9 +41,9 @@ func LoadParams(v *viper.Viper) (Params, error) {
 		}, nil
 	}
 
-	home := config.WakaHomeDir()
-	if home == "" {
-		return Params{}, ErrLogFile("failed getting user's home directory")
+	home, err := config.WakaHomeDir()
+	if err != nil {
+		return Params{}, fmt.Errorf("failed getting user's home directory: %s", err)
 	}
 
 	return Params{
