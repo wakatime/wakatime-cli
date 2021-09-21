@@ -33,9 +33,11 @@ else
 endif
 
 # targets
-build-all: build-darwin build-freebsd build-linux build-netbsd build-openbsd build-windows
+build-all:
+	build-darwin build-freebsd build-linux build-netbsd build-openbsd build-windows
 
-build-darwin: build-darwin-amd64 build-darwin-arm64
+build-darwin:
+	build-darwin-amd64 build-darwin-arm64
 
 build-darwin-amd64:
 	GOOS=darwin GOARCH=amd64 make build-binary
@@ -54,7 +56,8 @@ build-freebsd-amd64:
 build-freebsd-arm:
 	GOOS=freebsd GOARCH=arm make build-binary
 
-build-linux: build-linux-386 build-linux-amd64 build-linux-arm build-linux-arm64
+build-linux:
+	build-linux-386 build-linux-amd64 build-linux-arm build-linux-arm64
 
 build-linux-386:
 	GOOS=linux GOARCH=386 make build-binary
@@ -68,7 +71,8 @@ build-linux-arm:
 build-linux-arm64:
 	GOOS=linux GOARCH=arm64 make build-binary
 
-build-netbsd: build-netbsd-386 build-netbsd-amd64 build-netbsd-arm
+build-netbsd:
+	build-netbsd-386 build-netbsd-amd64 build-netbsd-arm
 
 build-netbsd-386:
 	GOOS=netbsd GOARCH=386 make build-binary
@@ -79,7 +83,8 @@ build-netbsd-amd64:
 build-netbsd-arm:
 	GOOS=netbsd GOARCH=arm make build-binary
 
-build-openbsd: build-openbsd-386 build-openbsd-amd64 build-openbsd-arm build-openbsd-arm64
+build-openbsd:
+	build-openbsd-386 build-openbsd-amd64 build-openbsd-arm build-openbsd-arm64
 
 build-openbsd-386:
 	GOOS=openbsd GOARCH=386 make build-binary
@@ -102,7 +107,7 @@ build-windows-amd64:
 	GOOS=windows GOARCH=amd64 make build-binary-windows
 
 build-binary:
-	CGO_ENABLED="0" GOOS=$(GOOS) GOARCH=$(GOARCH) $(GOBUILD) -v \
+	CGO_ENABLED="1" GOOS=$(GOOS) GOARCH=$(GOARCH) $(GOBUILD) -v \
 		-ldflags "${LD_FLAGS} -X ${REPO}/pkg/version.OS=$(GOOS) -X ${REPO}/pkg/version.Arch=$(GOARCH)" \
 		-o ${BUILD_DIR}/$(BINARY_NAME)-$(GOOS)-$(GOARCH)
 

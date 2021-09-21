@@ -2,9 +2,9 @@ package logfile
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 
+	"github.com/wakatime/wakatime-cli/pkg/config"
 	"github.com/wakatime/wakatime-cli/pkg/vipertools"
 
 	"github.com/mitchellh/go-homedir"
@@ -41,24 +41,9 @@ func LoadParams(v *viper.Viper) (Params, error) {
 		}, nil
 	}
 
-	var (
-		home string
-		err  error
-	)
-
-	home, exists := os.LookupEnv("WAKATIME_HOME")
-	if exists && home != "" {
-		home, err = homedir.Expand(home)
-		if err != nil {
-			return Params{},
-				ErrLogFile(fmt.Sprintf("failed parsing WAKATIME_HOME environment variable: %s", err))
-		}
-	} else {
-		home, err = os.UserHomeDir()
-		if err != nil {
-			return Params{},
-				ErrLogFile(fmt.Sprintf("failed getting user's home directory: %s", err))
-		}
+	home := config.WakaHomeDir()
+	if home == "" {
+		return Params{}, ErrLogFile("failed getting user's home directory")
 	}
 
 	return Params{
