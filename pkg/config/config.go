@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	"github.com/wakatime/wakatime-cli/pkg/log"
@@ -128,10 +129,14 @@ func WakaHomeDir() (string, error) {
 		return home, nil
 	}
 
-	user, err := user.Current()
-	if err != nil {
-		return "", err
+	var allerrs error = err
+
+	u, err := user.LookupId(strconv.Itoa(os.Getuid()))
+	if err == nil && u.HomeDir != "" {
+		return u.HomeDir, nil
 	}
 
-	return user.HomeDir, nil
+	allerrs = fmt.Errorf("%s: %s", allerrs, err)
+
+	return "", allerrs
 }
