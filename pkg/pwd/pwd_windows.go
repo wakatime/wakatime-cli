@@ -2,7 +2,7 @@
 
 package pwd
 
-// Passwd represents an entry of the user database defined in <pwd.h>
+// Passwd represents an entry of the user database defined in <pwd.h>.
 type Passwd struct {
 	Name   string // user name
 	Passwd string // user password

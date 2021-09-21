@@ -102,7 +102,7 @@ build-windows-amd64:
 	GOOS=windows GOARCH=amd64 make build-binary-windows
 
 build-binary:
-	GOOS=$(GOOS) GOARCH=$(GOARCH) $(GOBUILD) -v \
+	CGO_ENABLED="1" GOOS=$(GOOS) GOARCH=$(GOARCH) $(GOBUILD) -v \
 		-ldflags "${LD_FLAGS} -X ${REPO}/pkg/version.OS=$(GOOS) -X ${REPO}/pkg/version.Arch=$(GOARCH)" \
 		-o ${BUILD_DIR}/$(BINARY_NAME)-$(GOOS)-$(GOARCH)
 
