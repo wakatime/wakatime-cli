@@ -41,7 +41,7 @@ build-darwin-amd64:
 	GOOS=darwin GOARCH=amd64 make build-binary-with-cgo
 
 build-darwin-arm64:
-	GOOS=darwin GOARCH=arm64 make build-binary-with-cgo
+	GOOS=darwin GOARCH=arm64 make build-binary
 
 build-freebsd: build-freebsd-386 build-freebsd-amd64 build-freebsd-arm
 
@@ -63,10 +63,10 @@ build-linux-amd64:
 	GOOS=linux GOARCH=amd64 make build-binary-with-cgo
 
 build-linux-arm:
-	GOOS=linux GOARCH=arm make build-binary-with-cgo
+	GOOS=linux GOARCH=arm make build-binary
 
 build-linux-arm64:
-	GOOS=linux GOARCH=arm64 make build-binary-with-cgo
+	GOOS=linux GOARCH=arm64 make build-binary
 
 build-netbsd: build-netbsd-386 build-netbsd-amd64 build-netbsd-arm
 
