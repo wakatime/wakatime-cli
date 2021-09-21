@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/wakatime/wakatime-cli/pkg/log"
+	"github.com/wakatime/wakatime-cli/pkg/pwd"
 	"github.com/wakatime/wakatime-cli/pkg/vipertools"
 
 	"github.com/mitchellh/go-homedir"
@@ -104,20 +105,28 @@ func FilePath(v *viper.Viper) (string, error) {
 		return p, nil
 	}
 
-	home, exists := os.LookupEnv("WAKATIME_HOME")
-	if exists && home != "" {
-		p, err := homedir.Expand(home)
-		if err != nil {
-			return "", fmt.Errorf("failed parsing WAKATIME_HOME environment variable: %s", err)
-		}
-
-		return filepath.Join(p, defaultFile), nil
-	}
-
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return "", fmt.Errorf("failed getting user's home directory: %s", err)
+	home := WakaHomeDir()
+	if home == "" {
+		return "", errors.New("failed getting user's home directory")
 	}
 
 	return filepath.Join(home, defaultFile), nil
+}
+
+// WakaHomeDir returns the current user's home directory.
+func WakaHomeDir() string {
+	home, exists := os.LookupEnv("WAKATIME_HOME")
+	if exists && home != "" {
+		home, err := homedir.Expand(home)
+		if err == nil {
+			return home
+		}
+	}
+
+	home, err := os.UserHomeDir()
+	if err == nil {
+		return home
+	}
+
+	return pwd.Getpwuid(uint32(os.Getuid())).Dir
 }
