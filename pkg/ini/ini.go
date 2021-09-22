@@ -16,19 +16,26 @@ type Key struct {
 	Name string
 }
 
-// Item holds the value for a Key.
-type Item struct {
-	// Key is the section and key name for this INI setting
-	Key Key
-	// Value is the value for this Key, or empty string
-	Value string
+// GetKey returns the value for given INI Key.
+func GetKey(iniFile string, key Key) string {
+	keys := []Key{key}
+
+	return GetKeys(iniFile, keys)[key]
 }
 
-// GetKey returns the value for given INI Key.
-func GetKey(iniFile string, key Key) (Item, error) {
+// GetKeys returns the values for given INI Keys.
+func GetKeys(iniFile string, keys []Key) map[Key]string {
+	result := map[Key]string{}
+	finding := map[Key]bool{}
+	found := map[Key]bool{}
+
+	for _, key := range keys {
+		finding[key] = true
+	}
+
 	fh, err := os.Open(iniFile)
 	if err != nil {
-		return Item{}, fmt.Errorf("failed to open ini file %q: %s", iniFile, err)
+		return result
 	}
 
 	defer fh.Close()
@@ -38,6 +45,7 @@ func GetKey(iniFile string, key Key) (Item, error) {
 
 	var (
 		currentSection string
+		currentKey     Key
 		multiline      []string
 	)
 
@@ -45,24 +53,26 @@ func GetKey(iniFile string, key Key) (Item, error) {
 		line := scanner.Text()
 
 		if len(multiline) > 0 {
-			if !isMultiline(line) {
-				return Item{
-					Key:   key,
-					Value: strings.Join(multiline, "\n"),
-				}, nil
+			if isMultiline(line) {
+				multiline = append(multiline, line)
+				continue
 			}
 
-			multiline = append(multiline, line)
+			if finding[currentKey] {
+				result[currentKey] = strings.Join(multiline, "\n")
+				found[currentKey] = true
 
-			continue
+				// return early if we've already found all they keys
+				if len(found) == len(finding) {
+					return result
+				}
+			}
+
+			multiline = []string{}
 		}
 
 		if isSection(line) {
 			currentSection = getSectionName(line)
-			continue
-		}
-
-		if currentSection != key.Section {
 			continue
 		}
 
@@ -72,28 +82,36 @@ func GetKey(iniFile string, key Key) (Item, error) {
 		}
 
 		possibleKey := getPossibleKeyName(split)
-		if possibleKey != key.Name {
+		if possibleKey == "" {
 			continue
+		}
+
+		currentKey = Key{
+			Section: currentSection,
+			Name:    possibleKey,
 		}
 
 		multiline = append(multiline, strings.TrimLeft(strings.TrimLeft(split[1], " "), "\t"))
 	}
 
+	if len(multiline) > 0 && finding[currentKey] {
+		result[currentKey] = strings.Join(multiline, "\n")
+		found[currentKey] = true
+	}
+
 	// key not found in INI file, return empty string
-	return Item{
-		Key:   key,
-		Value: "",
-	}, nil
+	return result
 }
 
 // SetKey saves the value for given INI Key.
-func SetKey(iniFile string, value Item) error {
-	return SetKeys(iniFile, []Item{value})
+func SetKey(iniFile string, key Key, value string) error {
+	keys := map[Key]string{key: value}
+	return SetKeys(iniFile, keys)
 }
 
 // SetKeys saves multiple values for given INI Keys.
-func SetKeys(iniFile string, values []Item) error {
-	if len(values) == 0 {
+func SetKeys(iniFile string, keys map[Key]string) error {
+	if len(keys) == 0 {
 		return nil
 	}
 
@@ -116,15 +134,15 @@ func SetKeys(iniFile string, values []Item) error {
 		line := scanner.Text()
 
 		if isSection(line) { // nolint:nestif
-			for _, value := range values {
-				if found[value.Key] {
+			for key, value := range keys {
+				if found[key] {
 					continue
 				}
 
-				if currentSection == value.Key.Section {
-					found[value.Key] = true
+				if currentSection == key.Section {
+					found[key] = true
 
-					lines = append(lines, value.Key.Name+" = "+value.Value)
+					lines = append(lines, key.Name+" = "+value)
 
 					break
 				}
@@ -134,19 +152,19 @@ func SetKeys(iniFile string, values []Item) error {
 		} else {
 			localFound := false
 
-			for _, value := range values {
-				if found[value.Key] {
+			for key, value := range keys {
+				if found[key] {
 					continue
 				}
 
-				if currentSection == value.Key.Section {
+				if currentSection == key.Section {
 					split := strings.SplitN(line, "=", 2)
 					if len(split) == 2 {
 						possibleKey := getPossibleKeyName(split)
-						if possibleKey == value.Key.Name {
-							found[value.Key] = true
+						if possibleKey == key.Name {
+							found[key] = true
 							localFound = true
-							lines = append(lines, value.Key.Name+" = "+value.Value)
+							lines = append(lines, key.Name+" = "+value)
 							break
 						}
 					}
@@ -161,18 +179,18 @@ func SetKeys(iniFile string, values []Item) error {
 		lines = append(lines, line)
 	}
 
-	for _, value := range values {
-		if found[value.Key] {
+	for key, value := range keys {
+		if found[key] {
 			continue
 		}
 
-		if currentSection != value.Key.Section {
-			lines = append(lines, "["+value.Key.Section+"]")
+		if currentSection != key.Section {
+			lines = append(lines, "["+key.Section+"]")
 
-			currentSection = value.Key.Section
+			currentSection = key.Section
 		}
 
-		lines = append(lines, value.Key.Name+" = "+value.Value)
+		lines = append(lines, key.Name+" = "+value)
 	}
 
 	fh.Close()

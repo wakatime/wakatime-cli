@@ -32,7 +32,12 @@ import (
 
 // Run executes legacy commands following the interface of the old python implementation of the WakaTime script.
 func Run(cmd *cobra.Command, v *viper.Viper) {
-	if err := config.ReadInConfig(v, config.FilePath); err != nil {
+	configFile, err := config.FilePath(v)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error getting config file path: %s", err)
+	}
+
+	if err := config.ReadInConfig(v, configFile); err != nil {
 		fmt.Fprintf(os.Stderr, "failed to load configuration file: %s", err)
 
 		os.Exit(exitcode.ErrConfigFileParse)

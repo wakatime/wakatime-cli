@@ -86,6 +86,7 @@ projects/foo = new project name
 
 For commonly used configuration options, see examples in the [FAQ](https://wakatime.com/faq).
 
-### Internal Section
+## Internal INI Config File
 
-This section is reserved for internal plugin configs, like caching GitHub API requests when checking for wakatime-cli updates.
+The plugins and waktime-cli use a separate internal INI file for things like caching auto-update requests to the GitHub releases API, and exponential backoff to the WakaTime API.
+The default internal INI config file location is `$WAKATIME_HOME/.wakatime-internal.cfg`.
