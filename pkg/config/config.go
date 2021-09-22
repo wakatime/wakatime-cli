@@ -20,6 +20,8 @@ import (
 const (
 	// defaultFile is the name of the default wakatime config file.
 	defaultFile = ".wakatime.cfg"
+	// defaultInternalFile is the name of the default wakatime internal config file.
+	defaultInternalFile = ".wakatime-internal.cfg"
 	// DateFormat is the default format for date in config file.
 	DateFormat = time.RFC3339
 )
@@ -71,17 +73,12 @@ func (w *IniWriter) Write(section string, keyValue map[string]string) error {
 }
 
 // ReadInConfig reads wakatime config file in memory.
-func ReadInConfig(v *viper.Viper, filepathFn func(v *viper.Viper) (string, error)) error {
-	configFilepath, err := filepathFn(v)
-	if err != nil {
-		return fmt.Errorf("error getting filepath: %s", err)
-	}
-
+func ReadInConfig(v *viper.Viper, configFilePath string) error {
 	v.SetConfigType("ini")
-	v.SetConfigFile(configFilepath)
+	v.SetConfigFile(configFilePath)
 
 	// check if file exists
-	if _, err := os.Stat(configFilepath); os.IsNotExist(err) {
+	if _, err := os.Stat(configFilePath); os.IsNotExist(err) {
 		log.Debugf("config file not present or not accessible")
 
 		return nil
@@ -100,7 +97,7 @@ func FilePath(v *viper.Viper) (string, error) {
 	if configFilepath != "" {
 		p, err := homedir.Expand(configFilepath)
 		if err != nil {
-			return "", fmt.Errorf("failed parsing config flag variable: %s", err)
+			return "", fmt.Errorf("failed parsing --config param: %s", err)
 		}
 
 		return p, nil
@@ -112,6 +109,26 @@ func FilePath(v *viper.Viper) (string, error) {
 	}
 
 	return filepath.Join(home, defaultFile), nil
+}
+
+// InternalFilePath returns the path for the wakatime internal config file.
+func InternalFilePath(v *viper.Viper) (string, error) {
+	configFilepath := vipertools.GetString(v, "internal-config")
+	if configFilepath != "" {
+		p, err := homedir.Expand(configFilepath)
+		if err != nil {
+			return "", fmt.Errorf("failed parsing --internal-config param: %s", err)
+		}
+
+		return p, nil
+	}
+
+	home, err := WakaHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("failed getting user's home directory: %s", err)
+	}
+
+	return filepath.Join(home, defaultInternalFile), nil
 }
 
 // WakaHomeDir returns the current user's home directory.
