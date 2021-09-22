@@ -2,6 +2,7 @@ package legacyparams_test
 
 import (
 	"errors"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -345,7 +346,15 @@ func TestLoad_API_BackoffAt(t *testing.T) {
 	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("hostname", "my-computer")
-	v.Set("internal.backoff_at", "2021-08-30T18:50:42-03:00")
+
+	tmpFile, err := ioutil.TempFile(os.TempDir(), "wakatime")
+	require.NoError(t, err)
+
+	defer os.Remove(tmpFile.Name())
+
+	v.Set("internal-config", tmpFile.Name())
+
+	copyFile(t, "testdata/internal-with-backoff.cfg", tmpFile.Name())
 
 	params, err := legacyparams.Load(v)
 	require.NoError(t, err)
@@ -354,10 +363,11 @@ func TestLoad_API_BackoffAt(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, legacyparams.API{
-		BackoffAt: backoffAt,
-		Key:       "00000000-0000-4000-8000-000000000000",
-		URL:       "https://api.wakatime.com/api/v1",
-		Hostname:  "my-computer",
+		BackoffAt:      backoffAt,
+		BackoffRetries: 3,
+		Key:            "00000000-0000-4000-8000-000000000000",
+		URL:            "https://api.wakatime.com/api/v1",
+		Hostname:       "my-computer",
 	}, params.API)
 }
 
@@ -366,31 +376,22 @@ func TestLoad_API_BackoffAtErr(t *testing.T) {
 	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("hostname", "my-computer")
-	v.Set("internal.backoff_at", "2021-08-30")
+
+	tmpFile, err := ioutil.TempFile(os.TempDir(), "wakatime")
+	require.NoError(t, err)
+
+	defer os.Remove(tmpFile.Name())
+
+	v.Set("internal-config", tmpFile.Name())
+
+	copyFile(t, "testdata/internal-malformed-backoff.cfg", tmpFile.Name())
 
 	params, err := legacyparams.Load(v)
 	require.NoError(t, err)
 
 	assert.Equal(t, legacyparams.API{
-		BackoffAt: time.Time{},
-		Key:       "00000000-0000-4000-8000-000000000000",
-		URL:       "https://api.wakatime.com/api/v1",
-		Hostname:  "my-computer",
-	}, params.API)
-}
-
-func TestLoad_API_BackoffRetries(t *testing.T) {
-	v := viper.New()
-	v.SetDefault("sync-offline-activity", 1000)
-	v.Set("key", "00000000-0000-4000-8000-000000000000")
-	v.Set("hostname", "my-computer")
-	v.Set("internal.backoff_retries", "3")
-
-	params, err := legacyparams.Load(v)
-	require.NoError(t, err)
-
-	assert.Equal(t, legacyparams.API{
-		BackoffRetries: 3,
+		BackoffAt:      time.Time{},
+		BackoffRetries: 2,
 		Key:            "00000000-0000-4000-8000-000000000000",
 		URL:            "https://api.wakatime.com/api/v1",
 		Hostname:       "my-computer",
@@ -609,4 +610,12 @@ func TestLoadParams_Hostname_DefaultFromSystem(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, expected, params.API.Hostname)
+}
+
+func copyFile(t *testing.T, source, destination string) {
+	input, err := ioutil.ReadFile(source)
+	require.NoError(t, err)
+
+	err = ioutil.WriteFile(destination, input, 0600)
+	require.NoError(t, err)
 }

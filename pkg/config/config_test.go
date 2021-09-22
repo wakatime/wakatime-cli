@@ -19,10 +19,10 @@ import (
 
 func TestReadInConfig(t *testing.T) {
 	v := viper.New()
-	err := config.ReadInConfig(v, func(vp *viper.Viper) (string, error) {
-		assert.Equal(t, v, vp)
-		return "testdata/wakatime.cfg", nil
-	})
+	v.Set("config", "./testdata/wakatime.cfg")
+	filePath, err := config.FilePath(v)
+	require.NoError(t, err)
+	err = config.ReadInConfig(v, filePath)
 	require.NoError(t, err)
 
 	assert.Equal(t, "b9485572-74bf-419a-916b-22056ca3a24c", vipertools.GetString(v, "settings.api_key"))
@@ -33,10 +33,10 @@ func TestReadInConfig(t *testing.T) {
 func TestReadInConfig_Multiline(t *testing.T) {
 	multilineOption := viper.IniLoadOptions(ini.LoadOptions{AllowPythonMultilineValues: true})
 	v := viper.NewWithOptions(multilineOption)
-	err := config.ReadInConfig(v, func(vp *viper.Viper) (string, error) {
-		assert.Equal(t, v, vp)
-		return "testdata/wakatime-multiline.cfg", nil
-	})
+	v.Set("config", "./testdata/wakatime-multiline.cfg")
+	filePath, err := config.FilePath(v)
+	require.NoError(t, err)
+	err = config.ReadInConfig(v, filePath)
 	require.NoError(t, err)
 
 	ignoreConfig := strings.ReplaceAll(vipertools.GetString(v, "settings.ignore"), "\r", "")
@@ -48,19 +48,25 @@ func TestReadInConfig_Multiline(t *testing.T) {
 
 func TestReadInConfig_DoesNotExit_NoError(t *testing.T) {
 	v := viper.New()
-	err := config.ReadInConfig(v, func(vp *viper.Viper) (string, error) {
-		assert.Equal(t, v, vp)
-		return "testdata/any.cfg", nil
-	})
+	v.Set("config", "./testdata/any.cfg")
+	filePath, err := config.FilePath(v)
+	require.NoError(t, err)
+	err = config.ReadInConfig(v, filePath)
 	require.NoError(t, err)
 }
 
-func TestReadInConfigErr(t *testing.T) {
+func TestReadInConfigMissing(t *testing.T) {
 	v := viper.New()
-	err := config.ReadInConfig(v, func(vp *viper.Viper) (string, error) {
-		assert.Equal(t, v, vp)
-		return "", errors.New("error")
-	})
+	err := config.ReadInConfig(v, "not-exists")
+	assert.NoError(t, err)
+}
+
+func TestReadInConfigMalformed(t *testing.T) {
+	v := viper.New()
+	v.Set("config", "./testdata/malformed.cfg")
+	filePath, err := config.FilePath(v)
+	require.NoError(t, err)
+	err = config.ReadInConfig(v, filePath)
 	assert.Error(t, err)
 }
 
@@ -84,11 +90,11 @@ func TestFilePath(t *testing.T) {
 			ViperValue: `"~/path/.wakatime.cfg"`,
 			Expected:   filepath.Join(home, "path", ".wakatime.cfg"),
 		},
-		"env trailling slash": {
+		"env trailing slash": {
 			EnvVar:   "~/path2/",
 			Expected: filepath.Join(home, "path2", ".wakatime.cfg"),
 		},
-		"env without trailling slash": {
+		"env without trailing slash": {
 			EnvVar:   "~/path2",
 			Expected: filepath.Join(home, "path2", ".wakatime.cfg"),
 		},
@@ -102,6 +108,43 @@ func TestFilePath(t *testing.T) {
 			require.NoError(t, err)
 
 			configFilepath, err := config.FilePath(v)
+			require.NoError(t, err)
+
+			assert.Equal(t, test.Expected, configFilepath)
+		})
+	}
+}
+
+func TestInternalFilePath(t *testing.T) {
+	home, err := os.UserHomeDir()
+	require.NoError(t, err)
+
+	tests := map[string]struct {
+		ViperValue string
+		EnvVar     string
+		Expected   string
+	}{
+		"default": {
+			Expected: filepath.Join(home, ".wakatime-internal.cfg"),
+		},
+		"env trailing slash": {
+			EnvVar:   "~/path2/",
+			Expected: filepath.Join(home, "path2", ".wakatime-internal.cfg"),
+		},
+		"env without trailing slash": {
+			EnvVar:   "~/path2",
+			Expected: filepath.Join(home, "path2", ".wakatime-internal.cfg"),
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			v := viper.New()
+			v.Set("internal-config", test.ViperValue)
+			err := os.Setenv("WAKATIME_HOME", test.EnvVar)
+			require.NoError(t, err)
+
+			configFilepath, err := config.InternalFilePath(v)
 			require.NoError(t, err)
 
 			assert.Equal(t, test.Expected, configFilepath)

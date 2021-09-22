@@ -58,6 +58,7 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 			" \"browsing\", or \"designing\". Defaults to \"coding\".",
 	)
 	flags.String("config", "", "Optional config file. Defaults to '~/.wakatime.cfg'.")
+	flags.String("internal-config", "", "Optional internal config file. Defaults to '~/.wakatime-internal.cfg'.")
 	flags.String("config-read", "", "Prints value for the given config key, then exits.")
 	flags.String(
 		"config-section",

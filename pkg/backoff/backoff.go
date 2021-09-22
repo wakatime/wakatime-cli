@@ -87,38 +87,28 @@ func shouldBackoff(retries int, at time.Time) bool {
 }
 
 func updateBackoffSettings(v *viper.Viper, retries int, at time.Time) error {
-	values := []ini.Item{}
-
-	values = append(values, ini.Item{
-		Key: ini.Key{
+	keys := map[ini.Key]string{
+		{
 			Section: "internal",
 			Name:    "backoff_retries",
-		},
-		Value: strconv.Itoa(retries),
-	})
-
-	if !at.IsZero() {
-		values = append(values, ini.Item{
-			Key: ini.Key{
-				Section: "internal",
-				Name:    "backoff_at",
-			},
-			Value: at.Format(config.DateFormat),
-		})
-	} else {
-		values = append(values, ini.Item{
-			Key: ini.Key{
-				Section: "internal",
-				Name:    "backoff_at",
-			},
-			Value: "",
-		})
+		}: strconv.Itoa(retries),
+		{
+			Section: "internal",
+			Name:    "backoff_at",
+		}: "",
 	}
 
-	iniFile, err := config.FilePath(v)
+	if !at.IsZero() {
+		keys[ini.Key{
+			Section: "internal",
+			Name:    "backoff_at",
+		}] = at.Format(config.DateFormat)
+	}
+
+	iniFile, err := config.InternalFilePath(v)
 	if err != nil {
 		return fmt.Errorf("error getting filepath: %s", err)
 	}
 
-	return ini.SetKeys(iniFile, values)
+	return ini.SetKeys(iniFile, keys)
 }

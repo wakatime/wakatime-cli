@@ -11,6 +11,7 @@ import (
 
 	"github.com/wakatime/wakatime-cli/pkg/api"
 	"github.com/wakatime/wakatime-cli/pkg/config"
+	"github.com/wakatime/wakatime-cli/pkg/ini"
 	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/vipertools"
 
@@ -153,9 +154,22 @@ func loadAPIParams(v *viper.Viper) (API, error) {
 	apiURL = strings.TrimSuffix(apiURL, "/heartbeats")
 	apiURL = strings.TrimSuffix(apiURL, "/heartbeat")
 
-	var backoffAt time.Time
+	internalConfig, err := config.InternalFilePath(v)
+	if err != nil {
+		return API{}, fmt.Errorf("failed parsing backoff configs: %s", err)
+	}
 
-	backoffAtStr := vipertools.GetString(v, "internal.backoff_at")
+	internalKeys := ini.GetKeys(internalConfig, []ini.Key{
+		{Section: "internal", Name: "backoff_at"},
+		{Section: "internal", Name: "backoff_retries"},
+	})
+
+	var (
+		backoffAt      time.Time
+		backoffRetries int
+	)
+
+	backoffAtStr := internalKeys[ini.Key{Section: "internal", Name: "backoff_at"}]
 	if backoffAtStr != "" {
 		parsed, err := time.Parse(config.DateFormat, backoffAtStr)
 		if err != nil {
@@ -165,11 +179,16 @@ func loadAPIParams(v *viper.Viper) (API, error) {
 		}
 	}
 
-	backoffRetries, _ := vipertools.FirstNonEmptyInt(v, "internal.backoff_retries")
+	backoffRetriesStr := internalKeys[ini.Key{Section: "internal", Name: "backoff_retries"}]
+	if backoffRetriesStr != "" {
+		backoffRetries, err = strconv.Atoi(backoffRetriesStr)
+		if err != nil {
+			log.Warnf("failed to parse backoff_retries: %s", err)
+		}
+	}
 
 	var (
 		hostname string
-		err      error
 	)
 
 	hostname, ok = vipertools.FirstNonEmptyString(v, "hostname", "settings.hostname")

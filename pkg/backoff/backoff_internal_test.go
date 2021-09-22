@@ -46,6 +46,7 @@ func TestUpdateBackoffSettings(t *testing.T) {
 	defer os.Remove(tmpFile.Name())
 
 	v.Set("config", tmpFile.Name())
+	v.Set("internal-config", tmpFile.Name())
 
 	at := time.Now().Add(time.Second * -1)
 
@@ -73,6 +74,7 @@ func TestUpdateBackoffSettings_NotInBackoff(t *testing.T) {
 	defer os.Remove(tmpFile.Name())
 
 	v.Set("config", tmpFile.Name())
+	v.Set("internal-config", tmpFile.Name())
 
 	err = updateBackoffSettings(v, 0, time.Time{})
 	require.NoError(t, err)
@@ -96,6 +98,7 @@ func TestUpdateBackoffSettings_NoMultilineSideEffects(t *testing.T) {
 	defer os.Remove(tmpFile.Name())
 
 	v.Set("config", tmpFile.Name())
+	v.Set("internal-config", tmpFile.Name())
 
 	copyFile(t, "testdata/multiline.cfg", tmpFile.Name())
 
@@ -112,10 +115,8 @@ func TestUpdateBackoffSettings_NoMultilineSideEffects(t *testing.T) {
 	assert.Empty(t, writer.File.Section("internal").Key("backoff_at").String())
 	assert.Equal(t, "0", writer.File.Section("internal").Key("backoff_retries").String())
 
-	item, err := ini.GetKey(tmpFile.Name(), ini.Key{Section: "settings", Name: "ignore"})
-	require.NoError(t, err)
-
-	assert.Equal(t, "\n one\n two", item.Value)
+	value := ini.GetKey(tmpFile.Name(), ini.Key{Section: "settings", Name: "ignore"})
+	assert.Equal(t, "\n one\n two", value)
 
 	actual, err := ioutil.ReadFile(tmpFile.Name())
 	require.NoError(t, err)
