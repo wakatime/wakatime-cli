@@ -2,7 +2,6 @@ package filestats_test
 
 import (
 	"bytes"
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -91,7 +90,7 @@ func TestWithDetection_LinesInFile(t *testing.T) {
 }
 
 func TestWithDetection_MaxFileSizeExceeded(t *testing.T) {
-	f, err := ioutil.TempFile(os.TempDir(), "")
+	f, err := os.CreateTemp(os.TempDir(), "")
 	require.NoError(t, err)
 
 	defer os.Remove(f.Name())

@@ -1,7 +1,6 @@
 package project_test
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -13,7 +12,7 @@ import (
 )
 
 func TestWrite(t *testing.T) {
-	tmpDir, err := ioutil.TempDir(os.TempDir(), "wakatime-git")
+	tmpDir, err := os.MkdirTemp(os.TempDir(), "wakatime-git")
 	require.NoError(t, err)
 
 	defer os.RemoveAll(tmpDir)
@@ -21,7 +20,7 @@ func TestWrite(t *testing.T) {
 	err = project.Write(tmpDir, "billing")
 	require.NoError(t, err)
 
-	actual, err := ioutil.ReadFile(filepath.Join(tmpDir, ".wakatime-project"))
+	actual, err := os.ReadFile(filepath.Join(tmpDir, ".wakatime-project"))
 	require.NoError(t, err)
 
 	assert.Equal(t, string([]byte("billing\n")), string(actual))

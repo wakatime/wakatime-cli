@@ -3,7 +3,6 @@ package configwrite_test
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -68,7 +67,7 @@ func TestLoadParamsErr(t *testing.T) {
 }
 
 func TestWrite(t *testing.T) {
-	tmpFile, err := ioutil.TempFile(os.TempDir(), "wakatime")
+	tmpFile, err := os.CreateTemp(os.TempDir(), "wakatime")
 	require.NoError(t, err)
 
 	defer os.Remove(tmpFile.Name())

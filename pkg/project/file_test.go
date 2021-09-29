@@ -1,7 +1,6 @@
 package project_test
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -30,7 +29,7 @@ func TestFile_Detect_FileExists(t *testing.T) {
 }
 
 func TestFile_Detect_ParentFolderExists(t *testing.T) {
-	tmpDir, err := ioutil.TempDir(os.TempDir(), "wakatime")
+	tmpDir, err := os.MkdirTemp(os.TempDir(), "wakatime")
 	require.NoError(t, err)
 
 	defer os.RemoveAll(tmpDir)
@@ -63,7 +62,7 @@ func TestFile_Detect_ParentFolderExists(t *testing.T) {
 }
 
 func TestFile_Detect_AnyFileFound(t *testing.T) {
-	tmpFile, err := ioutil.TempFile(os.TempDir(), "wakatime-project")
+	tmpFile, err := os.CreateTemp(os.TempDir(), "wakatime-project")
 	require.NoError(t, err)
 
 	defer os.Remove(tmpFile.Name())
@@ -99,7 +98,7 @@ func TestFile_String(t *testing.T) {
 }
 
 func TestFindFileOrDirectory(t *testing.T) {
-	tmpDir, err := ioutil.TempDir(os.TempDir(), "wakatime")
+	tmpDir, err := os.MkdirTemp(os.TempDir(), "wakatime")
 	require.NoError(t, err)
 
 	defer os.RemoveAll(tmpDir)
@@ -144,9 +143,9 @@ func TestFindFileOrDirectory(t *testing.T) {
 }
 
 func copyFile(t *testing.T, source, destination string) {
-	input, err := ioutil.ReadFile(source)
+	input, err := os.ReadFile(source)
 	require.NoError(t, err)
 
-	err = ioutil.WriteFile(destination, input, 0600)
+	err = os.WriteFile(destination, input, 0600)
 	require.NoError(t, err)
 }

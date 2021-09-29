@@ -3,7 +3,6 @@ package offlinesync_test
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -42,10 +41,10 @@ func TestSyncOfflineActivity(t *testing.T) {
 			plugin,
 		))
 
-		expectedBody, err := ioutil.ReadFile("testdata/api_heartbeats_request_template.json")
+		expectedBody, err := os.ReadFile("testdata/api_heartbeats_request_template.json")
 		require.NoError(t, err)
 
-		body, err := ioutil.ReadAll(req.Body)
+		body, err := io.ReadAll(req.Body)
 		require.NoError(t, err)
 
 		assert.JSONEq(t, string(expectedBody), string(body))
@@ -62,7 +61,7 @@ func TestSyncOfflineActivity(t *testing.T) {
 	})
 
 	// setup offline queue
-	f, err := ioutil.TempFile(os.TempDir(), "")
+	f, err := os.CreateTemp(os.TempDir(), "")
 	require.NoError(t, err)
 
 	defer os.Remove(f.Name())
@@ -70,13 +69,13 @@ func TestSyncOfflineActivity(t *testing.T) {
 	db, err := bolt.Open(f.Name(), 0600, nil)
 	require.NoError(t, err)
 
-	dataGo, err := ioutil.ReadFile("testdata/heartbeat_go.json")
+	dataGo, err := os.ReadFile("testdata/heartbeat_go.json")
 	require.NoError(t, err)
 
-	dataPy, err := ioutil.ReadFile("testdata/heartbeat_py.json")
+	dataPy, err := os.ReadFile("testdata/heartbeat_py.json")
 	require.NoError(t, err)
 
-	dataJs, err := ioutil.ReadFile("testdata/heartbeat_js.json")
+	dataJs, err := os.ReadFile("testdata/heartbeat_js.json")
 	require.NoError(t, err)
 
 	insertHeartbeatRecords(t, db, "heartbeats", []heartbeatRecord{

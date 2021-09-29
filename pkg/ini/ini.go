@@ -3,7 +3,6 @@ package ini
 import (
 	"bufio"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strings"
 )
@@ -197,7 +196,7 @@ func SetKeys(iniFile string, keys map[Key]string) error {
 
 	output := strings.Join(lines, "\n")
 
-	return ioutil.WriteFile(iniFile, []byte(output), 0644) // nolint:gosec
+	return os.WriteFile(iniFile, []byte(output), 0644) // nolint:gosec
 }
 
 func isSection(line string) bool {

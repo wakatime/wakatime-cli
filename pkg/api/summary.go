@@ -3,7 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"github.com/wakatime/wakatime-cli/pkg/summary"
@@ -31,7 +31,7 @@ func (c *Client) Today() (*summary.Summary, error) {
 	}
 	defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, Err(fmt.Sprintf("failed to read response body from %q: %s", url, err))
 	}
