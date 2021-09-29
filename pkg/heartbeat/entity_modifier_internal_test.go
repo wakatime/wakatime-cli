@@ -1,7 +1,6 @@
 package heartbeat
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -45,7 +44,7 @@ func TestIsXCodePlayground(t *testing.T) {
 }
 
 func setupTestXCodePlayground(t *testing.T, dir string) string {
-	tmpDir, err := ioutil.TempDir(os.TempDir(), "wakatime")
+	tmpDir, err := os.MkdirTemp(os.TempDir(), "wakatime")
 	require.NoError(t, err)
 
 	err = os.Mkdir(filepath.Join(tmpDir, dir), os.FileMode(int(0700)))

@@ -1,7 +1,6 @@
 package project_test
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -73,7 +72,7 @@ func TestMercurial_Detect_NoBranch(t *testing.T) {
 }
 
 func setupTestMercurial(t *testing.T) (fp string, tearDown func()) {
-	tmpDir, err := ioutil.TempDir(os.TempDir(), "wakatime-hg")
+	tmpDir, err := os.MkdirTemp(os.TempDir(), "wakatime-hg")
 	require.NoError(t, err)
 
 	err = os.MkdirAll(filepath.Join(tmpDir, "wakatime-cli/src/pkg"), os.FileMode(int(0700)))
@@ -93,7 +92,7 @@ func setupTestMercurial(t *testing.T) (fp string, tearDown func()) {
 }
 
 func setupTestMercurialBranchWithSlash(t *testing.T) (fp string, tearDown func()) {
-	tmpDir, err := ioutil.TempDir(os.TempDir(), "wakatime-hg")
+	tmpDir, err := os.MkdirTemp(os.TempDir(), "wakatime-hg")
 	require.NoError(t, err)
 
 	err = os.MkdirAll(filepath.Join(tmpDir, "wakatime-cli/src/pkg"), os.FileMode(int(0700)))
@@ -113,7 +112,7 @@ func setupTestMercurialBranchWithSlash(t *testing.T) (fp string, tearDown func()
 }
 
 func setupTestMercurialNoBranch(t *testing.T) (fp string, tearDown func()) {
-	tmpDir, err := ioutil.TempDir(os.TempDir(), "wakatime-hg")
+	tmpDir, err := os.MkdirTemp(os.TempDir(), "wakatime-hg")
 	require.NoError(t, err)
 
 	err = os.MkdirAll(filepath.Join(tmpDir, "wakatime-cli/src/pkg"), os.FileMode(int(0700)))

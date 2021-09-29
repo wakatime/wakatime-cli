@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"github.com/wakatime/wakatime-cli/pkg/diagnostic"
@@ -63,7 +63,7 @@ func (c *Client) SendDiagnostics(plugin string, diagnostics ...diagnostic.Diagno
 	}
 	defer resp.Body.Close()
 
-	respBody, err := ioutil.ReadAll(resp.Body)
+	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return Err(fmt.Sprintf("failed reading response body from %q: %s", url, err))
 	}

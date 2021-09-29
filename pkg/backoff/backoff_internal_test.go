@@ -1,7 +1,6 @@
 package backoff
 
 import (
-	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
@@ -40,7 +39,7 @@ func TestShouldBackoff_NegateBackoff(t *testing.T) {
 func TestUpdateBackoffSettings(t *testing.T) {
 	v := viper.New()
 
-	tmpFile, err := ioutil.TempFile(os.TempDir(), "wakatime")
+	tmpFile, err := os.CreateTemp(os.TempDir(), "wakatime")
 	require.NoError(t, err)
 
 	defer os.Remove(tmpFile.Name())
@@ -68,7 +67,7 @@ func TestUpdateBackoffSettings(t *testing.T) {
 func TestUpdateBackoffSettings_NotInBackoff(t *testing.T) {
 	v := viper.New()
 
-	tmpFile, err := ioutil.TempFile(os.TempDir(), "wakatime")
+	tmpFile, err := os.CreateTemp(os.TempDir(), "wakatime")
 	require.NoError(t, err)
 
 	defer os.Remove(tmpFile.Name())
@@ -92,7 +91,7 @@ func TestUpdateBackoffSettings_NotInBackoff(t *testing.T) {
 func TestUpdateBackoffSettings_NoMultilineSideEffects(t *testing.T) {
 	v := viper.New()
 
-	tmpFile, err := ioutil.TempFile(os.TempDir(), "wakatime")
+	tmpFile, err := os.CreateTemp(os.TempDir(), "wakatime")
 	require.NoError(t, err)
 
 	defer os.Remove(tmpFile.Name())
@@ -118,19 +117,19 @@ func TestUpdateBackoffSettings_NoMultilineSideEffects(t *testing.T) {
 	value := ini.GetKey(tmpFile.Name(), ini.Key{Section: "settings", Name: "ignore"})
 	assert.Equal(t, "\n one\n two", value)
 
-	actual, err := ioutil.ReadFile(tmpFile.Name())
+	actual, err := os.ReadFile(tmpFile.Name())
 	require.NoError(t, err)
 
-	expected, err := ioutil.ReadFile("testdata/multiline_expected.cfg")
+	expected, err := os.ReadFile("testdata/multiline_expected.cfg")
 	require.NoError(t, err)
 
 	assert.Equal(t, strings.ReplaceAll(string(expected), "\r", ""), string(actual))
 }
 
 func copyFile(t *testing.T, source, destination string) {
-	input, err := ioutil.ReadFile(source)
+	input, err := os.ReadFile(source)
 	require.NoError(t, err)
 
-	err = ioutil.WriteFile(destination, input, 0600)
+	err = os.WriteFile(destination, input, 0600)
 	require.NoError(t, err)
 }

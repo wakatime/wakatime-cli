@@ -2,7 +2,6 @@ package project_test
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -61,7 +60,7 @@ func TestTfvc_Detect_Windows(t *testing.T) {
 }
 
 func setupTestTfvc(t *testing.T, tfFolderName string) (fp string, tearDown func()) {
-	tmpDir, err := ioutil.TempDir(os.TempDir(), "wakatime-tfvc")
+	tmpDir, err := os.MkdirTemp(os.TempDir(), "wakatime-tfvc")
 	require.NoError(t, err)
 
 	err = os.MkdirAll(filepath.Join(tmpDir, "wakatime-cli/src/pkg"), os.FileMode(int(0700)))

@@ -2,7 +2,6 @@ package windows
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"testing"
@@ -68,7 +67,7 @@ func TestFormatLocalFilePath(t *testing.T) {
 }
 
 func TestFormatLocalFilePath_LocalFileExists(t *testing.T) {
-	tmpFile, err := ioutil.TempFile(os.TempDir(), "")
+	tmpFile, err := os.CreateTemp(os.TempDir(), "")
 	require.NoError(t, err)
 
 	defer os.Remove(tmpFile.Name())
@@ -81,7 +80,7 @@ func TestFormatLocalFilePath_LocalFileExists(t *testing.T) {
 }
 
 func TestFormatLocalFilePath_EntityExists(t *testing.T) {
-	tmpFile, err := ioutil.TempFile(os.TempDir(), "")
+	tmpFile, err := os.CreateTemp(os.TempDir(), "")
 	require.NoError(t, err)
 
 	defer os.Remove(tmpFile.Name())

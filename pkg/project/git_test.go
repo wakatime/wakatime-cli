@@ -2,7 +2,6 @@ package project_test
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -180,7 +179,7 @@ func TestGit_Detect_SubmoduleDisabled(t *testing.T) {
 }
 
 func setupTestGitBasic(t *testing.T) (fp string, tearDown func()) {
-	tmpDir, err := ioutil.TempDir(os.TempDir(), "wakatime-git")
+	tmpDir, err := os.MkdirTemp(os.TempDir(), "wakatime-git")
 	require.NoError(t, err)
 
 	err = os.MkdirAll(filepath.Join(tmpDir, "wakatime-cli/src/pkg"), os.FileMode(int(0700)))
@@ -201,7 +200,7 @@ func setupTestGitBasic(t *testing.T) (fp string, tearDown func()) {
 }
 
 func setupTestGitBasicBranchWithSlash(t *testing.T) (fp string, tearDown func()) {
-	tmpDir, err := ioutil.TempDir(os.TempDir(), "wakatime-git")
+	tmpDir, err := os.MkdirTemp(os.TempDir(), "wakatime-git")
 	require.NoError(t, err)
 
 	err = os.MkdirAll(filepath.Join(tmpDir, "wakatime-cli/src/pkg"), os.FileMode(int(0700)))
@@ -222,7 +221,7 @@ func setupTestGitBasicBranchWithSlash(t *testing.T) (fp string, tearDown func())
 }
 
 func setupTestGitBasicDetachedHead(t *testing.T) (fp string, tearDown func()) {
-	tmpDir, err := ioutil.TempDir(os.TempDir(), "wakatime-git")
+	tmpDir, err := os.MkdirTemp(os.TempDir(), "wakatime-git")
 	require.NoError(t, err)
 
 	err = os.MkdirAll(filepath.Join(tmpDir, "wakatime-cli/src/pkg"), os.FileMode(int(0700)))
@@ -243,7 +242,7 @@ func setupTestGitBasicDetachedHead(t *testing.T) (fp string, tearDown func()) {
 }
 
 func setupTestGitFile(t *testing.T) (fp string, tearDown func()) {
-	tmpDir, err := ioutil.TempDir(os.TempDir(), "wakatime-git")
+	tmpDir, err := os.MkdirTemp(os.TempDir(), "wakatime-git")
 	require.NoError(t, err)
 
 	// Create directories
@@ -297,7 +296,7 @@ func setupTestGitFile(t *testing.T) (fp string, tearDown func()) {
 }
 
 func setupTestGitWorktree(t *testing.T) (fp string, tearDown func()) {
-	tmpDir, err := ioutil.TempDir(os.TempDir(), "wakatime-git")
+	tmpDir, err := os.MkdirTemp(os.TempDir(), "wakatime-git")
 	require.NoError(t, err)
 
 	// Create directories
@@ -341,7 +340,7 @@ func setupTestGitWorktree(t *testing.T) (fp string, tearDown func()) {
 }
 
 func setupTestGitSubmodule(t *testing.T) (fp string, tearDown func()) {
-	tmpDir, err := ioutil.TempDir(os.TempDir(), "wakatime-git")
+	tmpDir, err := os.MkdirTemp(os.TempDir(), "wakatime-git")
 	require.NoError(t, err)
 
 	// Create directories

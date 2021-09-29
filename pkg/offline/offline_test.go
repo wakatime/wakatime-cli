@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -57,7 +56,7 @@ func TestQueueFilepath(t *testing.T) {
 
 func TestWithQueue(t *testing.T) {
 	// setup
-	f, err := ioutil.TempFile(os.TempDir(), "")
+	f, err := os.CreateTemp(os.TempDir(), "")
 	require.NoError(t, err)
 
 	defer os.Remove(f.Name())
@@ -65,7 +64,7 @@ func TestWithQueue(t *testing.T) {
 	db, err := bolt.Open(f.Name(), 0600, nil)
 	require.NoError(t, err)
 
-	dataJs, err := ioutil.ReadFile("testdata/heartbeat_js.json")
+	dataJs, err := os.ReadFile("testdata/heartbeat_js.json")
 	require.NoError(t, err)
 
 	insertHeartbeatRecords(t, db, "heartbeats", []heartbeatRecord{
@@ -145,7 +144,7 @@ func TestWithQueue(t *testing.T) {
 
 func TestWithQueue_ApiError(t *testing.T) {
 	// setup
-	f, err := ioutil.TempFile(os.TempDir(), "")
+	f, err := os.CreateTemp(os.TempDir(), "")
 	require.NoError(t, err)
 
 	defer os.Remove(f.Name())
@@ -191,10 +190,10 @@ func TestWithQueue_ApiError(t *testing.T) {
 
 	db.Close()
 
-	dataGo, err := ioutil.ReadFile("testdata/heartbeat_go.json")
+	dataGo, err := os.ReadFile("testdata/heartbeat_go.json")
 	require.NoError(t, err)
 
-	dataPy, err := ioutil.ReadFile("testdata/heartbeat_py.json")
+	dataPy, err := os.ReadFile("testdata/heartbeat_py.json")
 	require.NoError(t, err)
 
 	require.Len(t, stored, 2)
@@ -208,7 +207,7 @@ func TestWithQueue_ApiError(t *testing.T) {
 
 func TestWithQueue_InvalidResults(t *testing.T) {
 	// setup
-	f, err := ioutil.TempFile(os.TempDir(), "")
+	f, err := os.CreateTemp(os.TempDir(), "")
 	require.NoError(t, err)
 
 	defer os.Remove(f.Name())
@@ -277,10 +276,10 @@ func TestWithQueue_InvalidResults(t *testing.T) {
 
 	db.Close()
 
-	dataPy, err := ioutil.ReadFile("testdata/heartbeat_py.json")
+	dataPy, err := os.ReadFile("testdata/heartbeat_py.json")
 	require.NoError(t, err)
 
-	dataJs, err := ioutil.ReadFile("testdata/heartbeat_js.json")
+	dataJs, err := os.ReadFile("testdata/heartbeat_js.json")
 	require.NoError(t, err)
 
 	assert.Len(t, stored, 2)
@@ -294,7 +293,7 @@ func TestWithQueue_InvalidResults(t *testing.T) {
 
 func TestWithQueue_HandleLeftovers(t *testing.T) {
 	// setup
-	f, err := ioutil.TempFile(os.TempDir(), "")
+	f, err := os.CreateTemp(os.TempDir(), "")
 	require.NoError(t, err)
 
 	defer os.Remove(f.Name())
@@ -346,10 +345,10 @@ func TestWithQueue_HandleLeftovers(t *testing.T) {
 
 	db.Close()
 
-	dataPy, err := ioutil.ReadFile("testdata/heartbeat_py.json")
+	dataPy, err := os.ReadFile("testdata/heartbeat_py.json")
 	require.NoError(t, err)
 
-	dataJs, err := ioutil.ReadFile("testdata/heartbeat_js.json")
+	dataJs, err := os.ReadFile("testdata/heartbeat_js.json")
 	require.NoError(t, err)
 
 	require.Len(t, stored, 2)
@@ -363,7 +362,7 @@ func TestWithQueue_HandleLeftovers(t *testing.T) {
 
 func TestSync(t *testing.T) {
 	// setup
-	f, err := ioutil.TempFile(os.TempDir(), "")
+	f, err := os.CreateTemp(os.TempDir(), "")
 	require.NoError(t, err)
 
 	defer os.RemoveAll(f.Name())
@@ -371,10 +370,10 @@ func TestSync(t *testing.T) {
 	db, err := bolt.Open(f.Name(), 0600, nil)
 	require.NoError(t, err)
 
-	dataGo, err := ioutil.ReadFile("testdata/heartbeat_go.json")
+	dataGo, err := os.ReadFile("testdata/heartbeat_go.json")
 	require.NoError(t, err)
 
-	dataPy, err := ioutil.ReadFile("testdata/heartbeat_py.json")
+	dataPy, err := os.ReadFile("testdata/heartbeat_py.json")
 	require.NoError(t, err)
 
 	insertHeartbeatRecords(t, db, "heartbeats", []heartbeatRecord{
@@ -444,7 +443,7 @@ func TestSync(t *testing.T) {
 
 func TestSync_MultipleRequests(t *testing.T) {
 	// setup
-	f, err := ioutil.TempFile(os.TempDir(), "")
+	f, err := os.CreateTemp(os.TempDir(), "")
 	require.NoError(t, err)
 
 	defer os.RemoveAll(f.Name())
@@ -452,7 +451,7 @@ func TestSync_MultipleRequests(t *testing.T) {
 	db, err := bolt.Open(f.Name(), 0600, nil)
 	require.NoError(t, err)
 
-	dataGo, err := ioutil.ReadFile("testdata/heartbeat_go.json")
+	dataGo, err := os.ReadFile("testdata/heartbeat_go.json")
 	require.NoError(t, err)
 
 	for i := 0; i < 11; i++ {
@@ -531,7 +530,7 @@ func TestSync_MultipleRequests(t *testing.T) {
 
 func TestSync_APIError(t *testing.T) {
 	// setup
-	f, err := ioutil.TempFile(os.TempDir(), "")
+	f, err := os.CreateTemp(os.TempDir(), "")
 	require.NoError(t, err)
 
 	defer os.RemoveAll(f.Name())
@@ -539,10 +538,10 @@ func TestSync_APIError(t *testing.T) {
 	db, err := bolt.Open(f.Name(), 0600, nil)
 	require.NoError(t, err)
 
-	dataGo, err := ioutil.ReadFile("testdata/heartbeat_go.json")
+	dataGo, err := os.ReadFile("testdata/heartbeat_go.json")
 	require.NoError(t, err)
 
-	dataPy, err := ioutil.ReadFile("testdata/heartbeat_py.json")
+	dataPy, err := os.ReadFile("testdata/heartbeat_py.json")
 	require.NoError(t, err)
 
 	insertHeartbeatRecords(t, db, "heartbeats", []heartbeatRecord{
@@ -610,7 +609,7 @@ func TestSync_APIError(t *testing.T) {
 
 func TestSync_InvalidResults(t *testing.T) {
 	// setup
-	f, err := ioutil.TempFile(os.TempDir(), "")
+	f, err := os.CreateTemp(os.TempDir(), "")
 	require.NoError(t, err)
 
 	defer os.RemoveAll(f.Name())
@@ -618,13 +617,13 @@ func TestSync_InvalidResults(t *testing.T) {
 	db, err := bolt.Open(f.Name(), 0600, nil)
 	require.NoError(t, err)
 
-	dataGo, err := ioutil.ReadFile("testdata/heartbeat_go.json")
+	dataGo, err := os.ReadFile("testdata/heartbeat_go.json")
 	require.NoError(t, err)
 
-	dataPy, err := ioutil.ReadFile("testdata/heartbeat_py.json")
+	dataPy, err := os.ReadFile("testdata/heartbeat_py.json")
 	require.NoError(t, err)
 
-	dataJs, err := ioutil.ReadFile("testdata/heartbeat_js.json")
+	dataJs, err := os.ReadFile("testdata/heartbeat_js.json")
 	require.NoError(t, err)
 
 	insertHeartbeatRecords(t, db, "heartbeats", []heartbeatRecord{
@@ -724,7 +723,7 @@ func TestSync_InvalidResults(t *testing.T) {
 
 func TestSync_SyncLimit(t *testing.T) {
 	// setup
-	f, err := ioutil.TempFile(os.TempDir(), "")
+	f, err := os.CreateTemp(os.TempDir(), "")
 	require.NoError(t, err)
 
 	defer os.RemoveAll(f.Name())
@@ -732,10 +731,10 @@ func TestSync_SyncLimit(t *testing.T) {
 	db, err := bolt.Open(f.Name(), 0600, nil)
 	require.NoError(t, err)
 
-	dataGo, err := ioutil.ReadFile("testdata/heartbeat_go.json")
+	dataGo, err := os.ReadFile("testdata/heartbeat_go.json")
 	require.NoError(t, err)
 
-	dataPy, err := ioutil.ReadFile("testdata/heartbeat_py.json")
+	dataPy, err := os.ReadFile("testdata/heartbeat_py.json")
 	require.NoError(t, err)
 
 	insertHeartbeatRecords(t, db, "heartbeats", []heartbeatRecord{
@@ -802,7 +801,7 @@ func TestSync_SyncLimit(t *testing.T) {
 
 func TestQueue_PopMany(t *testing.T) {
 	// setup
-	f, err := ioutil.TempFile(os.TempDir(), "")
+	f, err := os.CreateTemp(os.TempDir(), "")
 	require.NoError(t, err)
 
 	defer os.Remove(f.Name())
@@ -810,13 +809,13 @@ func TestQueue_PopMany(t *testing.T) {
 	db, err := bolt.Open(f.Name(), 0600, nil)
 	require.NoError(t, err)
 
-	dataGo, err := ioutil.ReadFile("testdata/heartbeat_go.json")
+	dataGo, err := os.ReadFile("testdata/heartbeat_go.json")
 	require.NoError(t, err)
 
-	dataPy, err := ioutil.ReadFile("testdata/heartbeat_py.json")
+	dataPy, err := os.ReadFile("testdata/heartbeat_py.json")
 	require.NoError(t, err)
 
-	dataJs, err := ioutil.ReadFile("testdata/heartbeat_js.json")
+	dataJs, err := os.ReadFile("testdata/heartbeat_js.json")
 	require.NoError(t, err)
 
 	insertHeartbeatRecords(t, db, "test_bucket", []heartbeatRecord{
@@ -877,7 +876,7 @@ func TestQueue_PushMany(t *testing.T) {
 	db, cleanup := initDB(t)
 	defer cleanup()
 
-	dataGo, err := ioutil.ReadFile("testdata/heartbeat_go.json")
+	dataGo, err := os.ReadFile("testdata/heartbeat_go.json")
 	require.NoError(t, err)
 
 	insertHeartbeatRecord(t, db, "test_bucket", heartbeatRecord{
@@ -887,7 +886,7 @@ func TestQueue_PushMany(t *testing.T) {
 
 	var heartbeatPy heartbeat.Heartbeat
 
-	dataPy, err := ioutil.ReadFile("testdata/heartbeat_py.json")
+	dataPy, err := os.ReadFile("testdata/heartbeat_py.json")
 	require.NoError(t, err)
 
 	err = json.Unmarshal(dataPy, &heartbeatPy)
@@ -895,7 +894,7 @@ func TestQueue_PushMany(t *testing.T) {
 
 	var heartbeatJs heartbeat.Heartbeat
 
-	dataJs, err := ioutil.ReadFile("testdata/heartbeat_js.json")
+	dataJs, err := os.ReadFile("testdata/heartbeat_js.json")
 	require.NoError(t, err)
 
 	err = json.Unmarshal(dataJs, &heartbeatJs)
@@ -962,7 +961,7 @@ func TestQueue_Count(t *testing.T) {
 
 	var heartbeatPy heartbeat.Heartbeat
 
-	dataPy, err := ioutil.ReadFile("testdata/heartbeat_py.json")
+	dataPy, err := os.ReadFile("testdata/heartbeat_py.json")
 	require.NoError(t, err)
 
 	err = json.Unmarshal(dataPy, &heartbeatPy)
@@ -970,7 +969,7 @@ func TestQueue_Count(t *testing.T) {
 
 	var heartbeatJs heartbeat.Heartbeat
 
-	dataJs, err := ioutil.ReadFile("testdata/heartbeat_js.json")
+	dataJs, err := os.ReadFile("testdata/heartbeat_js.json")
 	require.NoError(t, err)
 
 	err = json.Unmarshal(dataJs, &heartbeatJs)
@@ -1004,7 +1003,7 @@ func TestQueue_Count(t *testing.T) {
 
 func initDB(t *testing.T) (*bolt.DB, func()) {
 	// create tmp file
-	f, err := ioutil.TempFile(os.TempDir(), "")
+	f, err := os.CreateTemp(os.TempDir(), "")
 	require.NoError(t, err)
 
 	// init db
