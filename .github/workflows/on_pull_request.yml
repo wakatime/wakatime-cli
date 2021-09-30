@@ -6,13 +6,13 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: lekterable/branchlint-action@v1.0.0
+      - uses: lekterable/branchlint-action@master
         with:
           allowed: |
-            /^bugfix/.+/i
-            /^docs?/.+/i
-            /^feature/.+/i
-            /^hotfix/.+/i
-            /^major/.+/i
-            /^misc/.+/i
-            /^develop$/i
+            /^(.+:)?bugfix/.+/i
+            /^(.+:)?docs?/.+/i
+            /^(.+:)?feature/.+/i
+            /^(.+:)?hotfix/.+/i
+            /^(.+:)?major/.+/i
+            /^(.+:)?misc/.+/i
+            /^(.+:)?develop$/i
