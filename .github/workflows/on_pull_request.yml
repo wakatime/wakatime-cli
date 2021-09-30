@@ -9,10 +9,10 @@ jobs:
       - uses: lekterable/branchlint-action@v1.0.0
         with:
           allowed: |
-            /^bugfix/.+/i
-            /^docs?/.+/i
-            /^feature/.+/i
-            /^hotfix/.+/i
-            /^major/.+/i
-            /^misc/.+/i
-            /^develop$/i
+            /^(.+:)?bugfix/.+/i
+            /^(.+:)?docs?/.+/i
+            /^(.+:)?feature/.+/i
+            /^(.+:)?hotfix/.+/i
+            /^(.+:)?major/.+/i
+            /^(.+:)?misc/.+/i
+            /^(.+:)?develop$/i
