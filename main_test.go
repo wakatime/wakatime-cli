@@ -210,7 +210,7 @@ func TestTodayGoal(t *testing.T) {
 
 	var numCalls int
 
-	tmpFile, err := os.MkdirTemp(os.TempDir(), "wakatime.cfg")
+	tmpFile, err := os.CreateTemp(os.TempDir(), "wakatime.cfg")
 	require.NoError(t, err)
 
 	defer os.Remove(tmpFile.Name())
