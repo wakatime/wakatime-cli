@@ -1,11 +1,11 @@
 name: Tests
 
 on:
+  pull_request:
+    types: [opened, reopened, ready_for_review, synchronize]
   push:
-    branches:
-      - "**"
-    tags-ignore:
-      - "**"
+    branches: [develop, release]
+    tags-ignore: "**"
 
 env:
   GO_VERSION: "1.17"

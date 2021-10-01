@@ -1,4 +1,4 @@
-name: "Pull Request Linter"
+name: "Tests"
 
 on: pull_request
 
