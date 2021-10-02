@@ -2,7 +2,6 @@ package config_test
 
 import (
 	"errors"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -176,7 +175,7 @@ func TestNewIniWriterErr(t *testing.T) {
 }
 
 func TestWrite(t *testing.T) {
-	tmpFile, err := ioutil.TempFile(os.TempDir(), "wakatime")
+	tmpFile, err := os.CreateTemp(os.TempDir(), "wakatime")
 	require.NoError(t, err)
 
 	defer os.Remove(tmpFile.Name())

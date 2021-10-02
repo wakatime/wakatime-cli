@@ -1,7 +1,6 @@
 package project_test
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -190,12 +189,12 @@ func TestDetect_FileDetected(t *testing.T) {
 }
 
 func TestDetect_MapDetected(t *testing.T) {
-	tmpDir, err := ioutil.TempDir(os.TempDir(), "wakatime")
+	tmpDir, err := os.MkdirTemp(os.TempDir(), "wakatime")
 	require.NoError(t, err)
 
 	defer os.RemoveAll(tmpDir)
 
-	tmpFile, err := ioutil.TempFile(tmpDir, "waka-billing")
+	tmpFile, err := os.CreateTemp(tmpDir, "waka-billing")
 	require.NoError(t, err)
 
 	patterns := []project.MapPattern{
@@ -234,7 +233,7 @@ func TestDetectWithRevControl_GitDetected(t *testing.T) {
 }
 
 func TestDetect_NoProjectDetected(t *testing.T) {
-	tmpFile, err := ioutil.TempFile(os.TempDir(), "wakatime")
+	tmpFile, err := os.CreateTemp(os.TempDir(), "wakatime")
 	require.NoError(t, err)
 
 	defer os.Remove(tmpFile.Name())

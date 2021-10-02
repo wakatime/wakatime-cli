@@ -2,7 +2,6 @@ package legacyparams_test
 
 import (
 	"errors"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -347,7 +346,7 @@ func TestLoad_API_BackoffAt(t *testing.T) {
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("hostname", "my-computer")
 
-	tmpFile, err := ioutil.TempFile(os.TempDir(), "wakatime")
+	tmpFile, err := os.CreateTemp(os.TempDir(), "wakatime")
 	require.NoError(t, err)
 
 	defer os.Remove(tmpFile.Name())
@@ -377,7 +376,7 @@ func TestLoad_API_BackoffAtErr(t *testing.T) {
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("hostname", "my-computer")
 
-	tmpFile, err := ioutil.TempFile(os.TempDir(), "wakatime")
+	tmpFile, err := os.CreateTemp(os.TempDir(), "wakatime")
 	require.NoError(t, err)
 
 	defer os.Remove(tmpFile.Name())
@@ -613,9 +612,9 @@ func TestLoadParams_Hostname_DefaultFromSystem(t *testing.T) {
 }
 
 func copyFile(t *testing.T, source, destination string) {
-	input, err := ioutil.ReadFile(source)
+	input, err := os.ReadFile(source)
 	require.NoError(t, err)
 
-	err = ioutil.WriteFile(destination, input, 0600)
+	err = os.WriteFile(destination, input, 0600)
 	require.NoError(t, err)
 }

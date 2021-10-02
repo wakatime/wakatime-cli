@@ -2,7 +2,6 @@ package backoff_test
 
 import (
 	"errors"
-	"io/ioutil"
 	"os"
 	"testing"
 	"time"
@@ -18,7 +17,7 @@ import (
 func TestWithRetry(t *testing.T) {
 	v := viper.New()
 
-	tmpFile, err := ioutil.TempFile(os.TempDir(), "wakatime")
+	tmpFile, err := os.CreateTemp(os.TempDir(), "wakatime")
 	require.NoError(t, err)
 
 	defer os.Remove(tmpFile.Name())
@@ -66,7 +65,7 @@ func TestWithRetry_BeforeNextBackoff(t *testing.T) {
 func TestWithRetry_ApiError(t *testing.T) {
 	v := viper.New()
 
-	tmpFile, err := ioutil.TempFile(os.TempDir(), "wakatime")
+	tmpFile, err := os.CreateTemp(os.TempDir(), "wakatime")
 	require.NoError(t, err)
 
 	defer os.Remove(tmpFile.Name())

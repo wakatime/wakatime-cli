@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -18,7 +17,7 @@ import (
 
 func TestOfflineCount_Empty(t *testing.T) {
 	// setup offline queue
-	f, err := ioutil.TempFile(os.TempDir(), "")
+	f, err := os.CreateTemp(os.TempDir(), "")
 	require.NoError(t, err)
 
 	defer os.Remove(f.Name())
@@ -64,7 +63,7 @@ func TestOfflineCount_Empty(t *testing.T) {
 
 func TestOfflineCount(t *testing.T) {
 	// setup offline queue
-	f, err := ioutil.TempFile(os.TempDir(), "")
+	f, err := os.CreateTemp(os.TempDir(), "")
 	require.NoError(t, err)
 
 	defer os.Remove(f.Name())
@@ -72,10 +71,10 @@ func TestOfflineCount(t *testing.T) {
 	db, err := bolt.Open(f.Name(), 0600, nil)
 	require.NoError(t, err)
 
-	dataGo, err := ioutil.ReadFile("../testdata/heartbeat_go.json")
+	dataGo, err := os.ReadFile("../testdata/heartbeat_go.json")
 	require.NoError(t, err)
 
-	dataPy, err := ioutil.ReadFile("../testdata/heartbeat_py.json")
+	dataPy, err := os.ReadFile("../testdata/heartbeat_py.json")
 	require.NoError(t, err)
 
 	insertHeartbeatRecords(t, db, "heartbeats", []heartbeatRecord{

@@ -2,7 +2,6 @@ package language
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -178,7 +177,7 @@ func correspondingFileExists(fp string, extension string) bool {
 
 // loadFolderExtensions loads all existing from a folder.
 func loadFolderExtensions(dir string) ([]string, error) {
-	files, err := ioutil.ReadDir(dir)
+	files, err := os.ReadDir(dir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read directory: %s", err)
 	}
