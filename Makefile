@@ -93,13 +93,16 @@ build-openbsd-arm:
 build-openbsd-arm64:
 	GOOS=openbsd GOARCH=arm64 make build-binary
 
-build-windows: build-windows-386 build-windows-amd64
+build-windows: build-windows-386 build-windows-amd64 build-windows-arm64
 
 build-windows-386:
 	GOOS=windows GOARCH=386 make build-binary-windows
 
 build-windows-amd64:
 	GOOS=windows GOARCH=amd64 make build-binary-windows
+
+build-windows-arm64:
+	GOOS=windows GOARCH=arm64 make build-binary-windows
 
 build-binary:
 	CGO_ENABLED="0" GOOS=$(GOOS) GOARCH=$(GOARCH) $(GOBUILD) -v \
