@@ -3,7 +3,6 @@ package api_test
 import (
 	"errors"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"testing"
@@ -38,10 +37,10 @@ func TestClient_SendHeartbeats(t *testing.T) {
 				assert.Equal(t, []string{"application/json"}, req.Header["Content-Type"])
 
 				// check body
-				expectedBody, err := ioutil.ReadFile("testdata/api_heartbeats_request.json")
+				expectedBody, err := os.ReadFile("testdata/api_heartbeats_request.json")
 				require.NoError(t, err)
 
-				body, err := ioutil.ReadAll(req.Body)
+				body, err := io.ReadAll(req.Body)
 				require.NoError(t, err)
 
 				assert.JSONEq(t, string(expectedBody), string(body))
@@ -177,7 +176,7 @@ func TestClient_SendHeartbeats_InvalidUrl(t *testing.T) {
 }
 
 func TestParseHeartbeatResponses(t *testing.T) {
-	data, err := ioutil.ReadFile("testdata/api_heartbeats_response.json")
+	data, err := os.ReadFile("testdata/api_heartbeats_response.json")
 	require.NoError(t, err)
 
 	results, err := api.ParseHeartbeatResponses(data)
@@ -225,7 +224,7 @@ func TestParseHeartbeatResponses(t *testing.T) {
 }
 
 func TestParseHeartbeatResponses_Error(t *testing.T) {
-	data, err := ioutil.ReadFile("testdata/api_heartbeats_response_error.json")
+	data, err := os.ReadFile("testdata/api_heartbeats_response_error.json")
 	require.NoError(t, err)
 
 	results, err := api.ParseHeartbeatResponses(data)
@@ -246,7 +245,7 @@ func TestParseHeartbeatResponses_Error(t *testing.T) {
 }
 
 func TestParseHeartbeatResponses_Errors(t *testing.T) {
-	data, err := ioutil.ReadFile("testdata/api_heartbeats_response_errors.json")
+	data, err := os.ReadFile("testdata/api_heartbeats_response_errors.json")
 	require.NoError(t, err)
 
 	results, err := api.ParseHeartbeatResponses(data)

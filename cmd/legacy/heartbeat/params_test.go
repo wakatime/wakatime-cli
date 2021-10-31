@@ -2,7 +2,6 @@ package heartbeat_test
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -241,7 +240,7 @@ func TestLoadParams_ExtraHeartbeats(t *testing.T) {
 
 	os.Stdin = r
 
-	data, err := ioutil.ReadFile("testdata/extra_heartbeats.json")
+	data, err := os.ReadFile("testdata/extra_heartbeats.json")
 	require.NoError(t, err)
 
 	go func() {
@@ -314,7 +313,7 @@ func TestLoadParams_ExtraHeartbeats_WithStringValues(t *testing.T) {
 
 	os.Stdin = r
 
-	data, err := ioutil.ReadFile("testdata/extra_heartbeats_with_string_values.json")
+	data, err := os.ReadFile("testdata/extra_heartbeats_with_string_values.json")
 	require.NoError(t, err)
 
 	go func() {

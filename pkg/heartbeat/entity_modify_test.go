@@ -1,7 +1,6 @@
 package heartbeat_test
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -13,7 +12,7 @@ import (
 )
 
 func TestWithEntityModifier_XCodePlayground(t *testing.T) {
-	tmpDir, err := ioutil.TempDir(os.TempDir(), "wakatime")
+	tmpDir, err := os.MkdirTemp(os.TempDir(), "wakatime")
 	require.NoError(t, err)
 
 	defer os.RemoveAll(tmpDir)

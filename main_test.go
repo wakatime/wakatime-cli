@@ -6,7 +6,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -76,7 +75,7 @@ func testSendHeartbeats(t *testing.T, entity, project string) {
 		assert.Equal(t, []string{heartbeat.UserAgentUnknownPlugin()}, req.Header["User-Agent"])
 
 		// check body
-		expectedBodyTpl, err := ioutil.ReadFile("testdata/api_heartbeats_request.json.tpl")
+		expectedBodyTpl, err := os.ReadFile("testdata/api_heartbeats_request.json.tpl")
 		require.NoError(t, err)
 
 		entityPath, err := realpath.Realpath(entity)
@@ -90,7 +89,7 @@ func testSendHeartbeats(t *testing.T, entity, project string) {
 			heartbeat.UserAgentUnknownPlugin(),
 		)
 
-		body, err := ioutil.ReadAll(req.Body)
+		body, err := io.ReadAll(req.Body)
 		require.NoError(t, err)
 
 		assert.JSONEq(t, string(expectedBody), string(body))
@@ -104,12 +103,12 @@ func testSendHeartbeats(t *testing.T, entity, project string) {
 		require.NoError(t, err)
 	})
 
-	offlineQueueFile, err := ioutil.TempFile(os.TempDir(), "")
+	offlineQueueFile, err := os.CreateTemp(os.TempDir(), "")
 	require.NoError(t, err)
 
 	defer os.Remove(offlineQueueFile.Name())
 
-	tmpFile, err := ioutil.TempFile(os.TempDir(), "wakatime.cfg")
+	tmpFile, err := os.CreateTemp(os.TempDir(), "wakatime.cfg")
 	require.NoError(t, err)
 
 	defer os.Remove(tmpFile.Name())
@@ -150,7 +149,7 @@ func TestSendHeartbeats_Err(t *testing.T) {
 		assert.Equal(t, []string{heartbeat.UserAgentUnknownPlugin()}, req.Header["User-Agent"])
 
 		// check body
-		expectedBodyTpl, err := ioutil.ReadFile("testdata/api_heartbeats_request.json.tpl")
+		expectedBodyTpl, err := os.ReadFile("testdata/api_heartbeats_request.json.tpl")
 		require.NoError(t, err)
 
 		entityPath, err := realpath.Realpath("testdata/main.go")
@@ -164,7 +163,7 @@ func TestSendHeartbeats_Err(t *testing.T) {
 			heartbeat.UserAgentUnknownPlugin(),
 		)
 
-		body, err := ioutil.ReadAll(req.Body)
+		body, err := io.ReadAll(req.Body)
 		require.NoError(t, err)
 
 		assert.JSONEq(t, string(expectedBody), string(body))
@@ -173,12 +172,12 @@ func TestSendHeartbeats_Err(t *testing.T) {
 		w.WriteHeader(http.StatusBadGateway)
 	})
 
-	offlineQueueFile, err := ioutil.TempFile(os.TempDir(), "")
+	offlineQueueFile, err := os.CreateTemp(os.TempDir(), "")
 	require.NoError(t, err)
 
 	defer os.Remove(offlineQueueFile.Name())
 
-	tmpFile, err := ioutil.TempFile(os.TempDir(), "wakatime.cfg")
+	tmpFile, err := os.CreateTemp(os.TempDir(), "wakatime.cfg")
 	require.NoError(t, err)
 
 	defer os.Remove(tmpFile.Name())
@@ -211,7 +210,7 @@ func TestTodayGoal(t *testing.T) {
 
 	var numCalls int
 
-	tmpFile, err := ioutil.TempFile(os.TempDir(), "wakatime.cfg")
+	tmpFile, err := os.CreateTemp(os.TempDir(), "wakatime.cfg")
 	require.NoError(t, err)
 
 	defer os.Remove(tmpFile.Name())
@@ -255,7 +254,7 @@ func TestTodaySummary(t *testing.T) {
 
 	var numCalls int
 
-	tmpFile, err := ioutil.TempFile(os.TempDir(), "wakatime.cfg")
+	tmpFile, err := os.CreateTemp(os.TempDir(), "wakatime.cfg")
 	require.NoError(t, err)
 
 	defer os.Remove(tmpFile.Name())
@@ -293,7 +292,7 @@ func TestTodaySummary(t *testing.T) {
 }
 
 func TestOfflineCountEmpty(t *testing.T) {
-	offlineQueueFile, err := ioutil.TempFile(os.TempDir(), "")
+	offlineQueueFile, err := os.CreateTemp(os.TempDir(), "")
 	require.NoError(t, err)
 
 	defer os.Remove(offlineQueueFile.Name())
@@ -319,12 +318,12 @@ func TestOfflineCountWithOneHeartbeat(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	offlineQueueFile, err := ioutil.TempFile(os.TempDir(), "")
+	offlineQueueFile, err := os.CreateTemp(os.TempDir(), "")
 	require.NoError(t, err)
 
 	defer os.Remove(offlineQueueFile.Name())
 
-	tmpFile, err := ioutil.TempFile(os.TempDir(), "wakatime.cfg")
+	tmpFile, err := os.CreateTemp(os.TempDir(), "wakatime.cfg")
 	require.NoError(t, err)
 
 	defer os.Remove(tmpFile.Name())
@@ -388,12 +387,12 @@ func TestVersionVerbose(t *testing.T) {
 }
 
 func runWakatimeCli(t *testing.T, args ...string) string {
-	f, err := ioutil.TempFile(os.TempDir(), "")
+	f, err := os.CreateTemp(os.TempDir(), "")
 	require.NoError(t, err)
 
 	defer func() {
 		f.Close()
-		data, err := ioutil.ReadFile(f.Name())
+		data, err := os.ReadFile(f.Name())
 		require.NoError(t, err)
 
 		fmt.Printf("logs: %s\n", string(data))
@@ -407,12 +406,12 @@ func runWakatimeCli(t *testing.T, args ...string) string {
 }
 
 func runWakatimeCliExpectErr(t *testing.T, exitcode int, args ...string) string {
-	f, err := ioutil.TempFile(os.TempDir(), "")
+	f, err := os.CreateTemp(os.TempDir(), "")
 	require.NoError(t, err)
 
 	defer func() {
 		f.Close()
-		data, err := ioutil.ReadFile(f.Name())
+		data, err := os.ReadFile(f.Name())
 		require.NoError(t, err)
 
 		fmt.Printf("logs: %s\n", string(data))

@@ -1,0 +1,18 @@
+name: "Tests"
+
+on: pull_request
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: lekterable/branchlint-action@v1.0.0
+        with:
+          allowed: |
+            /^(.+:)?bugfix/.+/i
+            /^(.+:)?docs?/.+/i
+            /^(.+:)?feature/.+/i
+            /^(.+:)?hotfix/.+/i
+            /^(.+:)?major/.+/i
+            /^(.+:)?misc/.+/i
+            /^(.+:)?develop$/i

@@ -2,7 +2,6 @@ package filter_test
 
 import (
 	"errors"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -16,12 +15,12 @@ import (
 )
 
 func TestWithFiltering(t *testing.T) {
-	tmpDir, err := ioutil.TempDir(os.TempDir(), "wakatime")
+	tmpDir, err := os.MkdirTemp(os.TempDir(), "wakatime")
 	require.NoError(t, err)
 
 	defer os.RemoveAll(tmpDir)
 
-	tmpFile, err := ioutil.TempFile(tmpDir, "")
+	tmpFile, err := os.CreateTemp(tmpDir, "")
 	require.NoError(t, err)
 
 	first := testHeartbeat()
@@ -79,12 +78,12 @@ func TestWithFiltering_AbortAllFiltered(t *testing.T) {
 }
 
 func TestFilter(t *testing.T) {
-	tmpDir, err := ioutil.TempDir(os.TempDir(), "wakatime")
+	tmpDir, err := os.MkdirTemp(os.TempDir(), "wakatime")
 	require.NoError(t, err)
 
 	defer os.RemoveAll(tmpDir)
 
-	tmpFile, err := ioutil.TempFile(tmpDir, "")
+	tmpFile, err := os.CreateTemp(tmpDir, "")
 	require.NoError(t, err)
 
 	h := testHeartbeat()
@@ -106,12 +105,12 @@ func TestFilter_NonFileTypeEmptyEntity(t *testing.T) {
 }
 
 func TestFilter_IncludeMatchOverwritesExcludeMatch(t *testing.T) {
-	tmpDir, err := ioutil.TempDir(os.TempDir(), "wakatime")
+	tmpDir, err := os.MkdirTemp(os.TempDir(), "wakatime")
 	require.NoError(t, err)
 
 	defer os.RemoveAll(tmpDir)
 
-	tmpFile, err := ioutil.TempFile(tmpDir, "")
+	tmpFile, err := os.CreateTemp(tmpDir, "")
 	require.NoError(t, err)
 
 	h := testHeartbeat()
@@ -129,12 +128,12 @@ func TestFilter_IncludeMatchOverwritesExcludeMatch(t *testing.T) {
 }
 
 func TestFilter_ErrMatchesExcludePattern(t *testing.T) {
-	tmpDir, err := ioutil.TempDir(os.TempDir(), "wakatime")
+	tmpDir, err := os.MkdirTemp(os.TempDir(), "wakatime")
 	require.NoError(t, err)
 
 	defer os.RemoveAll(tmpDir)
 
-	tmpFile, err := ioutil.TempFile(tmpDir, "exclude-this-file")
+	tmpFile, err := os.CreateTemp(tmpDir, "exclude-this-file")
 	require.NoError(t, err)
 
 	h := testHeartbeat()
@@ -160,12 +159,12 @@ func TestFilter_ErrUnknownProject(t *testing.T) {
 
 	for name, projectValue := range tests {
 		t.Run(name, func(t *testing.T) {
-			tmpDir, err := ioutil.TempDir(os.TempDir(), "wakatime")
+			tmpDir, err := os.MkdirTemp(os.TempDir(), "wakatime")
 			require.NoError(t, err)
 
 			defer os.RemoveAll(tmpDir)
 
-			tmpFile, err := ioutil.TempFile(tmpDir, "")
+			tmpFile, err := os.CreateTemp(tmpDir, "")
 			require.NoError(t, err)
 
 			h := testHeartbeat()
@@ -195,12 +194,12 @@ func TestFilter_ErrNonExistingFile(t *testing.T) {
 }
 
 func TestFilter_ExistingProjectFile(t *testing.T) {
-	tmpDir, err := ioutil.TempDir(os.TempDir(), "wakatime")
+	tmpDir, err := os.MkdirTemp(os.TempDir(), "wakatime")
 	require.NoError(t, err)
 
 	defer os.RemoveAll(tmpDir)
 
-	tmpFile, err := ioutil.TempFile(tmpDir, "")
+	tmpFile, err := os.CreateTemp(tmpDir, "")
 	require.NoError(t, err)
 
 	_, err = os.Create(filepath.Join(tmpDir, ".wakatime-project"))
@@ -216,12 +215,12 @@ func TestFilter_ExistingProjectFile(t *testing.T) {
 }
 
 func TestFilter_ErrNonExistingProjectFile(t *testing.T) {
-	tmpDir, err := ioutil.TempDir(os.TempDir(), "wakatime")
+	tmpDir, err := os.MkdirTemp(os.TempDir(), "wakatime")
 	require.NoError(t, err)
 
 	defer os.RemoveAll(tmpDir)
 
-	tmpFile, err := ioutil.TempFile(tmpDir, "")
+	tmpFile, err := os.CreateTemp(tmpDir, "")
 	require.NoError(t, err)
 
 	h := testHeartbeat()

@@ -1,7 +1,6 @@
 package logfile_test
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -14,7 +13,7 @@ import (
 )
 
 func TestLoadParams(t *testing.T) {
-	tmpFile, err := ioutil.TempFile(os.TempDir(), "wakatime.log")
+	tmpFile, err := os.CreateTemp(os.TempDir(), "wakatime.log")
 	require.NoError(t, err)
 
 	defer os.Remove(tmpFile.Name())

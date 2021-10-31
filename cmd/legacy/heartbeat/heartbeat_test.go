@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -42,10 +41,10 @@ func TestSendHeartbeats(t *testing.T) {
 			plugin,
 		))
 
-		expectedBody, err := ioutil.ReadFile("testdata/api_heartbeats_request_template.json")
+		expectedBody, err := os.ReadFile("testdata/api_heartbeats_request_template.json")
 		require.NoError(t, err)
 
-		body, err := ioutil.ReadAll(req.Body)
+		body, err := io.ReadAll(req.Body)
 		require.NoError(t, err)
 
 		var entity struct {
@@ -92,7 +91,7 @@ func TestSendHeartbeats(t *testing.T) {
 	v.Set("timeout", 5)
 	v.Set("write", true)
 
-	f, err := ioutil.TempFile(os.TempDir(), "")
+	f, err := os.CreateTemp(os.TempDir(), "")
 	require.NoError(t, err)
 
 	defer os.Remove(f.Name())
@@ -128,7 +127,7 @@ func TestSendHeartbeats_WithFiltering_Exclude(t *testing.T) {
 	v.Set("timeout", 5)
 	v.Set("write", true)
 
-	f, err := ioutil.TempFile(os.TempDir(), "")
+	f, err := os.CreateTemp(os.TempDir(), "")
 	require.NoError(t, err)
 
 	defer os.Remove(f.Name())
@@ -150,10 +149,10 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 
 	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
 		// check request
-		expectedBody, err := ioutil.ReadFile("testdata/api_heartbeats_request_extra_heartbeats_template.json")
+		expectedBody, err := os.ReadFile("testdata/api_heartbeats_request_extra_heartbeats_template.json")
 		require.NoError(t, err)
 
-		body, err := ioutil.ReadAll(req.Body)
+		body, err := io.ReadAll(req.Body)
 		require.NoError(t, err)
 
 		var entities []struct {
@@ -206,7 +205,7 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 
 	os.Stdin = r
 
-	data, err := ioutil.ReadFile("testdata/extra_heartbeats.json")
+	data, err := os.ReadFile("testdata/extra_heartbeats.json")
 	require.NoError(t, err)
 
 	go func() {
@@ -235,7 +234,7 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 	v.Set("timeout", 5)
 	v.Set("write", true)
 
-	f, err := ioutil.TempFile(os.TempDir(), "")
+	f, err := os.CreateTemp(os.TempDir(), "")
 	require.NoError(t, err)
 
 	defer os.Remove(f.Name())
@@ -247,7 +246,7 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 }
 
 func TestSendHeartbeats_NonExistingEntity(t *testing.T) {
-	logFile, err := ioutil.TempFile(os.TempDir(), "")
+	logFile, err := os.CreateTemp(os.TempDir(), "")
 	require.NoError(t, err)
 
 	defer os.Remove(logFile.Name())
@@ -262,7 +261,7 @@ func TestSendHeartbeats_NonExistingEntity(t *testing.T) {
 
 	legacy.SetupLogging(v)
 
-	f, err := ioutil.TempFile(os.TempDir(), "")
+	f, err := os.CreateTemp(os.TempDir(), "")
 	require.NoError(t, err)
 
 	defer os.Remove(f.Name())
@@ -270,7 +269,7 @@ func TestSendHeartbeats_NonExistingEntity(t *testing.T) {
 	err = cmd.SendHeartbeats(v, f.Name())
 	require.NoError(t, err)
 
-	output, err := ioutil.ReadAll(logFile)
+	output, err := io.ReadAll(logFile)
 	require.NoError(t, err)
 
 	assert.Contains(t, string(output), "file 'nonexisting' does not exist. ignoring this heartbeat")
@@ -291,7 +290,7 @@ func TestSendHeartbeats_NonExistingExtraHeartbeatsEntity(t *testing.T) {
 
 	os.Stdin = inr
 
-	data, err := ioutil.ReadFile("testdata/extra_heartbeats_nonexisting_entity.json")
+	data, err := os.ReadFile("testdata/extra_heartbeats_nonexisting_entity.json")
 	require.NoError(t, err)
 
 	go func() {
@@ -301,7 +300,7 @@ func TestSendHeartbeats_NonExistingExtraHeartbeatsEntity(t *testing.T) {
 		inw.Close()
 	}()
 
-	logFile, err := ioutil.TempFile(os.TempDir(), "")
+	logFile, err := os.CreateTemp(os.TempDir(), "")
 	require.NoError(t, err)
 
 	defer os.Remove(logFile.Name())
@@ -318,7 +317,7 @@ func TestSendHeartbeats_NonExistingExtraHeartbeatsEntity(t *testing.T) {
 
 	legacy.SetupLogging(v)
 
-	f, err := ioutil.TempFile(os.TempDir(), "")
+	f, err := os.CreateTemp(os.TempDir(), "")
 	require.NoError(t, err)
 
 	defer os.Remove(f.Name())
@@ -326,7 +325,7 @@ func TestSendHeartbeats_NonExistingExtraHeartbeatsEntity(t *testing.T) {
 	err = cmd.SendHeartbeats(v, f.Name())
 	require.NoError(t, err)
 
-	output, err := ioutil.ReadAll(logFile)
+	output, err := io.ReadAll(logFile)
 	require.NoError(t, err)
 
 	assert.Contains(t, string(output), "file 'nonexisting' does not exist. ignoring this extra heartbeat")

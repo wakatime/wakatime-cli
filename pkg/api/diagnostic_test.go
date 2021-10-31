@@ -1,8 +1,9 @@
 package api_test
 
 import (
-	"io/ioutil"
+	"io"
 	"net/http"
+	"os"
 	"testing"
 	"time"
 
@@ -29,10 +30,10 @@ func TestClient_SendDiagnostics(t *testing.T) {
 		assert.Nil(t, req.Header["Authorization"])
 
 		// check body
-		expectedBody, err := ioutil.ReadFile("testdata/diagnostics_request.json")
+		expectedBody, err := os.ReadFile("testdata/diagnostics_request.json")
 		require.NoError(t, err)
 
-		body, err := ioutil.ReadAll(req.Body)
+		body, err := io.ReadAll(req.Body)
 		require.NoError(t, err)
 
 		assert.JSONEq(t, string(expectedBody), string(body))

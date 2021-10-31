@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
@@ -191,7 +190,7 @@ func TestClient_Summary_InvalidUrl(t *testing.T) {
 }
 
 func TestParseSummaryResponse_DayTotal(t *testing.T) {
-	data, err := ioutil.ReadFile("testdata/api_statusbar_today_response.json")
+	data, err := os.ReadFile("testdata/api_statusbar_today_response.json")
 	require.NoError(t, err)
 
 	s, err := api.ParseSummaryResponse(data)
@@ -203,7 +202,7 @@ func TestParseSummaryResponse_DayTotal(t *testing.T) {
 }
 
 func TestParseSummaryResponse_TotalsByCategory(t *testing.T) {
-	data, err := ioutil.ReadFile("testdata/api_statusbar_today_by_category_response.json")
+	data, err := os.ReadFile("testdata/api_statusbar_today_by_category_response.json")
 	require.NoError(t, err)
 
 	s, err := api.ParseSummaryResponse(data)

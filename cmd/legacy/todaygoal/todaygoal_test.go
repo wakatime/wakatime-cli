@@ -3,9 +3,9 @@ package todaygoal_test
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -42,7 +42,7 @@ func TestGoal(t *testing.T) {
 			))
 
 			// write response
-			data, err := ioutil.ReadFile("testdata/api_goals_id_response.json")
+			data, err := os.ReadFile("testdata/api_goals_id_response.json")
 			require.NoError(t, err)
 
 			_, err = w.Write([]byte(string(data)))

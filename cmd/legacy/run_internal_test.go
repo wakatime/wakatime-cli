@@ -4,9 +4,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
@@ -52,10 +53,10 @@ func TestRunCmd_ErrOfflineEnqueue(t *testing.T) {
 		assert.Nil(t, req.Header["Authorization"])
 		assert.Equal(t, []string{"application/json"}, req.Header["Content-Type"])
 
-		expectedBodyTpl, err := ioutil.ReadFile("testdata/diagnostics_request_template.json")
+		expectedBodyTpl, err := os.ReadFile("testdata/diagnostics_request_template.json")
 		require.NoError(t, err)
 
-		body, err := ioutil.ReadAll(req.Body)
+		body, err := io.ReadAll(req.Body)
 		require.NoError(t, err)
 
 		var diagnostics struct {

@@ -2,7 +2,7 @@ package deps
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"strings"
 
@@ -39,7 +39,7 @@ func (p *ParserScala) Parse(filepath string) ([]string, error) {
 	p.init()
 	defer p.init()
 
-	data, err := ioutil.ReadAll(reader)
+	data, err := io.ReadAll(reader)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read from reader: %s", err)
 	}

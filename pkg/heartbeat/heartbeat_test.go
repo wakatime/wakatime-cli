@@ -3,7 +3,7 @@ package heartbeat_test
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"runtime"
 	"strings"
@@ -142,7 +142,7 @@ func TestHeartbeat_JSON(t *testing.T) {
 
 	defer f.Close()
 
-	expected, err := ioutil.ReadAll(f)
+	expected, err := io.ReadAll(f)
 	require.NoError(t, err)
 
 	assert.JSONEq(t, string(expected), string(jsonEncoded))
@@ -165,7 +165,7 @@ func TestHeartbeat_JSON_NilFields(t *testing.T) {
 
 	defer f.Close()
 
-	expected, err := ioutil.ReadAll(f)
+	expected, err := io.ReadAll(f)
 	require.NoError(t, err)
 
 	assert.JSONEq(t, string(expected), string(jsonEncoded))

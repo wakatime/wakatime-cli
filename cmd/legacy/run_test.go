@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -29,12 +28,12 @@ func TestRunCmd_SendDiagnostics_Error(t *testing.T) {
 		version.Arch = "some architecture"
 		version.Version = "some version"
 
-		offlineQueueFile, err := ioutil.TempFile(os.TempDir(), "")
+		offlineQueueFile, err := os.CreateTemp(os.TempDir(), "")
 		require.NoError(t, err)
 
 		defer os.Remove(offlineQueueFile.Name())
 
-		logFile, err := ioutil.TempFile(os.TempDir(), "")
+		logFile, err := os.CreateTemp(os.TempDir(), "")
 		require.NoError(t, err)
 
 		defer os.Remove(logFile.Name())
@@ -64,10 +63,10 @@ func TestRunCmd_SendDiagnostics_Error(t *testing.T) {
 		assert.Nil(t, req.Header["Authorization"])
 		assert.Equal(t, []string{"application/json"}, req.Header["Content-Type"])
 
-		expectedBodyTpl, err := ioutil.ReadFile("testdata/diagnostics_request_template.json")
+		expectedBodyTpl, err := os.ReadFile("testdata/diagnostics_request_template.json")
 		require.NoError(t, err)
 
-		body, err := ioutil.ReadAll(req.Body)
+		body, err := io.ReadAll(req.Body)
 		require.NoError(t, err)
 
 		var diagnostics struct {
@@ -114,12 +113,12 @@ func TestRunCmd_SendDiagnostics_Panic(t *testing.T) {
 		version.Arch = "some architecture"
 		version.Version = "some version"
 
-		offlineQueueFile, err := ioutil.TempFile(os.TempDir(), "")
+		offlineQueueFile, err := os.CreateTemp(os.TempDir(), "")
 		require.NoError(t, err)
 
 		defer os.Remove(offlineQueueFile.Name())
 
-		logFile, err := ioutil.TempFile(os.TempDir(), "")
+		logFile, err := os.CreateTemp(os.TempDir(), "")
 		require.NoError(t, err)
 
 		defer os.Remove(logFile.Name())
@@ -149,10 +148,10 @@ func TestRunCmd_SendDiagnostics_Panic(t *testing.T) {
 		assert.Nil(t, req.Header["Authorization"])
 		assert.Equal(t, []string{"application/json"}, req.Header["Content-Type"])
 
-		expectedBodyTpl, err := ioutil.ReadFile("testdata/diagnostics_request_template_no_logs.json")
+		expectedBodyTpl, err := os.ReadFile("testdata/diagnostics_request_template_no_logs.json")
 		require.NoError(t, err)
 
-		body, err := ioutil.ReadAll(req.Body)
+		body, err := io.ReadAll(req.Body)
 		require.NoError(t, err)
 
 		var diagnostics struct {
@@ -198,7 +197,7 @@ func TestRunCmdWithOfflineSync(t *testing.T) {
 		version.Arch = "some architecture"
 		version.Version = "some version"
 
-		logFile, err := ioutil.TempFile(os.TempDir(), "")
+		logFile, err := os.CreateTemp(os.TempDir(), "")
 		require.NoError(t, err)
 
 		defer os.Remove(logFile.Name())
@@ -221,7 +220,7 @@ func TestRunCmdWithOfflineSync(t *testing.T) {
 	}
 
 	// setup test queue
-	offlineQueueFile, err := ioutil.TempFile(os.TempDir(), "")
+	offlineQueueFile, err := os.CreateTemp(os.TempDir(), "")
 	require.NoError(t, err)
 
 	defer os.RemoveAll(offlineQueueFile.Name())
@@ -229,10 +228,10 @@ func TestRunCmdWithOfflineSync(t *testing.T) {
 	db, err := bolt.Open(offlineQueueFile.Name(), 0600, nil)
 	require.NoError(t, err)
 
-	dataGo, err := ioutil.ReadFile("testdata/heartbeat_go.json")
+	dataGo, err := os.ReadFile("testdata/heartbeat_go.json")
 	require.NoError(t, err)
 
-	dataPy, err := ioutil.ReadFile("testdata/heartbeat_py.json")
+	dataPy, err := os.ReadFile("testdata/heartbeat_py.json")
 	require.NoError(t, err)
 
 	insertHeartbeatRecords(t, db, "heartbeats", []heartbeatRecord{
@@ -263,10 +262,10 @@ func TestRunCmdWithOfflineSync(t *testing.T) {
 		assert.Equal(t, []string{"application/json"}, req.Header["Content-Type"])
 
 		// check body
-		expectedBody, err := ioutil.ReadFile("testdata/api_heartbeats_request.json")
+		expectedBody, err := os.ReadFile("testdata/api_heartbeats_request.json")
 		require.NoError(t, err)
 
-		body, err := ioutil.ReadAll(req.Body)
+		body, err := io.ReadAll(req.Body)
 		require.NoError(t, err)
 
 		assert.JSONEq(t, string(expectedBody), string(body))
