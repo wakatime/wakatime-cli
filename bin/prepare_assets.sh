@@ -29,6 +29,7 @@ chmod 750 ./build/wakatime-cli-openbsd-arm
 chmod 750 ./build/wakatime-cli-openbsd-arm64
 chmod 750 ./build/wakatime-cli-windows-386.exe
 chmod 750 ./build/wakatime-cli-windows-amd64.exe
+chmod 750 ./build/wakatime-cli-windows-arm64.exe
 
 # create archives
 zip -j ./release/wakatime-cli-freebsd-386.zip ./build/wakatime-cli-freebsd-386
@@ -47,6 +48,7 @@ zip -j ./release/wakatime-cli-openbsd-arm.zip ./build/wakatime-cli-openbsd-arm
 zip -j ./release/wakatime-cli-openbsd-arm64.zip ./build/wakatime-cli-openbsd-arm64
 zip -j ./release/wakatime-cli-windows-386.zip ./build/wakatime-cli-windows-386.exe
 zip -j ./release/wakatime-cli-windows-amd64.zip ./build/wakatime-cli-windows-amd64.exe
+zip -j ./release/wakatime-cli-windows-arm64.zip ./build/wakatime-cli-windows-arm64.exe
 
 # handle apple binaries
 unzip ./build/wakatime-cli-darwin.zip
