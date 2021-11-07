@@ -40,6 +40,9 @@ func Run(cmd *cobra.Command, v *viper.Viper) {
 	if err := config.ReadInConfig(v, configFile); err != nil {
 		fmt.Fprintf(os.Stderr, "failed to load configuration file: %s", err)
 
+		SetupLogging(v)
+		log.Errorf("failed to load configuration file: %s", err)
+
 		os.Exit(exitcode.ErrConfigFileParse)
 	}
 
@@ -135,8 +138,6 @@ func SetupLogging(v *viper.Viper) *logfile.Params {
 	logFile := os.Stdout
 
 	if !logfileParams.ToStdout {
-		log.Debugf("log to file %s", logfileParams.File)
-
 		logFile, err = os.OpenFile(logfileParams.File, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0666)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error opening log file: %s", err)
