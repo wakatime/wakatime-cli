@@ -20,7 +20,7 @@ func Run(v *viper.Viper) (int, error) {
 		)
 	}
 
-	params, err := legacyparams.Load(v)
+	params, err := legacyparams.Load(v, true)
 	if err != nil {
 		return exitcode.ErrGeneric, fmt.Errorf("failed to load command parameters: %w", err)
 	}

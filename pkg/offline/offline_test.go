@@ -76,7 +76,7 @@ func TestWithQueue(t *testing.T) {
 
 	db.Close()
 
-	opt, err := offline.WithQueue(f.Name(), 10)
+	opt, err := offline.WithQueue(f.Name())
 	require.NoError(t, err)
 
 	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
@@ -149,7 +149,7 @@ func TestWithQueue_ApiError(t *testing.T) {
 
 	defer os.Remove(f.Name())
 
-	opt, err := offline.WithQueue(f.Name(), 10)
+	opt, err := offline.WithQueue(f.Name())
 	require.NoError(t, err)
 
 	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
@@ -212,7 +212,7 @@ func TestWithQueue_InvalidResults(t *testing.T) {
 
 	defer os.Remove(f.Name())
 
-	opt, err := offline.WithQueue(f.Name(), 10)
+	opt, err := offline.WithQueue(f.Name())
 	require.NoError(t, err)
 
 	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
@@ -298,7 +298,7 @@ func TestWithQueue_HandleLeftovers(t *testing.T) {
 
 	defer os.Remove(f.Name())
 
-	opt, err := offline.WithQueue(f.Name(), 10)
+	opt, err := offline.WithQueue(f.Name())
 	require.NoError(t, err)
 
 	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {

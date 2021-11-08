@@ -69,6 +69,46 @@ func Run(v *viper.Viper) (int, error) {
 	return exitcode.Success, nil
 }
 
+// RunWithoutSending saves heartbeats to the offline db without trying to send
+// to the API. Should only be used after a config file parse error.
+func RunWithoutSending(v *viper.Viper) (int, error) {
+	queueFilepath, err := offline.QueueFilepath()
+	if err != nil {
+		return exitcode.ErrConfigFileParse, fmt.Errorf(
+			"saving heartbeat(s) failed: failed to load offline queue filepath: %s",
+			err,
+		)
+	}
+
+	params, err := LoadParamsWithAPIKey(v, false)
+	if err != nil {
+		return exitcode.ErrConfigFileParse, fmt.Errorf("failed to load command parameters: %w", err)
+	}
+
+	setLogFields(&params)
+
+	heartbeats := buildHeartbeats(params)
+
+	handleOpts := initHandleOptions(params)
+
+	if !params.OfflineDisabled {
+		offlineHandleOpt, err := offline.WithQueue(queueFilepath)
+		if err != nil {
+			return exitcode.ErrConfigFileParse, fmt.Errorf("failed to initialize offline queue handle option: %w", err)
+		}
+
+		handleOpts = append(handleOpts, offlineHandleOpt)
+	}
+
+	sender := offline.Sender{}
+
+	handle := heartbeat.NewHandle(&sender, handleOpts...)
+
+	_, _ = handle(heartbeats)
+
+	return exitcode.ErrConfigFileParse, nil
+}
+
 // SendHeartbeats sends a heartbeat to the wakatime api and includes additional
 // heartbeats from the offline queue, if available and offline sync is not
 // explicitly disabled.
@@ -80,96 +120,18 @@ func SendHeartbeats(v *viper.Viper, queueFilepath string) error {
 
 	setLogFields(&params)
 
-	if params.EntityType == heartbeat.FileType && !isFile(params.Entity) {
-		log.Warnf("file '%s' does not exist. ignoring this heartbeat", params.Entity)
-		return nil
-	}
-
 	log.Debugf("heartbeat params: %s", params)
 
-	userAgent := heartbeat.UserAgentUnknownPlugin()
-	if params.API.Plugin != "" {
-		userAgent = heartbeat.UserAgent(params.API.Plugin)
-	}
+	heartbeats := buildHeartbeats(params)
 
-	heartbeats := []heartbeat.Heartbeat{
-		heartbeat.New(
-			params.Category,
-			params.CursorPosition,
-			params.Entity,
-			params.EntityType,
-			params.IsWrite,
-			params.Language,
-			params.LanguageAlternate,
-			params.LineNumber,
-			params.LocalFile,
-			params.Project.Alternate,
-			params.Project.Override,
-			params.Time,
-			userAgent,
-		),
-	}
-
-	if len(params.ExtraHeartbeats) > 0 {
-		log.Debugf("include %d extra heartbeat(s) from stdin", len(params.ExtraHeartbeats))
-
-		for _, h := range params.ExtraHeartbeats {
-			if h.EntityType == heartbeat.FileType && !isFile(h.Entity) {
-				log.Warnf("file '%s' does not exist. ignoring this extra heartbeat", h.Entity)
-				return nil
-			}
-
-			heartbeats = append(heartbeats, heartbeat.New(
-				h.Category,
-				h.CursorPosition,
-				h.Entity,
-				h.EntityType,
-				h.IsWrite,
-				h.Language,
-				"",
-				h.LineNumber,
-				h.LocalFile,
-				h.ProjectAlternate,
-				h.ProjectOverride,
-				h.Time,
-				userAgent,
-			))
-		}
-	}
-
-	handleOpts := []heartbeat.HandleOption{
-		filter.WithFiltering(filter.Config{
-			Exclude:                    params.Filter.Exclude,
-			ExcludeUnknownProject:      params.Filter.ExcludeUnknownProject,
-			Include:                    params.Filter.Include,
-			IncludeOnlyWithProjectFile: params.Filter.IncludeOnlyWithProjectFile,
-		}),
-		heartbeat.WithEntityModifer(),
-		filestats.WithDetection(filestats.Config{
-			LinesInFile: params.LinesInFile,
-		}),
-		language.WithDetection(),
-		deps.WithDetection(deps.Config{
-			FilePatterns: params.Sanitize.HideFileNames,
-		}),
-		project.WithDetection(project.Config{
-			ShouldObfuscateProject: heartbeat.ShouldSanitize(params.Entity, params.Sanitize.HideProjectNames),
-			MapPatterns:            params.Project.MapPatterns,
-			SubmodulePatterns:      params.Project.DisableSubmodule,
-		}),
-		heartbeat.WithSanitization(heartbeat.SanitizeConfig{
-			BranchPatterns:  params.Sanitize.HideBranchNames,
-			FilePatterns:    params.Sanitize.HideFileNames,
-			ProjectPatterns: params.Sanitize.HideProjectNames,
-		}),
-	}
+	handleOpts := initHandleOptions(params)
 
 	if !params.OfflineDisabled {
 		if params.OfflineQueueFile != "" {
 			queueFilepath = params.OfflineQueueFile
 		}
 
-		offlineHandleOpt, err := offline.WithQueue(queueFilepath, params.OfflineSyncMax)
+		offlineHandleOpt, err := offline.WithQueue(queueFilepath)
 		if err != nil {
 			return fmt.Errorf("failed to initialize offline queue handle option: %w", err)
 		}
@@ -202,6 +164,93 @@ func SendHeartbeats(v *viper.Viper, queueFilepath string) error {
 	}
 
 	return nil
+}
+
+func buildHeartbeats(params Params) []heartbeat.Heartbeat {
+	heartbeats := []heartbeat.Heartbeat{}
+
+	userAgent := heartbeat.UserAgentUnknownPlugin()
+	if params.API.Plugin != "" {
+		userAgent = heartbeat.UserAgent(params.API.Plugin)
+	}
+
+	if params.EntityType != heartbeat.FileType || isFile(params.Entity) {
+		heartbeats = append(heartbeats, heartbeat.New(
+			params.Category,
+			params.CursorPosition,
+			params.Entity,
+			params.EntityType,
+			params.IsWrite,
+			params.Language,
+			params.LanguageAlternate,
+			params.LineNumber,
+			params.LocalFile,
+			params.Project.Alternate,
+			params.Project.Override,
+			params.Time,
+			userAgent,
+		))
+	} else {
+		log.Warnf("file '%s' does not exist. ignoring this heartbeat", params.Entity)
+	}
+
+	if len(params.ExtraHeartbeats) > 0 {
+		log.Debugf("include %d extra heartbeat(s) from stdin", len(params.ExtraHeartbeats))
+
+		for _, h := range params.ExtraHeartbeats {
+			if h.EntityType == heartbeat.FileType && !isFile(h.Entity) {
+				log.Warnf("file '%s' does not exist. ignoring this extra heartbeat", h.Entity)
+				return nil
+			}
+
+			heartbeats = append(heartbeats, heartbeat.New(
+				h.Category,
+				h.CursorPosition,
+				h.Entity,
+				h.EntityType,
+				h.IsWrite,
+				h.Language,
+				"",
+				h.LineNumber,
+				h.LocalFile,
+				h.ProjectAlternate,
+				h.ProjectOverride,
+				h.Time,
+				userAgent,
+			))
+		}
+	}
+
+	return heartbeats
+}
+
+func initHandleOptions(params Params) []heartbeat.HandleOption {
+	return []heartbeat.HandleOption{
+		filter.WithFiltering(filter.Config{
+			Exclude:                    params.Filter.Exclude,
+			ExcludeUnknownProject:      params.Filter.ExcludeUnknownProject,
+			Include:                    params.Filter.Include,
+			IncludeOnlyWithProjectFile: params.Filter.IncludeOnlyWithProjectFile,
+		}),
+		heartbeat.WithEntityModifer(),
+		filestats.WithDetection(filestats.Config{
+			LinesInFile: params.LinesInFile,
+		}),
+		language.WithDetection(),
+		deps.WithDetection(deps.Config{
+			FilePatterns: params.Sanitize.HideFileNames,
+		}),
+		project.WithDetection(project.Config{
+			ShouldObfuscateProject: heartbeat.ShouldSanitize(params.Entity, params.Sanitize.HideProjectNames),
+			MapPatterns:            params.Project.MapPatterns,
+			SubmodulePatterns:      params.Project.DisableSubmodule,
+		}),
+		heartbeat.WithSanitization(heartbeat.SanitizeConfig{
+			BranchPatterns:  params.Sanitize.HideBranchNames,
+			FilePatterns:    params.Sanitize.HideFileNames,
+			ProjectPatterns: params.Sanitize.HideProjectNames,
+		}),
+	}
 }
 
 func setLogFields(params *Params) {
