@@ -149,13 +149,13 @@ type HandleOption func(next Handle) Handle
 // NewHandle creates a new Handle, which acts like a processing pipeline,
 // with a sender eventually sending the heartbeats.
 func NewHandle(sender Sender, opts ...HandleOption) Handle {
-	return func(hh []Heartbeat) ([]Result, error) {
-		var h Handle = sender.SendHeartbeats
+	return func(heartbeats []Heartbeat) ([]Result, error) {
+		var handle Handle = sender.SendHeartbeats
 		for i := len(opts) - 1; i >= 0; i-- {
-			h = opts[i](h)
+			handle = opts[i](handle)
 		}
 
-		return h(hh)
+		return handle(heartbeats)
 	}
 }
 

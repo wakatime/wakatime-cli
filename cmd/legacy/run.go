@@ -40,10 +40,17 @@ func Run(cmd *cobra.Command, v *viper.Viper) {
 	if err := config.ReadInConfig(v, configFile); err != nil {
 		fmt.Fprintf(os.Stderr, "failed to load configuration file: %s", err)
 
+		SetupLogging(v)
+		log.Errorf("failed to load configuration file: %s", err)
+
+		if v.IsSet("entity") {
+			RunCmd(v, false, heartbeatcmd.RunWithoutSending)
+		}
+
 		os.Exit(exitcode.ErrConfigFileParse)
 	}
 
-	logFileParms := SetupLogging(v)
+	logFileParams := SetupLogging(v)
 
 	if v.GetBool("useragent") {
 		log.Debugln("command: useragent")
@@ -62,49 +69,49 @@ func Run(cmd *cobra.Command, v *viper.Viper) {
 	if v.GetBool("version") {
 		log.Debugln("command: version")
 
-		RunCmd(v, logFileParms.Verbose, runVersion)
+		RunCmd(v, logFileParams.Verbose, runVersion)
 	}
 
 	if v.IsSet("config-read") {
 		log.Debugln("command: config-read")
 
-		RunCmd(v, logFileParms.Verbose, configread.Run)
+		RunCmd(v, logFileParams.Verbose, configread.Run)
 	}
 
 	if v.IsSet("config-write") {
 		log.Debugln("command: config-write")
 
-		RunCmd(v, logFileParms.Verbose, configwrite.Run)
+		RunCmd(v, logFileParams.Verbose, configwrite.Run)
 	}
 
 	if v.GetBool("today") {
 		log.Debugln("command: today")
 
-		RunCmd(v, logFileParms.Verbose, today.Run)
+		RunCmd(v, logFileParams.Verbose, today.Run)
 	}
 
 	if v.IsSet("today-goal") {
 		log.Debugln("command: today-goal")
 
-		RunCmd(v, logFileParms.Verbose, todaygoal.Run)
+		RunCmd(v, logFileParams.Verbose, todaygoal.Run)
 	}
 
 	if v.IsSet("entity") {
 		log.Debugln("command: heartbeat")
 
-		RunCmdWithOfflineSync(v, logFileParms.Verbose, heartbeatcmd.Run)
+		RunCmdWithOfflineSync(v, logFileParams.Verbose, heartbeatcmd.Run)
 	}
 
 	if v.IsSet("sync-offline-activity") {
 		log.Debugln("command: sync-offline-activity")
 
-		RunCmd(v, logFileParms.Verbose, offlinesync.Run)
+		RunCmd(v, logFileParams.Verbose, offlinesync.Run)
 	}
 
 	if v.GetBool("offline-count") {
 		log.Debugln("command: offline-count")
 
-		RunCmd(v, logFileParms.Verbose, offlinecount.Run)
+		RunCmd(v, logFileParams.Verbose, offlinecount.Run)
 	}
 
 	log.Warnf("one of the following parameters has to be provided: %s", strings.Join([]string{
@@ -135,8 +142,6 @@ func SetupLogging(v *viper.Viper) *logfile.Params {
 	logFile := os.Stdout
 
 	if !logfileParams.ToStdout {
-		log.Debugf("log to file %s", logfileParams.File)
-
 		logFile, err = os.OpenFile(logfileParams.File, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0666)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error opening log file: %s", err)
@@ -209,7 +214,7 @@ func runCmd(v *viper.Viper, verbose bool, cmd cmdFn) int {
 }
 
 func sendDiagnostics(v *viper.Viper, logs, stack string) {
-	params, err := legacyparams.Load(v)
+	params, err := legacyparams.Load(v, true)
 	if err != nil {
 		log.Errorf("failed to load parameters for sending diagnostics: %s", err)
 

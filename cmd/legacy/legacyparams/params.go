@@ -82,12 +82,12 @@ func (p API) String() string {
 
 // Load loads legacy params from viper.Viper instance. Returns ErrAuth
 // if failed to retrieve api key.
-func Load(v *viper.Viper) (Params, error) {
+func Load(v *viper.Viper, apiKeyRequired bool) (Params, error) {
 	if v == nil {
 		return Params{}, errors.New("viper instance unset")
 	}
 
-	apiParams, err := loadAPIParams(v)
+	apiParams, err := loadAPIParams(v, apiKeyRequired)
 	if err != nil {
 		return Params{}, fmt.Errorf("failed to load api params: %w", err)
 	}
@@ -131,13 +131,13 @@ func Load(v *viper.Viper) (Params, error) {
 	}, nil
 }
 
-func loadAPIParams(v *viper.Viper) (API, error) {
+func loadAPIParams(v *viper.Viper, apiKeyRequired bool) (API, error) {
 	apiKey, ok := vipertools.FirstNonEmptyString(v, "key", "settings.api_key", "settings.apikey")
-	if !ok {
+	if !ok && apiKeyRequired {
 		return API{}, api.ErrAuth("failed to load api key")
 	}
 
-	if !apiKeyRegex.Match([]byte(apiKey)) {
+	if apiKeyRequired && !apiKeyRegex.Match([]byte(apiKey)) {
 		return API{}, api.ErrAuth("invalid api key format")
 	}
 
