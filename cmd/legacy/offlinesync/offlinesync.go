@@ -64,7 +64,7 @@ func Run(v *viper.Viper) (int, error) {
 // SyncOfflineActivity syncs offline activity by sending heartbeats
 // from the offline queue to the WakaTime API.
 func SyncOfflineActivity(v *viper.Viper, queueFilepath string) error {
-	params, err := legacyparams.Load(v)
+	params, err := legacyparams.Load(v, true)
 	if err != nil {
 		return fmt.Errorf("failed to load command parameters: %w", err)
 	}

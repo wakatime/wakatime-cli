@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/wakatime/wakatime-cli/pkg/api"
 	"github.com/wakatime/wakatime-cli/pkg/config"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/log"
@@ -50,7 +51,7 @@ func QueueFilepath() (string, error) {
 // failing connection to API, failed sending or errors returned by API, the
 // heartbeats will be temporarily stored in a DB and sending will be retried
 // at next usages of the wakatime cli.
-func WithQueue(filepath string, syncLimit int) (heartbeat.HandleOption, error) {
+func WithQueue(filepath string) (heartbeat.HandleOption, error) {
 	return func(next heartbeat.Handle) heartbeat.Handle {
 		return func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 			log.Debugf("execute offline queue with file %s", filepath)
@@ -141,6 +142,15 @@ func Sync(filepath string, syncLimit int) func(next heartbeat.Handle) error {
 
 		return nil
 	}
+}
+
+// Sender is a noop api client, used by heartbeat.RunWithoutSending.
+type Sender struct {
+}
+
+// SendHeartbeats always returns an error.
+func (s *Sender) SendHeartbeats(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+	return nil, api.Err("skip sending heartbeats and only save to offline db")
 }
 
 func handleResults(filepath string, results []heartbeat.Result, hh []heartbeat.Heartbeat) error {

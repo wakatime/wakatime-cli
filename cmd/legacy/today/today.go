@@ -56,7 +56,7 @@ func Run(v *viper.Viper) (int, error) {
 
 // Today returns a rendered summary of todays coding activity.
 func Today(v *viper.Viper) (string, error) {
-	params, err := legacyparams.Load(v)
+	params, err := legacyparams.Load(v, true)
 	if err != nil {
 		return "", fmt.Errorf("failed to load command parameters: %w", err)
 	}

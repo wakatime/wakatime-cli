@@ -86,7 +86,7 @@ func Goal(v *viper.Viper) (string, error) {
 // LoadParams loads todaygoal config params from viper.Viper instance. Returns ErrAuth
 // if failed to retrieve api key.
 func LoadParams(v *viper.Viper) (Params, error) {
-	params, err := legacyparams.Load(v)
+	params, err := legacyparams.Load(v, true)
 	if err != nil {
 		return Params{}, fmt.Errorf("failed to load params: %w", err)
 	}

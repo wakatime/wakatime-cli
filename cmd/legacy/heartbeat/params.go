@@ -159,7 +159,13 @@ func (p SanitizeParams) String() string {
 // LoadParams loads heartbeat config params from viper.Viper instance. Returns ErrAuth
 // if failed to retrieve api key.
 func LoadParams(v *viper.Viper) (Params, error) {
-	params, err := legacyparams.Load(v)
+	return LoadParamsWithAPIKey(v, true)
+}
+
+// LoadParamsWithAPIKey loads heartbeat config params from viper.Viper instance.
+// When apiKeyRequired is true, returns ErrAuth if failed to retrieve api key.
+func LoadParamsWithAPIKey(v *viper.Viper, apiKeyRequired bool) (Params, error) {
+	params, err := legacyparams.Load(v, apiKeyRequired)
 	if err != nil {
 		return Params{}, err
 	}

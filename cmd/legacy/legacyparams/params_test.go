@@ -25,7 +25,7 @@ func TestLoad_OfflineDisabled_ConfigTakesPrecedence(t *testing.T) {
 	v.Set("disableoffline", false)
 	v.Set("settings.offline", false)
 
-	params, err := legacyparams.Load(v)
+	params, err := legacyparams.Load(v, true)
 	require.NoError(t, err)
 
 	assert.True(t, params.OfflineDisabled)
@@ -39,7 +39,7 @@ func TestLoad_OfflineDisabled_FlagDeprecatedTakesPrecedence(t *testing.T) {
 	v.Set("disable-offline", false)
 	v.Set("disableoffline", true)
 
-	params, err := legacyparams.Load(v)
+	params, err := legacyparams.Load(v, true)
 	require.NoError(t, err)
 
 	assert.True(t, params.OfflineDisabled)
@@ -52,7 +52,7 @@ func TestLoad_OfflineDisabled_FromFlag(t *testing.T) {
 	v.Set("entity", "/path/to/file")
 	v.Set("disable-offline", true)
 
-	params, err := legacyparams.Load(v)
+	params, err := legacyparams.Load(v, true)
 	require.NoError(t, err)
 
 	assert.True(t, params.OfflineDisabled)
@@ -65,7 +65,7 @@ func TestLoad_OfflineQueueFile(t *testing.T) {
 	v.Set("entity", "/path/to/file")
 	v.Set("offline-queue-file", "/path/to/file")
 
-	params, err := legacyparams.Load(v)
+	params, err := legacyparams.Load(v, true)
 	require.NoError(t, err)
 
 	assert.Equal(t, "/path/to/file", params.OfflineQueueFile)
@@ -78,7 +78,7 @@ func TestLoad_OfflineSyncMax(t *testing.T) {
 	v.Set("entity", "/path/to/file")
 	v.Set("sync-offline-activity", 42)
 
-	params, err := legacyparams.Load(v)
+	params, err := legacyparams.Load(v, true)
 	require.NoError(t, err)
 
 	assert.Equal(t, 42, params.OfflineSyncMax)
@@ -90,7 +90,7 @@ func TestLoad_OfflineSyncMax_NoEntity(t *testing.T) {
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("sync-offline-activity", 42)
 
-	params, err := legacyparams.Load(v)
+	params, err := legacyparams.Load(v, true)
 	require.NoError(t, err)
 
 	assert.Equal(t, 42, params.OfflineSyncMax)
@@ -103,7 +103,7 @@ func TestLoad_OfflineSyncMax_None(t *testing.T) {
 	v.Set("entity", "/path/to/file")
 	v.Set("sync-offline-activity", "none")
 
-	params, err := legacyparams.Load(v)
+	params, err := legacyparams.Load(v, true)
 	require.NoError(t, err)
 
 	assert.Equal(t, 0, params.OfflineSyncMax)
@@ -115,7 +115,7 @@ func TestLoad_OfflineSyncMax_Default(t *testing.T) {
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 
-	params, err := legacyparams.Load(v)
+	params, err := legacyparams.Load(v, true)
 	require.NoError(t, err)
 
 	assert.Equal(t, 1000, params.OfflineSyncMax)
@@ -128,7 +128,7 @@ func TestLoad_OfflineSyncMax_NegativeNumber(t *testing.T) {
 	v.Set("entity", "/path/to/file")
 	v.Set("sync-offline-activity", -1)
 
-	_, err := legacyparams.Load(v)
+	_, err := legacyparams.Load(v, true)
 	require.Error(t, err)
 
 	assert.Contains(t, err.Error(), "--sync-offline-activity")
@@ -141,7 +141,7 @@ func TestLoad_OfflineSyncMax_NonIntegerValue(t *testing.T) {
 	v.Set("entity", "/path/to/file")
 	v.Set("sync-offline-activity", "invalid")
 
-	_, err := legacyparams.Load(v)
+	_, err := legacyparams.Load(v, true)
 	require.Error(t, err)
 
 	assert.Contains(t, err.Error(), "--sync-offline-activity")
@@ -201,7 +201,7 @@ func TestLoad_API_APIKey(t *testing.T) {
 			v.Set("settings.apikey", test.ViperAPIKeyConfigOld)
 			v.Set("hostname", "my-computer")
 
-			params, err := legacyparams.Load(v)
+			params, err := legacyparams.Load(v, true)
 			require.NoError(t, err)
 
 			assert.Equal(t, test.Expected, params)
@@ -223,7 +223,7 @@ func TestLoad_API_APIKeyInvalid(t *testing.T) {
 			v.SetDefault("sync-offline-activity", 1000)
 			v.Set("key", value)
 
-			_, err := legacyparams.Load(v)
+			_, err := legacyparams.Load(v, true)
 			require.Error(t, err)
 
 			var errauth api.ErrAuth
@@ -320,7 +320,7 @@ func TestLoad_API_APIUrl(t *testing.T) {
 			v.Set("settings.api_url", test.ViperAPIUrlConfig)
 			v.Set("hostname", "my-computer")
 
-			params, err := legacyparams.Load(v)
+			params, err := legacyparams.Load(v, true)
 			require.NoError(t, err)
 
 			assert.Equal(t, test.Expected, params)
@@ -334,7 +334,7 @@ func TestLoad_APIUrl_Default(t *testing.T) {
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 
-	params, err := legacyparams.Load(v)
+	params, err := legacyparams.Load(v, true)
 	require.NoError(t, err)
 
 	assert.Equal(t, api.BaseURL, params.API.URL)
@@ -355,7 +355,7 @@ func TestLoad_API_BackoffAt(t *testing.T) {
 
 	copyFile(t, "testdata/internal-with-backoff.cfg", tmpFile.Name())
 
-	params, err := legacyparams.Load(v)
+	params, err := legacyparams.Load(v, true)
 	require.NoError(t, err)
 
 	backoffAt, err := time.Parse(config.DateFormat, "2021-08-30T18:50:42-03:00")
@@ -385,7 +385,7 @@ func TestLoad_API_BackoffAtErr(t *testing.T) {
 
 	copyFile(t, "testdata/internal-malformed-backoff.cfg", tmpFile.Name())
 
-	params, err := legacyparams.Load(v)
+	params, err := legacyparams.Load(v, true)
 	require.NoError(t, err)
 
 	assert.Equal(t, legacyparams.API{
@@ -404,7 +404,7 @@ func TestLoad_API_Plugin(t *testing.T) {
 	v.Set("plugin", "plugin/10.0.0")
 	v.Set("hostname", "my-computer")
 
-	params, err := legacyparams.Load(v)
+	params, err := legacyparams.Load(v, true)
 	require.NoError(t, err)
 
 	assert.Equal(t, legacyparams.API{
@@ -422,7 +422,7 @@ func TestLoad_API_Timeout_FlagTakesPreceedence(t *testing.T) {
 	v.Set("timeout", 5)
 	v.Set("settings.timeout", 10)
 
-	params, err := legacyparams.Load(v)
+	params, err := legacyparams.Load(v, true)
 	require.NoError(t, err)
 
 	assert.Equal(t, 5*time.Second, params.API.Timeout)
@@ -434,7 +434,7 @@ func TestLoad_API_Timeout_FromConfig(t *testing.T) {
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("settings.timeout", 10)
 
-	params, err := legacyparams.Load(v)
+	params, err := legacyparams.Load(v, true)
 	require.NoError(t, err)
 
 	assert.Equal(t, 10*time.Second, params.API.Timeout)
@@ -448,7 +448,7 @@ func TestLoad_API_DisableSSLVerify_FlagTakesPrecedence(t *testing.T) {
 	v.Set("no-ssl-verify", true)
 	v.Set("settings.no_ssl_verify", false)
 
-	params, err := legacyparams.Load(v)
+	params, err := legacyparams.Load(v, true)
 	require.NoError(t, err)
 
 	assert.True(t, params.API.DisableSSLVerify)
@@ -461,7 +461,7 @@ func TestLoad_API_DisableSSLVerify_FromConfig(t *testing.T) {
 	v.Set("entity", "/path/to/file")
 	v.Set("settings.no_ssl_verify", true)
 
-	params, err := legacyparams.Load(v)
+	params, err := legacyparams.Load(v, true)
 	require.NoError(t, err)
 
 	assert.True(t, params.API.DisableSSLVerify)
@@ -473,7 +473,7 @@ func TestLoad_API_DisableSSLVerify_Default(t *testing.T) {
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 
-	params, err := legacyparams.Load(v)
+	params, err := legacyparams.Load(v, true)
 	require.NoError(t, err)
 
 	assert.False(t, params.API.DisableSSLVerify)
@@ -495,7 +495,7 @@ func TestLoad_API_ProxyURL(t *testing.T) {
 			v.Set("entity", "/path/to/file")
 			v.Set("proxy", proxyURL)
 
-			params, err := legacyparams.Load(v)
+			params, err := legacyparams.Load(v, true)
 			require.NoError(t, err)
 
 			assert.Equal(t, proxyURL, params.API.ProxyURL)
@@ -511,7 +511,7 @@ func TestLoad_API_ProxyURL_FlagTakesPrecedence(t *testing.T) {
 	v.Set("proxy", "https://john:secret@example.org:8888")
 	v.Set("settings.proxy", "ignored")
 
-	params, err := legacyparams.Load(v)
+	params, err := legacyparams.Load(v, true)
 	require.NoError(t, err)
 
 	assert.Equal(t, "https://john:secret@example.org:8888", params.API.ProxyURL)
@@ -524,7 +524,7 @@ func TestLoad_API_ProxyURL_FromConfig(t *testing.T) {
 	v.Set("entity", "/path/to/file")
 	v.Set("settings.proxy", "https://john:secret@example.org:8888")
 
-	params, err := legacyparams.Load(v)
+	params, err := legacyparams.Load(v, true)
 	require.NoError(t, err)
 
 	assert.Equal(t, "https://john:secret@example.org:8888", params.API.ProxyURL)
@@ -539,7 +539,7 @@ func TestLoad_API_ProxyURL_InvalidFormat(t *testing.T) {
 	v.Set("entity", "/path/to/file")
 	v.Set("proxy", proxyURL)
 
-	_, err := legacyparams.Load(v)
+	_, err := legacyparams.Load(v, true)
 	require.Error(t, err)
 }
 
@@ -553,7 +553,7 @@ func TestLoad_API_SSLCertFilepath_FlagTakesPrecedence(t *testing.T) {
 	home, err := os.UserHomeDir()
 	require.NoError(t, err)
 
-	params, err := legacyparams.Load(v)
+	params, err := legacyparams.Load(v, true)
 	require.NoError(t, err)
 
 	assert.Equal(t, filepath.Join(home, "/path/to/cert.pem"), params.API.SSLCertFilepath)
@@ -566,7 +566,7 @@ func TestLoad_API_SSLCertFilepath_FromConfig(t *testing.T) {
 	v.Set("entity", "/path/to/file")
 	v.Set("settings.ssl_certs_file", "/path/to/cert.pem")
 
-	params, err := legacyparams.Load(v)
+	params, err := legacyparams.Load(v, true)
 	require.NoError(t, err)
 
 	assert.Equal(t, "/path/to/cert.pem", params.API.SSLCertFilepath)
@@ -579,7 +579,7 @@ func TestLoadParams_Hostname_FlagTakesPrecedence(t *testing.T) {
 	v.Set("hostname", "my-machine")
 	v.Set("settings.hostname", "ignored")
 
-	params, err := legacyparams.Load(v)
+	params, err := legacyparams.Load(v, true)
 	require.NoError(t, err)
 
 	assert.Equal(t, "my-machine", params.API.Hostname)
@@ -591,7 +591,7 @@ func TestLoadParams_Hostname_FromConfig(t *testing.T) {
 	v.Set("entity", "/path/to/file")
 	v.Set("settings.hostname", "my-machine")
 
-	params, err := legacyparams.Load(v)
+	params, err := legacyparams.Load(v, true)
 	require.NoError(t, err)
 
 	assert.Equal(t, "my-machine", params.API.Hostname)
@@ -602,7 +602,7 @@ func TestLoadParams_Hostname_DefaultFromSystem(t *testing.T) {
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("entity", "/path/to/file")
 
-	params, err := legacyparams.Load(v)
+	params, err := legacyparams.Load(v, true)
 	require.NoError(t, err)
 
 	expected, err := os.Hostname()
