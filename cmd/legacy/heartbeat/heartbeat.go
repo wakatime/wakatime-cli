@@ -92,6 +92,10 @@ func RunWithoutSending(v *viper.Viper) (int, error) {
 	handleOpts := initHandleOptions(params)
 
 	if !params.OfflineDisabled {
+		if params.OfflineQueueFile != "" {
+			queueFilepath = params.OfflineQueueFile
+		}
+
 		offlineHandleOpt, err := offline.WithQueue(queueFilepath)
 		if err != nil {
 			return exitcode.ErrConfigFileParse, fmt.Errorf("failed to initialize offline queue handle option: %w", err)

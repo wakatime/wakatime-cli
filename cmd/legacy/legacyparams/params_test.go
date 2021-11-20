@@ -345,15 +345,8 @@ func TestLoad_API_BackoffAt(t *testing.T) {
 	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("hostname", "my-computer")
-
-	tmpFile, err := os.CreateTemp(os.TempDir(), "wakatime")
-	require.NoError(t, err)
-
-	defer os.Remove(tmpFile.Name())
-
-	v.Set("internal-config", tmpFile.Name())
-
-	copyFile(t, "testdata/internal-with-backoff.cfg", tmpFile.Name())
+	v.Set("internal.backoff_at", "2021-08-30T18:50:42-03:00")
+	v.Set("internal.backoff_retries", "3")
 
 	params, err := legacyparams.Load(v, true)
 	require.NoError(t, err)
@@ -375,15 +368,8 @@ func TestLoad_API_BackoffAtErr(t *testing.T) {
 	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("hostname", "my-computer")
-
-	tmpFile, err := os.CreateTemp(os.TempDir(), "wakatime")
-	require.NoError(t, err)
-
-	defer os.Remove(tmpFile.Name())
-
-	v.Set("internal-config", tmpFile.Name())
-
-	copyFile(t, "testdata/internal-malformed-backoff.cfg", tmpFile.Name())
+	v.Set("internal.backoff_at", "2021-08-30")
+	v.Set("internal.backoff_retries", "2")
 
 	params, err := legacyparams.Load(v, true)
 	require.NoError(t, err)
@@ -609,12 +595,4 @@ func TestLoadParams_Hostname_DefaultFromSystem(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, expected, params.API.Hostname)
-}
-
-func copyFile(t *testing.T, source, destination string) {
-	input, err := os.ReadFile(source)
-	require.NoError(t, err)
-
-	err = os.WriteFile(destination, input, 0600)
-	require.NoError(t, err)
 }
