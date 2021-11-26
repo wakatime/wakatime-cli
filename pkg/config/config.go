@@ -84,7 +84,7 @@ func ReadInConfig(v *viper.Viper, configFilePath string) error {
 		return nil
 	}
 
-	if err := v.ReadInConfig(); err != nil {
+	if err := v.MergeInConfig(); err != nil {
 		return fmt.Errorf("error parsing config file: %s", err)
 	}
 

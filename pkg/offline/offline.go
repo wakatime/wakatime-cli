@@ -145,8 +145,7 @@ func Sync(filepath string, syncLimit int) func(next heartbeat.Handle) error {
 }
 
 // Sender is a noop api client, used by heartbeat.RunWithoutSending.
-type Sender struct {
-}
+type Sender struct{}
 
 // SendHeartbeats always returns an error.
 func (s *Sender) SendHeartbeats(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {

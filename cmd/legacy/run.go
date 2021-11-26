@@ -37,8 +37,26 @@ func Run(cmd *cobra.Command, v *viper.Viper) {
 		fmt.Fprintf(os.Stderr, "error getting config file path: %s", err)
 	}
 
+	internalConfigFile, err := config.InternalFilePath(v)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error getting internal config file path: %s", err)
+	}
+
 	if err := config.ReadInConfig(v, configFile); err != nil {
 		fmt.Fprintf(os.Stderr, "failed to load configuration file: %s", err)
+
+		SetupLogging(v)
+		log.Errorf("failed to load configuration file: %s", err)
+
+		if v.IsSet("entity") {
+			RunCmd(v, false, heartbeatcmd.RunWithoutSending)
+		}
+
+		os.Exit(exitcode.ErrConfigFileParse)
+	}
+
+	if err := config.ReadInConfig(v, internalConfigFile); err != nil {
+		fmt.Fprintf(os.Stderr, "failed to load internal configuration file: %s", err)
 
 		SetupLogging(v)
 		log.Errorf("failed to load configuration file: %s", err)
