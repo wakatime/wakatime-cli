@@ -37,7 +37,7 @@ func WithDetection() heartbeat.HandleOption {
 				}
 
 				if err != nil {
-					log.Warnf("failed to detect language on file entity %q: %s", h.Entity, err)
+					log.Debugf("failed to detect language on file entity %q: %s", h.Entity, err)
 
 					continue
 				}

@@ -26,7 +26,7 @@ func TestReadInConfig(t *testing.T) {
 
 	assert.Equal(t, "b9485572-74bf-419a-916b-22056ca3a24c", vipertools.GetString(v, "settings.api_key"))
 	assert.Equal(t, "true", vipertools.GetString(v, "settings.debug"))
-	assert.Equal(t, "true", vipertools.GetString(v, "test.pandemia"))
+	assert.Equal(t, "us", vipertools.GetString(v, "other.country"))
 }
 
 func TestReadInConfig_Multiline(t *testing.T) {
@@ -45,6 +45,31 @@ func TestReadInConfig_Multiline(t *testing.T) {
 	assert.Equal(t, "\n.*secret.*\nfix.*", gitConfig)
 }
 
+func TestReadInConfig_Multiple(t *testing.T) {
+	v := viper.New()
+
+	v.Set("config", "./testdata/wakatime.cfg")
+	v.Set("internal-config", "./testdata/wakatime-internal.cfg")
+
+	filePath, err := config.FilePath(v)
+	require.NoError(t, err)
+
+	internalFilePath, err := config.InternalFilePath(v)
+	require.NoError(t, err)
+
+	err = config.ReadInConfig(v, filePath)
+	require.NoError(t, err)
+
+	err = config.ReadInConfig(v, internalFilePath)
+	require.NoError(t, err)
+
+	assert.Equal(t, "b9485572-74bf-419a-916b-22056ca3a24c", vipertools.GetString(v, "settings.api_key"))
+	assert.Equal(t, "true", vipertools.GetString(v, "settings.debug"))
+	assert.Equal(t, "us", vipertools.GetString(v, "other.country"))
+	assert.Equal(t, "2021-11-25T12:17:21-07:00", vipertools.GetString(v, "internal.backoff_at"))
+	assert.Equal(t, "3", vipertools.GetString(v, "internal.backoff_retries"))
+}
+
 func TestReadInConfig_DoesNotExit_NoError(t *testing.T) {
 	v := viper.New()
 	v.Set("config", "./testdata/any.cfg")
@@ -57,7 +82,7 @@ func TestReadInConfig_DoesNotExit_NoError(t *testing.T) {
 func TestReadInConfigMissing(t *testing.T) {
 	v := viper.New()
 	err := config.ReadInConfig(v, "not-exists")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestReadInConfigMalformed(t *testing.T) {
@@ -66,7 +91,7 @@ func TestReadInConfigMalformed(t *testing.T) {
 	filePath, err := config.FilePath(v)
 	require.NoError(t, err)
 	err = config.ReadInConfig(v, filePath)
-	assert.Error(t, err)
+	require.Error(t, err)
 }
 
 func TestFilePath(t *testing.T) {

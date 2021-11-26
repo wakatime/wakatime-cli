@@ -19,6 +19,7 @@ import (
 
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/offline"
 	"github.com/wakatime/wakatime-cli/pkg/version"
 
 	"github.com/stretchr/testify/assert"
@@ -202,6 +203,58 @@ func TestSendHeartbeats_Err(t *testing.T) {
 	assert.Empty(t, out)
 
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+}
+
+func TestSendHeartbeats_MalformedConfig(t *testing.T) {
+	tmpFile, err := os.CreateTemp(os.TempDir(), "wakatime-internal.cfg")
+	require.NoError(t, err)
+
+	defer os.Remove(tmpFile.Name())
+
+	offlineQueueFile, err := os.CreateTemp(os.TempDir(), "")
+	require.NoError(t, err)
+
+	defer os.Remove(offlineQueueFile.Name())
+
+	out := runWakatimeCliExpectErr(
+		t,
+		exitcode.ErrConfigFileParse,
+		"--entity", "testdata/main.go",
+		"--config", "./testdata/malformed.cfg",
+		"--internal-config", tmpFile.Name(),
+		"--offline-queue-file", offlineQueueFile.Name(),
+		"--verbose",
+	)
+
+	assert.Empty(t, out)
+
+	count, err := offline.CountHeartbeats(offlineQueueFile.Name())
+	require.NoError(t, err)
+
+	assert.Equal(t, 1, count)
+}
+
+func TestSendHeartbeats_MalformedInternalConfig(t *testing.T) {
+	offlineQueueFile, err := os.CreateTemp(os.TempDir(), "")
+	require.NoError(t, err)
+
+	defer os.Remove(offlineQueueFile.Name())
+
+	out := runWakatimeCliExpectErr(
+		t,
+		exitcode.ErrConfigFileParse,
+		"--entity", "testdata/main.go",
+		"--internal-config", "./testdata/internal-malformed.cfg",
+		"--offline-queue-file", offlineQueueFile.Name(),
+		"--verbose",
+	)
+
+	assert.Empty(t, out)
+
+	count, err := offline.CountHeartbeats(offlineQueueFile.Name())
+	require.NoError(t, err)
+
+	assert.Equal(t, 1, count)
 }
 
 func TestTodayGoal(t *testing.T) {

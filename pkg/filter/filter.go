@@ -65,14 +65,14 @@ func Filter(h heartbeat.Heartbeat, config Config) error {
 
 	// filter by pattern
 	if err := filterByPattern(h.Entity, config.Include, config.Exclude); err != nil {
-		return fmt.Errorf("filter by pattern: %w", err)
+		return Err(fmt.Sprintf("filter by pattern: %s", err))
 	}
 
 	// filter file
 	if h.EntityType == heartbeat.FileType {
 		err := filterFileEntity(h.Entity, config.IncludeOnlyWithProjectFile)
 		if err != nil {
-			return fmt.Errorf("filter file: %w", err)
+			return Err(fmt.Sprintf("filter file: %s", err))
 		}
 	}
 
