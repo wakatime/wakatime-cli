@@ -7,9 +7,8 @@ import (
 	"time"
 
 	"github.com/wakatime/wakatime-cli/pkg/api"
-	"github.com/wakatime/wakatime-cli/pkg/config"
+	ini "github.com/wakatime/wakatime-cli/pkg/config"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
-	"github.com/wakatime/wakatime-cli/pkg/ini"
 	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	"github.com/spf13/viper"
@@ -35,12 +34,12 @@ type Config struct {
 // WithBackoff initializes and returns a heartbeat handle option, which
 // can be used in a heartbeat processing pipeline to prevent trying to send
 // a heartbeat when the api is unresponsive.
-func WithBackoff(c Config) heartbeat.HandleOption {
+func WithBackoff(config Config) heartbeat.HandleOption {
 	return func(next heartbeat.Handle) heartbeat.Handle {
 		return func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 			log.Debugln("execute heartbeat backoff algorithm")
 
-			if shouldBackoff(c.Retries, c.At) {
+			if shouldBackoff(config.Retries, config.At) {
 				return nil, api.Err("won't send heartbeat due to backoff")
 			}
 
@@ -49,16 +48,16 @@ func WithBackoff(c Config) heartbeat.HandleOption {
 				log.Debugf("incrementing backoff due to error")
 
 				// error response, increment backoff
-				if updateErr := updateBackoffSettings(c.V, c.Retries+1, time.Now()); updateErr != nil {
+				if updateErr := updateBackoffSettings(config.V, config.Retries+1, time.Now()); updateErr != nil {
 					log.Warnf("failed to update backoff settings: %s", updateErr)
 				}
 
 				return nil, err
 			}
 
-			if !c.At.IsZero() {
+			if !config.At.IsZero() {
 				// success response, reset backoff
-				if resetErr := updateBackoffSettings(c.V, 0, time.Time{}); resetErr != nil {
+				if resetErr := updateBackoffSettings(config.V, 0, time.Time{}); resetErr != nil {
 					log.Warnf("failed to reset backoff settings: %s", resetErr)
 				}
 			}
@@ -87,28 +86,25 @@ func shouldBackoff(retries int, at time.Time) bool {
 }
 
 func updateBackoffSettings(v *viper.Viper, retries int, at time.Time) error {
-	keys := map[ini.Key]string{
-		{
-			Section: "internal",
-			Name:    "backoff_retries",
-		}: strconv.Itoa(retries),
-		{
-			Section: "internal",
-			Name:    "backoff_at",
-		}: "",
+	w, err := ini.NewIniWriter(v, ini.FilePath)
+	if err != nil {
+		return fmt.Errorf("failed to parse config file: %s", err)
+	}
+
+	keyValue := map[string]string{
+		"backoff_retries": strconv.Itoa(retries),
+		"backoff_at":      "",
 	}
 
 	if !at.IsZero() {
-		keys[ini.Key{
-			Section: "internal",
-			Name:    "backoff_at",
-		}] = at.Format(config.DateFormat)
+		keyValue["backoff_at"] = at.Format(ini.DateFormat)
+	} else {
+		keyValue["backoff_at"] = ""
 	}
 
-	iniFile, err := config.InternalFilePath(v)
-	if err != nil {
-		return fmt.Errorf("error getting filepath: %s", err)
+	if err := w.Write("internal", keyValue); err != nil {
+		return fmt.Errorf("failed to write to internal config file: %s", err)
 	}
 
-	return ini.SetKeys(iniFile, keys)
+	return nil
 }
