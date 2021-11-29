@@ -12,6 +12,7 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/vipertools"
 
+	"github.com/juju/mutex"
 	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/viper"
 	"gopkg.in/ini.v1"
@@ -24,6 +25,8 @@ const (
 	defaultInternalFile = ".wakatime-internal.cfg"
 	// DateFormat is the default format for date in config file.
 	DateFormat = time.RFC3339
+	// defaultTimeout is the default timeout for acquiring a lock.
+	defaultTimeout = time.Second * 5
 )
 
 // Writer defines the methods to write to config file.
@@ -64,6 +67,22 @@ func (w *IniWriter) Write(section string, keyValue map[string]string) error {
 	for key, value := range keyValue {
 		w.File.Section(section).Key(key).SetValue(value)
 	}
+
+	releaser, err := mutex.Acquire(mutex.Spec{
+		Name:    "wakatime-cli-config-mutex",
+		Delay:   time.Millisecond,
+		Timeout: defaultTimeout,
+		Clock:   &mutexClock{delay: time.Millisecond},
+	})
+	if err != nil {
+		log.Debugf("failed to acquire mutex: %s", err)
+	}
+
+	defer func() {
+		if releaser != nil {
+			releaser.Release()
+		}
+	}()
 
 	if err := w.File.SaveTo(w.ConfigFilepath); err != nil {
 		return fmt.Errorf("error saving wakatime config: %s", err)
@@ -156,4 +175,17 @@ func WakaHomeDir() (string, error) {
 	allerrs = fmt.Errorf("%s: %s", allerrs, err)
 
 	return "", allerrs
+}
+
+// mutexClock is used to implement mutex.Clock interface.
+type mutexClock struct {
+	delay time.Duration
+}
+
+func (mc *mutexClock) After(time.Duration) <-chan time.Time {
+	return time.After(mc.delay)
+}
+
+func (mc *mutexClock) Now() time.Time {
+	return time.Now()
 }
