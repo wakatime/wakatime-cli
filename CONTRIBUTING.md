@@ -51,4 +51,8 @@ Please follow our guideline for branch names [here](https://github.com/wakatime/
 - Pull request title and description should follow the same guidelines as commit messages.
 - Rebasing pull requests is OK and encouraged. After submitting your pull request some changes may be requested. Prefer using [git fixup](https://git-scm.com/docs/git-commit#Documentation/git-commit.txt---fixupltcommitgt) rather than adding orphan extra commits to the pull request, then do a push to your fork. As soon as your PR gets approved one of us will merge it by rebasing and squashing any residuary commits that were pushed while reviewing. This will help to keep the commit history of the repository clean.
 
+## Troubleshooting
+
+- Race detection is enabled by default on `Makefile` and it may fail on macOS Monterey (OSX 12.0). You might temporarily set the environment variable `MallocNanoZone=0`. More details in this [thread](https://github.com/golang/go/issues/49138).
+
 Any question join us on [Slack](https://wakaslack.herokuapp.com/).
