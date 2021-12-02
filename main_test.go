@@ -14,6 +14,7 @@ import (
 	"regexp"
 	"runtime"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -33,6 +34,11 @@ const (
 	binaryPathWindows = "./build/wakatime-cli-windows-amd64.exe"
 	testVersion       = "<local-build>"
 )
+
+// nolint:gochecknoinits
+func init() {
+	version.Version = testVersion
+}
 
 func binaryPath(t *testing.T) string {
 	switch runtime.GOOS {
@@ -439,6 +445,33 @@ func TestVersionVerbose(t *testing.T) {
 	)), out)
 }
 
+func TestMultipleRunners_NotCorruptConfigFile(t *testing.T) {
+	var wg sync.WaitGroup
+
+	tmpFile, err := os.CreateTemp(os.TempDir(), "wakatime.cfg")
+	require.NoError(t, err)
+
+	defer os.Remove(tmpFile.Name())
+
+	for i := 0; i < 20; i++ {
+		wg.Add(1)
+
+		go func(filepath string) {
+			defer wg.Done()
+
+			out := runWakatimeCli(
+				t,
+				"--config", filepath,
+				"--config-write", "debug=true",
+			)
+
+			assert.Empty(t, out)
+		}(tmpFile.Name())
+	}
+
+	wg.Wait()
+}
+
 func runWakatimeCli(t *testing.T, args ...string) string {
 	f, err := os.CreateTemp(os.TempDir(), "")
 	require.NoError(t, err)
@@ -490,13 +523,11 @@ func runCmd(cmd *exec.Cmd) string {
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 
-	version.Version = testVersion
-
 	err := cmd.Run()
 	if err != nil {
 		fmt.Println(stdout.String())
 		fmt.Println(stderr.String())
-		fmt.Printf("failed to run command %s\n", cmd)
+		fmt.Printf("failed to run command %s: %s\n", cmd, err)
 		os.Exit(1)
 	}
 
@@ -511,8 +542,6 @@ func runCmdExpectErr(cmd *exec.Cmd) (string, int) {
 
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
-
-	version.Version = testVersion
 
 	err := cmd.Run()
 	if err == nil {

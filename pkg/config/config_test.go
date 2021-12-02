@@ -39,10 +39,10 @@ func TestReadInConfig_Multiline(t *testing.T) {
 	require.NoError(t, err)
 
 	ignoreConfig := strings.ReplaceAll(vipertools.GetString(v, "settings.ignore"), "\r", "")
-	assert.Equal(t, "\nCOMMIT_EDITMSG$\nPULLREQ_EDITMSG$\nMERGE_MSG$\nTAG_EDITMSG$", ignoreConfig)
+	assert.Equal(t, "\n  COMMIT_EDITMSG$\n  PULLREQ_EDITMSG$\n  MERGE_MSG$\n  TAG_EDITMSG$", ignoreConfig)
 
 	gitConfig := strings.ReplaceAll(vipertools.GetString(v, "git.submodules_disabled"), "\r", "")
-	assert.Equal(t, "\n.*secret.*\nfix.*", gitConfig)
+	assert.Equal(t, "\n  .*secret.*\n  fix.*", gitConfig)
 }
 
 func TestReadInConfig_Multiple(t *testing.T) {
@@ -238,6 +238,39 @@ func TestWrite(t *testing.T) {
 	}
 }
 
+func TestWrite_NoMultilineSideEffects(t *testing.T) {
+	multilineOption := viper.IniLoadOptions(ini.LoadOptions{AllowPythonMultilineValues: true})
+	v := viper.NewWithOptions(multilineOption)
+
+	tmpFile, err := os.CreateTemp(os.TempDir(), "wakatime")
+	require.NoError(t, err)
+
+	defer os.Remove(tmpFile.Name())
+
+	v.Set("config", tmpFile.Name())
+
+	copyFile(t, "testdata/wakatime-multiline.cfg", tmpFile.Name())
+
+	w, err := config.NewIniWriter(v, func(vp *viper.Viper) (string, error) {
+		assert.Equal(t, v, vp)
+		return tmpFile.Name(), nil
+	})
+	require.NoError(t, err)
+
+	err = w.Write("settings", map[string]string{"debug": "true"})
+	require.NoError(t, err)
+
+	actual, err := os.ReadFile(tmpFile.Name())
+	require.NoError(t, err)
+
+	expected, err := os.ReadFile("testdata/wakatime-multiline-expected.cfg")
+	require.NoError(t, err)
+
+	assert.Equal(t,
+		strings.ReplaceAll(string(expected), "\r", ""),
+		strings.ReplaceAll(string(actual), "\r", ""))
+}
+
 func TestWriteErr(t *testing.T) {
 	w := config.IniWriter{}
 
@@ -245,4 +278,12 @@ func TestWriteErr(t *testing.T) {
 	require.Error(t, err)
 
 	assert.Equal(t, "got undefined wakatime config file instance", err.Error())
+}
+
+func copyFile(t *testing.T, source, destination string) {
+	input, err := os.ReadFile(source)
+	require.NoError(t, err)
+
+	err = os.WriteFile(destination, input, 0600)
+	require.NoError(t, err)
 }
