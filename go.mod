@@ -18,7 +18,7 @@ require (
 	github.com/stretchr/testify v1.7.0
 	github.com/yookoala/realpath v1.0.0
 	go.etcd.io/bbolt v1.3.5
-	gopkg.in/ini.v1 v1.65.0
+	gopkg.in/ini.v1 v1.66.2
 )
 
 require (
