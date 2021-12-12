@@ -104,21 +104,21 @@ func filterByPattern(entity string, include, exclude []regex.Regex) error {
 	return nil
 }
 
-// filterFileEntity determines if a heartbeat should be skipped, by verifying
+// filterFileEntity determines if a heartbeat of type file should be skipped, by verifying
 // the existence of the passed in filepath, and optionally by checking if a
 // wakatime project file can be detected in the filepath directory tree.
 // Returns Err to signal to the caller to skip the heartbeat.
 func filterFileEntity(filepath string, includeOnlyWithProjectFile bool) error {
-	// check if file exists
+	// skip files that don't exist on disk
 	if _, err := os.Stat(filepath); os.IsNotExist(err) {
 		return Err(fmt.Sprintf("skipping because of non-existing file %q", filepath))
 	}
 
-	// check wakatime project file exists
+	// when including only with project file, skip files when the project does not contain a .wakatime-project file
 	if includeOnlyWithProjectFile {
-		_, ok := project.FindFileOrDirectory(filepath, "", ".wakatime-project")
+		_, ok := project.FindFileOrDirectory(filepath, project.WakaTimeProjectFile)
 		if !ok {
-			return Err("skipping because of missing .wakatime-project file in parent path")
+			return Err("skipping because missing .wakatime-project file in parent path")
 		}
 	}
 

@@ -61,6 +61,7 @@ func New(
 			entity = formatted
 		}
 
+		// evaluate any symlinks
 		formatted, err = realpath.Realpath(entity)
 		if err != nil {
 			log.Warnf("failed to resolve the real path of %q: %s", entity, err)

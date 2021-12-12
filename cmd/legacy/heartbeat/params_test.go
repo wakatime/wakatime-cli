@@ -650,6 +650,21 @@ func TestLoadParams_Filter_Exclude(t *testing.T) {
 	assert.Equal(t, "wakatime.?", params.Filter.Exclude[5].String())
 }
 
+func TestLoadParams_Filter_Exclude_Multiline(t *testing.T) {
+	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("entity", "/path/to/file")
+	v.Set("settings.ignore", "\t.?\n\twakatime.? \t\n")
+
+	params, err := cmd.LoadParams(v)
+	require.NoError(t, err)
+
+	require.Len(t, params.Filter.Exclude, 2)
+	assert.Equal(t, ".?", params.Filter.Exclude[0].String())
+	assert.Equal(t, "wakatime.?", params.Filter.Exclude[1].String())
+}
+
 func TestLoadParams_Filter_Exclude_IgnoresInvalidRegex(t *testing.T) {
 	v := viper.New()
 	v.SetDefault("sync-offline-activity", 1000)

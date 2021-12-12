@@ -622,6 +622,9 @@ func loadProjectParams(v *viper.Viper) (ProjectParams, error) {
 func parseBoolOrRegexList(s string) ([]regex.Regex, error) {
 	var patterns []regex.Regex
 
+	s = strings.ReplaceAll(s, "\r", "\n")
+	s = strings.Trim(s, "\n\t ")
+
 	switch {
 	case s == "":
 		break
@@ -632,6 +635,7 @@ func parseBoolOrRegexList(s string) ([]regex.Regex, error) {
 	default:
 		splitted := strings.Split(s, "\n")
 		for _, s := range splitted {
+			s = strings.Trim(s, "\n\t ")
 			if s == "" {
 				continue
 			}

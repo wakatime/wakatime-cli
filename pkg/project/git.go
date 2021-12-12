@@ -62,7 +62,7 @@ func (g Git) Detect() (Result, bool, error) {
 	}
 
 	// Find for .git/config file
-	gitConfigFile, ok := FindFileOrDirectory(fp, ".git", "config")
+	gitConfigFile, ok := FindFileOrDirectory(fp, filepath.Join(".git", "config"))
 
 	if ok {
 		gitDir := filepath.Dir(gitConfigFile)
@@ -85,7 +85,7 @@ func (g Git) Detect() (Result, bool, error) {
 	}
 
 	// Find for .git file
-	gitConfigFile, ok = FindFileOrDirectory(fp, "", ".git")
+	gitConfigFile, ok = FindFileOrDirectory(fp, ".git")
 	if !ok {
 		return Result{}, false, nil
 	}
@@ -152,7 +152,7 @@ func findSubmodule(fp string, patterns []regex.Regex) (string, bool, error) {
 		return "", false, nil
 	}
 
-	gitConfigFile, ok := FindFileOrDirectory(fp, "", ".git")
+	gitConfigFile, ok := FindFileOrDirectory(fp, ".git")
 	if !ok {
 		return "", false, nil
 	}

@@ -116,7 +116,6 @@ func TestFindFileOrDirectory(t *testing.T) {
 
 	tests := map[string]struct {
 		Filepath string
-		FileDir  string
 		Filename string
 		Expected string
 	}{
@@ -134,7 +133,7 @@ func TestFindFileOrDirectory(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			fp, ok := project.FindFileOrDirectory(test.Filepath, test.FileDir, test.Filename)
+			fp, ok := project.FindFileOrDirectory(test.Filepath, test.Filename)
 			require.True(t, ok)
 
 			assert.Equal(t, test.Expected, fp)
