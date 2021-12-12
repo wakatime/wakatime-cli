@@ -32,7 +32,7 @@ func (m Mercurial) Detect() (Result, bool, error) {
 	}
 
 	// Find for .hg folder
-	hgDirectory, ok := FindFileOrDirectory(fp, "", ".hg")
+	hgDirectory, ok := FindFileOrDirectory(fp, ".hg")
 	if !ok {
 		return Result{}, false, nil
 	}

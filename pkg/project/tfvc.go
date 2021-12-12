@@ -37,16 +37,16 @@ func (t Tfvc) Detect() (Result, bool, error) {
 	}
 
 	// Find for tf/properties.tf1 file
-	tfDirectory, ok := FindFileOrDirectory(fp, tfFolderName, "properties.tf1")
+	tfDirectory, ok := FindFileOrDirectory(fp, filepath.Join(tfFolderName, "properties.tf1"))
 	if !ok {
 		return Result{}, false, nil
 	}
 
-	project := filepath.Base(filepath.Join(tfDirectory, "../.."))
+	project := filepath.Base(filepath.Join(tfDirectory, "..", ".."))
 
 	return Result{
 		Project: project,
-		Folder:  filepath.Dir(filepath.Join(tfDirectory, "../..")),
+		Folder:  filepath.Dir(filepath.Join(tfDirectory, "..", "..")),
 	}, true, nil
 }
 

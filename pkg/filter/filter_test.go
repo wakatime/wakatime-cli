@@ -234,7 +234,7 @@ func TestFilter_ErrNonExistingProjectFile(t *testing.T) {
 	var errv filter.Err
 
 	assert.True(t, errors.As(err, &errv))
-	assert.Equal(t, filter.Err("filter file: skipping because of missing .wakatime-project file in parent path"), errv)
+	assert.Equal(t, filter.Err("filter file: skipping because missing .wakatime-project file in parent path"), errv)
 }
 
 func testHeartbeat() heartbeat.Heartbeat {

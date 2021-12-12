@@ -1,7 +1,9 @@
 package project
 
 import (
+	"fmt"
 	"math/rand"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -16,8 +18,13 @@ import (
 // nolint: gochecknoglobals
 var driveLetterRegex = regexp.MustCompile(`^[a-zA-Z]:\\$`)
 
-// maxRecursiveIteration limits the number of a func will be called recursively.
-const maxRecursiveIteration = 500
+const (
+	// WakaTimeProjectFile is the special file which if present should contain the project name and optional branch name
+	// that will be used instead of the auto-detected project and branch names.
+	WakaTimeProjectFile = ".wakatime-project"
+	// maxRecursiveIteration limits the number of a func will be called recursively.
+	maxRecursiveIteration = 500
+)
 
 // Detecter is a common interface for project.
 type Detecter interface {
@@ -178,6 +185,16 @@ func setProjectName(alternate string, shouldObfuscateProject bool, folder string
 	return project
 }
 
+// Write saves wakatime project file.
+func Write(folder, project string) error {
+	err := os.WriteFile(filepath.Join(folder, WakaTimeProjectFile), []byte(project+"\n"), 0600)
+	if err != nil {
+		return fmt.Errorf("failed to save wakatime project file: %s", err)
+	}
+
+	return nil
+}
+
 func generateProjectName() string {
 	adjectives := []string{
 		"aged", "ancient", "autumn", "billowing", "bitter", "black", "blue", "bold",
@@ -219,27 +236,36 @@ func generateProjectName() string {
 	return strings.Join(str, " ")
 }
 
-// FindFileOrDirectory searches for a file or directory with name `filename`.
-// Search starts in `startDir` and will traverse through all parent directories until the file is found,
-// root directory is reached or `maxRecursiveIteration` is exceeded.
-func FindFileOrDirectory(startDir, fileDir, filename string) (string, bool) {
+// FindFileOrDirectory searches for a file or directory named `filename`.
+// Search starts in `directory` and will traverse through all parent directories.
+// `directory` may also be a file, and in that case will start from the file's directory.
+func FindFileOrDirectory(directory, filename string) (string, bool) {
 	i := 0
 	for i < maxRecursiveIteration {
-		if fileExists(filepath.Join(startDir, fileDir, filename)) {
-			return filepath.Join(startDir, fileDir, filename), true
-		}
-
-		startDir = filepath.Clean(filepath.Join(startDir, ".."))
-		if startDir == "." || startDir == "/" || driveLetterRegex.MatchString(startDir) {
+		if isRootPath(directory) {
 			return "", false
 		}
+
+		if fileExists(filepath.Join(directory, filename)) {
+			return filepath.Join(directory, filename), true
+		}
+
+		directory = filepath.Clean(filepath.Join(directory, ".."))
 
 		i++
 	}
 
-	log.Warnf("didn't find %s after %d iterations", filename, maxRecursiveIteration)
+	log.Warnf("max %d iterations reached without finding %s", maxRecursiveIteration, filename)
 
 	return "", false
+}
+
+func isRootPath(directory string) bool {
+	return (directory == "." ||
+		directory == string(filepath.Separator) ||
+		directory == "" ||
+		driveLetterRegex.MatchString(directory) ||
+		filepath.VolumeName(directory) == directory)
 }
 
 // firstNonEmptyString accepts multiple values and return the first non empty string value.
