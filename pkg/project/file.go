@@ -9,8 +9,6 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/log"
 )
 
-const defaultProjectFile = ".wakatime-project"
-
 // File contains file data.
 type File struct {
 	Filepath string
@@ -22,7 +20,7 @@ type File struct {
 func (f File) Detect() (Result, bool, error) {
 	log.Debugln("execute file project detection")
 
-	fp, ok := FindFileOrDirectory(f.Filepath, "", defaultProjectFile)
+	fp, ok := FindFileOrDirectory(f.Filepath, WakaTimeProjectFile)
 	if !ok {
 		return Result{}, false, nil
 	}

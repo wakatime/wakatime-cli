@@ -244,6 +244,21 @@ func TestDetect_NoProjectDetected(t *testing.T) {
 	assert.Empty(t, branch)
 }
 
+func TestWrite(t *testing.T) {
+	tmpDir, err := os.MkdirTemp(os.TempDir(), "wakatime-git")
+	require.NoError(t, err)
+
+	defer os.RemoveAll(tmpDir)
+
+	err = project.Write(tmpDir, "billing")
+	require.NoError(t, err)
+
+	actual, err := os.ReadFile(filepath.Join(tmpDir, ".wakatime-project"))
+	require.NoError(t, err)
+
+	assert.Equal(t, string([]byte("billing\n")), string(actual))
+}
+
 func formatRegex(fp string) string {
 	if runtime.GOOS != "windows" {
 		return fp
