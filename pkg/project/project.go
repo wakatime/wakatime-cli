@@ -242,15 +242,14 @@ func generateProjectName() string {
 func FindFileOrDirectory(directory, filename string) (string, bool) {
 	i := 0
 	for i < maxRecursiveIteration {
-		if isRootPath(directory) {
-			return "", false
-		}
-
 		if fileExists(filepath.Join(directory, filename)) {
 			return filepath.Join(directory, filename), true
 		}
 
 		directory = filepath.Clean(filepath.Join(directory, ".."))
+		if isRootPath(directory) {
+			return "", false
+		}
 
 		i++
 	}
@@ -263,7 +262,6 @@ func FindFileOrDirectory(directory, filename string) (string, bool) {
 func isRootPath(directory string) bool {
 	return (directory == "." ||
 		directory == string(filepath.Separator) ||
-		directory == "" ||
 		driveLetterRegex.MatchString(directory) ||
 		filepath.VolumeName(directory) == directory)
 }

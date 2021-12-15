@@ -141,6 +141,16 @@ func TestFindFileOrDirectory(t *testing.T) {
 	}
 }
 
+func TestFindFileOrDirectory_RootPath(t *testing.T) {
+	wd, err := os.Getwd()
+	require.NoError(t, err)
+
+	fp, ok := project.FindFileOrDirectory(wd, "non-file.any")
+	require.False(t, ok)
+
+	assert.Empty(t, fp)
+}
+
 func copyFile(t *testing.T, source, destination string) {
 	input, err := os.ReadFile(source)
 	require.NoError(t, err)
