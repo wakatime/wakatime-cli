@@ -264,8 +264,10 @@ func isRootPath(directory string) bool {
 	return (directory == "." ||
 		directory == string(filepath.Separator) ||
 		directory == "" ||
+		directory == "\\\\wsl$" ||
 		driveLetterRegex.MatchString(directory) ||
-		filepath.VolumeName(directory) == directory)
+		filepath.VolumeName(directory) == directory ||
+		directory == filepath.Clean(filepath.Join(directory, "..")))
 }
 
 // firstNonEmptyString accepts multiple values and return the first non empty string value.
