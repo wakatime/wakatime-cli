@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/wakatime/wakatime-cli/pkg/api"
-	"github.com/wakatime/wakatime-cli/pkg/config"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/ini"
 	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	bolt "go.etcd.io/bbolt"
@@ -37,7 +37,7 @@ const (
 
 // QueueFilepath returns the path for offline queue db file.
 func QueueFilepath() (string, error) {
-	home, err := config.WakaHomeDir()
+	home, err := ini.WakaHomeDir()
 	if err != nil {
 		return "", fmt.Errorf("failed getting user's home directory: %s", err)
 	}

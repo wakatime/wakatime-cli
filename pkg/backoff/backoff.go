@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/wakatime/wakatime-cli/pkg/api"
-	ini "github.com/wakatime/wakatime-cli/pkg/config"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/ini"
 	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	"github.com/spf13/viper"
