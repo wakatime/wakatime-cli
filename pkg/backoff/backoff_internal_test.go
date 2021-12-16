@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/wakatime/wakatime-cli/pkg/config"
+	"github.com/wakatime/wakatime-cli/pkg/ini"
 
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
@@ -50,16 +50,16 @@ func TestUpdateBackoffSettings(t *testing.T) {
 	err = updateBackoffSettings(v, 2, at)
 	require.NoError(t, err)
 
-	ini, err := config.NewIniWriter(v, func(vp *viper.Viper) (string, error) {
+	writer, err := ini.NewIniWriter(v, func(vp *viper.Viper) (string, error) {
 		assert.Equal(t, v, vp)
 		return tmpFile.Name(), nil
 	})
 	require.NoError(t, err)
 
-	backoffAt := ini.File.Section("internal").Key("backoff_at").MustTimeFormat(config.DateFormat)
+	backoffAt := writer.File.Section("internal").Key("backoff_at").MustTimeFormat(ini.DateFormat)
 
 	assert.WithinDuration(t, time.Now(), backoffAt, 15*time.Second)
-	assert.Equal(t, "2", ini.File.Section("internal").Key("backoff_retries").String())
+	assert.Equal(t, "2", writer.File.Section("internal").Key("backoff_retries").String())
 }
 
 func TestUpdateBackoffSettings_NotInBackoff(t *testing.T) {
@@ -76,12 +76,12 @@ func TestUpdateBackoffSettings_NotInBackoff(t *testing.T) {
 	err = updateBackoffSettings(v, 0, time.Time{})
 	require.NoError(t, err)
 
-	ini, err := config.NewIniWriter(v, func(vp *viper.Viper) (string, error) {
+	writer, err := ini.NewIniWriter(v, func(vp *viper.Viper) (string, error) {
 		assert.Equal(t, v, vp)
 		return tmpFile.Name(), nil
 	})
 	require.NoError(t, err)
 
-	assert.Empty(t, ini.File.Section("internal").Key("backoff_at").String())
-	assert.Equal(t, "0", ini.File.Section("internal").Key("backoff_retries").String())
+	assert.Empty(t, writer.File.Section("internal").Key("backoff_at").String())
+	assert.Equal(t, "0", writer.File.Section("internal").Key("backoff_retries").String())
 }
