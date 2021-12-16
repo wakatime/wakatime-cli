@@ -3,7 +3,6 @@ package cmd
 import (
 	"strconv"
 
-	"github.com/wakatime/wakatime-cli/cmd/legacy"
 	"github.com/wakatime/wakatime-cli/pkg/api"
 	"github.com/wakatime/wakatime-cli/pkg/offline"
 
@@ -25,7 +24,7 @@ func NewRootCMD() *cobra.Command {
 		Use:   "wakatime-cli",
 		Short: "Command line interface used by all WakaTime text editor plugins.",
 		Run: func(cmd *cobra.Command, args []string) {
-			legacy.Run(cmd, v)
+			Run(cmd, v)
 		},
 	}
 
