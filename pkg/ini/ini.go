@@ -7,6 +7,7 @@ import (
 	"os/user"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/wakatime/wakatime-cli/pkg/log"
@@ -65,6 +66,10 @@ func (w *WriterConfig) Write(section string, keyValue map[string]string) error {
 	}
 
 	for key, value := range keyValue {
+		// prevent writing null characters
+		key = strings.ReplaceAll(key, "\x00", "")
+		value = strings.ReplaceAll(value, "\x00", "")
+
 		w.File.Section(section).Key(key).SetValue(value)
 	}
 
