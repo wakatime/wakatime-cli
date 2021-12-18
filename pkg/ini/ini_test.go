@@ -271,6 +271,39 @@ func TestWrite_NoMultilineSideEffects(t *testing.T) {
 		strings.ReplaceAll(string(actual), "\r", ""))
 }
 
+func TestWrite_NullsRemoved(t *testing.T) {
+	multilineOption := viper.IniLoadOptions(iniv1.LoadOptions{AllowPythonMultilineValues: true})
+	v := viper.NewWithOptions(multilineOption)
+
+	tmpFile, err := os.CreateTemp(os.TempDir(), "wakatime")
+	require.NoError(t, err)
+
+	defer os.Remove(tmpFile.Name())
+
+	v.Set("config", tmpFile.Name())
+
+	copyFile(t, "testdata/wakatime-nulls.cfg", tmpFile.Name())
+
+	w, err := ini.NewIniWriter(v, func(vp *viper.Viper) (string, error) {
+		assert.Equal(t, v, vp)
+		return tmpFile.Name(), nil
+	})
+	require.NoError(t, err)
+
+	err = w.Write("settings", map[string]string{"debug": "true"})
+	require.NoError(t, err)
+
+	actual, err := os.ReadFile(tmpFile.Name())
+	require.NoError(t, err)
+
+	expected, err := os.ReadFile("testdata/wakatime-nulls-expected.cfg")
+	require.NoError(t, err)
+
+	assert.Equal(t,
+		strings.ReplaceAll(string(expected), "\r", ""),
+		strings.ReplaceAll(string(actual), "\r", ""))
+}
+
 func TestWriteErr(t *testing.T) {
 	w := ini.WriterConfig{}
 
