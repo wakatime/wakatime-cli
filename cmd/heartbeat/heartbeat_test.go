@@ -14,6 +14,7 @@ import (
 	"github.com/wakatime/wakatime-cli/cmd"
 	cmdheartbeat "github.com/wakatime/wakatime-cli/cmd/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/offline"
 
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
@@ -166,14 +167,37 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 		assert.True(t, strings.HasSuffix(entities[1].Entity, "testdata/main.go"))
 		assert.True(t, strings.HasSuffix(entities[2].Entity, "testdata/main.py"))
 
+		for i := 3; i < 25; i++ {
+			assert.True(t, strings.HasSuffix(entities[i].Entity, "testdata/main.go"))
+		}
+
 		expectedBodyStr := fmt.Sprintf(
 			string(expectedBody),
-			entities[0].Entity,
-			heartbeat.UserAgent(plugin),
-			entities[1].Entity,
-			heartbeat.UserAgent(plugin),
-			entities[2].Entity,
-			heartbeat.UserAgent(plugin),
+			entities[0].Entity, heartbeat.UserAgent(plugin),
+			entities[1].Entity, heartbeat.UserAgent(plugin),
+			entities[2].Entity, heartbeat.UserAgent(plugin),
+			entities[3].Entity, heartbeat.UserAgent(plugin),
+			entities[4].Entity, heartbeat.UserAgent(plugin),
+			entities[5].Entity, heartbeat.UserAgent(plugin),
+			entities[6].Entity, heartbeat.UserAgent(plugin),
+			entities[7].Entity, heartbeat.UserAgent(plugin),
+			entities[8].Entity, heartbeat.UserAgent(plugin),
+			entities[9].Entity, heartbeat.UserAgent(plugin),
+			entities[10].Entity, heartbeat.UserAgent(plugin),
+			entities[11].Entity, heartbeat.UserAgent(plugin),
+			entities[12].Entity, heartbeat.UserAgent(plugin),
+			entities[13].Entity, heartbeat.UserAgent(plugin),
+			entities[14].Entity, heartbeat.UserAgent(plugin),
+			entities[15].Entity, heartbeat.UserAgent(plugin),
+			entities[16].Entity, heartbeat.UserAgent(plugin),
+			entities[17].Entity, heartbeat.UserAgent(plugin),
+			entities[18].Entity, heartbeat.UserAgent(plugin),
+			entities[19].Entity, heartbeat.UserAgent(plugin),
+			entities[20].Entity, heartbeat.UserAgent(plugin),
+			entities[21].Entity, heartbeat.UserAgent(plugin),
+			entities[22].Entity, heartbeat.UserAgent(plugin),
+			entities[23].Entity, heartbeat.UserAgent(plugin),
+			entities[24].Entity, heartbeat.UserAgent(plugin),
 		)
 
 		assert.JSONEq(t, expectedBodyStr, string(body))
@@ -181,7 +205,7 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 		// send response
 		w.WriteHeader(http.StatusCreated)
 
-		f, err := os.Open("testdata/api_heartbeats_response.json")
+		f, err := os.Open("testdata/api_heartbeats_response_extra_heartbeats.json")
 		require.NoError(t, err)
 		defer f.Close()
 
@@ -216,7 +240,7 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 	}()
 
 	v := viper.New()
-	v.SetDefault("sync-offline-activity", 1000)
+	v.SetDefault("sync-offline-activity", 0)
 	v.Set("api-url", testServerURL)
 	v.Set("category", "debugging")
 	v.Set("cursorpos", 42)
@@ -234,13 +258,18 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 	v.Set("timeout", 5)
 	v.Set("write", true)
 
-	f, err := os.CreateTemp(os.TempDir(), "")
+	offlineQueueFile, err := os.CreateTemp(os.TempDir(), "")
 	require.NoError(t, err)
 
-	defer os.Remove(f.Name())
+	defer os.Remove(offlineQueueFile.Name())
 
-	err = cmdheartbeat.SendHeartbeats(v, f.Name())
+	err = cmdheartbeat.SendHeartbeats(v, offlineQueueFile.Name())
 	require.NoError(t, err)
+
+	offlineCount, err := offline.CountHeartbeats(offlineQueueFile.Name())
+	require.NoError(t, err)
+
+	assert.Equal(t, 1, offlineCount)
 
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }

@@ -22,10 +22,10 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/offline"
 	"github.com/wakatime/wakatime-cli/pkg/version"
+	"github.com/yookoala/realpath"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/yookoala/realpath"
 )
 
 const (
@@ -60,7 +60,7 @@ func TestSendHeartbeats(t *testing.T) {
 
 func TestSendHeartbeats_EntityFileInTempDir(t *testing.T) {
 	tmpDir := t.TempDir()
-	runCmd(exec.Command("cp", "./testdata/main.go", tmpDir))
+	runCmd(exec.Command("cp", "./testdata/main.go", tmpDir), &bytes.Buffer{})
 
 	testSendHeartbeats(t, filepath.Join(tmpDir, "main.go"), "")
 }
@@ -122,6 +122,7 @@ func testSendHeartbeats(t *testing.T, entity, project string) {
 
 	runWakatimeCli(
 		t,
+		&bytes.Buffer{},
 		"--api-url", apiURL,
 		"--key", "00000000-0000-4000-8000-000000000000",
 		"--config", tmpFile.Name(),
@@ -135,6 +136,79 @@ func testSendHeartbeats(t *testing.T, entity, project string) {
 		"--write",
 		"--verbose",
 	)
+
+	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+}
+
+func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
+	apiURL, router, close := setupTestServer()
+	defer close()
+
+	var numCalls int
+
+	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
+		numCalls++
+
+		// check headers
+		assert.Equal(t, http.MethodPost, req.Method)
+		assert.Equal(t, []string{"application/json"}, req.Header["Accept"])
+		assert.Equal(t, []string{"application/json"}, req.Header["Content-Type"])
+		assert.Equal(t, []string{"Basic MDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAw"}, req.Header["Authorization"])
+		assert.Equal(t, []string{heartbeat.UserAgentUnknownPlugin()}, req.Header["User-Agent"])
+
+		// write response
+		f, err := os.Open("testdata/api_heartbeats_response_extra_heartbeats.json")
+		require.NoError(t, err)
+
+		w.WriteHeader(http.StatusCreated)
+		_, err = io.Copy(w, f)
+		require.NoError(t, err)
+	})
+
+	offlineQueueFile, err := os.CreateTemp(os.TempDir(), "")
+	require.NoError(t, err)
+
+	defer os.Remove(offlineQueueFile.Name())
+
+	tmpFile, err := os.CreateTemp(os.TempDir(), "wakatime.cfg")
+	require.NoError(t, err)
+
+	defer os.Remove(tmpFile.Name())
+
+	data, err := os.ReadFile("testdata/extra_heartbeats.json")
+	require.NoError(t, err)
+
+	buffer := bytes.NewBuffer(data)
+
+	runWakatimeCli(
+		t,
+		buffer,
+		"--api-url", apiURL,
+		"--key", "00000000-0000-4000-8000-000000000000",
+		"--config", tmpFile.Name(),
+		"--entity", "testdata/main.go",
+		"--extra-heartbeats", "true",
+		"--sync-offline-activity", "none",
+		"--cursorpos", "12",
+		"--offline-queue-file", offlineQueueFile.Name(),
+		"--lineno", "42",
+		"--lines-in-file", "100",
+		"--time", "1585598059",
+		"--hide-branch-names", ".*",
+		"--write",
+		"--verbose",
+	)
+
+	offlineCount := runWakatimeCli(
+		t,
+		&bytes.Buffer{},
+		"--key", "00000000-0000-4000-8000-000000000000",
+		"--offline-queue-file", offlineQueueFile.Name(),
+		"--offline-count",
+		"--verbose",
+	)
+
+	assert.Equal(t, "2\n", offlineCount)
 
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
@@ -295,6 +369,7 @@ func TestTodayGoal(t *testing.T) {
 
 	out := runWakatimeCli(
 		t,
+		&bytes.Buffer{},
 		"--api-url", apiURL,
 		"--key", "00000000-0000-4000-8000-000000000000",
 		"--config", tmpFile.Name(),
@@ -338,6 +413,7 @@ func TestTodaySummary(t *testing.T) {
 
 	out := runWakatimeCli(
 		t,
+		&bytes.Buffer{},
 		"--api-url", apiURL,
 		"--key", "00000000-0000-4000-8000-000000000000",
 		"--config", tmpFile.Name(),
@@ -358,6 +434,7 @@ func TestOfflineCountEmpty(t *testing.T) {
 
 	out := runWakatimeCli(
 		t,
+		&bytes.Buffer{},
 		"--key", "00000000-0000-4000-8000-000000000000",
 		"--offline-queue-file", offlineQueueFile.Name(),
 		"--offline-count",
@@ -409,6 +486,7 @@ func TestOfflineCountWithOneHeartbeat(t *testing.T) {
 
 	out = runWakatimeCli(
 		t,
+		&bytes.Buffer{},
 		"--key", "00000000-0000-4000-8000-000000000000",
 		"--offline-queue-file", offlineQueueFile.Name(),
 		"--offline-count",
@@ -419,24 +497,24 @@ func TestOfflineCountWithOneHeartbeat(t *testing.T) {
 }
 
 func TestUseragent(t *testing.T) {
-	out := runWakatimeCli(t, "--useragent")
+	out := runWakatimeCli(t, &bytes.Buffer{}, "--useragent")
 	assert.Equal(t, fmt.Sprintf("%s\n", heartbeat.UserAgentUnknownPlugin()), out)
 }
 
 func TestUseragentWithPlugin(t *testing.T) {
-	out := runWakatimeCli(t, "--useragent", "--plugin", "Wakatime/1.0.4")
+	out := runWakatimeCli(t, &bytes.Buffer{}, "--useragent", "--plugin", "Wakatime/1.0.4")
 
 	assert.Equal(t, fmt.Sprintf("%s\n", heartbeat.UserAgent("Wakatime/1.0.4")), out)
 }
 
 func TestVersion(t *testing.T) {
-	out := runWakatimeCli(t, "--version")
+	out := runWakatimeCli(t, &bytes.Buffer{}, "--version")
 
 	assert.Equal(t, "<local-build>\n", out)
 }
 
 func TestVersionVerbose(t *testing.T) {
-	out := runWakatimeCli(t, "--version", "--verbose")
+	out := runWakatimeCli(t, &bytes.Buffer{}, "--version", "--verbose")
 
 	assert.Regexp(t, regexp.MustCompile(fmt.Sprintf(
 		"wakatime-cli\n  Version: <local-build>\n  Commit: [0-9a-f]{7}\n  Built: [0-9-:T]{19} UTC\n  OS/Arch: %s/%s\n",
@@ -461,6 +539,7 @@ func TestMultipleRunners_NotCorruptConfigFile(t *testing.T) {
 
 			out := runWakatimeCli(
 				t,
+				&bytes.Buffer{},
 				"--config", filepath,
 				"--config-write", "debug=true",
 			)
@@ -472,7 +551,7 @@ func TestMultipleRunners_NotCorruptConfigFile(t *testing.T) {
 	wg.Wait()
 }
 
-func runWakatimeCli(t *testing.T, args ...string) string {
+func runWakatimeCli(t *testing.T, buffer *bytes.Buffer, args ...string) string {
 	f, err := os.CreateTemp(os.TempDir(), "")
 	require.NoError(t, err)
 
@@ -488,7 +567,7 @@ func runWakatimeCli(t *testing.T, args ...string) string {
 
 	args = append([]string{"--log-file", f.Name()}, args...)
 
-	return runCmd(exec.Command(binaryPath(t), args...)) // #nosec G204
+	return runCmd(exec.Command(binaryPath(t), args...), buffer) // #nosec G204
 }
 
 func runWakatimeCliExpectErr(t *testing.T, exitcode int, args ...string) string {
@@ -514,8 +593,10 @@ func runWakatimeCliExpectErr(t *testing.T, exitcode int, args ...string) string 
 	return stdout
 }
 
-func runCmd(cmd *exec.Cmd) string {
+func runCmd(cmd *exec.Cmd, buffer *bytes.Buffer) string {
 	fmt.Println(cmd.String())
+
+	cmd.Stdin = buffer
 
 	var stdout bytes.Buffer
 	cmd.Stdout = &stdout

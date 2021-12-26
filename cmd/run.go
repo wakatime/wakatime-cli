@@ -13,6 +13,7 @@ import (
 	"github.com/wakatime/wakatime-cli/cmd/configwrite"
 	heartbeatcmd "github.com/wakatime/wakatime-cli/cmd/heartbeat"
 	"github.com/wakatime/wakatime-cli/cmd/logfile"
+	offlinecmd "github.com/wakatime/wakatime-cli/cmd/offline"
 	"github.com/wakatime/wakatime-cli/cmd/offlinecount"
 	"github.com/wakatime/wakatime-cli/cmd/offlinesync"
 	paramscmd "github.com/wakatime/wakatime-cli/cmd/params"
@@ -24,6 +25,7 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/ini"
 	"github.com/wakatime/wakatime-cli/pkg/log"
+	"github.com/wakatime/wakatime-cli/pkg/offline"
 	"github.com/wakatime/wakatime-cli/pkg/vipertools"
 
 	"github.com/spf13/cobra"
@@ -32,37 +34,21 @@ import (
 
 // Run executes commands parsed from a command line.
 func Run(cmd *cobra.Command, v *viper.Viper) {
-	configFile, err := ini.FilePath(v)
+	err := parseConfigFiles(v)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error getting config file path: %s", err)
-	}
-
-	internalConfigFile, err := ini.InternalFilePath(v)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "error getting internal config file path: %s", err)
-	}
-
-	if err := ini.ReadInConfig(v, configFile); err != nil {
-		fmt.Fprintf(os.Stderr, "failed to load configuration file: %s", err)
-
-		SetupLogging(v)
-		log.Errorf("failed to load configuration file: %s", err)
-
-		if v.IsSet("entity") {
-			RunCmd(v, false, heartbeatcmd.RunWithoutSending)
+		if !v.IsSet("entity") {
+			os.Exit(exitcode.ErrConfigFileParse)
 		}
 
-		os.Exit(exitcode.ErrConfigFileParse)
-	}
+		queueFilepath, err := offline.QueueFilepath()
+		if err != nil {
+			log.Errorf("failed to load offline queue filepath: %s", err)
 
-	if err := ini.ReadInConfig(v, internalConfigFile); err != nil {
-		fmt.Fprintf(os.Stderr, "failed to load internal configuration file: %s", err)
+			os.Exit(exitcode.ErrConfigFileParse)
+		}
 
-		SetupLogging(v)
-		log.Errorf("failed to load configuration file: %s", err)
-
-		if v.IsSet("entity") {
-			RunCmd(v, false, heartbeatcmd.RunWithoutSending)
+		if err := offlinecmd.SaveHeartbeats(v, nil, queueFilepath); err != nil {
+			log.Errorf("failed to save extra heartbeats to offline queue: %s", err)
 		}
 
 		os.Exit(exitcode.ErrConfigFileParse)
@@ -149,6 +135,38 @@ func Run(cmd *cobra.Command, v *viper.Viper) {
 	os.Exit(exitcode.ErrGeneric)
 }
 
+func parseConfigFiles(v *viper.Viper) error {
+	var err error
+
+	configFile, err := ini.FilePath(v)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error getting config file path: %s", err)
+
+		return fmt.Errorf("error getting config file path: %s", err)
+	}
+
+	if err := ini.ReadInConfig(v, configFile); err != nil {
+		fmt.Fprintf(os.Stderr, "failed to load configuration file: %s", err)
+
+		return fmt.Errorf("failed to load configuration file: %s", err)
+	}
+
+	internalConfigFile, err := ini.InternalFilePath(v)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error getting internal config file path: %s", err)
+
+		return fmt.Errorf("error getting internal config file path: %s", err)
+	}
+
+	if err := ini.ReadInConfig(v, internalConfigFile); err != nil {
+		fmt.Fprintf(os.Stderr, "failed to load internal configuration file: %s", err)
+
+		return fmt.Errorf("failed to load internal configuration file: %s", err)
+	}
+
+	return nil
+}
+
 // SetupLogging uses the --log-file param to configure logging to file or stdout.
 func SetupLogging(v *viper.Viper) *logfile.Params {
 	logfileParams, err := logfile.LoadParams(v)
@@ -232,7 +250,7 @@ func runCmd(v *viper.Viper, verbose bool, cmd cmdFn) int {
 }
 
 func sendDiagnostics(v *viper.Viper, logs, stack string) {
-	params, err := paramscmd.Load(v, true)
+	params, err := paramscmd.Load(v, paramscmd.Config{})
 	if err != nil {
 		log.Errorf("failed to load parameters for sending diagnostics: %s", err)
 

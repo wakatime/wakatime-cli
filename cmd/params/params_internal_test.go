@@ -1,4 +1,4 @@
-package heartbeat
+package params
 
 import (
 	"regexp"
