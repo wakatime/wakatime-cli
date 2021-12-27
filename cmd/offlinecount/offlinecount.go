@@ -20,13 +20,13 @@ func Run(v *viper.Viper) (int, error) {
 		)
 	}
 
-	p, err := params.Load(v, true)
+	p, err := params.Load(v, params.Config{})
 	if err != nil {
 		return exitcode.ErrGeneric, fmt.Errorf("failed to load command parameters: %w", err)
 	}
 
-	if p.OfflineQueueFile != "" {
-		queueFilepath = p.OfflineQueueFile
+	if p.Offline.QueueFile != "" {
+		queueFilepath = p.Offline.QueueFile
 	}
 
 	count, err := offline.CountHeartbeats(queueFilepath)

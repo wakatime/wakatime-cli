@@ -1,18 +1,12 @@
-package heartbeat
+package offline
 
 import (
 	"errors"
 	"fmt"
 	"os"
-	"strings"
 
-	apicmd "github.com/wakatime/wakatime-cli/cmd/api"
-	offlinecmd "github.com/wakatime/wakatime-cli/cmd/offline"
 	"github.com/wakatime/wakatime-cli/cmd/params"
-	"github.com/wakatime/wakatime-cli/pkg/api"
-	"github.com/wakatime/wakatime-cli/pkg/backoff"
 	"github.com/wakatime/wakatime-cli/pkg/deps"
-	"github.com/wakatime/wakatime-cli/pkg/exitcode"
 	"github.com/wakatime/wakatime-cli/pkg/filestats"
 	"github.com/wakatime/wakatime-cli/pkg/filter"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
@@ -24,58 +18,16 @@ import (
 	"github.com/spf13/viper"
 )
 
-// Run executes the heartbeat command.
-func Run(v *viper.Viper) (int, error) {
-	queueFilepath, err := offline.QueueFilepath()
-	if err != nil {
-		return exitcode.ErrGeneric, fmt.Errorf(
-			"sending heartbeat(s) failed: failed to load offline queue filepath: %s",
-			err,
-		)
+// SaveHeartbeats saves heartbeats to the offline db without trying to send
+// to the API. Should only be used after a config file parse error.
+func SaveHeartbeats(v *viper.Viper, heartbeats []heartbeat.Heartbeat, queueFilepath string) error {
+	config := params.Config{}
+
+	if heartbeats == nil {
+		config.HeartbeatRequired = true
 	}
 
-	err = SendHeartbeats(v, queueFilepath)
-	if err != nil {
-		var errauth api.ErrAuth
-		if errors.As(err, &errauth) {
-			return exitcode.ErrAuth, fmt.Errorf(
-				"sending heartbeat(s) failed: invalid api key... find yours at wakatime.com/api-key. %w",
-				err,
-			)
-		}
-
-		var errbadRequest api.ErrBadRequest
-		if errors.As(err, &errbadRequest) {
-			return exitcode.ErrGeneric, fmt.Errorf(
-				"sending heartbeat(s) later due to bad request: %w",
-				err,
-			)
-		}
-
-		var errapi api.Err
-		if errors.As(err, &errapi) {
-			return exitcode.ErrAPI, fmt.Errorf(
-				"sending heartbeat(s) later due to api error: %w",
-				err,
-			)
-		}
-
-		return exitcode.ErrGeneric, fmt.Errorf(
-			"sending heartbeat(s) failed: %w",
-			err,
-		)
-	}
-
-	log.Debugln("successfully sent heartbeat(s)")
-
-	return exitcode.Success, nil
-}
-
-// SendHeartbeats sends a heartbeat to the wakatime api and includes additional
-// heartbeats from the offline queue, if available and offline sync is not
-// explicitly disabled.
-func SendHeartbeats(v *viper.Viper, queueFilepath string) error {
-	params, err := params.Load(v, params.Config{APIKeyRequired: true, HeartbeatRequired: true})
+	params, err := params.Load(v, config)
 	if err != nil {
 		return fmt.Errorf("failed to load command parameters: %w", err)
 	}
@@ -84,61 +36,31 @@ func SendHeartbeats(v *viper.Viper, queueFilepath string) error {
 
 	log.Debugf("params: %s", params)
 
-	heartbeats := buildHeartbeats(params)
+	if params.Offline.Disabled {
+		return errors.New("abort saving to offline queue due to being disabled")
+	}
 
-	// only send at once the maximum amount of `offline.SendLimit`.
-	if len(heartbeats) > offline.SendLimit {
-		extraHeartbeats := heartbeats[offline.SendLimit:]
-
-		log.Debugf("save %d extra heartbeat(s) to offline queue", len(extraHeartbeats))
-
-		go func() {
-			if err := offlinecmd.SaveHeartbeats(v, extraHeartbeats, queueFilepath); err != nil {
-				log.Errorf("failed to save extra heartbeats to offline queue: %s", err)
-			}
-		}()
-
-		heartbeats = heartbeats[:offline.SendLimit]
+	if heartbeats == nil {
+		heartbeats = buildHeartbeats(params)
 	}
 
 	handleOpts := initHandleOptions(params)
 
-	if !params.Offline.Disabled {
-		if params.Offline.QueueFile != "" {
-			queueFilepath = params.Offline.QueueFile
-		}
-
-		offlineHandleOpt, err := offline.WithQueue(queueFilepath)
-		if err != nil {
-			return fmt.Errorf("failed to initialize offline queue handle option: %w", err)
-		}
-
-		handleOpts = append(handleOpts, offlineHandleOpt)
+	if params.Offline.QueueFile != "" {
+		queueFilepath = params.Offline.QueueFile
 	}
 
-	handleOpts = append(handleOpts, backoff.WithBackoff(backoff.Config{
-		V:       v,
-		At:      params.API.BackoffAt,
-		Retries: params.API.BackoffRetries,
-	}))
-
-	apiClient, err := apicmd.NewClient(params.API)
+	offlineHandleOpt, err := offline.WithQueue(queueFilepath)
 	if err != nil {
-		return fmt.Errorf("failed to initialize api client: %w", err)
+		return fmt.Errorf("failed to initialize offline queue handle option: %w", err)
 	}
 
-	handle := heartbeat.NewHandle(apiClient, handleOpts...)
+	handleOpts = append(handleOpts, offlineHandleOpt)
 
-	results, err := handle(heartbeats)
-	if err != nil {
-		return err
-	}
+	sender := offline.Sender{}
+	handle := heartbeat.NewHandle(&sender, handleOpts...)
 
-	for _, result := range results {
-		if len(result.Errors) > 0 {
-			log.Warnln(strings.Join(result.Errors, " "))
-		}
-	}
+	_, _ = handle(heartbeats)
 
 	return nil
 }
@@ -201,6 +123,24 @@ func buildHeartbeats(params params.Params) []heartbeat.Heartbeat {
 	return heartbeats
 }
 
+func setLogFields(params *params.Params) {
+	if params.API.Plugin != "" {
+		log.WithField("plugin", params.API.Plugin)
+	}
+
+	log.WithField("time", params.Heartbeat.Time)
+
+	if params.Heartbeat.LineNumber != nil {
+		log.WithField("lineno", params.Heartbeat.LineNumber)
+	}
+
+	if params.Heartbeat.IsWrite != nil {
+		log.WithField("is_write", params.Heartbeat.IsWrite)
+	}
+
+	log.WithField("file", params.Heartbeat.Entity)
+}
+
 func initHandleOptions(params params.Params) []heartbeat.HandleOption {
 	return []heartbeat.HandleOption{
 		filter.WithFiltering(filter.Config{
@@ -229,24 +169,6 @@ func initHandleOptions(params params.Params) []heartbeat.HandleOption {
 			ProjectPatterns: params.Heartbeat.Sanitize.HideProjectNames,
 		}),
 	}
-}
-
-func setLogFields(params *params.Params) {
-	if params.API.Plugin != "" {
-		log.WithField("plugin", params.API.Plugin)
-	}
-
-	log.WithField("time", params.Heartbeat.Time)
-
-	if params.Heartbeat.LineNumber != nil {
-		log.WithField("lineno", params.Heartbeat.LineNumber)
-	}
-
-	if params.Heartbeat.IsWrite != nil {
-		log.WithField("is_write", params.Heartbeat.IsWrite)
-	}
-
-	log.WithField("file", params.Heartbeat.Entity)
 }
 
 // isFile checks if the passed in filepath is a valid file.

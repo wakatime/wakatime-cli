@@ -56,7 +56,7 @@ func Run(v *viper.Viper) (int, error) {
 
 // Today returns a rendered summary of todays coding activity.
 func Today(v *viper.Viper) (string, error) {
-	params, err := paramscmd.Load(v, true)
+	params, err := paramscmd.Load(v, paramscmd.Config{APIKeyRequired: true})
 	if err != nil {
 		return "", fmt.Errorf("failed to load command parameters: %w", err)
 	}
@@ -71,7 +71,7 @@ func Today(v *viper.Viper) (string, error) {
 		return "", fmt.Errorf("failed fetching today from api: %w", err)
 	}
 
-	output, err := summary.RenderToday(s, params.StatusBarHideCategories)
+	output, err := summary.RenderToday(s, params.StatusBar.HideCategories)
 	if err != nil {
 		return "", fmt.Errorf("failed generating today output: %s", err)
 	}
