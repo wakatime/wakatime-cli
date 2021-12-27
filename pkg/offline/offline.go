@@ -17,12 +17,6 @@ import (
 )
 
 const (
-	// SyncMaxDefault is the default maximum number of heartbeats from the
-	// offline queue, which will be synced upon sending heartbeats to the API.
-	SyncMaxDefault = 1000
-)
-
-const (
 	// dbFilename is the default bolt db filename.
 	dbFilename = ".wakatime.bdb"
 	// dbBucket is the standard bolt db bucket name.
@@ -30,9 +24,12 @@ const (
 	// maxRequeueAttempts defines the maximum number of attempts to requeue heartbeats,
 	// which could not successfully be sent to the WakaTime API.
 	maxRequeueAttempts = 3
-	// sendLimit is the maximum number of heartbeats, which will be sent at once
+	// SendLimit is the maximum number of heartbeats, which will be sent at once
 	// to the WakaTime API.
-	sendLimit = 10
+	SendLimit = 25
+	// SyncMaxDefault is the default maximum number of heartbeats from the
+	// offline queue, which will be synced upon sending heartbeats to the API.
+	SyncMaxDefault = 1000
 )
 
 // QueueFilepath returns the path for offline queue db file.
@@ -104,9 +101,9 @@ func Sync(filepath string, syncLimit int) func(next heartbeat.Handle) error {
 				break
 			}
 
-			var num = sendLimit
+			var num = SendLimit
 
-			if alreadySent+sendLimit > syncLimit {
+			if alreadySent+SendLimit > syncLimit {
 				num = syncLimit - alreadySent
 				alreadySent += num
 			}
@@ -144,7 +141,7 @@ func Sync(filepath string, syncLimit int) func(next heartbeat.Handle) error {
 	}
 }
 
-// Sender is a noop api client, used by heartbeat.RunWithoutSending.
+// Sender is a noop api client, used by offline.SaveHeartbeats.
 type Sender struct{}
 
 // SendHeartbeats always returns an error.

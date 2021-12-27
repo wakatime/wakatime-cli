@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/wakatime/wakatime-cli/cmd/offlinecount"
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
+
 	bolt "go.etcd.io/bbolt"
 )
 

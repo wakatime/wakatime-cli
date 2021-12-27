@@ -50,6 +50,13 @@ func Run(v *viper.Viper) (int, error) {
 			)
 		}
 
+		var errSyncDisabled ErrSyncDisabled
+		if errors.As(err, &errSyncDisabled) {
+			log.Debugln(err.Error())
+
+			return exitcode.Success, nil
+		}
+
 		return exitcode.ErrGeneric, fmt.Errorf(
 			"offline sync failed: %s",
 			err,
@@ -64,9 +71,13 @@ func Run(v *viper.Viper) (int, error) {
 // SyncOfflineActivity syncs offline activity by sending heartbeats
 // from the offline queue to the WakaTime API.
 func SyncOfflineActivity(v *viper.Viper, queueFilepath string) error {
-	p, err := params.Load(v, true)
+	p, err := params.Load(v, params.Config{APIKeyRequired: true})
 	if err != nil {
 		return fmt.Errorf("failed to load command parameters: %w", err)
+	}
+
+	if p.Offline.SyncMax == 0 {
+		return ErrSyncDisabled("sync offline activity is disabled")
 	}
 
 	apiClient, err := apicmd.NewClient(p.API)
@@ -74,11 +85,11 @@ func SyncOfflineActivity(v *viper.Viper, queueFilepath string) error {
 		return fmt.Errorf("failed to initialize api client: %w", err)
 	}
 
-	if p.OfflineQueueFile != "" {
-		queueFilepath = p.OfflineQueueFile
+	if p.Offline.QueueFile != "" {
+		queueFilepath = p.Offline.QueueFile
 	}
 
-	syncFn := offline.Sync(queueFilepath, p.OfflineSyncMax)
+	syncFn := offline.Sync(queueFilepath, p.Offline.SyncMax)
 
 	return syncFn(apiClient.SendHeartbeats)
 }
