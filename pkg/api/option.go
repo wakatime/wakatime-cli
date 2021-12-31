@@ -159,6 +159,17 @@ func WithTimeout(timeout time.Duration) Option {
 	}
 }
 
+// WithTimezone sets the TimeZone header to the passed in timezone.
+func WithTimezone(timezone string) Option {
+	return func(c *Client) {
+		next := c.doFunc
+		c.doFunc = func(c *Client, req *http.Request) (*http.Response, error) {
+			req.Header.Set("Timezone", timezone)
+			return next(c, req)
+		}
+	}
+}
+
 // WithUserAgentUnknownPlugin sets the User-Agent header on all requests,
 // including default value for plugin.
 func WithUserAgentUnknownPlugin() Option {
