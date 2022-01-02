@@ -5,10 +5,13 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"testing"
 
 	"github.com/wakatime/wakatime-cli/pkg/project"
 	"github.com/wakatime/wakatime-cli/pkg/regex"
+	"github.com/wakatime/wakatime-cli/pkg/windows"
+	"github.com/yookoala/realpath"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -82,15 +85,15 @@ func TestGit_Detect_GitConfigFile_File(t *testing.T) {
 		Filepath string
 		Project  string
 	}{
-		"main_repo": {
+		"main repo": {
 			Filepath: filepath.Join(fp, "wakatime-cli/src/pkg/file.go"),
 			Project:  "wakatime-cli",
 		},
-		"relative_path": {
+		"relative path": {
 			Filepath: filepath.Join(fp, "feed/src/pkg/file.go"),
 			Project:  "feed",
 		},
-		"absolute_path": {
+		"absolute path": {
 			Filepath: filepath.Join(fp, "mobile/src/pkg/file.go"),
 			Project:  "mobile",
 		},
@@ -182,6 +185,14 @@ func setupTestGitBasic(t *testing.T) (fp string, tearDown func()) {
 	tmpDir, err := os.MkdirTemp(os.TempDir(), "wakatime-git")
 	require.NoError(t, err)
 
+	tmpDir, err = realpath.Realpath(tmpDir)
+	require.NoError(t, err)
+
+	if runtime.GOOS == "windows" {
+		tmpDir, err = windows.FormatFilePath(tmpDir)
+		require.NoError(t, err)
+	}
+
 	err = os.MkdirAll(filepath.Join(tmpDir, "wakatime-cli/src/pkg"), os.FileMode(int(0700)))
 	require.NoError(t, err)
 
@@ -202,6 +213,14 @@ func setupTestGitBasic(t *testing.T) (fp string, tearDown func()) {
 func setupTestGitBasicBranchWithSlash(t *testing.T) (fp string, tearDown func()) {
 	tmpDir, err := os.MkdirTemp(os.TempDir(), "wakatime-git")
 	require.NoError(t, err)
+
+	tmpDir, err = realpath.Realpath(tmpDir)
+	require.NoError(t, err)
+
+	if runtime.GOOS == "windows" {
+		tmpDir, err = windows.FormatFilePath(tmpDir)
+		require.NoError(t, err)
+	}
 
 	err = os.MkdirAll(filepath.Join(tmpDir, "wakatime-cli/src/pkg"), os.FileMode(int(0700)))
 	require.NoError(t, err)
@@ -224,6 +243,14 @@ func setupTestGitBasicDetachedHead(t *testing.T) (fp string, tearDown func()) {
 	tmpDir, err := os.MkdirTemp(os.TempDir(), "wakatime-git")
 	require.NoError(t, err)
 
+	tmpDir, err = realpath.Realpath(tmpDir)
+	require.NoError(t, err)
+
+	if runtime.GOOS == "windows" {
+		tmpDir, err = windows.FormatFilePath(tmpDir)
+		require.NoError(t, err)
+	}
+
 	err = os.MkdirAll(filepath.Join(tmpDir, "wakatime-cli/src/pkg"), os.FileMode(int(0700)))
 	require.NoError(t, err)
 
@@ -244,6 +271,14 @@ func setupTestGitBasicDetachedHead(t *testing.T) (fp string, tearDown func()) {
 func setupTestGitFile(t *testing.T) (fp string, tearDown func()) {
 	tmpDir, err := os.MkdirTemp(os.TempDir(), "wakatime-git")
 	require.NoError(t, err)
+
+	tmpDir, err = realpath.Realpath(tmpDir)
+	require.NoError(t, err)
+
+	if runtime.GOOS == "windows" {
+		tmpDir, err = windows.FormatFilePath(tmpDir)
+		require.NoError(t, err)
+	}
 
 	// Create directories
 	err = os.MkdirAll(filepath.Join(tmpDir, "wakatime-cli/src/pkg"), os.FileMode(int(0700)))
@@ -299,6 +334,14 @@ func setupTestGitWorktree(t *testing.T) (fp string, tearDown func()) {
 	tmpDir, err := os.MkdirTemp(os.TempDir(), "wakatime-git")
 	require.NoError(t, err)
 
+	tmpDir, err = realpath.Realpath(tmpDir)
+	require.NoError(t, err)
+
+	if runtime.GOOS == "windows" {
+		tmpDir, err = windows.FormatFilePath(tmpDir)
+		require.NoError(t, err)
+	}
+
 	// Create directories
 	err = os.MkdirAll(filepath.Join(tmpDir, "wakatime-cli/src/pkg"), os.FileMode(int(0700)))
 	require.NoError(t, err)
@@ -342,6 +385,14 @@ func setupTestGitWorktree(t *testing.T) (fp string, tearDown func()) {
 func setupTestGitSubmodule(t *testing.T) (fp string, tearDown func()) {
 	tmpDir, err := os.MkdirTemp(os.TempDir(), "wakatime-git")
 	require.NoError(t, err)
+
+	tmpDir, err = realpath.Realpath(tmpDir)
+	require.NoError(t, err)
+
+	if runtime.GOOS == "windows" {
+		tmpDir, err = windows.FormatFilePath(tmpDir)
+		require.NoError(t, err)
+	}
 
 	// Create directories
 	err = os.MkdirAll(filepath.Join(tmpDir, "wakatime-cli/.git/modules/lib/billing"), os.FileMode(int(0700)))

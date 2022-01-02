@@ -38,7 +38,7 @@ func detectVimModeline(text string) (heartbeat.Language, float32, bool) {
 	return lang, analyser.AnalyseText(text), true
 }
 
-// nolint: gocyclo
+// nolint:gocyclo
 // parseVim parses the language from a vim plugin specific string.
 func parseVim(language string) (heartbeat.Language, bool) {
 	switch strings.ToLower(language) {

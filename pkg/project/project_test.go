@@ -10,6 +10,7 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/project"
 	"github.com/wakatime/wakatime-cli/pkg/regex"
+	"github.com/wakatime/wakatime-cli/pkg/windows"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -85,15 +86,29 @@ func TestWithDetection_OverrideTakesPrecedence(t *testing.T) {
 	fp, tearDown := setupTestGitBasic(t)
 	defer tearDown()
 
+	entity := filepath.Join(fp, "wakatime-cli/src/pkg/file.go")
+	projectPath := filepath.Join(fp, "wakatime-cli")
+
+	if runtime.GOOS == "windows" {
+		var err error
+
+		entity, err = windows.FormatFilePath(entity)
+		require.NoError(t, err)
+
+		projectPath, err = windows.FormatFilePath(projectPath)
+		require.NoError(t, err)
+	}
+
 	opt := project.WithDetection(project.Config{})
 
 	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		assert.Equal(t, []heartbeat.Heartbeat{
 			{
-				Entity:          filepath.Join(fp, "wakatime-cli/src/pkg/file.go"),
+				Entity:          entity,
 				EntityType:      heartbeat.FileType,
 				Project:         heartbeat.String("billing"),
 				ProjectOverride: "billing",
+				ProjectPath:     projectPath,
 				Branch:          heartbeat.String("master"),
 			},
 		}, hh)
@@ -104,7 +119,7 @@ func TestWithDetection_OverrideTakesPrecedence(t *testing.T) {
 	_, err := handle([]heartbeat.Heartbeat{
 		{
 			EntityType:      heartbeat.FileType,
-			Entity:          filepath.Join(fp, "wakatime-cli/src/pkg/file.go"),
+			Entity:          entity,
 			ProjectOverride: "billing",
 		},
 	})
@@ -115,6 +130,19 @@ func TestWithDetection_ObfuscateProject(t *testing.T) {
 	fp, tearDown := setupTestGitBasic(t)
 	defer tearDown()
 
+	entity := filepath.Join(fp, "wakatime-cli/src/pkg/file.go")
+	projectPath := filepath.Join(fp, "wakatime-cli")
+
+	if runtime.GOOS == "windows" {
+		var err error
+
+		entity, err = windows.FormatFilePath(entity)
+		require.NoError(t, err)
+
+		projectPath, err = windows.FormatFilePath(projectPath)
+		require.NoError(t, err)
+	}
+
 	opt := project.WithDetection(project.Config{
 		ShouldObfuscateProject: true,
 	})
@@ -123,10 +151,11 @@ func TestWithDetection_ObfuscateProject(t *testing.T) {
 		assert.NotEmpty(t, hh[0].Project)
 		assert.Equal(t, []heartbeat.Heartbeat{
 			{
-				Entity:     filepath.Join(fp, "wakatime-cli/src/pkg/file.go"),
-				EntityType: heartbeat.FileType,
-				Project:    hh[0].Project,
-				Branch:     heartbeat.String("master"),
+				Entity:      entity,
+				EntityType:  heartbeat.FileType,
+				Project:     hh[0].Project,
+				ProjectPath: projectPath,
+				Branch:      heartbeat.String("master"),
 			},
 		}, hh)
 
@@ -136,7 +165,7 @@ func TestWithDetection_ObfuscateProject(t *testing.T) {
 	_, err := handle([]heartbeat.Heartbeat{
 		{
 			EntityType: heartbeat.FileType,
-			Entity:     filepath.Join(fp, "wakatime-cli/src/pkg/file.go"),
+			Entity:     entity,
 		},
 	})
 	require.NoError(t, err)
@@ -147,6 +176,19 @@ func TestWithDetection_ObfuscateProject(t *testing.T) {
 func TestWithDetection_WakatimeProjectTakesPrecedence(t *testing.T) {
 	fp, tearDown := setupTestGitBasic(t)
 	defer tearDown()
+
+	entity := filepath.Join(fp, "wakatime-cli/src/pkg/file.go")
+	projectPath := filepath.Join(fp, "wakatime-cli")
+
+	if runtime.GOOS == "windows" {
+		var err error
+
+		entity, err = windows.FormatFilePath(entity)
+		require.NoError(t, err)
+
+		projectPath, err = windows.FormatFilePath(projectPath)
+		require.NoError(t, err)
+	}
 
 	copyFile(
 		t,
@@ -162,10 +204,11 @@ func TestWithDetection_WakatimeProjectTakesPrecedence(t *testing.T) {
 		assert.NotEmpty(t, hh[0].Project)
 		assert.Equal(t, []heartbeat.Heartbeat{
 			{
-				Entity:     filepath.Join(fp, "wakatime-cli/src/pkg/file.go"),
-				EntityType: heartbeat.FileType,
-				Project:    heartbeat.String("Rough Surf 20"),
-				Branch:     heartbeat.String("master"),
+				Entity:      entity,
+				EntityType:  heartbeat.FileType,
+				Project:     heartbeat.String("Rough Surf 20"),
+				ProjectPath: projectPath,
+				Branch:      heartbeat.String("master"),
 			},
 		}, hh)
 
@@ -175,17 +218,18 @@ func TestWithDetection_WakatimeProjectTakesPrecedence(t *testing.T) {
 	_, err := handle([]heartbeat.Heartbeat{
 		{
 			EntityType: heartbeat.FileType,
-			Entity:     filepath.Join(fp, "wakatime-cli/src/pkg/file.go"),
+			Entity:     entity,
 		},
 	})
 	require.NoError(t, err)
 }
 
 func TestDetect_FileDetected(t *testing.T) {
-	project, branch := project.Detect("testdata/entity.any", []project.MapPattern{})
+	result := project.Detect("testdata/entity.any", []project.MapPattern{})
 
-	assert.Equal(t, "wakatime-cli", project)
-	assert.Equal(t, "master", branch)
+	assert.Equal(t, "master", result.Branch)
+	assert.Contains(t, result.Folder, "testdata")
+	assert.Equal(t, "wakatime-cli", result.Project)
 }
 
 func TestDetect_MapDetected(t *testing.T) {
@@ -208,10 +252,11 @@ func TestDetect_MapDetected(t *testing.T) {
 		},
 	}
 
-	project, branch := project.Detect(tmpFile.Name(), patterns)
+	result := project.Detect(tmpFile.Name(), patterns)
 
-	assert.Equal(t, "my-billing-project", project)
-	assert.Empty(t, branch)
+	assert.Empty(t, result.Branch)
+	assert.Contains(t, result.Folder, filepath.Dir(tmpFile.Name()))
+	assert.Equal(t, "my-billing-project", result.Project)
 }
 
 func TestDetectWithRevControl_GitDetected(t *testing.T) {
@@ -227,8 +272,8 @@ func TestDetectWithRevControl_GitDetected(t *testing.T) {
 	assert.Contains(t, result.Folder, filepath.Join(fp, "wakatime-cli"))
 	assert.Equal(t, project.Result{
 		Project: "wakatime-cli",
-		Branch:  "master",
 		Folder:  result.Folder,
+		Branch:  "master",
 	}, result)
 }
 
@@ -238,10 +283,11 @@ func TestDetect_NoProjectDetected(t *testing.T) {
 
 	defer os.Remove(tmpFile.Name())
 
-	project, branch := project.Detect(tmpFile.Name(), []project.MapPattern{})
+	result := project.Detect(tmpFile.Name(), []project.MapPattern{})
 
-	assert.Empty(t, project)
-	assert.Empty(t, branch)
+	assert.Empty(t, result.Branch)
+	assert.Empty(t, result.Folder)
+	assert.Empty(t, result.Project)
 }
 
 func TestWrite(t *testing.T) {

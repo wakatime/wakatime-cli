@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/wakatime/wakatime-cli/pkg/log"
@@ -27,11 +28,12 @@ func (f File) Detect() (Result, bool, error) {
 
 	lines, err := readFile(fp, 2)
 	if err != nil {
-		return Result{}, false,
-			Err(fmt.Sprintf("error reading file: %s", err))
+		return Result{}, false, Err(fmt.Sprintf("error reading file: %s", err))
 	}
 
-	result := Result{}
+	result := Result{
+		Folder: filepath.Dir(fp),
+	}
 
 	if len(lines) > 0 {
 		result.Project = strings.TrimSpace(lines[0])

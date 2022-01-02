@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -13,9 +14,10 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/regex"
+	"github.com/wakatime/wakatime-cli/pkg/windows"
 )
 
-// nolint: gochecknoglobals
+// nolint:gochecknoglobals
 var driveLetterRegex = regexp.MustCompile(`^[a-zA-Z]:\\$`)
 
 const (
@@ -74,9 +76,7 @@ func WithDetection(c Config) heartbeat.HandleOption {
 					continue
 				}
 
-				var result Result
-
-				result.Project, result.Branch = Detect(h.Entity, c.MapPatterns)
+				result := Detect(h.Entity, c.MapPatterns)
 
 				if result.Project == "" {
 					result.Project = h.ProjectOverride
@@ -85,16 +85,28 @@ func WithDetection(c Config) heartbeat.HandleOption {
 				if result.Project == "" || result.Branch == "" {
 					revControlResult := DetectWithRevControl(h.Entity, c.SubmodulePatterns, c.ShouldObfuscateProject)
 
-					result.Project = firstNonEmptyString(result.Project, revControlResult.Project)
 					result.Branch = firstNonEmptyString(result.Branch, revControlResult.Branch)
+					result.Folder = firstNonEmptyString(result.Folder, revControlResult.Folder)
+					result.Project = firstNonEmptyString(result.Project, revControlResult.Project)
 
 					if result.Project == "" {
 						result.Project = setProjectName(h.ProjectAlternate, c.ShouldObfuscateProject, revControlResult.Folder)
 					}
 				}
 
-				hh[n].Project = &result.Project
 				hh[n].Branch = &result.Branch
+				hh[n].Project = &result.Project
+
+				if runtime.GOOS == "windows" {
+					formatted, err := windows.FormatFilePath(result.Folder)
+					if err != nil {
+						log.Warnf("failed to format windows file path: %q: %s", result.Folder, err)
+					} else {
+						result.Folder = formatted
+					}
+				}
+
+				hh[n].ProjectPath = result.Folder
 			}
 
 			return next(hh)
@@ -103,7 +115,7 @@ func WithDetection(c Config) heartbeat.HandleOption {
 }
 
 // Detect finds the current project and branch from config plugins.
-func Detect(entity string, patterns []MapPattern) (project, branch string) {
+func Detect(entity string, patterns []MapPattern) Result {
 	var configPlugins []Detecter = []Detecter{
 		File{
 			Filepath: entity,
@@ -120,11 +132,11 @@ func Detect(entity string, patterns []MapPattern) (project, branch string) {
 			log.Errorf("unexpected error occurred at %q: %s", p.String(), err)
 			continue
 		} else if detected {
-			return result.Project, result.Branch
+			return result
 		}
 	}
 
-	return "", ""
+	return Result{}
 }
 
 // DetectWithRevControl finds the current project and branch from rev control.
@@ -261,13 +273,13 @@ func FindFileOrDirectory(directory, filename string) (string, bool) {
 }
 
 func isRootPath(directory string) bool {
-	return (directory == "." ||
+	return (directory == "" ||
+		directory == "." ||
 		directory == string(filepath.Separator) ||
-		directory == "" ||
 		directory == "\\\\wsl$" ||
 		driveLetterRegex.MatchString(directory) ||
-		filepath.VolumeName(directory) == directory ||
-		directory == filepath.Clean(filepath.Join(directory, "..")))
+		directory == filepath.VolumeName(directory) ||
+		directory == filepath.Dir(directory))
 }
 
 // firstNonEmptyString accepts multiple values and return the first non empty string value.

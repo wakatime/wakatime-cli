@@ -1,12 +1,11 @@
 package project
 
 import (
-	"fmt"
+	"path/filepath"
 
 	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	"github.com/slongfield/pyfmt"
-	"github.com/yookoala/realpath"
 )
 
 // Map contains map data.
@@ -33,27 +32,19 @@ func (m Map) Detect() (Result, bool, error) {
 		return Result{}, false, nil
 	}
 
-	result, ok, err := matchPattern(m.Filepath, m.Patterns)
-	if err != nil {
-		return Result{}, false,
-			Err(fmt.Sprintf("error matching pattern: %s", err))
-	} else if !ok {
+	result, ok := matchPattern(m.Filepath, m.Patterns)
+	if !ok {
 		return Result{}, false, nil
 	}
 
 	return Result{
+		Folder:  filepath.Dir(m.Filepath),
 		Project: result,
 	}, true, nil
 }
 
 // matchPattern matches regex against entity's path to find project name.
-func matchPattern(fp string, patterns []MapPattern) (string, bool, error) {
-	fp, err := realpath.Realpath(fp)
-	if err != nil {
-		return "", false,
-			Err(fmt.Errorf("failed to get the real path: %w", err).Error())
-	}
-
+func matchPattern(fp string, patterns []MapPattern) (string, bool) {
 	for _, pattern := range patterns {
 		if pattern.Regex.MatchString(fp) {
 			matches := pattern.Regex.FindStringSubmatch(fp)
@@ -64,18 +55,17 @@ func matchPattern(fp string, patterns []MapPattern) (string, bool, error) {
 				}
 
 				result, err := pyfmt.Fmt(pattern.Name, params...)
-
 				if err != nil {
 					log.Errorf("error formatting %q: %s", pattern.Name, err)
 					continue
 				}
 
-				return result, true, nil
+				return result, true
 			}
 		}
 	}
 
-	return "", false, nil
+	return "", false
 }
 
 // String returns its name.

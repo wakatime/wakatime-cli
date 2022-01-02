@@ -8,8 +8,6 @@ import (
 	"strings"
 
 	"github.com/wakatime/wakatime-cli/pkg/log"
-
-	"github.com/yookoala/realpath"
 )
 
 // Subversion contains svn data.
@@ -28,14 +26,11 @@ func (s Subversion) Detect() (Result, bool, error) {
 		return Result{}, false, nil
 	}
 
-	fp, err := realpath.Realpath(s.Filepath)
-	if err != nil {
-		return Result{}, false, Err(fmt.Errorf("failed to get the real path: %w", err).Error())
-	}
+	var fp string
 
 	// Take only the directory
-	if fileExists(fp) {
-		fp = filepath.Dir(fp)
+	if fileExists(s.Filepath) {
+		fp = filepath.Dir(s.Filepath)
 	}
 
 	// Find for .svn/wc.db file

@@ -103,6 +103,12 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 	flags.String("hide-file-names", "", "Obfuscate filenames. Will not send file names to api.")
 	flags.String("hide-filenames", "", "(deprecated) Obfuscate filenames. Will not send file names to api.")
 	flags.String("hidefilenames", "", "(deprecated) Obfuscate filenames. Will not send file names to api.")
+	flags.Bool(
+		"hide-project-folder",
+		false,
+		"When set, send the file's path relative to the project folder."+
+			" For ex: /User/me/projects/bar/src/file.ts is sent as src/file.ts so the server never sees the full path."+
+			" When the project folder cannot be detected, only the file name is sent. For ex: file.ts.")
 	flags.String(
 		"hide-project-names",
 		"",
@@ -150,11 +156,16 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 	flags.String(
 		"offline-queue-file",
 		"",
-		"(internal) Specify a offline queue file, which will be used instead of the default one.",
+		"(internal) Specify an offline queue file, which will be used instead of the default one.",
 	)
 	flags.String("plugin", "", "Optional text editor plugin name and version for User-Agent header.")
 	flags.String("project", "", "Override auto-detected project."+
 		" Use --alternate-project to supply a fallback project if one can't be auto-detected.")
+	flags.String(
+		"project-folder",
+		"",
+		"Optional workspace path. Only used when hide_project_folder = true in the config file,"+
+			" or --hide-project-folder flag is present.")
 	flags.String(
 		"proxy",
 		"",
