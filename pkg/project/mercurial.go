@@ -6,8 +6,6 @@ import (
 	"strings"
 
 	"github.com/wakatime/wakatime-cli/pkg/log"
-
-	"github.com/yookoala/realpath"
 )
 
 // Mercurial contains mercurial data.
@@ -20,15 +18,11 @@ type Mercurial struct {
 func (m Mercurial) Detect() (Result, bool, error) {
 	log.Debugln("execute mercurial project detection")
 
-	fp, err := realpath.Realpath(m.Filepath)
-	if err != nil {
-		return Result{}, false,
-			Err(fmt.Sprintf("failed to get the real path: %s", err))
-	}
+	var fp string
 
 	// Take only the directory
-	if fileExists(fp) {
-		fp = filepath.Dir(fp)
+	if fileExists(m.Filepath) {
+		fp = filepath.Dir(m.Filepath)
 	}
 
 	// Find for .hg folder
@@ -37,7 +31,7 @@ func (m Mercurial) Detect() (Result, bool, error) {
 		return Result{}, false, nil
 	}
 
-	project := filepath.Base(filepath.Join(hgDirectory, ".."))
+	project := filepath.Base(filepath.Dir(hgDirectory))
 
 	branch, err := findHgBranch(hgDirectory)
 	if err != nil {
@@ -51,7 +45,7 @@ func (m Mercurial) Detect() (Result, bool, error) {
 	return Result{
 		Project: project,
 		Branch:  branch,
-		Folder:  filepath.Dir(filepath.Join(hgDirectory, "..")),
+		Folder:  filepath.Dir(filepath.Dir(hgDirectory)),
 	}, true, nil
 }
 

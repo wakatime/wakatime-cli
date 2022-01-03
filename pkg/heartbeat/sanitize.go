@@ -2,6 +2,7 @@ package heartbeat
 
 import (
 	"path/filepath"
+	"strings"
 
 	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/regex"
@@ -14,6 +15,8 @@ type SanitizeConfig struct {
 	// FilePatterns will be matched against a file entities name and if matching, will obfuscate
 	// the file name and common heartbeat meta data (cursor position, dependencies, line number and lines).
 	FilePatterns []regex.Regex
+	// HideProjectFolder determines if project folder should be obfuscated.
+	HideProjectFolder bool
 	// ProjectPatterns will be matched against the project name and if matching, will obfuscate
 	// common heartbeat meta data (cursor position, dependencies, line number and lines).
 	ProjectPatterns []regex.Regex
@@ -62,6 +65,38 @@ func Sanitize(h Heartbeat, config SanitizeConfig) Heartbeat {
 		}
 	case h.Branch != nil && ShouldSanitize(*h.Branch, config.BranchPatterns):
 		h.Branch = nil
+	}
+
+	h = hideProjectFolder(h, config.HideProjectFolder)
+
+	return h
+}
+
+// hideProjectFolder makes entity relative to project folder if we're hiding the project folder.
+func hideProjectFolder(h Heartbeat, hideProjectFolder bool) Heartbeat {
+	if h.EntityType != FileType || !hideProjectFolder {
+		return h
+	}
+
+	if h.ProjectPath != "" {
+		// this makes entity path relative after trim
+		if !strings.HasSuffix(h.ProjectPath, "/") {
+			h.ProjectPath += "/"
+		}
+
+		if strings.HasPrefix(h.Entity, h.ProjectPath) {
+			h.Entity = strings.TrimPrefix(h.Entity, h.ProjectPath)
+			return h
+		}
+	}
+
+	if h.ProjectPathOverride != "" {
+		// this makes entity path relative after trim
+		if !strings.HasSuffix(h.ProjectPathOverride, "/") {
+			h.ProjectPathOverride += "/"
+		}
+
+		h.Entity = strings.TrimPrefix(h.Entity, h.ProjectPathOverride)
 	}
 
 	return h

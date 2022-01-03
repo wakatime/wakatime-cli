@@ -7,8 +7,6 @@ import (
 
 	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/regex"
-
-	"github.com/yookoala/realpath"
 )
 
 // Git contains git data.
@@ -24,22 +22,17 @@ type Git struct {
 func (g Git) Detect() (Result, bool, error) {
 	log.Debugln("execute git project detection")
 
-	fp, err := realpath.Realpath(g.Filepath)
-	if err != nil {
-		return Result{}, false,
-			Err(fmt.Sprintf("failed to get the real path: %s", err))
-	}
+	var fp string
 
 	// Take only the directory
-	if fileExists(fp) {
-		fp = filepath.Dir(fp)
+	if fileExists(g.Filepath) {
+		fp = filepath.Dir(g.Filepath)
 	}
 
 	// Find for submodule takes priority if enabled
 	gitdirSubmodule, ok, err := findSubmodule(fp, g.SubmodulePatterns)
 	if err != nil {
-		return Result{}, false,
-			Err(fmt.Sprintf("failed to validate submodule: %s", err))
+		return Result{}, false, Err(fmt.Sprintf("failed to validate submodule: %s", err))
 	}
 
 	if ok {
@@ -93,16 +86,14 @@ func (g Git) Detect() (Result, bool, error) {
 	// Find for gitdir path
 	gitdir, err := findGitdir(gitConfigFile)
 	if err != nil {
-		return Result{}, false,
-			Err(fmt.Sprintf("error finding gitdir: %s", err))
+		return Result{}, false, Err(fmt.Sprintf("error finding gitdir: %s", err))
 	}
 
 	// Commonly .git file is present when it's a worktree
 	// Find for commondir file
 	commondir, ok, err := findCommondir(gitdir)
 	if err != nil {
-		return Result{}, false,
-			Err(fmt.Sprintf("error finding commondir: %s", err))
+		return Result{}, false, Err(fmt.Sprintf("error finding commondir: %s", err))
 	}
 
 	if ok {

@@ -1,13 +1,10 @@
 package project
 
 import (
-	"fmt"
 	"path/filepath"
 	"runtime"
 
 	"github.com/wakatime/wakatime-cli/pkg/log"
-
-	"github.com/yookoala/realpath"
 )
 
 // Tfvc contains tfvc data.
@@ -20,15 +17,11 @@ type Tfvc struct {
 func (t Tfvc) Detect() (Result, bool, error) {
 	log.Debugln("execute tfvc project detection")
 
-	fp, err := realpath.Realpath(t.Filepath)
-	if err != nil {
-		return Result{}, false,
-			Err(fmt.Errorf("failed to get the real path: %w", err).Error())
-	}
+	var fp string
 
 	// Take only the directory
-	if fileExists(fp) {
-		fp = filepath.Dir(fp)
+	if fileExists(t.Filepath) {
+		fp = filepath.Dir(t.Filepath)
 	}
 
 	tfFolderName := ".tf"
