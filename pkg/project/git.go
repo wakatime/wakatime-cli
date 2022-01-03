@@ -22,11 +22,11 @@ type Git struct {
 func (g Git) Detect() (Result, bool, error) {
 	log.Debugln("execute git project detection")
 
-	var fp string
+	fp := g.Filepath
 
 	// Take only the directory
-	if fileExists(g.Filepath) {
-		fp = filepath.Dir(g.Filepath)
+	if fileExists(fp) {
+		fp = filepath.Dir(fp)
 	}
 
 	// Find for submodule takes priority if enabled

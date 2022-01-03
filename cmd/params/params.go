@@ -859,10 +859,13 @@ func (p ProjectParams) String() string {
 
 func (p SanitizeParams) String() string {
 	return fmt.Sprintf(
-		"hide branch names: '%s', hide file names: '%s', hide project names: '%s'",
+		"hide branch names: '%s', hide project folder: %t, hide file names: '%s',"+
+			" hide project names: '%s', project path override: '%s'",
 		p.HideBranchNames,
+		p.HideProjectFolder,
 		p.HideFileNames,
 		p.HideProjectNames,
+		p.ProjectPathOverride,
 	)
 }
 
