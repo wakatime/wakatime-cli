@@ -17,6 +17,7 @@ api_url = https://api.wakatime.com/api/v1
 hide_file_names = false
 hide_project_names = false
 hide_branch_names =
+hide_project_folder = false
 exclude =
     ^COMMIT_EDITMSG$
     ^TAG_EDITMSG$
@@ -53,6 +54,7 @@ submodules_disabled = false
 | hide_file_names                | Obfuscate filenames. Will not send file names to api. | _bool_;_list_ | `false` |
 | hide_project_names             | Obfuscate project names. When a project folder is detected instead of using the folder name as the project, a `.wakatime-project file` is created with a random project name. | _bool_;_list_ | `false` |
 | hide_branch_names              | Obfuscate branch names. Will not send revision control branch names to api. | _bool_;_list_ | `false` |
+| hide_project_folder            | When set, send the file's path relative to the project folder. For ex: `/User/me/projects/bar/src/file.ts` is sent as `src/file.ts` so the server never sees the full path. When the project folder cannot be detected, only the file name is sent. For ex: `file.ts`. | _bool_ | `false` |
 | exclude                        | Filename patterns to exclude from logging. POSIX regex syntax. | _bool_;_list_ | |
 | include                        | Filename patterns to log. When used in combination with `exclude`, files matching `include` will still be logged. POSIX regex syntax | _bool_;_list_ | |
 | include_only_with_project_file | Disables tracking folders unless they contain a `.wakatime-project file`. | _bool_ | `false` |
@@ -64,7 +66,7 @@ submodules_disabled = false
 | proxy                          | Optional proxy configuration. Supports HTTPS, SOCKS and NTLM proxies. For ex: `https://user:pass@host:port`, `socks5://user:pass@host:port`, `domain\\user:pass` | _string_ | |
 | no_ssl_verify                  | Disables SSL certificate verification for HTTPS requests. By default, SSL certificates are verified. | _bool_ | `false` |
 | ssl_certs_file                 | Path to a CA certs file. By default, uses bundled Letsencrypt CA cert along with system ca certs. | _filepath_ | |
-| timeout                        | Connection timeout in seconds when communicating with the api. | _int_ | `60` |
+| timeout                        | Connection timeout in seconds when communicating with the api. | _int_ | `120` |
 | hostname                       | Optional name of local machine. By default, auto-detects the local machine’s hostname. | _string_ | |
 | log_file                       | Optional log file path. | _filepath_ | `~/.wakatime.log` |
 
