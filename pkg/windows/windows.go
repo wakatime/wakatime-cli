@@ -12,29 +12,53 @@ import (
 
 // nolint
 var (
-	backslashReplaceRgx    = regexp.MustCompile(`[\\/]+`)
-	windowsDriveRgx        = regexp.MustCompile("^[a-z]:/")
-	windowsNetworkMountRgx = regexp.MustCompile(`(?i)^\\\\[a-z]+`)
+	backslashReplaceRegex = regexp.MustCompile(`[\\/]+`)
+	ipv4seg               = "(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])"
+	ipv4Address           = fmt.Sprintf(`(%s\.){3,3}%s`, ipv4seg, ipv4seg)
+	ipv6seg               = "[0-9a-fA-F]{1,4}"
+	ipv6Address           = fmt.Sprintf("("+
+		"(%s:){7,7}%s|"+ // 1:2:3:4:5:6:7:8
+		"(%s:){1,7}:|"+ // 1:: or 1:2:3:4:5:6:7::
+		"(%s:){1,6}:%s|"+ // 1::8 or 1:2:3:4:5:6::8 or 1:2:3:4:5:6::8
+		"(%s:){1,5}(:%s){1,2}|"+ // 1::7:8 or 1:2:3:4:5::7:8 or 1:2:3:4:5::8
+		"(%s:){1,4}(:%s){1,3}|"+ // 1::6:7:8 or 1:2:3:4::6:7:8 or 1:2:3:4::8
+		"(%s:){1,3}(:%s){1,4}|"+ // 1::5:6:7:8 or 1:2:3::5:6:7:8 or 1:2:3::8
+		"(%s:){1,2}(:%s){1,5}|"+ // 1::4:5:6:7:8 or 1:2::4:5:6:7:8 or 1:2::8
+		"%s:((:%s){1,6})|"+ // 1::3:4:5:6:7:8 or 1::3:4:5:6:7:8 or 1::8
+		":((:%s){1,7}|:)|"+ // ::2:3:4:5:6:7:8 or ::2:3:4:5:6:7:8 or ::8 or ::
+		"fe80:(:%s){0,4}%%[0-9a-zA-Z]{1,}|"+ // fe80::7:8%eth0 or fe80::7:8%1 (link-local IPv6 addresses with zone index)
+		"::(ffff(:0{1,4}){0,1}:){0,1}%s|"+ // ::255.255.255.255 or ::ffff:255.255.255.255 or ::ffff:0:255.255.255.255 (IPv4-mapped IPv6 addresses and IPv4-translated addresses)
+		"(%s:){1,4}:%s)", // 2001:db8:3:4::192.0.2.33 or 64:ff9b::192.0.2.33 (IPv4-Embedded IPv6 Address)
+		ipv6seg, ipv6seg, ipv6seg, ipv6seg, ipv6seg, ipv6seg, ipv6seg, ipv6seg,
+		ipv6seg, ipv6seg, ipv6seg, ipv6seg, ipv6seg, ipv6seg, ipv6seg, ipv6seg, ipv6seg, ipv4Address,
+		ipv6seg, ipv4Address)
+	windowsDriveRegex        = regexp.MustCompile("^[a-z]:/")
+	windowsNetworkMountRegex = regexp.MustCompile(fmt.Sprintf(`(?i)^\\\\([a-z]|%s|%s)+`, ipv4Address, ipv6Address))
 )
 
 // FormatFilePath formats a windows filepath by converting backslash to
 // frontslash and ensuring that drive letter is upper case.
 func FormatFilePath(fp string) (string, error) {
-	isWindowsNetworkMount := windowsNetworkMountRgx.MatchString(fp)
+	isWindowsNetworkMount := windowsNetworkMountRegex.MatchString(fp)
 
-	fp = backslashReplaceRgx.ReplaceAllString(fp, "/")
+	fp = backslashReplaceRegex.ReplaceAllString(fp, "/")
 
-	if windowsDriveRgx.MatchString(fp) {
+	if windowsDriveRegex.MatchString(fp) {
 		fp = strings.ToUpper(fp[:1]) + fp[1:]
 	}
 
 	if isWindowsNetworkMount {
-		// Add back a / to the front, since the previous modifications
+		// Replace the first single slash with double backslash, since the previous modifications
 		// will have replaced any double slashes with single
-		fp = "/" + fp
+		fp = `\\` + fp[1:]
 	}
 
 	return fp, nil
+}
+
+// IsWindowsNetworkMount returns true if filepath is windows network path.
+func IsWindowsNetworkMount(fp string) bool {
+	return windowsNetworkMountRegex.MatchString(fp)
 }
 
 // commander is an interface for exec.Command function.
@@ -127,7 +151,7 @@ func parseNetUseOutput(text string) (remoteDrives, error) {
 	drives := make(remoteDrives)
 
 	for _, line := range lines[1 : len(lines)-1] {
-		if len(strings.TrimSpace(line)) == 0 {
+		if len(strings.TrimSpace(line)) == 0 || strings.ContainsAny(line, "---") {
 			continue
 		}
 
@@ -142,13 +166,20 @@ func parseNetUseOutput(text string) (remoteDrives, error) {
 
 		local := line[cols.Local.Start : cols.Local.Start+cols.Remote.Width]
 		local = strings.ToUpper(strings.TrimSpace(local))
-		letter := strings.Split(local, ":")[0][0]
 
+		if len(strings.Split(local, ":")) == 0 || strings.Split(local, ":")[0] == "" {
+			continue
+		}
+
+		letter := strings.Split(local, ":")[0][0]
 		if !unicode.IsLetter(rune(letter)) {
 			continue
 		}
 
-		remote := line[cols.Remote.Start : cols.Remote.Start+cols.Remote.Width]
+		remote := strings.TrimSpace(line[cols.Remote.Start : cols.Remote.Start+cols.Remote.Width])
+		if remote == "" {
+			continue
+		}
 
 		drives[driveLetter(letter)] = remoteDrive(strings.TrimSpace(remote))
 	}
@@ -216,7 +247,7 @@ func parseNetUseColumns(line string) (netUseColumns, error) {
 	}
 
 	if cols.Local.Empty() {
-		return netUseColumns{}, errors.New("failed to parse local columns")
+		return netUseColumns{}, errors.New("failed to parse local column")
 	} else if cols.Remote.Empty() {
 		return netUseColumns{}, errors.New("failed to parse remote column")
 	}

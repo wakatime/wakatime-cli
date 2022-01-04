@@ -16,16 +16,17 @@ const (
 Status       Local     Remote                    Network
 
 -------------------------------------------------------------------------------
-             Z:        \\remotepc\share          Microsoft Windows Network
+OK           Z:        \\remotepc\share          Microsoft Windows Network
 The command completed successfully.`
 	netUseOutputMultiple = `New connections will be remembered.
 
 Status       Local     Remote                    Network
 
 -------------------------------------------------------------------------------
-             S:        \\tower\Movies            Microsoft Windows Network
+OK           S:        \\tower\Movies            Microsoft Windows Network
+OK                     \\tower\Buildings         Microsoft Windows Network
              T:        \\tower\Music             Microsoft Windows Network
-             U:        \\tower\Pictures          Microsoft Windows Network
+Unavailable  U:        \\tower\Pictures          Microsoft Windows Network
 The command completed successfully.`
 )
 

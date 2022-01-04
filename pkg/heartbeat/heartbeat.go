@@ -56,7 +56,7 @@ func New(
 	time float64,
 	userAgent string,
 ) Heartbeat {
-	if entityType == FileType {
+	if entityType == FileType && !windows.IsWindowsNetworkMount(entity) {
 		formatted, err := filepath.Abs(entity)
 		if err != nil {
 			log.Warnf("failed to resolve the absolute path of %q: %s", entity, err)
