@@ -30,6 +30,7 @@ func TestNew(t *testing.T) {
 		"/path/to/file",
 		"billing",
 		"pci",
+		"/custom-path",
 		1592868313.541149,
 		"wakatime/13.0.7",
 	)
@@ -37,19 +38,20 @@ func TestNew(t *testing.T) {
 	assert.True(t, strings.HasSuffix(h.Entity, "testdata/main.go"))
 
 	assert.Equal(t, heartbeat.Heartbeat{
-		Category:          heartbeat.CodingCategory,
-		CursorPosition:    heartbeat.Int(12),
-		EntityType:        heartbeat.FileType,
-		IsWrite:           heartbeat.Bool(true),
-		Language:          heartbeat.String("Go"),
-		LanguageAlternate: "Golang",
-		LineNumber:        heartbeat.Int(42),
-		LocalFile:         "/path/to/file",
-		ProjectAlternate:  "billing",
-		ProjectOverride:   "pci",
-		Time:              1592868313.541149,
-		UserAgent:         "wakatime/13.0.7",
-		Entity:            h.Entity,
+		Category:            heartbeat.CodingCategory,
+		CursorPosition:      heartbeat.Int(12),
+		EntityType:          heartbeat.FileType,
+		IsWrite:             heartbeat.Bool(true),
+		Language:            heartbeat.String("Go"),
+		LanguageAlternate:   "Golang",
+		LineNumber:          heartbeat.Int(42),
+		LocalFile:           "/path/to/file",
+		ProjectAlternate:    "billing",
+		ProjectOverride:     "pci",
+		ProjectPathOverride: "/custom-path",
+		Time:                1592868313.541149,
+		UserAgent:           "wakatime/13.0.7",
+		Entity:              h.Entity,
 	}, h)
 }
 
@@ -70,6 +72,7 @@ func TestNew_Windows(t *testing.T) {
 		"/path/to/file",
 		"billing",
 		"pci",
+		"C:/custom-path",
 		1592868313.541149,
 		"wakatime/13.0.7",
 	)
@@ -77,19 +80,20 @@ func TestNew_Windows(t *testing.T) {
 	assert.True(t, strings.HasSuffix(h.Entity, "testdata/main.go"))
 
 	assert.Equal(t, heartbeat.Heartbeat{
-		Category:          heartbeat.CodingCategory,
-		CursorPosition:    heartbeat.Int(12),
-		EntityType:        heartbeat.FileType,
-		IsWrite:           heartbeat.Bool(true),
-		Language:          heartbeat.String("Go"),
-		LanguageAlternate: "Golang",
-		LineNumber:        heartbeat.Int(42),
-		LocalFile:         "/path/to/file",
-		ProjectAlternate:  "billing",
-		ProjectOverride:   "pci",
-		Time:              1592868313.541149,
-		UserAgent:         "wakatime/13.0.7",
-		Entity:            h.Entity,
+		Category:            heartbeat.CodingCategory,
+		CursorPosition:      heartbeat.Int(12),
+		EntityType:          heartbeat.FileType,
+		IsWrite:             heartbeat.Bool(true),
+		Language:            heartbeat.String("Go"),
+		LanguageAlternate:   "Golang",
+		LineNumber:          heartbeat.Int(42),
+		LocalFile:           "/path/to/file",
+		ProjectAlternate:    "billing",
+		ProjectOverride:     "pci",
+		ProjectPathOverride: "C:/custom-path",
+		Time:                1592868313.541149,
+		UserAgent:           "wakatime/13.0.7",
+		Entity:              h.Entity,
 	}, h)
 }
 

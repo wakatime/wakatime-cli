@@ -114,9 +114,11 @@ type (
 
 	// SanitizeParams params for heartbeat sanitization.
 	SanitizeParams struct {
-		HideBranchNames  []regex.Regex
-		HideFileNames    []regex.Regex
-		HideProjectNames []regex.Regex
+		HideBranchNames     []regex.Regex
+		HideFileNames       []regex.Regex
+		HideProjectFolder   bool
+		HideProjectNames    []regex.Regex
+		ProjectPathOverride string
 	}
 
 	// StatusBar contains status bar related parameters.
@@ -408,8 +410,6 @@ func loadFilterParams(v *viper.Viper) FilterParams {
 }
 
 func loadSanitizeParams(v *viper.Viper) (SanitizeParams, error) {
-	var params SanitizeParams
-
 	// hide branch names
 	hideBranchNamesStr, _ := vipertools.FirstNonEmptyString(
 		v,
@@ -428,8 +428,6 @@ func loadSanitizeParams(v *viper.Viper) (SanitizeParams, error) {
 		)
 	}
 
-	params.HideBranchNames = hideBranchNamesPatterns
-
 	// hide project names
 	hideProjectNamesStr, _ := vipertools.FirstNonEmptyString(
 		v,
@@ -447,8 +445,6 @@ func loadSanitizeParams(v *viper.Viper) (SanitizeParams, error) {
 			err,
 		)
 	}
-
-	params.HideProjectNames = hideProjectNamesPatterns
 
 	// hide file names
 	hideFileNamesStr, _ := vipertools.FirstNonEmptyString(
@@ -470,16 +466,16 @@ func loadSanitizeParams(v *viper.Viper) (SanitizeParams, error) {
 		)
 	}
 
-	params.HideFileNames = hideFileNamesPatterns
-
-	return params, nil
+	return SanitizeParams{
+		HideBranchNames:     hideBranchNamesPatterns,
+		HideFileNames:       hideFileNamesPatterns,
+		HideProjectFolder:   vipertools.FirstNonEmptyBool(v, "hide-project-folder", "settings.hide_project_folder"),
+		HideProjectNames:    hideProjectNamesPatterns,
+		ProjectPathOverride: vipertools.GetString(v, "project-folder"),
+	}, nil
 }
 
 func loadProjectParams(v *viper.Viper) (ProjectParams, error) {
-	if v == nil {
-		return ProjectParams{}, errors.New("viper instance unset")
-	}
-
 	disableSubmodule, err := parseBoolOrRegexList(vipertools.GetString(v, "git.submodules_disabled"))
 	if err != nil {
 		return ProjectParams{}, fmt.Errorf(
@@ -863,10 +859,13 @@ func (p ProjectParams) String() string {
 
 func (p SanitizeParams) String() string {
 	return fmt.Sprintf(
-		"hide branch names: '%s', hide file names: '%s', hide project names: '%s'",
+		"hide branch names: '%s', hide project folder: %t, hide file names: '%s',"+
+			" hide project names: '%s', project path override: '%s'",
 		p.HideBranchNames,
+		p.HideProjectFolder,
 		p.HideFileNames,
 		p.HideProjectNames,
+		p.ProjectPathOverride,
 	)
 }
 

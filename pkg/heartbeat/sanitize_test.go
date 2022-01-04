@@ -308,6 +308,62 @@ func TestSanitize_EmptyConfigDoNothing_EmptyDependencies(t *testing.T) {
 	}, r)
 }
 
+func TestSanitize_ObfuscateProjectFolder(t *testing.T) {
+	h := testHeartbeat()
+	h.Entity = "/path/to/project/main.go"
+	h.ProjectPath = "/path/to"
+
+	r := heartbeat.Sanitize(h, heartbeat.SanitizeConfig{
+		HideProjectFolder: true,
+	})
+
+	assert.Equal(t, heartbeat.Heartbeat{
+		Branch:         heartbeat.String("heartbeat"),
+		Category:       heartbeat.CodingCategory,
+		CursorPosition: heartbeat.Int(12),
+		Dependencies:   []string{"dep1", "dep2"},
+		Entity:         "project/main.go",
+		EntityType:     heartbeat.FileType,
+		IsWrite:        heartbeat.Bool(true),
+		Language:       heartbeat.String("Go"),
+		LineNumber:     heartbeat.Int(42),
+		Lines:          heartbeat.Int(100),
+		Project:        heartbeat.String("wakatime"),
+		ProjectPath:    "/path/to/",
+		Time:           1585598060,
+		UserAgent:      "wakatime/13.0.7",
+	}, r)
+}
+
+func TestSanitize_ObfuscateProjectFolder_Override(t *testing.T) {
+	h := testHeartbeat()
+	h.Entity = "/path/to/project/main.go"
+	h.ProjectPath = "/original/folder"
+	h.ProjectPathOverride = "/path/to"
+
+	r := heartbeat.Sanitize(h, heartbeat.SanitizeConfig{
+		HideProjectFolder: true,
+	})
+
+	assert.Equal(t, heartbeat.Heartbeat{
+		Branch:              heartbeat.String("heartbeat"),
+		Category:            heartbeat.CodingCategory,
+		CursorPosition:      heartbeat.Int(12),
+		Dependencies:        []string{"dep1", "dep2"},
+		Entity:              "project/main.go",
+		EntityType:          heartbeat.FileType,
+		IsWrite:             heartbeat.Bool(true),
+		Language:            heartbeat.String("Go"),
+		LineNumber:          heartbeat.Int(42),
+		Lines:               heartbeat.Int(100),
+		Project:             heartbeat.String("wakatime"),
+		ProjectPath:         "/original/folder/",
+		ProjectPathOverride: "/path/to/",
+		Time:                1585598060,
+		UserAgent:           "wakatime/13.0.7",
+	}, r)
+}
+
 func TestShouldSanitize(t *testing.T) {
 	tests := map[string]struct {
 		Subject  string

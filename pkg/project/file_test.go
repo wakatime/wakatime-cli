@@ -6,22 +6,27 @@ import (
 	"testing"
 
 	"github.com/wakatime/wakatime-cli/pkg/project"
+	"github.com/yookoala/realpath"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestFile_Detect_FileExists(t *testing.T) {
+	rp, err := realpath.Realpath("testdata/.wakatime-project")
+	require.NoError(t, err)
+
 	f := project.File{
-		Filepath: "testdata/.wakatime-project",
+		Filepath: rp,
 	}
 
 	result, detected, err := f.Detect()
 	require.NoError(t, err)
 
 	expected := project.Result{
-		Project: "wakatime-cli",
 		Branch:  "master",
+		Folder:  filepath.Dir(rp),
+		Project: "wakatime-cli",
 	}
 
 	assert.True(t, detected)
@@ -33,6 +38,9 @@ func TestFile_Detect_ParentFolderExists(t *testing.T) {
 	require.NoError(t, err)
 
 	defer os.RemoveAll(tmpDir)
+
+	tmpDir, err = realpath.Realpath(tmpDir)
+	require.NoError(t, err)
 
 	dir := filepath.Join(tmpDir, "src", "otherfolder")
 
@@ -53,8 +61,9 @@ func TestFile_Detect_ParentFolderExists(t *testing.T) {
 	require.NoError(t, err)
 
 	expected := project.Result{
-		Project: "wakatime-cli",
 		Branch:  "master",
+		Folder:  tmpDir,
+		Project: "wakatime-cli",
 	}
 
 	assert.True(t, detected)
@@ -81,20 +90,19 @@ func TestFile_Detect_AnyFileFound(t *testing.T) {
 }
 
 func TestFile_Detect_InvalidPath(t *testing.T) {
+	tmpFile, err := os.CreateTemp(os.TempDir(), "non-valid-file")
+	require.NoError(t, err)
+
+	defer os.Remove(tmpFile.Name())
+
 	f := project.File{
-		Filepath: "path/to/non-file",
+		Filepath: tmpFile.Name(),
 	}
 
 	_, detected, err := f.Detect()
 	require.NoError(t, err)
 
 	assert.False(t, detected)
-}
-
-func TestFile_String(t *testing.T) {
-	f := project.File{}
-
-	assert.Equal(t, "project-file-detector", f.String())
 }
 
 func TestFindFileOrDirectory(t *testing.T) {
@@ -139,6 +147,12 @@ func TestFindFileOrDirectory(t *testing.T) {
 			assert.Equal(t, test.Expected, fp)
 		})
 	}
+}
+
+func TestFile_String(t *testing.T) {
+	f := project.File{}
+
+	assert.Equal(t, "project-file-detector", f.String())
 }
 
 func copyFile(t *testing.T, source, destination string) {

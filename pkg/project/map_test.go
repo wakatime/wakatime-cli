@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/wakatime/wakatime-cli/pkg/project"
+	"github.com/yookoala/realpath"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -16,8 +17,11 @@ func TestMap_Detect(t *testing.T) {
 	wd, err := os.Getwd()
 	require.NoError(t, err)
 
+	rp, err := realpath.Realpath(filepath.Join("testdata", "entity.any"))
+	require.NoError(t, err)
+
 	m := project.Map{
-		Filepath: "testdata/entity.any",
+		Filepath: rp,
 		Patterns: []project.MapPattern{
 			{
 				Name:  "my-project-1",
@@ -30,6 +34,8 @@ func TestMap_Detect(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.True(t, detected)
+
+	assert.Contains(t, result.Folder, "testdata")
 	assert.Equal(t, "my-project-1", result.Project)
 }
 
@@ -37,8 +43,11 @@ func TestMap_Detect_RegexReplace(t *testing.T) {
 	wd, err := os.Getwd()
 	require.NoError(t, err)
 
+	rp, err := realpath.Realpath(filepath.Join("testdata", "entity.any"))
+	require.NoError(t, err)
+
 	m := project.Map{
-		Filepath: filepath.Join("testdata", "entity.any"),
+		Filepath: rp,
 		Patterns: []project.MapPattern{
 			{
 				Name:  "my-project-1",
@@ -55,6 +64,8 @@ func TestMap_Detect_RegexReplace(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.True(t, detected)
+
+	assert.Contains(t, result.Folder, "testdata")
 	assert.Equal(t, "my-project-2-data", result.Project)
 }
 
@@ -80,6 +91,8 @@ func TestMap_Detect_NoMatch(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.False(t, detected)
+
+	assert.Empty(t, result.Folder)
 	assert.Empty(t, result.Project)
 }
 

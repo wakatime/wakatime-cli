@@ -1205,7 +1205,7 @@ func TestLoadParams_SanitizeParams_HideFileNames_False(t *testing.T) {
 	}
 }
 
-func TestLoadParams_SanitizeParams_HideFilehNames_List(t *testing.T) {
+func TestLoadParams_SanitizeParams_HideFileNames_List(t *testing.T) {
 	tests := map[string]struct {
 		ViperValue string
 		Expected   []regex.Regex
@@ -1364,6 +1364,51 @@ func TestLoadParams_SanitizeParams_HideFileNames_InvalidRegex(t *testing.T) {
 			" failed to parse regex hide file names param \".*secret.*\\n[0-9+\":"+
 			" failed to compile regex \"[0-9+\":",
 	))
+}
+
+func TestLoadParams_SanitizeParams_HideProjectFolder(t *testing.T) {
+	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("entity", "/path/to/file")
+	v.Set("hide-project-folder", true)
+
+	params, err := paramscmd.Load(v, paramscmd.Config{APIKeyRequired: true, HeartbeatRequired: true})
+	require.NoError(t, err)
+
+	assert.Equal(t, paramscmd.SanitizeParams{
+		HideProjectFolder: true,
+	}, params.Heartbeat.Sanitize)
+}
+
+func TestLoadParams_SanitizeParams_HideProjectFolder_ConfigTakesPrecedence(t *testing.T) {
+	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("entity", "/path/to/file")
+	v.Set("settings.hide_project_folder", true)
+
+	params, err := paramscmd.Load(v, paramscmd.Config{APIKeyRequired: true, HeartbeatRequired: true})
+	require.NoError(t, err)
+
+	assert.Equal(t, paramscmd.SanitizeParams{
+		HideProjectFolder: true,
+	}, params.Heartbeat.Sanitize)
+}
+
+func TestLoadParams_SanitizeParams_OverrideProjectPath(t *testing.T) {
+	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("entity", "/path/to/file")
+	v.Set("project-folder", "/custom-path")
+
+	params, err := paramscmd.Load(v, paramscmd.Config{APIKeyRequired: true, HeartbeatRequired: true})
+	require.NoError(t, err)
+
+	assert.Equal(t, paramscmd.SanitizeParams{
+		ProjectPathOverride: "/custom-path",
+	}, params.Heartbeat.Sanitize)
 }
 
 func TestLoadParams_DisableSubmodule_True(t *testing.T) {
