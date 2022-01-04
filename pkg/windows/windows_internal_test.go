@@ -24,6 +24,7 @@ Status       Local     Remote                    Network
 
 -------------------------------------------------------------------------------
 OK           S:        \\tower\Movies            Microsoft Windows Network
+OK                     \\tower\Buildings         Microsoft Windows Network
              T:        \\tower\Music             Microsoft Windows Network
 Unavailable  U:        \\tower\Pictures          Microsoft Windows Network
 The command completed successfully.`
@@ -124,6 +125,7 @@ func TestParseNetUseOutput(t *testing.T) {
 			Expected: remoteDrives{
 				"S": `\\tower\Movies`,
 				"T": `\\tower\Music`,
+				"U": `\\tower\Pictures`,
 			},
 		},
 	}

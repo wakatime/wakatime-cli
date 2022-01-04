@@ -12,19 +12,37 @@ import (
 
 // nolint
 var (
-	backslashReplaceRgx    = regexp.MustCompile(`[\\/]+`)
-	windowsDriveRgx        = regexp.MustCompile("^[a-z]:/")
-	windowsNetworkMountRgx = regexp.MustCompile(`(?i)^\\\\([a-z]|((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?))+`)
+	backslashReplaceRegex = regexp.MustCompile(`[\\/]+`)
+	ipv4seg               = "(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])"
+	ipv4Address           = fmt.Sprintf(`(%s\.){3,3}%s`, ipv4seg, ipv4seg)
+	ipv6seg               = "[0-9a-fA-F]{1,4}"
+	ipv6Address           = fmt.Sprintf("("+
+		"(%s:){7,7}%s|"+
+		"(%s:){1,7}:|"+
+		"(%s:){1,6}:%s|"+
+		"(%s:){1,5}(:%s){1,2}|"+
+		"(%s:){1,4}(:%s){1,3}|"+
+		"(%s:){1,3}(:%s){1,4}|"+
+		"(%s:){1,2}(:%s){1,5}|"+
+		"%s:((:%s){1,6})|"+
+		":((:%s){1,7}|:)|"+
+		"fe80:(:%s){0,4}%%[0-9a-zA-Z]{1,}|"+
+		"::(ffff(:0{1,4}){0,1}:){0,1}%s|"+
+		"(%s:){1,4}:%s)", ipv6seg, ipv6seg, ipv6seg, ipv6seg, ipv6seg, ipv6seg, ipv6seg, ipv6seg,
+		ipv6seg, ipv6seg, ipv6seg, ipv6seg, ipv6seg, ipv6seg, ipv6seg, ipv6seg,
+		ipv6seg, ipv4Address, ipv6seg, ipv4Address)
+	windowsDriveRegex        = regexp.MustCompile("^[a-z]:/")
+	windowsNetworkMountRegex = regexp.MustCompile(fmt.Sprintf(`(?i)^\\\\([a-z]|%s|%s)+`, ipv4Address, ipv6Address))
 )
 
 // FormatFilePath formats a windows filepath by converting backslash to
 // frontslash and ensuring that drive letter is upper case.
 func FormatFilePath(fp string) (string, error) {
-	isWindowsNetworkMount := windowsNetworkMountRgx.MatchString(fp)
+	isWindowsNetworkMount := windowsNetworkMountRegex.MatchString(fp)
 
-	fp = backslashReplaceRgx.ReplaceAllString(fp, "/")
+	fp = backslashReplaceRegex.ReplaceAllString(fp, "/")
 
-	if windowsDriveRgx.MatchString(fp) {
+	if windowsDriveRegex.MatchString(fp) {
 		fp = strings.ToUpper(fp[:1]) + fp[1:]
 	}
 
@@ -39,7 +57,7 @@ func FormatFilePath(fp string) (string, error) {
 
 // IsWindowsNetworkMount returns true if filepath is windows network path.
 func IsWindowsNetworkMount(fp string) bool {
-	return windowsNetworkMountRgx.MatchString(fp)
+	return windowsNetworkMountRegex.MatchString(fp)
 }
 
 // commander is an interface for exec.Command function.
@@ -142,11 +160,6 @@ func parseNetUseOutput(text string) (remoteDrives, error) {
 				return nil, fmt.Errorf("failed to parse columns from 'net use' output: %s", err)
 			}
 
-			continue
-		}
-
-		status := strings.TrimSpace(line[:cols.Local.Start])
-		if status != "" && strings.ToLower(status) != "ok" {
 			continue
 		}
 
