@@ -14,7 +14,7 @@ import (
 var (
 	backslashReplaceRgx    = regexp.MustCompile(`[\\/]+`)
 	windowsDriveRgx        = regexp.MustCompile("^[a-z]:/")
-	windowsNetworkMountRgx = regexp.MustCompile(`(?i)^\\\\[a-z]+`)
+	windowsNetworkMountRgx = regexp.MustCompile(`(?i)^\\\\([a-z]|((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?))+`)
 )
 
 // FormatFilePath formats a windows filepath by converting backslash to
@@ -35,6 +35,11 @@ func FormatFilePath(fp string) (string, error) {
 	}
 
 	return fp, nil
+}
+
+// IsWindowsNetworkMount returns true if filepath is windows network path.
+func IsWindowsNetworkMount(fp string) bool {
+	return windowsNetworkMountRgx.MatchString(fp)
 }
 
 // commander is an interface for exec.Command function.
@@ -127,7 +132,7 @@ func parseNetUseOutput(text string) (remoteDrives, error) {
 	drives := make(remoteDrives)
 
 	for _, line := range lines[1 : len(lines)-1] {
-		if len(strings.TrimSpace(line)) == 0 {
+		if len(strings.TrimSpace(line)) == 0 || strings.ContainsAny(line, "---") {
 			continue
 		}
 
@@ -137,6 +142,11 @@ func parseNetUseOutput(text string) (remoteDrives, error) {
 				return nil, fmt.Errorf("failed to parse columns from 'net use' output: %s", err)
 			}
 
+			continue
+		}
+
+		status := strings.TrimSpace(line[:cols.Local.Start])
+		if status != "" && strings.ToLower(status) != "ok" {
 			continue
 		}
 
@@ -216,7 +226,7 @@ func parseNetUseColumns(line string) (netUseColumns, error) {
 	}
 
 	if cols.Local.Empty() {
-		return netUseColumns{}, errors.New("failed to parse local columns")
+		return netUseColumns{}, errors.New("failed to parse local column")
 	} else if cols.Remote.Empty() {
 		return netUseColumns{}, errors.New("failed to parse remote column")
 	}
