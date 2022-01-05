@@ -17,20 +17,21 @@ var (
 	ipv4Address           = fmt.Sprintf(`(%s\.){3,3}%s`, ipv4seg, ipv4seg)
 	ipv6seg               = "[0-9a-fA-F]{1,4}"
 	ipv6Address           = fmt.Sprintf("("+
-		"(%s:){7,7}%s|"+
-		"(%s:){1,7}:|"+
-		"(%s:){1,6}:%s|"+
-		"(%s:){1,5}(:%s){1,2}|"+
-		"(%s:){1,4}(:%s){1,3}|"+
-		"(%s:){1,3}(:%s){1,4}|"+
-		"(%s:){1,2}(:%s){1,5}|"+
-		"%s:((:%s){1,6})|"+
-		":((:%s){1,7}|:)|"+
-		"fe80:(:%s){0,4}%%[0-9a-zA-Z]{1,}|"+
-		"::(ffff(:0{1,4}){0,1}:){0,1}%s|"+
-		"(%s:){1,4}:%s)", ipv6seg, ipv6seg, ipv6seg, ipv6seg, ipv6seg, ipv6seg, ipv6seg, ipv6seg,
+		"(%s:){7,7}%s|"+ // 1:2:3:4:5:6:7:8
+		"(%s:){1,7}:|"+ // 1:: or 1:2:3:4:5:6:7::
+		"(%s:){1,6}:%s|"+ // 1::8 or 1:2:3:4:5:6::8 or 1:2:3:4:5:6::8
+		"(%s:){1,5}(:%s){1,2}|"+ // 1::7:8 or 1:2:3:4:5::7:8 or 1:2:3:4:5::8
+		"(%s:){1,4}(:%s){1,3}|"+ // 1::6:7:8 or 1:2:3:4::6:7:8 or 1:2:3:4::8
+		"(%s:){1,3}(:%s){1,4}|"+ // 1::5:6:7:8 or 1:2:3::5:6:7:8 or 1:2:3::8
+		"(%s:){1,2}(:%s){1,5}|"+ // 1::4:5:6:7:8 or 1:2::4:5:6:7:8 or 1:2::8
+		"%s:((:%s){1,6})|"+ // 1::3:4:5:6:7:8 or 1::3:4:5:6:7:8 or 1::8
+		":((:%s){1,7}|:)|"+ // ::2:3:4:5:6:7:8 or ::2:3:4:5:6:7:8 or ::8 or ::
+		"fe80:(:%s){0,4}%%[0-9a-zA-Z]{1,}|"+ // fe80::7:8%eth0 or fe80::7:8%1 (link-local IPv6 addresses with zone index)
+		"::(ffff(:0{1,4}){0,1}:){0,1}%s|"+ // ::255.255.255.255 or ::ffff:255.255.255.255 or ::ffff:0:255.255.255.255 (IPv4-mapped IPv6 addresses and IPv4-translated addresses)
+		"(%s:){1,4}:%s)", // 2001:db8:3:4::192.0.2.33 or 64:ff9b::192.0.2.33 (IPv4-Embedded IPv6 Address)
 		ipv6seg, ipv6seg, ipv6seg, ipv6seg, ipv6seg, ipv6seg, ipv6seg, ipv6seg,
-		ipv6seg, ipv4Address, ipv6seg, ipv4Address)
+		ipv6seg, ipv6seg, ipv6seg, ipv6seg, ipv6seg, ipv6seg, ipv6seg, ipv6seg, ipv6seg, ipv4Address,
+		ipv6seg, ipv4Address)
 	windowsDriveRegex        = regexp.MustCompile("^[a-z]:/")
 	windowsNetworkMountRegex = regexp.MustCompile(fmt.Sprintf(`(?i)^\\\\([a-z]|%s|%s)+`, ipv4Address, ipv6Address))
 )
@@ -47,9 +48,9 @@ func FormatFilePath(fp string) (string, error) {
 	}
 
 	if isWindowsNetworkMount {
-		// Add back a / to the front, since the previous modifications
+		// Replace the first single slash with double backslash, since the previous modifications
 		// will have replaced any double slashes with single
-		fp = "/" + fp
+		fp = `\\` + fp[1:]
 	}
 
 	return fp, nil
