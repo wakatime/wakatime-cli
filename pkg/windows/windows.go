@@ -166,15 +166,22 @@ func parseNetUseOutput(text string) (remoteDrives, error) {
 
 		local := line[cols.Local.Start : cols.Local.Start+cols.Remote.Width]
 		local = strings.ToUpper(strings.TrimSpace(local))
-		letter := strings.Split(local, ":")[0][0]
 
+		if len(strings.Split(local, ":")) == 0 || strings.Split(local, ":")[0] == "" {
+			continue
+		}
+
+		letter := strings.Split(local, ":")[0][0]
 		if !unicode.IsLetter(rune(letter)) {
 			continue
 		}
 
-		remote := line[cols.Remote.Start : cols.Remote.Start+cols.Remote.Width]
+		remote := strings.TrimSpace(line[cols.Remote.Start : cols.Remote.Start+cols.Remote.Width])
+		if remote == "" {
+			continue
+		}
 
-		drives[driveLetter(letter)] = remoteDrive(strings.TrimSpace(remote))
+		drives[driveLetter(letter)] = remoteDrive(remote)
 	}
 
 	return drives, nil
