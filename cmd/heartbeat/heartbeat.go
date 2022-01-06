@@ -3,7 +3,6 @@ package heartbeat
 import (
 	"errors"
 	"fmt"
-	"os"
 	"strings"
 
 	apicmd "github.com/wakatime/wakatime-cli/cmd/api"
@@ -151,36 +150,27 @@ func buildHeartbeats(params params.Params) []heartbeat.Heartbeat {
 		userAgent = heartbeat.UserAgent(params.API.Plugin)
 	}
 
-	if params.Heartbeat.EntityType != heartbeat.FileType || isFile(params.Heartbeat.Entity) {
-		heartbeats = append(heartbeats, heartbeat.New(
-			params.Heartbeat.Category,
-			params.Heartbeat.CursorPosition,
-			params.Heartbeat.Entity,
-			params.Heartbeat.EntityType,
-			params.Heartbeat.IsWrite,
-			params.Heartbeat.Language,
-			params.Heartbeat.LanguageAlternate,
-			params.Heartbeat.LineNumber,
-			params.Heartbeat.LocalFile,
-			params.Heartbeat.Project.Alternate,
-			params.Heartbeat.Project.Override,
-			params.Heartbeat.Sanitize.ProjectPathOverride,
-			params.Heartbeat.Time,
-			userAgent,
-		))
-	} else {
-		log.Warnf("file '%s' does not exist. ignoring this heartbeat", params.Heartbeat.Entity)
-	}
+	heartbeats = append(heartbeats, heartbeat.New(
+		params.Heartbeat.Category,
+		params.Heartbeat.CursorPosition,
+		params.Heartbeat.Entity,
+		params.Heartbeat.EntityType,
+		params.Heartbeat.IsWrite,
+		params.Heartbeat.Language,
+		params.Heartbeat.LanguageAlternate,
+		params.Heartbeat.LineNumber,
+		params.Heartbeat.LocalFile,
+		params.Heartbeat.Project.Alternate,
+		params.Heartbeat.Project.Override,
+		params.Heartbeat.Sanitize.ProjectPathOverride,
+		params.Heartbeat.Time,
+		userAgent,
+	))
 
 	if len(params.Heartbeat.ExtraHeartbeats) > 0 {
 		log.Debugf("include %d extra heartbeat(s) from stdin", len(params.Heartbeat.ExtraHeartbeats))
 
 		for _, h := range params.Heartbeat.ExtraHeartbeats {
-			if h.EntityType == heartbeat.FileType && !isFile(h.Entity) {
-				log.Warnf("file '%s' does not exist. ignoring this extra heartbeat", h.Entity)
-				return nil
-			}
-
 			heartbeats = append(heartbeats, heartbeat.New(
 				h.Category,
 				h.CursorPosition,
@@ -250,10 +240,4 @@ func setLogFields(params *params.Params) {
 	}
 
 	log.WithField("file", params.Heartbeat.Entity)
-}
-
-// isFile checks if the passed in filepath is a valid file.
-func isFile(filepath string) bool {
-	info, err := os.Stat(filepath)
-	return !(os.IsNotExist(err) || info.IsDir())
 }

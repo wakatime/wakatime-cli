@@ -1,0 +1,32 @@
+[
+    {
+        "branch": null,
+        "category": "coding",
+        "cursorpos": null,
+        "dependencies": ["os"],
+        "entity": "%s",
+        "is_write": null,
+        "language": "Go",
+        "lineno": null,
+        "lines": 11,
+        "project": "wakatime-cli",
+        "type": "file",
+        "time": 1585598059.1,
+        "user_agent": "%s"
+    },
+    {
+        "branch": null,
+        "category": "debugging",
+        "cursorpos": null,
+        "dependencies": ["flask","simplejson"],
+        "entity": "%s",
+        "is_write": null,
+        "language": "Python",
+        "lineno": null,
+        "lines": 20,
+        "project": "wakatime-cli",
+        "type": "file",
+        "time": 1585598060,
+        "user_agent": "%s"
+    }
+]

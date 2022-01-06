@@ -1,7 +1,6 @@
 package filter
 
 import (
-	"errors"
 	"fmt"
 	"os"
 
@@ -32,13 +31,9 @@ func WithFiltering(config Config) heartbeat.HandleOption {
 			for _, h := range hh {
 				err := Filter(h, config)
 				if err != nil {
-					var errv Err
-					if errors.As(err, &errv) {
-						log.Debugln(errv.Error())
-						continue
-					}
+					log.Errorf(err.Error())
 
-					return nil, fmt.Errorf("error filtering heartbeat: %w", err)
+					continue
 				}
 
 				filtered = append(filtered, h)
