@@ -2,6 +2,7 @@ package heartbeat
 
 import (
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/wakatime/wakatime-cli/pkg/log"
@@ -12,14 +13,16 @@ import (
 type SanitizeConfig struct {
 	// BranchPatterns will be matched against the branch and if matching, will obfuscate it.
 	BranchPatterns []regex.Regex
-	// FilePatterns will be matched against a file entities name and if matching, will obfuscate
+	// FilePatterns will be matched against a file entity's name and if matching will obfuscate
 	// the file name and common heartbeat meta data (cursor position, dependencies, line number and lines).
 	FilePatterns []regex.Regex
 	// HideProjectFolder determines if project folder should be obfuscated.
 	HideProjectFolder bool
-	// ProjectPatterns will be matched against the project name and if matching, will obfuscate
+	// ProjectPatterns will be matched against the project name and if matching will obfuscate
 	// common heartbeat meta data (cursor position, dependencies, line number and lines).
 	ProjectPatterns []regex.Regex
+	// RemoteAddressPattern will be matched against a file entity's name and if matching will obfuscate credentials.
+	RemoteAddressPattern *regexp.Regexp
 }
 
 // WithSanitization initializes and returns a heartbeat handle option, which
@@ -69,6 +72,8 @@ func Sanitize(h Heartbeat, config SanitizeConfig) Heartbeat {
 
 	h = hideProjectFolder(h, config.HideProjectFolder)
 
+	h = hideCredentials(h, config.RemoteAddressPattern)
+
 	return h
 }
 
@@ -97,6 +102,27 @@ func hideProjectFolder(h Heartbeat, hideProjectFolder bool) Heartbeat {
 		}
 
 		h.Entity = strings.TrimPrefix(h.Entity, h.ProjectPathOverride)
+	}
+
+	return h
+}
+
+func hideCredentials(h Heartbeat, remoteAddressPattern *regexp.Regexp) Heartbeat {
+	if remoteAddressPattern == nil {
+		return h
+	}
+
+	match := remoteAddressPattern.FindStringSubmatch(h.Entity)
+	paramsMap := make(map[string]string)
+
+	for i, name := range remoteAddressPattern.SubexpNames() {
+		if i > 0 && i <= len(match) {
+			paramsMap[name] = match[i]
+		}
+	}
+
+	if creds, ok := paramsMap["credentials"]; ok {
+		h.Entity = strings.ReplaceAll(h.Entity, creds, "")
 	}
 
 	return h

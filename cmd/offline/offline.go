@@ -13,6 +13,7 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/offline"
 	"github.com/wakatime/wakatime-cli/pkg/project"
+	"github.com/wakatime/wakatime-cli/pkg/remote"
 
 	"github.com/spf13/viper"
 )
@@ -135,14 +136,18 @@ func setLogFields(params *params.Params) {
 
 func initHandleOptions(params params.Params) []heartbeat.HandleOption {
 	return []heartbeat.HandleOption{
-		heartbeat.WithFormatting(),
+		heartbeat.WithFormatting(heartbeat.FormatConfig{
+			RemoteAddressPattern: remote.RemoteAddressRegex,
+		}),
 		filter.WithFiltering(filter.Config{
 			Exclude:                    params.Heartbeat.Filter.Exclude,
 			ExcludeUnknownProject:      params.Heartbeat.Filter.ExcludeUnknownProject,
 			Include:                    params.Heartbeat.Filter.Include,
 			IncludeOnlyWithProjectFile: params.Heartbeat.Filter.IncludeOnlyWithProjectFile,
+			RemoteAddressPattern:       remote.RemoteAddressRegex,
 		}),
 		heartbeat.WithEntityModifer(),
+		remote.WithDetection(),
 		filestats.WithDetection(filestats.Config{
 			LinesInFile: params.Heartbeat.LinesInFile,
 		}),
@@ -157,10 +162,11 @@ func initHandleOptions(params params.Params) []heartbeat.HandleOption {
 			SubmodulePatterns: params.Heartbeat.Project.DisableSubmodule,
 		}),
 		heartbeat.WithSanitization(heartbeat.SanitizeConfig{
-			BranchPatterns:    params.Heartbeat.Sanitize.HideBranchNames,
-			FilePatterns:      params.Heartbeat.Sanitize.HideFileNames,
-			HideProjectFolder: params.Heartbeat.Sanitize.HideProjectFolder,
-			ProjectPatterns:   params.Heartbeat.Sanitize.HideProjectNames,
+			BranchPatterns:       params.Heartbeat.Sanitize.HideBranchNames,
+			FilePatterns:         params.Heartbeat.Sanitize.HideFileNames,
+			HideProjectFolder:    params.Heartbeat.Sanitize.HideProjectFolder,
+			ProjectPatterns:      params.Heartbeat.Sanitize.HideProjectNames,
+			RemoteAddressPattern: remote.RemoteAddressRegex,
 		}),
 	}
 }

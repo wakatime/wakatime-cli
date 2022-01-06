@@ -2,6 +2,7 @@ package heartbeat
 
 import (
 	"path/filepath"
+	"regexp"
 	"runtime"
 
 	"github.com/wakatime/wakatime-cli/pkg/log"
@@ -10,14 +11,24 @@ import (
 	"github.com/yookoala/realpath"
 )
 
+// FormatConfig defines how a heartbeat should be formatted.
+type FormatConfig struct {
+	// RemoteAddressPattern will be matched against a file entity's name and if matching will skip formatting.
+	RemoteAddressPattern *regexp.Regexp
+}
+
 // WithFormatting initializes and returns a heartbeat handle option, which
 // can be used in a heartbeat processing pipeline to format entity's filepath.
-func WithFormatting() HandleOption {
+func WithFormatting(config FormatConfig) HandleOption {
 	return func(next Handle) Handle {
 		return func(hh []Heartbeat) ([]Result, error) {
 			log.Debugln("execute heartbeat filepath formatting")
 
 			for n, h := range hh {
+				if config.RemoteAddressPattern != nil && config.RemoteAddressPattern.MatchString(h.Entity) {
+					continue
+				}
+
 				hh[n] = Format(h)
 			}
 

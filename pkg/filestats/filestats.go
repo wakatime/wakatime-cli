@@ -8,10 +8,11 @@ import (
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/log"
+	"github.com/wakatime/wakatime-cli/pkg/remote"
 )
 
 // Max file size supporting line number count stats. Files larger than this in
-// bytes will not have a line count stat for performance. Default is 2MB (2*1024*1014).
+// bytes will not have a line count stat for performance. Default is 2MB (2*1024*1024).
 const maxFileSizeSupported = 2097152
 
 // Config contains configurations for file stats.
@@ -39,6 +40,10 @@ func WithDetection(c Config) heartbeat.HandleOption {
 				if c.LinesInFile != nil {
 					hh[n].Lines = heartbeat.Int(*c.LinesInFile)
 
+					continue
+				}
+
+				if remote.RemoteAddressRegex.MatchString(h.Entity) {
 					continue
 				}
 

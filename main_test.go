@@ -82,7 +82,7 @@ func testSendHeartbeats(t *testing.T, entity, project string) {
 		assert.Equal(t, []string{heartbeat.UserAgentUnknownPlugin()}, req.Header["User-Agent"])
 
 		// check body
-		expectedBodyTpl, err := os.ReadFile("testdata/api_heartbeats_request.json.tpl")
+		expectedBodyTpl, err := os.ReadFile("testdata/api_heartbeats_request_template.json")
 		require.NoError(t, err)
 
 		entityPath, err := realpath.Realpath(entity)
@@ -233,7 +233,7 @@ func TestSendHeartbeats_Err(t *testing.T) {
 		assert.Equal(t, []string{heartbeat.UserAgentUnknownPlugin()}, req.Header["User-Agent"])
 
 		// check body
-		expectedBodyTpl, err := os.ReadFile("testdata/api_heartbeats_request.json.tpl")
+		expectedBodyTpl, err := os.ReadFile("testdata/api_heartbeats_request_template.json")
 		require.NoError(t, err)
 
 		entityPath, err := realpath.Realpath("testdata/main.go")

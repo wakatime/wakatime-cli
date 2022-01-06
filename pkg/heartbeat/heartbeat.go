@@ -19,6 +19,7 @@ type Heartbeat struct {
 	CursorPosition      *int       `json:"cursorpos"`
 	Dependencies        []string   `json:"dependencies"`
 	Entity              string     `json:"entity"`
+	EntityRaw           string     `json:"-"`
 	EntityType          EntityType `json:"type"`
 	IsWrite             *bool      `json:"is_write"`
 	Language            *string    `json:"language"`
