@@ -3,16 +3,13 @@ package heartbeat
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"runtime"
 	"strings"
 
 	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/version"
-	"github.com/wakatime/wakatime-cli/pkg/windows"
 
 	"github.com/matishsiao/goInfo"
-	"github.com/yookoala/realpath"
 )
 
 // Heartbeat is a structure representing activity for a user on a some entity.
@@ -56,46 +53,6 @@ func New(
 	time float64,
 	userAgent string,
 ) Heartbeat {
-	if entityType == FileType && !windows.IsWindowsNetworkMount(entity) {
-		formatted, err := filepath.Abs(entity)
-		if err != nil {
-			log.Warnf("failed to resolve the absolute path of %q: %s", entity, err)
-		} else {
-			entity = formatted
-		}
-
-		// evaluate any symlinks
-		formatted, err = realpath.Realpath(entity)
-		if err != nil {
-			log.Warnf("failed to resolve the real path of %q: %s", entity, err)
-		} else {
-			entity = formatted
-		}
-	}
-
-	if entityType == FileType && runtime.GOOS == "windows" {
-		formatted, err := windows.FormatFilePath(entity)
-		if err != nil {
-			log.Warnf("failed to format windows file path: %q: %s", entity, err)
-		} else {
-			entity = formatted
-		}
-
-		localFile, err = windows.FormatLocalFilePath(localFile, entity)
-		if err != nil {
-			log.Warnf("failed to format local file path: %s", err)
-		}
-	}
-
-	if entityType == FileType && runtime.GOOS == "windows" && projectPathOverride != "" {
-		formatted, err := windows.FormatFilePath(projectPathOverride)
-		if err != nil {
-			log.Warnf("failed to format windows file path: %q: %s", projectPathOverride, err)
-		} else {
-			projectPathOverride = formatted
-		}
-	}
-
 	return Heartbeat{
 		Category:            category,
 		CursorPosition:      cursorPosition,

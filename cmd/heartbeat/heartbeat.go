@@ -195,6 +195,7 @@ func buildHeartbeats(params params.Params) []heartbeat.Heartbeat {
 
 func initHandleOptions(params params.Params) []heartbeat.HandleOption {
 	return []heartbeat.HandleOption{
+		heartbeat.WithFormatting(),
 		filter.WithFiltering(filter.Config{
 			Exclude:                    params.Heartbeat.Filter.Exclude,
 			ExcludeUnknownProject:      params.Heartbeat.Filter.ExcludeUnknownProject,
