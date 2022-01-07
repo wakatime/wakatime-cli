@@ -119,9 +119,9 @@ func TestSendHeartbeats_WithFiltering_Exclude(t *testing.T) {
 	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("api-url", testServerURL)
 	v.Set("category", "debugging")
-	v.Set("entity", "/tmp/main.go")
-	v.Set("exclude", ".*")
-	v.Set("entity-type", "app")
+	v.Set("entity", `\tmp\main.go`)
+	v.Set("exclude", `/tmp/`)
+	v.Set("entity-type", "file")
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("plugin", "plugin")
 	v.Set("time", 1585598059.1)
@@ -301,10 +301,57 @@ func TestSendHeartbeats_NonExistingEntity(t *testing.T) {
 	output, err := io.ReadAll(logFile)
 	require.NoError(t, err)
 
-	assert.Contains(t, string(output), "file 'nonexisting' does not exist. ignoring this heartbeat")
+	assert.Contains(t, string(output), "skipping because of non-existing file")
 }
 
 func TestSendHeartbeats_NonExistingExtraHeartbeatsEntity(t *testing.T) {
+	testServerURL, router, tearDown := setupTestServer()
+	defer tearDown()
+
+	var (
+		plugin   = "plugin/0.0.1"
+		numCalls int
+	)
+
+	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
+		// check request
+		expectedBody, err := os.ReadFile("testdata/api_heartbeats_request_extra_heartbeats_filtered_template.json")
+		require.NoError(t, err)
+
+		body, err := io.ReadAll(req.Body)
+		require.NoError(t, err)
+
+		var entities []struct {
+			Entity string `json:"entity"`
+		}
+
+		err = json.Unmarshal(body, &entities)
+		require.NoError(t, err)
+
+		assert.True(t, strings.HasSuffix(entities[0].Entity, "testdata/main.go"))
+		assert.True(t, strings.HasSuffix(entities[1].Entity, "testdata/main.py"))
+
+		expectedBodyStr := fmt.Sprintf(
+			string(expectedBody),
+			entities[0].Entity, heartbeat.UserAgent(plugin),
+			entities[1].Entity, heartbeat.UserAgent(plugin),
+		)
+
+		assert.JSONEq(t, expectedBodyStr, string(body))
+
+		// send response
+		w.WriteHeader(http.StatusCreated)
+
+		f, err := os.Open("testdata/api_heartbeats_response_extra_heartbeats_filtered.json")
+		require.NoError(t, err)
+		defer f.Close()
+
+		_, err = io.Copy(w, f)
+		require.NoError(t, err)
+
+		numCalls++
+	})
+
 	inr, inw, err := os.Pipe()
 	require.NoError(t, err)
 
@@ -336,11 +383,15 @@ func TestSendHeartbeats_NonExistingExtraHeartbeatsEntity(t *testing.T) {
 
 	v := viper.New()
 	v.SetDefault("sync-offline-activity", 1000)
-	v.Set("api-url", "https://example.org")
+	v.Set("api-url", testServerURL)
 	v.Set("entity", "testdata/main.go")
 	v.Set("entity-type", "file")
+	v.Set("hide-branch-names", "true")
+	v.Set("project", "wakatime-cli")
 	v.Set("extra-heartbeats", true)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("plugin", plugin)
+	v.Set("time", 1585598059.1)
 	v.Set("log-file", logFile.Name())
 	v.Set("verbose", true)
 
@@ -357,7 +408,7 @@ func TestSendHeartbeats_NonExistingExtraHeartbeatsEntity(t *testing.T) {
 	output, err := io.ReadAll(logFile)
 	require.NoError(t, err)
 
-	assert.Contains(t, string(output), "file 'nonexisting' does not exist. ignoring this extra heartbeat")
+	assert.Contains(t, string(output), "skipping because of non-existing file")
 }
 
 func setupTestServer() (string, *http.ServeMux, func()) {

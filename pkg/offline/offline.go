@@ -32,14 +32,12 @@ const (
 	SyncMaxDefault = 1000
 )
 
-// QueueFilepath returns the path for offline queue db file.
-func QueueFilepath() (string, error) {
-	home, err := ini.WakaHomeDir()
-	if err != nil {
-		return "", fmt.Errorf("failed getting user's home directory: %s", err)
-	}
+// Sender is a noop api client, used by offline.SaveHeartbeats.
+type Sender struct{}
 
-	return filepath.Join(home, dbFilename), nil
+// SendHeartbeats always returns an error.
+func (s *Sender) SendHeartbeats(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+	return nil, api.Err("skip sending heartbeats and only save to offline db")
 }
 
 // WithQueue initializes and returns a heartbeat handle option, which can be
@@ -82,6 +80,16 @@ func WithQueue(filepath string) (heartbeat.HandleOption, error) {
 			return results, nil
 		}
 	}, nil
+}
+
+// QueueFilepath returns the path for offline queue db file.
+func QueueFilepath() (string, error) {
+	home, err := ini.WakaHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("failed getting user's home directory: %s", err)
+	}
+
+	return filepath.Join(home, dbFilename), nil
 }
 
 // Sync returns a function to send queued heartbeats to the WakaTime API.
@@ -139,14 +147,6 @@ func Sync(filepath string, syncLimit int) func(next heartbeat.Handle) error {
 
 		return nil
 	}
-}
-
-// Sender is a noop api client, used by offline.SaveHeartbeats.
-type Sender struct{}
-
-// SendHeartbeats always returns an error.
-func (s *Sender) SendHeartbeats(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
-	return nil, api.Err("skip sending heartbeats and only save to offline db")
 }
 
 func handleResults(filepath string, results []heartbeat.Result, hh []heartbeat.Heartbeat) error {
@@ -402,6 +402,10 @@ func (q *Queue) PushMany(hh []heartbeat.Heartbeat) error {
 	}
 
 	for _, h := range hh {
+		if h.EntityRaw != "" {
+			h.Entity = h.EntityRaw
+		}
+
 		data, err := json.Marshal(h)
 		if err != nil {
 			return fmt.Errorf("failed to json marshal heartbeat: %s", err)

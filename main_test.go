@@ -82,7 +82,7 @@ func testSendHeartbeats(t *testing.T, entity, project string) {
 		assert.Equal(t, []string{heartbeat.UserAgentUnknownPlugin()}, req.Header["User-Agent"])
 
 		// check body
-		expectedBodyTpl, err := os.ReadFile("testdata/api_heartbeats_request.json.tpl")
+		expectedBodyTpl, err := os.ReadFile("testdata/api_heartbeats_request_template.json")
 		require.NoError(t, err)
 
 		entityPath, err := realpath.Realpath(entity)
@@ -133,6 +133,7 @@ func testSendHeartbeats(t *testing.T, entity, project string) {
 		"--lines-in-file", "100",
 		"--time", "1585598059",
 		"--hide-branch-names", ".*",
+		"--project", project,
 		"--write",
 		"--verbose",
 	)
@@ -219,6 +220,8 @@ func TestSendHeartbeats_Err(t *testing.T) {
 
 	var numCalls int
 
+	project := "wakatime-cli"
+
 	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
 		numCalls++
 
@@ -230,7 +233,7 @@ func TestSendHeartbeats_Err(t *testing.T) {
 		assert.Equal(t, []string{heartbeat.UserAgentUnknownPlugin()}, req.Header["User-Agent"])
 
 		// check body
-		expectedBodyTpl, err := os.ReadFile("testdata/api_heartbeats_request.json.tpl")
+		expectedBodyTpl, err := os.ReadFile("testdata/api_heartbeats_request_template.json")
 		require.NoError(t, err)
 
 		entityPath, err := realpath.Realpath("testdata/main.go")
@@ -240,7 +243,7 @@ func TestSendHeartbeats_Err(t *testing.T) {
 		expectedBody := fmt.Sprintf(
 			string(expectedBodyTpl),
 			entityPath,
-			"wakatime-cli",
+			project,
 			heartbeat.UserAgentUnknownPlugin(),
 		)
 
@@ -276,6 +279,7 @@ func TestSendHeartbeats_Err(t *testing.T) {
 		"--lines-in-file", "100",
 		"--time", "1585598059",
 		"--hide-branch-names", ".*",
+		"--project", project,
 		"--write",
 		"--verbose",
 	)

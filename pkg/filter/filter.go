@@ -1,9 +1,9 @@
 package filter
 
 import (
-	"errors"
 	"fmt"
 	"os"
+	"regexp"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/log"
@@ -17,6 +17,7 @@ type Config struct {
 	ExcludeUnknownProject      bool
 	Include                    []regex.Regex
 	IncludeOnlyWithProjectFile bool
+	RemoteAddressPattern       *regexp.Regexp
 }
 
 // WithFiltering initializes and returns a heartbeat handle option, which
@@ -32,13 +33,9 @@ func WithFiltering(config Config) heartbeat.HandleOption {
 			for _, h := range hh {
 				err := Filter(h, config)
 				if err != nil {
-					var errv Err
-					if errors.As(err, &errv) {
-						log.Debugln(errv.Error())
-						continue
-					}
+					log.Errorf(err.Error())
 
-					return nil, fmt.Errorf("error filtering heartbeat: %w", err)
+					continue
 				}
 
 				filtered = append(filtered, h)
@@ -60,19 +57,23 @@ func WithFiltering(config Config) heartbeat.HandleOption {
 func Filter(h heartbeat.Heartbeat, config Config) error {
 	// unknown project
 	if config.ExcludeUnknownProject && (h.Project == nil || *h.Project == "") {
-		return Err("skipping because of unknown project")
+		return fmt.Errorf("skipping because of unknown project")
 	}
 
 	// filter by pattern
 	if err := filterByPattern(h.Entity, config.Include, config.Exclude); err != nil {
-		return Err(fmt.Sprintf("filter by pattern: %s", err))
+		return fmt.Errorf(fmt.Sprintf("filter by pattern: %s", err))
+	}
+
+	if config.RemoteAddressPattern != nil && config.RemoteAddressPattern.MatchString(h.Entity) {
+		return nil
 	}
 
 	// filter file
 	if h.EntityType == heartbeat.FileType {
 		err := filterFileEntity(h.Entity, config.IncludeOnlyWithProjectFile)
 		if err != nil {
-			return Err(fmt.Sprintf("filter file: %s", err))
+			return fmt.Errorf(fmt.Sprintf("filter file: %s", err))
 		}
 	}
 
@@ -97,7 +98,7 @@ func filterByPattern(entity string, include, exclude []regex.Regex) error {
 	// filter by  exclude pattern
 	for _, pattern := range exclude {
 		if pattern.MatchString(entity) {
-			return Err(fmt.Sprintf("skipping because matches exclude pattern %q", pattern.String()))
+			return fmt.Errorf(fmt.Sprintf("skipping because matches exclude pattern %q", pattern.String()))
 		}
 	}
 
@@ -111,14 +112,14 @@ func filterByPattern(entity string, include, exclude []regex.Regex) error {
 func filterFileEntity(filepath string, includeOnlyWithProjectFile bool) error {
 	// skip files that don't exist on disk
 	if _, err := os.Stat(filepath); os.IsNotExist(err) {
-		return Err(fmt.Sprintf("skipping because of non-existing file %q", filepath))
+		return fmt.Errorf(fmt.Sprintf("skipping because of non-existing file %q", filepath))
 	}
 
 	// when including only with project file, skip files when the project does not contain a .wakatime-project file
 	if includeOnlyWithProjectFile {
 		_, ok := project.FindFileOrDirectory(filepath, project.WakaTimeProjectFile)
 		if !ok {
-			return Err("skipping because missing .wakatime-project file in parent path")
+			return fmt.Errorf("skipping because missing .wakatime-project file in parent path")
 		}
 	}
 

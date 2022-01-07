@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"regexp"
 	"testing"
 
 	"github.com/wakatime/wakatime-cli/pkg/filter"
@@ -145,11 +146,7 @@ func TestFilter_ErrMatchesExcludePattern(t *testing.T) {
 		},
 	})
 
-	var errv filter.Err
-
-	assert.True(t, errors.As(err, &errv))
-	assert.Equal(t,
-		filter.Err("filter by pattern: skipping because matches exclude pattern \"^.*exclude-this-file.*$\""), errv)
+	assert.EqualError(t, err, "filter by pattern: skipping because matches exclude pattern \"^.*exclude-this-file.*$\"")
 }
 
 func TestFilter_ErrUnknownProject(t *testing.T) {
@@ -175,10 +172,8 @@ func TestFilter_ErrUnknownProject(t *testing.T) {
 			err = filter.Filter(h, filter.Config{
 				ExcludeUnknownProject: true,
 			})
-			var errv filter.Err
-			assert.True(t, errors.As(err, &errv))
 
-			assert.Equal(t, filter.Err("skipping because of unknown project"), errv)
+			assert.EqualError(t, err, "skipping because of unknown project")
 		})
 	}
 }
@@ -188,10 +183,7 @@ func TestFilter_ErrNonExistingFile(t *testing.T) {
 
 	err := filter.Filter(h, filter.Config{})
 
-	var errv filter.Err
-
-	assert.True(t, errors.As(err, &errv))
-	assert.Equal(t, filter.Err("filter file: skipping because of non-existing file \"/tmp/main.go\""), errv)
+	assert.EqualError(t, err, "filter file: skipping because of non-existing file \"/tmp/main.go\"")
 }
 
 func TestFilter_ExistingProjectFile(t *testing.T) {
@@ -215,6 +207,16 @@ func TestFilter_ExistingProjectFile(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestFilter_RemoteFile(t *testing.T) {
+	h := testHeartbeat()
+	h.Entity = "ssh://wakatime:1234@192.168.1.1/path/to/remote/main.go"
+
+	err := filter.Filter(h, filter.Config{
+		RemoteAddressPattern: regexp.MustCompile(`(?i)^((ssh|sftp)://)+(?P<credentials>[^:@]+(:([^:@])+)?@)?[^:]+(:\d+)?`),
+	})
+	require.NoError(t, err)
+}
+
 func TestFilter_ErrNonExistingProjectFile(t *testing.T) {
 	tmpDir, err := os.MkdirTemp(os.TempDir(), "wakatime")
 	require.NoError(t, err)
@@ -231,10 +233,7 @@ func TestFilter_ErrNonExistingProjectFile(t *testing.T) {
 		IncludeOnlyWithProjectFile: true,
 	})
 
-	var errv filter.Err
-
-	assert.True(t, errors.As(err, &errv))
-	assert.Equal(t, filter.Err("filter file: skipping because missing .wakatime-project file in parent path"), errv)
+	assert.EqualError(t, err, "filter file: skipping because missing .wakatime-project file in parent path")
 }
 
 func testHeartbeat() heartbeat.Heartbeat {
