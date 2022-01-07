@@ -42,6 +42,9 @@ import (
 	"github.com/danwakefield/fnmatch"
 )
 
+// Max file size supporting reading from file. Default is 512Kb.
+const maxFileSize = 512000
+
 // detectChromaCustomized returns the best by filename matching lexer. Best lexer is determined
 // by customized priority.
 // This is a modified implementation of chroma.lexers.internal.api:Match().
@@ -198,7 +201,7 @@ func selectByCustomizedPriority(filepath string, lexers chroma.PrioritisedLexers
 	return weighted[0].Lexer, weighted[0].Weight
 }
 
-// fileHead returns the first 512000 bytes of the file's content.
+// fileHead returns the first `maxFileSize` bytes of the file's content.
 func fileHead(filepath string) ([]byte, error) {
 	f, err := os.Open(filepath)
 	if err != nil {
@@ -207,7 +210,7 @@ func fileHead(filepath string) ([]byte, error) {
 
 	defer f.Close()
 
-	data := make([]byte, 512000)
+	data := make([]byte, maxFileSize)
 
 	_, err = f.ReadAt(data, 0)
 	if err != nil && err != io.EOF {

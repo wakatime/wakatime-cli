@@ -3,6 +3,7 @@ package filter
 import (
 	"fmt"
 	"os"
+	"regexp"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/log"
@@ -16,6 +17,7 @@ type Config struct {
 	ExcludeUnknownProject      bool
 	Include                    []regex.Regex
 	IncludeOnlyWithProjectFile bool
+	RemoteAddressPattern       *regexp.Regexp
 }
 
 // WithFiltering initializes and returns a heartbeat handle option, which
@@ -61,6 +63,10 @@ func Filter(h heartbeat.Heartbeat, config Config) error {
 	// filter by pattern
 	if err := filterByPattern(h.Entity, config.Include, config.Exclude); err != nil {
 		return fmt.Errorf(fmt.Sprintf("filter by pattern: %s", err))
+	}
+
+	if config.RemoteAddressPattern != nil && config.RemoteAddressPattern.MatchString(h.Entity) {
+		return nil
 	}
 
 	// filter file
