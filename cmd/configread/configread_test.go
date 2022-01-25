@@ -103,8 +103,8 @@ func TestReadErr(t *testing.T) {
 
 			assert.Equal(
 				t,
-				err.Error(),
 				test.ErrorMsg,
+				err.Error(),
 				fmt.Sprintf("error %q differs from the string set", err),
 			)
 
