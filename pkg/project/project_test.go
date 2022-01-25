@@ -266,7 +266,6 @@ func TestDetectWithRevControl_GitDetected(t *testing.T) {
 	result := project.DetectWithRevControl(
 		filepath.Join(fp, "wakatime-cli/src/pkg/file.go"),
 		[]regex.Regex{},
-		false,
 	)
 
 	assert.Contains(t, result.Folder, filepath.Join(fp, "wakatime-cli"))

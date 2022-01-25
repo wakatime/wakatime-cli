@@ -201,7 +201,6 @@ func initHandleOptions(params params.Params) []heartbeat.HandleOption {
 		}),
 		filter.WithFiltering(filter.Config{
 			Exclude:                    params.Heartbeat.Filter.Exclude,
-			ExcludeUnknownProject:      params.Heartbeat.Filter.ExcludeUnknownProject,
 			Include:                    params.Heartbeat.Filter.Include,
 			IncludeOnlyWithProjectFile: params.Heartbeat.Filter.IncludeOnlyWithProjectFile,
 			RemoteAddressPattern:       remote.RemoteAddressRegex,
@@ -220,6 +219,9 @@ func initHandleOptions(params params.Params) []heartbeat.HandleOption {
 				params.Heartbeat.Entity, params.Heartbeat.Sanitize.HideProjectNames),
 			MapPatterns:       params.Heartbeat.Project.MapPatterns,
 			SubmodulePatterns: params.Heartbeat.Project.DisableSubmodule,
+		}),
+		project.WithFiltering(project.FilterConfig{
+			ExcludeUnknownProject: params.Heartbeat.Filter.ExcludeUnknownProject,
 		}),
 		heartbeat.WithSanitization(heartbeat.SanitizeConfig{
 			BranchPatterns:       params.Heartbeat.Sanitize.HideBranchNames,

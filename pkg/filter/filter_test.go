@@ -99,9 +99,7 @@ func TestFilter_NonFileTypeEmptyEntity(t *testing.T) {
 	h.Entity = ""
 	h.EntityType = heartbeat.AppType
 
-	err := filter.Filter(h, filter.Config{
-		ExcludeUnknownProject: true,
-	})
+	err := filter.Filter(h, filter.Config{})
 	require.NoError(t, err)
 }
 
@@ -147,35 +145,6 @@ func TestFilter_ErrMatchesExcludePattern(t *testing.T) {
 	})
 
 	assert.EqualError(t, err, "filter by pattern: skipping because matches exclude pattern \"^.*exclude-this-file.*$\"")
-}
-
-func TestFilter_ErrUnknownProject(t *testing.T) {
-	tests := map[string]*string{
-		"nil":          nil,
-		"empty string": heartbeat.String(""),
-	}
-
-	for name, projectValue := range tests {
-		t.Run(name, func(t *testing.T) {
-			tmpDir, err := os.MkdirTemp(os.TempDir(), "wakatime")
-			require.NoError(t, err)
-
-			defer os.RemoveAll(tmpDir)
-
-			tmpFile, err := os.CreateTemp(tmpDir, "")
-			require.NoError(t, err)
-
-			h := testHeartbeat()
-			h.Entity = tmpFile.Name()
-			h.Project = projectValue
-
-			err = filter.Filter(h, filter.Config{
-				ExcludeUnknownProject: true,
-			})
-
-			assert.EqualError(t, err, "skipping because of unknown project")
-		})
-	}
 }
 
 func TestFilter_ErrNonExistingFile(t *testing.T) {
