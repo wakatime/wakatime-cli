@@ -12,12 +12,9 @@ import (
 )
 
 func TestWithEntityModifier_XCodePlayground(t *testing.T) {
-	tmpDir, err := os.MkdirTemp(os.TempDir(), "wakatime")
-	require.NoError(t, err)
+	tmpDir := t.TempDir()
 
-	defer os.RemoveAll(tmpDir)
-
-	err = os.Mkdir(filepath.Join(tmpDir, "wakatime.playground"), os.FileMode(int(0700)))
+	err := os.Mkdir(filepath.Join(tmpDir, "wakatime.playground"), os.FileMode(int(0700)))
 	require.NoError(t, err)
 
 	opt := heartbeat.WithEntityModifer()

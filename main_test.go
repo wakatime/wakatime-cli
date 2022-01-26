@@ -60,6 +60,7 @@ func TestSendHeartbeats(t *testing.T) {
 
 func TestSendHeartbeats_EntityFileInTempDir(t *testing.T) {
 	tmpDir := t.TempDir()
+
 	runCmd(exec.Command("cp", "./testdata/main.go", tmpDir), &bytes.Buffer{})
 
 	testSendHeartbeats(t, filepath.Join(tmpDir, "main.go"), "")
@@ -110,15 +111,17 @@ func testSendHeartbeats(t *testing.T, entity, project string) {
 		require.NoError(t, err)
 	})
 
-	offlineQueueFile, err := os.CreateTemp(os.TempDir(), "")
+	tmpDir := t.TempDir()
+
+	offlineQueueFile, err := os.CreateTemp(tmpDir, "")
 	require.NoError(t, err)
 
-	defer os.Remove(offlineQueueFile.Name())
+	defer offlineQueueFile.Close()
 
-	tmpFile, err := os.CreateTemp(os.TempDir(), "wakatime.cfg")
+	tmpFile, err := os.CreateTemp(tmpDir, "wakatime.cfg")
 	require.NoError(t, err)
 
-	defer os.Remove(tmpFile.Name())
+	defer tmpFile.Close()
 
 	runWakatimeCli(
 		t,
@@ -166,15 +169,17 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	offlineQueueFile, err := os.CreateTemp(os.TempDir(), "")
+	tmpDir := t.TempDir()
+
+	offlineQueueFile, err := os.CreateTemp(tmpDir, "")
 	require.NoError(t, err)
 
-	defer os.Remove(offlineQueueFile.Name())
+	defer offlineQueueFile.Close()
 
-	tmpFile, err := os.CreateTemp(os.TempDir(), "wakatime.cfg")
+	tmpFile, err := os.CreateTemp(tmpDir, "wakatime.cfg")
 	require.NoError(t, err)
 
-	defer os.Remove(tmpFile.Name())
+	defer tmpFile.Close()
 
 	data, err := os.ReadFile("testdata/extra_heartbeats.json")
 	require.NoError(t, err)
@@ -256,15 +261,17 @@ func TestSendHeartbeats_Err(t *testing.T) {
 		w.WriteHeader(http.StatusBadGateway)
 	})
 
-	offlineQueueFile, err := os.CreateTemp(os.TempDir(), "")
+	tmpDir := t.TempDir()
+
+	offlineQueueFile, err := os.CreateTemp(tmpDir, "")
 	require.NoError(t, err)
 
-	defer os.Remove(offlineQueueFile.Name())
+	defer offlineQueueFile.Close()
 
-	tmpFile, err := os.CreateTemp(os.TempDir(), "wakatime.cfg")
+	tmpFile, err := os.CreateTemp(tmpDir, "wakatime.cfg")
 	require.NoError(t, err)
 
-	defer os.Remove(tmpFile.Name())
+	defer tmpFile.Close()
 
 	out := runWakatimeCliExpectErr(
 		t,
@@ -290,15 +297,17 @@ func TestSendHeartbeats_Err(t *testing.T) {
 }
 
 func TestSendHeartbeats_MalformedConfig(t *testing.T) {
-	tmpFile, err := os.CreateTemp(os.TempDir(), "wakatime-internal.cfg")
+	tmpDir := t.TempDir()
+
+	tmpFile, err := os.CreateTemp(tmpDir, "wakatime-internal.cfg")
 	require.NoError(t, err)
 
-	defer os.Remove(tmpFile.Name())
+	defer tmpFile.Close()
 
-	offlineQueueFile, err := os.CreateTemp(os.TempDir(), "")
+	offlineQueueFile, err := os.CreateTemp(tmpDir, "")
 	require.NoError(t, err)
 
-	defer os.Remove(offlineQueueFile.Name())
+	defer offlineQueueFile.Close()
 
 	out := runWakatimeCliExpectErr(
 		t,
@@ -319,10 +328,10 @@ func TestSendHeartbeats_MalformedConfig(t *testing.T) {
 }
 
 func TestSendHeartbeats_MalformedInternalConfig(t *testing.T) {
-	offlineQueueFile, err := os.CreateTemp(os.TempDir(), "")
+	offlineQueueFile, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)
 
-	defer os.Remove(offlineQueueFile.Name())
+	defer offlineQueueFile.Close()
 
 	out := runWakatimeCliExpectErr(
 		t,
@@ -347,10 +356,10 @@ func TestTodayGoal(t *testing.T) {
 
 	var numCalls int
 
-	tmpFile, err := os.CreateTemp(os.TempDir(), "wakatime.cfg")
+	tmpFile, err := os.CreateTemp(t.TempDir(), "wakatime.cfg")
 	require.NoError(t, err)
 
-	defer os.Remove(tmpFile.Name())
+	defer tmpFile.Close()
 
 	router.HandleFunc("/users/current/goals/11111111-1111-4111-8111-111111111111",
 		func(w http.ResponseWriter, req *http.Request) {
@@ -392,10 +401,10 @@ func TestTodaySummary(t *testing.T) {
 
 	var numCalls int
 
-	tmpFile, err := os.CreateTemp(os.TempDir(), "wakatime.cfg")
+	tmpFile, err := os.CreateTemp(t.TempDir(), "wakatime.cfg")
 	require.NoError(t, err)
 
-	defer os.Remove(tmpFile.Name())
+	defer tmpFile.Close()
 
 	router.HandleFunc("/users/current/statusbar/today", func(w http.ResponseWriter, req *http.Request) {
 		numCalls++
@@ -431,10 +440,10 @@ func TestTodaySummary(t *testing.T) {
 }
 
 func TestOfflineCountEmpty(t *testing.T) {
-	offlineQueueFile, err := os.CreateTemp(os.TempDir(), "")
+	offlineQueueFile, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)
 
-	defer os.Remove(offlineQueueFile.Name())
+	defer offlineQueueFile.Close()
 
 	out := runWakatimeCli(
 		t,
@@ -458,15 +467,17 @@ func TestOfflineCountWithOneHeartbeat(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	offlineQueueFile, err := os.CreateTemp(os.TempDir(), "")
+	tmpDir := t.TempDir()
+
+	offlineQueueFile, err := os.CreateTemp(tmpDir, "")
 	require.NoError(t, err)
 
-	defer os.Remove(offlineQueueFile.Name())
+	defer offlineQueueFile.Close()
 
-	tmpFile, err := os.CreateTemp(os.TempDir(), "wakatime.cfg")
+	tmpFile, err := os.CreateTemp(tmpDir, "wakatime.cfg")
 	require.NoError(t, err)
 
-	defer os.Remove(tmpFile.Name())
+	defer tmpFile.Close()
 
 	out := runWakatimeCliExpectErr(
 		t,
@@ -530,10 +541,10 @@ func TestVersionVerbose(t *testing.T) {
 func TestMultipleRunners_NotCorruptConfigFile(t *testing.T) {
 	var wg sync.WaitGroup
 
-	tmpFile, err := os.CreateTemp(os.TempDir(), "wakatime.cfg")
+	tmpFile, err := os.CreateTemp(t.TempDir(), "wakatime.cfg")
 	require.NoError(t, err)
 
-	defer os.Remove(tmpFile.Name())
+	defer tmpFile.Close()
 
 	for i := 0; i < 20; i++ {
 		wg.Add(1)
@@ -556,7 +567,7 @@ func TestMultipleRunners_NotCorruptConfigFile(t *testing.T) {
 }
 
 func runWakatimeCli(t *testing.T, buffer *bytes.Buffer, args ...string) string {
-	f, err := os.CreateTemp(os.TempDir(), "")
+	f, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)
 
 	defer func() {
@@ -575,7 +586,7 @@ func runWakatimeCli(t *testing.T, buffer *bytes.Buffer, args ...string) string {
 }
 
 func runWakatimeCliExpectErr(t *testing.T, exitcode int, args ...string) string {
-	f, err := os.CreateTemp(os.TempDir(), "")
+	f, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)
 
 	defer func() {

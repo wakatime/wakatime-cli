@@ -68,10 +68,10 @@ func TestFormatLocalFilePath(t *testing.T) {
 }
 
 func TestFormatLocalFilePath_LocalFileExists(t *testing.T) {
-	tmpFile, err := os.CreateTemp(os.TempDir(), "")
+	tmpFile, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)
 
-	defer os.Remove(tmpFile.Name())
+	defer tmpFile.Close()
 
 	cmd = testCommander{}
 	formatted, err := FormatLocalFilePath(tmpFile.Name(), `S:\entity`)
@@ -81,10 +81,10 @@ func TestFormatLocalFilePath_LocalFileExists(t *testing.T) {
 }
 
 func TestFormatLocalFilePath_EntityExists(t *testing.T) {
-	tmpFile, err := os.CreateTemp(os.TempDir(), "")
+	tmpFile, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)
 
-	defer os.Remove(tmpFile.Name())
+	defer tmpFile.Close()
 
 	cmd = testCommander{}
 	formatted, err := FormatLocalFilePath(`X:\localfile`, tmpFile.Name())

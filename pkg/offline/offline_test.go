@@ -56,10 +56,10 @@ func TestQueueFilepath(t *testing.T) {
 
 func TestWithQueue(t *testing.T) {
 	// setup
-	f, err := os.CreateTemp(os.TempDir(), "")
+	f, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)
 
-	defer os.Remove(f.Name())
+	defer f.Close()
 
 	db, err := bolt.Open(f.Name(), 0600, nil)
 	require.NoError(t, err)
@@ -144,10 +144,10 @@ func TestWithQueue(t *testing.T) {
 
 func TestWithQueue_ApiError(t *testing.T) {
 	// setup
-	f, err := os.CreateTemp(os.TempDir(), "")
+	f, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)
 
-	defer os.Remove(f.Name())
+	defer f.Close()
 
 	opt, err := offline.WithQueue(f.Name())
 	require.NoError(t, err)
@@ -207,10 +207,10 @@ func TestWithQueue_ApiError(t *testing.T) {
 
 func TestWithQueue_InvalidResults(t *testing.T) {
 	// setup
-	f, err := os.CreateTemp(os.TempDir(), "")
+	f, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)
 
-	defer os.Remove(f.Name())
+	defer f.Close()
 
 	opt, err := offline.WithQueue(f.Name())
 	require.NoError(t, err)
@@ -293,10 +293,10 @@ func TestWithQueue_InvalidResults(t *testing.T) {
 
 func TestWithQueue_HandleLeftovers(t *testing.T) {
 	// setup
-	f, err := os.CreateTemp(os.TempDir(), "")
+	f, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)
 
-	defer os.Remove(f.Name())
+	defer f.Close()
 
 	opt, err := offline.WithQueue(f.Name())
 	require.NoError(t, err)
@@ -362,10 +362,10 @@ func TestWithQueue_HandleLeftovers(t *testing.T) {
 
 func TestSync(t *testing.T) {
 	// setup
-	f, err := os.CreateTemp(os.TempDir(), "")
+	f, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)
 
-	defer os.RemoveAll(f.Name())
+	defer f.Close()
 
 	db, err := bolt.Open(f.Name(), 0600, nil)
 	require.NoError(t, err)
@@ -443,10 +443,10 @@ func TestSync(t *testing.T) {
 
 func TestSync_MultipleRequests(t *testing.T) {
 	// setup
-	f, err := os.CreateTemp(os.TempDir(), "")
+	f, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)
 
-	defer os.RemoveAll(f.Name())
+	defer f.Close()
 
 	db, err := bolt.Open(f.Name(), 0600, nil)
 	require.NoError(t, err)
@@ -533,10 +533,10 @@ func TestSync_MultipleRequests(t *testing.T) {
 
 func TestSync_APIError(t *testing.T) {
 	// setup
-	f, err := os.CreateTemp(os.TempDir(), "")
+	f, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)
 
-	defer os.RemoveAll(f.Name())
+	defer f.Close()
 
 	db, err := bolt.Open(f.Name(), 0600, nil)
 	require.NoError(t, err)
@@ -612,10 +612,10 @@ func TestSync_APIError(t *testing.T) {
 
 func TestSync_InvalidResults(t *testing.T) {
 	// setup
-	f, err := os.CreateTemp(os.TempDir(), "")
+	f, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)
 
-	defer os.RemoveAll(f.Name())
+	defer f.Close()
 
 	db, err := bolt.Open(f.Name(), 0600, nil)
 	require.NoError(t, err)
@@ -726,10 +726,10 @@ func TestSync_InvalidResults(t *testing.T) {
 
 func TestSync_SyncLimit(t *testing.T) {
 	// setup
-	f, err := os.CreateTemp(os.TempDir(), "")
+	f, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)
 
-	defer os.RemoveAll(f.Name())
+	defer f.Close()
 
 	db, err := bolt.Open(f.Name(), 0600, nil)
 	require.NoError(t, err)
@@ -804,13 +804,15 @@ func TestSync_SyncLimit(t *testing.T) {
 
 func TestQueue_PopMany(t *testing.T) {
 	// setup
-	f, err := os.CreateTemp(os.TempDir(), "")
+	f, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)
 
-	defer os.Remove(f.Name())
+	defer f.Close()
 
 	db, err := bolt.Open(f.Name(), 0600, nil)
 	require.NoError(t, err)
+
+	defer db.Close()
 
 	dataGo, err := os.ReadFile("testdata/heartbeat_go.json")
 	require.NoError(t, err)
@@ -1006,7 +1008,7 @@ func TestQueue_Count(t *testing.T) {
 
 func initDB(t *testing.T) (*bolt.DB, func()) {
 	// create tmp file
-	f, err := os.CreateTemp(os.TempDir(), "")
+	f, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)
 
 	// init db
@@ -1014,7 +1016,7 @@ func initDB(t *testing.T) (*bolt.DB, func()) {
 	require.NoError(t, err)
 
 	return db, func() {
-		defer os.Remove(f.Name())
+		defer f.Close()
 		defer db.Close()
 	}
 }

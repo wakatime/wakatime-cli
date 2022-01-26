@@ -14,6 +14,7 @@ import (
 	"github.com/wakatime/wakatime-cli/cmd"
 	cmdheartbeat "github.com/wakatime/wakatime-cli/cmd/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/offline"
 
 	"github.com/spf13/viper"
@@ -92,10 +93,8 @@ func TestSendHeartbeats(t *testing.T) {
 	v.Set("timeout", 5)
 	v.Set("write", true)
 
-	f, err := os.CreateTemp(os.TempDir(), "")
+	f, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)
-
-	defer os.Remove(f.Name())
 
 	err = cmdheartbeat.SendHeartbeats(v, f.Name())
 	require.NoError(t, err)
@@ -128,10 +127,8 @@ func TestSendHeartbeats_WithFiltering_Exclude(t *testing.T) {
 	v.Set("timeout", 5)
 	v.Set("write", true)
 
-	f, err := os.CreateTemp(os.TempDir(), "")
+	f, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)
-
-	defer os.Remove(f.Name())
 
 	err = cmdheartbeat.SendHeartbeats(v, f.Name())
 	require.NoError(t, err)
@@ -258,10 +255,10 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 	v.Set("timeout", 5)
 	v.Set("write", true)
 
-	offlineQueueFile, err := os.CreateTemp(os.TempDir(), "")
+	offlineQueueFile, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)
 
-	defer os.Remove(offlineQueueFile.Name())
+	defer offlineQueueFile.Close()
 
 	err = cmdheartbeat.SendHeartbeats(v, offlineQueueFile.Name())
 	require.NoError(t, err)
@@ -275,10 +272,12 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 }
 
 func TestSendHeartbeats_NonExistingEntity(t *testing.T) {
-	logFile, err := os.CreateTemp(os.TempDir(), "")
+	tmpDir := t.TempDir()
+
+	logFile, err := os.CreateTemp(tmpDir, "")
 	require.NoError(t, err)
 
-	defer os.Remove(logFile.Name())
+	defer logFile.Close()
 
 	v := viper.New()
 	v.SetDefault("sync-offline-activity", 1000)
@@ -290,10 +289,19 @@ func TestSendHeartbeats_NonExistingEntity(t *testing.T) {
 
 	cmd.SetupLogging(v)
 
-	f, err := os.CreateTemp(os.TempDir(), "")
+	defer func() {
+		if file, ok := log.Output().(*os.File); ok {
+			_ = file.Sync()
+			file.Close()
+		} else if handler, ok := log.Output().(io.Closer); ok {
+			handler.Close()
+		}
+	}()
+
+	f, err := os.CreateTemp(tmpDir, "")
 	require.NoError(t, err)
 
-	defer os.Remove(f.Name())
+	defer f.Close()
 
 	err = cmdheartbeat.SendHeartbeats(v, f.Name())
 	require.NoError(t, err)
@@ -376,10 +384,10 @@ func TestSendHeartbeats_NonExistingExtraHeartbeatsEntity(t *testing.T) {
 		inw.Close()
 	}()
 
-	logFile, err := os.CreateTemp(os.TempDir(), "")
-	require.NoError(t, err)
+	tmpDir := t.TempDir()
 
-	defer os.Remove(logFile.Name())
+	logFile, err := os.CreateTemp(tmpDir, "")
+	require.NoError(t, err)
 
 	v := viper.New()
 	v.SetDefault("sync-offline-activity", 1000)
@@ -397,10 +405,20 @@ func TestSendHeartbeats_NonExistingExtraHeartbeatsEntity(t *testing.T) {
 
 	cmd.SetupLogging(v)
 
-	f, err := os.CreateTemp(os.TempDir(), "")
+	f, err := os.CreateTemp(tmpDir, "")
 	require.NoError(t, err)
 
-	defer os.Remove(f.Name())
+	defer func() {
+		f.Close()
+		logFile.Close()
+
+		if file, ok := log.Output().(*os.File); ok {
+			_ = file.Sync()
+			file.Close()
+		} else if handler, ok := log.Output().(io.Closer); ok {
+			handler.Close()
+		}
+	}()
 
 	err = cmdheartbeat.SendHeartbeats(v, f.Name())
 	require.NoError(t, err)
