@@ -16,16 +16,14 @@ import (
 )
 
 func TestWithFiltering(t *testing.T) {
-	tmpDir, err := os.MkdirTemp(os.TempDir(), "wakatime")
+	tmpFile, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)
 
-	defer os.RemoveAll(tmpDir)
-
-	tmpFile, err := os.CreateTemp(tmpDir, "")
-	require.NoError(t, err)
+	defer tmpFile.Close()
 
 	first := testHeartbeat()
 	first.Entity = tmpFile.Name()
+
 	second := testHeartbeat()
 	second.Time++
 
@@ -79,13 +77,10 @@ func TestWithFiltering_AbortAllFiltered(t *testing.T) {
 }
 
 func TestFilter(t *testing.T) {
-	tmpDir, err := os.MkdirTemp(os.TempDir(), "wakatime")
+	tmpFile, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)
 
-	defer os.RemoveAll(tmpDir)
-
-	tmpFile, err := os.CreateTemp(tmpDir, "")
-	require.NoError(t, err)
+	defer tmpFile.Close()
 
 	h := testHeartbeat()
 	h.Entity = tmpFile.Name()
@@ -99,20 +94,15 @@ func TestFilter_NonFileTypeEmptyEntity(t *testing.T) {
 	h.Entity = ""
 	h.EntityType = heartbeat.AppType
 
-	err := filter.Filter(h, filter.Config{
-		ExcludeUnknownProject: true,
-	})
+	err := filter.Filter(h, filter.Config{})
 	require.NoError(t, err)
 }
 
 func TestFilter_IncludeMatchOverwritesExcludeMatch(t *testing.T) {
-	tmpDir, err := os.MkdirTemp(os.TempDir(), "wakatime")
+	tmpFile, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)
 
-	defer os.RemoveAll(tmpDir)
-
-	tmpFile, err := os.CreateTemp(tmpDir, "")
-	require.NoError(t, err)
+	defer tmpFile.Close()
 
 	h := testHeartbeat()
 	h.Entity = tmpFile.Name()
@@ -129,13 +119,10 @@ func TestFilter_IncludeMatchOverwritesExcludeMatch(t *testing.T) {
 }
 
 func TestFilter_ErrMatchesExcludePattern(t *testing.T) {
-	tmpDir, err := os.MkdirTemp(os.TempDir(), "wakatime")
+	tmpFile, err := os.CreateTemp(t.TempDir(), "exclude-this-file")
 	require.NoError(t, err)
 
-	defer os.RemoveAll(tmpDir)
-
-	tmpFile, err := os.CreateTemp(tmpDir, "exclude-this-file")
-	require.NoError(t, err)
+	defer tmpFile.Close()
 
 	h := testHeartbeat()
 	h.Entity = tmpFile.Name()
@@ -149,35 +136,6 @@ func TestFilter_ErrMatchesExcludePattern(t *testing.T) {
 	assert.EqualError(t, err, "filter by pattern: skipping because matches exclude pattern \"^.*exclude-this-file.*$\"")
 }
 
-func TestFilter_ErrUnknownProject(t *testing.T) {
-	tests := map[string]*string{
-		"nil":          nil,
-		"empty string": heartbeat.String(""),
-	}
-
-	for name, projectValue := range tests {
-		t.Run(name, func(t *testing.T) {
-			tmpDir, err := os.MkdirTemp(os.TempDir(), "wakatime")
-			require.NoError(t, err)
-
-			defer os.RemoveAll(tmpDir)
-
-			tmpFile, err := os.CreateTemp(tmpDir, "")
-			require.NoError(t, err)
-
-			h := testHeartbeat()
-			h.Entity = tmpFile.Name()
-			h.Project = projectValue
-
-			err = filter.Filter(h, filter.Config{
-				ExcludeUnknownProject: true,
-			})
-
-			assert.EqualError(t, err, "skipping because of unknown project")
-		})
-	}
-}
-
 func TestFilter_ErrNonExistingFile(t *testing.T) {
 	h := testHeartbeat()
 
@@ -187,16 +145,17 @@ func TestFilter_ErrNonExistingFile(t *testing.T) {
 }
 
 func TestFilter_ExistingProjectFile(t *testing.T) {
-	tmpDir, err := os.MkdirTemp(os.TempDir(), "wakatime")
-	require.NoError(t, err)
-
-	defer os.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
 	tmpFile, err := os.CreateTemp(tmpDir, "")
 	require.NoError(t, err)
 
-	_, err = os.Create(filepath.Join(tmpDir, ".wakatime-project"))
+	defer tmpFile.Close()
+
+	tmpFile2, err := os.Create(filepath.Join(tmpDir, ".wakatime-project"))
 	require.NoError(t, err)
+
+	defer tmpFile2.Close()
 
 	h := testHeartbeat()
 	h.Entity = tmpFile.Name()
@@ -218,13 +177,10 @@ func TestFilter_RemoteFile(t *testing.T) {
 }
 
 func TestFilter_ErrNonExistingProjectFile(t *testing.T) {
-	tmpDir, err := os.MkdirTemp(os.TempDir(), "wakatime")
+	tmpFile, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)
 
-	defer os.RemoveAll(tmpDir)
-
-	tmpFile, err := os.CreateTemp(tmpDir, "")
-	require.NoError(t, err)
+	defer tmpFile.Close()
 
 	h := testHeartbeat()
 	h.Entity = tmpFile.Name()

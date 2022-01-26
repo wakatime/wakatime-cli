@@ -14,7 +14,6 @@ import (
 // Config contains filtering configurations.
 type Config struct {
 	Exclude                    []regex.Regex
-	ExcludeUnknownProject      bool
 	Include                    []regex.Regex
 	IncludeOnlyWithProjectFile bool
 	RemoteAddressPattern       *regexp.Regexp
@@ -53,13 +52,7 @@ func WithFiltering(config Config) heartbeat.HandleOption {
 
 // Filter determines, following the passed in configurations, if a heartbeat
 // should be skipped.
-// Returns Err to signal to the caller to skip the heartbeat.
 func Filter(h heartbeat.Heartbeat, config Config) error {
-	// unknown project
-	if config.ExcludeUnknownProject && (h.Project == nil || *h.Project == "") {
-		return fmt.Errorf("skipping because of unknown project")
-	}
-
 	// filter by pattern
 	if err := filterByPattern(h.Entity, config.Include, config.Exclude); err != nil {
 		return fmt.Errorf(fmt.Sprintf("filter by pattern: %s", err))

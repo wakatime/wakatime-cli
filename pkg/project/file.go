@@ -26,6 +26,8 @@ func (f File) Detect() (Result, bool, error) {
 		return Result{}, false, nil
 	}
 
+	log.Debugf("wakatime project file found at: %s", fp)
+
 	lines, err := readFile(fp, 2)
 	if err != nil {
 		return Result{}, false, Err(fmt.Sprintf("error reading file: %s", err))

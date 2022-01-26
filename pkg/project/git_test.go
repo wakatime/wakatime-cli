@@ -18,8 +18,7 @@ import (
 )
 
 func TestGit_Detect(t *testing.T) {
-	fp, tearDown := setupTestGitBasic(t)
-	defer tearDown()
+	fp := setupTestGitBasic(t)
 
 	g := project.Git{
 		Filepath: filepath.Join(fp, "wakatime-cli/src/pkg/file.go"),
@@ -38,8 +37,7 @@ func TestGit_Detect(t *testing.T) {
 }
 
 func TestGit_Detect_BranchWithSlash(t *testing.T) {
-	fp, tearDown := setupTestGitBasicBranchWithSlash(t)
-	defer tearDown()
+	fp := setupTestGitBasicBranchWithSlash(t)
 
 	g := project.Git{
 		Filepath: filepath.Join(fp, "wakatime-cli/src/pkg/file.go"),
@@ -58,8 +56,7 @@ func TestGit_Detect_BranchWithSlash(t *testing.T) {
 }
 
 func TestGit_Detect_DetachedHead(t *testing.T) {
-	fp, tearDown := setupTestGitBasicDetachedHead(t)
-	defer tearDown()
+	fp := setupTestGitBasicDetachedHead(t)
 
 	g := project.Git{
 		Filepath: filepath.Join(fp, "wakatime-cli/src/pkg/file.go"),
@@ -78,8 +75,7 @@ func TestGit_Detect_DetachedHead(t *testing.T) {
 }
 
 func TestGit_Detect_GitConfigFile_File(t *testing.T) {
-	fp, tearDown := setupTestGitFile(t)
-	defer tearDown()
+	fp := setupTestGitFile(t)
 
 	tests := map[string]struct {
 		Filepath string
@@ -120,8 +116,7 @@ func TestGit_Detect_GitConfigFile_File(t *testing.T) {
 }
 
 func TestGit_Detect_Worktree(t *testing.T) {
-	fp, tearDown := setupTestGitWorktree(t)
-	defer tearDown()
+	fp := setupTestGitWorktree(t)
 
 	g := project.Git{
 		Filepath: filepath.Join(fp, "api/src/pkg/file.go"),
@@ -140,8 +135,7 @@ func TestGit_Detect_Worktree(t *testing.T) {
 }
 
 func TestGit_Detect_Submodule(t *testing.T) {
-	fp, tearDown := setupTestGitSubmodule(t)
-	defer tearDown()
+	fp := setupTestGitSubmodule(t)
 
 	g := project.Git{
 		Filepath:          filepath.Join(fp, "wakatime-cli/lib/billing/src/lib/lib.cpp"),
@@ -161,8 +155,7 @@ func TestGit_Detect_Submodule(t *testing.T) {
 }
 
 func TestGit_Detect_SubmoduleDisabled(t *testing.T) {
-	fp, tearDown := setupTestGitSubmodule(t)
-	defer tearDown()
+	fp := setupTestGitSubmodule(t)
 
 	g := project.Git{
 		Filepath:          filepath.Join(fp, "wakatime-cli/lib/billing/src/lib/lib.cpp"),
@@ -181,11 +174,10 @@ func TestGit_Detect_SubmoduleDisabled(t *testing.T) {
 	}, result)
 }
 
-func setupTestGitBasic(t *testing.T) (fp string, tearDown func()) {
-	tmpDir, err := os.MkdirTemp(os.TempDir(), "wakatime-git")
-	require.NoError(t, err)
+func setupTestGitBasic(t *testing.T) (fp string) {
+	tmpDir := t.TempDir()
 
-	tmpDir, err = realpath.Realpath(tmpDir)
+	tmpDir, err := realpath.Realpath(tmpDir)
 	require.NoError(t, err)
 
 	if runtime.GOOS == "windows" {
@@ -207,14 +199,13 @@ func setupTestGitBasic(t *testing.T) (fp string, tearDown func()) {
 	copyFile(t, "testdata/git_basic/config", filepath.Join(tmpDir, "wakatime-cli/.git/config"))
 	copyFile(t, "testdata/git_basic/HEAD", filepath.Join(tmpDir, "wakatime-cli/.git/HEAD"))
 
-	return tmpDir, func() { os.RemoveAll(tmpDir) }
+	return tmpDir
 }
 
-func setupTestGitBasicBranchWithSlash(t *testing.T) (fp string, tearDown func()) {
-	tmpDir, err := os.MkdirTemp(os.TempDir(), "wakatime-git")
-	require.NoError(t, err)
+func setupTestGitBasicBranchWithSlash(t *testing.T) (fp string) {
+	tmpDir := t.TempDir()
 
-	tmpDir, err = realpath.Realpath(tmpDir)
+	tmpDir, err := realpath.Realpath(tmpDir)
 	require.NoError(t, err)
 
 	if runtime.GOOS == "windows" {
@@ -236,14 +227,13 @@ func setupTestGitBasicBranchWithSlash(t *testing.T) (fp string, tearDown func())
 	copyFile(t, "testdata/git_basic/config", filepath.Join(tmpDir, "wakatime-cli/.git/config"))
 	copyFile(t, "testdata/git_basic/HEAD_WITH_SLASH", filepath.Join(tmpDir, "wakatime-cli/.git/HEAD"))
 
-	return tmpDir, func() { os.RemoveAll(tmpDir) }
+	return tmpDir
 }
 
-func setupTestGitBasicDetachedHead(t *testing.T) (fp string, tearDown func()) {
-	tmpDir, err := os.MkdirTemp(os.TempDir(), "wakatime-git")
-	require.NoError(t, err)
+func setupTestGitBasicDetachedHead(t *testing.T) (fp string) {
+	tmpDir := t.TempDir()
 
-	tmpDir, err = realpath.Realpath(tmpDir)
+	tmpDir, err := realpath.Realpath(tmpDir)
 	require.NoError(t, err)
 
 	if runtime.GOOS == "windows" {
@@ -265,14 +255,13 @@ func setupTestGitBasicDetachedHead(t *testing.T) (fp string, tearDown func()) {
 	copyFile(t, "testdata/git_basic/config", filepath.Join(tmpDir, "wakatime-cli/.git/config"))
 	copyFile(t, "testdata/git_basic/HEAD_DETACHED", filepath.Join(tmpDir, "wakatime-cli/.git/HEAD"))
 
-	return tmpDir, func() { os.RemoveAll(tmpDir) }
+	return tmpDir
 }
 
-func setupTestGitFile(t *testing.T) (fp string, tearDown func()) {
-	tmpDir, err := os.MkdirTemp(os.TempDir(), "wakatime-git")
-	require.NoError(t, err)
+func setupTestGitFile(t *testing.T) (fp string) {
+	tmpDir := t.TempDir()
 
-	tmpDir, err = realpath.Realpath(tmpDir)
+	tmpDir, err := realpath.Realpath(tmpDir)
 	require.NoError(t, err)
 
 	if runtime.GOOS == "windows" {
@@ -327,14 +316,13 @@ func setupTestGitFile(t *testing.T) (fp string, tearDown func()) {
 	_, err = tmpFile.WriteString(fmt.Sprintf("gitdir: %s", gitdir))
 	require.NoError(t, err)
 
-	return tmpDir, func() { os.RemoveAll(tmpDir) }
+	return tmpDir
 }
 
-func setupTestGitWorktree(t *testing.T) (fp string, tearDown func()) {
-	tmpDir, err := os.MkdirTemp(os.TempDir(), "wakatime-git")
-	require.NoError(t, err)
+func setupTestGitWorktree(t *testing.T) (fp string) {
+	tmpDir := t.TempDir()
 
-	tmpDir, err = realpath.Realpath(tmpDir)
+	tmpDir, err := realpath.Realpath(tmpDir)
 	require.NoError(t, err)
 
 	if runtime.GOOS == "windows" {
@@ -379,14 +367,13 @@ func setupTestGitWorktree(t *testing.T) (fp string, tearDown func()) {
 	_, err = tmpFile.WriteString(fmt.Sprintf("gitdir: %s/wakatime-cli/.git/worktrees/api", tmpDir))
 	require.NoError(t, err)
 
-	return tmpDir, func() { os.RemoveAll(tmpDir) }
+	return tmpDir
 }
 
-func setupTestGitSubmodule(t *testing.T) (fp string, tearDown func()) {
-	tmpDir, err := os.MkdirTemp(os.TempDir(), "wakatime-git")
-	require.NoError(t, err)
+func setupTestGitSubmodule(t *testing.T) (fp string) {
+	tmpDir := t.TempDir()
 
-	tmpDir, err = realpath.Realpath(tmpDir)
+	tmpDir, err := realpath.Realpath(tmpDir)
 	require.NoError(t, err)
 
 	if runtime.GOOS == "windows" {
@@ -437,5 +424,5 @@ func setupTestGitSubmodule(t *testing.T) (fp string, tearDown func()) {
 	copyFile(t, "testdata/git_submodule/HEAD2", filepath.Join(tmpDir, "billing/.git/HEAD"))
 	copyFile(t, "testdata/git_submodule/git", filepath.Join(tmpDir, "wakatime-cli/lib/billing/.git"))
 
-	return tmpDir, func() { os.RemoveAll(tmpDir) }
+	return tmpDir
 }

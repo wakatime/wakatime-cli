@@ -34,12 +34,7 @@ func TestFile_Detect_FileExists(t *testing.T) {
 }
 
 func TestFile_Detect_ParentFolderExists(t *testing.T) {
-	tmpDir, err := os.MkdirTemp(os.TempDir(), "wakatime")
-	require.NoError(t, err)
-
-	defer os.RemoveAll(tmpDir)
-
-	tmpDir, err = realpath.Realpath(tmpDir)
+	tmpDir, err := realpath.Realpath(t.TempDir())
 	require.NoError(t, err)
 
 	dir := filepath.Join(tmpDir, "src", "otherfolder")
@@ -70,14 +65,16 @@ func TestFile_Detect_ParentFolderExists(t *testing.T) {
 	assert.Equal(t, expected, result)
 }
 
-func TestFile_Detect_AnyFileFound(t *testing.T) {
-	tmpFile, err := os.CreateTemp(os.TempDir(), "wakatime-project")
+func TestFile_Detect_NoFileFound(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	tmpFile, err := os.CreateTemp(tmpDir, "wakatime-project")
 	require.NoError(t, err)
 
-	defer os.Remove(tmpFile.Name())
+	defer tmpFile.Close()
 
 	f := project.File{
-		Filepath: os.TempDir(),
+		Filepath: tmpDir,
 	}
 
 	result, detected, err := f.Detect()
@@ -90,10 +87,10 @@ func TestFile_Detect_AnyFileFound(t *testing.T) {
 }
 
 func TestFile_Detect_InvalidPath(t *testing.T) {
-	tmpFile, err := os.CreateTemp(os.TempDir(), "non-valid-file")
+	tmpFile, err := os.CreateTemp(t.TempDir(), "non-valid-file")
 	require.NoError(t, err)
 
-	defer os.Remove(tmpFile.Name())
+	defer tmpFile.Close()
 
 	f := project.File{
 		Filepath: tmpFile.Name(),
@@ -106,14 +103,11 @@ func TestFile_Detect_InvalidPath(t *testing.T) {
 }
 
 func TestFindFileOrDirectory(t *testing.T) {
-	tmpDir, err := os.MkdirTemp(os.TempDir(), "wakatime")
-	require.NoError(t, err)
-
-	defer os.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
 	dir := filepath.Join(tmpDir, "src", "otherfolder")
 
-	err = os.MkdirAll(dir, os.FileMode(int(0700)))
+	err := os.MkdirAll(dir, os.FileMode(int(0700)))
 	require.NoError(t, err)
 
 	copyFile(

@@ -67,10 +67,10 @@ func TestLoadParamsErr(t *testing.T) {
 }
 
 func TestWrite(t *testing.T) {
-	tmpFile, err := os.CreateTemp(os.TempDir(), "wakatime")
+	tmpFile, err := os.CreateTemp(t.TempDir(), "wakatime")
 	require.NoError(t, err)
 
-	defer os.Remove(tmpFile.Name())
+	defer tmpFile.Close()
 
 	v := viper.New()
 	ini, err := ini.NewIniWriter(v, func(vp *viper.Viper) (string, error) {
@@ -122,8 +122,8 @@ func TestWriteErr(t *testing.T) {
 
 			assert.Equal(
 				t,
-				err.Error(),
 				"failed loading params: neither section nor key/value can be empty",
+				err.Error(),
 				fmt.Sprintf("error %q differs from the string set", err),
 			)
 		})

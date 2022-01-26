@@ -34,8 +34,6 @@ func TestIsXCodePlayground(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			defer os.RemoveAll(test.Dir)
-
 			ret := isXCodePlayground(test.Dir)
 
 			assert.Equal(t, test.Expected, ret)
@@ -44,10 +42,9 @@ func TestIsXCodePlayground(t *testing.T) {
 }
 
 func setupTestXCodePlayground(t *testing.T, dir string) string {
-	tmpDir, err := os.MkdirTemp(os.TempDir(), "wakatime")
-	require.NoError(t, err)
+	tmpDir := t.TempDir()
 
-	err = os.Mkdir(filepath.Join(tmpDir, dir), os.FileMode(int(0700)))
+	err := os.Mkdir(filepath.Join(tmpDir, dir), os.FileMode(int(0700)))
 	require.NoError(t, err)
 
 	return filepath.Join(tmpDir, dir)

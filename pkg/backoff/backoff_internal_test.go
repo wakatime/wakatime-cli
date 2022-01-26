@@ -37,10 +37,10 @@ func TestShouldBackoff_NegateBackoff(t *testing.T) {
 func TestUpdateBackoffSettings(t *testing.T) {
 	v := viper.New()
 
-	tmpFile, err := os.CreateTemp(os.TempDir(), "wakatime")
+	tmpFile, err := os.CreateTemp(t.TempDir(), "wakatime")
 	require.NoError(t, err)
 
-	defer os.Remove(tmpFile.Name())
+	defer tmpFile.Close()
 
 	v.Set("config", tmpFile.Name())
 	v.Set("internal-config", tmpFile.Name())
@@ -65,10 +65,10 @@ func TestUpdateBackoffSettings(t *testing.T) {
 func TestUpdateBackoffSettings_NotInBackoff(t *testing.T) {
 	v := viper.New()
 
-	tmpFile, err := os.CreateTemp(os.TempDir(), "wakatime")
+	tmpFile, err := os.CreateTemp(t.TempDir(), "wakatime")
 	require.NoError(t, err)
 
-	defer os.Remove(tmpFile.Name())
+	defer tmpFile.Close()
 
 	v.Set("config", tmpFile.Name())
 	v.Set("internal-config", tmpFile.Name())

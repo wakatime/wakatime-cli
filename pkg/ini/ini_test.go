@@ -200,10 +200,10 @@ func TestNewIniWriterErr(t *testing.T) {
 }
 
 func TestWrite(t *testing.T) {
-	tmpFile, err := os.CreateTemp(os.TempDir(), "wakatime")
+	tmpFile, err := os.CreateTemp(t.TempDir(), "wakatime")
 	require.NoError(t, err)
 
-	defer os.Remove(tmpFile.Name())
+	defer tmpFile.Close()
 
 	tests := map[string]struct {
 		Value   map[string]string
@@ -242,10 +242,10 @@ func TestWrite_NoMultilineSideEffects(t *testing.T) {
 	multilineOption := viper.IniLoadOptions(iniv1.LoadOptions{AllowPythonMultilineValues: true})
 	v := viper.NewWithOptions(multilineOption)
 
-	tmpFile, err := os.CreateTemp(os.TempDir(), "wakatime")
+	tmpFile, err := os.CreateTemp(t.TempDir(), "wakatime")
 	require.NoError(t, err)
 
-	defer os.Remove(tmpFile.Name())
+	defer tmpFile.Close()
 
 	v.Set("config", tmpFile.Name())
 
@@ -275,10 +275,10 @@ func TestWrite_NullsRemoved(t *testing.T) {
 	multilineOption := viper.IniLoadOptions(iniv1.LoadOptions{AllowPythonMultilineValues: true})
 	v := viper.NewWithOptions(multilineOption)
 
-	tmpFile, err := os.CreateTemp(os.TempDir(), "wakatime")
+	tmpFile, err := os.CreateTemp(t.TempDir(), "wakatime")
 	require.NoError(t, err)
 
-	defer os.Remove(tmpFile.Name())
+	defer tmpFile.Close()
 
 	v.Set("config", tmpFile.Name())
 
