@@ -16,16 +16,14 @@ import (
 )
 
 func TestWithFiltering(t *testing.T) {
-	tmpDir, err := os.MkdirTemp(os.TempDir(), "wakatime")
+	tmpFile, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)
 
-	defer os.RemoveAll(tmpDir)
-
-	tmpFile, err := os.CreateTemp(tmpDir, "")
-	require.NoError(t, err)
+	defer tmpFile.Close()
 
 	first := testHeartbeat()
 	first.Entity = tmpFile.Name()
+
 	second := testHeartbeat()
 	second.Time++
 
@@ -79,13 +77,10 @@ func TestWithFiltering_AbortAllFiltered(t *testing.T) {
 }
 
 func TestFilter(t *testing.T) {
-	tmpDir, err := os.MkdirTemp(os.TempDir(), "wakatime")
+	tmpFile, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)
 
-	defer os.RemoveAll(tmpDir)
-
-	tmpFile, err := os.CreateTemp(tmpDir, "")
-	require.NoError(t, err)
+	defer tmpFile.Close()
 
 	h := testHeartbeat()
 	h.Entity = tmpFile.Name()
@@ -104,13 +99,10 @@ func TestFilter_NonFileTypeEmptyEntity(t *testing.T) {
 }
 
 func TestFilter_IncludeMatchOverwritesExcludeMatch(t *testing.T) {
-	tmpDir, err := os.MkdirTemp(os.TempDir(), "wakatime")
+	tmpFile, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)
 
-	defer os.RemoveAll(tmpDir)
-
-	tmpFile, err := os.CreateTemp(tmpDir, "")
-	require.NoError(t, err)
+	defer tmpFile.Close()
 
 	h := testHeartbeat()
 	h.Entity = tmpFile.Name()
@@ -127,13 +119,10 @@ func TestFilter_IncludeMatchOverwritesExcludeMatch(t *testing.T) {
 }
 
 func TestFilter_ErrMatchesExcludePattern(t *testing.T) {
-	tmpDir, err := os.MkdirTemp(os.TempDir(), "wakatime")
+	tmpFile, err := os.CreateTemp(t.TempDir(), "exclude-this-file")
 	require.NoError(t, err)
 
-	defer os.RemoveAll(tmpDir)
-
-	tmpFile, err := os.CreateTemp(tmpDir, "exclude-this-file")
-	require.NoError(t, err)
+	defer tmpFile.Close()
 
 	h := testHeartbeat()
 	h.Entity = tmpFile.Name()
@@ -156,16 +145,17 @@ func TestFilter_ErrNonExistingFile(t *testing.T) {
 }
 
 func TestFilter_ExistingProjectFile(t *testing.T) {
-	tmpDir, err := os.MkdirTemp(os.TempDir(), "wakatime")
-	require.NoError(t, err)
-
-	defer os.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
 	tmpFile, err := os.CreateTemp(tmpDir, "")
 	require.NoError(t, err)
 
-	_, err = os.Create(filepath.Join(tmpDir, ".wakatime-project"))
+	defer tmpFile.Close()
+
+	tmpFile2, err := os.Create(filepath.Join(tmpDir, ".wakatime-project"))
 	require.NoError(t, err)
+
+	defer tmpFile2.Close()
 
 	h := testHeartbeat()
 	h.Entity = tmpFile.Name()
@@ -187,13 +177,10 @@ func TestFilter_RemoteFile(t *testing.T) {
 }
 
 func TestFilter_ErrNonExistingProjectFile(t *testing.T) {
-	tmpDir, err := os.MkdirTemp(os.TempDir(), "wakatime")
+	tmpFile, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)
 
-	defer os.RemoveAll(tmpDir)
-
-	tmpFile, err := os.CreateTemp(tmpDir, "")
-	require.NoError(t, err)
+	defer tmpFile.Close()
 
 	h := testHeartbeat()
 	h.Entity = tmpFile.Name()

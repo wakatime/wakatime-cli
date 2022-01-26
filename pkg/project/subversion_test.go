@@ -15,8 +15,7 @@ import (
 func TestSubversion_Detect(t *testing.T) {
 	skipIfBinaryNotFound(t)
 
-	fp, tearDown := setupTestSvn(t)
-	defer tearDown()
+	fp := setupTestSvn(t)
 
 	s := project.Subversion{
 		Filepath: filepath.Join(fp, "wakatime-cli", "src", "pkg", "file.go"),
@@ -36,8 +35,7 @@ func TestSubversion_Detect(t *testing.T) {
 func TestSubversion_Detect_Branch(t *testing.T) {
 	skipIfBinaryNotFound(t)
 
-	fp, tearDown := setupTestSvnBranch(t)
-	defer tearDown()
+	fp := setupTestSvnBranch(t)
 
 	s := project.Subversion{
 		Filepath: filepath.Join(fp, "wakatime-cli/src/pkg/file.go"),
@@ -54,11 +52,10 @@ func TestSubversion_Detect_Branch(t *testing.T) {
 	}, result)
 }
 
-func setupTestSvn(t *testing.T) (fp string, tearDown func()) {
-	tmpDir, err := os.MkdirTemp(os.TempDir(), "wakatime-svn")
-	require.NoError(t, err)
+func setupTestSvn(t *testing.T) (fp string) {
+	tmpDir := t.TempDir()
 
-	err = os.MkdirAll(filepath.Join(tmpDir, "wakatime-cli/src/pkg"), os.FileMode(int(0700)))
+	err := os.MkdirAll(filepath.Join(tmpDir, "wakatime-cli/src/pkg"), os.FileMode(int(0700)))
 	require.NoError(t, err)
 
 	tmpFile, err := os.Create(filepath.Join(tmpDir, "wakatime-cli/src/pkg/file.go"))
@@ -68,14 +65,13 @@ func setupTestSvn(t *testing.T) (fp string, tearDown func()) {
 
 	copyDir(t, "testdata/svn", filepath.Join(tmpDir, "wakatime-cli/.svn"))
 
-	return tmpDir, func() { os.RemoveAll(tmpDir) }
+	return tmpDir
 }
 
-func setupTestSvnBranch(t *testing.T) (fp string, tearDown func()) {
-	tmpDir, err := os.MkdirTemp(os.TempDir(), "wakatime-svn")
-	require.NoError(t, err)
+func setupTestSvnBranch(t *testing.T) (fp string) {
+	tmpDir := t.TempDir()
 
-	err = os.MkdirAll(filepath.Join(tmpDir, "wakatime-cli/src/pkg"), os.FileMode(int(0700)))
+	err := os.MkdirAll(filepath.Join(tmpDir, "wakatime-cli/src/pkg"), os.FileMode(int(0700)))
 	require.NoError(t, err)
 
 	tmpFile, err := os.Create(filepath.Join(tmpDir, "wakatime-cli/src/pkg/file.go"))
@@ -85,7 +81,7 @@ func setupTestSvnBranch(t *testing.T) (fp string, tearDown func()) {
 
 	copyDir(t, "testdata/svn_branch", filepath.Join(tmpDir, "wakatime-cli/.svn"))
 
-	return tmpDir, func() { os.RemoveAll(tmpDir) }
+	return tmpDir
 }
 
 func copyDir(t *testing.T, src string, dst string) {

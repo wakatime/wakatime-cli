@@ -121,10 +121,10 @@ func TestWithDetection_RemoteFile(t *testing.T) {
 }
 
 func TestWithDetection_MaxFileSizeExceeded(t *testing.T) {
-	f, err := os.CreateTemp(os.TempDir(), "")
+	f, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)
 
-	defer os.Remove(f.Name())
+	defer f.Close()
 
 	b := bytes.NewBuffer(make([]byte, 2*1024*1024+1))
 	_, err = f.Write(b.Bytes())

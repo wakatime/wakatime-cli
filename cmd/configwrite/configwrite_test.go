@@ -67,10 +67,10 @@ func TestLoadParamsErr(t *testing.T) {
 }
 
 func TestWrite(t *testing.T) {
-	tmpFile, err := os.CreateTemp(os.TempDir(), "wakatime")
+	tmpFile, err := os.CreateTemp(t.TempDir(), "wakatime")
 	require.NoError(t, err)
 
-	defer os.Remove(tmpFile.Name())
+	defer tmpFile.Close()
 
 	v := viper.New()
 	ini, err := ini.NewIniWriter(v, func(vp *viper.Viper) (string, error) {

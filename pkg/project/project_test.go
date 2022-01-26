@@ -83,8 +83,7 @@ func TestWithDetection_EntityNotFile(t *testing.T) {
 }
 
 func TestWithDetection_OverrideTakesPrecedence(t *testing.T) {
-	fp, tearDown := setupTestGitBasic(t)
-	defer tearDown()
+	fp := setupTestGitBasic(t)
 
 	entity := filepath.Join(fp, "wakatime-cli/src/pkg/file.go")
 	projectPath := filepath.Join(fp, "wakatime-cli")
@@ -127,8 +126,7 @@ func TestWithDetection_OverrideTakesPrecedence(t *testing.T) {
 }
 
 func TestWithDetection_ObfuscateProject(t *testing.T) {
-	fp, tearDown := setupTestGitBasic(t)
-	defer tearDown()
+	fp := setupTestGitBasic(t)
 
 	entity := filepath.Join(fp, "wakatime-cli/src/pkg/file.go")
 	projectPath := filepath.Join(fp, "wakatime-cli")
@@ -174,8 +172,7 @@ func TestWithDetection_ObfuscateProject(t *testing.T) {
 }
 
 func TestWithDetection_WakatimeProjectTakesPrecedence(t *testing.T) {
-	fp, tearDown := setupTestGitBasic(t)
-	defer tearDown()
+	fp := setupTestGitBasic(t)
 
 	entity := filepath.Join(fp, "wakatime-cli/src/pkg/file.go")
 	projectPath := filepath.Join(fp, "wakatime-cli")
@@ -233,13 +230,12 @@ func TestDetect_FileDetected(t *testing.T) {
 }
 
 func TestDetect_MapDetected(t *testing.T) {
-	tmpDir, err := os.MkdirTemp(os.TempDir(), "wakatime")
-	require.NoError(t, err)
-
-	defer os.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
 	tmpFile, err := os.CreateTemp(tmpDir, "waka-billing")
 	require.NoError(t, err)
+
+	defer tmpFile.Close()
 
 	patterns := []project.MapPattern{
 		{
@@ -260,8 +256,7 @@ func TestDetect_MapDetected(t *testing.T) {
 }
 
 func TestDetectWithRevControl_GitDetected(t *testing.T) {
-	fp, tearDown := setupTestGitBasic(t)
-	defer tearDown()
+	fp := setupTestGitBasic(t)
 
 	result := project.DetectWithRevControl(
 		filepath.Join(fp, "wakatime-cli/src/pkg/file.go"),
@@ -277,10 +272,10 @@ func TestDetectWithRevControl_GitDetected(t *testing.T) {
 }
 
 func TestDetect_NoProjectDetected(t *testing.T) {
-	tmpFile, err := os.CreateTemp(os.TempDir(), "wakatime")
+	tmpFile, err := os.CreateTemp(t.TempDir(), "wakatime")
 	require.NoError(t, err)
 
-	defer os.Remove(tmpFile.Name())
+	defer tmpFile.Close()
 
 	result := project.Detect(tmpFile.Name(), []project.MapPattern{})
 
@@ -290,12 +285,9 @@ func TestDetect_NoProjectDetected(t *testing.T) {
 }
 
 func TestWrite(t *testing.T) {
-	tmpDir, err := os.MkdirTemp(os.TempDir(), "wakatime-git")
-	require.NoError(t, err)
+	tmpDir := t.TempDir()
 
-	defer os.RemoveAll(tmpDir)
-
-	err = project.Write(tmpDir, "billing")
+	err := project.Write(tmpDir, "billing")
 	require.NoError(t, err)
 
 	actual, err := os.ReadFile(filepath.Join(tmpDir, ".wakatime-project"))

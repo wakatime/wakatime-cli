@@ -12,13 +12,10 @@ import (
 )
 
 func TestWithFiltering(t *testing.T) {
-	tmpDir, err := os.MkdirTemp(os.TempDir(), "wakatime")
+	tmpFile, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)
 
-	defer os.RemoveAll(tmpDir)
-
-	tmpFile, err := os.CreateTemp(tmpDir, "")
-	require.NoError(t, err)
+	defer tmpFile.Close()
 
 	first := testHeartbeat()
 	first.Entity = tmpFile.Name()
@@ -73,13 +70,10 @@ func TestFilter_ErrUnknownProject(t *testing.T) {
 
 	for name, projectValue := range tests {
 		t.Run(name, func(t *testing.T) {
-			tmpDir, err := os.MkdirTemp(os.TempDir(), "wakatime")
+			tmpFile, err := os.CreateTemp(t.TempDir(), "")
 			require.NoError(t, err)
 
-			defer os.RemoveAll(tmpDir)
-
-			tmpFile, err := os.CreateTemp(tmpDir, "")
-			require.NoError(t, err)
+			defer tmpFile.Close()
 
 			h := heartbeat.Heartbeat{
 				Entity:  tmpFile.Name(),

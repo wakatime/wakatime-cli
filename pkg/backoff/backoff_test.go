@@ -17,10 +17,10 @@ import (
 func TestWithRetry(t *testing.T) {
 	v := viper.New()
 
-	tmpFile, err := os.CreateTemp(os.TempDir(), "wakatime")
+	tmpFile, err := os.CreateTemp(t.TempDir(), "wakatime")
 	require.NoError(t, err)
 
-	defer os.Remove(tmpFile.Name())
+	defer tmpFile.Close()
 
 	v.Set("config", tmpFile.Name())
 
@@ -65,10 +65,10 @@ func TestWithRetry_BeforeNextBackoff(t *testing.T) {
 func TestWithRetry_ApiError(t *testing.T) {
 	v := viper.New()
 
-	tmpFile, err := os.CreateTemp(os.TempDir(), "wakatime")
+	tmpFile, err := os.CreateTemp(t.TempDir(), "wakatime")
 	require.NoError(t, err)
 
-	defer os.Remove(tmpFile.Name())
+	defer tmpFile.Close()
 
 	v.Set("config", tmpFile.Name())
 

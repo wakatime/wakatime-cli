@@ -61,10 +61,8 @@ func TestSyncOfflineActivity(t *testing.T) {
 	})
 
 	// setup offline queue
-	f, err := os.CreateTemp(os.TempDir(), "")
+	f, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)
-
-	defer os.Remove(f.Name())
 
 	db, err := bolt.Open(f.Name(), 0600, nil)
 	require.NoError(t, err)

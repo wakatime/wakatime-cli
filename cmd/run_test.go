@@ -28,15 +28,13 @@ func TestRunCmd_SendDiagnostics_Error(t *testing.T) {
 		version.Arch = "some architecture"
 		version.Version = "some version"
 
-		offlineQueueFile, err := os.CreateTemp(os.TempDir(), "")
+		tmpDir := t.TempDir()
+
+		offlineQueueFile, err := os.CreateTemp(tmpDir, "")
 		require.NoError(t, err)
 
-		defer os.Remove(offlineQueueFile.Name())
-
-		logFile, err := os.CreateTemp(os.TempDir(), "")
+		logFile, err := os.CreateTemp(tmpDir, "")
 		require.NoError(t, err)
-
-		defer os.Remove(logFile.Name())
 
 		v := viper.New()
 		v.Set("api-url", os.Getenv("TEST_SERVER_URL"))
@@ -113,15 +111,13 @@ func TestRunCmd_SendDiagnostics_Panic(t *testing.T) {
 		version.Arch = "some architecture"
 		version.Version = "some version"
 
-		offlineQueueFile, err := os.CreateTemp(os.TempDir(), "")
+		tmpDir := t.TempDir()
+
+		offlineQueueFile, err := os.CreateTemp(tmpDir, "")
 		require.NoError(t, err)
 
-		defer os.Remove(offlineQueueFile.Name())
-
-		logFile, err := os.CreateTemp(os.TempDir(), "")
+		logFile, err := os.CreateTemp(tmpDir, "")
 		require.NoError(t, err)
-
-		defer os.Remove(logFile.Name())
 
 		v := viper.New()
 		v.Set("api-url", os.Getenv("TEST_SERVER_URL"))
@@ -197,10 +193,10 @@ func TestRunCmdWithOfflineSync(t *testing.T) {
 		version.Arch = "some architecture"
 		version.Version = "some version"
 
-		logFile, err := os.CreateTemp(os.TempDir(), "")
+		logFile, err := os.CreateTemp(t.TempDir(), "")
 		require.NoError(t, err)
 
-		defer os.Remove(logFile.Name())
+		defer logFile.Close()
 
 		v := viper.New()
 		v.Set("api-url", os.Getenv("TEST_SERVER_URL"))
@@ -220,10 +216,10 @@ func TestRunCmdWithOfflineSync(t *testing.T) {
 	}
 
 	// setup test queue
-	offlineQueueFile, err := os.CreateTemp(os.TempDir(), "")
+	offlineQueueFile, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)
 
-	defer os.RemoveAll(offlineQueueFile.Name())
+	defer offlineQueueFile.Close()
 
 	db, err := bolt.Open(offlineQueueFile.Name(), 0600, nil)
 	require.NoError(t, err)

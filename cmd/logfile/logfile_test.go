@@ -13,17 +13,17 @@ import (
 )
 
 func TestLoadParams(t *testing.T) {
-	tmpFile, err := os.CreateTemp(os.TempDir(), "wakatime.log")
+	tmpFile, err := os.CreateTemp(t.TempDir(), "wakatime.log")
 	require.NoError(t, err)
 
-	defer os.Remove(tmpFile.Name())
+	defer tmpFile.Close()
 
 	dir, _ := filepath.Split(tmpFile.Name())
 
-	_, err = os.Create(filepath.Join(dir, ".wakatime.log"))
+	logFile, err := os.Create(filepath.Join(dir, ".wakatime.log"))
 	require.NoError(t, err)
 
-	defer os.Remove(filepath.Join(dir, ".wakatime.log"))
+	defer logFile.Close()
 
 	home, err := os.UserHomeDir()
 	require.NoError(t, err)

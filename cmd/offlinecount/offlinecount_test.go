@@ -18,10 +18,10 @@ import (
 
 func TestOfflineCount_Empty(t *testing.T) {
 	// setup offline queue
-	f, err := os.CreateTemp(os.TempDir(), "")
+	f, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)
 
-	defer os.Remove(f.Name())
+	defer f.Close()
 
 	db, err := bolt.Open(f.Name(), 0600, nil)
 	require.NoError(t, err)
@@ -64,10 +64,10 @@ func TestOfflineCount_Empty(t *testing.T) {
 
 func TestOfflineCount(t *testing.T) {
 	// setup offline queue
-	f, err := os.CreateTemp(os.TempDir(), "")
+	f, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)
 
-	defer os.Remove(f.Name())
+	defer f.Close()
 
 	db, err := bolt.Open(f.Name(), 0600, nil)
 	require.NoError(t, err)
