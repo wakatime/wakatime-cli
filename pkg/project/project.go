@@ -63,7 +63,7 @@ type MapPattern struct {
 // First looks for a .wakatime-project file. Second, uses the --project arg.
 // Third, uses the folder name from a revision control repository. Last, uses
 // the --alternate-project arg.
-func WithDetection(c Config) heartbeat.HandleOption {
+func WithDetection(config Config) heartbeat.HandleOption {
 	return func(next heartbeat.Handle) heartbeat.Handle {
 		return func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 			log.Debugln("execute project detection")
@@ -76,28 +76,31 @@ func WithDetection(c Config) heartbeat.HandleOption {
 					continue
 				}
 
-				result := Detect(h.Entity, c.MapPatterns)
+				result := Detect(h.Entity, config.MapPatterns)
 
 				if result.Project == "" {
 					result.Project = h.ProjectOverride
 				}
 
 				if result.Project == "" || result.Branch == "" {
-					revControlResult := DetectWithRevControl(h.Entity, c.SubmodulePatterns, c.ShouldObfuscateProject)
+					revControlResult := DetectWithRevControl(h.Entity, config.SubmodulePatterns)
 
 					result.Branch = firstNonEmptyString(result.Branch, revControlResult.Branch)
 					result.Folder = firstNonEmptyString(result.Folder, revControlResult.Folder)
-					result.Project = firstNonEmptyString(result.Project, revControlResult.Project)
 
-					if result.Project == "" {
-						result.Project = setProjectName(h.ProjectAlternate, c.ShouldObfuscateProject, revControlResult.Folder)
+					// obfuscate project will only run when hide project name is set and a project has been auto-detected and
+					// any project name has been set by the user either by wakatime file or map patterns.
+					if config.ShouldObfuscateProject && revControlResult.Project != "" && result.Project == "" {
+						result.Project = setProjectName(h.ProjectAlternate, config.ShouldObfuscateProject, result.Folder)
+					} else {
+						result.Project = firstNonEmptyString(result.Project, revControlResult.Project)
 					}
 				}
 
 				hh[n].Branch = &result.Branch
 				hh[n].Project = &result.Project
 
-				if runtime.GOOS == "windows" {
+				if runtime.GOOS == "windows" && result.Folder != "" {
 					formatted, err := windows.FormatFilePath(result.Folder)
 					if err != nil {
 						log.Warnf("failed to format windows file path: %q: %s", result.Folder, err)
@@ -140,7 +143,7 @@ func Detect(entity string, patterns []MapPattern) Result {
 }
 
 // DetectWithRevControl finds the current project and branch from rev control.
-func DetectWithRevControl(entity string, submodulePatterns []regex.Regex, shouldObfuscate bool) Result {
+func DetectWithRevControl(entity string, submodulePatterns []regex.Regex) Result {
 	var revControlPlugins []Detecter = []Detecter{
 		Git{
 			Filepath:          entity,
@@ -169,10 +172,6 @@ func DetectWithRevControl(entity string, submodulePatterns []regex.Regex, should
 				Project: result.Project,
 				Branch:  result.Branch,
 				Folder:  result.Folder,
-			}
-
-			if shouldObfuscate {
-				result.Project = ""
 			}
 
 			return result
