@@ -131,6 +131,8 @@ func TestFilePath(t *testing.T) {
 			err := os.Setenv("WAKATIME_HOME", test.EnvVar)
 			require.NoError(t, err)
 
+			defer os.Unsetenv("WAKATIME_HOME")
+
 			configFilepath, err := ini.FilePath(v)
 			require.NoError(t, err)
 
@@ -165,8 +167,11 @@ func TestInternalFilePath(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			v := viper.New()
 			v.Set("internal-config", test.ViperValue)
+
 			err := os.Setenv("WAKATIME_HOME", test.EnvVar)
 			require.NoError(t, err)
+
+			defer os.Unsetenv("WAKATIME_HOME")
 
 			configFilepath, err := ini.InternalFilePath(v)
 			require.NoError(t, err)
