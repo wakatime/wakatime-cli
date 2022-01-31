@@ -46,6 +46,8 @@ func TestQueueFilepath(t *testing.T) {
 			err := os.Setenv("WAKATIME_HOME", test.EnvVar)
 			require.NoError(t, err)
 
+			defer os.Unsetenv("WAKATIME_HOME")
+
 			queueFilepath, err := offline.QueueFilepath()
 			require.NoError(t, err)
 
