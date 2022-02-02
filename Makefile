@@ -54,7 +54,7 @@ build-freebsd-amd64:
 build-freebsd-arm:
 	GOOS=freebsd GOARCH=arm make build-binary
 
-build-linux: build-linux-386 build-linux-amd64 build-linux-arm build-linux-arm64
+build-linux: build-linux-386 build-linux-amd64 build-linux-arm build-linux-arm64 build-linux-riscv64
 
 build-linux-386:
 	GOOS=linux GOARCH=386 make build-binary
@@ -67,6 +67,9 @@ build-linux-arm:
 
 build-linux-arm64:
 	GOOS=linux GOARCH=arm64 make build-binary
+
+build-linux-riscv64:
+	GOOS=linux GOARCH=riscv64 make build-binary
 
 build-netbsd: build-netbsd-386 build-netbsd-amd64 build-netbsd-arm
 
