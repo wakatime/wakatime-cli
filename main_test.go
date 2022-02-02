@@ -28,12 +28,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const (
-	binaryPathDarwin  = "./build/wakatime-cli-darwin-amd64"
-	binaryPathLinux   = "./build/wakatime-cli-linux-amd64"
-	binaryPathWindows = "./build/wakatime-cli-windows-amd64.exe"
-	testVersion       = "<local-build>"
-)
+const testVersion = "<local-build>"
 
 // nolint:gochecknoinits
 func init() {
@@ -41,13 +36,13 @@ func init() {
 }
 
 func binaryPath(t *testing.T) string {
+	filename := fmt.Sprintf("./build/wakatime-cli-%s-%s", runtime.GOOS, runtime.GOARCH)
+
 	switch runtime.GOOS {
-	case "darwin":
-		return binaryPathDarwin
-	case "linux":
-		return binaryPathLinux
+	case "darwin", "linux", "freebsd", "netbsd", "openbsd":
+		return filename
 	case "windows":
-		return binaryPathWindows
+		return filename + ".exe"
 	default:
 		t.Fatalf("OS %q not supported", runtime.GOOS)
 		return ""
