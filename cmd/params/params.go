@@ -761,11 +761,17 @@ func (p API) String() string {
 		backoffAt = p.BackoffAt.Format(ini.DateFormat)
 	}
 
+	apiKey := p.Key
+	if len(apiKey) > 4 {
+		// only show last 4 chars of api key in logs
+		apiKey = "..." + apiKey[:len(apiKey)-4]
+	}
+
 	return fmt.Sprintf(
 		"api key: '%s', api url: '%s', backoff at: '%s', backoff retries: %d,"+
 			" hostname: '%s', plugin: '%s', timeout: %s, disable ssl verify: %t,"+
 			" proxy url: '%s', ssl cert filepath: '%s'",
-		p.Key[:4]+"...",
+		apiKey,
 		p.URL,
 		backoffAt,
 		p.BackoffRetries,
