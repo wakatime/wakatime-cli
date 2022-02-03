@@ -16,7 +16,7 @@ import (
 
 // Run executes the sync-offline-activity command.
 func Run(v *viper.Viper) (int, error) {
-	queueFilepath, err := offline.QueueFilepath()
+	queueFilepath, err := offline.QueueFilepathWithErr()
 	if err != nil {
 		return exitcode.ErrGeneric, fmt.Errorf(
 			"offline sync failed: failed to load offline queue filepath: %s",

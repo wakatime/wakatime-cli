@@ -18,11 +18,13 @@ import (
 	"github.com/spf13/viper"
 )
 
-// SaveHeartbeats saves heartbeats to the offline db without trying to send
-// to the API. Should only be used after a config file parse error.
-func SaveHeartbeats(v *viper.Viper, heartbeats []heartbeat.Heartbeat, queueFilepath string) error {
-	config := params.Config{}
-
+// SaveHeartbeats saves heartbeats to the offline db, when we haven't
+// tried sending them to the API. If we tried sending to API already,
+// to the API. Used when we have heartbeats unsent to API.
+func SaveHeartbeats(v *viper.Viper, heartbeats []heartbeat.Heartbeat) error {
+	config := params.Config{
+		ForSavingOffline: true,
+	}
 	if heartbeats == nil {
 		config.HeartbeatRequired = true
 	}
@@ -37,22 +39,25 @@ func SaveHeartbeats(v *viper.Viper, heartbeats []heartbeat.Heartbeat, queueFilep
 	log.Debugf("params: %s", params)
 
 	if params.Offline.Disabled {
-		return errors.New("abort saving to offline queue due to being disabled")
+		return errors.New("saving to offline db disabled")
 	}
 
 	if heartbeats == nil {
+		// We're not saving surplus extra heartbeats, so save
+		// main heartbeat and all extra heartbeats to offline db
 		heartbeats = buildHeartbeats(params)
 	}
 
 	handleOpts := initHandleOptions(params)
 
+	queueFilepath := offline.QueueFilepath()
 	if params.Offline.QueueFile != "" {
 		queueFilepath = params.Offline.QueueFile
 	}
 
 	offlineHandleOpt, err := offline.WithQueue(queueFilepath)
 	if err != nil {
-		return fmt.Errorf("failed to initialize offline queue handle option: %w", err)
+		return fmt.Errorf("failed saving heartbeats because unable to init offline queue: %w", err)
 	}
 
 	handleOpts = append(handleOpts, offlineHandleOpt)
