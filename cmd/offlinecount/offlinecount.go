@@ -12,7 +12,7 @@ import (
 
 // Run executes the offline-count command.
 func Run(v *viper.Viper) (int, error) {
-	queueFilepath, err := offline.QueueFilepath()
+	queueFilepath, err := offline.QueueFilepathWithErr()
 	if err != nil {
 		return exitcode.ErrGeneric, fmt.Errorf(
 			"failed to load offline queue filepath: %s",

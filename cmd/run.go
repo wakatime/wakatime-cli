@@ -25,7 +25,6 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/ini"
 	"github.com/wakatime/wakatime-cli/pkg/log"
-	"github.com/wakatime/wakatime-cli/pkg/offline"
 	"github.com/wakatime/wakatime-cli/pkg/vipertools"
 
 	"github.com/spf13/cobra"
@@ -36,19 +35,10 @@ import (
 func Run(cmd *cobra.Command, v *viper.Viper) {
 	err := parseConfigFiles(v)
 	if err != nil {
-		if !v.IsSet("entity") {
-			os.Exit(exitcode.ErrConfigFileParse)
-		}
-
-		queueFilepath, err := offline.QueueFilepath()
-		if err != nil {
-			log.Errorf("failed to load offline queue filepath: %s", err)
-
-			os.Exit(exitcode.ErrConfigFileParse)
-		}
-
-		if err := offlinecmd.SaveHeartbeats(v, nil, queueFilepath); err != nil {
-			log.Errorf("failed to save extra heartbeats to offline queue: %s", err)
+		if v.IsSet("entity") {
+			if err := offlinecmd.SaveHeartbeats(v, nil); err != nil {
+				log.Errorf("failed to save heartbeats to offline queue: %s", err)
+			}
 		}
 
 		os.Exit(exitcode.ErrConfigFileParse)
