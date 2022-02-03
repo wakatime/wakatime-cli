@@ -42,13 +42,6 @@ var (
 )
 
 type (
-	// Config contains configuration settings.
-	Config struct {
-		APIKeyRequired    bool
-		HeartbeatRequired bool
-		ForSavingOffline  bool
-	}
-
 	// Params contains params.
 	Params struct {
 		API       API
@@ -130,35 +123,27 @@ type (
 
 // Load loads params from viper.Viper instance. Returns ErrAuth
 // if failed to retrieve api key.
-func Load(v *viper.Viper, config Config) (Params, error) {
+func Load(v *viper.Viper) (Params, error) {
 	if v == nil {
 		return Params{}, errors.New("viper instance unset")
 	}
 
-	heartbeatParams, err := loadHeartbeatParams(v, config.HeartbeatRequired)
+	heartbeatParams, err := LoadHeartbeatParams(v)
 	if err != nil {
-		return Params{}, fmt.Errorf("failed to load heartbeat params: %w", err)
+		return Params{}, fmt.Errorf("failed to load heartbeat params: %s", err)
 	}
 
-	apiParams, err := loadAPIParams(v, config.APIKeyRequired)
+	apiParams, err := LoadAPIParams(v)
 	if err != nil {
-		if config.ForSavingOffline {
-			log.Warnf("failed to load api params: %w", err)
-		} else {
-			return Params{}, fmt.Errorf("failed to load api params: %w", err)
-		}
+		return Params{}, fmt.Errorf("failed to load api params: %w", err)
 	}
 
-	offlineParams, err := loadOfflineParams(v)
+	offlineParams, err := LoadOfflineParams(v)
 	if err != nil {
-		if config.ForSavingOffline {
-			log.Warnf("failed to load offline params: %w", err)
-		} else {
-			return Params{}, fmt.Errorf("failed to load offline params: %w", err)
-		}
+		return Params{}, fmt.Errorf("failed to load offline params: %w", err)
 	}
 
-	statusBarParams := loadStausBarParams(v)
+	statusBarParams := LoadStausBarParams(v)
 
 	return Params{
 		API:       apiParams,
@@ -168,13 +153,15 @@ func Load(v *viper.Viper, config Config) (Params, error) {
 	}, nil
 }
 
-func loadAPIParams(v *viper.Viper, apiKeyRequired bool) (API, error) {
+// LoadAPIParams loads API params from viper.Viper instance. Returns ErrAuth
+// if failed to retrieve api key.
+func LoadAPIParams(v *viper.Viper) (API, error) {
 	apiKey, ok := vipertools.FirstNonEmptyString(v, "key", "settings.api_key", "settings.apikey")
-	if !ok && apiKeyRequired {
+	if !ok {
 		return API{}, api.ErrAuth("failed to load api key")
 	}
 
-	if !apiKeyRegex.Match([]byte(apiKey)) && apiKeyRequired {
+	if !apiKeyRegex.Match([]byte(apiKey)) {
 		return API{}, api.ErrAuth("invalid api key format")
 	}
 
@@ -235,10 +222,8 @@ func loadAPIParams(v *viper.Viper, apiKeyRequired bool) (API, error) {
 	if ok {
 		sslCertFilepath, err = homedir.Expand(sslCertFilepath)
 		if err != nil {
-			if err != nil {
-				return API{},
-					fmt.Errorf("failed expanding ssl certs file: %s", err)
-			}
+			return API{},
+				fmt.Errorf("failed expanding ssl certs file: %s", err)
 		}
 	}
 
@@ -263,11 +248,8 @@ func loadAPIParams(v *viper.Viper, apiKeyRequired bool) (API, error) {
 	}, nil
 }
 
-func loadHeartbeatParams(v *viper.Viper, required bool) (Heartbeat, error) {
-	if !required {
-		return Heartbeat{}, nil
-	}
-
+// LoadHeartbeatParams loads heartbeats params from viper.Viper instance.
+func LoadHeartbeatParams(v *viper.Viper) (Heartbeat, error) {
 	var category heartbeat.Category
 
 	if categoryStr := vipertools.GetString(v, "category"); categoryStr != "" {
@@ -518,7 +500,8 @@ func loadProjectParams(v *viper.Viper) (ProjectParams, error) {
 	}, nil
 }
 
-func loadOfflineParams(v *viper.Viper) (Offline, error) {
+// LoadOfflineParams loads offline params from viper.Viper instance.
+func LoadOfflineParams(v *viper.Viper) (Offline, error) {
 	disabled := vipertools.FirstNonEmptyBool(v, "disable-offline", "disableoffline")
 	if b := v.GetBool("settings.offline"); v.IsSet("settings.offline") {
 		disabled = !b
@@ -538,7 +521,8 @@ func loadOfflineParams(v *viper.Viper) (Offline, error) {
 	default:
 		syncMax, err = strconv.Atoi(vipertools.GetString(v, "sync-offline-activity"))
 		if err != nil {
-			return Offline{}, errors.New("argument --sync-offline-activity must be \"none\" or a positive integer number: %s")
+			return Offline{},
+				fmt.Errorf("argument --sync-offline-activity must be \"none\" or a positive integer number: %s", err)
 		}
 	}
 
@@ -553,7 +537,8 @@ func loadOfflineParams(v *viper.Viper) (Offline, error) {
 	}, nil
 }
 
-func loadStausBarParams(v *viper.Viper) StatusBar {
+// LoadStausBarParams loads status bar params from viper.Viper instance.
+func LoadStausBarParams(v *viper.Viper) StatusBar {
 	hideCategories := vipertools.FirstNonEmptyBool(
 		v,
 		"today-hide-categories",

@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	apicmd "github.com/wakatime/wakatime-cli/cmd/api"
+	cmdapi "github.com/wakatime/wakatime-cli/cmd/api"
 	"github.com/wakatime/wakatime-cli/cmd/params"
 	"github.com/wakatime/wakatime-cli/pkg/api"
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
@@ -16,7 +16,7 @@ import (
 
 // Run executes the sync-offline-activity command.
 func Run(v *viper.Viper) (int, error) {
-	queueFilepath, err := offline.QueueFilepathWithErr()
+	queueFilepath, err := offline.QueueFilepath()
 	if err != nil {
 		return exitcode.ErrGeneric, fmt.Errorf(
 			"offline sync failed: failed to load offline queue filepath: %s",
@@ -71,25 +71,30 @@ func Run(v *viper.Viper) (int, error) {
 // SyncOfflineActivity syncs offline activity by sending heartbeats
 // from the offline queue to the WakaTime API.
 func SyncOfflineActivity(v *viper.Viper, queueFilepath string) error {
-	p, err := params.Load(v, params.Config{APIKeyRequired: true})
+	paramOffline, err := params.LoadOfflineParams(v)
 	if err != nil {
-		return fmt.Errorf("failed to load command parameters: %w", err)
+		return fmt.Errorf("failed to load offline parameters: %w", err)
 	}
 
-	if p.Offline.SyncMax == 0 {
+	paramAPI, err := params.LoadAPIParams(v)
+	if err != nil {
+		return fmt.Errorf("failed to load API parameters: %w", err)
+	}
+
+	if paramOffline.SyncMax == 0 {
 		return ErrSyncDisabled("sync offline activity is disabled")
 	}
 
-	apiClient, err := apicmd.NewClient(p.API)
+	apiClient, err := cmdapi.NewClient(paramAPI)
 	if err != nil {
 		return fmt.Errorf("failed to initialize api client: %w", err)
 	}
 
-	if p.Offline.QueueFile != "" {
-		queueFilepath = p.Offline.QueueFile
+	if paramOffline.QueueFile != "" {
+		queueFilepath = paramOffline.QueueFile
 	}
 
-	syncFn := offline.Sync(queueFilepath, p.Offline.SyncMax)
+	syncFn := offline.Sync(queueFilepath, paramOffline.SyncMax)
 
 	return syncFn(apiClient.SendHeartbeats)
 }

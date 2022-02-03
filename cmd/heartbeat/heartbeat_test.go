@@ -74,11 +74,6 @@ func TestSendHeartbeats(t *testing.T) {
 		numCalls++
 	})
 
-	offlineFile, err := os.CreateTemp(t.TempDir(), "")
-	require.NoError(t, err)
-
-	defer offlineFile.Close()
-
 	v := viper.New()
 	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("api-url", testServerURL)
@@ -97,9 +92,11 @@ func TestSendHeartbeats(t *testing.T) {
 	v.Set("time", 1585598059.1)
 	v.Set("timeout", 5)
 	v.Set("write", true)
-	v.Set("offline-queue-file", offlineFile.Name())
 
-	err = cmdheartbeat.SendHeartbeats(v)
+	offlineQueueFile, err := os.CreateTemp(t.TempDir(), "")
+	require.NoError(t, err)
+
+	err = cmdheartbeat.SendHeartbeats(v, offlineQueueFile.Name())
 	require.NoError(t, err)
 
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
@@ -117,11 +114,6 @@ func TestSendHeartbeats_WithFiltering_Exclude(t *testing.T) {
 		numCalls++
 	})
 
-	offlineFile, err := os.CreateTemp(t.TempDir(), "")
-	require.NoError(t, err)
-
-	defer offlineFile.Close()
-
 	v := viper.New()
 	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("api-url", testServerURL)
@@ -134,9 +126,11 @@ func TestSendHeartbeats_WithFiltering_Exclude(t *testing.T) {
 	v.Set("time", 1585598059.1)
 	v.Set("timeout", 5)
 	v.Set("write", true)
-	v.Set("offline-queue-file", offlineFile.Name())
 
-	err = cmdheartbeat.SendHeartbeats(v)
+	offlineQueueFile, err := os.CreateTemp(t.TempDir(), "")
+	require.NoError(t, err)
+
+	err = cmdheartbeat.SendHeartbeats(v, offlineQueueFile.Name())
 	require.NoError(t, err)
 
 	assert.Equal(t, 0, numCalls)
@@ -242,11 +236,6 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 		w.Close()
 	}()
 
-	offlineFile, err := os.CreateTemp(t.TempDir(), "")
-	require.NoError(t, err)
-
-	defer offlineFile.Close()
-
 	v := viper.New()
 	v.SetDefault("sync-offline-activity", 0)
 	v.Set("api-url", testServerURL)
@@ -265,12 +254,16 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 	v.Set("time", 1585598059.1)
 	v.Set("timeout", 5)
 	v.Set("write", true)
-	v.Set("offline-queue-file", offlineFile.Name())
 
-	err = cmdheartbeat.SendHeartbeats(v)
+	offlineQueueFile, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)
 
-	offlineCount, err := offline.CountHeartbeats(offlineFile.Name())
+	defer offlineQueueFile.Close()
+
+	err = cmdheartbeat.SendHeartbeats(v, offlineQueueFile.Name())
+	require.NoError(t, err)
+
+	offlineCount, err := offline.CountHeartbeats(offlineQueueFile.Name())
 	require.NoError(t, err)
 
 	assert.Equal(t, 1, offlineCount)
@@ -286,11 +279,6 @@ func TestSendHeartbeats_NonExistingEntity(t *testing.T) {
 
 	defer logFile.Close()
 
-	offlineFile, err := os.CreateTemp(tmpDir, "")
-	require.NoError(t, err)
-
-	defer offlineFile.Close()
-
 	v := viper.New()
 	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("api-url", "https://example.org")
@@ -298,7 +286,6 @@ func TestSendHeartbeats_NonExistingEntity(t *testing.T) {
 	v.Set("entity-type", "file")
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("log-file", logFile.Name())
-	v.Set("offline-queue-file", offlineFile.Name())
 
 	cmd.SetupLogging(v)
 
@@ -311,7 +298,12 @@ func TestSendHeartbeats_NonExistingEntity(t *testing.T) {
 		}
 	}()
 
-	err = cmdheartbeat.SendHeartbeats(v)
+	f, err := os.CreateTemp(tmpDir, "")
+	require.NoError(t, err)
+
+	defer f.Close()
+
+	err = cmdheartbeat.SendHeartbeats(v, f.Name())
 	require.NoError(t, err)
 
 	output, err := io.ReadAll(logFile)
@@ -397,9 +389,6 @@ func TestSendHeartbeats_NonExistingExtraHeartbeatsEntity(t *testing.T) {
 	logFile, err := os.CreateTemp(tmpDir, "")
 	require.NoError(t, err)
 
-	offlineFile, err := os.CreateTemp(t.TempDir(), "")
-	require.NoError(t, err)
-
 	v := viper.New()
 	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("api-url", testServerURL)
@@ -412,13 +401,15 @@ func TestSendHeartbeats_NonExistingExtraHeartbeatsEntity(t *testing.T) {
 	v.Set("plugin", plugin)
 	v.Set("time", 1585598059.1)
 	v.Set("log-file", logFile.Name())
-	v.Set("offline-queue-file", offlineFile.Name())
 	v.Set("verbose", true)
 
 	cmd.SetupLogging(v)
 
+	offlineQueueFile, err := os.CreateTemp(tmpDir, "")
+	require.NoError(t, err)
+
 	defer func() {
-		offlineFile.Close()
+		offlineQueueFile.Close()
 		logFile.Close()
 
 		if file, ok := log.Output().(*os.File); ok {
@@ -429,7 +420,7 @@ func TestSendHeartbeats_NonExistingExtraHeartbeatsEntity(t *testing.T) {
 		}
 	}()
 
-	err = cmdheartbeat.SendHeartbeats(v)
+	err = cmdheartbeat.SendHeartbeats(v, offlineQueueFile.Name())
 	require.NoError(t, err)
 
 	output, err := io.ReadAll(logFile)

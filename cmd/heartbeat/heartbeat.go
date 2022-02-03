@@ -26,7 +26,12 @@ import (
 
 // Run executes the heartbeat command.
 func Run(v *viper.Viper) (int, error) {
-	err := SendHeartbeats(v)
+	queueFilepath, err := offline.QueueFilepath()
+	if err != nil {
+		log.Warnf("failed to load offline queue filepath: %s", err)
+	}
+
+	err = SendHeartbeats(v, queueFilepath)
 	if err != nil {
 		var errauth api.ErrAuth
 		if errors.As(err, &errauth) {
@@ -66,10 +71,10 @@ func Run(v *viper.Viper) (int, error) {
 // SendHeartbeats sends a heartbeat to the wakatime api and includes additional
 // heartbeats from the offline queue, if available and offline sync is not
 // explicitly disabled.
-func SendHeartbeats(v *viper.Viper) error {
-	params, err := params.Load(v, params.Config{APIKeyRequired: true, HeartbeatRequired: true})
+func SendHeartbeats(v *viper.Viper, queueFilepath string) error {
+	params, err := params.Load(v)
 	if err != nil {
-		if err := offlinecmd.SaveHeartbeats(v, nil); err != nil {
+		if err := offlinecmd.SaveHeartbeats(v, nil, queueFilepath); err != nil {
 			log.Errorf("failed to save heartbeats to offline queue: %s", err)
 		}
 
@@ -89,7 +94,7 @@ func SendHeartbeats(v *viper.Viper) error {
 		log.Debugf("save %d extra heartbeat(s) to offline queue", len(extraHeartbeats))
 
 		go func() {
-			if err := offlinecmd.SaveHeartbeats(v, extraHeartbeats); err != nil {
+			if err := offlinecmd.SaveHeartbeats(v, extraHeartbeats, queueFilepath); err != nil {
 				log.Errorf("failed to save extra heartbeats to offline queue: %s", err)
 			}
 		}()
@@ -100,14 +105,13 @@ func SendHeartbeats(v *viper.Viper) error {
 	handleOpts := initHandleOptions(params)
 
 	if !params.Offline.Disabled {
-		queueFilepath := offline.QueueFilepath()
 		if params.Offline.QueueFile != "" {
 			queueFilepath = params.Offline.QueueFile
 		}
 
 		offlineHandleOpt, err := offline.WithQueue(queueFilepath)
 		if err != nil {
-			if err := offlinecmd.SaveHeartbeats(v, nil); err != nil {
+			if err := offlinecmd.SaveHeartbeats(v, nil, queueFilepath); err != nil {
 				log.Errorf("failed to save heartbeats to offline queue: %s", err)
 			}
 
@@ -126,7 +130,7 @@ func SendHeartbeats(v *viper.Viper) error {
 	apiClient, err := apicmd.NewClient(params.API)
 	if err != nil {
 		if !params.Offline.Disabled {
-			if err := offlinecmd.SaveHeartbeats(v, nil); err != nil {
+			if err := offlinecmd.SaveHeartbeats(v, nil, queueFilepath); err != nil {
 				log.Errorf("failed to save heartbeats to offline queue: %s", err)
 			}
 		}
