@@ -46,6 +46,7 @@ type (
 	Config struct {
 		APIKeyRequired    bool
 		HeartbeatRequired bool
+		ForSavingOffline  bool
 	}
 
 	// Params contains params.
@@ -134,19 +135,27 @@ func Load(v *viper.Viper, config Config) (Params, error) {
 		return Params{}, errors.New("viper instance unset")
 	}
 
-	apiParams, err := loadAPIParams(v, config.APIKeyRequired)
-	if err != nil {
-		return Params{}, fmt.Errorf("failed to load api params: %w", err)
-	}
-
 	heartbeatParams, err := loadHeartbeatParams(v, config.HeartbeatRequired)
 	if err != nil {
 		return Params{}, fmt.Errorf("failed to load heartbeat params: %w", err)
 	}
 
+	apiParams, err := loadAPIParams(v, config.APIKeyRequired)
+	if err != nil {
+		if config.ForSavingOffline {
+			log.Warnf("failed to load api params: %w", err)
+		} else {
+			return Params{}, fmt.Errorf("failed to load api params: %w", err)
+		}
+	}
+
 	offlineParams, err := loadOfflineParams(v)
 	if err != nil {
-		return Params{}, fmt.Errorf("failed to load offline params: %w", err)
+		if config.ForSavingOffline {
+			log.Warnf("failed to load offline params: %w", err)
+		} else {
+			return Params{}, fmt.Errorf("failed to load offline params: %w", err)
+		}
 	}
 
 	statusBarParams := loadStausBarParams(v)

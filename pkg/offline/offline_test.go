@@ -48,7 +48,7 @@ func TestQueueFilepath(t *testing.T) {
 
 			defer os.Unsetenv("WAKATIME_HOME")
 
-			queueFilepath, err := offline.QueueFilepath()
+			queueFilepath, err := offline.QueueFilepathWithErr()
 			require.NoError(t, err)
 
 			assert.Equal(t, test.Expected, queueFilepath)

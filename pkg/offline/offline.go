@@ -82,8 +82,21 @@ func WithQueue(filepath string) (heartbeat.HandleOption, error) {
 	}, nil
 }
 
-// QueueFilepath returns the path for offline queue db file.
-func QueueFilepath() (string, error) {
+// QueueFilepath returns the path for offline queue db file. If
+// the user's $HOME folder cannot be detected, it defaults to the
+// current directory.
+func QueueFilepath() string {
+	home, err := ini.WakaHomeDir()
+	if err != nil {
+		log.Errorf("failed getting user's home directory: %s", err)
+	}
+
+	return filepath.Join(home, dbFilename)
+}
+
+// QueueFilepathWithErr returns the path for offline queue db file
+// or an error if the user's $HOME folder could not be detected.
+func QueueFilepathWithErr() (string, error) {
 	home, err := ini.WakaHomeDir()
 	if err != nil {
 		return "", fmt.Errorf("failed getting user's home directory: %s", err)
