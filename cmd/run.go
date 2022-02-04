@@ -2,21 +2,22 @@ package cmd
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"runtime/debug"
 	"strings"
 
-	apicmd "github.com/wakatime/wakatime-cli/cmd/api"
+	cmdapi "github.com/wakatime/wakatime-cli/cmd/api"
 	"github.com/wakatime/wakatime-cli/cmd/configread"
 	"github.com/wakatime/wakatime-cli/cmd/configwrite"
-	heartbeatcmd "github.com/wakatime/wakatime-cli/cmd/heartbeat"
+	cmdheartbeat "github.com/wakatime/wakatime-cli/cmd/heartbeat"
 	"github.com/wakatime/wakatime-cli/cmd/logfile"
-	offlinecmd "github.com/wakatime/wakatime-cli/cmd/offline"
+	cmdoffline "github.com/wakatime/wakatime-cli/cmd/offline"
 	"github.com/wakatime/wakatime-cli/cmd/offlinecount"
 	"github.com/wakatime/wakatime-cli/cmd/offlinesync"
-	paramscmd "github.com/wakatime/wakatime-cli/cmd/params"
+	"github.com/wakatime/wakatime-cli/cmd/params"
 	"github.com/wakatime/wakatime-cli/cmd/today"
 	"github.com/wakatime/wakatime-cli/cmd/todaygoal"
 	"github.com/wakatime/wakatime-cli/pkg/api"
@@ -25,6 +26,7 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/ini"
 	"github.com/wakatime/wakatime-cli/pkg/log"
+	"github.com/wakatime/wakatime-cli/pkg/offline"
 	"github.com/wakatime/wakatime-cli/pkg/vipertools"
 
 	"github.com/spf13/cobra"
@@ -35,10 +37,22 @@ import (
 func Run(cmd *cobra.Command, v *viper.Viper) {
 	err := parseConfigFiles(v)
 	if err != nil {
-		if v.IsSet("entity") {
-			if err := offlinecmd.SaveHeartbeats(v, nil); err != nil {
-				log.Errorf("failed to save heartbeats to offline queue: %s", err)
-			}
+		// force setup logging otherwise log goes to std out
+		_ = SetupLogging(v)
+
+		log.Errorf("failed to parse config files: %s", err)
+
+		if !v.IsSet("entity") {
+			os.Exit(exitcode.ErrConfigFileParse)
+		}
+
+		queueFilepath, err := offline.QueueFilepath()
+		if err != nil {
+			log.Warnf("failed to load offline queue filepath: %s", err)
+		}
+
+		if err := cmdoffline.SaveHeartbeats(v, nil, queueFilepath); err != nil {
+			log.Errorf("failed to save heartbeats to offline queue: %s", err)
 		}
 
 		os.Exit(exitcode.ErrConfigFileParse)
@@ -93,7 +107,7 @@ func Run(cmd *cobra.Command, v *viper.Viper) {
 	if v.IsSet("entity") {
 		log.Debugln("command: heartbeat")
 
-		RunCmdWithOfflineSync(v, logFileParams.Verbose, heartbeatcmd.Run)
+		RunCmdWithOfflineSync(v, logFileParams.Verbose, cmdheartbeat.Run)
 	}
 
 	if v.IsSet("sync-offline-activity") {
@@ -217,7 +231,9 @@ func runCmd(v *viper.Viper, verbose bool, cmd cmdFn) int {
 			resetLogs()
 
 			if !verbose {
-				sendDiagnostics(v, logs.String(), string(debug.Stack()))
+				if err := sendDiagnostics(v, logs.String(), string(debug.Stack())); err != nil {
+					log.Warnf("failed to send diagnostics: %s", err)
+				}
 			}
 
 			os.Exit(exitcode.ErrGeneric)
@@ -232,26 +248,30 @@ func runCmd(v *viper.Viper, verbose bool, cmd cmdFn) int {
 		resetLogs()
 
 		if exitCode != exitcode.ErrAuth && verbose {
-			sendDiagnostics(v, logs.String(), string(debug.Stack()))
+			if err := sendDiagnostics(v, logs.String(), string(debug.Stack())); err != nil {
+				log.Warnf("failed to send diagnostics: %s", err)
+			}
 		}
 	}
 
 	return exitCode
 }
 
-func sendDiagnostics(v *viper.Viper, logs, stack string) {
-	params, err := paramscmd.Load(v, paramscmd.Config{})
+func sendDiagnostics(v *viper.Viper, logs, stack string) error {
+	paramAPI, err := params.LoadAPIParams(v)
 	if err != nil {
-		log.Errorf("failed to load parameters for sending diagnostics: %s", err)
+		var errauth api.ErrAuth
 
-		return
+		// api.ErrAuth represents an error when parsing api key.
+		// In this context api key is not required to send diagnostics.
+		if !errors.As(err, &errauth) {
+			return fmt.Errorf("failed to load API parameters: %s", err)
+		}
 	}
 
-	c, err := apicmd.NewClientWithoutAuth(params.API)
+	c, err := cmdapi.NewClientWithoutAuth(paramAPI)
 	if err != nil {
-		log.Errorf("failed to initialize api client for sending diagnostics: %s", err)
-
-		return
+		return fmt.Errorf("failed to initialize api client: %s", err)
 	}
 
 	diagnostics := []diagnostic.Diagnostic{
@@ -261,14 +281,14 @@ func sendDiagnostics(v *viper.Viper, logs, stack string) {
 
 	api.WithDisableSSLVerify()(c)
 
-	err = c.SendDiagnostics(params.API.Plugin, diagnostics...)
+	err = c.SendDiagnostics(paramAPI.Plugin, diagnostics...)
 	if err != nil {
-		log.Errorf("failed to send diagnostics: %s", err)
-
-		return
+		return fmt.Errorf("failed to send diagnostics to the API: %s", err)
 	}
 
 	log.Debugln("successfully sent diagnostics")
+
+	return nil
 }
 
 func captureLogs(dest io.Writer) func() {

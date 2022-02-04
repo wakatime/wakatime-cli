@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/wakatime/wakatime-cli/cmd/params"
+	paramscmd "github.com/wakatime/wakatime-cli/cmd/params"
 	"github.com/wakatime/wakatime-cli/pkg/deps"
 	"github.com/wakatime/wakatime-cli/pkg/filestats"
 	"github.com/wakatime/wakatime-cli/pkg/filter"
@@ -21,15 +21,8 @@ import (
 // SaveHeartbeats saves heartbeats to the offline db, when we haven't
 // tried sending them to the API. If we tried sending to API already,
 // to the API. Used when we have heartbeats unsent to API.
-func SaveHeartbeats(v *viper.Viper, heartbeats []heartbeat.Heartbeat) error {
-	config := params.Config{
-		ForSavingOffline: true,
-	}
-	if heartbeats == nil {
-		config.HeartbeatRequired = true
-	}
-
-	params, err := params.Load(v, config)
+func SaveHeartbeats(v *viper.Viper, heartbeats []heartbeat.Heartbeat, queueFilepath string) error {
+	params, err := loadParams(v, heartbeats == nil)
 	if err != nil {
 		return fmt.Errorf("failed to load command parameters: %w", err)
 	}
@@ -50,7 +43,6 @@ func SaveHeartbeats(v *viper.Viper, heartbeats []heartbeat.Heartbeat) error {
 
 	handleOpts := initHandleOptions(params)
 
-	queueFilepath := offline.QueueFilepath()
 	if params.Offline.QueueFile != "" {
 		queueFilepath = params.Offline.QueueFile
 	}
@@ -70,7 +62,35 @@ func SaveHeartbeats(v *viper.Viper, heartbeats []heartbeat.Heartbeat) error {
 	return nil
 }
 
-func buildHeartbeats(params params.Params) []heartbeat.Heartbeat {
+func loadParams(v *viper.Viper, shouldLoadHeartbeatParams bool) (paramscmd.Params, error) {
+	paramAPI, err := paramscmd.LoadAPIParams(v)
+	if err != nil {
+		log.Warnf("failed to load API parameters: %s", err)
+	}
+
+	paramOffline, err := paramscmd.LoadOfflineParams(v)
+	if err != nil {
+		log.Warnf("failed to load offline parameters: %s", err)
+	}
+
+	params := paramscmd.Params{
+		API:     paramAPI,
+		Offline: paramOffline,
+	}
+
+	if shouldLoadHeartbeatParams {
+		paramHeartbeat, err := paramscmd.LoadHeartbeatParams(v)
+		if err != nil {
+			return paramscmd.Params{}, fmt.Errorf("failed to load heartbeat parameters: %s", err)
+		}
+
+		params.Heartbeat = paramHeartbeat
+	}
+
+	return params, nil
+}
+
+func buildHeartbeats(params paramscmd.Params) []heartbeat.Heartbeat {
 	heartbeats := []heartbeat.Heartbeat{}
 
 	userAgent := heartbeat.UserAgentUnknownPlugin()
@@ -121,7 +141,7 @@ func buildHeartbeats(params params.Params) []heartbeat.Heartbeat {
 	return heartbeats
 }
 
-func setLogFields(params *params.Params) {
+func setLogFields(params *paramscmd.Params) {
 	if params.API.Plugin != "" {
 		log.WithField("plugin", params.API.Plugin)
 	}
@@ -139,7 +159,7 @@ func setLogFields(params *params.Params) {
 	log.WithField("file", params.Heartbeat.Entity)
 }
 
-func initHandleOptions(params params.Params) []heartbeat.HandleOption {
+func initHandleOptions(params paramscmd.Params) []heartbeat.HandleOption {
 	return []heartbeat.HandleOption{
 		heartbeat.WithFormatting(heartbeat.FormatConfig{
 			RemoteAddressPattern: remote.RemoteAddressRegex,

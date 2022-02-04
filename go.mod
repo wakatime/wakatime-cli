@@ -51,4 +51,4 @@ require (
 
 replace github.com/alecthomas/chroma => github.com/wakatime/chroma v0.8.2-wakatime.7
 
-replace github.com/matishsiao/goInfo => github.com/wakatime/goInfo v0.1.0-wakatime.6
+replace github.com/matishsiao/goInfo => github.com/wakatime/goInfo v0.1.0-wakatime.8

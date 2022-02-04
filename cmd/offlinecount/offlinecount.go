@@ -12,7 +12,7 @@ import (
 
 // Run executes the offline-count command.
 func Run(v *viper.Viper) (int, error) {
-	queueFilepath, err := offline.QueueFilepathWithErr()
+	queueFilepath, err := offline.QueueFilepath()
 	if err != nil {
 		return exitcode.ErrGeneric, fmt.Errorf(
 			"failed to load offline queue filepath: %s",
@@ -20,13 +20,13 @@ func Run(v *viper.Viper) (int, error) {
 		)
 	}
 
-	p, err := params.Load(v, params.Config{})
+	p, err := params.LoadOfflineParams(v)
 	if err != nil {
-		return exitcode.ErrGeneric, fmt.Errorf("failed to load command parameters: %w", err)
+		return exitcode.ErrGeneric, fmt.Errorf("failed to load offline parameters: %w", err)
 	}
 
-	if p.Offline.QueueFile != "" {
-		queueFilepath = p.Offline.QueueFile
+	if p.QueueFile != "" {
+		queueFilepath = p.QueueFile
 	}
 
 	count, err := offline.CountHeartbeats(queueFilepath)

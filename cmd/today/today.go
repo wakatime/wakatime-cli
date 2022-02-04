@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 
-	apicmd "github.com/wakatime/wakatime-cli/cmd/api"
-	paramscmd "github.com/wakatime/wakatime-cli/cmd/params"
+	cmdapi "github.com/wakatime/wakatime-cli/cmd/api"
+	"github.com/wakatime/wakatime-cli/cmd/params"
 	"github.com/wakatime/wakatime-cli/pkg/api"
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
 	"github.com/wakatime/wakatime-cli/pkg/log"
@@ -56,12 +56,14 @@ func Run(v *viper.Viper) (int, error) {
 
 // Today returns a rendered summary of todays coding activity.
 func Today(v *viper.Viper) (string, error) {
-	params, err := paramscmd.Load(v, paramscmd.Config{APIKeyRequired: true})
+	paramAPI, err := params.LoadAPIParams(v)
 	if err != nil {
-		return "", fmt.Errorf("failed to load command parameters: %w", err)
+		return "", fmt.Errorf("failed to load API parameters: %w", err)
 	}
 
-	apiClient, err := apicmd.NewClient(params.API)
+	statusBarParam := params.LoadStausBarParams(v)
+
+	apiClient, err := cmdapi.NewClient(paramAPI)
 	if err != nil {
 		return "", fmt.Errorf("failed to initialize api client: %w", err)
 	}
@@ -71,7 +73,7 @@ func Today(v *viper.Viper) (string, error) {
 		return "", fmt.Errorf("failed fetching today from api: %w", err)
 	}
 
-	output, err := summary.RenderToday(s, params.StatusBar.HideCategories)
+	output, err := summary.RenderToday(s, statusBarParam.HideCategories)
 	if err != nil {
 		return "", fmt.Errorf("failed generating today output: %s", err)
 	}
