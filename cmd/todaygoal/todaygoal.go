@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"regexp"
 
-	apicmd "github.com/wakatime/wakatime-cli/cmd/api"
-	paramscmd "github.com/wakatime/wakatime-cli/cmd/params"
+	cmdapi "github.com/wakatime/wakatime-cli/cmd/api"
+	"github.com/wakatime/wakatime-cli/cmd/params"
 	"github.com/wakatime/wakatime-cli/pkg/api"
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
 	"github.com/wakatime/wakatime-cli/pkg/log"
@@ -20,7 +20,7 @@ var uuid4Regex = regexp.MustCompile("^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab
 // Params contains today-goal command parameters.
 type Params struct {
 	GoalID string
-	API    paramscmd.API
+	API    params.API
 }
 
 // Run executes the today-goal command.
@@ -70,7 +70,7 @@ func Goal(v *viper.Viper) (string, error) {
 		return "", fmt.Errorf("failed to load command parameters: %w", err)
 	}
 
-	apiClient, err := apicmd.NewClient(params.API)
+	apiClient, err := cmdapi.NewClient(params.API)
 	if err != nil {
 		return "", fmt.Errorf("failed to initialize api client: %w", err)
 	}
@@ -86,9 +86,9 @@ func Goal(v *viper.Viper) (string, error) {
 // LoadParams loads todaygoal config params from viper.Viper instance. Returns ErrAuth
 // if failed to retrieve api key.
 func LoadParams(v *viper.Viper) (Params, error) {
-	params, err := paramscmd.Load(v, paramscmd.Config{APIKeyRequired: true})
+	paramAPI, err := params.LoadAPIParams(v)
 	if err != nil {
-		return Params{}, fmt.Errorf("failed to load params: %w", err)
+		return Params{}, fmt.Errorf("failed to load API parameters: %w", err)
 	}
 
 	if !v.IsSet("today-goal") {
@@ -102,6 +102,6 @@ func LoadParams(v *viper.Viper) (Params, error) {
 
 	return Params{
 		GoalID: goalID,
-		API:    params.API,
+		API:    paramAPI,
 	}, nil
 }

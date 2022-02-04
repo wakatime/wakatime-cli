@@ -160,26 +160,32 @@ func WakaHomeDir() (string, error) {
 	home, exists := os.LookupEnv("WAKATIME_HOME")
 	if exists && home != "" {
 		home, err := homedir.Expand(home)
-		if err == nil {
+		if err != nil {
+			log.Warnf("failed to expand WAKATIME_HOME filepath: %s", err)
+		} else {
 			return home, nil
 		}
 	}
 
 	home, err := os.UserHomeDir()
-	if err == nil && home != "" {
+	if err != nil {
+		log.Warnf("failed to get user home dir: %s", err)
+	}
+
+	if home != "" {
 		return home, nil
 	}
 
-	var allerrs error = err
-
 	u, err := user.LookupId(strconv.Itoa(os.Getuid()))
-	if err == nil && u.HomeDir != "" {
+	if err != nil {
+		log.Warnf("failed to user info by userid: %s", err)
+	}
+
+	if u.HomeDir != "" {
 		return u.HomeDir, nil
 	}
 
-	allerrs = fmt.Errorf("%s: %s", allerrs, err)
-
-	return "", allerrs
+	return "", fmt.Errorf("could not determine wakatime home dir")
 }
 
 // mutexClock is used to implement mutex.Clock interface.
