@@ -749,7 +749,7 @@ func (p API) String() string {
 	apiKey := p.Key
 	if len(apiKey) > 4 {
 		// only show last 4 chars of api key in logs
-		apiKey = "..." + apiKey[:len(apiKey)-4]
+		apiKey = fmt.Sprintf("<hidden>%s", apiKey[len(apiKey)-4:])
 	}
 
 	return fmt.Sprintf(
