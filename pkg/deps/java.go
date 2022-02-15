@@ -29,8 +29,8 @@ const (
 // It is not thread safe.
 type ParserJava struct {
 	Buffer string
-	State  StateJava
 	Output []string
+	State  StateJava
 }
 
 // Parse parses dependencies from Java file content using the chroma Java lexer.
@@ -75,6 +75,7 @@ func (p *ParserJava) append(dep string) {
 }
 
 func (p *ParserJava) init() {
+	p.Buffer = ""
 	p.State = StateJavaUnknown
 	p.Output = nil
 }

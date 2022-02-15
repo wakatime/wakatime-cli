@@ -26,9 +26,9 @@ const (
 // ParserCSharp is a dependency parser for the c# programming language.
 // It is not thread safe.
 type ParserCSharp struct {
-	State  StateCSharp
 	Buffer string
 	Output []string
+	State  StateCSharp
 }
 
 // Parse parses dependencies from C# file content using the chroma C# lexer.
@@ -75,8 +75,9 @@ func (p *ParserCSharp) append(dep string) {
 }
 
 func (p *ParserCSharp) init() {
-	p.State = StateCSharpUnknown
+	p.Buffer = ""
 	p.Output = nil
+	p.State = StateCSharpUnknown
 }
 
 func (p *ParserCSharp) processToken(token chroma.Token) {

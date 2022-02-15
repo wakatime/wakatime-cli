@@ -75,6 +75,8 @@ const (
 	LanguageArc
 	// LanguageArduino represents the Arduino programming language.
 	LanguageArduino
+	// LanguageArmAsm represents the ArmAsm programming language.
+	LanguageArmAsm
 	// LanguageArrow represents the Arrow programming language.
 	LanguageArrow
 	// LanguageASCIIDoc represents the ASCIIDoc programming language.
@@ -133,6 +135,8 @@ const (
 	LanguageBefunge
 	// LanguageBibTeX represents the BibTeX programming language.
 	LanguageBibTeX
+	// LanguageBicep represents the Bicep programming language.
+	LanguageBicep
 	// LanguageBison represents the Bison programming language.
 	LanguageBison
 	// LanguageBitBake represents the BitBake programming language.
@@ -853,10 +857,14 @@ const (
 	LanguageMax
 	// LanguageMaxMSP represents the MaxMSP programming language.
 	LanguageMaxMSP
+	// LanguageMcfunction represents the mcfunction programming language.
+	LanguageMcfunction
 	// LanguageMeson represents the Meson programming language.
 	LanguageMeson
 	// LanguageMetafont represents the Metafont programming language.
 	LanguageMetafont
+	// LanguageMetal represente the Metal programming language.
+	LanguageMetal
 	// LanguageMetapost represents the Metapost programming language.
 	LanguageMetapost
 	// LanguageMIME represents the MIME programming language.
@@ -961,6 +969,8 @@ const (
 	LanguageOctave
 	// LanguageODIN represents the ODIN programming language.
 	LanguageODIN
+	// LanguageOnesEnterprise represents the OnesEnterprise programming language.
+	LanguageOnesEnterprise
 	// LanguageOoc represents the Ooc programming language.
 	LanguageOoc
 	// LanguageOpa represents the Opa programming language.
@@ -1001,6 +1011,8 @@ const (
 	LanguagePkgConfig
 	// LanguagePLpgSQL represents the PLpgSQL programming language.
 	LanguagePLpgSQL
+	// LanguagePlutusCore represents the Plutus Core programming language.
+	LanguagePlutusCore
 	// LanguagePointless represents the Pointless programming language.
 	LanguagePointless
 	// LanguagePony represents the Pony programming language.
@@ -1013,12 +1025,16 @@ const (
 	LanguagePostScript
 	// LanguagePOVRay represents the POVRay programming language.
 	LanguagePOVRay
+	// LanguagePowerQuery represents the PowerQuery programming language.
+	LanguagePowerQuery
 	// LanguagePowerShell represents the PowerShell programming language.
 	LanguagePowerShell
 	// LanguagePowerShellSession represents the PowerShellSession programming language.
 	LanguagePowerShellSession
 	// LanguagePraat represents the Praat programming language.
 	LanguagePraat
+	// LanguageProcessing represents the Processing programming language.
+	LanguageProcessing
 	// LanguageProlog represents the Prolog programming language.
 	LanguageProlog
 	// LanguagePromQL represents the PromQL programming language.
@@ -1501,6 +1517,8 @@ const (
 	LanguageYASnippet
 	// LanguageZAP represents the ZAP programming language.
 	LanguageZAP
+	// LanguageZed represents the Zed programming language.
+	LanguageZed
 	// LanguageZeek represents the Zeek programming language.
 	LanguageZeek
 	// LanguageZenScript represents the ZenScript programming language.
@@ -1550,6 +1568,7 @@ const (
 	languageAppleScriptStr                 = "AppleScript"
 	languageArcStr                         = "Arc"
 	languageArduinoStr                     = "Arduino"
+	languageArmAsmStr                      = "ArmAsm"
 	languageArrowStr                       = "Arrow"
 	languageASCIIDocStr                    = "AsciiDoc"
 	languageASLStr                         = "ASL"
@@ -1581,6 +1600,7 @@ const (
 	languageBeefStr                        = "Beef"
 	languageBefungeStr                     = "Befunge"
 	languageBibTeXStr                      = "BibTeX"
+	languageBicepStr                       = "Bicep"
 	languageBisonStr                       = "Bison"
 	languageBitBakeStr                     = "BitBake"
 	languageBladeStr                       = "Blade"
@@ -1941,8 +1961,10 @@ const (
 	languageMatlabSessionStr               = "Matlab session"
 	languageMaxStr                         = "Max"
 	languageMaxMSPStr                      = "Max/MSP"
+	languageMcfunctionStr                  = "mcfunction"
 	languageMesonStr                       = "Meson"
 	languageMetafontStr                    = "Metafont"
+	languageMetalStr                       = "Metal"
 	languageMetapostStr                    = "Metapost"
 	languageMIMEStr                        = "MIME"
 	languageMiniDStr                       = "MiniD"
@@ -1995,6 +2017,7 @@ const (
 	languageOCamlStr                       = "OCaml"
 	languageOctaveStr                      = "Octave"
 	languageODINStr                        = "ODIN"
+	languageOnesEnterpriseStr              = "OnesEnterprise"
 	languageOocStr                         = "ooc"
 	languageOpaStr                         = "Opa"
 	languageOpenEdgeABLStr                 = "OpenEdge ABL"
@@ -2015,15 +2038,18 @@ const (
 	languagePikeStr                        = "Pike"
 	languagePkgConfigStr                   = "PkgConfig"
 	languagePLpgSQLStr                     = "PL/pgSQL"
+	languagePlutusCoreStr                  = "Plutus Core"
 	languagePointlessStr                   = "Pointless"
 	languagePonyStr                        = "Pony"
 	languagePostgresStr                    = "PostgreSQL SQL dialect"
 	languagePostgresConsoleStr             = "PostgreSQL console (psql)"
 	languagePOVRayStr                      = "POVRay"
+	languagePowerQueryStr                  = "PowerQuery"
 	languagePostScriptStr                  = "PostScript"
 	languagePowerShellStr                  = "PowerShell"
 	languagePowerShellSessionStr           = "PowerShell Session"
 	languagePraatStr                       = "Praat"
+	languageProcessingStr                  = "Processing"
 	languagePrologStr                      = "Prolog"
 	languagePromQLStr                      = "PromQL"
 	languagePropertiesJavaStr              = "Properties"
@@ -2035,7 +2061,7 @@ const (
 	languagePureScriptStr                  = "PureScript"
 	languagePyPyLogStr                     = "PyPy Log"
 	languagePythonStr                      = "Python"
-	languagePython2Str                     = "Python 2.x"
+	languagePython2Str                     = "Python 2"
 	languagePython2TracebackStr            = "Python 2.x Traceback"
 	languagePythonConsoleStr               = "Python console session"
 	languagePythonTracebackStr             = "Python Traceback"
@@ -2268,6 +2294,7 @@ const (
 	languageYARAStr                        = "YARA"
 	languageYASnippetStr                   = "YASnippet"
 	languageZAPStr                         = "ZAP"
+	languageZedStr                         = "Zed"
 	languageZeekStr                        = "Zeek"
 	languageZenScriptStr                   = "ZenScript"
 	languageZephirStr                      = "Zephir"
@@ -2388,6 +2415,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageArc, true
 	case normalizeString(languageArduinoStr):
 		return LanguageArduino, true
+	case normalizeString(languageArmAsmStr):
+		return LanguageArmAsm, true
 	case normalizeString(languageArrowStr):
 		return LanguageArrow, true
 	case normalizeString(languageASCIIDocStr):
@@ -2450,6 +2479,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageBefunge, true
 	case normalizeString(languageBibTeXStr):
 		return LanguageBibTeX, true
+	case normalizeString(languageBicepStr):
+		return LanguageBicep, true
 	case normalizeString(languageBisonStr):
 		return LanguageBison, true
 	case normalizeString(languageBitBakeStr):
@@ -3170,10 +3201,14 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageMax, true
 	case normalizeString(languageMaxMSPStr):
 		return LanguageMaxMSP, true
+	case normalizeString(languageMcfunctionStr):
+		return LanguageMcfunction, true
 	case normalizeString(languageMesonStr):
 		return LanguageMeson, true
 	case normalizeString(languageMetafontStr):
 		return LanguageMetafont, true
+	case normalizeString(languageMetalStr):
+		return LanguageMetal, true
 	case normalizeString(languageMetapostStr):
 		return LanguageMetapost, true
 	case normalizeString(languageMIMEStr):
@@ -3278,6 +3313,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageOctave, true
 	case normalizeString(languageODINStr):
 		return LanguageODIN, true
+	case normalizeString(languageOnesEnterpriseStr):
+		return LanguageOnesEnterprise, true
 	case normalizeString(languageOocStr):
 		return LanguageOoc, true
 	case normalizeString(languageOpaStr):
@@ -3318,6 +3355,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguagePkgConfig, true
 	case normalizeString(languagePLpgSQLStr):
 		return LanguagePLpgSQL, true
+	case normalizeString(languagePlutusCoreStr):
+		return LanguagePlutusCore, true
 	case normalizeString(languagePointlessStr):
 		return LanguagePointless, true
 	case normalizeString(languagePonyStr):
@@ -3330,12 +3369,16 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguagePostScript, true
 	case normalizeString(languagePOVRayStr):
 		return LanguagePOVRay, true
+	case normalizeString(languagePowerQueryStr):
+		return LanguagePowerQuery, true
 	case normalizeString(languagePowerShellStr):
 		return LanguagePowerShell, true
 	case normalizeString(languagePowerShellSessionStr):
 		return LanguagePowerShellSession, true
 	case normalizeString(languagePraatStr):
 		return LanguagePraat, true
+	case normalizeString(languageProcessingStr):
+		return LanguageProcessing, true
 	case normalizeString(languagePrologStr):
 		return LanguageProlog, true
 	case normalizeString(languagePromQLStr):
@@ -3824,6 +3867,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageYASnippet, true
 	case normalizeString(languageZAPStr):
 		return LanguageZAP, true
+	case normalizeString(languageZedStr):
+		return LanguageZed, true
 	case normalizeString(languageZeekStr):
 		return LanguageZeek, true
 	case normalizeString(languageZenScriptStr):
@@ -4016,6 +4061,8 @@ func (l Language) String() string {
 		return languageArcStr
 	case LanguageArduino:
 		return languageArduinoStr
+	case LanguageArmAsm:
+		return languageArmAsmStr
 	case LanguageArrow:
 		return languageArrowStr
 	case LanguageASCIIDoc:
@@ -4074,6 +4121,8 @@ func (l Language) String() string {
 		return languageBefungeStr
 	case LanguageBibTeX:
 		return languageBibTeXStr
+	case LanguageBicep:
+		return languageBicepStr
 	case LanguageBison:
 		return languageBisonStr
 	case LanguageBitBake:
@@ -4790,10 +4839,14 @@ func (l Language) String() string {
 		return languageMaxStr
 	case LanguageMaxMSP:
 		return languageMaxMSPStr
+	case LanguageMcfunction:
+		return languageMcfunctionStr
 	case LanguageMeson:
 		return languageMesonStr
 	case LanguageMetafont:
 		return languageMetafontStr
+	case LanguageMetal:
+		return languageMetalStr
 	case LanguageMetapost:
 		return languageMetapostStr
 	case LanguageMIME:
@@ -4898,6 +4951,8 @@ func (l Language) String() string {
 		return languageOctaveStr
 	case LanguageODIN:
 		return languageODINStr
+	case LanguageOnesEnterprise:
+		return languageOnesEnterpriseStr
 	case LanguageOoc:
 		return languageOocStr
 	case LanguageOpa:
@@ -4938,6 +4993,8 @@ func (l Language) String() string {
 		return languagePkgConfigStr
 	case LanguagePLpgSQL:
 		return languagePLpgSQLStr
+	case LanguagePlutusCore:
+		return languagePlutusCoreStr
 	case LanguagePointless:
 		return languagePointlessStr
 	case LanguagePony:
@@ -4950,12 +5007,16 @@ func (l Language) String() string {
 		return languagePostScriptStr
 	case LanguagePOVRay:
 		return languagePOVRayStr
+	case LanguagePowerQuery:
+		return languagePowerQueryStr
 	case LanguagePowerShell:
 		return languagePowerShellStr
 	case LanguagePowerShellSession:
 		return languagePowerShellSessionStr
 	case LanguagePraat:
 		return languagePraatStr
+	case LanguageProcessing:
+		return languageProcessingStr
 	case LanguageProlog:
 		return languagePrologStr
 	case LanguagePromQL:
@@ -5438,6 +5499,8 @@ func (l Language) String() string {
 		return languageYASnippetStr
 	case LanguageZAP:
 		return languageZAPStr
+	case LanguageZed:
+		return languageZedStr
 	case LanguageZeek:
 		return languageZeekStr
 	case LanguageZenScript:

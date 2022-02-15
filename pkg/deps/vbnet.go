@@ -26,9 +26,9 @@ const (
 // ParserVbNet is a dependency parser for the vb.net programming language.
 // It is not thread safe.
 type ParserVbNet struct {
-	State  StateVbNet
 	Buffer string
 	Output []string
+	State  StateVbNet
 }
 
 // Parse parses dependencies from VB.Net file content using the chroma VB.Net lexer.
