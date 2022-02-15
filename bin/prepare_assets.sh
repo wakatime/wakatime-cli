@@ -20,6 +20,7 @@ chmod 750 ./build/wakatime-cli-linux-386
 chmod 750 ./build/wakatime-cli-linux-amd64
 chmod 750 ./build/wakatime-cli-linux-arm
 chmod 750 ./build/wakatime-cli-linux-arm64
+chmod 750 ./build/wakatime-cli-linux-riscv64
 chmod 750 ./build/wakatime-cli-netbsd-386
 chmod 750 ./build/wakatime-cli-netbsd-amd64
 chmod 750 ./build/wakatime-cli-netbsd-arm
@@ -39,6 +40,7 @@ zip -j ./release/wakatime-cli-linux-386.zip ./build/wakatime-cli-linux-386
 zip -j ./release/wakatime-cli-linux-amd64.zip ./build/wakatime-cli-linux-amd64
 zip -j ./release/wakatime-cli-linux-arm.zip ./build/wakatime-cli-linux-arm
 zip -j ./release/wakatime-cli-linux-arm64.zip ./build/wakatime-cli-linux-arm64
+zip -j ./release/wakatime-cli-linux-riscv64.zip ./build/wakatime-cli-linux-riscv64
 zip -j ./release/wakatime-cli-netbsd-386.zip ./build/wakatime-cli-netbsd-386
 zip -j ./release/wakatime-cli-netbsd-amd64.zip ./build/wakatime-cli-netbsd-amd64
 zip -j ./release/wakatime-cli-netbsd-arm.zip ./build/wakatime-cli-netbsd-arm
