@@ -426,8 +426,8 @@ github.com/stretchr/testify v1.7.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/
 github.com/subosito/gotenv v1.2.0 h1:Slr1R9HxAlEKefgq5jn9U+DnETlIUa6HfgEzj0g5d7s=
 github.com/subosito/gotenv v1.2.0/go.mod h1:N0PQaV/YGNqwC0u51sEeR/aUtSLEXKX9iv69rRypqCw=
 github.com/tv42/httpunix v0.0.0-20150427012821-b75d8614f926/go.mod h1:9ESjWnEqriFuLhtthL60Sar/7RFoluCcXsuvEwTV5KM=
-github.com/wakatime/chroma v0.8.2-wakatime.7 h1:2fXUt39QsD9HwI0X8vMs6hU3lHLGSnsJDj5ZxWW49oM=
-github.com/wakatime/chroma v0.8.2-wakatime.7/go.mod h1:Mldbmbb8NHiOz8oC1HKR8xUQ0EPvAjZpKDyQl2nGrnQ=
+github.com/wakatime/chroma v0.10.0-wakatime.1 h1:S3XwuOsibZY0hQlUyoJ9mak7K2kbrrfTh1X6XD2DK4c=
+github.com/wakatime/chroma v0.10.0-wakatime.1/go.mod h1:OSQG4slLkpoTtTCq3MKBL8aAWm7MpXpc+EiNmYMZ2pE=
 github.com/wakatime/goInfo v0.1.0-wakatime.8 h1:MgyeRnCkynEmUxLKXnYUAP5Dd+vhKxhqg6Nx1PdAZy4=
 github.com/wakatime/goInfo v0.1.0-wakatime.8/go.mod h1:aEt7p9Rvh67BYApmZwNDPpgircTO2kgdmDUoF/1QmwA=
 github.com/yookoala/realpath v1.0.0 h1:7OA9pj4FZd+oZDsyvXWQvjn5oBdcHRTV44PpdMSuImQ=
