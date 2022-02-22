@@ -447,9 +447,49 @@ jobs:
               ref: "tags/${{ needs.version.outputs.semver_tag }}"
             })
 
+  threat-scan:
+    name: Threat Scan
+    needs: [version, build-windows]
+    runs-on: windows-latest
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v2
+      -
+        name: Download artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: binaries
+          path: build/
+      - 
+        name: Start wuauserv service
+        run: |
+          Remove-MpPreference -ExclusionPath (Get-MpPreference).ExclusionPath
+          Set-Service -Name wuauserv -StartupType Manual -Status Running
+        shell: powershell
+      - 
+        name: Run threat scanner for windows binary
+        run: |
+          $env:GITHUB_WORKSPACE
+          & "$($env:programfiles)\Windows Defender\MpCmdRun.exe" -SignatureUpdate
+          & "$($env:programfiles)\Windows Defender\MpCmdRun.exe" -Scan -ScanType 3 -File $env:GITHUB_WORKSPACE/build/wakatime-cli-windows-amd64.exe -DisableRemediation -Trace -Level 0x10
+        shell: powershell
+      -
+        name: Remove tag if failure
+        if: ${{ failure() }}
+        uses: actions/github-script@v5
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            github.rest.git.deleteRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: "tags/${{ needs.version.outputs.semver_tag }}"
+            })
+
   sign:
     name: Sign Apple binaries
-    needs: [version, build-darwin]
+    needs: [version, build-darwin, threat-scan]
     runs-on: macos-latest
     steps:
       -
@@ -513,7 +553,8 @@ jobs:
       build-openbsd,
       build-darwin,
       build-windows,
-      sign]
+      threat-scan,
+      sign,]
     steps:
       -
         name: Checkout
