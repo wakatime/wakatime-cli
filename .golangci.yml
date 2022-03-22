@@ -13,7 +13,7 @@ linters:
     - godot
     - gofmt
     - goimports
-    - golint
+    - revive
     - gosec
     - lll
     - misspell

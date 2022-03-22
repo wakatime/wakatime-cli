@@ -119,7 +119,7 @@ func WithDetection(config Config) heartbeat.HandleOption {
 
 // Detect finds the current project and branch from config plugins.
 func Detect(entity string, patterns []MapPattern) Result {
-	var configPlugins []Detecter = []Detecter{
+	var configPlugins = []Detecter{
 		File{
 			Filepath: entity,
 		},
@@ -144,7 +144,7 @@ func Detect(entity string, patterns []MapPattern) Result {
 
 // DetectWithRevControl finds the current project and branch from rev control.
 func DetectWithRevControl(entity string, submodulePatterns []regex.Regex) Result {
-	var revControlPlugins []Detecter = []Detecter{
+	var revControlPlugins = []Detecter{
 		Git{
 			Filepath:          entity,
 			SubmodulePatterns: submodulePatterns,
