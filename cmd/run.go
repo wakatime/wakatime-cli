@@ -230,7 +230,7 @@ func runCmd(v *viper.Viper, verbose bool, cmd cmdFn) int {
 		if err := recover(); err != nil {
 			resetLogs()
 
-			if !verbose {
+			if verbose {
 				if err := sendDiagnostics(v, logs.String(), string(debug.Stack())); err != nil {
 					log.Warnf("failed to send diagnostics: %s", err)
 				}
