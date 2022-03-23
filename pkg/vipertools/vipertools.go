@@ -49,7 +49,7 @@ func FirstNonEmptyString(v *viper.Viper, keys ...string) (string, bool) {
 
 	for _, key := range keys {
 		if value := GetString(v, key); value != "" {
-			return strings.Trim(value, `"'`), true
+			return value, true
 		}
 	}
 

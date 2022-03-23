@@ -19,12 +19,12 @@ func TestWithDetection(t *testing.T) {
 		assert.Contains(t, hh, heartbeat.Heartbeat{
 			EntityType: heartbeat.FileType,
 			Entity:     "testdata/first.txt",
-			Lines:      heartbeat.Int(1),
+			Lines:      heartbeat.PointerTo(1),
 		})
 		assert.Contains(t, hh, heartbeat.Heartbeat{
 			EntityType: heartbeat.FileType,
 			Entity:     "testdata/second.txt",
-			Lines:      heartbeat.Int(2),
+			Lines:      heartbeat.PointerTo(2),
 		})
 
 		return []heartbeat.Result{
@@ -55,7 +55,7 @@ func TestWithDetection(t *testing.T) {
 
 func TestWithDetection_LinesInFile(t *testing.T) {
 	opt := filestats.WithDetection(filestats.Config{
-		LinesInFile: heartbeat.Int(158),
+		LinesInFile: heartbeat.PointerTo(158),
 	})
 	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		assert.Len(t, hh, 1)
@@ -63,7 +63,7 @@ func TestWithDetection_LinesInFile(t *testing.T) {
 			EntityType: heartbeat.FileType,
 			Entity:     "/path/to/remote",
 			LocalFile:  "testdata/first.txt",
-			Lines:      heartbeat.Int(158),
+			Lines:      heartbeat.PointerTo(158),
 		})
 
 		return []heartbeat.Result{

@@ -38,7 +38,7 @@ func WithDetection(c Config) heartbeat.HandleOption {
 				}
 
 				if c.LinesInFile != nil {
-					hh[n].Lines = heartbeat.Int(*c.LinesInFile)
+					hh[n].Lines = heartbeat.PointerTo(*c.LinesInFile)
 
 					continue
 				}
@@ -74,7 +74,7 @@ func WithDetection(c Config) heartbeat.HandleOption {
 					continue
 				}
 
-				hh[n].Lines = heartbeat.Int(lines)
+				hh[n].Lines = heartbeat.PointerTo(lines)
 			}
 
 			return next(hh)

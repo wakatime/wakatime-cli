@@ -31,7 +31,7 @@ func WithDetection() heartbeat.HandleOption {
 
 				language, err := Detect(filepath)
 				if err != nil && hh[n].LanguageAlternate != "" {
-					hh[n].Language = heartbeat.String(hh[n].LanguageAlternate)
+					hh[n].Language = heartbeat.PointerTo(hh[n].LanguageAlternate)
 
 					continue
 				}
@@ -42,7 +42,7 @@ func WithDetection() heartbeat.HandleOption {
 					continue
 				}
 
-				hh[n].Language = heartbeat.String(language.String())
+				hh[n].Language = heartbeat.PointerTo(language.String())
 			}
 
 			return next(hh)

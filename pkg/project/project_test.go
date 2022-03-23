@@ -33,7 +33,7 @@ func TestWithDetection_EntityNotFile(t *testing.T) {
 			},
 			Expected: heartbeat.Heartbeat{
 				EntityType:       heartbeat.AppType,
-				Project:          heartbeat.String("billing"),
+				Project:          heartbeat.PointerTo("billing"),
 				ProjectAlternate: "pci",
 				ProjectOverride:  "billing",
 			},
@@ -47,7 +47,7 @@ func TestWithDetection_EntityNotFile(t *testing.T) {
 			},
 			Expected: heartbeat.Heartbeat{
 				EntityType:       heartbeat.AppType,
-				Project:          heartbeat.String("pci"),
+				Project:          heartbeat.PointerTo("pci"),
 				ProjectAlternate: "pci",
 			},
 		},
@@ -59,7 +59,7 @@ func TestWithDetection_EntityNotFile(t *testing.T) {
 			},
 			Expected: heartbeat.Heartbeat{
 				EntityType: heartbeat.AppType,
-				Project:    heartbeat.String(""),
+				Project:    heartbeat.PointerTo(""),
 			},
 		},
 	}
@@ -105,10 +105,10 @@ func TestWithDetection_OverrideTakesPrecedence(t *testing.T) {
 			{
 				Entity:          entity,
 				EntityType:      heartbeat.FileType,
-				Project:         heartbeat.String("billing"),
+				Project:         heartbeat.PointerTo("billing"),
 				ProjectOverride: "billing",
 				ProjectPath:     projectPath,
-				Branch:          heartbeat.String("master"),
+				Branch:          heartbeat.PointerTo("master"),
 			},
 		}, hh)
 
@@ -153,7 +153,7 @@ func TestWithDetection_ObfuscateProject(t *testing.T) {
 				EntityType:  heartbeat.FileType,
 				Project:     hh[0].Project,
 				ProjectPath: projectPath,
-				Branch:      heartbeat.String("master"),
+				Branch:      heartbeat.PointerTo("master"),
 			},
 		}, hh)
 
@@ -203,9 +203,9 @@ func TestWithDetection_WakatimeProjectTakesPrecedence(t *testing.T) {
 			{
 				Entity:      entity,
 				EntityType:  heartbeat.FileType,
-				Project:     heartbeat.String("Rough Surf 20"),
+				Project:     heartbeat.PointerTo("Rough Surf 20"),
 				ProjectPath: projectPath,
-				Branch:      heartbeat.String("master"),
+				Branch:      heartbeat.PointerTo("master"),
 			},
 		}, hh)
 

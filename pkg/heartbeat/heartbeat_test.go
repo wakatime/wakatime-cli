@@ -20,13 +20,13 @@ import (
 func TestNew(t *testing.T) {
 	h := heartbeat.New(
 		heartbeat.CodingCategory,
-		heartbeat.Int(12),
+		heartbeat.PointerTo(12),
 		"testdata/main.go",
 		heartbeat.FileType,
-		heartbeat.Bool(true),
-		heartbeat.String("Go"),
+		heartbeat.PointerTo(true),
+		heartbeat.PointerTo("Go"),
 		"Golang",
-		heartbeat.Int(42),
+		heartbeat.PointerTo(42),
 		"/path/to/file",
 		"billing",
 		"pci",
@@ -39,12 +39,12 @@ func TestNew(t *testing.T) {
 
 	assert.Equal(t, heartbeat.Heartbeat{
 		Category:            heartbeat.CodingCategory,
-		CursorPosition:      heartbeat.Int(12),
+		CursorPosition:      heartbeat.PointerTo(12),
 		EntityType:          heartbeat.FileType,
-		IsWrite:             heartbeat.Bool(true),
-		Language:            heartbeat.String("Go"),
+		IsWrite:             heartbeat.PointerTo(true),
+		Language:            heartbeat.PointerTo("Go"),
 		LanguageAlternate:   "Golang",
-		LineNumber:          heartbeat.Int(42),
+		LineNumber:          heartbeat.PointerTo(42),
 		LocalFile:           "/path/to/file",
 		ProjectAlternate:    "billing",
 		ProjectOverride:     "pci",
@@ -57,12 +57,12 @@ func TestNew(t *testing.T) {
 
 func TestHeartbeat_ID(t *testing.T) {
 	h := heartbeat.Heartbeat{
-		Branch:     heartbeat.String("heartbeat"),
+		Branch:     heartbeat.PointerTo("heartbeat"),
 		Category:   heartbeat.CodingCategory,
 		Entity:     "/tmp/main.go",
 		EntityType: heartbeat.FileType,
-		IsWrite:    heartbeat.Bool(true),
-		Project:    heartbeat.String("wakatime"),
+		IsWrite:    heartbeat.PointerTo(true),
+		Project:    heartbeat.PointerTo("wakatime"),
 		Time:       1592868313.541149,
 	}
 	assert.Equal(t, "1592868313.541149-file-coding-wakatime-heartbeat-/tmp/main.go-true", h.ID())
@@ -80,18 +80,18 @@ func TestHeartbeat_ID_NilFields(t *testing.T) {
 
 func TestHeartbeat_JSON(t *testing.T) {
 	h := heartbeat.Heartbeat{
-		Branch:            heartbeat.String("heartbeat"),
+		Branch:            heartbeat.PointerTo("heartbeat"),
 		Category:          heartbeat.CodingCategory,
-		CursorPosition:    heartbeat.Int(12),
+		CursorPosition:    heartbeat.PointerTo(12),
 		Dependencies:      []string{"dep1", "dep2"},
 		Entity:            "/tmp/main.go",
 		EntityType:        heartbeat.FileType,
-		IsWrite:           heartbeat.Bool(true),
-		Language:          heartbeat.String("Go"),
+		IsWrite:           heartbeat.PointerTo(true),
+		Language:          heartbeat.PointerTo("Go"),
 		LanguageAlternate: "Golang",
-		LineNumber:        heartbeat.Int(42),
-		Lines:             heartbeat.Int(100),
-		Project:           heartbeat.String("wakatime"),
+		LineNumber:        heartbeat.PointerTo(42),
+		Lines:             heartbeat.PointerTo(100),
+		Project:           heartbeat.PointerTo("wakatime"),
 		Time:              1585598060.1,
 		UserAgent:         "wakatime/13.0.7",
 	}
@@ -138,7 +138,7 @@ func TestNewHandle(t *testing.T) {
 		SendHeartbeatsFn: func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 			assert.Equal(t, []heartbeat.Heartbeat{
 				{
-					Branch:     heartbeat.String("test"),
+					Branch:     heartbeat.PointerTo("test"),
 					Category:   heartbeat.CodingCategory,
 					Entity:     "/tmp/main.go",
 					EntityType: heartbeat.FileType,
@@ -159,7 +159,7 @@ func TestNewHandle(t *testing.T) {
 		func(next heartbeat.Handle) heartbeat.Handle {
 			return func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 				for i := range hh {
-					hh[i].Branch = heartbeat.String("test")
+					hh[i].Branch = heartbeat.PointerTo("test")
 				}
 
 				return next(hh)

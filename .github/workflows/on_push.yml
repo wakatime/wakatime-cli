@@ -8,7 +8,7 @@ on:
     tags-ignore: "**"
 
 env:
-  GO_VERSION: "1.17"
+  GO_VERSION: "1.18"
   TEST_VERSION: "<local-build>"
 
 jobs:
@@ -18,9 +18,9 @@ jobs:
     steps:
       -
         name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       -
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v3
         with:
           go-version: ${{ env.GO_VERSION }}
       -
@@ -34,7 +34,7 @@ jobs:
         run: make lint
       -
         name: Coverage
-        uses: codecov/codecov-action@v1
+        uses: codecov/codecov-action@v2
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           flags: unittests
@@ -45,9 +45,9 @@ jobs:
     steps:
       -
         name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       -
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v3
         with:
           go-version: ${{ env.GO_VERSION }}
       -
@@ -68,9 +68,9 @@ jobs:
     steps:
       -
         name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       -
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v3
         with:
           go-version: ${{ env.GO_VERSION }}
       -
@@ -89,9 +89,9 @@ jobs:
     steps:
       -
         name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       -
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v3
         with:
           go-version: ${{ env.GO_VERSION }}
       -
@@ -112,9 +112,9 @@ jobs:
     steps:
       -
         name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       -
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v3
         with:
           go-version: ${{ env.GO_VERSION }}
       -
@@ -130,9 +130,9 @@ jobs:
     steps:
       -
         name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       -
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v3
         with:
           go-version: ${{ env.GO_VERSION }}
       -
@@ -153,7 +153,7 @@ jobs:
     steps:
       -
         name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           submodules: recursive
       -
@@ -191,7 +191,7 @@ jobs:
     steps:
       -
         name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
       -
@@ -202,7 +202,7 @@ jobs:
           prerelease_id: alpha
           main_branch_name: release
       - name: Create tag
-        uses: actions/github-script@v5
+        uses: actions/github-script@v6
         with:
           github-token: ${{ github.token }}
           script: |
@@ -220,10 +220,10 @@ jobs:
     steps:
       -
         name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       -
         name: Setup go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v3
         with:
           go-version: ${{ env.GO_VERSION }}
       -
@@ -242,7 +242,7 @@ jobs:
       -
         name: Remove tag if failure
         if: ${{ failure() }}
-        uses: actions/github-script@v5
+        uses: actions/github-script@v6
         with:
           github-token: ${{ github.token }}
           script: |
@@ -259,10 +259,10 @@ jobs:
     steps:
       -
         name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       -
         name: Setup go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v3
         with:
           go-version: ${{ env.GO_VERSION }}
       -
@@ -281,7 +281,7 @@ jobs:
       -
         name: Remove tag if failure
         if: ${{ failure() }}
-        uses: actions/github-script@v5
+        uses: actions/github-script@v6
         with:
           github-token: ${{ github.token }}
           script: |
@@ -298,10 +298,10 @@ jobs:
     steps:
       -
         name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       -
         name: Setup go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v3
         with:
           go-version: ${{ env.GO_VERSION }}
       -
@@ -320,7 +320,7 @@ jobs:
       -
         name: Remove tag if failure
         if: ${{ failure() }}
-        uses: actions/github-script@v5
+        uses: actions/github-script@v6
         with:
           github-token: ${{ github.token }}
           script: |
@@ -337,10 +337,10 @@ jobs:
     steps:
       -
         name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       -
         name: Setup go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v3
         with:
           go-version: ${{ env.GO_VERSION }}
       -
@@ -359,7 +359,7 @@ jobs:
       -
         name: Remove tag if failure
         if: ${{ failure() }}
-        uses: actions/github-script@v5
+        uses: actions/github-script@v6
         with:
           github-token: ${{ github.token }}
           script: |
@@ -376,10 +376,10 @@ jobs:
     steps:
       -
         name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       -
         name: Setup go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v3
         with:
           go-version: ${{ env.GO_VERSION }}
       -
@@ -398,7 +398,7 @@ jobs:
       -
         name: Remove tag if failure
         if: ${{ failure() }}
-        uses: actions/github-script@v5
+        uses: actions/github-script@v6
         with:
           github-token: ${{ github.token }}
           script: |
@@ -415,10 +415,10 @@ jobs:
     steps:
       -
         name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       -
         name: Setup go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v3
         with:
           go-version: ${{ env.GO_VERSION }}
       -
@@ -437,7 +437,7 @@ jobs:
       -
         name: Remove tag if failure
         if: ${{ failure() }}
-        uses: actions/github-script@v5
+        uses: actions/github-script@v6
         with:
           github-token: ${{ github.token }}
           script: |
@@ -454,10 +454,10 @@ jobs:
     steps:
       -
         name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       -
         name: Download artifacts
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: binaries
           path: build/
@@ -477,7 +477,7 @@ jobs:
       -
         name: Remove tag if failure
         if: ${{ failure() }}
-        uses: actions/github-script@v5
+        uses: actions/github-script@v6
         with:
           github-token: ${{ github.token }}
           script: |
@@ -494,10 +494,10 @@ jobs:
     steps:
       -
         name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       -
         name: Download artifacts
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: binaries
           path: build/
@@ -539,7 +539,7 @@ jobs:
       -
         name: Remove tag if failure
         if: ${{ failure() }}
-        uses: actions/github-script@v5
+        uses: actions/github-script@v6
         with:
           github-token: ${{ github.token }}
           script: |
@@ -565,7 +565,7 @@ jobs:
     steps:
       -
         name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
       -
@@ -583,7 +583,7 @@ jobs:
         # Run only for release branch
         if: ${{ github.ref == 'refs/heads/release' }}
         name: Get related pull request
-        uses: 8BitJonny/gh-get-current-pr@1.1.0
+        uses: 8BitJonny/gh-get-current-pr@1.4.0
         id: changelog-release
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -595,7 +595,7 @@ jobs:
           ./bin/prepare_changelog.sh $(echo ${GITHUB_REF#refs/heads/}) "$changelog"
       -
         name: Download artifacts
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: binaries
           path: build/
@@ -618,7 +618,7 @@ jobs:
       -
         name: Remove tag if failure
         if: ${{ failure() }}
-        uses: actions/github-script@v5
+        uses: actions/github-script@v6
         with:
           github-token: ${{ github.token }}
           script: |
