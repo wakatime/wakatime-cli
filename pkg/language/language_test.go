@@ -72,7 +72,7 @@ func TestWithDetection_Override(t *testing.T) {
 		{
 			Entity:     "testdata/codefiles/golang.go",
 			EntityType: heartbeat.FileType,
-			Language:   heartbeat.String("Python"),
+			Language:   heartbeat.PointerTo("Python"),
 		},
 	})
 	require.NoError(t, err)
@@ -93,7 +93,7 @@ func TestWithDetection_Alternate(t *testing.T) {
 			{
 				Entity:            "testdata/codefiles/unknown.xyz",
 				EntityType:        heartbeat.FileType,
-				Language:          heartbeat.String("Golang"),
+				Language:          heartbeat.PointerTo("Golang"),
 				LanguageAlternate: "Golang",
 			},
 		}, hh)

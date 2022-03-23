@@ -263,7 +263,7 @@ func LoadHeartbeatParams(v *viper.Viper) (Heartbeat, error) {
 
 	var cursorPosition *int
 	if pos := v.GetInt("cursorpos"); v.IsSet("cursorpos") {
-		cursorPosition = heartbeat.Int(pos)
+		cursorPosition = heartbeat.PointerTo(pos)
 	}
 
 	var entity string
@@ -300,17 +300,17 @@ func LoadHeartbeatParams(v *viper.Viper) (Heartbeat, error) {
 
 	var isWrite *bool
 	if b := v.GetBool("write"); v.IsSet("write") {
-		isWrite = heartbeat.Bool(b)
+		isWrite = heartbeat.PointerTo(b)
 	}
 
 	var lineNumber *int
 	if num := v.GetInt("lineno"); v.IsSet("lineno") {
-		lineNumber = heartbeat.Int(num)
+		lineNumber = heartbeat.PointerTo(num)
 	}
 
 	var linesInFile *int
 	if num := v.GetInt("lines-in-file"); v.IsSet("lines-in-file") {
-		linesInFile = heartbeat.Int(num)
+		linesInFile = heartbeat.PointerTo(num)
 	}
 
 	timeSecs := v.GetFloat64("time")
@@ -612,56 +612,56 @@ func parseExtraHeartbeat(data string) ([]heartbeat.Heartbeat, error) {
 
 		switch cursorPositionVal := h.CursorPosition.(type) {
 		case float64:
-			cursorPosition = heartbeat.Int(int(cursorPositionVal))
+			cursorPosition = heartbeat.PointerTo(int(cursorPositionVal))
 		case string:
 			val, err := strconv.Atoi(cursorPositionVal)
 			if err != nil {
 				return nil, fmt.Errorf("failed to convert cursor position to int: %s", err)
 			}
 
-			cursorPosition = heartbeat.Int(val)
+			cursorPosition = heartbeat.PointerTo(val)
 		}
 
 		var isWrite *bool
 
 		switch isWriteVal := h.IsWrite.(type) {
 		case bool:
-			isWrite = heartbeat.Bool(isWriteVal)
+			isWrite = heartbeat.PointerTo(isWriteVal)
 		case string:
 			val, err := strconv.ParseBool(isWriteVal)
 			if err != nil {
 				return nil, fmt.Errorf("failed to convert is write to bool: %s", err)
 			}
 
-			isWrite = heartbeat.Bool(val)
+			isWrite = heartbeat.PointerTo(val)
 		}
 
 		var lineNumber *int
 
 		switch lineNumberVal := h.LineNumber.(type) {
 		case float64:
-			lineNumber = heartbeat.Int(int(lineNumberVal))
+			lineNumber = heartbeat.PointerTo(int(lineNumberVal))
 		case string:
 			val, err := strconv.Atoi(lineNumberVal)
 			if err != nil {
 				return nil, fmt.Errorf("failed to convert line number to int: %s", err)
 			}
 
-			lineNumber = heartbeat.Int(val)
+			lineNumber = heartbeat.PointerTo(val)
 		}
 
 		var lines *int
 
 		switch linesVal := h.Lines.(type) {
 		case float64:
-			lines = heartbeat.Int(int(linesVal))
+			lines = heartbeat.PointerTo(int(linesVal))
 		case string:
 			val, err := strconv.Atoi(linesVal)
 			if err != nil {
 				return nil, fmt.Errorf("failed to convert lines to int: %s", err)
 			}
 
-			lines = heartbeat.Int(val)
+			lines = heartbeat.PointerTo(val)
 		}
 
 		var time float64
