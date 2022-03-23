@@ -1,4 +1,5 @@
 run:
+  go: "1.18"
   deadline: 5m
   build-tags:
     - integration

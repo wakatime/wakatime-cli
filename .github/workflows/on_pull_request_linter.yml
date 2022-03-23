@@ -6,7 +6,7 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: lekterable/branchlint-action@v1.0.0
+      - uses: lekterable/branchlint-action@1.2.0
         with:
           allowed: |
             /^(.+:)?bugfix/.+/i
