@@ -512,7 +512,15 @@ jobs:
       -
         name: Install gon via Homebrew for code signing and app notarization
         run: |
-          wget https://github.com/wakatime/gon/releases/download/v0.2.3/gon
+          # workaround for https://github.com/mitchellh/gon/issues/56
+          pushd .
+          cd /usr/local/Homebrew
+          git fetch origin tag 3.3.9 --no-tags
+          git checkout 3.3.9
+          popd
+          # /workaround
+          brew tap mitchellh/gon
+          brew install mitchellh/gon/gon
       -
         name: Sign and notarize mac binaries with gon
         env:
