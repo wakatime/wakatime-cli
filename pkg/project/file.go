@@ -89,6 +89,6 @@ func readFile(fp string, max int) ([]string, error) {
 }
 
 // String returns its name.
-func (f File) String() string {
+func (File) String() string {
 	return "project-file-detector"
 }

@@ -259,6 +259,6 @@ func findGitBranch(fp string) (string, error) {
 }
 
 // String returns its name.
-func (g Git) String() string {
+func (Git) String() string {
 	return "git-detector"
 }

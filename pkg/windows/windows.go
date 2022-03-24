@@ -70,7 +70,7 @@ type commander interface {
 type realCommander struct{}
 
 // Command calls exec.Command function.
-func (c realCommander) Command(name string, args ...string) *exec.Cmd {
+func (realCommander) Command(name string, args ...string) *exec.Cmd {
 	return exec.Command(name, args...)
 }
 

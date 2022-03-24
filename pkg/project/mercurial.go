@@ -68,6 +68,6 @@ func findHgBranch(fp string) (string, error) {
 }
 
 // String returns its name.
-func (m Mercurial) String() string {
+func (Mercurial) String() string {
 	return "hg-detector"
 }

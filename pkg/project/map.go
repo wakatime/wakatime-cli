@@ -69,6 +69,6 @@ func matchPattern(fp string, patterns []MapPattern) (string, bool) {
 }
 
 // String returns its name.
-func (m Map) String() string {
+func (Map) String() string {
 	return "project-map-detector"
 }

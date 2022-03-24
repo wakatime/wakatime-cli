@@ -9,7 +9,7 @@ import (
 )
 
 func loadSystemRoots() (*x509.CertPool, error) {
-	const CryptENotFound = 0x80092004
+	const cryptENotFound = 0x80092004
 
 	rootPtr, err := syscall.UTF16PtrFromString("ROOT")
 	if err != nil {
@@ -33,7 +33,7 @@ func loadSystemRoots() (*x509.CertPool, error) {
 		cert, err = syscall.CertEnumCertificatesInStore(store, cert)
 		if err != nil {
 			if errno, ok := err.(syscall.Errno); ok {
-				if errno == CryptENotFound {
+				if errno == cryptENotFound {
 					break
 				}
 			}

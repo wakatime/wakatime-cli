@@ -197,6 +197,6 @@ func (mc *mutexClock) After(time.Duration) <-chan time.Time {
 	return time.After(mc.delay)
 }
 
-func (mc *mutexClock) Now() time.Time {
+func (*mutexClock) Now() time.Time {
 	return time.Now()
 }
