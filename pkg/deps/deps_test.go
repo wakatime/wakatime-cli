@@ -296,7 +296,7 @@ func TestDetect_LongDependenciesRemoved(t *testing.T) {
 	assert.Equal(t, []string{
 		"django",
 		"flask",
-		// nolint:lll
+		// nolint:revive
 		"notlongenoughnotlongenoughnotlongenoughnotlongenoughnotlongenoughnotlongenoughnotlongenoughnotlongenoughnotlongenoughnotlongenoughnotlongenoughnotlongenoughnotlongenoughnotlongenoughnotlongenoughnotlo",
 	}, deps)
 }

@@ -55,7 +55,7 @@ func (c *Client) SendDiagnostics(plugin string, diagnostics ...diagnostic.Diagno
 		return fmt.Errorf("failed to create request: %s", err)
 	}
 
-	req.Header.Add("Content-Type", "application/json")
+	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := c.Do(req)
 	if err != nil {

@@ -44,6 +44,6 @@ func (t Tfvc) Detect() (Result, bool, error) {
 }
 
 // String returns its name.
-func (t Tfvc) String() string {
+func (Tfvc) String() string {
 	return "tfvc-detector"
 }

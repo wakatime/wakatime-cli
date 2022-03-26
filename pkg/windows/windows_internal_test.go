@@ -35,7 +35,7 @@ type testCommander struct{}
 
 // Command uses the test executable (taken from os.Args[0]), to execute
 // TestNetUseOutput test to emulate `net use` command execution.
-func (c testCommander) Command(name string, args ...string) *exec.Cmd {
+func (testCommander) Command(_ string, args ...string) *exec.Cmd {
 	cs := []string{"-test.run=TestNetUseOutput", "--"}
 	cs = append(cs, args...)
 	// nolint:gosec

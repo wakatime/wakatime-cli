@@ -36,7 +36,7 @@ const (
 type Sender struct{}
 
 // SendHeartbeats always returns an error.
-func (s *Sender) SendHeartbeats(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+func (*Sender) SendHeartbeats(_ []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 	return nil, api.Err("skip sending heartbeats and only save to offline db")
 }
 
