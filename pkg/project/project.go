@@ -66,9 +66,9 @@ type MapPattern struct {
 func WithDetection(config Config) heartbeat.HandleOption {
 	return func(next heartbeat.Handle) heartbeat.Handle {
 		return func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
-			log.Debugln("execute project detection")
-
 			for n, h := range hh {
+				log.Debugln("execute project detection for:", h.Entity)
+
 				if h.EntityType != heartbeat.FileType {
 					project := firstNonEmptyString(h.ProjectOverride, h.ProjectAlternate)
 					hh[n].Project = &project
@@ -130,6 +130,8 @@ func Detect(entity string, patterns []MapPattern) Result {
 	}
 
 	for _, p := range configPlugins {
+		log.Debugln("execute", p.String())
+
 		result, detected, err := p.Detect()
 		if err != nil {
 			log.Errorf("unexpected error occurred at %q: %s", p.String(), err)
@@ -161,6 +163,8 @@ func DetectWithRevControl(entity string, submodulePatterns []regex.Regex) Result
 	}
 
 	for _, p := range revControlPlugins {
+		log.Debugln("execute", p.String())
+
 		result, detected, err := p.Detect()
 		if err != nil {
 			log.Errorf("unexpected error occurred at %q: %s", p.String(), err)
