@@ -18,8 +18,6 @@ type Subversion struct {
 
 // Detect gets information about the svn project for a given file.
 func (s Subversion) Detect() (Result, bool, error) {
-	log.Debugln("execute subversion project detection")
-
 	binary, ok := findSvnBinary()
 	if !ok {
 		log.Debugln("svn binary not found")

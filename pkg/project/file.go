@@ -19,8 +19,6 @@ type File struct {
 // a given file. First line of .wakatime-project sets the project
 // name. Second line sets the current branch name.
 func (f File) Detect() (Result, bool, error) {
-	log.Debugln("execute file project detection")
-
 	fp, ok := FindFileOrDirectory(f.Filepath, WakaTimeProjectFile)
 	if !ok {
 		return Result{}, false, nil
