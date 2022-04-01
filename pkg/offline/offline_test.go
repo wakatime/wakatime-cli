@@ -78,8 +78,7 @@ func TestWithQueue(t *testing.T) {
 
 	db.Close()
 
-	opt, err := offline.WithQueue(f.Name())
-	require.NoError(t, err)
+	opt := offline.WithQueue(f.Name())
 
 	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		assert.Len(t, hh, 2)
@@ -151,8 +150,7 @@ func TestWithQueue_ApiError(t *testing.T) {
 
 	defer f.Close()
 
-	opt, err := offline.WithQueue(f.Name())
-	require.NoError(t, err)
+	opt := offline.WithQueue(f.Name())
 
 	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		assert.Equal(t, hh, []heartbeat.Heartbeat{
@@ -214,8 +212,7 @@ func TestWithQueue_InvalidResults(t *testing.T) {
 
 	defer f.Close()
 
-	opt, err := offline.WithQueue(f.Name())
-	require.NoError(t, err)
+	opt := offline.WithQueue(f.Name())
 
 	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		assert.Equal(t, hh, testHeartbeats())
@@ -300,8 +297,7 @@ func TestWithQueue_HandleLeftovers(t *testing.T) {
 
 	defer f.Close()
 
-	opt, err := offline.WithQueue(f.Name())
-	require.NoError(t, err)
+	opt := offline.WithQueue(f.Name())
 
 	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		assert.Equal(t, hh, testHeartbeats())
