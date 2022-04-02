@@ -7,7 +7,7 @@ import (
 
 	apicmd "github.com/wakatime/wakatime-cli/cmd/api"
 	offlinecmd "github.com/wakatime/wakatime-cli/cmd/offline"
-	"github.com/wakatime/wakatime-cli/cmd/params"
+	paramscmd "github.com/wakatime/wakatime-cli/cmd/params"
 	"github.com/wakatime/wakatime-cli/pkg/api"
 	"github.com/wakatime/wakatime-cli/pkg/backoff"
 	"github.com/wakatime/wakatime-cli/pkg/deps"
@@ -72,12 +72,8 @@ func Run(v *viper.Viper) (int, error) {
 // heartbeats from the offline queue, if available and offline sync is not
 // explicitly disabled.
 func SendHeartbeats(v *viper.Viper, queueFilepath string) error {
-	params, err := params.Load(v)
+	params, err := paramscmd.Load(v)
 	if err != nil {
-		if err := offlinecmd.SaveHeartbeats(v, nil, queueFilepath); err != nil {
-			log.Errorf("failed to save heartbeats to offline queue: %s", err)
-		}
-
 		return fmt.Errorf("failed to load command parameters: %w", err)
 	}
 
@@ -109,16 +105,7 @@ func SendHeartbeats(v *viper.Viper, queueFilepath string) error {
 			queueFilepath = params.Offline.QueueFile
 		}
 
-		offlineHandleOpt, err := offline.WithQueue(queueFilepath)
-		if err != nil {
-			if err := offlinecmd.SaveHeartbeats(v, nil, queueFilepath); err != nil {
-				log.Errorf("failed to save heartbeats to offline queue: %s", err)
-			}
-
-			return fmt.Errorf("failed to initialize offline queue handle option: %w", err)
-		}
-
-		handleOpts = append(handleOpts, offlineHandleOpt)
+		handleOpts = append(handleOpts, offline.WithQueue(queueFilepath))
 	}
 
 	handleOpts = append(handleOpts, backoff.WithBackoff(backoff.Config{
@@ -130,7 +117,7 @@ func SendHeartbeats(v *viper.Viper, queueFilepath string) error {
 	apiClient, err := apicmd.NewClient(params.API)
 	if err != nil {
 		if !params.Offline.Disabled {
-			if err := offlinecmd.SaveHeartbeats(v, nil, queueFilepath); err != nil {
+			if err := offlinecmd.SaveHeartbeats(v, heartbeats, queueFilepath); err != nil {
 				log.Errorf("failed to save heartbeats to offline queue: %s", err)
 			}
 		}
@@ -154,7 +141,7 @@ func SendHeartbeats(v *viper.Viper, queueFilepath string) error {
 	return nil
 }
 
-func buildHeartbeats(params params.Params) []heartbeat.Heartbeat {
+func buildHeartbeats(params paramscmd.Params) []heartbeat.Heartbeat {
 	heartbeats := []heartbeat.Heartbeat{}
 
 	userAgent := heartbeat.UserAgentUnknownPlugin()
@@ -205,7 +192,7 @@ func buildHeartbeats(params params.Params) []heartbeat.Heartbeat {
 	return heartbeats
 }
 
-func initHandleOptions(params params.Params) []heartbeat.HandleOption {
+func initHandleOptions(params paramscmd.Params) []heartbeat.HandleOption {
 	return []heartbeat.HandleOption{
 		heartbeat.WithFormatting(heartbeat.FormatConfig{
 			RemoteAddressPattern: remote.RemoteAddressRegex,
@@ -244,7 +231,7 @@ func initHandleOptions(params params.Params) []heartbeat.HandleOption {
 	}
 }
 
-func setLogFields(params *params.Params) {
+func setLogFields(params *paramscmd.Params) {
 	if params.API.Plugin != "" {
 		log.WithField("plugin", params.API.Plugin)
 	}
