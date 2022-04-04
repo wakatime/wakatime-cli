@@ -1,4 +1,4 @@
-name: "Tests"
+name: Tests
 
 on: pull_request
 
@@ -6,7 +6,9 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: lekterable/branchlint-action@1.2.0
+      - 
+        name: Lint allowed branch names
+        uses: lekterable/branchlint-action@1.2.0
         with:
           allowed: |
             /^(.+:)?bugfix/.+/i
@@ -16,3 +18,11 @@ jobs:
             /^(.+:)?major/.+/i
             /^(.+:)?misc/.+/i
             /^(.+:)?develop$/i
+      - 
+        # Run only for release branch
+        if: ${{ github.base_ref == 'release' }}
+        name: Check for changelog pattern
+        uses: JJ/github-pr-contains-action@v1
+        with:
+          github-token: ${{ github.token }}
+          bodyContains: 'Changelog:'
