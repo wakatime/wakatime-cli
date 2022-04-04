@@ -6,7 +6,7 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - 
+      -
         name: Lint allowed branch names
         uses: lekterable/branchlint-action@1.2.0
         with:
@@ -18,11 +18,18 @@ jobs:
             /^(.+:)?major/.+/i
             /^(.+:)?misc/.+/i
             /^(.+:)?develop$/i
-      - 
+      -
+        name: Block fixup/squash commits
+        uses: xt0rted/block-autosquash-commits-action@v2
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      -
         # Run only for release branch
         if: ${{ github.base_ref == 'release' }}
         name: Check for changelog pattern
-        uses: JJ/github-pr-contains-action@v1
+        uses: Talentia-Software-OSS/check-pr-comments-action@v0.0.3
         with:
-          github-token: ${{ github.token }}
-          bodyContains: 'Changelog:'
+          comments-must-contain: 'Changelog:'
+          comments-must-not-contain: '`'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
