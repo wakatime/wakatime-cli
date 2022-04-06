@@ -543,7 +543,7 @@ jobs:
         name: Prepare changelog
         id: changelog
         run: |
-          changelog="${{ steps.changelog-develop.outputs.changelog || fromJson(steps.changelog-release.outputs.pr).body }}"
+          changelog="${{ steps.changelog-develop.outputs.changelog || steps.changelog-release.outputs.pr_body }}"
           ./bin/prepare_changelog.sh $(echo ${GITHUB_REF#refs/heads/}) "$changelog"
       -
         name: Download artifacts
