@@ -21,6 +21,7 @@ type Heartbeat struct {
 	Entity              string     `json:"entity"`
 	EntityRaw           string     `json:"-"`
 	EntityType          EntityType `json:"type"`
+	IsUnsavedEntity     bool       `json:"-"`
 	IsWrite             *bool      `json:"is_write"`
 	Language            *string    `json:"language"`
 	LanguageAlternate   string     `json:"-"`
@@ -43,10 +44,12 @@ func New(
 	cursorPosition *int,
 	entity string,
 	entityType EntityType,
+	isUnsavedEntity bool,
 	isWrite *bool,
 	language *string,
 	languageAlternate string,
 	lineNumber *int,
+	lines *int,
 	localFile string,
 	projectAlternate string,
 	projectOverride string,
@@ -59,10 +62,12 @@ func New(
 		CursorPosition:      cursorPosition,
 		Entity:              entity,
 		EntityType:          entityType,
+		IsUnsavedEntity:     isUnsavedEntity,
 		IsWrite:             isWrite,
 		Language:            language,
 		LanguageAlternate:   languageAlternate,
 		LineNumber:          lineNumber,
+		Lines:               lines,
 		LocalFile:           localFile,
 		ProjectAlternate:    projectAlternate,
 		ProjectOverride:     projectOverride,

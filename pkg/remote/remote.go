@@ -58,6 +58,10 @@ func WithDetection() heartbeat.HandleOption {
 					continue
 				}
 
+				if h.IsUnsavedEntity {
+					continue
+				}
+
 				if !RemoteAddressRegex.MatchString(h.Entity) {
 					continue
 				}

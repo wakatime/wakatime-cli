@@ -15,15 +15,10 @@ import (
 // bytes will not have a line count stat for performance. Default is 2MB (2*1024*1024).
 const maxFileSizeSupported = 2097152
 
-// Config contains configurations for file stats.
-type Config struct {
-	LinesInFile *int
-}
-
 // WithDetection initializes and returns a heartbeat handle option, which
 // can be used in a heartbeat processing pipeline to detect filestats. At the
 // moment only the total number of lines in a file is detected.
-func WithDetection(c Config) heartbeat.HandleOption {
+func WithDetection() heartbeat.HandleOption {
 	return func(next heartbeat.Handle) heartbeat.Handle {
 		return func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 			log.Debugln("execute filestats detection")
@@ -33,13 +28,11 @@ func WithDetection(c Config) heartbeat.HandleOption {
 					continue
 				}
 
-				if h.Lines != nil {
+				if h.IsUnsavedEntity {
 					continue
 				}
 
-				if c.LinesInFile != nil {
-					hh[n].Lines = heartbeat.PointerTo(*c.LinesInFile)
-
+				if h.Lines != nil {
 					continue
 				}
 

@@ -129,6 +129,12 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 		false,
 		"Disables tracking folders unless they contain a .wakatime-project file. Defaults to false.",
 	)
+	flags.Bool(
+		"is-unsaved-entity",
+		false,
+		"Normally files that don't exist on disk are skipped and not tracked. When this option is present,"+
+			" the main heartbeat file will be tracked even if it doesn't exist. To set this flag on"+
+			" extra heartbeats, use the 'is_unsaved_entity' json key.")
 	flags.String("key", "", "Your wakatime api key; uses api_key from ~/.wakatime.cfg by default.")
 	flags.String("language", "", "Optional language name. If valid, takes priority over auto-detected language.")
 	flags.Int("lineno", 0, "Optional line number. This is the current line being edited.")

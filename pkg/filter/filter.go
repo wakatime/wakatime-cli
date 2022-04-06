@@ -58,6 +58,10 @@ func Filter(h heartbeat.Heartbeat, config Config) error {
 		return fmt.Errorf(fmt.Sprintf("filter by pattern: %s", err))
 	}
 
+	if h.IsUnsavedEntity {
+		return nil
+	}
+
 	if config.RemoteAddressPattern != nil && config.RemoteAddressPattern.MatchString(h.Entity) {
 		return nil
 	}
@@ -101,7 +105,7 @@ func filterByPattern(entity string, include, exclude []regex.Regex) error {
 // filterFileEntity determines if a heartbeat of type file should be skipped, by verifying
 // the existence of the passed in filepath, and optionally by checking if a
 // wakatime project file can be detected in the filepath directory tree.
-// Returns Err to signal to the caller to skip the heartbeat.
+// Returns an error to signal to the caller to skip the heartbeat.
 func filterFileEntity(filepath string, includeOnlyWithProjectFile bool) error {
 	// skip files that don't exist on disk
 	if _, err := os.Stat(filepath); os.IsNotExist(err) {

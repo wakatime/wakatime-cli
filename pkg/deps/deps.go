@@ -42,6 +42,10 @@ func WithDetection(c Config) heartbeat.HandleOption {
 					continue
 				}
 
+				if h.IsUnsavedEntity {
+					continue
+				}
+
 				if h.Language == nil {
 					continue
 				}
