@@ -27,9 +27,9 @@ jobs:
         # Run only for release branch
         if: ${{ github.base_ref == 'release' }}
         name: Check for changelog pattern
-        uses: Talentia-Software-OSS/check-pr-comments-action@v0.0.3
+        uses: gandarez/check-pr-body-action@v1.0.1
         with:
-          comments-must-contain: 'Changelog:'
-          comments-must-not-contain: '`'
+          contains: 'Changelog:'
+          not-contains: '`'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
