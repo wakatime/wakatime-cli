@@ -29,6 +29,7 @@ jobs:
         name: Check for changelog pattern
         uses: gandarez/check-pr-body-action@v1.0.3
         with:
+          pr_number: ${{ github.event.number }}
           contains: 'Changelog:'
           not_contains: '`'
         env:
