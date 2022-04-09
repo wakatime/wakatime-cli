@@ -38,7 +38,7 @@ var (
 
 // FormatFilePath formats a windows filepath by converting backslash to
 // frontslash and ensuring that drive letter is upper case.
-func FormatFilePath(fp string) (string, error) {
+func FormatFilePath(fp string) string {
 	isWindowsNetworkMount := windowsNetworkMountRegex.MatchString(fp)
 
 	fp = backslashReplaceRegex.ReplaceAllString(fp, "/")
@@ -53,7 +53,7 @@ func FormatFilePath(fp string) (string, error) {
 		fp = `\\` + fp[1:]
 	}
 
-	return fp, nil
+	return fp
 }
 
 // IsWindowsNetworkMount returns true if filepath is windows network path.

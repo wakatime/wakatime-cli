@@ -30,6 +30,6 @@ jobs:
         uses: gandarez/check-pr-body-action@v1.0.1
         with:
           contains: 'Changelog:'
-          not-contains: '`'
+          not_contains: '`'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

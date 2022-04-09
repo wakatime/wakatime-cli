@@ -23,8 +23,7 @@ func TestWithFormatting(t *testing.T) {
 		require.NoError(t, err)
 
 		if runtime.GOOS == "windows" {
-			entity, err = windows.FormatFilePath(entity)
-			require.NoError(t, err)
+			entity = windows.FormatFilePath(entity)
 		}
 
 		assert.Equal(t, []heartbeat.Heartbeat{

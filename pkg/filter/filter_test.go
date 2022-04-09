@@ -98,6 +98,16 @@ func TestFilter_NonFileTypeEmptyEntity(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestFilter_IsUnsavedEntity(t *testing.T) {
+	h := testHeartbeat()
+	h.Entity = "nonexisting"
+	h.EntityType = heartbeat.FileType
+	h.IsUnsavedEntity = true
+
+	err := filter.Filter(h, filter.Config{})
+	require.NoError(t, err)
+}
+
 func TestFilter_IncludeMatchOverwritesExcludeMatch(t *testing.T) {
 	tmpFile, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)
@@ -194,18 +204,19 @@ func TestFilter_ErrNonExistingProjectFile(t *testing.T) {
 
 func testHeartbeat() heartbeat.Heartbeat {
 	return heartbeat.Heartbeat{
-		Branch:         heartbeat.PointerTo("heartbeat"),
-		Category:       heartbeat.CodingCategory,
-		CursorPosition: heartbeat.PointerTo(12),
-		Dependencies:   []string{"dep1", "dep2"},
-		Entity:         "/tmp/main.go",
-		EntityType:     heartbeat.FileType,
-		IsWrite:        heartbeat.PointerTo(true),
-		Language:       heartbeat.PointerTo("Go"),
-		LineNumber:     heartbeat.PointerTo(42),
-		Lines:          heartbeat.PointerTo(100),
-		Project:        heartbeat.PointerTo("wakatime"),
-		Time:           1585598060,
-		UserAgent:      "wakatime/13.0.7",
+		Branch:          heartbeat.PointerTo("heartbeat"),
+		Category:        heartbeat.CodingCategory,
+		CursorPosition:  heartbeat.PointerTo(12),
+		Dependencies:    []string{"dep1", "dep2"},
+		Entity:          "/tmp/main.go",
+		EntityType:      heartbeat.FileType,
+		IsWrite:         heartbeat.PointerTo(true),
+		Language:        heartbeat.PointerTo("Go"),
+		LineNumber:      heartbeat.PointerTo(42),
+		Lines:           heartbeat.PointerTo(100),
+		Project:         heartbeat.PointerTo("wakatime"),
+		Time:            1585598060,
+		UserAgent:       "wakatime/13.0.7",
+		IsUnsavedEntity: false,
 	}
 }

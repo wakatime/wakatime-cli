@@ -249,6 +249,7 @@ func TestLoadParams_ExtraHeartbeats(t *testing.T) {
 			CursorPosition:    heartbeat.PointerTo(12),
 			Entity:            "testdata/main.go",
 			EntityType:        heartbeat.FileType,
+			IsUnsavedEntity:   true,
 			IsWrite:           heartbeat.PointerTo(true),
 			LanguageAlternate: "Golang",
 			LineNumber:        heartbeat.PointerTo(42),
@@ -316,28 +317,41 @@ func TestLoadParams_ExtraHeartbeats_WithStringValues(t *testing.T) {
 
 	assert.Equal(t, []heartbeat.Heartbeat{
 		{
-			Category:       heartbeat.CodingCategory,
-			CursorPosition: heartbeat.PointerTo(12),
-			Entity:         "testdata/main.go",
-			EntityType:     heartbeat.FileType,
-			IsWrite:        heartbeat.PointerTo(true),
-			Language:       params.ExtraHeartbeats[0].Language,
-			Lines:          heartbeat.PointerTo(45),
-			LineNumber:     heartbeat.PointerTo(42),
-			Time:           1585598059,
+			Category:        heartbeat.CodingCategory,
+			CursorPosition:  heartbeat.PointerTo(12),
+			Entity:          "testdata/main.go",
+			EntityType:      heartbeat.FileType,
+			IsUnsavedEntity: true,
+			IsWrite:         heartbeat.PointerTo(true),
+			Language:        params.ExtraHeartbeats[0].Language,
+			Lines:           heartbeat.PointerTo(45),
+			LineNumber:      heartbeat.PointerTo(42),
+			Time:            1585598059,
 		},
 		{
-			Category:       heartbeat.CodingCategory,
-			CursorPosition: heartbeat.PointerTo(13),
-			Entity:         "testdata/main.go",
-			EntityType:     heartbeat.FileType,
-			IsWrite:        heartbeat.PointerTo(true),
-			Language:       params.ExtraHeartbeats[1].Language,
-			LineNumber:     heartbeat.PointerTo(43),
-			Lines:          heartbeat.PointerTo(46),
-			Time:           1585598060,
+			Category:        heartbeat.CodingCategory,
+			CursorPosition:  heartbeat.PointerTo(13),
+			Entity:          "testdata/main.go",
+			EntityType:      heartbeat.FileType,
+			IsUnsavedEntity: true,
+			IsWrite:         heartbeat.PointerTo(true),
+			Language:        params.ExtraHeartbeats[1].Language,
+			LineNumber:      heartbeat.PointerTo(43),
+			Lines:           heartbeat.PointerTo(46),
+			Time:            1585598060,
 		},
 	}, params.ExtraHeartbeats)
+}
+
+func TestLoadParams_Filter_IsUnsavedEntity(t *testing.T) {
+	v := viper.New()
+	v.Set("entity", "/path/to/file")
+	v.Set("is-unsaved-entity", true)
+
+	params, err := paramscmd.LoadHeartbeatParams(v)
+	require.NoError(t, err)
+
+	assert.True(t, params.IsUnsavedEntity)
 }
 
 func TestLoadParams_IsWrite(t *testing.T) {
@@ -768,7 +782,7 @@ func TestLoadParams_SanitizeParams_HideBranchNames_List(t *testing.T) {
 func TestLoadParams_SanitizeParams_HideBranchNames_FlagTakesPrecedence(t *testing.T) {
 	v := viper.New()
 	v.Set("entity", "/path/to/file")
-	v.Set("hide-branch-names", "true")
+	v.Set("hide-branch-names", true)
 	v.Set("settings.hide_branch_names", "ignored")
 	v.Set("settings.hide_branchnames", "ignored")
 	v.Set("settings.hidebranchnames", "ignored")

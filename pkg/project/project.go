@@ -69,7 +69,7 @@ func WithDetection(config Config) heartbeat.HandleOption {
 			for n, h := range hh {
 				log.Debugln("execute project detection for:", h.Entity)
 
-				if h.EntityType != heartbeat.FileType {
+				if h.EntityType != heartbeat.FileType || h.IsUnsavedEntity {
 					project := firstNonEmptyString(h.ProjectOverride, h.ProjectAlternate)
 					hh[n].Project = &project
 
@@ -101,12 +101,7 @@ func WithDetection(config Config) heartbeat.HandleOption {
 				hh[n].Project = &result.Project
 
 				if runtime.GOOS == "windows" && result.Folder != "" {
-					formatted, err := windows.FormatFilePath(result.Folder)
-					if err != nil {
-						log.Warnf("failed to format windows file path: %q: %s", result.Folder, err)
-					} else {
-						result.Folder = formatted
-					}
+					result.Folder = windows.FormatFilePath(result.Folder)
 				}
 
 				hh[n].ProjectPath = result.Folder

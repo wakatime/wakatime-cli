@@ -89,13 +89,8 @@ func TestWithDetection_OverrideTakesPrecedence(t *testing.T) {
 	projectPath := filepath.Join(fp, "wakatime-cli")
 
 	if runtime.GOOS == "windows" {
-		var err error
-
-		entity, err = windows.FormatFilePath(entity)
-		require.NoError(t, err)
-
-		projectPath, err = windows.FormatFilePath(projectPath)
-		require.NoError(t, err)
+		entity = windows.FormatFilePath(entity)
+		projectPath = windows.FormatFilePath(projectPath)
 	}
 
 	opt := project.WithDetection(project.Config{})
@@ -125,6 +120,35 @@ func TestWithDetection_OverrideTakesPrecedence(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestWithDetection_NonExistingEntity_OverrideTakesPrecedence(t *testing.T) {
+	entity := "nonexisting"
+
+	opt := project.WithDetection(project.Config{})
+
+	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		assert.Equal(t, []heartbeat.Heartbeat{
+			{
+				Entity:          entity,
+				EntityType:      heartbeat.FileType,
+				Project:         heartbeat.PointerTo("billing"),
+				Branch:          heartbeat.PointerTo(""),
+				ProjectOverride: "billing",
+			},
+		}, hh)
+
+		return nil, nil
+	})
+
+	_, err := handle([]heartbeat.Heartbeat{
+		{
+			EntityType:      heartbeat.FileType,
+			Entity:          entity,
+			ProjectOverride: "billing",
+		},
+	})
+	require.NoError(t, err)
+}
+
 func TestWithDetection_ObfuscateProject(t *testing.T) {
 	fp := setupTestGitBasic(t)
 
@@ -132,13 +156,8 @@ func TestWithDetection_ObfuscateProject(t *testing.T) {
 	projectPath := filepath.Join(fp, "wakatime-cli")
 
 	if runtime.GOOS == "windows" {
-		var err error
-
-		entity, err = windows.FormatFilePath(entity)
-		require.NoError(t, err)
-
-		projectPath, err = windows.FormatFilePath(projectPath)
-		require.NoError(t, err)
+		entity = windows.FormatFilePath(entity)
+		projectPath = windows.FormatFilePath(projectPath)
 	}
 
 	opt := project.WithDetection(project.Config{
@@ -178,13 +197,8 @@ func TestWithDetection_WakatimeProjectTakesPrecedence(t *testing.T) {
 	projectPath := filepath.Join(fp, "wakatime-cli")
 
 	if runtime.GOOS == "windows" {
-		var err error
-
-		entity, err = windows.FormatFilePath(entity)
-		require.NoError(t, err)
-
-		projectPath, err = windows.FormatFilePath(projectPath)
-		require.NoError(t, err)
+		entity = windows.FormatFilePath(entity)
+		projectPath = windows.FormatFilePath(projectPath)
 	}
 
 	copyFile(
