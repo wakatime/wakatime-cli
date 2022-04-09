@@ -27,7 +27,7 @@ jobs:
         # Run only for release branch
         if: ${{ github.base_ref == 'release' }}
         name: Check for changelog pattern
-        uses: gandarez/check-pr-body-action@v1.0.2
+        uses: gandarez/check-pr-body-action@v1.0.3
         with:
           contains: 'Changelog:'
           not_contains: '`'
