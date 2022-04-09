@@ -6,7 +6,6 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/windows"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestFormatFilePath(t *testing.T) {
@@ -38,8 +37,7 @@ func TestFormatFilePath(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			fp, err := windows.FormatFilePath(test.FilePath)
-			require.NoError(t, err)
+			fp := windows.FormatFilePath(test.FilePath)
 
 			assert.Equal(t, test.Expected, fp)
 		})

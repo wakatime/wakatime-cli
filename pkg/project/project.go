@@ -66,10 +66,10 @@ type MapPattern struct {
 func WithDetection(config Config) heartbeat.HandleOption {
 	return func(next heartbeat.Handle) heartbeat.Handle {
 		return func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
-			log.Debugln("execute project detection")
-
 			for n, h := range hh {
-				if h.EntityType != heartbeat.FileType {
+				log.Debugln("execute project detection for:", h.Entity)
+
+				if h.EntityType != heartbeat.FileType || h.IsUnsavedEntity {
 					project := firstNonEmptyString(h.ProjectOverride, h.ProjectAlternate)
 					hh[n].Project = &project
 
@@ -101,12 +101,7 @@ func WithDetection(config Config) heartbeat.HandleOption {
 				hh[n].Project = &result.Project
 
 				if runtime.GOOS == "windows" && result.Folder != "" {
-					formatted, err := windows.FormatFilePath(result.Folder)
-					if err != nil {
-						log.Warnf("failed to format windows file path: %q: %s", result.Folder, err)
-					} else {
-						result.Folder = formatted
-					}
+					result.Folder = windows.FormatFilePath(result.Folder)
 				}
 
 				hh[n].ProjectPath = result.Folder
@@ -119,7 +114,7 @@ func WithDetection(config Config) heartbeat.HandleOption {
 
 // Detect finds the current project and branch from config plugins.
 func Detect(entity string, patterns []MapPattern) Result {
-	var configPlugins []Detecter = []Detecter{
+	var configPlugins = []Detecter{
 		File{
 			Filepath: entity,
 		},
@@ -130,6 +125,8 @@ func Detect(entity string, patterns []MapPattern) Result {
 	}
 
 	for _, p := range configPlugins {
+		log.Debugln("execute", p.String())
+
 		result, detected, err := p.Detect()
 		if err != nil {
 			log.Errorf("unexpected error occurred at %q: %s", p.String(), err)
@@ -144,7 +141,7 @@ func Detect(entity string, patterns []MapPattern) Result {
 
 // DetectWithRevControl finds the current project and branch from rev control.
 func DetectWithRevControl(entity string, submodulePatterns []regex.Regex) Result {
-	var revControlPlugins []Detecter = []Detecter{
+	var revControlPlugins = []Detecter{
 		Git{
 			Filepath:          entity,
 			SubmodulePatterns: submodulePatterns,
@@ -161,6 +158,8 @@ func DetectWithRevControl(entity string, submodulePatterns []regex.Regex) Result
 	}
 
 	for _, p := range revControlPlugins {
+		log.Debugln("execute", p.String())
+
 		result, detected, err := p.Detect()
 		if err != nil {
 			log.Errorf("unexpected error occurred at %q: %s", p.String(), err)

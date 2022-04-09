@@ -1,7 +1,10 @@
 run:
-  deadline: 5m
+  go: "1.18"
+  timeout: 5m
   build-tags:
     - integration
+  skip-dirs:
+    - "testdata"
 linters:
   enable:
     - bodyclose
@@ -12,15 +15,39 @@ linters:
     - godot
     - gofmt
     - goimports
-    - golint
     - gosec
-    - lll
     - misspell
     - nestif
+    - revive
     - testpackage
-    - unparam
     - whitespace
     - wsl
+linters-settings:
+  revive:
+    rules:
+      - name: bare-return
+      - name: blank-imports
+      - name: duplicated-imports
+      - name: dot-imports
+      - name: package-comments
+      - name: exported
+      - name: superfluous-else
+      - name: indent-error-flow
+      - name: range
+      - name: errorf
+      - name: error-naming
+      - name: error-return
+      - name: error-strings
+      - name: receiver-naming
+      - name: increment-decrement
+      - name: unexported-return
+      - name: unexported-naming
+      - name: time-naming
+      - name: var-declaration
+      - name: line-length-limit
+        arguments: [125]
+      - name: unused-parameter
+      - name: unused-receiver
 issues:
   include:
     - EXC0002

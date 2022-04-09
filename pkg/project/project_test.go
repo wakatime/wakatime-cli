@@ -33,7 +33,7 @@ func TestWithDetection_EntityNotFile(t *testing.T) {
 			},
 			Expected: heartbeat.Heartbeat{
 				EntityType:       heartbeat.AppType,
-				Project:          heartbeat.String("billing"),
+				Project:          heartbeat.PointerTo("billing"),
 				ProjectAlternate: "pci",
 				ProjectOverride:  "billing",
 			},
@@ -47,7 +47,7 @@ func TestWithDetection_EntityNotFile(t *testing.T) {
 			},
 			Expected: heartbeat.Heartbeat{
 				EntityType:       heartbeat.AppType,
-				Project:          heartbeat.String("pci"),
+				Project:          heartbeat.PointerTo("pci"),
 				ProjectAlternate: "pci",
 			},
 		},
@@ -59,7 +59,7 @@ func TestWithDetection_EntityNotFile(t *testing.T) {
 			},
 			Expected: heartbeat.Heartbeat{
 				EntityType: heartbeat.AppType,
-				Project:    heartbeat.String(""),
+				Project:    heartbeat.PointerTo(""),
 			},
 		},
 	}
@@ -89,13 +89,8 @@ func TestWithDetection_OverrideTakesPrecedence(t *testing.T) {
 	projectPath := filepath.Join(fp, "wakatime-cli")
 
 	if runtime.GOOS == "windows" {
-		var err error
-
-		entity, err = windows.FormatFilePath(entity)
-		require.NoError(t, err)
-
-		projectPath, err = windows.FormatFilePath(projectPath)
-		require.NoError(t, err)
+		entity = windows.FormatFilePath(entity)
+		projectPath = windows.FormatFilePath(projectPath)
 	}
 
 	opt := project.WithDetection(project.Config{})
@@ -105,10 +100,39 @@ func TestWithDetection_OverrideTakesPrecedence(t *testing.T) {
 			{
 				Entity:          entity,
 				EntityType:      heartbeat.FileType,
-				Project:         heartbeat.String("billing"),
+				Project:         heartbeat.PointerTo("billing"),
 				ProjectOverride: "billing",
 				ProjectPath:     projectPath,
-				Branch:          heartbeat.String("master"),
+				Branch:          heartbeat.PointerTo("master"),
+			},
+		}, hh)
+
+		return nil, nil
+	})
+
+	_, err := handle([]heartbeat.Heartbeat{
+		{
+			EntityType:      heartbeat.FileType,
+			Entity:          entity,
+			ProjectOverride: "billing",
+		},
+	})
+	require.NoError(t, err)
+}
+
+func TestWithDetection_NonExistingEntity_OverrideTakesPrecedence(t *testing.T) {
+	entity := "nonexisting"
+
+	opt := project.WithDetection(project.Config{})
+
+	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		assert.Equal(t, []heartbeat.Heartbeat{
+			{
+				Entity:          entity,
+				EntityType:      heartbeat.FileType,
+				Project:         heartbeat.PointerTo("billing"),
+				Branch:          heartbeat.PointerTo(""),
+				ProjectOverride: "billing",
 			},
 		}, hh)
 
@@ -132,13 +156,8 @@ func TestWithDetection_ObfuscateProject(t *testing.T) {
 	projectPath := filepath.Join(fp, "wakatime-cli")
 
 	if runtime.GOOS == "windows" {
-		var err error
-
-		entity, err = windows.FormatFilePath(entity)
-		require.NoError(t, err)
-
-		projectPath, err = windows.FormatFilePath(projectPath)
-		require.NoError(t, err)
+		entity = windows.FormatFilePath(entity)
+		projectPath = windows.FormatFilePath(projectPath)
 	}
 
 	opt := project.WithDetection(project.Config{
@@ -153,7 +172,7 @@ func TestWithDetection_ObfuscateProject(t *testing.T) {
 				EntityType:  heartbeat.FileType,
 				Project:     hh[0].Project,
 				ProjectPath: projectPath,
-				Branch:      heartbeat.String("master"),
+				Branch:      heartbeat.PointerTo("master"),
 			},
 		}, hh)
 
@@ -178,13 +197,8 @@ func TestWithDetection_WakatimeProjectTakesPrecedence(t *testing.T) {
 	projectPath := filepath.Join(fp, "wakatime-cli")
 
 	if runtime.GOOS == "windows" {
-		var err error
-
-		entity, err = windows.FormatFilePath(entity)
-		require.NoError(t, err)
-
-		projectPath, err = windows.FormatFilePath(projectPath)
-		require.NoError(t, err)
+		entity = windows.FormatFilePath(entity)
+		projectPath = windows.FormatFilePath(projectPath)
 	}
 
 	copyFile(
@@ -203,9 +217,9 @@ func TestWithDetection_WakatimeProjectTakesPrecedence(t *testing.T) {
 			{
 				Entity:      entity,
 				EntityType:  heartbeat.FileType,
-				Project:     heartbeat.String("Rough Surf 20"),
+				Project:     heartbeat.PointerTo("Rough Surf 20"),
 				ProjectPath: projectPath,
-				Branch:      heartbeat.String("master"),
+				Branch:      heartbeat.PointerTo("master"),
 			},
 		}, hh)
 

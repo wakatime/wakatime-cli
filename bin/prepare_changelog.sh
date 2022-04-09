@@ -24,6 +24,12 @@ replace_for_release() {
     changelog="${changelog//$'\r'/'%0D'}"
 }
 
+replace_for_slack() {
+    slack="${slack//'%'/'%25'}"
+    slack="${slack//$'\n'/'%0A'}"
+    slack="${slack//$'\r'/'%0D'}"
+}
+
 slack_output_for_develop() {
     local IFS=$'\n' # make newlines the only separator
     local temp=
@@ -67,6 +73,7 @@ case $branch in
         clean_up
         slack_output_for_release
         replace_for_release
+        replace_for_slack
         ;;
     *) exit 1 ;;
 esac

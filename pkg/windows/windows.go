@@ -38,7 +38,7 @@ var (
 
 // FormatFilePath formats a windows filepath by converting backslash to
 // frontslash and ensuring that drive letter is upper case.
-func FormatFilePath(fp string) (string, error) {
+func FormatFilePath(fp string) string {
 	isWindowsNetworkMount := windowsNetworkMountRegex.MatchString(fp)
 
 	fp = backslashReplaceRegex.ReplaceAllString(fp, "/")
@@ -53,7 +53,7 @@ func FormatFilePath(fp string) (string, error) {
 		fp = `\\` + fp[1:]
 	}
 
-	return fp, nil
+	return fp
 }
 
 // IsWindowsNetworkMount returns true if filepath is windows network path.
@@ -70,7 +70,7 @@ type commander interface {
 type realCommander struct{}
 
 // Command calls exec.Command function.
-func (c realCommander) Command(name string, args ...string) *exec.Cmd {
+func (realCommander) Command(name string, args ...string) *exec.Cmd {
 	return exec.Command(name, args...)
 }
 

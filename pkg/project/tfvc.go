@@ -3,8 +3,6 @@ package project
 import (
 	"path/filepath"
 	"runtime"
-
-	"github.com/wakatime/wakatime-cli/pkg/log"
 )
 
 // Tfvc contains tfvc data.
@@ -15,8 +13,6 @@ type Tfvc struct {
 
 // Detect gets information about the tfvc project for a given file.
 func (t Tfvc) Detect() (Result, bool, error) {
-	log.Debugln("execute tfvc project detection")
-
 	var fp string
 
 	// Take only the directory
@@ -44,6 +40,6 @@ func (t Tfvc) Detect() (Result, bool, error) {
 }
 
 // String returns its name.
-func (t Tfvc) String() string {
+func (Tfvc) String() string {
 	return "tfvc-detector"
 }

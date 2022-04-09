@@ -25,6 +25,10 @@ func WithFormatting(config FormatConfig) HandleOption {
 			log.Debugln("execute heartbeat filepath formatting")
 
 			for n, h := range hh {
+				if h.EntityType != FileType {
+					continue
+				}
+
 				if config.RemoteAddressPattern != nil && config.RemoteAddressPattern.MatchString(h.Entity) {
 					continue
 				}
@@ -39,33 +43,38 @@ func WithFormatting(config FormatConfig) HandleOption {
 
 // Format accepts a heartbeat formats it's filepath and returns the formatted version.
 func Format(h Heartbeat) Heartbeat {
-	if h.EntityType == FileType && !windows.IsWindowsNetworkMount(h.Entity) {
-		formatted, err := filepath.Abs(h.Entity)
-		if err != nil {
-			log.Warnf("failed to resolve absolute path for %q: %s", h.Entity, err)
-		} else {
-			h.Entity = formatted
-		}
-
-		// evaluate any symlinks
-		formatted, err = realpath.Realpath(h.Entity)
-		if err != nil {
-			log.Warnf("failed to resolve real path for %q: %s", h.Entity, err)
-		} else {
-			h.Entity = formatted
-		}
+	if !h.IsUnsavedEntity && (runtime.GOOS != "windows" || !windows.IsWindowsNetworkMount(h.Entity)) {
+		formatLinuxFilePath(&h)
 	}
 
-	if h.EntityType == FileType && runtime.GOOS == "windows" {
-		formatted, err := windows.FormatFilePath(h.Entity)
-		if err != nil {
-			log.Warnf("failed to format windows file path: %q: %s", h.Entity, err)
-		} else {
-			h.Entity = formatted
-		}
+	if runtime.GOOS == "windows" {
+		formatWindowsFilePath(&h)
 	}
 
-	if h.EntityType == FileType && runtime.GOOS == "windows" && !windows.IsWindowsNetworkMount(h.Entity) {
+	return h
+}
+
+func formatLinuxFilePath(h *Heartbeat) {
+	formatted, err := filepath.Abs(h.Entity)
+	if err != nil {
+		log.Warnf("failed to resolve absolute path for %q: %s", h.Entity, err)
+	} else {
+		h.Entity = formatted
+	}
+
+	// evaluate any symlinks
+	formatted, err = realpath.Realpath(h.Entity)
+	if err != nil {
+		log.Warnf("failed to resolve real path for %q: %s", h.Entity, err)
+	} else {
+		h.Entity = formatted
+	}
+}
+
+func formatWindowsFilePath(h *Heartbeat) {
+	h.Entity = windows.FormatFilePath(h.Entity)
+
+	if !h.IsUnsavedEntity && !windows.IsWindowsNetworkMount(h.Entity) {
 		var err error
 
 		h.LocalFile, err = windows.FormatLocalFilePath(h.LocalFile, h.Entity)
@@ -74,14 +83,7 @@ func Format(h Heartbeat) Heartbeat {
 		}
 	}
 
-	if h.EntityType == FileType && runtime.GOOS == "windows" && h.ProjectPathOverride != "" {
-		formatted, err := windows.FormatFilePath(h.ProjectPathOverride)
-		if err != nil {
-			log.Warnf("failed to format windows file path: %q: %s", h.ProjectPathOverride, err)
-		} else {
-			h.ProjectPathOverride = formatted
-		}
+	if h.ProjectPathOverride != "" {
+		h.ProjectPathOverride = windows.FormatFilePath(h.ProjectPathOverride)
 	}
-
-	return h
 }

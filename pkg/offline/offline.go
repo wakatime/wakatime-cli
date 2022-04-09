@@ -36,7 +36,7 @@ const (
 type Sender struct{}
 
 // SendHeartbeats always returns an error.
-func (s *Sender) SendHeartbeats(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+func (*Sender) SendHeartbeats(_ []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 	return nil, api.Err("skip sending heartbeats and only save to offline db")
 }
 
@@ -46,7 +46,7 @@ func (s *Sender) SendHeartbeats(hh []heartbeat.Heartbeat) ([]heartbeat.Result, e
 // failing connection to API, failed sending or errors returned by API, the
 // heartbeats will be temporarily stored in a DB and sending will be retried
 // at next usages of the wakatime cli.
-func WithQueue(filepath string) (heartbeat.HandleOption, error) {
+func WithQueue(filepath string) heartbeat.HandleOption {
 	return func(next heartbeat.Handle) heartbeat.Handle {
 		return func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 			log.Debugf("execute offline queue with file %s", filepath)
@@ -79,7 +79,7 @@ func WithQueue(filepath string) (heartbeat.HandleOption, error) {
 
 			return results, nil
 		}
-	}, nil
+	}
 }
 
 // QueueFilepath returns the path for offline queue db file. If

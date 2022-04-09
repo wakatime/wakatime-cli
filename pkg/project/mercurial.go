@@ -16,8 +16,6 @@ type Mercurial struct {
 
 // Detect gets information about the mercurial project for a given file.
 func (m Mercurial) Detect() (Result, bool, error) {
-	log.Debugln("execute mercurial project detection")
-
 	var fp string
 
 	// Take only the directory
@@ -68,6 +66,6 @@ func findHgBranch(fp string) (string, error) {
 }
 
 // String returns its name.
-func (m Mercurial) String() string {
-	return "hg-detector"
+func (Mercurial) String() string {
+	return "mercurial-detector"
 }

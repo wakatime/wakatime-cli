@@ -20,8 +20,6 @@ type Git struct {
 // Detect gets information about the git project for a given file.
 // It tries to return a project and branch name.
 func (g Git) Detect() (Result, bool, error) {
-	log.Debugln("execute git project detection")
-
 	fp := g.Filepath
 
 	// Take only the directory
@@ -259,6 +257,6 @@ func findGitBranch(fp string) (string, error) {
 }
 
 // String returns its name.
-func (g Git) String() string {
+func (Git) String() string {
 	return "git-detector"
 }

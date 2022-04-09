@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/log"
@@ -24,7 +25,8 @@ import (
 var RemoteAddressRegex = regexp.MustCompile(`(?i)^((ssh|sftp)://)+(?P<credentials>[^:@]+(:([^:@])+)?@)?[^:]+(:\d+)?`)
 
 const (
-	defaultPort = 22
+	defaultPort        = 22
+	defaultTimeoutSecs = 20
 	// Max file size supporting downloading from remote. Default is 512Kb.
 	maxFileSize = 512000
 )
@@ -56,6 +58,10 @@ func WithDetection() heartbeat.HandleOption {
 					continue
 				}
 
+				if h.IsUnsavedEntity {
+					continue
+				}
+
 				if !RemoteAddressRegex.MatchString(h.Entity) {
 					continue
 				}
@@ -83,7 +89,7 @@ func WithDetection() heartbeat.HandleOption {
 					continue
 				}
 
-				err = c.DownloadFile(h.Entity, tmpFile.Name())
+				err = c.DownloadFile(tmpFile.Name())
 				if err != nil {
 					log.Errorf("failed to download file to temporary folder: %s", err)
 
@@ -127,7 +133,7 @@ func NewClient(address string) (Client, error) {
 }
 
 // DownloadFile downloads a remote file and copy to a local file.
-func (c Client) DownloadFile(remoteFile, localFile string) error {
+func (c Client) DownloadFile(localFile string) error {
 	conn, sc, err := c.Connect()
 	if err != nil {
 		return fmt.Errorf("failed to connect to sftp host: %s", err)
@@ -136,7 +142,7 @@ func (c Client) DownloadFile(remoteFile, localFile string) error {
 	defer conn.Close()
 	defer sc.Close()
 
-	srcFile, err := sc.OpenFile(c.Path, (os.O_RDONLY))
+	srcFile, err := sc.OpenFile(c.Path, os.O_RDONLY)
 	if err != nil {
 		return fmt.Errorf("failed to open remote file: %s", err)
 	}
@@ -151,7 +157,7 @@ func (c Client) DownloadFile(remoteFile, localFile string) error {
 	defer dstFile.Close()
 
 	_, err = io.CopyN(dstFile, srcFile, maxFileSize)
-	if err != nil {
+	if err != nil && err != io.EOF {
 		return fmt.Errorf("failed to download remote file: %s", err)
 	}
 
@@ -160,9 +166,9 @@ func (c Client) DownloadFile(remoteFile, localFile string) error {
 
 // Connect connects to sftp host.
 func (c Client) Connect() (*ssh.Client, *sftp.Client, error) {
-	hostKey, err := getHostKey(c.Host)
+	hostKeys, err := getHostKeys(c.Host)
 	if err != nil {
-		log.Errorf("failed to get host key: %s", err)
+		log.Errorf("failed to get host keys: %s", err)
 	}
 
 	var auths []ssh.AuthMethod
@@ -180,24 +186,41 @@ func (c Client) Connect() (*ssh.Client, *sftp.Client, error) {
 
 	// Initialize client configuration
 	config := ssh.ClientConfig{
-		User: c.User,
-		Auth: auths,
-	}
-
-	if hostKey == nil {
-		log.Warnf("no host key found for %s. It will try to make an insecure connection", c.Host)
-
-		config.HostKeyCallback = ssh.InsecureIgnoreHostKey() // nolint:gosec
-	} else {
-		config.HostKeyCallback = ssh.FixedHostKey(hostKey)
+		User:    c.User,
+		Auth:    auths,
+		Timeout: defaultTimeoutSecs * time.Second,
 	}
 
 	addr := fmt.Sprintf("%s:%d", c.Host, c.Port)
 
-	// Connect to server
-	conn, err := ssh.Dial("tcp", addr, &config)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to connecto to '%s': %s", addr, err)
+	var conn *ssh.Client
+
+	if len(hostKeys) == 0 {
+		log.Warnf("no host key found for %s. It will try to make an insecure connection", c.Host)
+
+		config.HostKeyCallback = ssh.InsecureIgnoreHostKey() // nolint:gosec
+
+		// Connect to server
+		conn, err = dial(addr, &config)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to connect to '%s': %s", addr, err)
+		}
+	} else {
+		log.Debugf("found %d ssh keys for host. It will loop over them and try to connect", len(hostKeys))
+
+		for _, hostKey := range hostKeys {
+			config.HostKeyCallback = ssh.FixedHostKey(hostKey)
+
+			// Connect to server
+			conn, err = dial(addr, &config)
+			if err != nil {
+				log.Warnf("failed to connect to '%s': %s", addr, err)
+
+				continue
+			}
+
+			break
+		}
 	}
 
 	// Create new SFTP client
@@ -209,8 +232,8 @@ func (c Client) Connect() (*ssh.Client, *sftp.Client, error) {
 	return conn, sc, nil
 }
 
-// getHostKey gets host key from local known hosts.
-func getHostKey(host string) (ssh.PublicKey, error) {
+// getHostKeys gets all host keys from local known hosts for given host.
+func getHostKeys(host string) ([]ssh.PublicKey, error) {
 	// parse OpenSSH known_hosts file ssh or use ssh-keyscan to get initial key
 	file, err := os.Open(filepath.Join(os.Getenv("HOME"), ".ssh", "known_hosts"))
 	if err != nil {
@@ -221,7 +244,7 @@ func getHostKey(host string) (ssh.PublicKey, error) {
 
 	scanner := bufio.NewScanner(file)
 
-	var hostKey ssh.PublicKey
+	hostKeys := []ssh.PublicKey{}
 
 	for scanner.Scan() {
 		fields := strings.Split(scanner.Text(), " ")
@@ -232,14 +255,24 @@ func getHostKey(host string) (ssh.PublicKey, error) {
 		if strings.Contains(fields[0], host) {
 			var err error
 
-			hostKey, _, _, _, err = ssh.ParseAuthorizedKey(scanner.Bytes())
+			hostKey, _, _, _, err := ssh.ParseAuthorizedKey(scanner.Bytes())
 			if err != nil {
-				return nil, fmt.Errorf("failed to parse %q: %s", fields[2], err)
+				log.Warnf("failed to parse %q: %s", fields[2], err)
+				continue
 			}
 
-			break
+			hostKeys = append(hostKeys, hostKey)
 		}
 	}
 
-	return hostKey, nil
+	return hostKeys, nil
+}
+
+func dial(addr string, config *ssh.ClientConfig) (*ssh.Client, error) {
+	conn, err := ssh.Dial("tcp", addr, config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to dial to '%s': %s", addr, err)
+	}
+
+	return conn, nil
 }

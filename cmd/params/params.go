@@ -64,6 +64,25 @@ type (
 		URL              string
 	}
 
+	// ExtraHeartbeat contains extra heartbeat.
+	ExtraHeartbeat struct {
+		Category          heartbeat.Category `json:"category"`
+		CursorPosition    interface{}        `json:"cursorpos"`
+		Entity            string             `json:"entity"`
+		EntityType        string             `json:"entity_type"`
+		Type              string             `json:"type"`
+		IsUnsavedEntity   interface{}        `json:"is_unsaved_entity"`
+		IsWrite           interface{}        `json:"is_write"`
+		Language          *string            `json:"language"`
+		LanguageAlternate string             `json:"alternate_language"`
+		LineNumber        interface{}        `json:"lineno"`
+		Lines             interface{}        `json:"lines"`
+		Project           string             `json:"project"`
+		ProjectAlternate  string             `json:"alternate_project"`
+		Time              interface{}        `json:"time"`
+		Timestamp         interface{}        `json:"timestamp"`
+	}
+
 	// Heartbeat contains heartbeat command parameters.
 	Heartbeat struct {
 		Category          heartbeat.Category
@@ -71,6 +90,7 @@ type (
 		Entity            string
 		EntityType        heartbeat.EntityType
 		ExtraHeartbeats   []heartbeat.Heartbeat
+		IsUnsavedEntity   bool
 		IsWrite           *bool
 		Language          *string
 		LanguageAlternate string
@@ -263,7 +283,7 @@ func LoadHeartbeatParams(v *viper.Viper) (Heartbeat, error) {
 
 	var cursorPosition *int
 	if pos := v.GetInt("cursorpos"); v.IsSet("cursorpos") {
-		cursorPosition = heartbeat.Int(pos)
+		cursorPosition = heartbeat.PointerTo(pos)
 	}
 
 	var entity string
@@ -300,17 +320,17 @@ func LoadHeartbeatParams(v *viper.Viper) (Heartbeat, error) {
 
 	var isWrite *bool
 	if b := v.GetBool("write"); v.IsSet("write") {
-		isWrite = heartbeat.Bool(b)
+		isWrite = heartbeat.PointerTo(b)
 	}
 
 	var lineNumber *int
 	if num := v.GetInt("lineno"); v.IsSet("lineno") {
-		lineNumber = heartbeat.Int(num)
+		lineNumber = heartbeat.PointerTo(num)
 	}
 
 	var linesInFile *int
 	if num := v.GetInt("lines-in-file"); v.IsSet("lines-in-file") {
-		linesInFile = heartbeat.Int(num)
+		linesInFile = heartbeat.PointerTo(num)
 	}
 
 	timeSecs := v.GetFloat64("time")
@@ -339,6 +359,7 @@ func LoadHeartbeatParams(v *viper.Viper) (Heartbeat, error) {
 		Entity:            entityExpanded,
 		ExtraHeartbeats:   extraHeartbeats,
 		EntityType:        entityType,
+		IsUnsavedEntity:   v.GetBool("is-unsaved-entity"),
 		IsWrite:           isWrite,
 		Language:          language,
 		LanguageAlternate: vipertools.GetString(v, "alternate-language"),
@@ -558,7 +579,7 @@ func readExtraHeartbeats() ([]heartbeat.Heartbeat, error) {
 		return nil, fmt.Errorf("failed to read data from stdin: %s", err)
 	}
 
-	heartbeats, err := parseExtraHeartbeat(input)
+	heartbeats, err := parseExtraHeartbeats(input)
 	if err != nil {
 		return nil, fmt.Errorf("failed to json decode: %s", err)
 	}
@@ -566,160 +587,171 @@ func readExtraHeartbeats() ([]heartbeat.Heartbeat, error) {
 	return heartbeats, nil
 }
 
-func parseExtraHeartbeat(data string) ([]heartbeat.Heartbeat, error) {
-	var incoming []struct {
-		Category          heartbeat.Category `json:"category"`
-		CursorPosition    interface{}        `json:"cursorpos"`
-		Entity            string             `json:"entity"`
-		EntityType        string             `json:"entity_type"`
-		Type              string             `json:"type"`
-		IsWrite           interface{}        `json:"is_write"`
-		Language          *string            `json:"language"`
-		LanguageAlternate string             `json:"alternate_language"`
-		LineNumber        interface{}        `json:"lineno"`
-		Lines             interface{}        `json:"lines"`
-		Project           string             `json:"project"`
-		ProjectAlternate  string             `json:"alternate_project"`
-		Time              interface{}        `json:"time"`
-		Timestamp         interface{}        `json:"timestamp"`
-	}
+func parseExtraHeartbeats(data string) ([]heartbeat.Heartbeat, error) {
+	var extraHeartbeats []ExtraHeartbeat
 
-	err := json.Unmarshal([]byte(data), &incoming)
+	err := json.Unmarshal([]byte(data), &extraHeartbeats)
 	if err != nil {
 		return nil, fmt.Errorf("failed to json decode from data %q: %s", string(data), err)
 	}
 
 	var heartbeats []heartbeat.Heartbeat
 
-	for _, h := range incoming {
-		h.Entity, err = homedir.Expand(h.Entity)
+	for _, h := range extraHeartbeats {
+		parsed, err := parseExtraHeartbeat(h)
 		if err != nil {
-			return nil, fmt.Errorf("failed expanding entity: %s", err)
+			return nil, err
 		}
 
-		var entityType heartbeat.EntityType
-
-		// Both type or entity_type are acceptable here. Type takes precedence.
-		entityTypeStr := firstNonEmptyString(h.Type, h.EntityType)
-		if entityTypeStr != "" {
-			entityType, err = heartbeat.ParseEntityType(entityTypeStr)
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		var cursorPosition *int
-
-		switch cursorPositionVal := h.CursorPosition.(type) {
-		case float64:
-			cursorPosition = heartbeat.Int(int(cursorPositionVal))
-		case string:
-			val, err := strconv.Atoi(cursorPositionVal)
-			if err != nil {
-				return nil, fmt.Errorf("failed to convert cursor position to int: %s", err)
-			}
-
-			cursorPosition = heartbeat.Int(val)
-		}
-
-		var isWrite *bool
-
-		switch isWriteVal := h.IsWrite.(type) {
-		case bool:
-			isWrite = heartbeat.Bool(isWriteVal)
-		case string:
-			val, err := strconv.ParseBool(isWriteVal)
-			if err != nil {
-				return nil, fmt.Errorf("failed to convert is write to bool: %s", err)
-			}
-
-			isWrite = heartbeat.Bool(val)
-		}
-
-		var lineNumber *int
-
-		switch lineNumberVal := h.LineNumber.(type) {
-		case float64:
-			lineNumber = heartbeat.Int(int(lineNumberVal))
-		case string:
-			val, err := strconv.Atoi(lineNumberVal)
-			if err != nil {
-				return nil, fmt.Errorf("failed to convert line number to int: %s", err)
-			}
-
-			lineNumber = heartbeat.Int(val)
-		}
-
-		var lines *int
-
-		switch linesVal := h.Lines.(type) {
-		case float64:
-			lines = heartbeat.Int(int(linesVal))
-		case string:
-			val, err := strconv.Atoi(linesVal)
-			if err != nil {
-				return nil, fmt.Errorf("failed to convert lines to int: %s", err)
-			}
-
-			lines = heartbeat.Int(val)
-		}
-
-		var time float64
-
-		switch timeVal := h.Time.(type) {
-		case float64:
-			time = timeVal
-		case string:
-			val, err := strconv.ParseFloat(timeVal, 64)
-			if err != nil {
-				return nil, fmt.Errorf("failed to convert time to float64: %s", err)
-			}
-
-			time = val
-		}
-
-		var timestamp float64
-
-		switch timestampVal := h.Timestamp.(type) {
-		case float64:
-			timestamp = timestampVal
-		case string:
-			val, err := strconv.ParseFloat(timestampVal, 64)
-			if err != nil {
-				return nil, fmt.Errorf("failed to convert timestamp to float64: %s", err)
-			}
-
-			timestamp = val
-		}
-
-		var timestampParsed float64
-
-		switch {
-		case h.Time != nil && h.Time != 0:
-			timestampParsed = time
-		case h.Timestamp != nil && h.Timestamp != 0:
-			timestampParsed = timestamp
-		default:
-			return nil, fmt.Errorf("skipping extra heartbeat, as no valid timestamp was defined")
-		}
-
-		heartbeats = append(heartbeats, heartbeat.Heartbeat{
-			Category:          h.Category,
-			CursorPosition:    cursorPosition,
-			Entity:            h.Entity,
-			EntityType:        entityType,
-			IsWrite:           isWrite,
-			Language:          h.Language,
-			LanguageAlternate: h.LanguageAlternate,
-			LineNumber:        lineNumber,
-			Lines:             lines,
-			ProjectAlternate:  h.ProjectAlternate,
-			ProjectOverride:   h.Project,
-			Time:              timestampParsed,
-		})
+		heartbeats = append(heartbeats, *parsed)
 	}
 
 	return heartbeats, nil
+}
+
+func parseExtraHeartbeat(h ExtraHeartbeat) (*heartbeat.Heartbeat, error) {
+	var err error
+
+	h.Entity, err = homedir.Expand(h.Entity)
+	if err != nil {
+		return nil, fmt.Errorf("failed expanding entity: %s", err)
+	}
+
+	var entityType heartbeat.EntityType
+
+	// Both type or entity_type are acceptable here. Type takes precedence.
+	entityTypeStr := firstNonEmptyString(h.Type, h.EntityType)
+	if entityTypeStr != "" {
+		entityType, err = heartbeat.ParseEntityType(entityTypeStr)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	var cursorPosition *int
+
+	switch cursorPositionVal := h.CursorPosition.(type) {
+	case float64:
+		cursorPosition = heartbeat.PointerTo(int(cursorPositionVal))
+	case string:
+		val, err := strconv.Atoi(cursorPositionVal)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert cursor position to int: %s", err)
+		}
+
+		cursorPosition = heartbeat.PointerTo(val)
+	}
+
+	var isWrite *bool
+
+	switch isWriteVal := h.IsWrite.(type) {
+	case bool:
+		isWrite = heartbeat.PointerTo(isWriteVal)
+	case string:
+		val, err := strconv.ParseBool(isWriteVal)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert is write to bool: %s", err)
+		}
+
+		isWrite = heartbeat.PointerTo(val)
+	}
+
+	var lineNumber *int
+
+	switch lineNumberVal := h.LineNumber.(type) {
+	case float64:
+		lineNumber = heartbeat.PointerTo(int(lineNumberVal))
+	case string:
+		val, err := strconv.Atoi(lineNumberVal)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert line number to int: %s", err)
+		}
+
+		lineNumber = heartbeat.PointerTo(val)
+	}
+
+	var lines *int
+
+	switch linesVal := h.Lines.(type) {
+	case float64:
+		lines = heartbeat.PointerTo(int(linesVal))
+	case string:
+		val, err := strconv.Atoi(linesVal)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert lines to int: %s", err)
+		}
+
+		lines = heartbeat.PointerTo(val)
+	}
+
+	var time float64
+
+	switch timeVal := h.Time.(type) {
+	case float64:
+		time = timeVal
+	case string:
+		val, err := strconv.ParseFloat(timeVal, 64)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert time to float64: %s", err)
+		}
+
+		time = val
+	}
+
+	var timestamp float64
+
+	switch timestampVal := h.Timestamp.(type) {
+	case float64:
+		timestamp = timestampVal
+	case string:
+		val, err := strconv.ParseFloat(timestampVal, 64)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert timestamp to float64: %s", err)
+		}
+
+		timestamp = val
+	}
+
+	var timestampParsed float64
+
+	switch {
+	case h.Time != nil && h.Time != 0:
+		timestampParsed = time
+	case h.Timestamp != nil && h.Timestamp != 0:
+		timestampParsed = timestamp
+	default:
+		return nil, fmt.Errorf("skipping extra heartbeat, as no valid timestamp was defined")
+	}
+
+	var isUnsavedEntity bool
+
+	switch isUnsavedEntityVal := h.IsUnsavedEntity.(type) {
+	case bool:
+		isUnsavedEntity = isUnsavedEntityVal
+	case string:
+		val, err := strconv.ParseBool(isUnsavedEntityVal)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert is_unsaved_entity to bool: %s", err)
+		}
+
+		isUnsavedEntity = val
+	}
+
+	return &heartbeat.Heartbeat{
+		Category:          h.Category,
+		CursorPosition:    cursorPosition,
+		Entity:            h.Entity,
+		EntityType:        entityType,
+		IsWrite:           isWrite,
+		Language:          h.Language,
+		LanguageAlternate: h.LanguageAlternate,
+		LineNumber:        lineNumber,
+		Lines:             lines,
+		ProjectAlternate:  h.ProjectAlternate,
+		ProjectOverride:   h.Project,
+		Time:              timestampParsed,
+		IsUnsavedEntity:   isUnsavedEntity,
+	}, nil
 }
 
 func parseEditorFromPlugin(plugin string) (string, error) {
@@ -807,14 +839,15 @@ func (p Heartbeat) String() string {
 
 	return fmt.Sprintf(
 		"category: '%s', cursor position: '%s', entity: '%s', entity type: '%s',"+
-			" num extra heartbeats: %d, is write: %t, language: '%s',"+
-			" line number: '%s', lines in file: '%s', time: %.5f,"+
+			" num extra heartbeats: %d, is unsaved entity: %t, is write: %t,"+
+			" language: '%s', line number: '%s', lines in file: '%s', time: %.5f,"+
 			" filter params: (%s), project params: (%s), sanitize params: (%s)",
 		p.Category,
 		cursorPosition,
 		p.Entity,
 		p.EntityType,
 		len(p.ExtraHeartbeats),
+		p.IsUnsavedEntity,
 		isWrite,
 		language,
 		lineNumber,

@@ -78,8 +78,7 @@ func TestWithQueue(t *testing.T) {
 
 	db.Close()
 
-	opt, err := offline.WithQueue(f.Name())
-	require.NoError(t, err)
+	opt := offline.WithQueue(f.Name())
 
 	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		assert.Len(t, hh, 2)
@@ -151,8 +150,7 @@ func TestWithQueue_ApiError(t *testing.T) {
 
 	defer f.Close()
 
-	opt, err := offline.WithQueue(f.Name())
-	require.NoError(t, err)
+	opt := offline.WithQueue(f.Name())
 
 	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		assert.Equal(t, hh, []heartbeat.Heartbeat{
@@ -214,8 +212,7 @@ func TestWithQueue_InvalidResults(t *testing.T) {
 
 	defer f.Close()
 
-	opt, err := offline.WithQueue(f.Name())
-	require.NoError(t, err)
+	opt := offline.WithQueue(f.Name())
 
 	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		assert.Equal(t, hh, testHeartbeats())
@@ -300,8 +297,7 @@ func TestWithQueue_HandleLeftovers(t *testing.T) {
 
 	defer f.Close()
 
-	opt, err := offline.WithQueue(f.Name())
-	require.NoError(t, err)
+	opt := offline.WithQueue(f.Name())
 
 	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		assert.Equal(t, hh, testHeartbeats())
@@ -1026,47 +1022,47 @@ func initDB(t *testing.T) (*bolt.DB, func()) {
 func testHeartbeats() []heartbeat.Heartbeat {
 	return []heartbeat.Heartbeat{
 		{
-			Branch:         heartbeat.String("heartbeat"),
+			Branch:         heartbeat.PointerTo("heartbeat"),
 			Category:       heartbeat.CodingCategory,
-			CursorPosition: heartbeat.Int(12),
+			CursorPosition: heartbeat.PointerTo(12),
 			Dependencies:   []string{"dep1", "dep2"},
 			Entity:         "/tmp/main.go",
 			EntityType:     heartbeat.FileType,
-			IsWrite:        heartbeat.Bool(true),
-			Language:       heartbeat.String("Go"),
-			LineNumber:     heartbeat.Int(42),
-			Lines:          heartbeat.Int(100),
-			Project:        heartbeat.String("wakatime-cli"),
+			IsWrite:        heartbeat.PointerTo(true),
+			Language:       heartbeat.PointerTo("Go"),
+			LineNumber:     heartbeat.PointerTo(42),
+			Lines:          heartbeat.PointerTo(100),
+			Project:        heartbeat.PointerTo("wakatime-cli"),
 			Time:           1592868367.219124,
 			UserAgent:      "wakatime/13.0.6",
 		},
 		{
-			Branch:         heartbeat.String("summary"),
+			Branch:         heartbeat.PointerTo("summary"),
 			Category:       heartbeat.DebuggingCategory,
-			CursorPosition: heartbeat.Int(13),
+			CursorPosition: heartbeat.PointerTo(13),
 			Dependencies:   []string{"dep3", "dep4"},
 			Entity:         "/tmp/main.py",
 			EntityType:     heartbeat.FileType,
-			IsWrite:        heartbeat.Bool(false),
-			Language:       heartbeat.String("Python"),
-			LineNumber:     heartbeat.Int(43),
-			Lines:          heartbeat.Int(101),
-			Project:        heartbeat.String("wakatime"),
+			IsWrite:        heartbeat.PointerTo(false),
+			Language:       heartbeat.PointerTo("Python"),
+			LineNumber:     heartbeat.PointerTo(43),
+			Lines:          heartbeat.PointerTo(101),
+			Project:        heartbeat.PointerTo("wakatime"),
 			Time:           1592868386.079084,
 			UserAgent:      "wakatime/13.0.7",
 		},
 		{
-			Branch:         heartbeat.String("todaygoal"),
+			Branch:         heartbeat.PointerTo("todaygoal"),
 			Category:       heartbeat.BuildingCategory,
-			CursorPosition: heartbeat.Int(14),
+			CursorPosition: heartbeat.PointerTo(14),
 			Dependencies:   []string{"dep5", "dep6"},
 			Entity:         "/tmp/main.js",
 			EntityType:     heartbeat.FileType,
-			IsWrite:        heartbeat.Bool(false),
-			Language:       heartbeat.String("JavaScript"),
-			LineNumber:     heartbeat.Int(44),
-			Lines:          heartbeat.Int(102),
-			Project:        heartbeat.String("wakatime"),
+			IsWrite:        heartbeat.PointerTo(false),
+			Language:       heartbeat.PointerTo("JavaScript"),
+			LineNumber:     heartbeat.PointerTo(44),
+			Lines:          heartbeat.PointerTo(102),
+			Project:        heartbeat.PointerTo("wakatime"),
 			Time:           1592868394.084354,
 			UserAgent:      "wakatime/13.0.8",
 		},

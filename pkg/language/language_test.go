@@ -72,7 +72,45 @@ func TestWithDetection_Override(t *testing.T) {
 		{
 			Entity:     "testdata/codefiles/golang.go",
 			EntityType: heartbeat.FileType,
-			Language:   heartbeat.String("Python"),
+			Language:   heartbeat.PointerTo("Python"),
+		},
+	})
+	require.NoError(t, err)
+
+	assert.Equal(t, []heartbeat.Result{
+		{
+			Status: 201,
+		},
+	}, result)
+}
+
+func TestWithDetection_NonExistingEntity_Override(t *testing.T) {
+	opt := language.WithDetection()
+
+	h := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		assert.Len(t, hh, 1)
+		assert.Equal(t, heartbeat.LanguagePython.String(), hh[0].LanguageAlternate)
+		assert.Equal(t, []heartbeat.Heartbeat{
+			{
+				Entity:            "nonexisting",
+				EntityType:        heartbeat.FileType,
+				Language:          heartbeat.PointerTo(hh[0].LanguageAlternate),
+				LanguageAlternate: hh[0].LanguageAlternate,
+			},
+		}, hh)
+
+		return []heartbeat.Result{
+			{
+				Status: 201,
+			},
+		}, nil
+	})
+
+	result, err := h([]heartbeat.Heartbeat{
+		{
+			Entity:            "nonexisting",
+			EntityType:        heartbeat.FileType,
+			LanguageAlternate: "Python",
 		},
 	})
 	require.NoError(t, err)
@@ -93,7 +131,7 @@ func TestWithDetection_Alternate(t *testing.T) {
 			{
 				Entity:            "testdata/codefiles/unknown.xyz",
 				EntityType:        heartbeat.FileType,
-				Language:          heartbeat.String("Golang"),
+				Language:          heartbeat.PointerTo("Golang"),
 				LanguageAlternate: "Golang",
 			},
 		}, hh)

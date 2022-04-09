@@ -181,8 +181,7 @@ func setupTestGitBasic(t *testing.T) (fp string) {
 	require.NoError(t, err)
 
 	if runtime.GOOS == "windows" {
-		tmpDir, err = windows.FormatFilePath(tmpDir)
-		require.NoError(t, err)
+		tmpDir = windows.FormatFilePath(tmpDir)
 	}
 
 	err = os.MkdirAll(filepath.Join(tmpDir, "wakatime-cli/src/pkg"), os.FileMode(int(0700)))
@@ -209,8 +208,7 @@ func setupTestGitBasicBranchWithSlash(t *testing.T) (fp string) {
 	require.NoError(t, err)
 
 	if runtime.GOOS == "windows" {
-		tmpDir, err = windows.FormatFilePath(tmpDir)
-		require.NoError(t, err)
+		tmpDir = windows.FormatFilePath(tmpDir)
 	}
 
 	err = os.MkdirAll(filepath.Join(tmpDir, "wakatime-cli/src/pkg"), os.FileMode(int(0700)))
@@ -237,8 +235,7 @@ func setupTestGitBasicDetachedHead(t *testing.T) (fp string) {
 	require.NoError(t, err)
 
 	if runtime.GOOS == "windows" {
-		tmpDir, err = windows.FormatFilePath(tmpDir)
-		require.NoError(t, err)
+		tmpDir = windows.FormatFilePath(tmpDir)
 	}
 
 	err = os.MkdirAll(filepath.Join(tmpDir, "wakatime-cli/src/pkg"), os.FileMode(int(0700)))
@@ -265,8 +262,7 @@ func setupTestGitFile(t *testing.T) (fp string) {
 	require.NoError(t, err)
 
 	if runtime.GOOS == "windows" {
-		tmpDir, err = windows.FormatFilePath(tmpDir)
-		require.NoError(t, err)
+		tmpDir = windows.FormatFilePath(tmpDir)
 	}
 
 	// Create directories
@@ -326,8 +322,7 @@ func setupTestGitWorktree(t *testing.T) (fp string) {
 	require.NoError(t, err)
 
 	if runtime.GOOS == "windows" {
-		tmpDir, err = windows.FormatFilePath(tmpDir)
-		require.NoError(t, err)
+		tmpDir = windows.FormatFilePath(tmpDir)
 	}
 
 	// Create directories
@@ -377,8 +372,7 @@ func setupTestGitSubmodule(t *testing.T) (fp string) {
 	require.NoError(t, err)
 
 	if runtime.GOOS == "windows" {
-		tmpDir, err = windows.FormatFilePath(tmpDir)
-		require.NoError(t, err)
+		tmpDir = windows.FormatFilePath(tmpDir)
 	}
 
 	// Create directories

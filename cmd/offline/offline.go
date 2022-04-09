@@ -22,7 +22,7 @@ import (
 // tried sending them to the API. If we tried sending to API already,
 // to the API. Used when we have heartbeats unsent to API.
 func SaveHeartbeats(v *viper.Viper, heartbeats []heartbeat.Heartbeat, queueFilepath string) error {
-	params, err := loadParams(v, heartbeats == nil)
+	params, err := loadParams(v)
 	if err != nil {
 		return fmt.Errorf("failed to load command parameters: %w", err)
 	}
@@ -47,12 +47,7 @@ func SaveHeartbeats(v *viper.Viper, heartbeats []heartbeat.Heartbeat, queueFilep
 		queueFilepath = params.Offline.QueueFile
 	}
 
-	offlineHandleOpt, err := offline.WithQueue(queueFilepath)
-	if err != nil {
-		return fmt.Errorf("failed saving heartbeats because unable to init offline queue: %w", err)
-	}
-
-	handleOpts = append(handleOpts, offlineHandleOpt)
+	handleOpts = append(handleOpts, offline.WithQueue(queueFilepath))
 
 	sender := offline.Sender{}
 	handle := heartbeat.NewHandle(&sender, handleOpts...)
@@ -62,7 +57,7 @@ func SaveHeartbeats(v *viper.Viper, heartbeats []heartbeat.Heartbeat, queueFilep
 	return nil
 }
 
-func loadParams(v *viper.Viper, shouldLoadHeartbeatParams bool) (paramscmd.Params, error) {
+func loadParams(v *viper.Viper) (paramscmd.Params, error) {
 	paramAPI, err := paramscmd.LoadAPIParams(v)
 	if err != nil {
 		log.Warnf("failed to load API parameters: %s", err)
@@ -78,14 +73,12 @@ func loadParams(v *viper.Viper, shouldLoadHeartbeatParams bool) (paramscmd.Param
 		Offline: paramOffline,
 	}
 
-	if shouldLoadHeartbeatParams {
-		paramHeartbeat, err := paramscmd.LoadHeartbeatParams(v)
-		if err != nil {
-			return paramscmd.Params{}, fmt.Errorf("failed to load heartbeat parameters: %s", err)
-		}
-
-		params.Heartbeat = paramHeartbeat
+	paramHeartbeat, err := paramscmd.LoadHeartbeatParams(v)
+	if err != nil {
+		return paramscmd.Params{}, fmt.Errorf("failed to load heartbeat parameters: %s", err)
 	}
+
+	params.Heartbeat = paramHeartbeat
 
 	return params, nil
 }
@@ -103,10 +96,12 @@ func buildHeartbeats(params paramscmd.Params) []heartbeat.Heartbeat {
 		params.Heartbeat.CursorPosition,
 		params.Heartbeat.Entity,
 		params.Heartbeat.EntityType,
+		params.Heartbeat.IsUnsavedEntity,
 		params.Heartbeat.IsWrite,
 		params.Heartbeat.Language,
 		params.Heartbeat.LanguageAlternate,
 		params.Heartbeat.LineNumber,
+		params.Heartbeat.LinesInFile,
 		params.Heartbeat.LocalFile,
 		params.Heartbeat.Project.Alternate,
 		params.Heartbeat.Project.Override,
@@ -124,10 +119,12 @@ func buildHeartbeats(params paramscmd.Params) []heartbeat.Heartbeat {
 				h.CursorPosition,
 				h.Entity,
 				h.EntityType,
+				h.IsUnsavedEntity,
 				h.IsWrite,
 				h.Language,
 				h.LanguageAlternate,
 				h.LineNumber,
+				h.Lines,
 				h.LocalFile,
 				h.ProjectAlternate,
 				h.ProjectOverride,
@@ -172,9 +169,7 @@ func initHandleOptions(params paramscmd.Params) []heartbeat.HandleOption {
 		}),
 		heartbeat.WithEntityModifer(),
 		remote.WithDetection(),
-		filestats.WithDetection(filestats.Config{
-			LinesInFile: params.Heartbeat.LinesInFile,
-		}),
+		filestats.WithDetection(),
 		language.WithDetection(),
 		deps.WithDetection(deps.Config{
 			FilePatterns: params.Heartbeat.Sanitize.HideFileNames,
