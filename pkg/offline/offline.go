@@ -36,7 +36,7 @@ const (
 type Sender struct{}
 
 // SendHeartbeats always returns an error.
-func (*Sender) SendHeartbeats(_ []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+func (Sender) SendHeartbeats(_ []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 	return nil, api.Err("skip sending heartbeats and only save to offline db")
 }
 
@@ -94,11 +94,27 @@ func QueueFilepath() (string, error) {
 	return filepath.Join(home, dbFilename), nil
 }
 
+// WithSync initializes and returns a heartbeat handle option, which
+// can be used in a heartbeat processing pipeline to pop heartbeats
+// from offline queue and send the heartbeats to WakaTime API.
+func WithSync(filepath string, syncLimit int) heartbeat.HandleOption {
+	return func(next heartbeat.Handle) heartbeat.Handle {
+		return func(_ []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+			log.Debugf("execute offline sync with file %s", filepath)
+
+			err := Sync(filepath, syncLimit)(next)
+			if err != nil {
+				return nil, fmt.Errorf("failed to sync offline heartbeats: %s", err)
+			}
+
+			return nil, nil
+		}
+	}
+}
+
 // Sync returns a function to send queued heartbeats to the WakaTime API.
 func Sync(filepath string, syncLimit int) func(next heartbeat.Handle) error {
 	return func(next heartbeat.Handle) error {
-		log.Debugf("execute offline sync with file %s", filepath)
-
 		var (
 			alreadySent int
 			run         int

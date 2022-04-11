@@ -19,14 +19,19 @@ import (
 func TestReadInConfig(t *testing.T) {
 	v := viper.New()
 	v.Set("config", "./testdata/wakatime.cfg")
+
 	filePath, err := ini.FilePath(v)
 	require.NoError(t, err)
+
 	err = ini.ReadInConfig(v, filePath)
 	require.NoError(t, err)
 
 	assert.Equal(t, "b9485572-74bf-419a-916b-22056ca3a24c", vipertools.GetString(v, "settings.api_key"))
 	assert.Equal(t, "true", vipertools.GetString(v, "settings.debug"))
 	assert.Equal(t, "us", vipertools.GetString(v, "other.country"))
+	assert.Equal(t, "project-y", vipertools.GetString(v, "projectmap./some/path"))
+	assert.Equal(t, "project-x", vipertools.GetString(v, "project_api_key./some/path"))
+	assert.Equal(t, "project-2", vipertools.GetString(v, "project_api_key./other/tmp/path"))
 }
 
 func TestReadInConfig_Multiline(t *testing.T) {

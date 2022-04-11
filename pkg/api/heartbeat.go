@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"sync"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/log"
@@ -25,40 +26,117 @@ func (c *Client) SendHeartbeats(heartbeats []heartbeat.Heartbeat) ([]heartbeat.R
 
 	log.Debugf("sending %d heartbeat(s) to api at %s", len(heartbeats), url)
 
+	grouped := groupByApiKey(heartbeats)
+
+	cherr := make(chan error, len(grouped))
+	defer close(cherr)
+
+	chres := make(chan []heartbeat.Result, len(grouped))
+	defer close(chres)
+
+	// don't spawn threads when there's only one api key set.
+	if len(grouped) == 1 {
+		c.sendHeartbeats(url, heartbeats, chres, cherr)
+
+		return <-chres, <-cherr
+	}
+
+	var wg sync.WaitGroup
+
+	for apiKey, hh := range grouped {
+		hh := hh
+		apiKey := apiKey
+
+		wg.Add(1)
+
+		go func() {
+			defer wg.Done()
+
+			auth, err := WithAuth(BasicAuth{Secret: apiKey})
+			if err != nil {
+				cherr <- err
+				chres <- nil
+
+				return
+			}
+
+			auth(c)
+
+			c.sendHeartbeats(url, hh, chres, cherr)
+		}()
+	}
+
+	wg.Wait()
+
+	for err := range cherr {
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	var results []heartbeat.Result
+
+	for res := range chres {
+		results = append(results, res...)
+	}
+
+	return results, nil
+}
+
+func (c *Client) sendHeartbeats(url string, heartbeats []heartbeat.Heartbeat,
+	chresults chan []heartbeat.Result, cherr chan error) {
 	data, err := json.Marshal(heartbeats)
 	if err != nil {
-		return nil, fmt.Errorf("failed to json encode body: %s", err)
+		cherr <- fmt.Errorf("failed to json encode body: %s", err)
+		chresults <- nil
+
+		return
 	}
 
 	log.Debugf("heartbeats: %s", string(data))
 
 	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(data))
 	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %s", err)
+		cherr <- fmt.Errorf("failed to create request: %s", err)
+		chresults <- nil
+
+		return
 	}
 
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := c.Do(req)
 	if err != nil {
-		return nil, Err(fmt.Sprintf("failed making request to %q: %s", url, err))
+		cherr <- Err(fmt.Sprintf("failed making request to %q: %s", url, err))
+		chresults <- nil
+
+		return
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, Err(fmt.Sprintf("failed reading response body from %q: %s", url, err))
+		cherr <- Err(fmt.Sprintf("failed reading response body from %q: %s", url, err))
+		chresults <- nil
+
+		return
 	}
 
 	switch resp.StatusCode {
 	case http.StatusCreated, http.StatusAccepted:
 		break
 	case http.StatusUnauthorized:
-		return nil, ErrAuth(fmt.Sprintf("authentication failed at %q", url))
+		cherr <- ErrAuth(fmt.Sprintf("authentication failed at %q", url))
+		chresults <- nil
+
+		return
 	case http.StatusBadRequest:
-		return nil, ErrBadRequest(fmt.Sprintf("bad request at %q", url))
+		cherr <- ErrBadRequest(fmt.Sprintf("bad request at %q", url))
+		chresults <- nil
+
+		return
 	default:
-		return nil, Err(fmt.Sprintf(
+		cherr <- Err(fmt.Sprintf(
 			"invalid response status from %q. got: %d, want: %d/%d. body: %q",
 			url,
 			resp.StatusCode,
@@ -66,14 +144,21 @@ func (c *Client) SendHeartbeats(heartbeats []heartbeat.Heartbeat) ([]heartbeat.R
 			http.StatusAccepted,
 			string(body),
 		))
+		chresults <- nil
+
+		return
 	}
 
 	results, err := ParseHeartbeatResponses(body)
 	if err != nil {
-		return nil, Err(fmt.Sprintf("failed parsing results from %q: %s", url, err))
+		cherr <- Err(fmt.Sprintf("failed parsing results from %q: %s", url, err))
+		chresults <- nil
+
+		return
 	}
 
-	return results, nil
+	chresults <- results
+	cherr <- nil
 }
 
 // ParseHeartbeatResponses parses the aggregated responses returned by the heartbeat bulk endpoint.
@@ -190,4 +275,14 @@ func parseHeartbeatResponseError(data json.RawMessage) ([]string, error) {
 	}
 
 	return errs, nil
+}
+
+func groupByApiKey(hh []heartbeat.Heartbeat) map[string][]heartbeat.Heartbeat {
+	var grouped = make(map[string][]heartbeat.Heartbeat, 0)
+
+	for _, h := range hh {
+		grouped[h.ApiKey] = append(grouped[h.ApiKey], h)
+	}
+
+	return grouped
 }

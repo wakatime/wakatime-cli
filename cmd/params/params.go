@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/wakatime/wakatime-cli/pkg/api"
+	"github.com/wakatime/wakatime-cli/pkg/apikey"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/ini"
 	"github.com/wakatime/wakatime-cli/pkg/log"
@@ -57,6 +58,7 @@ type (
 		DisableSSLVerify bool
 		Hostname         string
 		Key              string
+		KeyPatterns      []apikey.MapPattern
 		Plugin           string
 		ProxyURL         string
 		SSLCertFilepath  string
@@ -185,6 +187,31 @@ func LoadAPIParams(v *viper.Viper) (API, error) {
 		return API{}, api.ErrAuth("invalid api key format")
 	}
 
+	var apiKeyPatterns []apikey.MapPattern
+
+	apiKeyMap := vipertools.GetStringMapString(v, "project_api_key")
+
+	for k, s := range apiKeyMap {
+		compiled, err := regexp.Compile(k)
+		if err != nil {
+			log.Warnf("failed to compile project_api_key regex pattern %q", k)
+			continue
+		}
+
+		if !apiKeyRegex.Match([]byte(s)) {
+			return API{}, api.ErrAuth(fmt.Sprintf("invalid api key format for %q", k))
+		}
+
+		if s == apiKey {
+			continue
+		}
+
+		apiKeyPatterns = append(apiKeyPatterns, apikey.MapPattern{
+			ApiKey: s,
+			Regex:  compiled,
+		})
+	}
+
 	apiURL := api.BaseURL
 
 	if u, ok := vipertools.FirstNonEmptyString(v, "api-url", "apiurl", "settings.api_url"); ok {
@@ -260,6 +287,7 @@ func LoadAPIParams(v *viper.Viper) (API, error) {
 		DisableSSLVerify: vipertools.FirstNonEmptyBool(v, "no-ssl-verify", "settings.no_ssl_verify"),
 		Hostname:         hostname,
 		Key:              apiKey,
+		KeyPatterns:      apiKeyPatterns,
 		Plugin:           vipertools.GetString(v, "plugin"),
 		ProxyURL:         proxyURL,
 		SSLCertFilepath:  sslCertFilepath,
@@ -498,7 +526,7 @@ func loadProjectParams(v *viper.Viper) (ProjectParams, error) {
 
 	var mapPatterns []project.MapPattern
 
-	projectMap := v.GetStringMapString("projectmap")
+	projectMap := vipertools.GetStringMapString(v, "projectmap")
 
 	for k, s := range projectMap {
 		compiled, err := regexp.Compile(k)
@@ -784,15 +812,30 @@ func (p API) String() string {
 		apiKey = fmt.Sprintf("<hidden>%s", apiKey[len(apiKey)-4:])
 	}
 
+	keyPatterns := []apikey.MapPattern{}
+
+	for _, k := range p.KeyPatterns {
+		if len(k.ApiKey) > 4 {
+			// only show last 4 chars of api key in logs
+			k.ApiKey = fmt.Sprintf("<hidden>%s", k.ApiKey[len(k.ApiKey)-4:])
+		}
+
+		keyPatterns = append(keyPatterns, apikey.MapPattern{
+			Regex:  k.Regex,
+			ApiKey: k.ApiKey,
+		})
+	}
+
 	return fmt.Sprintf(
 		"api key: '%s', api url: '%s', backoff at: '%s', backoff retries: %d,"+
-			" hostname: '%s', plugin: '%s', timeout: %s, disable ssl verify: %t,"+
-			" proxy url: '%s', ssl cert filepath: '%s'",
+			" hostname: '%s', key patterns: '%s', plugin: '%s', timeout: %s,"+
+			" disable ssl verify: %t, proxy url: '%s', ssl cert filepath: '%s'",
 		apiKey,
 		p.URL,
 		backoffAt,
 		p.BackoffRetries,
 		p.Hostname,
+		keyPatterns,
 		p.Plugin,
 		p.Timeout,
 		p.DisableSSLVerify,

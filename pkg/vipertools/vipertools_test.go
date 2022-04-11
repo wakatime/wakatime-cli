@@ -117,3 +117,24 @@ func TestGetString_DoubleQuotes(t *testing.T) {
 	value := vipertools.GetString(v, "some")
 	assert.Equal(t, "value", value)
 }
+
+func TestGetStringMapString(t *testing.T) {
+	v := viper.New()
+	v.Set("settings.github.com/wakatime", "value")
+	v.Set("settings_foo.debug", "true")
+
+	expected := map[string]string{
+		"github.com/wakatime": "value",
+	}
+
+	m := vipertools.GetStringMapString(v, "settings")
+	assert.Equal(t, expected, m)
+}
+
+func TestGetStringMapString_NotFound(t *testing.T) {
+	v := viper.New()
+	v.Set("settings.key", "value")
+
+	m := vipertools.GetStringMapString(v, "internal")
+	assert.Equal(t, map[string]string{}, m)
+}
