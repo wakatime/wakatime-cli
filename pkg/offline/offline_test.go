@@ -387,7 +387,7 @@ func TestSync(t *testing.T) {
 
 	db.Close()
 
-	syncFn := offline.Sync(f.Name(), 1000)
+	syncFn := offline.Sync(f.Name(), 1000, "", nil)
 
 	var numCalls int
 
@@ -461,7 +461,7 @@ func TestSync_MultipleRequests(t *testing.T) {
 
 	db.Close()
 
-	syncFn := offline.Sync(f.Name(), 1000)
+	syncFn := offline.Sync(f.Name(), 1000, "", nil)
 
 	var numCalls int
 
@@ -558,7 +558,7 @@ func TestSync_APIError(t *testing.T) {
 
 	db.Close()
 
-	syncFn := offline.Sync(f.Name(), 10)
+	syncFn := offline.Sync(f.Name(), 10, "", nil)
 
 	var numCalls int
 
@@ -644,7 +644,7 @@ func TestSync_InvalidResults(t *testing.T) {
 
 	db.Close()
 
-	syncFn := offline.Sync(f.Name(), 1000)
+	syncFn := offline.Sync(f.Name(), 1000, "", nil)
 
 	var numCalls int
 
@@ -751,7 +751,7 @@ func TestSync_SyncLimit(t *testing.T) {
 
 	db.Close()
 
-	syncFn := offline.Sync(f.Name(), 1)
+	syncFn := offline.Sync(f.Name(), 1, "", nil)
 
 	var numCalls int
 

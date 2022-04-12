@@ -81,11 +81,16 @@ func SyncOfflineActivity(v *viper.Viper, queueFilepath string) error {
 		return fmt.Errorf("failed to load API parameters: %w", err)
 	}
 
+	paramProj, err := params.LoadProjectParams(v)
+	if err != nil {
+		return fmt.Errorf("failed to load project parameters: %w", err)
+	}
+
 	if paramOffline.SyncMax == 0 {
 		return ErrSyncDisabled("sync offline activity is disabled")
 	}
 
-	apiClient, err := cmdapi.NewClient(paramAPI)
+	apiClient, err := cmdapi.NewClientWithoutAuth(paramAPI)
 	if err != nil {
 		return fmt.Errorf("failed to initialize api client: %w", err)
 	}
@@ -94,7 +99,7 @@ func SyncOfflineActivity(v *viper.Viper, queueFilepath string) error {
 		queueFilepath = paramOffline.QueueFile
 	}
 
-	syncFn := offline.Sync(queueFilepath, paramOffline.SyncMax)
+	syncFn := offline.Sync(queueFilepath, paramOffline.SyncMax, paramAPI.Key, paramProj.ApiKeyPatterns)
 
 	return syncFn(apiClient.SendHeartbeats)
 }

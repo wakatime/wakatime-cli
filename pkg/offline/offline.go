@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/wakatime/wakatime-cli/pkg/api"
+	"github.com/wakatime/wakatime-cli/pkg/apikey"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/ini"
 	"github.com/wakatime/wakatime-cli/pkg/log"
@@ -95,7 +96,10 @@ func QueueFilepath() (string, error) {
 }
 
 // Sync returns a function to send queued heartbeats to the WakaTime API.
-func Sync(filepath string, syncLimit int) func(next heartbeat.Handle) error {
+func Sync(filepath string,
+	syncLimit int,
+	apiKey string,
+	projectApiKeyPatterns []apikey.ProjectPattern) func(next heartbeat.Handle) error {
 	return func(next heartbeat.Handle) error {
 		log.Debugf("execute offline sync with file %s", filepath)
 
@@ -127,6 +131,16 @@ func Sync(filepath string, syncLimit int) func(next heartbeat.Handle) error {
 				log.Debugln("no queued heartbeats ready for sending")
 
 				break
+			}
+
+			for n, h := range hh {
+				result, ok := apikey.MatchPattern(h.Entity, projectApiKeyPatterns)
+				if !ok {
+					hh[n].ApiKey = apiKey
+					continue
+				}
+
+				hh[n].ApiKey = result
 			}
 
 			log.Debugf("send %d heartbeats on sync run %d", len(hh), run)

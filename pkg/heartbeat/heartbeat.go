@@ -14,6 +14,7 @@ import (
 
 // Heartbeat is a structure representing activity for a user on a some entity.
 type Heartbeat struct {
+	ApiKey              string     `json:"-"`
 	Branch              *string    `json:"branch"`
 	Category            Category   `json:"category"`
 	CursorPosition      *int       `json:"cursorpos"`

@@ -9,6 +9,7 @@ import (
 	offlinecmd "github.com/wakatime/wakatime-cli/cmd/offline"
 	paramscmd "github.com/wakatime/wakatime-cli/cmd/params"
 	"github.com/wakatime/wakatime-cli/pkg/api"
+	"github.com/wakatime/wakatime-cli/pkg/apikey"
 	"github.com/wakatime/wakatime-cli/pkg/backoff"
 	"github.com/wakatime/wakatime-cli/pkg/deps"
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
@@ -114,7 +115,7 @@ func SendHeartbeats(v *viper.Viper, queueFilepath string) error {
 		Retries: params.API.BackoffRetries,
 	}))
 
-	apiClient, err := apicmd.NewClient(params.API)
+	apiClient, err := apicmd.NewClientWithoutAuth(params.API)
 	if err != nil {
 		if !params.Offline.Disabled {
 			if err := offlinecmd.SaveHeartbeats(v, heartbeats, queueFilepath); err != nil {
@@ -208,6 +209,10 @@ func initHandleOptions(params paramscmd.Params) []heartbeat.HandleOption {
 			RemoteAddressPattern:       remote.RemoteAddressRegex,
 		}),
 		heartbeat.WithEntityModifer(),
+		apikey.WithApiKey(apikey.Config{
+			DefaultApiKey: params.API.Key,
+			Patterns:      params.Heartbeat.Project.ApiKeyPatterns,
+		}),
 		remote.WithDetection(),
 		filestats.WithDetection(),
 		language.WithDetection(),

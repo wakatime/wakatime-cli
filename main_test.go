@@ -203,7 +203,6 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 	offlineCount := runWakatimeCli(
 		t,
 		&bytes.Buffer{},
-		"--key", "00000000-0000-4000-8000-000000000000",
 		"--offline-queue-file", offlineQueueFile.Name(),
 		"--offline-count",
 		"--verbose",
@@ -212,6 +211,73 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 	assert.Equal(t, "2\n", offlineCount)
 
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+}
+
+func TestSendHeartbeats_ProjectApiKeyPattern(t *testing.T) {
+	apiURL, router, close := setupTestServer()
+	defer close()
+
+	var numCalls int
+
+	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
+		numCalls++
+
+		resp_mock := "testdata/api_heartbeats_response_project_api_key_pattern_1.json"
+		if numCalls > 1 {
+			resp_mock = "testdata/api_heartbeats_response_project_api_key_pattern_2.json"
+		}
+
+		// write response
+		f, err := os.Open(resp_mock)
+		require.NoError(t, err)
+
+		w.WriteHeader(http.StatusCreated)
+		_, err = io.Copy(w, f)
+		require.NoError(t, err)
+	})
+
+	tmpDir := t.TempDir()
+
+	offlineQueueFile, err := os.CreateTemp(tmpDir, "")
+	require.NoError(t, err)
+
+	defer offlineQueueFile.Close()
+
+	data, err := os.ReadFile("testdata/extra_heartbeats.json")
+	require.NoError(t, err)
+
+	buffer := bytes.NewBuffer(data)
+
+	runWakatimeCli(
+		t,
+		buffer,
+		"--api-url", apiURL,
+		"--key", "00000000-0000-4000-8000-000000000000",
+		"--config", "./testdata/project-api-key-pattern.cfg",
+		"--entity", "testdata/fake.py",
+		"--extra-heartbeats", "true",
+		"--sync-offline-activity", "none",
+		"--cursorpos", "12",
+		"--offline-queue-file", offlineQueueFile.Name(),
+		"--lineno", "42",
+		"--lines-in-file", "100",
+		"--time", "1585598059",
+		"--hide-branch-names", ".*",
+		"--write",
+		"--verbose",
+	)
+
+	offlineCount := runWakatimeCli(
+		t,
+		&bytes.Buffer{},
+		"--offline-queue-file", offlineQueueFile.Name(),
+		"--offline-count",
+		"--verbose",
+	)
+
+	assert.Equal(t, "2\n", offlineCount)
+
+	assert.Eventually(t, func() bool { return numCalls == 2 }, time.Second, 50*time.Millisecond)
 }
 
 func TestSendHeartbeats_Err(t *testing.T) {
@@ -443,7 +509,6 @@ func TestOfflineCountEmpty(t *testing.T) {
 	out := runWakatimeCli(
 		t,
 		&bytes.Buffer{},
-		"--key", "00000000-0000-4000-8000-000000000000",
 		"--offline-queue-file", offlineQueueFile.Name(),
 		"--offline-count",
 		"--verbose",

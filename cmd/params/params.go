@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/wakatime/wakatime-cli/pkg/api"
+	"github.com/wakatime/wakatime-cli/pkg/apikey"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/ini"
 	"github.com/wakatime/wakatime-cli/pkg/log"
@@ -121,6 +122,7 @@ type (
 	// ProjectParams params for project name sanitization.
 	ProjectParams struct {
 		Alternate        string
+		ApiKeyPatterns   []apikey.ProjectPattern
 		DisableSubmodule []regex.Regex
 		MapPatterns      []project.MapPattern
 		Override         string
@@ -338,7 +340,7 @@ func LoadHeartbeatParams(v *viper.Viper) (Heartbeat, error) {
 		timeSecs = float64(time.Now().UnixNano()) / 1000000000
 	}
 
-	projectParams, err := loadProjectParams(v)
+	projectParams, err := LoadProjectParams(v)
 	if err != nil {
 		return Heartbeat{}, fmt.Errorf("failed to parse project params: %s", err)
 	}
@@ -487,7 +489,8 @@ func loadSanitizeParams(v *viper.Viper) (SanitizeParams, error) {
 	}, nil
 }
 
-func loadProjectParams(v *viper.Viper) (ProjectParams, error) {
+// LoadProjectParams loads heartbeats params from viper.Viper instance.
+func LoadProjectParams(v *viper.Viper) (ProjectParams, error) {
 	disableSubmodule, err := parseBoolOrRegexList(vipertools.GetString(v, "git.submodules_disabled"))
 	if err != nil {
 		return ProjectParams{}, fmt.Errorf(
@@ -496,9 +499,30 @@ func loadProjectParams(v *viper.Viper) (ProjectParams, error) {
 		)
 	}
 
+	var apiKeyPatterns []apikey.ProjectPattern
+
+	apiKeyMap := allKeysInSection(v, "project_api_key")
+
+	for k, s := range apiKeyMap {
+		compiled, err := regexp.Compile(k)
+		if err != nil {
+			log.Warnf("failed to compile project_api_key regex pattern %q", k)
+			continue
+		}
+
+		if !apiKeyRegex.Match([]byte(s)) {
+			return ProjectParams{}, api.ErrAuth(fmt.Sprintf("invalid api key format for %q", k))
+		}
+
+		apiKeyPatterns = append(apiKeyPatterns, apikey.ProjectPattern{
+			ApiKey: s,
+			Regex:  compiled,
+		})
+	}
+
 	var mapPatterns []project.MapPattern
 
-	projectMap := v.GetStringMapString("projectmap")
+	projectMap := allKeysInSection(v, "projectmap")
 
 	for k, s := range projectMap {
 		compiled, err := regexp.Compile(k)
@@ -515,6 +539,7 @@ func loadProjectParams(v *viper.Viper) (ProjectParams, error) {
 
 	return ProjectParams{
 		Alternate:        vipertools.GetString(v, "alternate-project"),
+		ApiKeyPatterns:   apiKeyPatterns,
 		DisableSubmodule: disableSubmodule,
 		MapPatterns:      mapPatterns,
 		Override:         vipertools.GetString(v, "project"),
@@ -952,4 +977,17 @@ func firstNonEmptyString(values ...string) string {
 	}
 
 	return ""
+}
+
+func allKeysInSection(v *viper.Viper, section string) map[string]string {
+	keys := map[string]string{}
+
+	for _, key := range v.AllKeys() {
+		s := strings.Split(key, ".")[0]
+		if s == section && len(key) > len(s)+1 {
+			keys[key[len(s)+1:]] = v.GetString(key)
+		}
+	}
+
+	return keys
 }

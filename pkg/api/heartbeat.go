@@ -2,6 +2,7 @@ package api
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -21,6 +22,27 @@ import (
 // ErrAuth is returned upon receiving a 401 Unauthorized api response.
 // Err is returned on any other api response related error.
 func (c *Client) SendHeartbeats(heartbeats []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+	groupByApiKey := map[string][]heartbeat.Heartbeat{}
+
+	for _, heartbeat := range heartbeats {
+		groupByApiKey[heartbeat.ApiKey] = append(groupByApiKey[heartbeat.ApiKey], heartbeat)
+	}
+
+	var results []heartbeat.Result
+
+	for apiKey, heartbeats := range groupByApiKey {
+		groupResults, err := sendHeartbeatsGroup(c, apiKey, heartbeats)
+		if err != nil {
+			return nil, err
+		}
+
+		results = append(results, groupResults...)
+	}
+
+	return results, nil
+}
+
+func sendHeartbeatsGroup(c *Client, apiKey string, heartbeats []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 	url := c.baseURL + "/users/current/heartbeats.bulk"
 
 	log.Debugf("sending %d heartbeat(s) to api at %s", len(heartbeats), url)
@@ -37,6 +59,9 @@ func (c *Client) SendHeartbeats(heartbeats []heartbeat.Heartbeat) ([]heartbeat.R
 		return nil, fmt.Errorf("failed to create request: %s", err)
 	}
 
+	req.Header.Set("Authorization", fmt.Sprintf("Basic %s", base64.StdEncoding.EncodeToString(
+		[]byte(apiKey),
+	)))
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := c.Do(req)
