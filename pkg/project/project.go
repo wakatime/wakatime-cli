@@ -67,7 +67,7 @@ func WithDetection(config Config) heartbeat.HandleOption {
 	return func(next heartbeat.Handle) heartbeat.Handle {
 		return func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 			for n, h := range hh {
-				log.Debugln("execute project detection for:", h.Entity)
+				log.Debugln("execute project detection for: ", h.Entity)
 
 				if h.EntityType != heartbeat.FileType || h.IsUnsavedEntity {
 					project := firstNonEmptyString(h.ProjectOverride, h.ProjectAlternate)

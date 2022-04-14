@@ -27,7 +27,7 @@ func SaveHeartbeats(v *viper.Viper, heartbeats []heartbeat.Heartbeat, queueFilep
 		return fmt.Errorf("failed to load command parameters: %w", err)
 	}
 
-	setLogFields(&params)
+	setLogFields(params)
 
 	log.Debugf("params: %s", params)
 
@@ -50,7 +50,7 @@ func SaveHeartbeats(v *viper.Viper, heartbeats []heartbeat.Heartbeat, queueFilep
 	handleOpts = append(handleOpts, offline.WithQueue(queueFilepath))
 
 	sender := offline.Sender{}
-	handle := heartbeat.NewHandle(&sender, handleOpts...)
+	handle := heartbeat.NewHandle(sender, handleOpts...)
 
 	_, _ = handle(heartbeats)
 
@@ -138,24 +138,6 @@ func buildHeartbeats(params paramscmd.Params) []heartbeat.Heartbeat {
 	return heartbeats
 }
 
-func setLogFields(params *paramscmd.Params) {
-	if params.API.Plugin != "" {
-		log.WithField("plugin", params.API.Plugin)
-	}
-
-	log.WithField("time", params.Heartbeat.Time)
-
-	if params.Heartbeat.LineNumber != nil {
-		log.WithField("lineno", params.Heartbeat.LineNumber)
-	}
-
-	if params.Heartbeat.IsWrite != nil {
-		log.WithField("is_write", params.Heartbeat.IsWrite)
-	}
-
-	log.WithField("file", params.Heartbeat.Entity)
-}
-
 func initHandleOptions(params paramscmd.Params) []heartbeat.HandleOption {
 	return []heartbeat.HandleOption{
 		heartbeat.WithFormatting(heartbeat.FormatConfig{
@@ -191,4 +173,22 @@ func initHandleOptions(params paramscmd.Params) []heartbeat.HandleOption {
 			RemoteAddressPattern: remote.RemoteAddressRegex,
 		}),
 	}
+}
+
+func setLogFields(params paramscmd.Params) {
+	if params.API.Plugin != "" {
+		log.WithField("plugin", params.API.Plugin)
+	}
+
+	log.WithField("time", params.Heartbeat.Time)
+
+	if params.Heartbeat.LineNumber != nil {
+		log.WithField("lineno", params.Heartbeat.LineNumber)
+	}
+
+	if params.Heartbeat.IsWrite != nil {
+		log.WithField("is_write", params.Heartbeat.IsWrite)
+	}
+
+	log.WithField("file", params.Heartbeat.Entity)
 }

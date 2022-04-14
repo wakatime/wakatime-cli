@@ -60,3 +60,18 @@ func FirstNonEmptyString(v *viper.Viper, keys ...string) (string, bool) {
 func GetString(v *viper.Viper, key string) string {
 	return strings.Trim(v.GetString(key), `"'`)
 }
+
+// GetStringMapString gets a parameter/setting by key prefix and stripts any quotes.
+func GetStringMapString(v *viper.Viper, prefix string) map[string]string {
+	m := map[string]string{}
+
+	for _, k := range v.AllKeys() {
+		if !strings.HasPrefix(k, prefix+".") {
+			continue
+		}
+
+		m[strings.SplitN(k, ".", 2)[1]] = GetString(v, k)
+	}
+
+	return m
+}

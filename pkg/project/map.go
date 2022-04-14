@@ -26,10 +26,6 @@ type Map struct {
 // project name 'new project name' and file '/home/user/projects/bar42/main.c'
 // to have project name 'project42'.
 func (m Map) Detect() (Result, bool, error) {
-	if len(m.Patterns) == 0 {
-		return Result{}, false, nil
-	}
-
 	result, ok := matchPattern(m.Filepath, m.Patterns)
 	if !ok {
 		return Result{}, false, nil

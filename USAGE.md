@@ -40,6 +40,9 @@ log_file =
 [projectmap]
 projects/foo = new project name
 ^/home/user/projects/bar(\d+)/ = project{0}
+[project_api_key]
+projects/foo = your-api-key
+^/home/user/projects/bar(\d+)/ = your-api-key
 [git]
 submodules_disabled = false
 ```
@@ -72,12 +75,22 @@ submodules_disabled = false
 
 ### Project Map Section
 
-A key value pair list separated by new line.
+A key value pair list separated by new line. Use when a project should be renamed to another when sent to the API.
 
 ```ini
 [projectmap]
 projects/foo = new project name
 ^/home/user/projects/bar(\d+)/ = project{0}
+```
+
+### Project Api Key Section
+
+A key value pair list separated by new line. Use when a project should be sent using another api key other than the default on `settings.api_key`.
+
+```ini
+[project_api_key]
+projects/foo = your-api-key
+^/home/user/projects/bar(\d+)/ = your-api-key
 ```
 
 ### Git Section
