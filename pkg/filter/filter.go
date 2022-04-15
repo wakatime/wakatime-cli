@@ -41,7 +41,7 @@ func WithFiltering(config Config) heartbeat.HandleOption {
 			}
 
 			if len(filtered) == 0 {
-				log.Debugln("no heartbeat left after filtering. abort heartbeat handling.")
+				log.Debugln("no heartbeats left after filtering. abort heartbeat handling.")
 				return []heartbeat.Result{}, nil
 			}
 
