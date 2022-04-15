@@ -96,6 +96,25 @@ func TestRunCmd_ErrOfflineEnqueue(t *testing.T) {
 	assert.Equal(t, exitcode.ErrGeneric, ret)
 }
 
+func TestParseConfigFiles(t *testing.T) {
+	v := viper.New()
+	v.Set("config", "testdata/.wakatime.cfg")
+	v.Set("internal-config", "testdata/.wakatime-internal.cfg")
+
+	err := parseConfigFiles(v)
+	require.NoError(t, err)
+
+	assert.Equal(t, "true", v.GetString("settings.debug"))
+	assert.Equal(t, "testdata/.import.cfg", v.GetString("settings.import_cfg"))
+	assert.Equal(t,
+		"00000000-0000-4000-8000-000000000000",
+		v.GetString("settings.api_key"))
+	assert.Equal(t, "1", v.GetString("internal.backoff_retries"))
+	assert.Equal(t,
+		"2006-01-02T15:04:05Z07:00",
+		v.GetString("internal.backoff_at"))
+}
+
 func jsonEscape(t *testing.T, i string) string {
 	b, err := json.Marshal(i)
 	require.NoError(t, err)

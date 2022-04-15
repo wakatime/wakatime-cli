@@ -121,7 +121,7 @@ func FilePath(v *viper.Viper) (string, error) {
 	if configFilepath != "" {
 		p, err := homedir.Expand(configFilepath)
 		if err != nil {
-			return "", fmt.Errorf("failed parsing --config param: %s", err)
+			return "", fmt.Errorf("failed expanding config param: %s", err)
 		}
 
 		return p, nil
@@ -135,13 +135,27 @@ func FilePath(v *viper.Viper) (string, error) {
 	return filepath.Join(home, defaultFile), nil
 }
 
+func ImportFilePath(v *viper.Viper) (string, error) {
+	configFilepath := vipertools.GetString(v, "settings.import_cfg")
+	if configFilepath != "" {
+		p, err := homedir.Expand(configFilepath)
+		if err != nil {
+			return "", fmt.Errorf("failed expanding settings.import_cfg param: %s", err)
+		}
+
+		return p, nil
+	}
+
+	return "", nil
+}
+
 // InternalFilePath returns the path for the wakatime internal config file.
 func InternalFilePath(v *viper.Viper) (string, error) {
 	configFilepath := vipertools.GetString(v, "internal-config")
 	if configFilepath != "" {
 		p, err := homedir.Expand(configFilepath)
 		if err != nil {
-			return "", fmt.Errorf("failed parsing --internal-config param: %s", err)
+			return "", fmt.Errorf("failed expanding internal-config param: %s", err)
 		}
 
 		return p, nil
