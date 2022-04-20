@@ -16,6 +16,7 @@ import (
 	"github.com/kevinburke/ssh_config"
 	"github.com/mitchellh/go-homedir"
 	"github.com/pkg/sftp"
+	"github.com/wakatime/wakatime-cli/pkg/filter"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/remote"
@@ -220,6 +221,11 @@ func TestWithDetection_sshConfig_UserKnownHostsFile_mismatch(t *testing.T) {
 
 	opts := []heartbeat.HandleOption{
 		remote.WithDetection(),
+		filter.WithFiltering(filter.Config{
+			Exclude:                    nil,
+			Include:                    nil,
+			IncludeOnlyWithProjectFile: false,
+		}),
 	}
 
 	handle := heartbeat.NewHandle(&sender, opts...)
@@ -303,6 +309,11 @@ func TestWithDetection_sshConfig_UserKnownHostsFile_match(t *testing.T) {
 
 	opts := []heartbeat.HandleOption{
 		remote.WithDetection(),
+		filter.WithFiltering(filter.Config{
+			Exclude:                    nil,
+			Include:                    nil,
+			IncludeOnlyWithProjectFile: true,
+		}),
 	}
 
 	handle := heartbeat.NewHandle(&sender, opts...)

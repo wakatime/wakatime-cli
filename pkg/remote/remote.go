@@ -54,24 +54,20 @@ func WithDetection() heartbeat.HandleOption {
 			log.Debugln("execute remote file detection")
 
 			var (
-				tmpDir   string
-				err      error
-				filtered []heartbeat.Heartbeat
+				tmpDir string
+				err    error
 			)
 
-			for _, h := range hh {
+			for i, h := range hh {
 				if h.EntityType != heartbeat.FileType {
-					filtered = append(filtered, h)
 					continue
 				}
 
 				if h.IsUnsavedEntity {
-					filtered = append(filtered, h)
 					continue
 				}
 
 				if !RemoteAddressRegex.MatchString(h.Entity) {
-					filtered = append(filtered, h)
 					continue
 				}
 
@@ -105,18 +101,12 @@ func WithDetection() heartbeat.HandleOption {
 					continue
 				}
 
-				h.LocalFile = tmpFile.Name()
+				hh[i].LocalFile = tmpFile.Name()
 				// we save untouched entity for offline handling
-				h.EntityRaw = h.Entity
-
-				filtered = append(filtered, h)
+				hh[i].EntityRaw = h.Entity
 			}
 
-			if len(filtered) == 0 {
-				log.Errorln("FILTERED IS EMPTY")
-			}
-
-			return next(filtered)
+			return next(hh)
 		}
 	}
 }
