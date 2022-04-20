@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net"
 	"net/url"
 	"os"
@@ -13,9 +14,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mitchellh/go-homedir"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/log"
 
+	"github.com/kevinburke/ssh_config"
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
@@ -25,19 +28,21 @@ import (
 var RemoteAddressRegex = regexp.MustCompile(`(?i)^((ssh|sftp)://)+(?P<credentials>[^:@]+(:([^:@])+)?@)?[^:]+(:\d+)?`)
 
 const (
-	defaultPort        = 22
 	defaultTimeoutSecs = 20
 	// Max file size supporting downloading from remote. Default is 512Kb.
 	maxFileSize = 512000
+	defaultPort = 22
 )
 
 // Client communicates using sftp protocol.
 type Client struct {
-	User string
-	Pass string
-	Host string
-	Port int
-	Path string
+	User         string
+	Pass         string
+	HostKeyAlias string
+	OriginalHost string
+	Host         string
+	Port         int
+	Path         string
 }
 
 // WithDetection initializes and returns a heartbeat handle option, which
@@ -53,7 +58,7 @@ func WithDetection() heartbeat.HandleOption {
 				err    error
 			)
 
-			for n, h := range hh {
+			for i, h := range hh {
 				if h.EntityType != heartbeat.FileType {
 					continue
 				}
@@ -71,7 +76,7 @@ func WithDetection() heartbeat.HandleOption {
 					if err != nil {
 						log.Errorf("failed to create temporary directory: %s", err)
 
-						return next(hh)
+						continue
 					}
 				}
 
@@ -96,9 +101,9 @@ func WithDetection() heartbeat.HandleOption {
 					continue
 				}
 
-				hh[n].LocalFile = tmpFile.Name()
+				hh[i].LocalFile = tmpFile.Name()
 				// we save untouched entity for offline handling
-				hh[n].EntityRaw = h.Entity
+				hh[i].EntityRaw = h.Entity
 			}
 
 			return next(hh)
@@ -115,7 +120,8 @@ func NewClient(address string) (Client, error) {
 
 	host := parsedURL.Host
 	pass, _ := parsedURL.User.Password()
-	port := defaultPort
+
+	var port int
 
 	if parsedURL.Port() != "" {
 		// we're safe to ignore error here since `url.Parse` checks if port is valid integer
@@ -123,12 +129,31 @@ func NewClient(address string) (Client, error) {
 		host = strings.Split(host, ":")[0]
 	}
 
+	derivedHost := ssh_config.Get(host, "HostName")
+	if derivedHost == "" {
+		derivedHost = host
+	}
+
+	if port == 0 {
+		port, _ = strconv.Atoi(ssh_config.Get(host, "Port"))
+	}
+
+	if port == 0 {
+		port, _ = strconv.Atoi(ssh_config.Get(derivedHost, "Port"))
+	}
+
+	if port == 0 {
+		port = defaultPort
+	}
+
 	return Client{
-		User: parsedURL.User.Username(),
-		Pass: pass,
-		Host: host,
-		Port: port,
-		Path: parsedURL.Path,
+		User:         parsedURL.User.Username(),
+		Pass:         pass,
+		HostKeyAlias: hostKeyAlias(host, derivedHost),
+		OriginalHost: host,
+		Host:         derivedHost,
+		Port:         port,
+		Path:         parsedURL.Path,
 	}, nil
 }
 
@@ -166,12 +191,173 @@ func (c Client) DownloadFile(localFile string) error {
 
 // Connect connects to sftp host.
 func (c Client) Connect() (*ssh.Client, *sftp.Client, error) {
-	hostKeys, err := getHostKeys(c.Host)
+	// Initialize client configuration
+	sshClient, err := c.sshClient()
 	if err != nil {
-		log.Errorf("failed to get host keys: %s", err)
+		return nil, nil, err
 	}
 
+	// Create new SFTP client
+	sftpClient, err := sftp.NewClient(sshClient)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to start sftp subsystem: %s", err)
+	}
+
+	return sshClient, sftpClient, nil
+}
+
+// knownHostKeys gets all host keys from local known hosts for given hosts.
+func (c Client) knownHostKeys() []ssh.PublicKey {
+	hostKeys := []ssh.PublicKey{}
+
+	filenames := c.knownHostsFiles()
+
+	for _, filename := range filenames {
+		file, err := os.Open(filename)
+		if err != nil {
+			log.Debugf("failed to read known_hosts file: %s", err)
+			continue
+		}
+
+		defer file.Close()
+
+		scanner := bufio.NewScanner(file)
+
+		for scanner.Scan() {
+			fields := strings.Split(scanner.Text(), " ")
+			if len(fields) < 3 {
+				continue
+			}
+
+			hostnames := strings.Split(fields[0], ",")
+
+			if contains(hostnames, c.HostKeyAlias, c.OriginalHost, c.Host) {
+				hostKey, _, _, _, err := ssh.ParseAuthorizedKey(scanner.Bytes())
+				if err != nil {
+					log.Warnf("failed to parse %q: %s", fields[2], err)
+				} else {
+					hostKeys = append(hostKeys, hostKey)
+				}
+			}
+		}
+	}
+
+	return hostKeys
+}
+
+func (c Client) strictHostKeyChecking() string {
+	strict := ssh_config.Get(c.OriginalHost, "StrictHostKeyChecking")
+
+	if strict == "" && c.OriginalHost != c.Host {
+		strict = ssh_config.Get(c.Host, "StrictHostKeyChecking")
+	}
+
+	if strict == "" {
+		strict = ssh_config.Default("StrictHostKeyChecking")
+	}
+
+	if strict == "accept-new" || strict == "off" {
+		strict = "no"
+	}
+
+	return strict
+}
+
+// knownHostsFiles returns paths to the known hosts files.
+func (c Client) knownHostsFiles() []string {
+	files := ssh_config.GetAll(c.OriginalHost, "UserKnownHostsFile")
+
+	for _, f := range files {
+		f, err := homedir.Expand(f)
+		if err != nil {
+			continue
+		}
+
+		files = append(files, f)
+	}
+
+	return files
+}
+
+// identityFile returns the path to a secret key file, or the first existing default.
+func (c Client) identityFile() string {
+	keyFiles := ssh_config.GetAll(c.OriginalHost, "IdentityFile")
+	for _, key := range keyFiles {
+		keyFile, err := homedir.Expand(key)
+		if err != nil {
+			continue
+		}
+
+		if _, err := os.Stat(keyFile); os.IsNotExist(err) {
+			continue
+		}
+
+		return keyFile
+	}
+
+	if c.OriginalHost != c.Host {
+		keyFiles := ssh_config.GetAll(c.Host, "IdentityFile")
+		for _, key := range keyFiles {
+			keyFile, err := homedir.Expand(key)
+			if err != nil {
+				continue
+			}
+
+			if _, err := os.Stat(keyFile); os.IsNotExist(err) {
+				continue
+			}
+
+			return keyFile
+		}
+	}
+
+	return ""
+}
+
+func (c Client) signerForIdentity() ssh.Signer {
+	identityFile := c.identityFile()
+	if identityFile == "" {
+		return nil
+	}
+
+	key, err := ioutil.ReadFile(identityFile)
+	if err != nil {
+		log.Warnf("unable to read private key %s: %v", identityFile, err)
+		return nil
+	}
+
+	signer, err := ssh.ParsePrivateKey(key)
+	if err != nil {
+		log.Fatalf("unable to parse private key %s: %v", identityFile, err)
+	}
+
+	return signer
+}
+
+func (c Client) warnIfUsingRevokedHostKeys() {
+	revokedKeysFile := ssh_config.Get(c.OriginalHost, "RevokedHostKeys")
+	if revokedKeysFile != "" {
+		log.Warnln("Using ssh config RevokedHostKeys is not supported")
+		return
+	}
+
+	if c.OriginalHost != c.Host {
+		revokedKeysFile = ssh_config.Get(c.Host, "RevokedHostKeys")
+		if revokedKeysFile != "" {
+			log.Warnln("Using ssh config RevokedHostKeys is not supported")
+		}
+	}
+}
+
+func (c Client) sshClient() (*ssh.Client, error) {
 	var auths []ssh.AuthMethod
+
+	addr := fmt.Sprintf("%s:%d", c.Host, c.Port)
+
+	signer := c.signerForIdentity()
+	if signer != nil {
+		auths = append(auths, ssh.PublicKeys(signer))
+	}
 
 	// Try to use $SSH_AUTH_SOCK which contains the path of the unix file socket that the sshd agent uses
 	// for communication with other processes
@@ -184,88 +370,126 @@ func (c Client) Connect() (*ssh.Client, *sftp.Client, error) {
 		auths = append(auths, ssh.Password(c.Pass))
 	}
 
-	// Initialize client configuration
 	config := ssh.ClientConfig{
-		User:    c.User,
+		User:    c.user(),
 		Auth:    auths,
 		Timeout: defaultTimeoutSecs * time.Second,
 	}
 
-	addr := fmt.Sprintf("%s:%d", c.Host, c.Port)
+	strict := c.strictHostKeyChecking()
+	log.Debugf("StrictHostKeyChecking for %s set to %s", c.OriginalHost, strict)
 
-	var conn *ssh.Client
-
-	if len(hostKeys) == 0 {
-		log.Warnf("no host key found for %s. It will try to make an insecure connection", c.Host)
+	if strict == "no" {
+		log.Debugf("host key checking disabled for %s", c.OriginalHost)
 
 		config.HostKeyCallback = ssh.InsecureIgnoreHostKey() // nolint:gosec
 
 		// Connect to server
-		conn, err = dial(addr, &config)
+		client, err := dial(addr, &config)
 		if err != nil {
-			return nil, nil, fmt.Errorf("failed to connect to '%s': %s", addr, err)
+			return nil, fmt.Errorf("failed to connect to '%s': %s", addr, err)
 		}
-	} else {
-		log.Debugf("found %d ssh keys for host. It will loop over them and try to connect", len(hostKeys))
 
-		for _, hostKey := range hostKeys {
-			config.HostKeyCallback = ssh.FixedHostKey(hostKey)
+		return client, nil
+	}
 
-			// Connect to server
-			conn, err = dial(addr, &config)
-			if err != nil {
-				log.Warnf("failed to connect to '%s': %s", addr, err)
+	knownHostKeys := c.knownHostKeys()
+	if len(knownHostKeys) == 0 && strict == "yes" {
+		return nil, fmt.Errorf("known host key not found for %s, will not connect", c.OriginalHost)
+	}
 
-				continue
-			}
+	if len(knownHostKeys) == 0 {
+		log.Debugf("no known host key found for %s, will connect anyway", c.OriginalHost)
 
-			break
+		config.HostKeyCallback = ssh.InsecureIgnoreHostKey() // nolint:gosec
+
+		// Connect to server
+		client, err := dial(addr, &config)
+		if err != nil {
+			return nil, fmt.Errorf("failed to connect to '%s': %s", addr, err)
 		}
+
+		return client, nil
 	}
 
-	// Create new SFTP client
-	sc, err := sftp.NewClient(conn)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to start sftp subsystem: %s", err)
-	}
+	log.Debugf("found %d known host ssh keys for %s", len(knownHostKeys), c.OriginalHost)
 
-	return conn, sc, nil
-}
+	c.warnIfUsingRevokedHostKeys()
 
-// getHostKeys gets all host keys from local known hosts for given host.
-func getHostKeys(host string) ([]ssh.PublicKey, error) {
-	// parse OpenSSH known_hosts file ssh or use ssh-keyscan to get initial key
-	file, err := os.Open(filepath.Join(os.Getenv("HOME"), ".ssh", "known_hosts"))
-	if err != nil {
-		return nil, fmt.Errorf("failed to read known_hosts files: %s", err)
-	}
+	for _, hostKey := range knownHostKeys {
+		config.HostKeyCallback = ssh.FixedHostKey(hostKey)
 
-	defer file.Close()
+		// Connect to server
+		client, err := dial(addr, &config)
+		if err != nil {
+			log.Warnf("failed to connect to '%s': %s", addr, err)
 
-	scanner := bufio.NewScanner(file)
-
-	hostKeys := []ssh.PublicKey{}
-
-	for scanner.Scan() {
-		fields := strings.Split(scanner.Text(), " ")
-		if len(fields) != 3 {
 			continue
 		}
 
-		if strings.Contains(fields[0], host) {
-			var err error
+		return client, nil
+	}
 
-			hostKey, _, _, _, err := ssh.ParseAuthorizedKey(scanner.Bytes())
-			if err != nil {
-				log.Warnf("failed to parse %q: %s", fields[2], err)
-				continue
-			}
+	return nil, fmt.Errorf("failed to connect to %s", addr)
+}
 
-			hostKeys = append(hostKeys, hostKey)
+func (c Client) user() string {
+	if c.User != "" {
+		return c.User
+	}
+
+	if c.OriginalHost != "" {
+		user := ssh_config.Get(c.OriginalHost, "User")
+		if user != "" {
+			return user
 		}
 	}
 
-	return hostKeys, nil
+	if c.Host != c.OriginalHost {
+		user := ssh_config.Get(c.Host, "User")
+		if user != "" {
+			return user
+		}
+	}
+
+	return ""
+}
+
+func hostKeyAlias(hostOriginal string, hostDerived string) string {
+	alias := ssh_config.Get(hostOriginal, "HostKeyAlias")
+	if alias == "" && hostOriginal != hostDerived {
+		alias = ssh_config.Get(hostDerived, "HostKeyAlias")
+	}
+
+	if alias == "" {
+		return ""
+	}
+
+	aliasExpanded, err := homedir.Expand(alias)
+	if err != nil {
+		log.Debugf("Unable to expand home directory for HostKeyAlias %s: %w", alias, err)
+	}
+
+	return aliasExpanded
+}
+
+// contains returns true if any case-insensitive arg is found in the list of values.
+func contains(values []string, args ...string) bool {
+	for _, val := range values {
+		if val == "" {
+			continue
+		}
+
+		val = strings.ToLower(val)
+
+		for _, arg := range args {
+			if val == strings.ToLower(arg) {
+				return true
+			}
+		}
+	}
+
+	return false
 }
 
 func dial(addr string, config *ssh.ClientConfig) (*ssh.Client, error) {

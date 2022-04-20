@@ -49,14 +49,22 @@ func new() *l.Entry {
 			},
 			DisableHTMLEscape: true,
 			CallerPrettyfier: func(f *runtime.Frame) (string, string) {
-				// Simplifies function description by removing package name from it.
+				// Simplifies function description by removing dangling func name from it.
 				lastSlash := strings.LastIndexByte(f.Function, '/')
 				if lastSlash < 0 {
 					lastSlash = 0
 				}
-				lastDot := strings.LastIndexByte(f.Function[lastSlash:], '.') + lastSlash
+				parts := strings.Split(f.Function[lastSlash+1:], ".")
 
-				return f.Function[lastDot+1:], fmt.Sprintf("%s:%d", f.File, f.Line)
+				// Simplifies file path by removing base path from it.
+				lastPath := strings.LastIndex(f.File, "wakatime-cli/")
+				if lastPath < 0 {
+					lastPath = 0
+				}
+				file := f.File[lastPath+13:]
+
+				return fmt.Sprintf("%s.%s", parts[0], parts[1]),
+					fmt.Sprintf("%s:%d", file, f.Line)
 			},
 		},
 		Level:        l.InfoLevel,
@@ -91,7 +99,10 @@ func SetVerbose(verbose bool) {
 func SetJww(verbose bool, w io.Writer) {
 	if verbose {
 		jww.SetLogThreshold(jww.LevelDebug)
+		jww.SetStdoutThreshold(jww.LevelDebug)
+
 		jww.SetLogOutput(w)
+		jww.SetStdoutOutput(w)
 	}
 }
 

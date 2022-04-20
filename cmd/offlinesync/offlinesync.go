@@ -7,7 +7,9 @@ import (
 	cmdapi "github.com/wakatime/wakatime-cli/cmd/api"
 	"github.com/wakatime/wakatime-cli/cmd/params"
 	"github.com/wakatime/wakatime-cli/pkg/api"
+	"github.com/wakatime/wakatime-cli/pkg/apikey"
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
+	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/offline"
 
@@ -94,7 +96,18 @@ func SyncOfflineActivity(v *viper.Viper, queueFilepath string) error {
 		queueFilepath = paramOffline.QueueFile
 	}
 
-	syncFn := offline.Sync(queueFilepath, paramOffline.SyncMax)
+	handle := heartbeat.NewHandle(apiClient,
+		offline.WithSync(queueFilepath, paramOffline.SyncMax),
+		apikey.WithReplacing(apikey.Config{
+			DefaultApiKey: paramAPI.Key,
+			MapPatterns:   paramAPI.KeyPatterns,
+		}),
+	)
 
-	return syncFn(apiClient.SendHeartbeats)
+	_, err = handle(nil)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

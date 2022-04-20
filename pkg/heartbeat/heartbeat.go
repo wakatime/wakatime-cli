@@ -14,6 +14,7 @@ import (
 
 // Heartbeat is a structure representing activity for a user on a some entity.
 type Heartbeat struct {
+	ApiKey              string     `json:"-"`
 	Branch              *string    `json:"branch"`
 	Category            Category   `json:"category"`
 	CursorPosition      *int       `json:"cursorpos"`
@@ -115,6 +116,14 @@ type Result struct {
 // Sender sends heartbeats to the wakatime api.
 type Sender interface {
 	SendHeartbeats(hh []Heartbeat) ([]Result, error)
+}
+
+// Sender is a noop api client, used to always skip sending to the API.
+type Noop struct{}
+
+// SendHeartbeats always returns nil.
+func (Noop) SendHeartbeats(_ []Heartbeat) ([]Result, error) {
+	return nil, nil
 }
 
 // Handle does processing of heartbeats.

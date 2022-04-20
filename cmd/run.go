@@ -140,32 +140,25 @@ func Run(cmd *cobra.Command, v *viper.Viper) {
 }
 
 func parseConfigFiles(v *viper.Viper) error {
-	var err error
-
-	configFile, err := ini.FilePath(v)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "error getting config file path: %s", err)
-
-		return fmt.Errorf("error getting config file path: %s", err)
+	var configFilesFn = []func(v *viper.Viper) (string, error){
+		ini.FilePath,
+		ini.ImportFilePath,
+		ini.InternalFilePath,
 	}
 
-	if err := ini.ReadInConfig(v, configFile); err != nil {
-		fmt.Fprintf(os.Stderr, "failed to load configuration file: %s", err)
+	for _, c := range configFilesFn {
+		configFile, err := c(v)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error getting config file path: %s", err)
 
-		return fmt.Errorf("failed to load configuration file: %s", err)
-	}
+			return fmt.Errorf("error getting config file path: %s", err)
+		}
 
-	internalConfigFile, err := ini.InternalFilePath(v)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "error getting internal config file path: %s", err)
+		if err := ini.ReadInConfig(v, configFile); err != nil {
+			fmt.Fprintf(os.Stderr, "failed to load configuration file: %s", err)
 
-		return fmt.Errorf("error getting internal config file path: %s", err)
-	}
-
-	if err := ini.ReadInConfig(v, internalConfigFile); err != nil {
-		fmt.Fprintf(os.Stderr, "failed to load internal configuration file: %s", err)
-
-		return fmt.Errorf("failed to load internal configuration file: %s", err)
+			return fmt.Errorf("failed to load configuration file: %s", err)
+		}
 	}
 
 	return nil

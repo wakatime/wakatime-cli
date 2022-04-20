@@ -12,6 +12,7 @@ import (
 
 	paramscmd "github.com/wakatime/wakatime-cli/cmd/params"
 	"github.com/wakatime/wakatime-cli/pkg/api"
+	"github.com/wakatime/wakatime-cli/pkg/apikey"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	inipkg "github.com/wakatime/wakatime-cli/pkg/ini"
 	"github.com/wakatime/wakatime-cli/pkg/project"
@@ -514,6 +515,82 @@ func TestLoadParams_ProjectMap(t *testing.T) {
 			assert.Equal(t, test.Expected, params.Project.MapPatterns)
 		})
 	}
+}
+
+func TestLoadParams_ProjectApiKey(t *testing.T) {
+	tests := map[string]struct {
+		Entity   string
+		Regex    regex.Regex
+		ApiKey   string
+		Expected []apikey.MapPattern
+	}{
+		"simple regex": {
+			Entity: "/home/user/projects/foo/file",
+			Regex:  regexp.MustCompile("projects/foo"),
+			ApiKey: "00000000-0000-4000-8000-000000000001",
+			Expected: []apikey.MapPattern{
+				{
+					ApiKey: "00000000-0000-4000-8000-000000000001",
+					Regex:  regexp.MustCompile("projects/foo"),
+				},
+			},
+		},
+		"complex regex": {
+			Entity: "/home/user/projects/bar123/file",
+			Regex:  regexp.MustCompile(`^/home/user/projects/bar(\\d+)/`),
+			ApiKey: "00000000-0000-4000-8000-000000000002",
+			Expected: []apikey.MapPattern{
+				{
+					ApiKey: "00000000-0000-4000-8000-000000000002",
+					Regex:  regexp.MustCompile(`^/home/user/projects/bar(\\d+)/`),
+				},
+			},
+		},
+		"api key equal to default": {
+			Entity:   "/some/path",
+			Regex:    regexp.MustCompile(`/some/path`),
+			ApiKey:   "00000000-0000-4000-8000-000000000000",
+			Expected: nil,
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			v := viper.New()
+			v.Set("key", "00000000-0000-4000-8000-000000000000")
+			v.Set("entity", test.Entity)
+			v.Set(fmt.Sprintf("project_api_key.%s", test.Regex.String()), test.ApiKey)
+
+			params, err := paramscmd.LoadAPIParams(v)
+			require.NoError(t, err)
+
+			assert.Equal(t, test.Expected, params.KeyPatterns)
+		})
+	}
+}
+
+func TestLoadParams_ProjectApiKey_ParseConfig(t *testing.T) {
+	v := viper.New()
+	v.Set("config", "testdata/.wakatime.cfg")
+	v.Set("entity", "testdata/heartbeat_go.json")
+
+	configFile, err := inipkg.FilePath(v)
+	require.NoError(t, err)
+
+	err = inipkg.ReadInConfig(v, configFile)
+	require.NoError(t, err)
+
+	params, err := paramscmd.Load(v)
+	require.NoError(t, err)
+
+	expected := []apikey.MapPattern{
+		{
+			ApiKey: "00000000-0000-4000-8000-000000000001",
+			Regex:  regex.MustCompile("/some/path"),
+		},
+	}
+
+	assert.Equal(t, expected, params.API.KeyPatterns)
 }
 
 func TestLoadParams_Time(t *testing.T) {

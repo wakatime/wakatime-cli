@@ -9,6 +9,7 @@ require (
 	github.com/dlclark/regexp2 v1.4.0
 	github.com/gandarez/go-olson-timezone v0.1.0
 	github.com/juju/mutex v0.0.0-20180619145857-d21b13acf4bf
+	github.com/kevinburke/ssh_config v1.2.0
 	github.com/matishsiao/goInfo v0.0.0-20210923090445-da2e3fa8d45f
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/pkg/sftp v1.13.4
@@ -20,7 +21,7 @@ require (
 	github.com/stretchr/testify v1.7.0
 	github.com/yookoala/realpath v1.0.0
 	go.etcd.io/bbolt v1.3.6
-	golang.org/x/crypto v0.0.0-20220112180741-5e0467b6c7ce
+	golang.org/x/crypto v0.0.0-20220411220226-7b82a4e95df4
 	gopkg.in/ini.v1 v1.66.3
 )
 
@@ -42,7 +43,7 @@ require (
 	github.com/spf13/cast v1.4.1 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/subosito/gotenv v1.2.0 // indirect
-	golang.org/x/sys v0.0.0-20220114195835-da31bd327af9 // indirect
+	golang.org/x/sys v0.0.0-20220412211240-33da011f77ad // indirect
 	golang.org/x/text v0.3.7 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect

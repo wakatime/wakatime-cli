@@ -358,7 +358,7 @@ func TestWithQueue_HandleLeftovers(t *testing.T) {
 	assert.JSONEq(t, string(dataJs), stored[1].Heartbeat)
 }
 
-func TestSync(t *testing.T) {
+func TestWithSync(t *testing.T) {
 	// setup
 	f, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)
@@ -387,18 +387,9 @@ func TestSync(t *testing.T) {
 
 	db.Close()
 
-	syncFn := offline.Sync(f.Name(), 1000)
+	opt := offline.WithSync(f.Name(), offline.SyncMaxDefault)
 
-	var numCalls int
-
-	err = syncFn(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
-		numCalls++
-
-		assert.Equal(t, []heartbeat.Heartbeat{
-			testHeartbeats()[0],
-			testHeartbeats()[1],
-		}, hh)
-
+	handle := opt(func(_ []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		return []heartbeat.Result{
 			{
 				Status:    http.StatusCreated,
@@ -410,7 +401,13 @@ func TestSync(t *testing.T) {
 			},
 		}, nil
 	})
+
+	// run
+	results, err := handle(nil)
 	require.NoError(t, err)
+
+	// check
+	assert.Nil(t, results)
 
 	// check db
 	db, err = bolt.Open(f.Name(), 0600, nil)
@@ -435,8 +432,6 @@ func TestSync(t *testing.T) {
 	db.Close()
 
 	require.Len(t, stored, 0)
-
-	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
 
 func TestSync_MultipleRequests(t *testing.T) {

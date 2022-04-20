@@ -9,6 +9,7 @@ import (
 	offlinecmd "github.com/wakatime/wakatime-cli/cmd/offline"
 	paramscmd "github.com/wakatime/wakatime-cli/cmd/params"
 	"github.com/wakatime/wakatime-cli/pkg/api"
+	"github.com/wakatime/wakatime-cli/pkg/apikey"
 	"github.com/wakatime/wakatime-cli/pkg/backoff"
 	"github.com/wakatime/wakatime-cli/pkg/deps"
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
@@ -77,7 +78,7 @@ func SendHeartbeats(v *viper.Viper, queueFilepath string) error {
 		return fmt.Errorf("failed to load command parameters: %w", err)
 	}
 
-	setLogFields(&params)
+	setLogFields(params)
 
 	log.Debugf("params: %s", params)
 
@@ -201,14 +202,17 @@ func initHandleOptions(params paramscmd.Params) []heartbeat.HandleOption {
 		heartbeat.WithFormatting(heartbeat.FormatConfig{
 			RemoteAddressPattern: remote.RemoteAddressRegex,
 		}),
+		heartbeat.WithEntityModifer(),
+		remote.WithDetection(),
 		filter.WithFiltering(filter.Config{
 			Exclude:                    params.Heartbeat.Filter.Exclude,
 			Include:                    params.Heartbeat.Filter.Include,
 			IncludeOnlyWithProjectFile: params.Heartbeat.Filter.IncludeOnlyWithProjectFile,
-			RemoteAddressPattern:       remote.RemoteAddressRegex,
 		}),
-		heartbeat.WithEntityModifer(),
-		remote.WithDetection(),
+		apikey.WithReplacing(apikey.Config{
+			DefaultApiKey: params.API.Key,
+			MapPatterns:   params.API.KeyPatterns,
+		}),
 		filestats.WithDetection(),
 		language.WithDetection(),
 		deps.WithDetection(deps.Config{
@@ -233,7 +237,7 @@ func initHandleOptions(params paramscmd.Params) []heartbeat.HandleOption {
 	}
 }
 
-func setLogFields(params *paramscmd.Params) {
+func setLogFields(params paramscmd.Params) {
 	if params.API.Plugin != "" {
 		log.WithField("plugin", params.API.Plugin)
 	}
