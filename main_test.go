@@ -140,6 +140,10 @@ func testSendHeartbeats(t *testing.T, entity, project string) {
 }
 
 func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Skipping because this test is flakey on Windows.")
+	}
+
 	apiURL, router, close := setupTestServer()
 	defer close()
 

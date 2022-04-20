@@ -1,0 +1,4 @@
+Host example.com
+  User testuser
+  HostName %s
+  Port 1234
