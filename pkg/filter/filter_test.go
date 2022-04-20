@@ -4,7 +4,6 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
-	"regexp"
 	"testing"
 
 	"github.com/wakatime/wakatime-cli/pkg/filter"
@@ -178,12 +177,11 @@ func TestFilter_ExistingProjectFile(t *testing.T) {
 
 func TestFilter_RemoteFile(t *testing.T) {
 	h := testHeartbeat()
+	h.LocalFile = h.Entity
 	h.Entity = "ssh://wakatime:1234@192.168.1.1/path/to/remote/main.go"
 
-	err := filter.Filter(h, filter.Config{
-		RemoteAddressPattern: regexp.MustCompile(`(?i)^((ssh|sftp)://)+(?P<credentials>[^:@]+(:([^:@])+)?@)?[^:]+(:\d+)?`),
-	})
-	require.NoError(t, err)
+	err := filter.Filter(h, filter.Config{})
+	assert.EqualError(t, err, "filter file: skipping because of non-existing file \"/tmp/main.go\"")
 }
 
 func TestFilter_ErrNonExistingProjectFile(t *testing.T) {

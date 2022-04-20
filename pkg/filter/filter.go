@@ -3,7 +3,6 @@ package filter
 import (
 	"fmt"
 	"os"
-	"regexp"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/log"
@@ -16,7 +15,6 @@ type Config struct {
 	Exclude                    []regex.Regex
 	Include                    []regex.Regex
 	IncludeOnlyWithProjectFile bool
-	RemoteAddressPattern       *regexp.Regexp
 }
 
 // WithFiltering initializes and returns a heartbeat handle option, which
@@ -62,16 +60,14 @@ func Filter(h heartbeat.Heartbeat, config Config) error {
 		return nil
 	}
 
-	if config.RemoteAddressPattern != nil && config.RemoteAddressPattern.MatchString(h.Entity) {
+	// filter file
+	if h.EntityType != heartbeat.FileType {
 		return nil
 	}
 
-	// filter file
-	if h.EntityType == heartbeat.FileType {
-		err := filterFileEntity(h.Entity, config.IncludeOnlyWithProjectFile)
-		if err != nil {
-			return fmt.Errorf(fmt.Sprintf("filter file: %s", err))
-		}
+	err := filterFileEntity(h, config)
+	if err != nil {
+		return fmt.Errorf(fmt.Sprintf("filter file: %s", err))
 	}
 
 	return nil
@@ -106,15 +102,21 @@ func filterByPattern(entity string, include, exclude []regex.Regex) error {
 // the existence of the passed in filepath, and optionally by checking if a
 // wakatime project file can be detected in the filepath directory tree.
 // Returns an error to signal to the caller to skip the heartbeat.
-func filterFileEntity(filepath string, includeOnlyWithProjectFile bool) error {
+func filterFileEntity(heartbeat heartbeat.Heartbeat, config Config) error {
+	entity := heartbeat.Entity
+	if heartbeat.LocalFile != "" {
+		entity = heartbeat.LocalFile
+	}
+
 	// skip files that don't exist on disk
-	if _, err := os.Stat(filepath); os.IsNotExist(err) {
-		return fmt.Errorf(fmt.Sprintf("skipping because of non-existing file %q", filepath))
+	if _, err := os.Stat(entity); os.IsNotExist(err) {
+		return fmt.Errorf(fmt.Sprintf("skipping because of non-existing file %q", entity))
 	}
 
 	// when including only with project file, skip files when the project does not contain a .wakatime-project file
-	if includeOnlyWithProjectFile {
-		_, ok := project.FindFileOrDirectory(filepath, project.WakaTimeProjectFile)
+	// except when file was downloaded to a tmp local file
+	if config.IncludeOnlyWithProjectFile && heartbeat.LocalFile == "" {
+		_, ok := project.FindFileOrDirectory(entity, project.WakaTimeProjectFile)
 		if !ok {
 			return fmt.Errorf("skipping because missing .wakatime-project file in parent path")
 		}

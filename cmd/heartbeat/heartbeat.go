@@ -202,18 +202,17 @@ func initHandleOptions(params paramscmd.Params) []heartbeat.HandleOption {
 		heartbeat.WithFormatting(heartbeat.FormatConfig{
 			RemoteAddressPattern: remote.RemoteAddressRegex,
 		}),
+		heartbeat.WithEntityModifer(),
+		remote.WithDetection(),
 		filter.WithFiltering(filter.Config{
 			Exclude:                    params.Heartbeat.Filter.Exclude,
 			Include:                    params.Heartbeat.Filter.Include,
 			IncludeOnlyWithProjectFile: params.Heartbeat.Filter.IncludeOnlyWithProjectFile,
-			RemoteAddressPattern:       remote.RemoteAddressRegex,
 		}),
-		heartbeat.WithEntityModifer(),
 		apikey.WithReplacing(apikey.Config{
 			DefaultApiKey: params.API.Key,
 			MapPatterns:   params.API.KeyPatterns,
 		}),
-		remote.WithDetection(),
 		filestats.WithDetection(),
 		language.WithDetection(),
 		deps.WithDetection(deps.Config{
