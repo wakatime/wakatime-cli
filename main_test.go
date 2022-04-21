@@ -140,10 +140,6 @@ func testSendHeartbeats(t *testing.T, entity, project string) {
 }
 
 func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("Skipping because this test is flakey on Windows.")
-	}
-
 	apiURL, router, close := setupTestServer()
 	defer close()
 
@@ -204,16 +200,10 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 		"--verbose",
 	)
 
-	offlineCount := runWakatimeCli(
-		t,
-		&bytes.Buffer{},
-		"--key", "00000000-0000-4000-8000-000000000000",
-		"--offline-queue-file", offlineQueueFile.Name(),
-		"--offline-count",
-		"--verbose",
-	)
+	offlineCount, err := offline.CountHeartbeats(offlineQueueFile.Name())
+	require.NoError(t, err)
 
-	assert.Equal(t, "2\n", offlineCount)
+	assert.Equal(t, 2, offlineCount)
 
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
@@ -456,7 +446,7 @@ func TestOfflineCountEmpty(t *testing.T) {
 	assert.Equal(t, "0\n", out)
 }
 
-func TestOfflineCountWithOneHeartbeat(t *testing.T) {
+func TestOfflineCount(t *testing.T) {
 	apiURL, router, close := setupTestServer()
 	defer close()
 
@@ -656,6 +646,10 @@ func runCmdExpectErr(cmd *exec.Cmd) (string, int) {
 func setupTestServer() (string, *http.ServeMux, func()) {
 	router := http.NewServeMux()
 	srv := httptest.NewServer(router)
+
+	router.HandleFunc("/plugins/errors", func(w http.ResponseWriter, req *http.Request) {
+		w.WriteHeader(http.StatusCreated)
+	})
 
 	return srv.URL, router, func() { srv.Close() }
 }
