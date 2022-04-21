@@ -49,11 +49,11 @@ func binaryPath(t *testing.T) string {
 	}
 }
 
-func TestSendHeartbeats(t *testing.T) {
+func TestMain_SendHeartbeats(t *testing.T) {
 	testSendHeartbeats(t, "testdata/main.go", "wakatime-cli")
 }
 
-func TestSendHeartbeats_EntityFileInTempDir(t *testing.T) {
+func TestMain_SendHeartbeats_EntityFileInTempDir(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	runCmd(exec.Command("cp", "./testdata/main.go", tmpDir), &bytes.Buffer{})
@@ -139,11 +139,7 @@ func testSendHeartbeats(t *testing.T, entity, project string) {
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
 
-func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("Skipping because this test is flakey on Windows.")
-	}
-
+func TestMain_ExtraHeartbeats(t *testing.T) {
 	apiURL, router, close := setupTestServer()
 	defer close()
 
@@ -218,7 +214,7 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
 
-func TestSendHeartbeats_Err(t *testing.T) {
+func TestMain_Err(t *testing.T) {
 	apiURL, router, close := setupTestServer()
 	defer close()
 
@@ -295,7 +291,7 @@ func TestSendHeartbeats_Err(t *testing.T) {
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
 
-func TestSendHeartbeats_MalformedConfig(t *testing.T) {
+func TestMain_MalformedConfig(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	tmpFile, err := os.CreateTemp(tmpDir, "wakatime-internal.cfg")
@@ -326,7 +322,7 @@ func TestSendHeartbeats_MalformedConfig(t *testing.T) {
 	assert.Equal(t, 1, count)
 }
 
-func TestSendHeartbeats_MalformedInternalConfig(t *testing.T) {
+func TestMain_MalformedInternalConfig(t *testing.T) {
 	offlineQueueFile, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)
 
@@ -349,7 +345,7 @@ func TestSendHeartbeats_MalformedInternalConfig(t *testing.T) {
 	assert.Equal(t, 1, count)
 }
 
-func TestTodayGoal(t *testing.T) {
+func TestMain_TodayGoal(t *testing.T) {
 	apiURL, router, close := setupTestServer()
 	defer close()
 
@@ -394,7 +390,7 @@ func TestTodayGoal(t *testing.T) {
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
 
-func TestTodaySummary(t *testing.T) {
+func TestMain_TodaySummary(t *testing.T) {
 	apiURL, router, close := setupTestServer()
 	defer close()
 
@@ -438,7 +434,7 @@ func TestTodaySummary(t *testing.T) {
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
 
-func TestOfflineCountEmpty(t *testing.T) {
+func TestMain_OfflineCountEmpty(t *testing.T) {
 	offlineQueueFile, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)
 
@@ -456,7 +452,7 @@ func TestOfflineCountEmpty(t *testing.T) {
 	assert.Equal(t, "0\n", out)
 }
 
-func TestOfflineCountWithOneHeartbeat(t *testing.T) {
+func TestMain_OfflineCountWithOneHeartbeat(t *testing.T) {
 	apiURL, router, close := setupTestServer()
 	defer close()
 
@@ -510,24 +506,24 @@ func TestOfflineCountWithOneHeartbeat(t *testing.T) {
 	assert.Equal(t, "1\n", out)
 }
 
-func TestUseragent(t *testing.T) {
+func TestMain_Useragent(t *testing.T) {
 	out := runWakatimeCli(t, &bytes.Buffer{}, "--useragent")
 	assert.Equal(t, fmt.Sprintf("%s\n", heartbeat.UserAgentUnknownPlugin()), out)
 }
 
-func TestUseragentWithPlugin(t *testing.T) {
+func TestMain_UseragentWithPlugin(t *testing.T) {
 	out := runWakatimeCli(t, &bytes.Buffer{}, "--useragent", "--plugin", "Wakatime/1.0.4")
 
 	assert.Equal(t, fmt.Sprintf("%s\n", heartbeat.UserAgent("Wakatime/1.0.4")), out)
 }
 
-func TestVersion(t *testing.T) {
+func TestMain_Version(t *testing.T) {
 	out := runWakatimeCli(t, &bytes.Buffer{}, "--version")
 
 	assert.Equal(t, "<local-build>\n", out)
 }
 
-func TestVersionVerbose(t *testing.T) {
+func TestMain_VersionVerbose(t *testing.T) {
 	out := runWakatimeCli(t, &bytes.Buffer{}, "--version", "--verbose")
 
 	assert.Regexp(t, regexp.MustCompile(fmt.Sprintf(
@@ -537,7 +533,7 @@ func TestVersionVerbose(t *testing.T) {
 	)), out)
 }
 
-func TestMultipleRunners_NotCorruptConfigFile(t *testing.T) {
+func TestMain_MultipleRunners_NotCorruptConfigFile(t *testing.T) {
 	var wg sync.WaitGroup
 
 	tmpFile, err := os.CreateTemp(t.TempDir(), "wakatime.cfg")

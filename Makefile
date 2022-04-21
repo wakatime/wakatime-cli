@@ -141,7 +141,7 @@ test:
 
 .PHONY: test-integration
 test-integration:
-	go test -race -tags=integration ./main_test.go
+	go test -p 1 -race -tags=integration ./main_test.go
 
 .PHONY: test-shell-script
 test-shell-script:
