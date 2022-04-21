@@ -98,12 +98,13 @@ func TestWithDetection_OverrideTakesPrecedence(t *testing.T) {
 	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		assert.Equal(t, []heartbeat.Heartbeat{
 			{
-				Entity:          entity,
-				EntityType:      heartbeat.FileType,
-				Project:         heartbeat.PointerTo("billing"),
-				ProjectOverride: "billing",
-				ProjectPath:     projectPath,
-				Branch:          heartbeat.PointerTo("master"),
+				Entity:           entity,
+				EntityType:       heartbeat.FileType,
+				Project:          heartbeat.PointerTo("override"),
+				ProjectAlternate: "alternate",
+				ProjectOverride:  "override",
+				ProjectPath:      projectPath,
+				Branch:           heartbeat.PointerTo("master"),
 			},
 		}, hh)
 
@@ -112,9 +113,39 @@ func TestWithDetection_OverrideTakesPrecedence(t *testing.T) {
 
 	_, err := handle([]heartbeat.Heartbeat{
 		{
-			EntityType:      heartbeat.FileType,
-			Entity:          entity,
-			ProjectOverride: "billing",
+			EntityType:       heartbeat.FileType,
+			Entity:           entity,
+			ProjectOverride:  "override",
+			ProjectAlternate: "alternate",
+		},
+	})
+	require.NoError(t, err)
+}
+
+func TestWithDetection_NonExistingEntity_AlternateUsed(t *testing.T) {
+	entity := "nonexisting"
+
+	opt := project.WithDetection(project.Config{})
+
+	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		assert.Equal(t, []heartbeat.Heartbeat{
+			{
+				Entity:           entity,
+				EntityType:       heartbeat.FileType,
+				Project:          heartbeat.PointerTo("alternate"),
+				Branch:           heartbeat.PointerTo(""),
+				ProjectAlternate: "alternate",
+			},
+		}, hh)
+
+		return nil, nil
+	})
+
+	_, err := handle([]heartbeat.Heartbeat{
+		{
+			EntityType:       heartbeat.FileType,
+			Entity:           entity,
+			ProjectAlternate: "alternate",
 		},
 	})
 	require.NoError(t, err)
@@ -130,9 +161,9 @@ func TestWithDetection_NonExistingEntity_OverrideTakesPrecedence(t *testing.T) {
 			{
 				Entity:          entity,
 				EntityType:      heartbeat.FileType,
-				Project:         heartbeat.PointerTo("billing"),
+				Project:         heartbeat.PointerTo("override"),
 				Branch:          heartbeat.PointerTo(""),
-				ProjectOverride: "billing",
+				ProjectOverride: "override",
 			},
 		}, hh)
 
@@ -143,7 +174,7 @@ func TestWithDetection_NonExistingEntity_OverrideTakesPrecedence(t *testing.T) {
 		{
 			EntityType:      heartbeat.FileType,
 			Entity:          entity,
-			ProjectOverride: "billing",
+			ProjectOverride: "override",
 		},
 	})
 	require.NoError(t, err)
@@ -215,11 +246,12 @@ func TestWithDetection_WakatimeProjectTakesPrecedence(t *testing.T) {
 		assert.NotEmpty(t, hh[0].Project)
 		assert.Equal(t, []heartbeat.Heartbeat{
 			{
-				Entity:      entity,
-				EntityType:  heartbeat.FileType,
-				Project:     heartbeat.PointerTo("Rough Surf 20"),
-				ProjectPath: projectPath,
-				Branch:      heartbeat.PointerTo("master"),
+				Entity:           entity,
+				EntityType:       heartbeat.FileType,
+				Project:          heartbeat.PointerTo("Rough Surf 20"),
+				ProjectPath:      projectPath,
+				Branch:           heartbeat.PointerTo("master"),
+				ProjectAlternate: "alternate",
 			},
 		}, hh)
 
@@ -228,8 +260,9 @@ func TestWithDetection_WakatimeProjectTakesPrecedence(t *testing.T) {
 
 	_, err := handle([]heartbeat.Heartbeat{
 		{
-			EntityType: heartbeat.FileType,
-			Entity:     entity,
+			EntityType:       heartbeat.FileType,
+			Entity:           entity,
+			ProjectAlternate: "alternate",
 		},
 	})
 	require.NoError(t, err)

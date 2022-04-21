@@ -9,8 +9,8 @@ To contribute to this project please carefully read this document.
 Prerequisites:
 
 - We use `make` to build and run tests
-- We use `bats` to test shell scripts. Documentation can be found [here](https://bats-core.readthedocs.io/en/latest/installation.html)
-- [Go 1.18](https://golang.org/doc/install)
+- We use [bats](https://bats-core.readthedocs.io/en/latest/installation.html) to test shell scripts. (`brew install bats-core`)
+- We use the [Go](https://golang.org/doc/install) version listed in [go.mod](https://github.com/wakatime/wakatime-cli/blob/develop/go.mod#L3)
 
 After cloning, install dependencies with `make install`.
 
