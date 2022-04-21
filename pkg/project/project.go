@@ -78,7 +78,7 @@ func WithDetection(config Config) heartbeat.HandleOption {
 
 				result := Detect(h.Entity, config.MapPatterns)
 
-				if result.Project == "" {
+				if h.ProjectOverride != "" {
 					result.Project = h.ProjectOverride
 				}
 
@@ -88,22 +88,24 @@ func WithDetection(config Config) heartbeat.HandleOption {
 					result.Branch = firstNonEmptyString(result.Branch, revControlResult.Branch)
 					result.Folder = firstNonEmptyString(result.Folder, revControlResult.Folder)
 
-					// obfuscate project will only run when hide project name is set and a project has been auto-detected and
-					// any project name has been set by the user either by wakatime file or map patterns.
+					// obfuscate project will only run when hide project name is set and a project has been auto-detected
 					if config.ShouldObfuscateProject && revControlResult.Project != "" && result.Project == "" {
-						result.Project = setProjectName(h.ProjectAlternate, config.ShouldObfuscateProject, result.Folder)
+						result.Project = obfuscateProjectName(result.Folder)
 					} else {
 						result.Project = firstNonEmptyString(result.Project, revControlResult.Project)
 					}
 				}
 
-				hh[n].Branch = &result.Branch
-				hh[n].Project = &result.Project
+				if result.Project == "" {
+					result.Project = h.ProjectAlternate
+				}
 
 				if runtime.GOOS == "windows" && result.Folder != "" {
 					result.Folder = windows.FormatFilePath(result.Folder)
 				}
 
+				hh[n].Project = &result.Project
+				hh[n].Branch = &result.Branch
 				hh[n].ProjectPath = result.Folder
 			}
 
@@ -180,11 +182,7 @@ func DetectWithRevControl(entity string, submodulePatterns []regex.Regex) Result
 	return Result{}
 }
 
-func setProjectName(alternate string, shouldObfuscateProject bool, folder string) string {
-	if !shouldObfuscateProject {
-		return alternate
-	}
-
+func obfuscateProjectName(folder string) string {
 	project := generateProjectName()
 
 	err := Write(folder, project)

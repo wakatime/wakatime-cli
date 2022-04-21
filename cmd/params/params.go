@@ -511,7 +511,7 @@ func loadSanitizeParams(v *viper.Viper) (SanitizeParams, error) {
 		HideFileNames:       hideFileNamesPatterns,
 		HideProjectFolder:   vipertools.FirstNonEmptyBool(v, "hide-project-folder", "settings.hide_project_folder"),
 		HideProjectNames:    hideProjectNamesPatterns,
-		ProjectPathOverride: vipertools.GetString(v, "project-folder"),
+		ProjectPathOverride: vipertools.GetString(v, "project-folder"), // only used when HideProjectFolder true
 	}, nil
 }
 
