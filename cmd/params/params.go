@@ -192,6 +192,11 @@ func LoadAPIParams(v *viper.Viper) (API, error) {
 	apiKeyMap := vipertools.GetStringMapString(v, "project_api_key")
 
 	for k, s := range apiKeyMap {
+		// make all regex case insensitive
+		if !strings.HasPrefix(k, "(?i)") {
+			k = "(?i)" + k
+		}
+
 		compiled, err := regexp.Compile(k)
 		if err != nil {
 			log.Warnf("failed to compile project_api_key regex pattern %q", k)
