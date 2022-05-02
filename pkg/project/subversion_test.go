@@ -129,7 +129,7 @@ func copyDir(t *testing.T, src string, dst string) {
 	}
 }
 
-func findSvnBinary() (string, bool) {
+func findSvnBinary() bool {
 	locations := []string{
 		"svn",
 		"/usr/bin/svn",
@@ -144,15 +144,14 @@ func findSvnBinary() (string, bool) {
 			continue
 		}
 
-		return loc, true
+		return true
 	}
 
-	return "", false
+	return false
 }
 
 func skipIfBinaryNotFound(t *testing.T) {
-	_, found := findSvnBinary()
-	if !found {
+	if !findSvnBinary() {
 		t.Skip("Skipping because svn binary is not installed in this machine.")
 	}
 }

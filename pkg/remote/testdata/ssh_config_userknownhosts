@@ -1,4 +1,0 @@
-Host *
-  HostName %s
-  UserKnownHostsFile %s
-  StrictHostKeyChecking yes

@@ -1,29 +1,21 @@
 package remote_test
 
 import (
-	"bytes"
-	"encoding/hex"
 	"fmt"
-	"io"
 	"net"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
-	"strconv"
-	"strings"
 	"testing"
 
-	"github.com/kevinburke/ssh_config"
-	"github.com/mitchellh/go-homedir"
-	"github.com/pkg/sftp"
-	"github.com/wakatime/wakatime-cli/pkg/filter"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
-	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/remote"
-	"golang.org/x/crypto/ssh"
 
+	"github.com/pkg/sftp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/crypto/ssh"
 )
 
 func TestRegex(t *testing.T) {
@@ -63,270 +55,115 @@ func TestRegex(t *testing.T) {
 }
 
 func TestNewClient(t *testing.T) {
-	client, err := remote.NewClient("ssh://wakatime:1234@192.168.1.2:222/home/pi/unicorn-hat/examples/ascii_pic.py")
+	client, err := remote.NewClient(
+		"ssh://wakatime@192.168.1.2:222/home/pi/unicorn-hat/examples/ascii_pic.py",
+		remote.Config{
+			ConfigFile:   "~/.ssh/config",
+			IdentityFile: "~/.ssh/id_rsa",
+		})
 	require.NoError(t, err)
 
 	assert.Equal(t, remote.Client{
-		User:         "wakatime",
-		Pass:         "1234",
-		OriginalHost: "192.168.1.2",
+		ConfigFile:   "~/.ssh/config",
 		Host:         "192.168.1.2",
-		Port:         222,
+		IdentityFile: "~/.ssh/id_rsa",
 		Path:         "/home/pi/unicorn-hat/examples/ascii_pic.py",
+		Port:         222,
+		User:         "wakatime",
 	}, client)
 }
 
 func TestNewClient_Sftp(t *testing.T) {
-	client, err := remote.NewClient("sftp://127.0.0.1")
+	client, err := remote.NewClient("sftp://127.0.0.1", remote.Config{})
 	require.NoError(t, err)
 
 	assert.Equal(t, remote.Client{
-		User:         "",
-		Pass:         "",
-		OriginalHost: "127.0.0.1",
+		ConfigFile:   "",
 		Host:         "127.0.0.1",
-		Port:         22,
+		IdentityFile: "",
 		Path:         "",
+		Port:         22,
+		User:         "",
 	}, client)
 }
 
 func TestNewClient_Err(t *testing.T) {
-	_, err := remote.NewClient("ssh://wakatime:1234@192.168.1.2:port")
+	_, err := remote.NewClient("ssh://wakatime@192.168.1.2:port", remote.Config{})
 	require.Error(t, err)
 
 	assert.EqualError(t, err,
-		`failed to parse remote file url: parse "ssh://wakatime:1234@192.168.1.2:port": invalid port ":port" after host`)
+		`failed to parse remote file url: parse "ssh://wakatime@192.168.1.2:port": invalid port ":port" after host`)
 }
 
-func TestWithDetection_sshConfig_Hostname(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("Skipping because OS is Windows.")
-	}
+func TestWithDetection(t *testing.T) {
+	skipIfBinaryNotFoundOrWindows(t)
 
-	shutdown, host, port := testServer(t, false)
+	host, port, shutdown := setupTestServer(t)
 	defer shutdown()
 
-	sshConfigFile, _ := homedir.Expand("~/.ssh/config")
-
-	ssh_config.DefaultUserSettings = &ssh_config.UserSettings{
-		IgnoreErrors: false,
-	}
-
-	_ = os.MkdirAll(filepath.Dir(sshConfigFile), os.ModePerm)
-
-	if _, err := os.Stat(sshConfigFile); err == nil {
-		copyFile(t, sshConfigFile, sshConfigFile+".backup")
-
-		defer func() {
-			copyFile(t, sshConfigFile+".backup", sshConfigFile)
-			os.Remove(sshConfigFile + ".backup")
-		}()
-	}
-
-	template, err := os.ReadFile("testdata/ssh_config_hostname")
-	require.NoError(t, err)
-
-	err = os.WriteFile(sshConfigFile, []byte(fmt.Sprintf(string(template), host)), 0600)
-	require.NoError(t, err)
-
-	entity, _ := filepath.Abs("./testdata/main.go")
-
-	sender := mockSender{
-		SendHeartbeatsFn: func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
-			assert.Equal(t, []heartbeat.Heartbeat{
-				{
-					Category:   heartbeat.CodingCategory,
-					Entity:     "ssh://user:pass@example.com:" + strconv.Itoa(port) + entity,
-					EntityRaw:  "ssh://user:pass@example.com:" + strconv.Itoa(port) + entity,
-					EntityType: heartbeat.FileType,
-					LocalFile:  hh[0].LocalFile,
-					Time:       1585598060,
-					UserAgent:  "wakatime/13.0.7",
-				},
-			}, hh)
-			assert.Contains(t, hh[0].LocalFile, "main.go")
-			return []heartbeat.Result{
-				{
-					Status:    201,
-					Heartbeat: heartbeat.Heartbeat{},
-				},
-			}, nil
+	tests := map[string]struct {
+		Hostname string
+	}{
+		"localhost": {
+			Hostname: fmt.Sprintf("127.0.0.1:%d", port),
+		},
+		"domain name": {
+			Hostname: "example.com",
 		},
 	}
+
+	tmpDir := t.TempDir()
+
+	knownHostFile := transformTemplateFile(t, "testdata/known_hosts_template", tmpDir, port)
+	sshConfigFile := transformTemplateFile(t, "testdata/ssh_config_template", tmpDir, host, port, knownHostFile)
+
+	entity, _ := filepath.Abs("testdata/main.go")
 
 	opts := []heartbeat.HandleOption{
-		remote.WithDetection(),
-	}
-
-	handle := heartbeat.NewHandle(&sender, opts...)
-	_, err = handle([]heartbeat.Heartbeat{
-		{
-			Category:   heartbeat.CodingCategory,
-			Entity:     "ssh://user:pass@example.com:" + strconv.Itoa(port) + entity,
-			EntityType: heartbeat.FileType,
-			Time:       1585598060,
-			UserAgent:  "wakatime/13.0.7",
-		},
-	})
-	require.NoError(t, err)
-}
-
-func TestWithDetection_sshConfig_UserKnownHostsFile_mismatch(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("Skipping because OS is Windows.")
-	}
-
-	logs := bytes.NewBuffer(nil)
-
-	teardownLogCapture := captureLogs(logs)
-	defer teardownLogCapture()
-
-	shutdown, host, port := testServer(t, true)
-	defer shutdown()
-
-	sshConfigFile, _ := homedir.Expand("~/.ssh/config")
-
-	ssh_config.DefaultUserSettings = &ssh_config.UserSettings{
-		IgnoreErrors: false,
-	}
-
-	_ = os.MkdirAll(filepath.Dir(sshConfigFile), os.ModePerm)
-
-	if _, err := os.Stat(sshConfigFile); err == nil {
-		copyFile(t, sshConfigFile, sshConfigFile+".backup")
-
-		defer func() {
-			copyFile(t, sshConfigFile+".backup", sshConfigFile)
-			os.Remove(sshConfigFile + ".backup")
-		}()
-	}
-
-	template, err := os.ReadFile("testdata/ssh_config_userknownhosts")
-	require.NoError(t, err)
-
-	knownHostsFile, err := filepath.Abs("./testdata/known_hosts")
-	require.NoError(t, err)
-
-	err = os.WriteFile(sshConfigFile, []byte(fmt.Sprintf(string(template), host, knownHostsFile)), 0600)
-	require.NoError(t, err)
-
-	entity, _ := filepath.Abs("./testdata/main.go")
-
-	sender := mockSender{
-		SendHeartbeatsFn: func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
-			assert.Empty(t, hh)
-			return []heartbeat.Result{}, nil
-		},
-	}
-
-	opts := []heartbeat.HandleOption{
-		remote.WithDetection(),
-		filter.WithFiltering(filter.Config{
-			Exclude:                    nil,
-			Include:                    nil,
-			IncludeOnlyWithProjectFile: false,
+		remote.WithDetection(remote.Config{
+			ConfigFile:   sshConfigFile,
+			IdentityFile: "testdata/id_rsa",
 		}),
 	}
 
-	handle := heartbeat.NewHandle(&sender, opts...)
-	results, err := handle([]heartbeat.Heartbeat{
-		{
-			Category:   heartbeat.CodingCategory,
-			Entity:     "ssh://user:pass@github.com:" + strconv.Itoa(port) + entity,
-			EntityType: heartbeat.FileType,
-			Time:       1585598060,
-			UserAgent:  "wakatime/13.0.7",
-		},
-	})
-	require.NoError(t, err)
-	assert.Empty(t, results)
-	assert.Contains(t, logs.String(), "ssh: handshake failed: ssh: host key mismatch")
-}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			sender := mockSender{
+				SendHeartbeatsFn: func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+					assert.Equal(t, []heartbeat.Heartbeat{
+						{
+							Category:   heartbeat.CodingCategory,
+							Entity:     fmt.Sprintf("ssh://%s%s", test.Hostname, entity),
+							EntityRaw:  fmt.Sprintf("ssh://%s%s", test.Hostname, entity),
+							EntityType: heartbeat.FileType,
+							LocalFile:  hh[0].LocalFile,
+							Time:       1585598060,
+							UserAgent:  "wakatime/13.0.7",
+						},
+					}, hh)
+					assert.Contains(t, hh[0].LocalFile, "main.go")
+					return []heartbeat.Result{
+						{
+							Status:    201,
+							Heartbeat: heartbeat.Heartbeat{},
+						},
+					}, nil
+				},
+			}
 
-func TestWithDetection_sshConfig_UserKnownHostsFile_match(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("Skipping because OS is Windows.")
-	}
-
-	logs := bytes.NewBuffer(nil)
-
-	teardownLogCapture := captureLogs(logs)
-	defer teardownLogCapture()
-
-	shutdown, host, port := testServer(t, true)
-	defer shutdown()
-
-	sshConfigFile, _ := homedir.Expand("~/.ssh/config")
-
-	ssh_config.DefaultUserSettings = &ssh_config.UserSettings{
-		IgnoreErrors: false,
-	}
-
-	_ = os.MkdirAll(filepath.Dir(sshConfigFile), os.ModePerm)
-
-	if _, err := os.Stat(sshConfigFile); err == nil {
-		copyFile(t, sshConfigFile, sshConfigFile+".backup")
-
-		defer func() {
-			copyFile(t, sshConfigFile+".backup", sshConfigFile)
-			os.Remove(sshConfigFile + ".backup")
-		}()
-	}
-
-	template, err := os.ReadFile("testdata/ssh_config_userknownhosts")
-	require.NoError(t, err)
-
-	knownHostsFile, err := filepath.Abs("./testdata/known_hosts")
-	require.NoError(t, err)
-
-	err = os.WriteFile(sshConfigFile, []byte(fmt.Sprintf(string(template), host, knownHostsFile)), 0600)
-	require.NoError(t, err)
-
-	entity, _ := filepath.Abs("./testdata/main.go")
-
-	sender := mockSender{
-		SendHeartbeatsFn: func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
-			assert.Equal(t, []heartbeat.Heartbeat{
+			handle := heartbeat.NewHandle(&sender, opts...)
+			_, err := handle([]heartbeat.Heartbeat{
 				{
 					Category:   heartbeat.CodingCategory,
-					Entity:     "ssh://user:pass@example.com:" + strconv.Itoa(port) + entity,
-					EntityRaw:  "ssh://user:pass@example.com:" + strconv.Itoa(port) + entity,
+					Entity:     fmt.Sprintf("ssh://%s%s", test.Hostname, entity),
 					EntityType: heartbeat.FileType,
-					LocalFile:  hh[0].LocalFile,
 					Time:       1585598060,
 					UserAgent:  "wakatime/13.0.7",
 				},
-			}, hh)
-			assert.Contains(t, hh[0].LocalFile, "main.go")
-			return []heartbeat.Result{
-				{
-					Status:    201,
-					Heartbeat: heartbeat.Heartbeat{},
-				},
-			}, nil
-		},
+			})
+			require.NoError(t, err)
+		})
 	}
-
-	opts := []heartbeat.HandleOption{
-		remote.WithDetection(),
-		filter.WithFiltering(filter.Config{
-			Exclude:                    nil,
-			Include:                    nil,
-			IncludeOnlyWithProjectFile: true,
-		}),
-	}
-
-	handle := heartbeat.NewHandle(&sender, opts...)
-	_, err = handle([]heartbeat.Heartbeat{
-		{
-			Category:   heartbeat.CodingCategory,
-			Entity:     "ssh://user:pass@example.com:" + strconv.Itoa(port) + entity,
-			EntityType: heartbeat.FileType,
-			Time:       1585598060,
-			UserAgent:  "wakatime/13.0.7",
-		},
-	})
-	require.NoError(t, err)
 }
 
 type mockSender struct {
@@ -339,31 +176,71 @@ func (m *mockSender) SendHeartbeats(hh []heartbeat.Heartbeat) ([]heartbeat.Resul
 	return m.SendHeartbeatsFn(hh)
 }
 
-func keyAuth(_ ssh.ConnMetadata, _ ssh.PublicKey) (*ssh.Permissions, error) {
-	permissions := &ssh.Permissions{
-		CriticalOptions: map[string]string{},
-		Extensions:      map[string]string{},
+func setupTestServer(t *testing.T) (string, int, func()) {
+	ln, err := net.Listen("tcp", "127.0.0.1:")
+	if err != nil {
+		t.Fatal(err)
 	}
 
-	return permissions, nil
-}
+	host := ln.Addr().(*net.TCPAddr).IP.String()
+	port := ln.Addr().(*net.TCPAddr).Port
 
-func pwAuth(_ ssh.ConnMetadata, _ []byte) (*ssh.Permissions, error) {
-	permissions := &ssh.Permissions{
-		CriticalOptions: map[string]string{},
-		Extensions:      map[string]string{},
+	shutdown := make(chan struct{})
+
+	go func() {
+		for {
+			conn, err := ln.Accept()
+			if err != nil {
+				select {
+				case <-shutdown:
+				default:
+					t.Error("ssh server socket closed:", err)
+				}
+
+				return
+			}
+
+			go func() {
+				defer conn.Close()
+
+				sshServerConfig := newSshServerConfig(t)
+
+				// from a standard TCP connection to an encrypted SSH connection
+				sshconn, newChans, reqChans, err := ssh.NewServerConn(conn, sshServerConfig)
+				if err != nil {
+					t.Errorf("failed to handshake: %s", err)
+					return
+				}
+
+				go ssh.DiscardRequests(reqChans)
+				go handleNewChannels(newChans)
+
+				_ = sshconn.Wait()
+			}()
+		}
+	}()
+
+	return host, port, func() {
+		close(shutdown)
+		ln.Close()
 	}
-
-	return permissions, nil
 }
 
-func basicServerConfig() *ssh.ServerConfig {
-	config := ssh.ServerConfig{
+func newSshServerConfig(t *testing.T) *ssh.ServerConfig {
+	config := &ssh.ServerConfig{
 		Config: ssh.Config{
 			MACs: []string{"hmac-sha1"},
 		},
-		PasswordCallback:  pwAuth,
-		PublicKeyCallback: keyAuth,
+		PasswordCallback: func(conn ssh.ConnMetadata, password []byte) (*ssh.Permissions, error) {
+			return nil, nil
+		},
+		PublicKeyCallback: func(conn ssh.ConnMetadata, key ssh.PublicKey) (*ssh.Permissions, error) {
+			return &ssh.Permissions{
+				Extensions: map[string]string{
+					"pubkey-fp": ssh.FingerprintSHA256(key),
+				},
+			}, nil
+		},
 	}
 
 	privKey := []byte(`
@@ -396,284 +273,128 @@ QYa37FK0p8NcDeUuF86zXBVutwS5nJLchHhKfd590ks57OROtm29
 -----END RSA PRIVATE KEY-----
 	`)
 
-	hostPrivateKeySigner, err := ssh.ParsePrivateKey(privKey)
+	signer, err := ssh.ParsePrivateKey(privKey)
 	if err != nil {
-		panic(err)
+		t.Fatalf("Failed to parse private key: %s", err)
 	}
 
-	config.AddHostKey(hostPrivateKeySigner)
+	config.AddHostKey(signer)
 
-	return &config
+	return config
 }
 
-type sshServer struct {
-	conn     net.Conn
-	config   *ssh.ServerConfig
-	sshConn  *ssh.ServerConn
-	newChans <-chan ssh.NewChannel
-	newReqs  <-chan *ssh.Request
+func handleNewChannels(chans <-chan ssh.NewChannel) {
+	for newChannel := range chans {
+		go handleNewChannel(newChannel)
+	}
 }
 
-func sshServerFromConn(conn net.Conn, config *ssh.ServerConfig) (*sshServer, error) {
-	// From a standard TCP connection to an encrypted SSH connection
-	sshConn, newChans, newReqs, err := ssh.NewServerConn(conn, config)
-	if err != nil {
-		return nil, err
+func handleNewChannel(newChannel ssh.NewChannel) {
+	if t := newChannel.ChannelType(); t != "session" {
+		_ = newChannel.Reject(ssh.UnknownChannelType, fmt.Sprintf("unknown channel type: %s", t))
+		return
 	}
 
-	svr := &sshServer{conn, config, sshConn, newChans, newReqs}
-	svr.listenChannels()
+	ch, reqs, err := newChannel.Accept()
+	if err != nil {
+		fmt.Printf("could not accept channel: %s", err)
+		return
+	}
 
-	return svr, nil
-}
-
-func (svr *sshServer) Wait() error {
-	return svr.sshConn.Wait()
-}
-
-func (svr *sshServer) Close() error {
-	return svr.sshConn.Close()
-}
-
-func (svr *sshServer) listenChannels() {
 	go func() {
-		for chanReq := range svr.newChans {
-			go svr.handleChanReq(chanReq)
-		}
-	}()
-	go func() {
-		for req := range svr.newReqs {
-			go svr.handleReq(req)
-		}
-	}()
-}
+		for req := range reqs {
+			switch req.Type {
+			case "subsystem":
+				err = handleSubsystem(ch, req)
+				if err != nil {
+					fmt.Printf("could not handle subsystem: %s", err)
+				}
+			default:
+				fmt.Printf("unknown request type: %s", req.Type)
 
-func (*sshServer) handleReq(req *ssh.Request) {
-	_ = rejectRequest(req)
-}
-
-func rejectRequest(req *ssh.Request) error {
-	fmt.Printf("ssh rejecting request, type: %s\n", req.Type)
-
-	err := req.Reply(false, []byte{})
-	if err != nil {
-		fmt.Printf("ssh request reply had error: %v\n", err)
-	}
-
-	return err
-}
-
-func (chsvr *sshSessionChannelServer) handle() {
-	// should maybe do something here...
-	go chsvr.handleReqs()
-}
-
-func (chsvr *sshSessionChannelServer) handleReqs() {
-	for req := range chsvr.newReqs {
-		chsvr.handleReq(req)
-	}
-
-	fmt.Printf("ssh server session channel complete\n")
-}
-
-func (chsvr *sshSessionChannelServer) handleReq(req *ssh.Request) {
-	switch req.Type {
-	case "env":
-		_ = chsvr.handleEnv(req)
-	case "subsystem":
-		_ = chsvr.handleSubsystem(req)
-	default:
-		_ = rejectRequest(req)
-	}
-}
-
-func rejectRequestUnmarshalError(req *ssh.Request, s interface{}, err error) error {
-	fmt.Printf("ssh request unmarshaling error, type '%T': %v\n", s, err)
-
-	_ = rejectRequest(req)
-
-	return err
-}
-
-type sshEnvRequest struct {
-	Envvar string
-	Value  string
-}
-
-func (chsvr *sshSessionChannelServer) handleEnv(req *ssh.Request) error {
-	envReq := &sshEnvRequest{}
-	if err := ssh.Unmarshal(req.Payload, envReq); err != nil {
-		return rejectRequestUnmarshalError(req, envReq, err)
-	}
-
-	_ = req.Reply(true, nil)
-
-	found := false
-
-	for i, envstr := range chsvr.env {
-		if strings.HasPrefix(envstr, envReq.Envvar+"=") {
-			found = true
-			chsvr.env[i] = envReq.Envvar + "=" + envReq.Value
-		}
-	}
-
-	if !found {
-		chsvr.env = append(chsvr.env, envReq.Envvar+"="+envReq.Value)
-	}
-
-	return nil
-}
-
-func (svr *sshServer) handleChanReq(chanReq ssh.NewChannel) {
-	fmt.Printf("channel request: %v, extra: '%v'\n", chanReq.ChannelType(), hex.EncodeToString(chanReq.ExtraData()))
-
-	switch chanReq.ChannelType() {
-	case "session":
-		if ch, reqs, err := chanReq.Accept(); err != nil {
-			fmt.Printf("fail to accept channel request: %v\n", err)
-
-			_ = chanReq.Reject(ssh.ResourceShortage, "channel accept failure")
-		} else {
-			chsvr := &sshSessionChannelServer{
-				sshChannelServer: &sshChannelServer{svr, chanReq, ch, reqs},
-				env:              append([]string{}, os.Environ()...),
+				_ = req.Reply(false, nil)
 			}
-			chsvr.handle()
 		}
-	default:
-		_ = chanReq.Reject(ssh.UnknownChannelType, "channel type is not a session")
-	}
+	}()
 }
 
-type sshSessionChannelServer struct {
-	*sshChannelServer
-	env []string
-}
-
-type sshChannelServer struct {
-	svr     *sshServer
-	chanReq ssh.NewChannel
-	ch      ssh.Channel
-	newReqs <-chan *ssh.Request
-}
-
-type sshSubsystemRequest struct {
-	Name string
-}
-
-type sshSubsystemExitStatus struct {
-	Status uint32
-}
-
-func (chsvr *sshSessionChannelServer) handleSubsystem(req *ssh.Request) error {
+func handleSubsystem(ch ssh.Channel, req *ssh.Request) error {
 	defer func() {
-		err1 := chsvr.ch.CloseWrite()
-		err2 := chsvr.ch.Close()
-		fmt.Printf("ssh server subsystem request complete, err: %v %v\n", err1, err2)
+		_ = ch.CloseWrite()
+		_ = ch.Close()
 	}()
 
-	subsystemReq := &sshSubsystemRequest{}
-	if err := ssh.Unmarshal(req.Payload, subsystemReq); err != nil {
-		return rejectRequestUnmarshalError(req, subsystemReq, err)
+	var sshreq struct {
+		Name string
 	}
 
-	// reply to the ssh client
+	if err := ssh.Unmarshal(req.Payload, &sshreq); err != nil {
+		return req.Reply(false, nil)
+	}
 
-	// no idea if this is actually correct spec-wise.
-	// just enough for an sftp server to start.
-	if subsystemReq.Name != "sftp" {
+	if sshreq.Name != "sftp" {
 		return req.Reply(false, nil)
 	}
 
 	_ = req.Reply(true, nil)
 
-	sftpServer, err := sftp.NewServer(chsvr.ch)
+	sftpServer, err := sftp.NewServer(ch)
 	if err != nil {
 		return err
 	}
 
 	// wait for the session to close
-	runErr := sftpServer.Serve()
+	err = sftpServer.Serve()
 
 	exitStatus := uint32(1)
-
-	if runErr == nil {
+	if err == nil {
 		exitStatus = uint32(0)
 	}
 
-	_, exitStatusErr := chsvr.ch.SendRequest("exit-status", false, ssh.Marshal(sshSubsystemExitStatus{exitStatus}))
+	var sshRes = struct {
+		Status uint32
+	}{
+		Status: exitStatus,
+	}
+
+	_, exitStatusErr := ch.SendRequest("exit-status", false, ssh.Marshal(sshRes))
 
 	return exitStatusErr
 }
 
-func testServer(t *testing.T, expectError bool) (func(), string, int) {
-	listener, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	host, portStr, err := net.SplitHostPort(listener.Addr().String())
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	port, err := strconv.Atoi(portStr)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	shutdown := make(chan struct{})
-
-	go func() {
-		for {
-			conn, err := listener.Accept()
-			if err != nil {
-				select {
-				case <-shutdown:
-				default:
-					t.Error("ssh server socket closed:", err)
-				}
-
-				return
-			}
-
-			go func() {
-				defer conn.Close()
-
-				sshSvr, err := sshServerFromConn(conn, basicServerConfig())
-				if err != nil {
-					if !expectError {
-						t.Error(err)
-					}
-
-					return
-				}
-
-				_ = sshSvr.Wait()
-			}()
-		}
-	}()
-
-	return func() { close(shutdown); listener.Close() }, host, port
-}
-
-func copyFile(t *testing.T, source, destination string) {
-	input, err := os.ReadFile(source)
+func transformTemplateFile(t *testing.T, fp, tmpDir string, args ...interface{}) string {
+	tplFile, err := os.ReadFile(fp)
 	require.NoError(t, err)
 
-	err = os.WriteFile(destination, input, 0600)
+	f, err := os.CreateTemp(tmpDir, "")
 	require.NoError(t, err)
+
+	defer f.Close()
+
+	tplStr := fmt.Sprintf(string(tplFile), args...)
+
+	_, err = f.WriteString(tplStr)
+	require.NoError(t, err)
+
+	return f.Name()
 }
 
-func captureLogs(dest io.Writer) func() {
-	logOutput := log.Output()
+func findSftpBinary() bool {
+	// sftp is available in unix-like systems and windows 10+
+	_, err := exec.LookPath("sftp")
+	if err != nil {
+		return false
+	}
 
-	// will write to log output and dest
-	mw := io.MultiWriter(logOutput, dest)
+	return true
+}
 
-	log.SetOutput(mw)
+func skipIfBinaryNotFoundOrWindows(t *testing.T) {
+	if runtime.GOOS != "windows" {
+		t.Skip("Skipping because OS is not windows.")
+	}
 
-	return func() {
-		log.SetOutput(logOutput)
+	if !findSftpBinary() {
+		t.Skip("Skipping because sftp binary is not installed in this machine.")
 	}
 }

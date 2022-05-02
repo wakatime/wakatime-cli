@@ -203,7 +203,7 @@ func initHandleOptions(params paramscmd.Params) []heartbeat.HandleOption {
 			RemoteAddressPattern: remote.RemoteAddressRegex,
 		}),
 		heartbeat.WithEntityModifer(),
-		remote.WithDetection(),
+		remote.WithDetection(remote.Config{}),
 		filter.WithFiltering(filter.Config{
 			Exclude:                    params.Heartbeat.Filter.Exclude,
 			Include:                    params.Heartbeat.Filter.Include,
