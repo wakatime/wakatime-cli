@@ -48,6 +48,7 @@ func WithReplacing(config Config) heartbeat.HandleOption {
 func MatchPattern(fp string, patterns []MapPattern) (string, bool) {
 	for _, pattern := range patterns {
 		if pattern.Regex.MatchString(fp) {
+			log.Debugf("api key matched %q", pattern.Regex.String())
 			return pattern.ApiKey, true
 		}
 	}

@@ -531,7 +531,7 @@ func TestLoadParams_ProjectApiKey(t *testing.T) {
 			Expected: []apikey.MapPattern{
 				{
 					ApiKey: "00000000-0000-4000-8000-000000000001",
-					Regex:  regexp.MustCompile("projects/foo"),
+					Regex:  regexp.MustCompile(`(?i)projects/foo`),
 				},
 			},
 		},
@@ -542,7 +542,18 @@ func TestLoadParams_ProjectApiKey(t *testing.T) {
 			Expected: []apikey.MapPattern{
 				{
 					ApiKey: "00000000-0000-4000-8000-000000000002",
-					Regex:  regexp.MustCompile(`^/home/user/projects/bar(\\d+)/`),
+					Regex:  regexp.MustCompile(`(?i)^/home/user/projects/bar(\\d+)/`),
+				},
+			},
+		},
+		"case insensitive": {
+			Entity: "/home/user/PROJECTS/foo/file",
+			Regex:  regexp.MustCompile("projects/foo"),
+			ApiKey: "00000000-0000-4000-8000-000000000001",
+			Expected: []apikey.MapPattern{
+				{
+					ApiKey: "00000000-0000-4000-8000-000000000001",
+					Regex:  regexp.MustCompile(`(?i)projects/foo`),
 				},
 			},
 		},
@@ -586,7 +597,7 @@ func TestLoadParams_ProjectApiKey_ParseConfig(t *testing.T) {
 	expected := []apikey.MapPattern{
 		{
 			ApiKey: "00000000-0000-4000-8000-000000000001",
-			Regex:  regex.MustCompile("/some/path"),
+			Regex:  regex.MustCompile("(?i)/some/path"),
 		},
 	}
 
