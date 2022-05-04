@@ -115,7 +115,7 @@ func SendHeartbeats(v *viper.Viper, queueFilepath string) error {
 		Retries: params.API.BackoffRetries,
 	}))
 
-	apiClient, err := apicmd.NewClient(params.API)
+	apiClient, err := apicmd.NewClientWithoutAuth(params.API)
 	if err != nil {
 		if !params.Offline.Disabled {
 			if err := offlinecmd.SaveHeartbeats(v, heartbeats, queueFilepath); err != nil {

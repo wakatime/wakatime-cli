@@ -32,11 +32,11 @@ const (
 	SyncMaxDefault = 1000
 )
 
-// Sender is a noop api client, used by offline.SaveHeartbeats.
-type Sender struct{}
+// Noop is a noop api client, used by offline.SaveHeartbeats.
+type Noop struct{}
 
 // SendHeartbeats always returns an error.
-func (Sender) SendHeartbeats(_ []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+func (Noop) SendHeartbeats(_ []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 	return nil, api.Err("skip sending heartbeats and only save to offline db")
 }
 
