@@ -65,8 +65,6 @@ func (c *Client) sendHeartbeats(url string, heartbeats []heartbeat.Heartbeat) ([
 	}
 	defer resp.Body.Close()
 
-	log.Debugf("request headers: %+v", req.Header)
-
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, Err(fmt.Sprintf("failed reading response body from %q: %s", url, err))
