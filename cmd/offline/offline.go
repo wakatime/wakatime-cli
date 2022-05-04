@@ -49,7 +49,7 @@ func SaveHeartbeats(v *viper.Viper, heartbeats []heartbeat.Heartbeat, queueFilep
 
 	handleOpts = append(handleOpts, offline.WithQueue(queueFilepath))
 
-	sender := offline.Sender{}
+	sender := offline.Noop{}
 	handle := heartbeat.NewHandle(sender, handleOpts...)
 
 	_, _ = handle(heartbeats)

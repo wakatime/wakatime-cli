@@ -8,7 +8,6 @@ import (
 	"io"
 	"net/http"
 	"strings"
-	"sync"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/log"
@@ -26,117 +25,62 @@ func (c *Client) SendHeartbeats(heartbeats []heartbeat.Heartbeat) ([]heartbeat.R
 
 	log.Debugf("sending %d heartbeat(s) to api at %s", len(heartbeats), url)
 
+	var results []heartbeat.Result
+
 	grouped := groupByApiKey(heartbeats)
 
-	cherr := make(chan error, len(grouped))
-	defer close(cherr)
-
-	chres := make(chan []heartbeat.Result, len(grouped))
-	defer close(chres)
-
-	// don't spawn threads when there's only one api key set.
-	if len(grouped) == 1 {
-		c.sendHeartbeats(url, heartbeats, chres, cherr)
-
-		return <-chres, <-cherr
-	}
-
-	var wg sync.WaitGroup
-
-	for apiKey, hh := range grouped {
-		hh := hh
-		apiKey := apiKey
-
-		wg.Add(1)
-
-		go func() {
-			defer wg.Done()
-
-			auth, err := WithAuth(BasicAuth{Secret: apiKey})
-			if err != nil {
-				cherr <- err
-				chres <- nil
-
-				return
-			}
-
-			auth(c)
-
-			c.sendHeartbeats(url, hh, chres, cherr)
-		}()
-	}
-
-	wg.Wait()
-
-	for err := range cherr {
+	for _, hh := range grouped {
+		res, err := c.sendHeartbeats(url, hh)
 		if err != nil {
 			return nil, err
 		}
-	}
 
-	var results []heartbeat.Result
-
-	for res := range chres {
 		results = append(results, res...)
 	}
 
 	return results, nil
 }
 
-func (c *Client) sendHeartbeats(url string, heartbeats []heartbeat.Heartbeat,
-	chresults chan []heartbeat.Result, cherr chan error) {
+func (c *Client) sendHeartbeats(url string, heartbeats []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 	data, err := json.Marshal(heartbeats)
 	if err != nil {
-		cherr <- fmt.Errorf("failed to json encode body: %s", err)
-		chresults <- nil
-
-		return
+		return nil, fmt.Errorf("failed to json encode body: %s", err)
 	}
 
 	log.Debugf("heartbeats: %s", string(data))
 
 	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(data))
 	if err != nil {
-		cherr <- fmt.Errorf("failed to create request: %s", err)
-		chresults <- nil
-
-		return
+		return nil, fmt.Errorf("failed to create request: %s", err)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
 
+	// set auth header here for every request due to multiple api key support
+	setAuthHeader(req, heartbeats[0].ApiKey)
+
 	resp, err := c.Do(req)
 	if err != nil {
-		cherr <- Err(fmt.Sprintf("failed making request to %q: %s", url, err))
-		chresults <- nil
-
-		return
+		return nil, Err(fmt.Sprintf("failed making request to %q: %s", url, err))
 	}
 	defer resp.Body.Close()
 
+	log.Debugf("request headers: %+v", req.Header)
+
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		cherr <- Err(fmt.Sprintf("failed reading response body from %q: %s", url, err))
-		chresults <- nil
-
-		return
+		return nil, Err(fmt.Sprintf("failed reading response body from %q: %s", url, err))
 	}
 
 	switch resp.StatusCode {
 	case http.StatusCreated, http.StatusAccepted:
 		break
 	case http.StatusUnauthorized:
-		cherr <- ErrAuth(fmt.Sprintf("authentication failed at %q", url))
-		chresults <- nil
-
-		return
+		return nil, ErrAuth(fmt.Sprintf("authentication failed at %q", url))
 	case http.StatusBadRequest:
-		cherr <- ErrBadRequest(fmt.Sprintf("bad request at %q", url))
-		chresults <- nil
-
-		return
+		return nil, ErrBadRequest(fmt.Sprintf("bad request at %q", url))
 	default:
-		cherr <- Err(fmt.Sprintf(
+		return nil, Err(fmt.Sprintf(
 			"invalid response status from %q. got: %d, want: %d/%d. body: %q",
 			url,
 			resp.StatusCode,
@@ -144,21 +88,14 @@ func (c *Client) sendHeartbeats(url string, heartbeats []heartbeat.Heartbeat,
 			http.StatusAccepted,
 			string(body),
 		))
-		chresults <- nil
-
-		return
 	}
 
 	results, err := ParseHeartbeatResponses(body)
 	if err != nil {
-		cherr <- Err(fmt.Sprintf("failed parsing results from %q: %s", url, err))
-		chresults <- nil
-
-		return
+		return nil, Err(fmt.Sprintf("failed parsing results from %q: %s", url, err))
 	}
 
-	chresults <- results
-	cherr <- nil
+	return results, nil
 }
 
 // ParseHeartbeatResponses parses the aggregated responses returned by the heartbeat bulk endpoint.
@@ -285,4 +222,10 @@ func groupByApiKey(hh []heartbeat.Heartbeat) map[string][]heartbeat.Heartbeat {
 	}
 
 	return grouped
+}
+
+func setAuthHeader(req *http.Request, apiKey string) {
+	authHeaderValue, _ := BasicAuth{Secret: apiKey}.HeaderValue()
+
+	req.Header.Set("Authorization", authHeaderValue)
 }
