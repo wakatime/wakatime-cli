@@ -414,6 +414,11 @@ func loadFilterParams(v *viper.Viper) FilterParams {
 	var excludePatterns []regex.Regex
 
 	for _, s := range exclude {
+		// make all regex case insensitive
+		if !strings.HasPrefix(s, "(?i)") {
+			s = "(?i)" + s
+		}
+
 		compiled, err := regex.Compile(s)
 		if err != nil {
 			log.Warnf("failed to compile exclude regex pattern %q", s)
@@ -429,6 +434,11 @@ func loadFilterParams(v *viper.Viper) FilterParams {
 	var includePatterns []regex.Regex
 
 	for _, s := range include {
+		// make all regex case insensitive
+		if !strings.HasPrefix(s, "(?i)") {
+			s = "(?i)" + s
+		}
+
 		compiled, err := regex.Compile(s)
 		if err != nil {
 			log.Warnf("failed to compile include regex pattern %q", s)
@@ -534,6 +544,11 @@ func loadProjectParams(v *viper.Viper) (ProjectParams, error) {
 	projectMap := vipertools.GetStringMapString(v, "projectmap")
 
 	for k, s := range projectMap {
+		// make all regex case insensitive
+		if !strings.HasPrefix(k, "(?i)") {
+			k = "(?i)" + k
+		}
+
 		compiled, err := regexp.Compile(k)
 		if err != nil {
 			log.Warnf("failed to compile projectmap regex pattern %q", k)
