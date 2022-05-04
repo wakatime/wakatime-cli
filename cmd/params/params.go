@@ -183,7 +183,7 @@ func LoadAPIParams(v *viper.Viper) (API, error) {
 		return API{}, api.ErrAuth("failed to load api key")
 	}
 
-	if !apiKeyRegex.Match([]byte(apiKey)) {
+	if !apiKeyRegex.MatchString(apiKey) {
 		return API{}, api.ErrAuth("invalid api key format")
 	}
 
@@ -197,13 +197,13 @@ func LoadAPIParams(v *viper.Viper) (API, error) {
 			k = "(?i)" + k
 		}
 
-		compiled, err := regexp.Compile(k)
+		compiled, err := regex.Compile(k)
 		if err != nil {
 			log.Warnf("failed to compile project_api_key regex pattern %q", k)
 			continue
 		}
 
-		if !apiKeyRegex.Match([]byte(s)) {
+		if !apiKeyRegex.MatchString(s) {
 			return API{}, api.ErrAuth(fmt.Sprintf("invalid api key format for %q", k))
 		}
 
@@ -549,7 +549,7 @@ func loadProjectParams(v *viper.Viper) (ProjectParams, error) {
 			k = "(?i)" + k
 		}
 
-		compiled, err := regexp.Compile(k)
+		compiled, err := regex.Compile(k)
 		if err != nil {
 			log.Warnf("failed to compile projectmap regex pattern %q", k)
 			continue
