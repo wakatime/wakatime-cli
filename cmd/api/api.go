@@ -8,7 +8,7 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/api"
 	"github.com/wakatime/wakatime-cli/pkg/log"
 
-	timezone "github.com/gandarez/go-olson-timezone"
+	tz "github.com/gandarez/go-olson-timezone"
 )
 
 // NewClient initializes a new api client with all options following the
@@ -35,7 +35,7 @@ func newClient(params paramscmd.API, opts ...api.Option) (*api.Client, error) {
 	opts = append(opts, api.WithTimeout(params.Timeout))
 	opts = append(opts, api.WithHostname(params.Hostname))
 
-	tz, err := timezone.Name()
+	tz, err := tz.Name()
 	if err != nil {
 		log.Debugf("failed to detect local timezone: %s", err)
 	} else {

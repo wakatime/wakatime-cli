@@ -87,7 +87,7 @@ func SyncOfflineActivity(v *viper.Viper, queueFilepath string) error {
 		return ErrSyncDisabled("sync offline activity is disabled")
 	}
 
-	apiClient, err := cmdapi.NewClient(paramAPI)
+	apiClient, err := cmdapi.NewClientWithoutAuth(paramAPI)
 	if err != nil {
 		return fmt.Errorf("failed to initialize api client: %w", err)
 	}

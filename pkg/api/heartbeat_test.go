@@ -103,6 +103,41 @@ func TestClient_SendHeartbeats(t *testing.T) {
 	}
 }
 
+func TestClient_SendHeartbeats_MultipleApiKey(t *testing.T) {
+	url, router, close := setupTestServer()
+	defer close()
+
+	var numCalls int
+
+	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
+		numCalls++
+
+		// check auth header
+		switch numCalls {
+		case 1:
+			assert.Equal(t, []string{"Basic MDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAw"}, req.Header["Authorization"])
+		case 2:
+			assert.Equal(t, []string{"Basic MDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAx"}, req.Header["Authorization"])
+		}
+
+		// write response
+		f, err := os.Open("testdata/api_heartbeats_response.json")
+		require.NoError(t, err)
+
+		w.WriteHeader(http.StatusCreated)
+		_, err = io.Copy(w, f)
+		require.NoError(t, err)
+	})
+
+	c := api.NewClient(url)
+
+	hh := testHeartbeats()
+	hh[1].ApiKey = "00000000-0000-4000-8000-000000000001"
+
+	_, err := c.SendHeartbeats(hh)
+	require.NoError(t, err)
+}
+
 func TestClient_SendHeartbeats_Err(t *testing.T) {
 	url, router, close := setupTestServer()
 	defer close()
@@ -268,6 +303,7 @@ func TestParseHeartbeatResponses_Errors(t *testing.T) {
 func testHeartbeats() []heartbeat.Heartbeat {
 	return []heartbeat.Heartbeat{
 		{
+			ApiKey:         "00000000-0000-4000-8000-000000000000",
 			Branch:         heartbeat.PointerTo("heartbeat"),
 			Category:       heartbeat.CodingCategory,
 			CursorPosition: heartbeat.PointerTo(12),
@@ -283,6 +319,7 @@ func testHeartbeats() []heartbeat.Heartbeat {
 			UserAgent:      "wakatime/13.0.6",
 		},
 		{
+			ApiKey:         "00000000-0000-4000-8000-000000000000",
 			Branch:         nil,
 			Category:       heartbeat.DebuggingCategory,
 			CursorPosition: nil,

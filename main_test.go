@@ -22,31 +22,15 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/offline"
 	"github.com/wakatime/wakatime-cli/pkg/version"
-	"github.com/yookoala/realpath"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/yookoala/realpath"
 )
-
-const testVersion = "<local-build>"
 
 // nolint:gochecknoinits
 func init() {
-	version.Version = testVersion
-}
-
-func binaryPath(t *testing.T) string {
-	filename := fmt.Sprintf("./build/wakatime-cli-%s-%s", runtime.GOOS, runtime.GOARCH)
-
-	switch runtime.GOOS {
-	case "darwin", "linux", "freebsd", "netbsd", "openbsd":
-		return filename
-	case "windows":
-		return filename + ".exe"
-	default:
-		t.Fatalf("OS %q not supported", runtime.GOOS)
-		return ""
-	}
+	version.Version = "<local-build>"
 }
 
 func TestSendHeartbeats(t *testing.T) {
@@ -139,11 +123,80 @@ func testSendHeartbeats(t *testing.T, entity, project string) {
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
 
-func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("Skipping because this test is flakey on Windows.")
-	}
+func TestSendHeartbeats_SecondaryApiKey(t *testing.T) {
+	apiURL, router, close := setupTestServer()
+	defer close()
 
+	var numCalls int
+
+	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
+		numCalls++
+
+		// check headers
+		assert.Equal(t, http.MethodPost, req.Method)
+		assert.Equal(t, []string{"application/json"}, req.Header["Accept"])
+		assert.Equal(t, []string{"application/json"}, req.Header["Content-Type"])
+		assert.Equal(t, []string{"Basic MDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAx"}, req.Header["Authorization"])
+		assert.Equal(t, []string{heartbeat.UserAgentUnknownPlugin()}, req.Header["User-Agent"])
+
+		// check body
+		expectedBodyTpl, err := os.ReadFile("testdata/api_heartbeats_request_template.json")
+		require.NoError(t, err)
+
+		entityPath, err := realpath.Realpath("testdata/main.go")
+		require.NoError(t, err)
+
+		entityPath = strings.ReplaceAll(entityPath, `\`, `/`)
+		expectedBody := fmt.Sprintf(
+			string(expectedBodyTpl),
+			entityPath,
+			"wakatime-cli",
+			heartbeat.UserAgentUnknownPlugin(),
+		)
+
+		body, err := io.ReadAll(req.Body)
+		require.NoError(t, err)
+
+		assert.JSONEq(t, string(expectedBody), string(body))
+
+		// write response
+		f, err := os.Open("testdata/api_heartbeats_response.json")
+		require.NoError(t, err)
+
+		w.WriteHeader(http.StatusCreated)
+		_, err = io.Copy(w, f)
+		require.NoError(t, err)
+	})
+
+	tmpDir := t.TempDir()
+
+	offlineQueueFile, err := os.CreateTemp(tmpDir, "")
+	require.NoError(t, err)
+
+	defer offlineQueueFile.Close()
+
+	runWakatimeCli(
+		t,
+		&bytes.Buffer{},
+		"--api-url", apiURL,
+		"--key", "00000000-0000-4000-8000-000000000000",
+		"--config", "testdata/wakatime.cfg",
+		"--entity", "testdata/main.go",
+		"--cursorpos", "12",
+		"--offline-queue-file", offlineQueueFile.Name(),
+		"--lineno", "42",
+		"--lines-in-file", "100",
+		"--time", "1585598059",
+		"--hide-branch-names", ".*",
+		"--project", "wakatime-cli",
+		"--write",
+		"--verbose",
+	)
+
+	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+}
+
+func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 	apiURL, router, close := setupTestServer()
 	defer close()
 
@@ -204,16 +257,10 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 		"--verbose",
 	)
 
-	offlineCount := runWakatimeCli(
-		t,
-		&bytes.Buffer{},
-		"--key", "00000000-0000-4000-8000-000000000000",
-		"--offline-queue-file", offlineQueueFile.Name(),
-		"--offline-count",
-		"--verbose",
-	)
+	offlineCount, err := offline.CountHeartbeats(offlineQueueFile.Name())
+	require.NoError(t, err)
 
-	assert.Equal(t, "2\n", offlineCount)
+	assert.Equal(t, 2, offlineCount)
 
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
@@ -438,25 +485,7 @@ func TestTodaySummary(t *testing.T) {
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
 
-func TestOfflineCountEmpty(t *testing.T) {
-	offlineQueueFile, err := os.CreateTemp(t.TempDir(), "")
-	require.NoError(t, err)
-
-	defer offlineQueueFile.Close()
-
-	out := runWakatimeCli(
-		t,
-		&bytes.Buffer{},
-		"--key", "00000000-0000-4000-8000-000000000000",
-		"--offline-queue-file", offlineQueueFile.Name(),
-		"--offline-count",
-		"--verbose",
-	)
-
-	assert.Equal(t, "0\n", out)
-}
-
-func TestOfflineCountWithOneHeartbeat(t *testing.T) {
+func TestOfflineCount(t *testing.T) {
 	apiURL, router, close := setupTestServer()
 	defer close()
 
@@ -510,12 +539,30 @@ func TestOfflineCountWithOneHeartbeat(t *testing.T) {
 	assert.Equal(t, "1\n", out)
 }
 
-func TestUseragent(t *testing.T) {
+func TestOfflineCountEmpty(t *testing.T) {
+	offlineQueueFile, err := os.CreateTemp(t.TempDir(), "")
+	require.NoError(t, err)
+
+	defer offlineQueueFile.Close()
+
+	out := runWakatimeCli(
+		t,
+		&bytes.Buffer{},
+		"--key", "00000000-0000-4000-8000-000000000000",
+		"--offline-queue-file", offlineQueueFile.Name(),
+		"--offline-count",
+		"--verbose",
+	)
+
+	assert.Equal(t, "0\n", out)
+}
+
+func TestUserAgent(t *testing.T) {
 	out := runWakatimeCli(t, &bytes.Buffer{}, "--useragent")
 	assert.Equal(t, fmt.Sprintf("%s\n", heartbeat.UserAgentUnknownPlugin()), out)
 }
 
-func TestUseragentWithPlugin(t *testing.T) {
+func TestUserAgentWithPlugin(t *testing.T) {
 	out := runWakatimeCli(t, &bytes.Buffer{}, "--useragent", "--plugin", "Wakatime/1.0.4")
 
 	assert.Equal(t, fmt.Sprintf("%s\n", heartbeat.UserAgent("Wakatime/1.0.4")), out)
@@ -537,7 +584,7 @@ func TestVersionVerbose(t *testing.T) {
 	)), out)
 }
 
-func TestMultipleRunners_NotCorruptConfigFile(t *testing.T) {
+func TestMultipleRunners(t *testing.T) {
 	var wg sync.WaitGroup
 
 	tmpFile, err := os.CreateTemp(t.TempDir(), "wakatime.cfg")
@@ -563,6 +610,20 @@ func TestMultipleRunners_NotCorruptConfigFile(t *testing.T) {
 	}
 
 	wg.Wait()
+}
+
+func binaryPath(t *testing.T) string {
+	filename := fmt.Sprintf("./build/wakatime-cli-%s-%s", runtime.GOOS, runtime.GOARCH)
+
+	switch runtime.GOOS {
+	case "darwin", "linux", "freebsd", "netbsd", "openbsd":
+		return filename
+	case "windows":
+		return filename + ".exe"
+	default:
+		t.Fatalf("OS %q not supported", runtime.GOOS)
+		return ""
+	}
 }
 
 func runWakatimeCli(t *testing.T, buffer *bytes.Buffer, args ...string) string {
@@ -656,6 +717,10 @@ func runCmdExpectErr(cmd *exec.Cmd) (string, int) {
 func setupTestServer() (string, *http.ServeMux, func()) {
 	router := http.NewServeMux()
 	srv := httptest.NewServer(router)
+
+	router.HandleFunc("/plugins/errors", func(w http.ResponseWriter, req *http.Request) {
+		w.WriteHeader(http.StatusCreated)
+	})
 
 	return srv.URL, router, func() { srv.Close() }
 }

@@ -183,7 +183,7 @@ func LoadAPIParams(v *viper.Viper) (API, error) {
 		return API{}, api.ErrAuth("failed to load api key")
 	}
 
-	if !apiKeyRegex.Match([]byte(apiKey)) {
+	if !apiKeyRegex.MatchString(apiKey) {
 		return API{}, api.ErrAuth("invalid api key format")
 	}
 
@@ -192,13 +192,18 @@ func LoadAPIParams(v *viper.Viper) (API, error) {
 	apiKeyMap := vipertools.GetStringMapString(v, "project_api_key")
 
 	for k, s := range apiKeyMap {
-		compiled, err := regexp.Compile(k)
+		// make all regex case insensitive
+		if !strings.HasPrefix(k, "(?i)") {
+			k = "(?i)" + k
+		}
+
+		compiled, err := regex.Compile(k)
 		if err != nil {
 			log.Warnf("failed to compile project_api_key regex pattern %q", k)
 			continue
 		}
 
-		if !apiKeyRegex.Match([]byte(s)) {
+		if !apiKeyRegex.MatchString(s) {
 			return API{}, api.ErrAuth(fmt.Sprintf("invalid api key format for %q", k))
 		}
 
@@ -409,6 +414,11 @@ func loadFilterParams(v *viper.Viper) FilterParams {
 	var excludePatterns []regex.Regex
 
 	for _, s := range exclude {
+		// make all regex case insensitive
+		if !strings.HasPrefix(s, "(?i)") {
+			s = "(?i)" + s
+		}
+
 		compiled, err := regex.Compile(s)
 		if err != nil {
 			log.Warnf("failed to compile exclude regex pattern %q", s)
@@ -424,6 +434,11 @@ func loadFilterParams(v *viper.Viper) FilterParams {
 	var includePatterns []regex.Regex
 
 	for _, s := range include {
+		// make all regex case insensitive
+		if !strings.HasPrefix(s, "(?i)") {
+			s = "(?i)" + s
+		}
+
 		compiled, err := regex.Compile(s)
 		if err != nil {
 			log.Warnf("failed to compile include regex pattern %q", s)
@@ -529,7 +544,12 @@ func loadProjectParams(v *viper.Viper) (ProjectParams, error) {
 	projectMap := vipertools.GetStringMapString(v, "projectmap")
 
 	for k, s := range projectMap {
-		compiled, err := regexp.Compile(k)
+		// make all regex case insensitive
+		if !strings.HasPrefix(k, "(?i)") {
+			k = "(?i)" + k
+		}
+
+		compiled, err := regex.Compile(k)
 		if err != nil {
 			log.Warnf("failed to compile projectmap regex pattern %q", k)
 			continue

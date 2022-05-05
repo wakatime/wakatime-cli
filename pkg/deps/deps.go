@@ -67,7 +67,7 @@ func WithDetection(c Config) heartbeat.HandleOption {
 
 				dependencies, err := Detect(filepath, language)
 				if err != nil {
-					log.Warnf("error detecting dependencies of heartbeat: %s", err)
+					log.Warnf("error detecting dependencies: %s", err)
 					continue
 				}
 
@@ -121,9 +121,6 @@ func Detect(filepath string, language heartbeat.Language) ([]string, error) {
 	case heartbeat.LanguageVBNet:
 		parser = &ParserVbNet{}
 	default:
-		log.Debugf(
-			"no parser has been found for language %q. Using Unknown parser to detect dependencies.", language)
-
 		parser = &ParserUnknown{}
 	}
 

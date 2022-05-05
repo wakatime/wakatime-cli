@@ -92,12 +92,8 @@ func WithDetection(config Config) heartbeat.HandleOption {
 					if config.ShouldObfuscateProject && revControlResult.Project != "" && result.Project == "" {
 						result.Project = obfuscateProjectName(result.Folder)
 					} else {
-						result.Project = firstNonEmptyString(result.Project, revControlResult.Project)
+						result.Project = firstNonEmptyString(result.Project, revControlResult.Project, h.ProjectAlternate)
 					}
-				}
-
-				if result.Project == "" {
-					result.Project = h.ProjectAlternate
 				}
 
 				if runtime.GOOS == "windows" && result.Folder != "" {

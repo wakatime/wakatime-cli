@@ -486,7 +486,7 @@ func TestLoadParams_ProjectMap(t *testing.T) {
 			Expected: []project.MapPattern{
 				{
 					Name:  "My Awesome Project",
-					Regex: regexp.MustCompile("projects/foo"),
+					Regex: regexp.MustCompile("(?i)projects/foo"),
 				},
 			},
 		},
@@ -497,7 +497,7 @@ func TestLoadParams_ProjectMap(t *testing.T) {
 			Expected: []project.MapPattern{
 				{
 					Name:  "project{0}",
-					Regex: regexp.MustCompile(`^/home/user/projects/bar(\\d+)/`),
+					Regex: regexp.MustCompile(`(?i)^/home/user/projects/bar(\\d+)/`),
 				},
 			},
 		},
@@ -525,29 +525,36 @@ func TestLoadParams_ProjectApiKey(t *testing.T) {
 		Expected []apikey.MapPattern
 	}{
 		"simple regex": {
-			Entity: "/home/user/projects/foo/file",
 			Regex:  regexp.MustCompile("projects/foo"),
 			ApiKey: "00000000-0000-4000-8000-000000000001",
 			Expected: []apikey.MapPattern{
 				{
 					ApiKey: "00000000-0000-4000-8000-000000000001",
-					Regex:  regexp.MustCompile("projects/foo"),
+					Regex:  regexp.MustCompile(`(?i)projects/foo`),
 				},
 			},
 		},
 		"complex regex": {
-			Entity: "/home/user/projects/bar123/file",
 			Regex:  regexp.MustCompile(`^/home/user/projects/bar(\\d+)/`),
 			ApiKey: "00000000-0000-4000-8000-000000000002",
 			Expected: []apikey.MapPattern{
 				{
 					ApiKey: "00000000-0000-4000-8000-000000000002",
-					Regex:  regexp.MustCompile(`^/home/user/projects/bar(\\d+)/`),
+					Regex:  regexp.MustCompile(`(?i)^/home/user/projects/bar(\\d+)/`),
+				},
+			},
+		},
+		"case insensitive": {
+			Regex:  regexp.MustCompile("projects/foo"),
+			ApiKey: "00000000-0000-4000-8000-000000000001",
+			Expected: []apikey.MapPattern{
+				{
+					ApiKey: "00000000-0000-4000-8000-000000000001",
+					Regex:  regexp.MustCompile(`(?i)projects/foo`),
 				},
 			},
 		},
 		"api key equal to default": {
-			Entity:   "/some/path",
 			Regex:    regexp.MustCompile(`/some/path`),
 			ApiKey:   "00000000-0000-4000-8000-000000000000",
 			Expected: nil,
@@ -558,7 +565,7 @@ func TestLoadParams_ProjectApiKey(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			v := viper.New()
 			v.Set("key", "00000000-0000-4000-8000-000000000000")
-			v.Set("entity", test.Entity)
+			// v.Set("entity", test.Entity)
 			v.Set(fmt.Sprintf("project_api_key.%s", test.Regex.String()), test.ApiKey)
 
 			params, err := paramscmd.LoadAPIParams(v)
@@ -586,7 +593,7 @@ func TestLoadParams_ProjectApiKey_ParseConfig(t *testing.T) {
 	expected := []apikey.MapPattern{
 		{
 			ApiKey: "00000000-0000-4000-8000-000000000001",
-			Regex:  regex.MustCompile("/some/path"),
+			Regex:  regex.MustCompile("(?i)/some/path"),
 		},
 	}
 
@@ -627,12 +634,12 @@ func TestLoadParams_Filter_Exclude(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Len(t, params.Filter.Exclude, 6)
-	assert.Equal(t, ".*", params.Filter.Exclude[0].String())
-	assert.Equal(t, "wakatime.*", params.Filter.Exclude[1].String())
-	assert.Equal(t, ".+", params.Filter.Exclude[2].String())
-	assert.Equal(t, "wakatime.+", params.Filter.Exclude[3].String())
-	assert.Equal(t, ".?", params.Filter.Exclude[4].String())
-	assert.Equal(t, "wakatime.?", params.Filter.Exclude[5].String())
+	assert.Equal(t, "(?i).*", params.Filter.Exclude[0].String())
+	assert.Equal(t, "(?i)wakatime.*", params.Filter.Exclude[1].String())
+	assert.Equal(t, "(?i).+", params.Filter.Exclude[2].String())
+	assert.Equal(t, "(?i)wakatime.+", params.Filter.Exclude[3].String())
+	assert.Equal(t, "(?i).?", params.Filter.Exclude[4].String())
+	assert.Equal(t, "(?i)wakatime.?", params.Filter.Exclude[5].String())
 }
 
 func TestLoadParams_Filter_Exclude_Multiline(t *testing.T) {
@@ -644,8 +651,8 @@ func TestLoadParams_Filter_Exclude_Multiline(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Len(t, params.Filter.Exclude, 2)
-	assert.Equal(t, ".?", params.Filter.Exclude[0].String())
-	assert.Equal(t, "wakatime.?", params.Filter.Exclude[1].String())
+	assert.Equal(t, "(?i).?", params.Filter.Exclude[0].String())
+	assert.Equal(t, "(?i)wakatime.?", params.Filter.Exclude[1].String())
 }
 
 func TestLoadParams_Filter_Exclude_IgnoresInvalidRegex(t *testing.T) {
@@ -657,7 +664,7 @@ func TestLoadParams_Filter_Exclude_IgnoresInvalidRegex(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Len(t, params.Filter.Exclude, 1)
-	assert.Equal(t, ".*", params.Filter.Exclude[0].String())
+	assert.Equal(t, "(?i).*", params.Filter.Exclude[0].String())
 }
 
 func TestLoadParams_Filter_Exclude_PerlRegexPatterns(t *testing.T) {
@@ -676,7 +683,7 @@ func TestLoadParams_Filter_Exclude_PerlRegexPatterns(t *testing.T) {
 			require.NoError(t, err)
 
 			require.Len(t, params.Filter.Exclude, 1)
-			assert.Equal(t, pattern, params.Filter.Exclude[0].String())
+			assert.Equal(t, "(?i)"+pattern, params.Filter.Exclude[0].String())
 		})
 	}
 }
@@ -714,10 +721,10 @@ func TestLoadParams_Filter_Include(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Len(t, params.Filter.Include, 4)
-	assert.Equal(t, ".*", params.Filter.Include[0].String())
-	assert.Equal(t, "wakatime.*", params.Filter.Include[1].String())
-	assert.Equal(t, ".+", params.Filter.Include[2].String())
-	assert.Equal(t, "wakatime.+", params.Filter.Include[3].String())
+	assert.Equal(t, "(?i).*", params.Filter.Include[0].String())
+	assert.Equal(t, "(?i)wakatime.*", params.Filter.Include[1].String())
+	assert.Equal(t, "(?i).+", params.Filter.Include[2].String())
+	assert.Equal(t, "(?i)wakatime.+", params.Filter.Include[3].String())
 }
 
 func TestLoadParams_Filter_Include_IgnoresInvalidRegex(t *testing.T) {
@@ -729,7 +736,7 @@ func TestLoadParams_Filter_Include_IgnoresInvalidRegex(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Len(t, params.Filter.Include, 1)
-	assert.Equal(t, ".*", params.Filter.Include[0].String())
+	assert.Equal(t, "(?i).*", params.Filter.Include[0].String())
 }
 
 func TestLoadParams_Filter_Include_PerlRegexPatterns(t *testing.T) {
@@ -748,7 +755,7 @@ func TestLoadParams_Filter_Include_PerlRegexPatterns(t *testing.T) {
 			require.NoError(t, err)
 
 			require.Len(t, params.Filter.Include, 1)
-			assert.Equal(t, pattern, params.Filter.Include[0].String())
+			assert.Equal(t, "(?i)"+pattern, params.Filter.Include[0].String())
 		})
 	}
 }
