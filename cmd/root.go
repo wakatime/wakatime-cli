@@ -165,6 +165,7 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 		"(internal) Specify an offline queue file, which will be used instead of the default one.",
 	)
 	flags.String("plugin", "", "Optional text editor plugin name and version for User-Agent header.")
+	flags.Int("print-offline-heartbeats", offline.PrintMaxDefault, "Prints offline heartbeats to stdout.")
 	flags.String("project", "", "Override auto-detected project."+
 		" Use --alternate-project to supply a fallback project if one can't be auto-detected.")
 	flags.String(

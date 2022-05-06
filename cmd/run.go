@@ -16,6 +16,7 @@ import (
 	"github.com/wakatime/wakatime-cli/cmd/logfile"
 	cmdoffline "github.com/wakatime/wakatime-cli/cmd/offline"
 	"github.com/wakatime/wakatime-cli/cmd/offlinecount"
+	"github.com/wakatime/wakatime-cli/cmd/offlineprint"
 	"github.com/wakatime/wakatime-cli/cmd/offlinesync"
 	"github.com/wakatime/wakatime-cli/cmd/params"
 	"github.com/wakatime/wakatime-cli/cmd/today"
@@ -122,11 +123,18 @@ func Run(cmd *cobra.Command, v *viper.Viper) {
 		RunCmd(v, logFileParams.Verbose, offlinecount.Run)
 	}
 
+	if v.IsSet("print-offline-heartbeats") {
+		log.Debugln("command: print-offline-heartbeats")
+
+		RunCmd(v, logFileParams.Verbose, offlineprint.Run)
+	}
+
 	log.Warnf("one of the following parameters has to be provided: %s", strings.Join([]string{
 		"--config-read",
 		"--config-write",
 		"--entity",
 		"--offline-count",
+		"--print-offline-heartbeats",
 		"--sync-offline-activity",
 		"--today",
 		"--today-goal",

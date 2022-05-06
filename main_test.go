@@ -22,6 +22,7 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/offline"
 	"github.com/wakatime/wakatime-cli/pkg/version"
+	"github.com/wakatime/wakatime-cli/pkg/windows"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -555,6 +556,76 @@ func TestOfflineCountEmpty(t *testing.T) {
 	)
 
 	assert.Equal(t, "0\n", out)
+}
+
+func TestPrintOfflineHeartbeats(t *testing.T) {
+	apiURL, router, close := setupTestServer()
+	defer close()
+
+	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, err := io.Copy(w, strings.NewReader("500 error test"))
+		require.NoError(t, err)
+	})
+
+	tmpDir := t.TempDir()
+
+	offlineQueueFile, err := os.CreateTemp(tmpDir, "")
+	require.NoError(t, err)
+
+	defer offlineQueueFile.Close()
+
+	tmpFile, err := os.CreateTemp(tmpDir, "wakatime.cfg")
+	require.NoError(t, err)
+
+	defer tmpFile.Close()
+
+	out := runWakatimeCliExpectErr(
+		t,
+		exitcode.ErrAPI,
+		"--api-url", apiURL,
+		"--key", "00000000-0000-4000-8000-000000000000",
+		"--config", tmpFile.Name(),
+		"--entity", "testdata/main.go",
+		"--cursorpos", "12",
+		"--offline-queue-file", offlineQueueFile.Name(),
+		"--lineno", "42",
+		"--lines-in-file", "100",
+		"--time", "1585598059",
+		"--hide-branch-names", ".*",
+		"--project", "wakatime-cli",
+		"--log-to-stdout",
+		"--write",
+		"--verbose",
+	)
+
+	assert.Empty(t, out)
+
+	out = runWakatimeCli(
+		t,
+		&bytes.Buffer{},
+		"--key", "00000000-0000-4000-8000-000000000000",
+		"--offline-queue-file", offlineQueueFile.Name(),
+		"--print-offline-heartbeats", "10",
+		"--verbose",
+	)
+
+	entity, err := filepath.Abs("testdata/main.go")
+	require.NoError(t, err)
+
+	if runtime.GOOS == "windows" {
+		entity = windows.FormatFilePath(entity)
+	}
+
+	offlineHeartbeat, err := os.ReadFile("testdata/offline_heartbeat_template.json")
+	require.NoError(t, err)
+
+	offlineHeartbeatStr := fmt.Sprintf(
+		string(offlineHeartbeat),
+		entity, heartbeat.UserAgentUnknownPlugin(),
+	)
+
+	assert.Equal(t, offlineHeartbeatStr+"\n", out)
 }
 
 func TestUserAgent(t *testing.T) {

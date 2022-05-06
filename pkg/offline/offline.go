@@ -24,6 +24,8 @@ const (
 	// maxRequeueAttempts defines the maximum number of attempts to requeue heartbeats,
 	// which could not successfully be sent to the WakaTime API.
 	maxRequeueAttempts = 3
+	// PrintMaxDefault is the default maximum number of heartbeats to print.
+	PrintMaxDefault = 10
 	// SendLimit is the maximum number of heartbeats, which will be sent at once
 	// to the WakaTime API.
 	SendLimit = 25
@@ -356,6 +358,39 @@ func CountHeartbeats(filepath string) (int, error) {
 	return count, nil
 }
 
+// ReadHeartbeats reads the informed heartbeats in the offline db.
+func ReadHeartbeats(filepath string, limit int) ([]heartbeat.Heartbeat, error) {
+	db, err := bolt.Open(filepath, 0600, &bolt.Options{Timeout: 30 * time.Second})
+	if err != nil {
+		return nil, fmt.Errorf("failed to open db connection: %s", err)
+	}
+
+	defer db.Close()
+
+	tx, err := db.Begin(true)
+	if err != nil {
+		return nil, fmt.Errorf("failed to start db transaction: %s", err)
+	}
+
+	queue := NewQueue(tx)
+
+	hh, err := queue.ReadMany(limit)
+	if err != nil {
+		log.Errorf("failed to read offline heartbeats: %s", err)
+
+		_ = tx.Rollback()
+
+		return nil, err
+	}
+
+	err = tx.Rollback()
+	if err != nil {
+		log.Warnf("failed to rollback transaction: %s", err)
+	}
+
+	return hh, nil
+}
+
 // Queue is a db client to temporarily store heartbeats in bolt db, in case heartbeat
 // sending to wakatime api is not possible. Transaction handling is left to the user
 // via the passed in transaction.
@@ -446,4 +481,34 @@ func (q *Queue) Count() (int, error) {
 	}
 
 	return b.Stats().KeyN, nil
+}
+
+// ReadMany reads heartbeats from db without deleting them.
+func (q *Queue) ReadMany(limit int) ([]heartbeat.Heartbeat, error) {
+	b, err := q.tx.CreateBucketIfNotExists([]byte(q.Bucket))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create/load bucket: %s", err)
+	}
+
+	var heartbeats = make([]heartbeat.Heartbeat, 0)
+
+	// load values
+	c := b.Cursor()
+
+	for key, value := c.First(); key != nil; key, value = c.Next() {
+		if len(heartbeats) >= limit {
+			break
+		}
+
+		var h heartbeat.Heartbeat
+
+		err := json.Unmarshal(value, &h)
+		if err != nil {
+			return nil, fmt.Errorf("failed to json unmarshal heartbeat data: %s", err)
+		}
+
+		heartbeats = append(heartbeats, h)
+	}
+
+	return heartbeats, nil
 }
