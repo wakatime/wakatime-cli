@@ -7,12 +7,12 @@ import (
 	"os"
 	"testing"
 
-	"github.com/spf13/viper"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"github.com/wakatime/wakatime-cli/cmd/offlinecount"
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
 
+	"github.com/spf13/viper"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	bolt "go.etcd.io/bbolt"
 )
 
@@ -72,10 +72,10 @@ func TestOfflineCount(t *testing.T) {
 	db, err := bolt.Open(f.Name(), 0600, nil)
 	require.NoError(t, err)
 
-	dataGo, err := os.ReadFile("../testdata/heartbeat_go.json")
+	dataGo, err := os.ReadFile("testdata/heartbeat_go.json")
 	require.NoError(t, err)
 
-	dataPy, err := os.ReadFile("../testdata/heartbeat_py.json")
+	dataPy, err := os.ReadFile("testdata/heartbeat_py.json")
 	require.NoError(t, err)
 
 	insertHeartbeatRecords(t, db, "heartbeats", []heartbeatRecord{
