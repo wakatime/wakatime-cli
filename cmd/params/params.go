@@ -117,6 +117,7 @@ type (
 	Offline struct {
 		Disabled  bool
 		QueueFile string
+		PrintMax  int
 		SyncMax   int
 	}
 
@@ -602,6 +603,7 @@ func LoadOfflineParams(v *viper.Viper) (Offline, error) {
 	return Offline{
 		Disabled:  disabled,
 		QueueFile: vipertools.GetString(v, "offline-queue-file"),
+		PrintMax:  v.GetInt("print-offline-heartbeats"),
 		SyncMax:   syncMax,
 	}, nil
 }

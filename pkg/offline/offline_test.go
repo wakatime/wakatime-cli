@@ -795,6 +795,89 @@ func TestSync_SyncLimit(t *testing.T) {
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
 
+func TestReadHeartbeats(t *testing.T) {
+	// setup
+	f, err := os.CreateTemp(t.TempDir(), "")
+	require.NoError(t, err)
+
+	defer f.Close()
+
+	db, err := bolt.Open(f.Name(), 0600, nil)
+	require.NoError(t, err)
+
+	dataGo, err := os.ReadFile("testdata/heartbeat_go.json")
+	require.NoError(t, err)
+
+	dataPy, err := os.ReadFile("testdata/heartbeat_py.json")
+	require.NoError(t, err)
+
+	insertHeartbeatRecords(t, db, "heartbeats", []heartbeatRecord{
+		{
+			ID:        "1592868367.219124-file-coding-wakatime-cli-heartbeat-/tmp/main.go-true",
+			Heartbeat: string(dataGo),
+		},
+		{
+			ID:        "1592868386.079084-file-debugging-wakatime-summary-/tmp/main.py-false",
+			Heartbeat: string(dataPy),
+		},
+	})
+
+	db.Close()
+
+	hh, err := offline.ReadHeartbeats(f.Name(), offline.PrintMaxDefault)
+	require.NoError(t, err)
+
+	assert.Len(t, hh, 2)
+}
+
+func TestReadHeartbeats_WithLimit(t *testing.T) {
+	// setup
+	f, err := os.CreateTemp(t.TempDir(), "")
+	require.NoError(t, err)
+
+	defer f.Close()
+
+	db, err := bolt.Open(f.Name(), 0600, nil)
+	require.NoError(t, err)
+
+	dataGo, err := os.ReadFile("testdata/heartbeat_go.json")
+	require.NoError(t, err)
+
+	dataPy, err := os.ReadFile("testdata/heartbeat_py.json")
+	require.NoError(t, err)
+
+	insertHeartbeatRecords(t, db, "heartbeats", []heartbeatRecord{
+		{
+			ID:        "1592868367.219124-file-coding-wakatime-cli-heartbeat-/tmp/main.go-true",
+			Heartbeat: string(dataGo),
+		},
+		{
+			ID:        "1592868386.079084-file-debugging-wakatime-summary-/tmp/main.py-false",
+			Heartbeat: string(dataPy),
+		},
+	})
+
+	db.Close()
+
+	hh, err := offline.ReadHeartbeats(f.Name(), 1)
+	require.NoError(t, err)
+
+	assert.Len(t, hh, 1)
+}
+
+func TestReadHeartbeats_Empty(t *testing.T) {
+	// setup
+	f, err := os.CreateTemp(t.TempDir(), "")
+	require.NoError(t, err)
+
+	defer f.Close()
+
+	hh, err := offline.ReadHeartbeats(f.Name(), offline.PrintMaxDefault)
+	require.NoError(t, err)
+
+	assert.Len(t, hh, 0)
+}
+
 func TestQueue_PopMany(t *testing.T) {
 	// setup
 	f, err := os.CreateTemp(t.TempDir(), "")
@@ -997,6 +1080,114 @@ func TestQueue_Count(t *testing.T) {
 
 	err = tx.Rollback()
 	require.NoError(t, err)
+}
+
+func TestQueue_ReadMany(t *testing.T) {
+	// setup
+	f, err := os.CreateTemp(t.TempDir(), "")
+	require.NoError(t, err)
+
+	defer f.Close()
+
+	db, err := bolt.Open(f.Name(), 0600, nil)
+	require.NoError(t, err)
+
+	defer db.Close()
+
+	dataGo, err := os.ReadFile("testdata/heartbeat_go.json")
+	require.NoError(t, err)
+
+	dataPy, err := os.ReadFile("testdata/heartbeat_py.json")
+	require.NoError(t, err)
+
+	dataJs, err := os.ReadFile("testdata/heartbeat_js.json")
+	require.NoError(t, err)
+
+	insertHeartbeatRecords(t, db, "test_bucket", []heartbeatRecord{
+		{
+			ID:        "1592868367.219124-file-coding-wakatime-cli-heartbeat-/tmp/main.go-true",
+			Heartbeat: string(dataGo),
+		},
+		{
+			ID:        "1592868386.079084-file-debugging-wakatime-summary-/tmp/main.py-false",
+			Heartbeat: string(dataPy),
+		},
+		{
+			ID:        "1592868394.084354-file-building-wakatime-todaygoal-/tmp/main.js-false",
+			Heartbeat: string(dataJs),
+		},
+	})
+
+	tx, err := db.Begin(true)
+	require.NoError(t, err)
+
+	// run
+	q := offline.NewQueue(tx)
+	q.Bucket = "test_bucket"
+	hh, err := q.ReadMany(2)
+	require.NoError(t, err)
+
+	err = tx.Commit()
+	require.NoError(t, err)
+
+	// check
+	assert.Len(t, hh, 2)
+	assert.Contains(t, hh, testHeartbeats()[0])
+	assert.Contains(t, hh, testHeartbeats()[1])
+
+	var stored []heartbeatRecord
+
+	err = db.View(func(tx *bolt.Tx) error {
+		c := tx.Bucket([]byte("test_bucket")).Cursor()
+
+		for key, value := c.First(); key != nil; key, value = c.Next() {
+			stored = append(stored, heartbeatRecord{
+				ID:        string(key),
+				Heartbeat: string(value),
+			})
+		}
+
+		return nil
+	})
+	require.NoError(t, err)
+
+	assert.Len(t, stored, 3)
+
+	assert.Equal(t, "1592868367.219124-file-coding-wakatime-cli-heartbeat-/tmp/main.go-true", stored[0].ID)
+	assert.Equal(t, "1592868386.079084-file-debugging-wakatime-summary-/tmp/main.py-false", stored[1].ID)
+	assert.Equal(t, "1592868394.084354-file-building-wakatime-todaygoal-/tmp/main.js-false", stored[2].ID)
+
+	assert.JSONEq(t, string(dataGo), stored[0].Heartbeat)
+	assert.JSONEq(t, string(dataPy), stored[1].Heartbeat)
+	assert.JSONEq(t, string(dataJs), stored[2].Heartbeat)
+}
+
+func TestQueue_ReadMany_Empty(t *testing.T) {
+	// setup
+	f, err := os.CreateTemp(t.TempDir(), "")
+	require.NoError(t, err)
+
+	defer f.Close()
+
+	db, err := bolt.Open(f.Name(), 0600, nil)
+	require.NoError(t, err)
+
+	defer db.Close()
+
+	tx, err := db.Begin(true)
+	require.NoError(t, err)
+
+	// run
+	q := offline.NewQueue(tx)
+	q.Bucket = "test_bucket"
+	hh, err := q.ReadMany(10)
+	require.NoError(t, err)
+
+	err = tx.Commit()
+	require.NoError(t, err)
+
+	// check
+	assert.Len(t, hh, 0)
 }
 
 func initDB(t *testing.T) (*bolt.DB, func()) {
