@@ -339,20 +339,18 @@ func CountHeartbeats(filepath string) (int, error) {
 		return 0, fmt.Errorf("failed to start db transaction: %s", err)
 	}
 
+	defer func() {
+		err := tx.Rollback()
+		if err != nil {
+			log.Errorf("failed to rollback transaction: %s", err)
+		}
+	}()
+
 	queue := NewQueue(tx)
 
 	count, err := queue.Count()
 	if err != nil {
-		log.Errorf("failed to count offline heartbeats: %s", err)
-
-		_ = tx.Rollback()
-
-		return count, err
-	}
-
-	err = tx.Rollback()
-	if err != nil {
-		log.Warnf("failed to rollback transaction: %s", err)
+		return 0, fmt.Errorf("failed to count heartbeats: %s", err)
 	}
 
 	return count, nil
@@ -405,6 +403,16 @@ func NewQueue(tx *bolt.Tx) *Queue {
 		Bucket: dbBucket,
 		tx:     tx,
 	}
+}
+
+// Count returns the total number of heartbeats in the offline db.
+func (q *Queue) Count() (int, error) {
+	b, err := q.tx.CreateBucketIfNotExists([]byte(q.Bucket))
+	if err != nil {
+		return 0, fmt.Errorf("failed to create/load bucket: %s", err)
+	}
+
+	return b.Stats().KeyN, nil
 }
 
 // PopMany retrieves heartbeats with the specified ids from db.
@@ -471,16 +479,6 @@ func (q *Queue) PushMany(hh []heartbeat.Heartbeat) error {
 	}
 
 	return nil
-}
-
-// Count returns the total number of heartbeats in the offline db.
-func (q *Queue) Count() (int, error) {
-	b, err := q.tx.CreateBucketIfNotExists([]byte(q.Bucket))
-	if err != nil {
-		return 0, fmt.Errorf("failed to create/load bucket: %s", err)
-	}
-
-	return b.Stats().KeyN, nil
 }
 
 // ReadMany reads heartbeats from db without deleting them.
