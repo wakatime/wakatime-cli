@@ -50,7 +50,7 @@ func TestUpdateBackoffSettings(t *testing.T) {
 	err = updateBackoffSettings(v, 2, at)
 	require.NoError(t, err)
 
-	writer, err := ini.NewIniWriter(v, func(vp *viper.Viper) (string, error) {
+	writer, err := ini.NewWriter(v, func(vp *viper.Viper) (string, error) {
 		assert.Equal(t, v, vp)
 		return tmpFile.Name(), nil
 	})
@@ -76,7 +76,7 @@ func TestUpdateBackoffSettings_NotInBackoff(t *testing.T) {
 	err = updateBackoffSettings(v, 0, time.Time{})
 	require.NoError(t, err)
 
-	writer, err := ini.NewIniWriter(v, func(vp *viper.Viper) (string, error) {
+	writer, err := ini.NewWriter(v, func(vp *viper.Viper) (string, error) {
 		assert.Equal(t, v, vp)
 		return tmpFile.Name(), nil
 	})

@@ -36,11 +36,11 @@ import (
 
 // Run executes commands parsed from a command line.
 func Run(cmd *cobra.Command, v *viper.Viper) {
+	// force setup logging otherwise log goes to std out
+	_ = SetupLogging(v)
+
 	err := parseConfigFiles(v)
 	if err != nil {
-		// force setup logging otherwise log goes to std out
-		_ = SetupLogging(v)
-
 		log.Errorf("failed to parse config files: %s", err)
 
 		if !v.IsSet("entity") {
@@ -59,6 +59,7 @@ func Run(cmd *cobra.Command, v *viper.Viper) {
 		os.Exit(exitcode.ErrConfigFileParse)
 	}
 
+	// setup logging again to use config file settings
 	logFileParams := SetupLogging(v)
 
 	if v.GetBool("useragent") {
@@ -160,6 +161,16 @@ func parseConfigFiles(v *viper.Viper) error {
 			fmt.Fprintf(os.Stderr, "error getting config file path: %s", err)
 
 			return fmt.Errorf("error getting config file path: %s", err)
+		}
+
+		if configFile == "" {
+			continue
+		}
+
+		// check if file exists
+		if _, err := os.Stat(configFile); os.IsNotExist(err) {
+			log.Debugf("config file %q not present or not accessible", configFile)
+			continue
 		}
 
 		if err := ini.ReadInConfig(v, configFile); err != nil {
