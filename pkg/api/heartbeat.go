@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sort"
 	"strings"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
@@ -28,9 +29,10 @@ func (c *Client) SendHeartbeats(heartbeats []heartbeat.Heartbeat) ([]heartbeat.R
 	var results []heartbeat.Result
 
 	grouped := groupByApiKey(heartbeats)
+	keys := sortKeys(grouped)
 
-	for _, hh := range grouped {
-		res, err := c.sendHeartbeats(url, hh)
+	for _, k := range keys {
+		res, err := c.sendHeartbeats(url, grouped[k])
 		if err != nil {
 			return nil, err
 		}
@@ -220,6 +222,20 @@ func groupByApiKey(hh []heartbeat.Heartbeat) map[string][]heartbeat.Heartbeat {
 	}
 
 	return grouped
+}
+
+func sortKeys[K string, V any](m map[K]V) []K {
+	keys := make([]K, len(m))
+	i := 0
+
+	for k := range m {
+		keys[i] = k
+		i++
+	}
+
+	sort.Slice(keys, func(i, j int) bool { return keys[i] < keys[j] })
+
+	return keys
 }
 
 func setAuthHeader(req *http.Request, apiKey string) {
