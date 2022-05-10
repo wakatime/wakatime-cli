@@ -1,4 +1,4 @@
-package offlinecount_test
+package offlineprint_test
 
 import (
 	"bytes"
@@ -7,7 +7,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/wakatime/wakatime-cli/cmd/offlinecount"
+	"github.com/wakatime/wakatime-cli/cmd/offlineprint"
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
 
 	"github.com/spf13/viper"
@@ -16,53 +16,7 @@ import (
 	bolt "go.etcd.io/bbolt"
 )
 
-func TestOfflineCount_Empty(t *testing.T) {
-	// setup offline queue
-	f, err := os.CreateTemp(t.TempDir(), "")
-	require.NoError(t, err)
-
-	defer f.Close()
-
-	db, err := bolt.Open(f.Name(), 0600, nil)
-	require.NoError(t, err)
-
-	insertHeartbeatRecords(t, db, "heartbeats", []heartbeatRecord{})
-	db.Close()
-
-	v := viper.New()
-	v.Set("verbose", true)
-	v.Set("offline-count", true)
-	v.Set("key", "00000000-0000-4000-8000-000000000000")
-	v.Set("offline-queue-file", f.Name())
-
-	stdout := os.Stdout // keep backup of the real stdout
-	r, w, _ := os.Pipe()
-	os.Stdout = w
-
-	code, err := offlinecount.Run(v)
-	assert.Equal(t, exitcode.Success, code)
-	require.NoError(t, err)
-
-	outC := make(chan string)
-	// copy the output in a separate goroutine so printing can't block indefinitely
-	go func() {
-		var buf bytes.Buffer
-		_, err = io.Copy(&buf, r)
-		require.NoError(t, err)
-		outC <- buf.String()
-	}()
-
-	w.Close()
-
-	os.Stdout = stdout
-	output := <-outC
-
-	assert.Equal(t, exitcode.Success, code)
-	require.NoError(t, err)
-	assert.Equal(t, "0\n", output)
-}
-
-func TestOfflineCount(t *testing.T) {
+func TestPrintOfflineHeartbeats(t *testing.T) {
 	// setup offline queue
 	f, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)
@@ -92,7 +46,7 @@ func TestOfflineCount(t *testing.T) {
 	db.Close()
 
 	v := viper.New()
-	v.Set("offline-count", true)
+	v.Set("print-offline-heartbeats", 10)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("offline-queue-file", f.Name())
 
@@ -100,7 +54,48 @@ func TestOfflineCount(t *testing.T) {
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 
-	code, err := offlinecount.Run(v)
+	code, err := offlineprint.Run(v)
+	require.NoError(t, err)
+
+	outC := make(chan string)
+	// copy the output in a separate goroutine so printing can't block indefinitely
+	go func() {
+		var buf bytes.Buffer
+		_, err = io.Copy(&buf, r)
+		require.NoError(t, err)
+		outC <- buf.String()
+	}()
+
+	w.Close()
+
+	os.Stdout = stdout
+	output := <-outC
+
+	offlineHeartbeat, err := os.ReadFile("testdata/offline_heartbeat.json")
+	require.NoError(t, err)
+
+	assert.Equal(t, exitcode.Success, code)
+	assert.Equal(t, string(offlineHeartbeat)+"\n", output)
+}
+
+func TestPrintOfflineHeartbeats_Empty(t *testing.T) {
+	// setup offline queue
+	f, err := os.CreateTemp(t.TempDir(), "")
+	require.NoError(t, err)
+
+	defer f.Close()
+
+	v := viper.New()
+	v.Set("print-offline-heartbeats", 10)
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("offline-queue-file", f.Name())
+
+	stdout := os.Stdout // keep backup of the real stdout
+	r, w, _ := os.Pipe()
+	os.Stdout = w
+
+	code, err := offlineprint.Run(v)
+	require.NoError(t, err)
 
 	outC := make(chan string)
 	// copy the output in a separate goroutine so printing can't block indefinitely
@@ -117,8 +112,7 @@ func TestOfflineCount(t *testing.T) {
 	output := <-outC
 
 	assert.Equal(t, exitcode.Success, code)
-	require.NoError(t, err)
-	assert.Equal(t, "2\n", output)
+	assert.Equal(t, "[]\n", output)
 }
 
 type heartbeatRecord struct {

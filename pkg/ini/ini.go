@@ -37,15 +37,27 @@ type Writer interface {
 
 // WriterConfig stores the configuration necessary to write to config file.
 type WriterConfig struct {
-	File           *ini.File
 	ConfigFilepath string
+	File           *ini.File
 }
 
-// NewIniWriter creates a new IniWriter instance.
-func NewIniWriter(v *viper.Viper, filepathFn func(v *viper.Viper) (string, error)) (*WriterConfig, error) {
+// NewWriter creates a new writer instance.
+func NewWriter(v *viper.Viper, filepathFn func(v *viper.Viper) (string, error)) (*WriterConfig, error) {
 	configFilepath, err := filepathFn(v)
 	if err != nil {
 		return nil, fmt.Errorf("error getting filepath: %s", err)
+	}
+
+	// check if file exists
+	if !fileExists(configFilepath) {
+		log.Debugf("it will create missing config file %q", configFilepath)
+
+		f, err := os.Create(configFilepath)
+		if err != nil {
+			return nil, fmt.Errorf("failed creating file: %s", err)
+		}
+
+		f.Close()
 	}
 
 	ini, err := ini.LoadSources(ini.LoadOptions{AllowPythonMultilineValues: true}, configFilepath)
@@ -54,8 +66,8 @@ func NewIniWriter(v *viper.Viper, filepathFn func(v *viper.Viper) (string, error
 	}
 
 	return &WriterConfig{
-		File:           ini,
 		ConfigFilepath: configFilepath,
+		File:           ini,
 	}, nil
 }
 
@@ -101,13 +113,6 @@ func ReadInConfig(v *viper.Viper, configFilePath string) error {
 	v.SetConfigType("ini")
 	v.SetConfigFile(configFilePath)
 
-	// check if file exists
-	if _, err := os.Stat(configFilePath); os.IsNotExist(err) {
-		log.Debugf("config file not present or not accessible")
-
-		return nil
-	}
-
 	if err := v.MergeInConfig(); err != nil {
 		return fmt.Errorf("error parsing config file: %s", err)
 	}
@@ -135,6 +140,7 @@ func FilePath(v *viper.Viper) (string, error) {
 	return filepath.Join(home, defaultFile), nil
 }
 
+// ImportFilePath returns the path for import wakatime config file.
 func ImportFilePath(v *viper.Viper) (string, error) {
 	configFilepath := vipertools.GetString(v, "settings.import_cfg")
 	if configFilepath != "" {
@@ -213,4 +219,10 @@ func (mc *mutexClock) After(time.Duration) <-chan time.Time {
 
 func (*mutexClock) Now() time.Time {
 	return time.Now()
+}
+
+// fileExists checks if a file or directory exist.
+func fileExists(fp string) bool {
+	_, err := os.Stat(fp)
+	return err == nil || os.IsExist(err)
 }

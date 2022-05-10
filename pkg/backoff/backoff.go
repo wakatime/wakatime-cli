@@ -86,7 +86,7 @@ func shouldBackoff(retries int, at time.Time) bool {
 }
 
 func updateBackoffSettings(v *viper.Viper, retries int, at time.Time) error {
-	w, err := ini.NewIniWriter(v, ini.InternalFilePath)
+	w, err := ini.NewWriter(v, ini.InternalFilePath)
 	if err != nil {
 		return fmt.Errorf("failed to parse config file: %s", err)
 	}

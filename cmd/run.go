@@ -16,6 +16,7 @@ import (
 	"github.com/wakatime/wakatime-cli/cmd/logfile"
 	cmdoffline "github.com/wakatime/wakatime-cli/cmd/offline"
 	"github.com/wakatime/wakatime-cli/cmd/offlinecount"
+	"github.com/wakatime/wakatime-cli/cmd/offlineprint"
 	"github.com/wakatime/wakatime-cli/cmd/offlinesync"
 	"github.com/wakatime/wakatime-cli/cmd/params"
 	"github.com/wakatime/wakatime-cli/cmd/today"
@@ -35,11 +36,11 @@ import (
 
 // Run executes commands parsed from a command line.
 func Run(cmd *cobra.Command, v *viper.Viper) {
+	// force setup logging otherwise log goes to std out
+	_ = SetupLogging(v)
+
 	err := parseConfigFiles(v)
 	if err != nil {
-		// force setup logging otherwise log goes to std out
-		_ = SetupLogging(v)
-
 		log.Errorf("failed to parse config files: %s", err)
 
 		if !v.IsSet("entity") {
@@ -58,6 +59,7 @@ func Run(cmd *cobra.Command, v *viper.Viper) {
 		os.Exit(exitcode.ErrConfigFileParse)
 	}
 
+	// setup logging again to use config file settings
 	logFileParams := SetupLogging(v)
 
 	if v.GetBool("useragent") {
@@ -122,11 +124,18 @@ func Run(cmd *cobra.Command, v *viper.Viper) {
 		RunCmd(v, logFileParams.Verbose, offlinecount.Run)
 	}
 
+	if v.IsSet("print-offline-heartbeats") {
+		log.Debugln("command: print-offline-heartbeats")
+
+		RunCmd(v, logFileParams.Verbose, offlineprint.Run)
+	}
+
 	log.Warnf("one of the following parameters has to be provided: %s", strings.Join([]string{
 		"--config-read",
 		"--config-write",
 		"--entity",
 		"--offline-count",
+		"--print-offline-heartbeats",
 		"--sync-offline-activity",
 		"--today",
 		"--today-goal",
@@ -152,6 +161,16 @@ func parseConfigFiles(v *viper.Viper) error {
 			fmt.Fprintf(os.Stderr, "error getting config file path: %s", err)
 
 			return fmt.Errorf("error getting config file path: %s", err)
+		}
+
+		if configFile == "" {
+			continue
+		}
+
+		// check if file exists
+		if _, err := os.Stat(configFile); os.IsNotExist(err) {
+			log.Debugf("config file %q not present or not accessible", configFile)
+			continue
 		}
 
 		if err := ini.ReadInConfig(v, configFile); err != nil {
