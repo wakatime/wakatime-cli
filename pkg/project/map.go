@@ -62,7 +62,7 @@ func matchPattern(fp string, patterns []MapPattern) (string, bool) {
 	return "", false
 }
 
-// String returns its name.
-func (Map) String() string {
-	return "project-map-detector"
+// ID returns its id.
+func (Map) ID() DetectorID {
+	return MapDetector
 }

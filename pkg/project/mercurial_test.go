@@ -68,6 +68,12 @@ func TestMercurial_Detect_NoBranch(t *testing.T) {
 	}, result)
 }
 
+func TestMercurial_ID(t *testing.T) {
+	m := project.Mercurial{}
+
+	assert.Equal(t, project.MercurialDetector, m.ID())
+}
+
 func setupTestMercurial(t *testing.T) (fp string) {
 	tmpDir := t.TempDir()
 

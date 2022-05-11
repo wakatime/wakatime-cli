@@ -219,8 +219,7 @@ func initHandleOptions(params paramscmd.Params) []heartbeat.HandleOption {
 			FilePatterns: params.Heartbeat.Sanitize.HideFileNames,
 		}),
 		project.WithDetection(project.Config{
-			ShouldObfuscateProject: heartbeat.ShouldSanitize(
-				params.Heartbeat.Entity, params.Heartbeat.Sanitize.HideProjectNames),
+			HideProjectNames:  params.Heartbeat.Sanitize.HideProjectNames,
 			MapPatterns:       params.Heartbeat.Project.MapPatterns,
 			SubmodulePatterns: params.Heartbeat.Project.DisableSubmodule,
 		}),
