@@ -39,7 +39,7 @@ func (t Tfvc) Detect() (Result, bool, error) {
 	}, true, nil
 }
 
-// String returns its name.
-func (Tfvc) String() string {
-	return "tfvc-detector"
+// ID returns its id.
+func (Tfvc) ID() DetectorID {
+	return TfvcDetector
 }

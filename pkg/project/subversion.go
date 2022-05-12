@@ -118,7 +118,7 @@ func resolveSvnInfo(info map[string]string, key string) string {
 	return ""
 }
 
-// String returns its name.
-func (Subversion) String() string {
-	return "svn-detector"
+// ID returns its id.
+func (Subversion) ID() DetectorID {
+	return SubversionDetector
 }

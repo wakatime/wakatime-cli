@@ -52,6 +52,12 @@ func TestSubversion_Detect_Branch(t *testing.T) {
 	}, result)
 }
 
+func TestSubversion_ID(t *testing.T) {
+	s := project.Subversion{}
+
+	assert.Equal(t, project.SubversionDetector, s.ID())
+}
+
 func setupTestSvn(t *testing.T) (fp string) {
 	tmpDir := t.TempDir()
 

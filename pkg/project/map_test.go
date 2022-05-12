@@ -107,8 +107,8 @@ func TestMap_Detect_ZeroPatterns(t *testing.T) {
 	assert.False(t, detected)
 }
 
-func TestMap_String(t *testing.T) {
+func TestMap_ID(t *testing.T) {
 	m := project.Map{}
 
-	assert.Equal(t, "project-map-detector", m.String())
+	assert.Equal(t, project.MapDetector, m.ID())
 }

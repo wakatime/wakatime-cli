@@ -256,7 +256,7 @@ func findGitBranch(fp string) (string, error) {
 	return "", nil
 }
 
-// String returns its name.
-func (Git) String() string {
-	return "git-detector"
+// ID returns its id.
+func (Git) ID() DetectorID {
+	return GitDetector
 }

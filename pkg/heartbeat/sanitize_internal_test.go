@@ -24,6 +24,11 @@ func TestHideProjectFolder(t *testing.T) {
 			Entity:              "/usr/temp/project/main.go",
 			Expected:            "project/main.go",
 		},
+		"windows path": {
+			ProjectPath: `C:/Users/wakatime/programming/study/learn_flutter`,
+			Entity:      `C:/Users/wakatime/programming/study/learn_flutter/lib/main.dart`,
+			Expected:    `lib/main.dart`,
+		},
 	}
 
 	for name, test := range tests {
@@ -34,7 +39,7 @@ func TestHideProjectFolder(t *testing.T) {
 				ProjectPathOverride: test.ProjectPathOverride,
 			}, true)
 
-			assert.Equal(t, h.Entity, test.Expected)
+			assert.Equal(t, test.Expected, h.Entity)
 		})
 	}
 }

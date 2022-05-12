@@ -65,7 +65,7 @@ func findHgBranch(fp string) (string, error) {
 	return "default", nil
 }
 
-// String returns its name.
-func (Mercurial) String() string {
-	return "mercurial-detector"
+// ID returns its id.
+func (Mercurial) ID() DetectorID {
+	return MercurialDetector
 }
