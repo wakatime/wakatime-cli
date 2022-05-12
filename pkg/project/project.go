@@ -28,76 +28,153 @@ const (
 	maxRecursiveIteration = 500
 )
 
-// Detecter is a common interface for project.
-type Detecter interface {
-	Detect() (Result, bool, error)
-	String() string
+// DetectorID represents a detector ID.
+type DetectorID int
+
+const (
+	// UnknownDetector is the detector ID used when not detected.
+	UnknownDetector DetectorID = iota
+	// FileDetector is the detector ID for file detector.
+	FileDetector
+	// MapDetector is the detector ID for map detector.
+	MapDetector
+	// GitDetector is the detector ID for git detector.
+	GitDetector
+	// MercurialDetector is the detector ID for mercurial detector.
+	MercurialDetector
+	// SubversionDetector is the detector ID for subversion detector.
+	SubversionDetector
+	// TfvcDetector is the detector ID for tfvc detector.
+	TfvcDetector
+)
+
+const (
+	fileDetectorString       = "project-file-detector"
+	mapDetectorString        = "project-map-detector"
+	gitDetectorString        = "git-detector"
+	mercurialDetectorString  = "mercurial-detector"
+	subversionDetectorString = "svn-detector"
+	tfvcDetectorString       = "tfvc-detector"
+)
+
+// String implements fmt.Stringer interface.
+func (d DetectorID) String() string {
+	switch d {
+	case FileDetector:
+		return fileDetectorString
+	case MapDetector:
+		return mapDetectorString
+	case GitDetector:
+		return gitDetectorString
+	case MercurialDetector:
+		return mercurialDetectorString
+	case SubversionDetector:
+		return subversionDetectorString
+	case TfvcDetector:
+		return tfvcDetectorString
+	default:
+		return ""
+	}
 }
 
-// Result contains the result of Detect().
-type Result struct {
-	Project string
-	Branch  string
-	Folder  string
-}
+type (
+	// Detecter is a common interface for project.
+	Detecter interface {
+		Detect() (Result, bool, error)
+		ID() DetectorID
+	}
 
-// Config contains project detection configurations.
-type Config struct {
-	// Patterns contains the overridden project name per path.
-	MapPatterns []MapPattern
-	// SubmodulePatterns contains the paths to validate for submodules.
-	SubmodulePatterns []regex.Regex
-	// ShouldObfuscateProject determines if the project name should be obfuscated according some rules.
-	ShouldObfuscateProject bool
-}
+	DetecterArg struct {
+		Filepath  string
+		ShouldRun bool
+	}
 
-// MapPattern contains [projectmap] data.
-type MapPattern struct {
-	// Name is the project name.
-	Name string
-	// Regex is the regular expression for a specific path.
-	Regex regex.Regex
-}
+	// Result contains the result of Detect().
+	Result struct {
+		Project string
+		Branch  string
+		Folder  string
+	}
+
+	// Config contains project detection configurations.
+	Config struct {
+		// HideProjectNames determines if the project name should be obfuscated by matching its path.
+		HideProjectNames []regex.Regex
+		// Patterns contains the overridden project name per path.
+		MapPatterns []MapPattern
+		// SubmodulePatterns contains the paths to validate for submodules.
+		SubmodulePatterns []regex.Regex
+	}
+
+	// MapPattern contains [projectmap] data.
+	MapPattern struct {
+		// Name is the project name.
+		Name string
+		// Regex is the regular expression for a specific path.
+		Regex regex.Regex
+	}
+)
 
 // WithDetection finds the current project and branch.
-// First looks for a .wakatime-project file. Second, uses the --project arg.
-// Third, uses the folder name from a revision control repository. Last, uses
-// the --alternate-project arg.
+// First looks for a .wakatime-project file or project map. Second, uses the
+// --project arg. Third, try to auto-detect using a revision control repository.
+// Last, uses the --alternate-project arg.
 func WithDetection(config Config) heartbeat.HandleOption {
 	return func(next heartbeat.Handle) heartbeat.Handle {
 		return func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 			for n, h := range hh {
-				log.Debugln("execute project detection for: ", h.Entity)
+				log.Debugln("execute project detection for:", h.Entity)
 
-				if h.EntityType != heartbeat.FileType || h.IsUnsavedEntity {
-					project := firstNonEmptyString(h.ProjectOverride, h.ProjectAlternate)
-					hh[n].Project = &project
+				// first, use .wakatime-project or [projectmap] section with entity path.
+				// Then, detect with project folder. This tries to use the same project name
+				// across all IDEs instead of sometimes using alternate project when file is unsaved
+				result, detector := Detect(config.MapPatterns,
+					DetecterArg{Filepath: h.Entity, ShouldRun: h.EntityType == heartbeat.FileType},
+					DetecterArg{Filepath: h.ProjectPathOverride, ShouldRun: true},
+				)
 
-					continue
-				}
-
-				result := Detect(h.Entity, config.MapPatterns)
-
-				if h.ProjectOverride != "" {
+				// second, use project override
+				if result.Project == "" && h.ProjectOverride != "" {
 					result.Project = h.ProjectOverride
+					result.Folder = h.ProjectPathOverride
 				}
 
-				if result.Project == "" || result.Branch == "" {
-					revControlResult := DetectWithRevControl(h.Entity, config.SubmodulePatterns)
+				// third, autodetect with revision control with entity path.
+				// Then, autodetect with project folder. This tries to use the same project name
+				// across all IDEs instead of sometimes using alternate project when file is unsaved
+				if result.Project == "" || result.Branch == "" || result.Folder == "" {
+					revControlResult := DetectWithRevControl(config.SubmodulePatterns,
+						DetecterArg{Filepath: h.Entity, ShouldRun: h.EntityType == heartbeat.FileType},
+						DetecterArg{Filepath: h.ProjectPathOverride, ShouldRun: true},
+					)
 
+					result.Project = firstNonEmptyString(result.Project, revControlResult.Project)
 					result.Branch = firstNonEmptyString(result.Branch, revControlResult.Branch)
 					result.Folder = firstNonEmptyString(result.Folder, revControlResult.Folder)
+				}
 
-					// obfuscate project will only run when hide project name is set and a project has been auto-detected
-					if config.ShouldObfuscateProject && revControlResult.Project != "" && result.Project == "" {
-						result.Project = obfuscateProjectName(result.Folder)
-					} else {
-						result.Project = firstNonEmptyString(result.Project, revControlResult.Project, h.ProjectAlternate)
-					}
+				// fourth, use alternate project
+				if result.Project == "" && h.ProjectAlternate != "" {
+					result.Project = h.ProjectAlternate
+					result.Folder = firstNonEmptyString(h.ProjectPathOverride, result.Folder)
+				}
+
+				// fifth, use project folder found or entity's path
+				result.Folder = firstNonEmptyString(result.Folder, h.ProjectPathOverride)
+
+				// sixth, if no folder is found, use entity's directory
+				if h.EntityType == heartbeat.FileType && result.Folder == "" {
+					result.Folder = filepath.Dir(h.Entity)
 				}
 
 				if runtime.GOOS == "windows" && result.Folder != "" {
 					result.Folder = windows.FormatFilePath(result.Folder)
+				}
+
+				// finally, obfuscate project name if necessary
+				if heartbeat.ShouldSanitize(result.Folder, config.HideProjectNames) &&
+					result.Project != "" && detector != FileDetector {
+					result.Project = obfuscateProjectName(result.Folder)
 				}
 
 				hh[n].Project = &result.Project
@@ -111,67 +188,77 @@ func WithDetection(config Config) heartbeat.HandleOption {
 }
 
 // Detect finds the current project and branch from config plugins.
-func Detect(entity string, patterns []MapPattern) Result {
-	var configPlugins = []Detecter{
-		File{
-			Filepath: entity,
-		},
-		Map{
-			Filepath: entity,
-			Patterns: patterns,
-		},
-	}
-
-	for _, p := range configPlugins {
-		log.Debugln("execute", p.String())
-
-		result, detected, err := p.Detect()
-		if err != nil {
-			log.Errorf("unexpected error occurred at %q: %s", p.String(), err)
+func Detect(patterns []MapPattern, args ...DetecterArg) (Result, DetectorID) {
+	for _, arg := range args {
+		if !arg.ShouldRun || arg.Filepath == "" {
 			continue
-		} else if detected {
-			return result
+		}
+
+		var configPlugins = []Detecter{
+			File{
+				Filepath: arg.Filepath,
+			},
+			Map{
+				Filepath: arg.Filepath,
+				Patterns: patterns,
+			},
+		}
+
+		for _, p := range configPlugins {
+			log.Debugln("execute", p.ID().String())
+
+			result, detected, err := p.Detect()
+			if err != nil {
+				log.Errorf("unexpected error occurred at %q: %s", p.ID().String(), err)
+				continue
+			} else if detected {
+				return result, p.ID()
+			}
 		}
 	}
 
-	return Result{}
+	return Result{}, UnknownDetector
 }
 
 // DetectWithRevControl finds the current project and branch from rev control.
-func DetectWithRevControl(entity string, submodulePatterns []regex.Regex) Result {
-	var revControlPlugins = []Detecter{
-		Git{
-			Filepath:          entity,
-			SubmodulePatterns: submodulePatterns,
-		},
-		Mercurial{
-			Filepath: entity,
-		},
-		Subversion{
-			Filepath: entity,
-		},
-		Tfvc{
-			Filepath: entity,
-		},
-	}
-
-	for _, p := range revControlPlugins {
-		log.Debugln("execute", p.String())
-
-		result, detected, err := p.Detect()
-		if err != nil {
-			log.Errorf("unexpected error occurred at %q: %s", p.String(), err)
+func DetectWithRevControl(submodulePatterns []regex.Regex, args ...DetecterArg) Result {
+	for _, arg := range args {
+		if !arg.ShouldRun || arg.Filepath == "" {
 			continue
 		}
 
-		if detected {
-			result := Result{
-				Project: result.Project,
-				Branch:  result.Branch,
-				Folder:  result.Folder,
+		var revControlPlugins = []Detecter{
+			Git{
+				Filepath:          arg.Filepath,
+				SubmodulePatterns: submodulePatterns,
+			},
+			Mercurial{
+				Filepath: arg.Filepath,
+			},
+			Subversion{
+				Filepath: arg.Filepath,
+			},
+			Tfvc{
+				Filepath: arg.Filepath,
+			},
+		}
+
+		for _, p := range revControlPlugins {
+			log.Debugln("execute", p.ID().String())
+
+			result, detected, err := p.Detect()
+			if err != nil {
+				log.Errorf("unexpected error occurred at %q: %s", p.ID().String(), err)
+				continue
 			}
 
-			return result
+			if detected {
+				return Result{
+					Project: result.Project,
+					Branch:  result.Branch,
+					Folder:  result.Folder,
+				}
+			}
 		}
 	}
 

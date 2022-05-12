@@ -32,6 +32,7 @@ func TestWithDetection_EntityNotFile(t *testing.T) {
 				},
 			},
 			Expected: heartbeat.Heartbeat{
+				Branch:           heartbeat.PointerTo(""),
 				EntityType:       heartbeat.AppType,
 				Project:          heartbeat.PointerTo("billing"),
 				ProjectAlternate: "pci",
@@ -46,6 +47,7 @@ func TestWithDetection_EntityNotFile(t *testing.T) {
 				},
 			},
 			Expected: heartbeat.Heartbeat{
+				Branch:           heartbeat.PointerTo(""),
 				EntityType:       heartbeat.AppType,
 				Project:          heartbeat.PointerTo("pci"),
 				ProjectAlternate: "pci",
@@ -58,6 +60,7 @@ func TestWithDetection_EntityNotFile(t *testing.T) {
 				},
 			},
 			Expected: heartbeat.Heartbeat{
+				Branch:     heartbeat.PointerTo(""),
 				EntityType: heartbeat.AppType,
 				Project:    heartbeat.PointerTo(""),
 			},
@@ -82,145 +85,6 @@ func TestWithDetection_EntityNotFile(t *testing.T) {
 	}
 }
 
-func TestWithDetection_OverrideTakesPrecedence(t *testing.T) {
-	fp := setupTestGitBasic(t)
-
-	entity := filepath.Join(fp, "wakatime-cli/src/pkg/file.go")
-	projectPath := filepath.Join(fp, "wakatime-cli")
-
-	if runtime.GOOS == "windows" {
-		entity = windows.FormatFilePath(entity)
-		projectPath = windows.FormatFilePath(projectPath)
-	}
-
-	opt := project.WithDetection(project.Config{})
-
-	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
-		assert.Equal(t, []heartbeat.Heartbeat{
-			{
-				Entity:           entity,
-				EntityType:       heartbeat.FileType,
-				Project:          heartbeat.PointerTo("override"),
-				ProjectAlternate: "alternate",
-				ProjectOverride:  "override",
-				ProjectPath:      projectPath,
-				Branch:           heartbeat.PointerTo("master"),
-			},
-		}, hh)
-
-		return nil, nil
-	})
-
-	_, err := handle([]heartbeat.Heartbeat{
-		{
-			EntityType:       heartbeat.FileType,
-			Entity:           entity,
-			ProjectOverride:  "override",
-			ProjectAlternate: "alternate",
-		},
-	})
-	require.NoError(t, err)
-}
-
-func TestWithDetection_NonExistingEntity_AlternateUsed(t *testing.T) {
-	entity := "nonexisting"
-
-	opt := project.WithDetection(project.Config{})
-
-	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
-		assert.Equal(t, []heartbeat.Heartbeat{
-			{
-				Entity:           entity,
-				EntityType:       heartbeat.FileType,
-				Project:          heartbeat.PointerTo("alternate"),
-				Branch:           heartbeat.PointerTo(""),
-				ProjectAlternate: "alternate",
-			},
-		}, hh)
-
-		return nil, nil
-	})
-
-	_, err := handle([]heartbeat.Heartbeat{
-		{
-			EntityType:       heartbeat.FileType,
-			Entity:           entity,
-			ProjectAlternate: "alternate",
-		},
-	})
-	require.NoError(t, err)
-}
-
-func TestWithDetection_NonExistingEntity_OverrideTakesPrecedence(t *testing.T) {
-	entity := "nonexisting"
-
-	opt := project.WithDetection(project.Config{})
-
-	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
-		assert.Equal(t, []heartbeat.Heartbeat{
-			{
-				Entity:          entity,
-				EntityType:      heartbeat.FileType,
-				Project:         heartbeat.PointerTo("override"),
-				Branch:          heartbeat.PointerTo(""),
-				ProjectOverride: "override",
-			},
-		}, hh)
-
-		return nil, nil
-	})
-
-	_, err := handle([]heartbeat.Heartbeat{
-		{
-			EntityType:      heartbeat.FileType,
-			Entity:          entity,
-			ProjectOverride: "override",
-		},
-	})
-	require.NoError(t, err)
-}
-
-func TestWithDetection_ObfuscateProject(t *testing.T) {
-	fp := setupTestGitBasic(t)
-
-	entity := filepath.Join(fp, "wakatime-cli/src/pkg/file.go")
-	projectPath := filepath.Join(fp, "wakatime-cli")
-
-	if runtime.GOOS == "windows" {
-		entity = windows.FormatFilePath(entity)
-		projectPath = windows.FormatFilePath(projectPath)
-	}
-
-	opt := project.WithDetection(project.Config{
-		ShouldObfuscateProject: true,
-	})
-
-	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
-		assert.NotEmpty(t, hh[0].Project)
-		assert.Equal(t, []heartbeat.Heartbeat{
-			{
-				Entity:      entity,
-				EntityType:  heartbeat.FileType,
-				Project:     hh[0].Project,
-				ProjectPath: projectPath,
-				Branch:      heartbeat.PointerTo("master"),
-			},
-		}, hh)
-
-		return nil, nil
-	})
-
-	_, err := handle([]heartbeat.Heartbeat{
-		{
-			EntityType: heartbeat.FileType,
-			Entity:     entity,
-		},
-	})
-	require.NoError(t, err)
-
-	assert.FileExists(t, filepath.Join(fp, "wakatime-cli/.wakatime-project"))
-}
-
 func TestWithDetection_WakatimeProjectTakesPrecedence(t *testing.T) {
 	fp := setupTestGitBasic(t)
 
@@ -239,7 +103,7 @@ func TestWithDetection_WakatimeProjectTakesPrecedence(t *testing.T) {
 	)
 
 	opt := project.WithDetection(project.Config{
-		ShouldObfuscateProject: true,
+		HideProjectNames: []regex.Regex{regex.MustCompile(".*")},
 	})
 
 	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
@@ -268,12 +132,283 @@ func TestWithDetection_WakatimeProjectTakesPrecedence(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestDetect_FileDetected(t *testing.T) {
-	result := project.Detect("testdata/entity.any", []project.MapPattern{})
+func TestWithDetection_OverrideTakesPrecedence(t *testing.T) {
+	fp := setupTestGitBasic(t)
 
+	entity := filepath.Join(fp, "wakatime-cli/src/pkg/file.go")
+	projectPath := filepath.Join(fp, "wakatime-cli")
+
+	if runtime.GOOS == "windows" {
+		entity = windows.FormatFilePath(entity)
+		projectPath = windows.FormatFilePath(projectPath)
+	}
+
+	opt := project.WithDetection(project.Config{})
+
+	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		assert.Equal(t, []heartbeat.Heartbeat{
+			{
+				Entity:          entity,
+				EntityType:      heartbeat.FileType,
+				Project:         heartbeat.PointerTo("override"),
+				ProjectOverride: "override",
+				ProjectPath:     projectPath,
+				Branch:          heartbeat.PointerTo("master"),
+			},
+		}, hh)
+
+		return nil, nil
+	})
+
+	_, err := handle([]heartbeat.Heartbeat{
+		{
+			EntityType:      heartbeat.FileType,
+			Entity:          entity,
+			ProjectOverride: "override",
+		},
+	})
+	require.NoError(t, err)
+}
+
+func TestWithDetection_OverrideTakesPrecedence_WithProjectPathOverride(t *testing.T) {
+	fp := setupTestGitBasic(t)
+
+	entity := filepath.Join(fp, "wakatime-cli/src/pkg/file.go")
+
+	if runtime.GOOS == "windows" {
+		entity = windows.FormatFilePath(entity)
+	}
+
+	opt := project.WithDetection(project.Config{})
+
+	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		assert.Equal(t, []heartbeat.Heartbeat{
+			{
+				Entity:              entity,
+				EntityType:          heartbeat.FileType,
+				Project:             heartbeat.PointerTo("override"),
+				ProjectOverride:     "override",
+				ProjectPathOverride: "/path/to/folder",
+				ProjectPath:         "/path/to/folder",
+				Branch:              heartbeat.PointerTo("master"),
+			},
+		}, hh)
+
+		return nil, nil
+	})
+
+	_, err := handle([]heartbeat.Heartbeat{
+		{
+			EntityType:          heartbeat.FileType,
+			Entity:              entity,
+			ProjectOverride:     "override",
+			ProjectPathOverride: "/path/to/folder",
+		},
+	})
+	require.NoError(t, err)
+}
+
+func TestWithDetection_NoneDetected(t *testing.T) {
+	tmpFile, err := os.CreateTemp(t.TempDir(), "")
+	require.NoError(t, err)
+
+	defer tmpFile.Close()
+
+	projectPath := filepath.Dir(tmpFile.Name())
+
+	if runtime.GOOS == "windows" {
+		projectPath = windows.FormatFilePath(projectPath)
+	}
+
+	opt := project.WithDetection(project.Config{})
+
+	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		assert.Equal(t, []heartbeat.Heartbeat{
+			{
+				Branch:      heartbeat.PointerTo(""),
+				Entity:      tmpFile.Name(),
+				EntityType:  heartbeat.FileType,
+				Project:     heartbeat.PointerTo(""),
+				ProjectPath: projectPath,
+			},
+		}, hh)
+
+		return nil, nil
+	})
+
+	_, err = handle([]heartbeat.Heartbeat{
+		{
+			EntityType: heartbeat.FileType,
+			Entity:     tmpFile.Name(),
+		},
+	})
+	require.NoError(t, err)
+}
+
+func TestWithDetection_NoneDetected_AlternateTakesPrecedence(t *testing.T) {
+	tmpFile, err := os.CreateTemp(t.TempDir(), "")
+	require.NoError(t, err)
+
+	defer tmpFile.Close()
+
+	projectPath := filepath.Dir(tmpFile.Name())
+
+	if runtime.GOOS == "windows" {
+		projectPath = windows.FormatFilePath(projectPath)
+	}
+
+	opt := project.WithDetection(project.Config{})
+
+	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		assert.Equal(t, []heartbeat.Heartbeat{
+			{
+				Branch:           heartbeat.PointerTo(""),
+				Entity:           tmpFile.Name(),
+				EntityType:       heartbeat.FileType,
+				Project:          heartbeat.PointerTo("alternate"),
+				ProjectPath:      projectPath,
+				ProjectAlternate: "alternate",
+			},
+		}, hh)
+
+		return nil, nil
+	})
+
+	_, err = handle([]heartbeat.Heartbeat{
+		{
+			EntityType:       heartbeat.FileType,
+			Entity:           tmpFile.Name(),
+			ProjectAlternate: "alternate",
+		},
+	})
+	require.NoError(t, err)
+}
+
+func TestWithDetection_NoneDetected_OverrideTakesPrecedence(t *testing.T) {
+	tmpFile, err := os.CreateTemp(t.TempDir(), "")
+	require.NoError(t, err)
+
+	defer tmpFile.Close()
+
+	projectPath := filepath.Dir(tmpFile.Name())
+
+	if runtime.GOOS == "windows" {
+		projectPath = windows.FormatFilePath(projectPath)
+	}
+
+	opt := project.WithDetection(project.Config{})
+
+	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		assert.Equal(t, []heartbeat.Heartbeat{
+			{
+				Entity:          tmpFile.Name(),
+				EntityType:      heartbeat.FileType,
+				Project:         heartbeat.PointerTo("override"),
+				ProjectPath:     projectPath,
+				Branch:          heartbeat.PointerTo(""),
+				ProjectOverride: "override",
+			},
+		}, hh)
+
+		return nil, nil
+	})
+
+	_, err = handle([]heartbeat.Heartbeat{
+		{
+			EntityType:      heartbeat.FileType,
+			Entity:          tmpFile.Name(),
+			ProjectOverride: "override",
+		},
+	})
+	require.NoError(t, err)
+}
+
+func TestWithDetection_NoneDetected_WithProjectPathOverride(t *testing.T) {
+	tmpFile, err := os.CreateTemp(t.TempDir(), "")
+	require.NoError(t, err)
+
+	defer tmpFile.Close()
+
+	opt := project.WithDetection(project.Config{})
+
+	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		assert.Equal(t, []heartbeat.Heartbeat{
+			{
+				Branch:              heartbeat.PointerTo(""),
+				Entity:              tmpFile.Name(),
+				EntityType:          heartbeat.FileType,
+				Project:             heartbeat.PointerTo("overridden-project"),
+				ProjectOverride:     "overridden-project",
+				ProjectPath:         "/path/to/folder",
+				ProjectPathOverride: "/path/to/folder",
+			},
+		}, hh)
+
+		return nil, nil
+	})
+
+	_, err = handle([]heartbeat.Heartbeat{
+		{
+			EntityType:          heartbeat.FileType,
+			Entity:              tmpFile.Name(),
+			ProjectOverride:     "overridden-project",
+			ProjectPathOverride: "/path/to/folder",
+		},
+	})
+	require.NoError(t, err)
+}
+
+func TestWithDetection_ObfuscateProject(t *testing.T) {
+	fp := setupTestGitBasic(t)
+
+	entity := filepath.Join(fp, "wakatime-cli/src/pkg/file.go")
+	projectPath := filepath.Join(fp, "wakatime-cli")
+
+	if runtime.GOOS == "windows" {
+		entity = windows.FormatFilePath(entity)
+		projectPath = windows.FormatFilePath(projectPath)
+	}
+
+	opt := project.WithDetection(project.Config{
+		HideProjectNames: []regex.Regex{regex.MustCompile(".*")},
+	})
+
+	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		assert.NotEmpty(t, hh[0].Project)
+		assert.Equal(t, []heartbeat.Heartbeat{
+			{
+				Entity:      entity,
+				EntityType:  heartbeat.FileType,
+				Project:     hh[0].Project,
+				ProjectPath: projectPath,
+				Branch:      heartbeat.PointerTo("master"),
+			},
+		}, hh)
+
+		return nil, nil
+	})
+
+	_, err := handle([]heartbeat.Heartbeat{
+		{
+			EntityType: heartbeat.FileType,
+			Entity:     entity,
+		},
+	})
+	require.NoError(t, err)
+
+	assert.FileExists(t, filepath.Join(fp, "wakatime-cli/.wakatime-project"))
+}
+
+func TestDetect_FileDetected(t *testing.T) {
+	result, detector := project.Detect([]project.MapPattern{}, project.DetecterArg{
+		Filepath:  "testdata/entity.any",
+		ShouldRun: true,
+	})
+
+	assert.Equal(t, "wakatime-cli", result.Project)
 	assert.Equal(t, "master", result.Branch)
 	assert.Contains(t, result.Folder, "testdata")
-	assert.Equal(t, "wakatime-cli", result.Project)
+	assert.Equal(t, detector, project.FileDetector)
 }
 
 func TestDetect_MapDetected(t *testing.T) {
@@ -295,19 +430,26 @@ func TestDetect_MapDetected(t *testing.T) {
 		},
 	}
 
-	result := project.Detect(tmpFile.Name(), patterns)
+	result, detector := project.Detect(patterns, project.DetecterArg{
+		Filepath:  tmpFile.Name(),
+		ShouldRun: true,
+	})
 
+	assert.Equal(t, "my-billing-project", result.Project)
 	assert.Empty(t, result.Branch)
 	assert.Contains(t, result.Folder, filepath.Dir(tmpFile.Name()))
-	assert.Equal(t, "my-billing-project", result.Project)
+	assert.Equal(t, detector, project.MapDetector)
 }
 
 func TestDetectWithRevControl_GitDetected(t *testing.T) {
 	fp := setupTestGitBasic(t)
 
 	result := project.DetectWithRevControl(
-		filepath.Join(fp, "wakatime-cli/src/pkg/file.go"),
 		[]regex.Regex{},
+		project.DetecterArg{
+			Filepath:  filepath.Join(fp, "wakatime-cli/src/pkg/file.go"),
+			ShouldRun: true,
+		},
 	)
 
 	assert.Contains(t, result.Folder, filepath.Join(fp, "wakatime-cli"))
@@ -324,11 +466,15 @@ func TestDetect_NoProjectDetected(t *testing.T) {
 
 	defer tmpFile.Close()
 
-	result := project.Detect(tmpFile.Name(), []project.MapPattern{})
+	result, detector := project.Detect([]project.MapPattern{}, project.DetecterArg{
+		Filepath:  tmpFile.Name(),
+		ShouldRun: true,
+	})
 
 	assert.Empty(t, result.Branch)
 	assert.Empty(t, result.Folder)
 	assert.Empty(t, result.Project)
+	assert.Empty(t, detector)
 }
 
 func TestWrite(t *testing.T) {
@@ -341,6 +487,26 @@ func TestWrite(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, string([]byte("billing\n")), string(actual))
+}
+
+func detectorIDTests() map[string]project.DetectorID {
+	return map[string]project.DetectorID{
+		"project-file-detector": project.FileDetector,
+		"project-map-detector":  project.MapDetector,
+		"git-detector":          project.GitDetector,
+		"mercurial-detector":    project.MercurialDetector,
+		"svn-detector":          project.SubversionDetector,
+		"tfvc-detector":         project.TfvcDetector,
+	}
+}
+
+func TestDetectorID_String(t *testing.T) {
+	for value, category := range detectorIDTests() {
+		t.Run(value, func(t *testing.T) {
+			s := category.String()
+			assert.Equal(t, value, s)
+		})
+	}
 }
 
 func formatRegex(fp string) string {

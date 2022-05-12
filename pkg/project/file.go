@@ -86,7 +86,7 @@ func readFile(fp string, max int) ([]string, error) {
 	return lines, nil
 }
 
-// String returns its name.
-func (File) String() string {
-	return "project-file-detector"
+// ID returns its id.
+func (File) ID() DetectorID {
+	return FileDetector
 }

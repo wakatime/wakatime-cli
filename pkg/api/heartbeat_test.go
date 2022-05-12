@@ -136,6 +136,8 @@ func TestClient_SendHeartbeats_MultipleApiKey(t *testing.T) {
 
 	_, err := c.SendHeartbeats(hh)
 	require.NoError(t, err)
+
+	assert.Eventually(t, func() bool { return numCalls == 2 }, time.Second, 50*time.Millisecond)
 }
 
 func TestClient_SendHeartbeats_Err(t *testing.T) {

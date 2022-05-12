@@ -57,6 +57,12 @@ func TestTfvc_Detect_Windows(t *testing.T) {
 	}, result)
 }
 
+func TestTfvc_ID(t *testing.T) {
+	s := project.Tfvc{}
+
+	assert.Equal(t, project.TfvcDetector, s.ID())
+}
+
 func setupTestTfvc(t *testing.T, tfFolderName string) (fp string) {
 	tmpDir := t.TempDir()
 

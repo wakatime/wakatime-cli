@@ -143,10 +143,10 @@ func TestFindFileOrDirectory(t *testing.T) {
 	}
 }
 
-func TestFile_String(t *testing.T) {
+func TestFile_ID(t *testing.T) {
 	f := project.File{}
 
-	assert.Equal(t, "project-file-detector", f.String())
+	assert.Equal(t, project.FileDetector, f.ID())
 }
 
 func copyFile(t *testing.T, source, destination string) {
