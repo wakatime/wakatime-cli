@@ -15,23 +15,35 @@ import (
 func TestShouldBackoff(t *testing.T) {
 	at := time.Now().Add(time.Second * -1)
 
-	should := shouldBackoff(1, at)
+	should, reset := shouldBackoff(1, at)
 
 	assert.True(t, should)
+	assert.False(t, reset)
 }
 
 func TestShouldBackoff_AfterResetTime(t *testing.T) {
-	at := time.Now().Add((resetAfter + 1) * time.Second)
+	at := time.Now().Add(time.Second * -1)
 
-	should := shouldBackoff(0, at)
+	should, reset := shouldBackoff(8, at)
 
 	assert.False(t, should)
+	assert.True(t, reset)
+}
+
+func TestShouldBackoff_AfterResetTime_ZeroRetries(t *testing.T) {
+	at := time.Now().Add((resetAfter + 1) * time.Second)
+
+	should, reset := shouldBackoff(0, at)
+
+	assert.False(t, should)
+	assert.True(t, reset)
 }
 
 func TestShouldBackoff_NegateBackoff(t *testing.T) {
-	should := shouldBackoff(0, time.Time{})
+	should, reset := shouldBackoff(0, time.Time{})
 
 	assert.False(t, should)
+	assert.True(t, reset)
 }
 
 func TestUpdateBackoffSettings(t *testing.T) {
