@@ -243,7 +243,17 @@ func LoadAPIParams(v *viper.Viper) (API, error) {
 		}
 	}
 
-	backoffRetries, _ := vipertools.FirstNonEmptyInt(v, "internal.backoff_retries")
+	var backoffRetries = 0
+
+	backoffRetriesStr := vipertools.GetString(v, "internal.backoff_retries")
+	if backoffRetriesStr != "" {
+		parsed, err := strconv.Atoi(backoffRetriesStr)
+		if err != nil {
+			log.Warnf("failed to parse backoff_retries: %s", err)
+		} else {
+			backoffRetries = parsed
+		}
+	}
 
 	var (
 		hostname string
