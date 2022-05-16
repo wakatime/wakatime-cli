@@ -6,15 +6,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/spf13/viper"
 	"github.com/wakatime/wakatime-cli/pkg/backoff"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestWithRetry(t *testing.T) {
+func TestWithBackoff(t *testing.T) {
 	v := viper.New()
 
 	tmpFile, err := os.CreateTemp(t.TempDir(), "wakatime")
@@ -22,7 +22,7 @@ func TestWithRetry(t *testing.T) {
 
 	defer tmpFile.Close()
 
-	v.Set("config", tmpFile.Name())
+	v.Set("internal-config", tmpFile.Name())
 
 	opt := backoff.WithBackoff(backoff.Config{
 		V: v,
@@ -40,7 +40,7 @@ func TestWithRetry(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestWithRetry_BeforeNextBackoff(t *testing.T) {
+func TestWithBackoff_BeforeNextBackoff(t *testing.T) {
 	backoffAt := time.Now().Add(time.Second * -1)
 
 	opt := backoff.WithBackoff(backoff.Config{
@@ -62,7 +62,7 @@ func TestWithRetry_BeforeNextBackoff(t *testing.T) {
 	assert.Equal(t, "won't send heartbeat due to backoff", err.Error())
 }
 
-func TestWithRetry_ApiError(t *testing.T) {
+func TestWithBackoff_ApiError(t *testing.T) {
 	v := viper.New()
 
 	tmpFile, err := os.CreateTemp(t.TempDir(), "wakatime")
@@ -70,7 +70,7 @@ func TestWithRetry_ApiError(t *testing.T) {
 
 	defer tmpFile.Close()
 
-	v.Set("config", tmpFile.Name())
+	v.Set("internal-config", tmpFile.Name())
 
 	opt := backoff.WithBackoff(backoff.Config{
 		V: v,
