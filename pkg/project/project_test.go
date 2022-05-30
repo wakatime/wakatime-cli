@@ -262,12 +262,13 @@ func TestWithDetection_NoneDetected_AlternateTakesPrecedence(t *testing.T) {
 	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		assert.Equal(t, []heartbeat.Heartbeat{
 			{
-				Branch:           heartbeat.PointerTo(""),
+				Branch:           heartbeat.PointerTo("alternate-branch"),
+				BranchAlternate:  "alternate-branch",
 				Entity:           tmpFile.Name(),
 				EntityType:       heartbeat.FileType,
-				Project:          heartbeat.PointerTo("alternate"),
+				Project:          heartbeat.PointerTo("alternate-project"),
 				ProjectPath:      projectPath,
-				ProjectAlternate: "alternate",
+				ProjectAlternate: "alternate-project",
 			},
 		}, hh)
 
@@ -276,9 +277,10 @@ func TestWithDetection_NoneDetected_AlternateTakesPrecedence(t *testing.T) {
 
 	_, err = handle([]heartbeat.Heartbeat{
 		{
+			BranchAlternate:  "alternate-branch",
 			EntityType:       heartbeat.FileType,
 			Entity:           tmpFile.Name(),
-			ProjectAlternate: "alternate",
+			ProjectAlternate: "alternate-project",
 		},
 	})
 	require.NoError(t, err)

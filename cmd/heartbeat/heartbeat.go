@@ -151,6 +151,7 @@ func buildHeartbeats(params paramscmd.Params) []heartbeat.Heartbeat {
 	}
 
 	heartbeats = append(heartbeats, heartbeat.New(
+		params.Heartbeat.Project.BranchAlternate,
 		params.Heartbeat.Category,
 		params.Heartbeat.CursorPosition,
 		params.Heartbeat.Entity,
@@ -174,6 +175,7 @@ func buildHeartbeats(params paramscmd.Params) []heartbeat.Heartbeat {
 
 		for _, h := range params.Heartbeat.ExtraHeartbeats {
 			heartbeats = append(heartbeats, heartbeat.New(
+				h.BranchAlternate,
 				h.Category,
 				h.CursorPosition,
 				h.Entity,

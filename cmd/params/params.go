@@ -68,6 +68,7 @@ type (
 
 	// ExtraHeartbeat contains extra heartbeat.
 	ExtraHeartbeat struct {
+		BranchAlternate   string             `json:"alternate_branch"`
 		Category          heartbeat.Category `json:"category"`
 		CursorPosition    interface{}        `json:"cursorpos"`
 		Entity            string             `json:"entity"`
@@ -123,6 +124,7 @@ type (
 
 	// ProjectParams params for project name sanitization.
 	ProjectParams struct {
+		BranchAlternate  string
 		Alternate        string
 		DisableSubmodule []regex.Regex
 		MapPatterns      []project.MapPattern
@@ -574,6 +576,7 @@ func loadProjectParams(v *viper.Viper) (ProjectParams, error) {
 
 	return ProjectParams{
 		Alternate:        vipertools.GetString(v, "alternate-project"),
+		BranchAlternate:  vipertools.GetString(v, "alternate-branch"),
 		DisableSubmodule: disableSubmodule,
 		MapPatterns:      mapPatterns,
 		Override:         vipertools.GetString(v, "project"),
@@ -798,10 +801,12 @@ func parseExtraHeartbeat(h ExtraHeartbeat) (*heartbeat.Heartbeat, error) {
 	}
 
 	return &heartbeat.Heartbeat{
+		BranchAlternate:   h.BranchAlternate,
 		Category:          h.Category,
 		CursorPosition:    cursorPosition,
 		Entity:            h.Entity,
 		EntityType:        entityType,
+		IsUnsavedEntity:   isUnsavedEntity,
 		IsWrite:           isWrite,
 		Language:          h.Language,
 		LanguageAlternate: h.LanguageAlternate,
@@ -810,7 +815,6 @@ func parseExtraHeartbeat(h ExtraHeartbeat) (*heartbeat.Heartbeat, error) {
 		ProjectAlternate:  h.ProjectAlternate,
 		ProjectOverride:   h.Project,
 		Time:              timestampParsed,
-		IsUnsavedEntity:   isUnsavedEntity,
 	}, nil
 }
 
@@ -860,8 +864,8 @@ func (p API) String() string {
 
 	return fmt.Sprintf(
 		"api key: '%s', api url: '%s', backoff at: '%s', backoff retries: %d,"+
-			" hostname: '%s', key patterns: '%s', plugin: '%s', timeout: %s,"+
-			" disable ssl verify: %t, proxy url: '%s', ssl cert filepath: '%s'",
+			" hostname: '%s', key patterns: '%s', plugin: '%s', proxy url: '%s',"+
+			" timeout: %s, disable ssl verify: %t, ssl cert filepath: '%s'",
 		apiKey,
 		p.URL,
 		backoffAt,
@@ -869,9 +873,9 @@ func (p API) String() string {
 		p.Hostname,
 		keyPatterns,
 		p.Plugin,
+		p.ProxyURL,
 		p.Timeout,
 		p.DisableSSLVerify,
-		p.ProxyURL,
 		p.SSLCertFilepath,
 	)
 }
@@ -937,8 +941,9 @@ func (p Heartbeat) String() string {
 // String implements fmt.Stringer interface.
 func (p Offline) String() string {
 	return fmt.Sprintf(
-		"disabled: %t, queue file: '%s', num sync max: %d",
+		"disabled: %t, print max: %d, queue file: '%s', num sync max: %d",
 		p.Disabled,
+		p.PrintMax,
 		p.QueueFile,
 		p.SyncMax,
 	)
@@ -957,8 +962,9 @@ func (p Params) String() string {
 
 func (p ProjectParams) String() string {
 	return fmt.Sprintf(
-		"alternate: '%s', disable submodule: '%s', map patterns: '%s', override: '%s'",
+		"alternate: '%s', branch alternate: '%s', disable submodule: '%s', map patterns: '%s', override: '%s'",
 		p.Alternate,
+		p.BranchAlternate,
 		p.DisableSubmodule,
 		p.MapPatterns,
 		p.Override,
