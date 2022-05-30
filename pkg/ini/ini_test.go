@@ -187,7 +187,7 @@ func TestInternalFilePath(t *testing.T) {
 func TestNewWriter(t *testing.T) {
 	v := viper.New()
 
-	w, err := ini.NewWriter(v, func(vp *viper.Viper) (string, error) {
+	w, err := ini.NewWriter(v, false, func(vp *viper.Viper) (string, error) {
 		assert.Equal(t, v, vp)
 		return "testdata/wakatime.cfg", nil
 	})
@@ -200,7 +200,7 @@ func TestNewWriter(t *testing.T) {
 func TestNewWriterErr(t *testing.T) {
 	v := viper.New()
 
-	_, err := ini.NewWriter(v, func(vp *viper.Viper) (string, error) {
+	_, err := ini.NewWriter(v, false, func(vp *viper.Viper) (string, error) {
 		assert.Equal(t, v, vp)
 		return "", errors.New("error")
 	})
@@ -214,7 +214,7 @@ func TestNewWriter_MissingFile(t *testing.T) {
 
 	tmpDir := t.TempDir()
 
-	w, err := ini.NewWriter(v, func(vp *viper.Viper) (string, error) {
+	w, err := ini.NewWriter(v, false, func(vp *viper.Viper) (string, error) {
 		assert.Equal(t, v, vp)
 		return filepath.Join(tmpDir, "missing.cfg"), nil
 	})
@@ -278,7 +278,7 @@ func TestWrite_NoMultilineSideEffects(t *testing.T) {
 
 	copyFile(t, "testdata/wakatime-multiline.cfg", tmpFile.Name())
 
-	w, err := ini.NewWriter(v, func(vp *viper.Viper) (string, error) {
+	w, err := ini.NewWriter(v, false, func(vp *viper.Viper) (string, error) {
 		assert.Equal(t, v, vp)
 		return tmpFile.Name(), nil
 	})
@@ -311,7 +311,7 @@ func TestWrite_NullsRemoved(t *testing.T) {
 
 	copyFile(t, "testdata/wakatime-nulls.cfg", tmpFile.Name())
 
-	w, err := ini.NewWriter(v, func(vp *viper.Viper) (string, error) {
+	w, err := ini.NewWriter(v, false, func(vp *viper.Viper) (string, error) {
 		assert.Equal(t, v, vp)
 		return tmpFile.Name(), nil
 	})

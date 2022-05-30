@@ -42,7 +42,7 @@ type WriterConfig struct {
 }
 
 // NewWriter creates a new writer instance.
-func NewWriter(v *viper.Viper, filepathFn func(v *viper.Viper) (string, error)) (*WriterConfig, error) {
+func NewWriter(v *viper.Viper, force bool, filepathFn func(v *viper.Viper) (string, error)) (*WriterConfig, error) {
 	configFilepath, err := filepathFn(v)
 	if err != nil {
 		return nil, fmt.Errorf("error getting filepath: %s", err)
@@ -61,7 +61,7 @@ func NewWriter(v *viper.Viper, filepathFn func(v *viper.Viper) (string, error)) 
 	}
 
 	ini, err := ini.LoadSources(ini.LoadOptions{AllowPythonMultilineValues: true}, configFilepath)
-	if err != nil {
+	if err != nil && !force {
 		return nil, fmt.Errorf("error loading config file: %s", err)
 	}
 

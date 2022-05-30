@@ -152,7 +152,6 @@ func parseConfigFiles(v *viper.Viper) error {
 	var configFilesFn = []func(v *viper.Viper) (string, error){
 		ini.FilePath,
 		ini.ImportFilePath,
-		ini.InternalFilePath,
 	}
 
 	for _, c := range configFilesFn {
@@ -178,6 +177,27 @@ func parseConfigFiles(v *viper.Viper) error {
 
 			return fmt.Errorf("failed to load configuration file: %s", err)
 		}
+	}
+
+	configFile, err := ini.InternalFilePath(v)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error getting config file path: %s", err)
+
+		return fmt.Errorf("error getting config file path: %s", err)
+	}
+
+	if configFile == "" {
+		return nil
+	}
+
+	// check if file exists
+	if _, err := os.Stat(configFile); os.IsNotExist(err) {
+		log.Debugf("config file %q not present or not accessible", configFile)
+		return nil
+	}
+
+	if err := ini.ReadInConfig(v, configFile); err != nil {
+		log.Debugf("failed to load configuration file: %s", err)
 	}
 
 	return nil

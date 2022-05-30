@@ -20,7 +20,7 @@ type Params struct {
 
 // Run loads wakatime config file and call Write().
 func Run(v *viper.Viper) (int, error) {
-	w, err := ini.NewWriter(v, ini.FilePath)
+	w, err := ini.NewWriter(v, false, ini.FilePath)
 	if err != nil {
 		return exitcode.ErrConfigFileParse, fmt.Errorf(
 			"failed to parse config file: %s",

@@ -73,7 +73,7 @@ func TestWrite(t *testing.T) {
 	defer tmpFile.Close()
 
 	v := viper.New()
-	ini, err := ini.NewWriter(v, func(vp *viper.Viper) (string, error) {
+	ini, err := ini.NewWriter(v, false, func(vp *viper.Viper) (string, error) {
 		assert.Equal(t, v, vp)
 		return tmpFile.Name(), nil
 	})

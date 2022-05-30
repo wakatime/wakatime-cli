@@ -375,26 +375,61 @@ func TestSendHeartbeats_MalformedConfig(t *testing.T) {
 }
 
 func TestSendHeartbeats_MalformedInternalConfig(t *testing.T) {
-	offlineQueueFile, err := os.CreateTemp(t.TempDir(), "")
+	apiURL, router, close := setupTestServer()
+	defer close()
+
+	var numCalls int
+
+	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
+		numCalls++
+
+		// check headers
+		assert.Equal(t, http.MethodPost, req.Method)
+		assert.Equal(t, []string{"application/json"}, req.Header["Accept"])
+		assert.Equal(t, []string{"application/json"}, req.Header["Content-Type"])
+		assert.Equal(t, []string{"Basic MDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAw"}, req.Header["Authorization"])
+		assert.Equal(t, []string{heartbeat.UserAgentUnknownPlugin()}, req.Header["User-Agent"])
+
+		// write response
+		f, err := os.Open("testdata/api_heartbeats_response.json")
+		require.NoError(t, err)
+
+		w.WriteHeader(http.StatusCreated)
+		_, err = io.Copy(w, f)
+		require.NoError(t, err)
+	})
+
+	tmpDir := t.TempDir()
+
+	offlineQueueFile, err := os.CreateTemp(tmpDir, "")
 	require.NoError(t, err)
 
 	defer offlineQueueFile.Close()
 
-	out := runWakatimeCliExpectErr(
+	tmpFile, err := os.CreateTemp(tmpDir, "wakatime.cfg")
+	require.NoError(t, err)
+
+	defer tmpFile.Close()
+
+	runWakatimeCli(
 		t,
-		exitcode.ErrConfigFileParse,
-		"--entity", "testdata/main.go",
+		&bytes.Buffer{},
+		"--api-url", apiURL,
+		"--key", "00000000-0000-4000-8000-000000000000",
+		"--config", tmpFile.Name(),
 		"--internal-config", "./testdata/internal-malformed.cfg",
+		"--entity", "testdata/main.go",
+		"--cursorpos", "12",
 		"--offline-queue-file", offlineQueueFile.Name(),
+		"--lineno", "42",
+		"--lines-in-file", "100",
+		"--time", "1585598059",
+		"--hide-branch-names", ".*",
+		"--write",
 		"--verbose",
 	)
 
-	assert.Empty(t, out)
-
-	count, err := offline.CountHeartbeats(offlineQueueFile.Name())
-	require.NoError(t, err)
-
-	assert.Equal(t, 1, count)
+	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
 
 func TestTodayGoal(t *testing.T) {
