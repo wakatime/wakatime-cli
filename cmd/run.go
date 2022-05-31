@@ -32,6 +32,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	iniv1 "gopkg.in/ini.v1"
 )
 
 // Run executes commands parsed from a command line.
@@ -149,17 +150,29 @@ func Run(cmd *cobra.Command, v *viper.Viper) {
 }
 
 func parseConfigFiles(v *viper.Viper) error {
-	var configFilesFn = []func(v *viper.Viper) (string, error){
-		ini.FilePath,
-		ini.ImportFilePath,
-		ini.InternalFilePath,
+	var configFiles = []struct {
+		fn    func(v *viper.Viper) (string, error)
+		vp    *viper.Viper
+		merge bool
+	}{
+		{
+			fn: ini.FilePath,
+			vp: v,
+		},
+		{
+			fn: ini.ImportFilePath,
+			vp: v,
+		},
+		{
+			fn:    ini.InternalFilePath,
+			vp:    viper.NewWithOptions(viper.IniLoadOptions(iniv1.LoadOptions{SkipUnrecognizableLines: true})),
+			merge: true,
+		},
 	}
 
-	for _, c := range configFilesFn {
-		configFile, err := c(v)
+	for _, c := range configFiles {
+		configFile, err := c.fn(v)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "error getting config file path: %s", err)
-
 			return fmt.Errorf("error getting config file path: %s", err)
 		}
 
@@ -173,10 +186,15 @@ func parseConfigFiles(v *viper.Viper) error {
 			continue
 		}
 
-		if err := ini.ReadInConfig(v, configFile); err != nil {
-			fmt.Fprintf(os.Stderr, "failed to load configuration file: %s", err)
-
+		if err := ini.ReadInConfig(c.vp, configFile); err != nil {
 			return fmt.Errorf("failed to load configuration file: %s", err)
+		}
+
+		if c.merge {
+			err = v.MergeConfigMap(c.vp.AllSettings())
+			if err != nil {
+				log.Warnf("failed to merge configuration file: %s", err)
+			}
 		}
 	}
 

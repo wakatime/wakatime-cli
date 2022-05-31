@@ -19,7 +19,6 @@ const defaultConfigSection = "settings"
 func NewRootCMD() *cobra.Command {
 	iniOption := viper.IniLoadOptions(ini.LoadOptions{
 		AllowPythonMultilineValues: true,
-		SkipUnrecognizableLines:    true,
 	})
 	v := viper.NewWithOptions(iniOption)
 
