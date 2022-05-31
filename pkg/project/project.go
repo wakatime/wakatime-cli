@@ -159,10 +159,15 @@ func WithDetection(config Config) heartbeat.HandleOption {
 					result.Folder = firstNonEmptyString(h.ProjectPathOverride, result.Folder)
 				}
 
-				// fifth, use project folder found or entity's path
+				// fifth, use alternate branch
+				if result.Branch == "" && h.BranchAlternate != "" {
+					result.Branch = h.BranchAlternate
+				}
+
+				// sixth, use project folder found or entity's path
 				result.Folder = firstNonEmptyString(result.Folder, h.ProjectPathOverride)
 
-				// sixth, if no folder is found, use entity's directory
+				// seventh, if no folder is found, use entity's directory
 				if h.EntityType == heartbeat.FileType && result.Folder == "" {
 					result.Folder = filepath.Dir(h.Entity)
 				}

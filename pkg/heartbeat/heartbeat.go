@@ -16,6 +16,7 @@ import (
 type Heartbeat struct {
 	ApiKey              string     `json:"-"`
 	Branch              *string    `json:"branch"`
+	BranchAlternate     string     `json:"-"`
 	Category            Category   `json:"category"`
 	CursorPosition      *int       `json:"cursorpos"`
 	Dependencies        []string   `json:"dependencies"`
@@ -41,6 +42,7 @@ type Heartbeat struct {
 // New creates a new instance of Heartbeat with formatted entity
 // and local file paths for file type heartbeats.
 func New(
+	branchAlternate string,
 	category Category,
 	cursorPosition *int,
 	entity string,
@@ -59,6 +61,7 @@ func New(
 	userAgent string,
 ) Heartbeat {
 	return Heartbeat{
+		BranchAlternate:     branchAlternate,
 		Category:            category,
 		CursorPosition:      cursorPosition,
 		Entity:              entity,

@@ -1932,3 +1932,140 @@ func TestLoadParams_Hostname_DefaultFromSystem(t *testing.T) {
 
 	assert.Equal(t, expected, params.Hostname)
 }
+
+func TestAPI_String(t *testing.T) {
+	backoffat, err := time.Parse(inipkg.DateFormat, "2021-08-30T18:50:42-03:00")
+	require.NoError(t, err)
+
+	api := paramscmd.API{
+		BackoffAt:        backoffat,
+		BackoffRetries:   5,
+		DisableSSLVerify: true,
+		Hostname:         "my-machine",
+		Key:              "00000000-0000-4000-8000-000000000000",
+		KeyPatterns: []apikey.MapPattern{
+			{
+				ApiKey: "00000000-0000-4000-8000-000000000001",
+				Regex:  regex.MustCompile("^/api/v1/"),
+			},
+		},
+		Plugin:          "my-plugin",
+		ProxyURL:        "https://example.org:23",
+		SSLCertFilepath: "/path/to/cert.pem",
+		Timeout:         time.Second * 10,
+		URL:             "https://example.org:23",
+	}
+
+	assert.Equal(
+		t,
+		"api key: '<hidden>0000', api url: 'https://example.org:23', backoff at: '2021-08-30T18:50:42-03:00',"+
+			" backoff retries: 5, hostname: 'my-machine', key patterns: '[{<hidden>0001 ^/api/v1/}]', plugin: 'my-plugin',"+
+			" proxy url: 'https://example.org:23', timeout: 10s, disable ssl verify: true,"+
+			" ssl cert filepath: '/path/to/cert.pem'",
+		api.String(),
+	)
+}
+
+func TestFilterParams_String(t *testing.T) {
+	filterparams := paramscmd.FilterParams{
+		Exclude:                    []regex.Regex{regex.MustCompile("^/exclude")},
+		ExcludeUnknownProject:      true,
+		Include:                    []regex.Regex{regex.MustCompile("^/include")},
+		IncludeOnlyWithProjectFile: true,
+	}
+
+	assert.Equal(
+		t,
+		"exclude: '[^/exclude]', exclude unknown project: true, include: '[^/include]',"+
+			" include only with project file: true",
+		filterparams.String(),
+	)
+}
+
+func TestHeartbeat_String(t *testing.T) {
+	heartbeat := paramscmd.Heartbeat{
+		Category:        heartbeat.CodingCategory,
+		CursorPosition:  heartbeat.PointerTo(15),
+		Entity:          "path/to/entity.go",
+		EntityType:      heartbeat.FileType,
+		ExtraHeartbeats: make([]heartbeat.Heartbeat, 3),
+		IsUnsavedEntity: true,
+		IsWrite:         heartbeat.PointerTo(true),
+		Language:        heartbeat.PointerTo("Golang"),
+		LineNumber:      heartbeat.PointerTo(4),
+		LinesInFile:     heartbeat.PointerTo(56),
+		Time:            1585598059,
+	}
+
+	assert.Equal(
+		t,
+		"category: 'coding', cursor position: '15', entity: 'path/to/entity.go', entity type: 'file',"+
+			" num extra heartbeats: 3, is unsaved entity: true, is write: true, language: 'Golang', line number: '4',"+
+			" lines in file: '56', time: 1585598059.00000, filter params: (exclude: '[]', exclude unknown project: false,"+
+			" include: '[]', include only with project file: false), project params: (alternate: '', branch alternate: '',"+
+			" disable submodule: '[]', map patterns: '[]', override: ''), sanitize params: (hide branch names: '[]',"+
+			" hide project folder: false, hide file names: '[]', hide project names: '[]', project path override: '')",
+		heartbeat.String(),
+	)
+}
+
+func TestOffline_String(t *testing.T) {
+	offline := paramscmd.Offline{
+		Disabled:  true,
+		PrintMax:  6,
+		QueueFile: "/path/to/queue.file",
+		SyncMax:   12,
+	}
+
+	assert.Equal(
+		t,
+		"disabled: true, print max: 6, queue file: '/path/to/queue.file', num sync max: 12",
+		offline.String(),
+	)
+}
+
+func TestProjectParams_String(t *testing.T) {
+	projectparams := paramscmd.ProjectParams{
+		Alternate:        "alternate",
+		BranchAlternate:  "branch-alternate",
+		DisableSubmodule: []regex.Regex{regexp.MustCompile(".*")},
+		MapPatterns:      []project.MapPattern{{Name: "project-1", Regex: regex.MustCompile("^/regex")}},
+		Override:         "override",
+	}
+
+	assert.Equal(
+		t,
+		"alternate: 'alternate', branch alternate: 'branch-alternate', disable submodule: '[.*]',"+
+			" map patterns: '[{project-1 ^/regex}]', override: 'override'",
+		projectparams.String(),
+	)
+}
+
+func TestSanitizeParams_String(t *testing.T) {
+	sanitizeparams := paramscmd.SanitizeParams{
+		HideBranchNames:     []regex.Regex{regex.MustCompile("^/hide")},
+		HideProjectFolder:   true,
+		HideFileNames:       []regex.Regex{regex.MustCompile("^/hide")},
+		HideProjectNames:    []regex.Regex{regex.MustCompile("^/hide")},
+		ProjectPathOverride: "path/to/project",
+	}
+
+	assert.Equal(
+		t,
+		"hide branch names: '[^/hide]', hide project folder: true, hide file names: '[^/hide]',"+
+			" hide project names: '[^/hide]', project path override: 'path/to/project'",
+		sanitizeparams.String(),
+	)
+}
+
+func TestStatusBar_String(t *testing.T) {
+	statusbar := paramscmd.StatusBar{
+		HideCategories: true,
+	}
+
+	assert.Equal(
+		t,
+		"hide categories: true",
+		statusbar.String(),
+	)
+}

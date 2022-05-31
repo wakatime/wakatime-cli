@@ -38,6 +38,7 @@ func NewRootCMD() *cobra.Command {
 
 func setFlags(cmd *cobra.Command, v *viper.Viper) {
 	flags := cmd.Flags()
+	flags.String("alternate-branch", "", "Optional alternate branch name. Auto-detected branch takes priority.")
 	flags.String("alternate-language", "", "Optional alternate language name. Auto-detected language takes priority.")
 	flags.String("alternate-project", "", "Optional alternate project name. Auto-detected project takes priority.")
 	flags.String(
