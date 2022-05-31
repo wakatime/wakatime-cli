@@ -78,7 +78,25 @@ func TestReadInConfig_Multiple(t *testing.T) {
 	assert.Equal(t, "3", vipertools.GetString(v, "internal.backoff_retries"))
 }
 
-func TestReadInConfigMissing(t *testing.T) {
+func TestReadInConfig_Corrupted(t *testing.T) {
+	iniOption := viper.IniLoadOptions(iniv1.LoadOptions{SkipUnrecognizableLines: true})
+	v := viper.NewWithOptions(iniOption)
+
+	v.Set("config", "testdata/corrupted.cfg")
+
+	filePath, err := ini.FilePath(v)
+	require.NoError(t, err)
+
+	err = ini.ReadInConfig(v, filePath)
+	require.NoError(t, err)
+
+	assert.Empty(t, vipertools.GetString(v, "internal.backoff_at"))
+	assert.Equal(t, "0", vipertools.GetString(v, "internal.backoff_retries"))
+	assert.Equal(t, "v1.45.3", vipertools.GetString(v, "internal.cli_version"))
+	assert.Equal(t, "Mon, 16 May 2022 21:32:42 GMT", vipertools.GetString(v, "internal.cli_version_last_modified"))
+}
+
+func TestReadInConfig_Missing(t *testing.T) {
 	v := viper.New()
 
 	err := ini.ReadInConfig(v, "not-exists")
@@ -86,7 +104,7 @@ func TestReadInConfigMissing(t *testing.T) {
 	assert.Error(t, err, "error parsing config file: open not-exists: no such file or directory")
 }
 
-func TestReadInConfigMalformed(t *testing.T) {
+func TestReadInConfig_Malformed(t *testing.T) {
 	v := viper.New()
 	v.Set("config", "testdata/malformed.cfg")
 
@@ -223,6 +241,19 @@ func TestNewWriter_MissingFile(t *testing.T) {
 	assert.FileExists(t, w.ConfigFilepath)
 
 	assert.Equal(t, filepath.Join(tmpDir, "missing.cfg"), w.ConfigFilepath)
+	assert.NotNil(t, w.File)
+}
+
+func TestNewWriter_CorruptedFile(t *testing.T) {
+	v := viper.New()
+
+	w, err := ini.NewWriter(v, func(vp *viper.Viper) (string, error) {
+		assert.Equal(t, v, vp)
+		return "testdata/corrupted.cfg", nil
+	})
+	require.NoError(t, err)
+
+	assert.Equal(t, "testdata/corrupted.cfg", w.ConfigFilepath)
 	assert.NotNil(t, w.File)
 }
 

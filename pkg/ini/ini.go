@@ -60,7 +60,10 @@ func NewWriter(v *viper.Viper, filepathFn func(v *viper.Viper) (string, error)) 
 		f.Close()
 	}
 
-	ini, err := ini.LoadSources(ini.LoadOptions{AllowPythonMultilineValues: true}, configFilepath)
+	ini, err := ini.LoadSources(ini.LoadOptions{
+		AllowPythonMultilineValues: true,
+		SkipUnrecognizableLines:    true,
+	}, configFilepath)
 	if err != nil {
 		return nil, fmt.Errorf("error loading config file: %s", err)
 	}

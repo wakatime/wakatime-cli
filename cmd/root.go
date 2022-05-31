@@ -17,8 +17,11 @@ const defaultConfigSection = "settings"
 
 // NewRootCMD creates a rootCmd, which represents the base command when called without any subcommands.
 func NewRootCMD() *cobra.Command {
-	multilineOption := viper.IniLoadOptions(ini.LoadOptions{AllowPythonMultilineValues: true})
-	v := viper.NewWithOptions(multilineOption)
+	iniOption := viper.IniLoadOptions(ini.LoadOptions{
+		AllowPythonMultilineValues: true,
+		SkipUnrecognizableLines:    true,
+	})
+	v := viper.NewWithOptions(iniOption)
 
 	cmd := &cobra.Command{
 		Use:   "wakatime-cli",
@@ -35,6 +38,7 @@ func NewRootCMD() *cobra.Command {
 
 func setFlags(cmd *cobra.Command, v *viper.Viper) {
 	flags := cmd.Flags()
+	flags.String("alternate-branch", "", "Optional alternate branch name. Auto-detected branch takes priority.")
 	flags.String("alternate-language", "", "Optional alternate language name. Auto-detected language takes priority.")
 	flags.String("alternate-project", "", "Optional alternate project name. Auto-detected project takes priority.")
 	flags.String(
