@@ -521,7 +521,6 @@ func TestOfflineCount(t *testing.T) {
 		"--lines-in-file", "100",
 		"--time", "1585598059",
 		"--hide-branch-names", ".*",
-		"--log-to-stdout",
 		"--write",
 		"--verbose",
 	)
@@ -594,7 +593,6 @@ func TestPrintOfflineHeartbeats(t *testing.T) {
 		"--time", "1585598059",
 		"--hide-branch-names", ".*",
 		"--project", "wakatime-cli",
-		"--log-to-stdout",
 		"--write",
 		"--verbose",
 	)
