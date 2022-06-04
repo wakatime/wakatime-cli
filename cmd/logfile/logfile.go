@@ -27,6 +27,11 @@ func LoadParams(v *viper.Viper) (Params, error) {
 		debug = b
 	}
 
+	params := Params{
+		ToStdout: v.GetBool("log-to-stdout"),
+		Verbose:  v.GetBool("verbose") || debug,
+	}
+
 	logFile, ok := vipertools.FirstNonEmptyString(v, "log-file", "logfile", "settings.log_file")
 	if ok {
 		p, err := homedir.Expand(logFile)
@@ -35,10 +40,9 @@ func LoadParams(v *viper.Viper) (Params, error) {
 				ErrLogFile(fmt.Sprintf("failed expanding log file: %s", err))
 		}
 
-		return Params{
-			File:    p,
-			Verbose: v.GetBool("verbose") || debug,
-		}, nil
+		params.File = p
+
+		return params, nil
 	}
 
 	home, err := ini.WakaHomeDir()
@@ -46,9 +50,7 @@ func LoadParams(v *viper.Viper) (Params, error) {
 		return Params{}, fmt.Errorf("failed getting user's home directory: %s", err)
 	}
 
-	return Params{
-		File:     filepath.Join(home, defaultFile),
-		ToStdout: v.GetBool("log-to-stdout"),
-		Verbose:  v.GetBool("verbose") || debug,
-	}, nil
+	params.File = filepath.Join(home, defaultFile)
+
+	return params, nil
 }
