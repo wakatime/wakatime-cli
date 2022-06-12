@@ -14,7 +14,6 @@ import (
 	"testing"
 
 	"github.com/kevinburke/ssh_config"
-	"github.com/mitchellh/go-homedir"
 	"github.com/pkg/sftp"
 	"github.com/wakatime/wakatime-cli/pkg/filter"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
@@ -106,27 +105,23 @@ func TestWithDetection_sshConfig_Hostname(t *testing.T) {
 	shutdown, host, port := testServer(t, false)
 	defer shutdown()
 
-	sshConfigFile, _ := homedir.Expand("~/.ssh/config")
+	tmpFile, err := os.CreateTemp(t.TempDir(), "")
+	require.NoError(t, err)
+
+	defer tmpFile.Close()
 
 	ssh_config.DefaultUserSettings = &ssh_config.UserSettings{
 		IgnoreErrors: false,
 	}
 
-	_ = os.MkdirAll(filepath.Dir(sshConfigFile), os.ModePerm)
-
-	if _, err := os.Stat(sshConfigFile); err == nil {
-		copyFile(t, sshConfigFile, sshConfigFile+".backup")
-
-		defer func() {
-			copyFile(t, sshConfigFile+".backup", sshConfigFile)
-			os.Remove(sshConfigFile + ".backup")
-		}()
-	}
+	ssh_config.DefaultUserSettings.ConfigFinder(func() string {
+		return tmpFile.Name()
+	})
 
 	template, err := os.ReadFile("testdata/ssh_config_hostname")
 	require.NoError(t, err)
 
-	err = os.WriteFile(sshConfigFile, []byte(fmt.Sprintf(string(template), host)), 0600)
+	err = os.WriteFile(tmpFile.Name(), []byte(fmt.Sprintf(string(template), host)), 0600)
 	require.NoError(t, err)
 
 	entity, _ := filepath.Abs("./testdata/main.go")
@@ -184,22 +179,18 @@ func TestWithDetection_sshConfig_UserKnownHostsFile_mismatch(t *testing.T) {
 	shutdown, host, port := testServer(t, true)
 	defer shutdown()
 
-	sshConfigFile, _ := homedir.Expand("~/.ssh/config")
+	tmpFile, err := os.CreateTemp(t.TempDir(), "")
+	require.NoError(t, err)
+
+	defer tmpFile.Close()
 
 	ssh_config.DefaultUserSettings = &ssh_config.UserSettings{
 		IgnoreErrors: false,
 	}
 
-	_ = os.MkdirAll(filepath.Dir(sshConfigFile), os.ModePerm)
-
-	if _, err := os.Stat(sshConfigFile); err == nil {
-		copyFile(t, sshConfigFile, sshConfigFile+".backup")
-
-		defer func() {
-			copyFile(t, sshConfigFile+".backup", sshConfigFile)
-			os.Remove(sshConfigFile + ".backup")
-		}()
-	}
+	ssh_config.DefaultUserSettings.ConfigFinder(func() string {
+		return tmpFile.Name()
+	})
 
 	template, err := os.ReadFile("testdata/ssh_config_userknownhosts")
 	require.NoError(t, err)
@@ -207,7 +198,7 @@ func TestWithDetection_sshConfig_UserKnownHostsFile_mismatch(t *testing.T) {
 	knownHostsFile, err := filepath.Abs("./testdata/known_hosts")
 	require.NoError(t, err)
 
-	err = os.WriteFile(sshConfigFile, []byte(fmt.Sprintf(string(template), host, knownHostsFile)), 0600)
+	err = os.WriteFile(tmpFile.Name(), []byte(fmt.Sprintf(string(template), host, knownHostsFile)), 0600)
 	require.NoError(t, err)
 
 	entity, _ := filepath.Abs("./testdata/main.go")
@@ -256,22 +247,18 @@ func TestWithDetection_sshConfig_UserKnownHostsFile_match(t *testing.T) {
 	shutdown, host, port := testServer(t, true)
 	defer shutdown()
 
-	sshConfigFile, _ := homedir.Expand("~/.ssh/config")
+	tmpFile, err := os.CreateTemp(t.TempDir(), "")
+	require.NoError(t, err)
+
+	defer tmpFile.Close()
 
 	ssh_config.DefaultUserSettings = &ssh_config.UserSettings{
 		IgnoreErrors: false,
 	}
 
-	_ = os.MkdirAll(filepath.Dir(sshConfigFile), os.ModePerm)
-
-	if _, err := os.Stat(sshConfigFile); err == nil {
-		copyFile(t, sshConfigFile, sshConfigFile+".backup")
-
-		defer func() {
-			copyFile(t, sshConfigFile+".backup", sshConfigFile)
-			os.Remove(sshConfigFile + ".backup")
-		}()
-	}
+	ssh_config.DefaultUserSettings.ConfigFinder(func() string {
+		return tmpFile.Name()
+	})
 
 	template, err := os.ReadFile("testdata/ssh_config_userknownhosts")
 	require.NoError(t, err)
@@ -279,7 +266,7 @@ func TestWithDetection_sshConfig_UserKnownHostsFile_match(t *testing.T) {
 	knownHostsFile, err := filepath.Abs("./testdata/known_hosts")
 	require.NoError(t, err)
 
-	err = os.WriteFile(sshConfigFile, []byte(fmt.Sprintf(string(template), host, knownHostsFile)), 0600)
+	err = os.WriteFile(tmpFile.Name(), []byte(fmt.Sprintf(string(template), host, knownHostsFile)), 0600)
 	require.NoError(t, err)
 
 	entity, _ := filepath.Abs("./testdata/main.go")
@@ -655,14 +642,6 @@ func testServer(t *testing.T, expectError bool) (func(), string, int) {
 	}()
 
 	return func() { close(shutdown); listener.Close() }, host, port
-}
-
-func copyFile(t *testing.T, source, destination string) {
-	input, err := os.ReadFile(source)
-	require.NoError(t, err)
-
-	err = os.WriteFile(destination, input, 0600)
-	require.NoError(t, err)
 }
 
 func captureLogs(dest io.Writer) func() {
