@@ -273,7 +273,7 @@ func runCmd(v *viper.Viper, verbose bool, cmd cmdFn) int {
 	// run command
 	exitCode, err := cmd(v)
 	if err != nil {
-		log.Errorf("failed to run command: %s", err.Error())
+		log.Errorf("failed to run command: %s", err)
 
 		resetLogs()
 

@@ -2,6 +2,7 @@ package offline
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math"
 	"net/http"
@@ -39,7 +40,7 @@ type Noop struct{}
 
 // SendHeartbeats always returns an error.
 func (Noop) SendHeartbeats(_ []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
-	return nil, api.Err("skip sending heartbeats and only save to offline db")
+	return nil, api.Err{Err: errors.New("skip sending heartbeats and only save to offline db")}
 }
 
 // WithQueue initializes and returns a heartbeat handle option, which can be
@@ -65,10 +66,10 @@ func WithQueue(filepath string) heartbeat.HandleOption {
 
 				requeueErr := pushHeartbeatsWithRetry(filepath, hh)
 				if requeueErr != nil {
-					return nil, ErrOfflineEnqueue(fmt.Sprintf(
+					return nil, fmt.Errorf(
 						"failed to push heatbeats to queue after api error: %s. error: %s",
 						requeueErr,
-						err))
+						err)
 				}
 
 				return nil, err

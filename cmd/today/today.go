@@ -1,15 +1,14 @@
 package today
 
 import (
-	"errors"
 	"fmt"
 
 	cmdapi "github.com/wakatime/wakatime-cli/cmd/api"
 	"github.com/wakatime/wakatime-cli/cmd/params"
-	"github.com/wakatime/wakatime-cli/pkg/api"
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
 	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/summary"
+	"github.com/wakatime/wakatime-cli/pkg/wakaerror"
 
 	"github.com/spf13/viper"
 )
@@ -18,36 +17,8 @@ import (
 func Run(v *viper.Viper) (int, error) {
 	output, err := Today(v)
 	if err != nil {
-		var errauth api.ErrAuth
-		if errors.As(err, &errauth) {
-			return exitcode.ErrAuth, fmt.Errorf(
-				"today fetch failed: invalid api key... find yours at wakatime.com/api-key. %s",
-				errauth,
-			)
-		}
-
-		var errapi api.Err
-		if errors.As(err, &errapi) {
-			return exitcode.ErrAPI, fmt.Errorf(
-				"today fetch failed: api error: %s",
-				err,
-			)
-		}
-
-		var errBackoff api.ErrBackoff
-		if errors.As(err, &errBackoff) {
-			return exitcode.ErrBackoff, fmt.Errorf(
-				"today fetch failed: rate limited: %s",
-				err,
-			)
-		}
-
-		var errbadRequest api.ErrBadRequest
-		if errors.As(err, &errbadRequest) {
-			return exitcode.ErrGeneric, fmt.Errorf(
-				"today fetch failed: bad request: %s",
-				err,
-			)
+		if errwaka, ok := err.(wakaerror.Error); ok {
+			return errwaka.ExitCode(), fmt.Errorf("today fetch failed: %s", errwaka.Message())
 		}
 
 		return exitcode.ErrGeneric, fmt.Errorf(
