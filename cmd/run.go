@@ -277,7 +277,7 @@ func runCmd(v *viper.Viper, verbose bool, cmd cmdFn) int {
 
 		resetLogs()
 
-		if exitCode != exitcode.ErrAuth && verbose {
+		if exitCode != exitcode.ErrAuth && exitCode != exitcode.ErrBackoff && verbose {
 			if err := sendDiagnostics(v, logs.String(), string(debug.Stack())); err != nil {
 				log.Warnf("failed to send diagnostics: %s", err)
 			}

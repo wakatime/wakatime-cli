@@ -103,12 +103,18 @@ func testSendHeartbeats(t *testing.T, entity, project string) {
 
 	defer tmpFile.Close()
 
+	tmpInternalConfigFile, err := os.CreateTemp(tmpDir, "wakatime-internal.cfg")
+	require.NoError(t, err)
+
+	defer tmpInternalConfigFile.Close()
+
 	runWakatimeCli(
 		t,
 		&bytes.Buffer{},
 		"--api-url", apiURL,
 		"--key", "00000000-0000-4000-8000-000000000000",
 		"--config", tmpFile.Name(),
+		"--internal-config", tmpInternalConfigFile.Name(),
 		"--entity", entity,
 		"--cursorpos", "12",
 		"--offline-queue-file", offlineQueueFile.Name(),
@@ -176,12 +182,18 @@ func TestSendHeartbeats_SecondaryApiKey(t *testing.T) {
 
 	defer offlineQueueFile.Close()
 
+	tmpInternalConfigFile, err := os.CreateTemp(tmpDir, "wakatime-internal.cfg")
+	require.NoError(t, err)
+
+	defer tmpInternalConfigFile.Close()
+
 	runWakatimeCli(
 		t,
 		&bytes.Buffer{},
 		"--api-url", apiURL,
 		"--key", "00000000-0000-4000-8000-000000000000",
 		"--config", "testdata/wakatime.cfg",
+		"--internal-config", tmpInternalConfigFile.Name(),
 		"--entity", "testdata/main.go",
 		"--cursorpos", "12",
 		"--offline-queue-file", offlineQueueFile.Name(),
@@ -234,6 +246,11 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 
 	defer tmpFile.Close()
 
+	tmpInternalConfigFile, err := os.CreateTemp(tmpDir, "wakatime-internal.cfg")
+	require.NoError(t, err)
+
+	defer tmpInternalConfigFile.Close()
+
 	data, err := os.ReadFile("testdata/extra_heartbeats.json")
 	require.NoError(t, err)
 
@@ -245,6 +262,7 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 		"--api-url", apiURL,
 		"--key", "00000000-0000-4000-8000-000000000000",
 		"--config", tmpFile.Name(),
+		"--internal-config", tmpInternalConfigFile.Name(),
 		"--entity", "testdata/main.go",
 		"--extra-heartbeats", "true",
 		"--sync-offline-activity", "none",
@@ -320,12 +338,18 @@ func TestSendHeartbeats_Err(t *testing.T) {
 
 	defer tmpFile.Close()
 
+	tmpInternalConfigFile, err := os.CreateTemp(tmpDir, "wakatime-internal.cfg")
+	require.NoError(t, err)
+
+	defer tmpInternalConfigFile.Close()
+
 	out := runWakatimeCliExpectErr(
 		t,
 		exitcode.ErrAPI,
 		"--api-url", apiURL,
 		"--key", "00000000-0000-4000-8000-000000000000",
 		"--config", tmpFile.Name(),
+		"--internal-config", tmpInternalConfigFile.Name(),
 		"--entity", "testdata/main.go",
 		"--cursorpos", "12",
 		"--offline-queue-file", offlineQueueFile.Name(),
@@ -375,15 +399,23 @@ func TestSendHeartbeats_MalformedConfig(t *testing.T) {
 }
 
 func TestSendHeartbeats_MalformedInternalConfig(t *testing.T) {
-	offlineQueueFile, err := os.CreateTemp(t.TempDir(), "")
+	tmpDir := t.TempDir()
+
+	offlineQueueFile, err := os.CreateTemp(tmpDir, "")
 	require.NoError(t, err)
 
 	defer offlineQueueFile.Close()
+
+	tmpFile, err := os.CreateTemp(tmpDir, "wakatime.cfg")
+	require.NoError(t, err)
+
+	defer tmpFile.Close()
 
 	out := runWakatimeCliExpectErr(
 		t,
 		exitcode.ErrConfigFileParse,
 		"--entity", "testdata/main.go",
+		"--config", tmpFile.Name(),
 		"--internal-config", "./testdata/internal-malformed.cfg",
 		"--offline-queue-file", offlineQueueFile.Name(),
 		"--verbose",
@@ -403,10 +435,17 @@ func TestTodayGoal(t *testing.T) {
 
 	var numCalls int
 
-	tmpFile, err := os.CreateTemp(t.TempDir(), "wakatime.cfg")
+	tmpDir := t.TempDir()
+
+	tmpFile, err := os.CreateTemp(tmpDir, "wakatime.cfg")
 	require.NoError(t, err)
 
 	defer tmpFile.Close()
+
+	tmpInternalConfigFile, err := os.CreateTemp(tmpDir, "wakatime-internal.cfg")
+	require.NoError(t, err)
+
+	defer tmpInternalConfigFile.Close()
 
 	router.HandleFunc("/users/current/goals/11111111-1111-4111-8111-111111111111",
 		func(w http.ResponseWriter, req *http.Request) {
@@ -433,6 +472,7 @@ func TestTodayGoal(t *testing.T) {
 		"--api-url", apiURL,
 		"--key", "00000000-0000-4000-8000-000000000000",
 		"--config", tmpFile.Name(),
+		"--internal-config", tmpInternalConfigFile.Name(),
 		"--today-goal", "11111111-1111-4111-8111-111111111111",
 		"--verbose",
 	)
@@ -448,10 +488,17 @@ func TestTodaySummary(t *testing.T) {
 
 	var numCalls int
 
-	tmpFile, err := os.CreateTemp(t.TempDir(), "wakatime.cfg")
+	tmpDir := t.TempDir()
+
+	tmpFile, err := os.CreateTemp(tmpDir, "wakatime.cfg")
 	require.NoError(t, err)
 
 	defer tmpFile.Close()
+
+	tmpInternalConfigFile, err := os.CreateTemp(tmpDir, "wakatime-internal.cfg")
+	require.NoError(t, err)
+
+	defer tmpInternalConfigFile.Close()
 
 	router.HandleFunc("/users/current/statusbar/today", func(w http.ResponseWriter, req *http.Request) {
 		numCalls++
@@ -477,6 +524,7 @@ func TestTodaySummary(t *testing.T) {
 		"--api-url", apiURL,
 		"--key", "00000000-0000-4000-8000-000000000000",
 		"--config", tmpFile.Name(),
+		"--internal-config", tmpInternalConfigFile.Name(),
 		"--today",
 		"--verbose",
 	)
@@ -508,12 +556,18 @@ func TestOfflineCount(t *testing.T) {
 
 	defer tmpFile.Close()
 
+	tmpInternalConfigFile, err := os.CreateTemp(tmpDir, "wakatime-internal.cfg")
+	require.NoError(t, err)
+
+	defer tmpInternalConfigFile.Close()
+
 	out := runWakatimeCliExpectErr(
 		t,
 		exitcode.ErrAPI,
 		"--api-url", apiURL,
 		"--key", "00000000-0000-4000-8000-000000000000",
 		"--config", tmpFile.Name(),
+		"--internal-config", tmpInternalConfigFile.Name(),
 		"--entity", "testdata/main.go",
 		"--cursorpos", "12",
 		"--offline-queue-file", offlineQueueFile.Name(),
@@ -531,6 +585,8 @@ func TestOfflineCount(t *testing.T) {
 		t,
 		&bytes.Buffer{},
 		"--key", "00000000-0000-4000-8000-000000000000",
+		"--config", tmpFile.Name(),
+		"--internal-config", tmpInternalConfigFile.Name(),
 		"--offline-queue-file", offlineQueueFile.Name(),
 		"--offline-count",
 		"--verbose",

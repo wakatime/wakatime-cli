@@ -23,3 +23,11 @@ type ErrBadRequest string
 func (e ErrBadRequest) Error() string {
 	return string(e)
 }
+
+// ErrBackoff means we send later because currently rate limited.
+type ErrBackoff string
+
+// Error method to implement error interface.
+func (e ErrBackoff) Error() string {
+	return string(e)
+}
