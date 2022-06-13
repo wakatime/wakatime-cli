@@ -15,4 +15,6 @@ const (
 	ErrConfigFileRead = 110
 	// ErrConfigFileWrite is used for errors of config write command.
 	ErrConfigFileWrite = 111
+	// ErrBackoff is used when sending heartbeats postponed because we're currently rate limited.
+	ErrBackoff = 112
 )

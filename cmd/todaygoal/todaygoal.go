@@ -43,6 +43,14 @@ func Run(v *viper.Viper) (int, error) {
 			)
 		}
 
+		var errBackoff api.ErrBackoff
+		if errors.As(err, &errBackoff) {
+			return exitcode.ErrBackoff, fmt.Errorf(
+				"today goal fetch failed: rate limited: %s",
+				err,
+			)
+		}
+
 		var errapi api.Err
 		if errors.As(err, &errapi) {
 			return exitcode.ErrAPI, fmt.Errorf(
