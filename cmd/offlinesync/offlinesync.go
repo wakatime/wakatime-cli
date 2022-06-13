@@ -27,6 +27,7 @@ func Run(v *viper.Viper) (int, error) {
 	}
 
 	err = SyncOfflineActivity(v, queueFilepath)
+	// nolint:nestif
 	if err != nil {
 		var errauth api.ErrAuth
 		if errors.As(err, &errauth) {
@@ -40,6 +41,14 @@ func Run(v *viper.Viper) (int, error) {
 		if errors.As(err, &errbadRequest) {
 			return exitcode.ErrGeneric, fmt.Errorf(
 				"offline sync failed: bad request: %s",
+				err,
+			)
+		}
+
+		var errBackoff api.ErrBackoff
+		if errors.As(err, &errBackoff) {
+			return exitcode.ErrBackoff, fmt.Errorf(
+				"offline sync failed: rate limited: %s",
 				err,
 			)
 		}

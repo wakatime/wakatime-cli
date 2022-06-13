@@ -41,7 +41,7 @@ func WithBackoff(config Config) heartbeat.HandleOption {
 
 			should, reset := shouldBackoff(config.Retries, config.At)
 			if should {
-				return nil, api.Err("won't send heartbeat due to backoff")
+				return nil, api.ErrBackoff("won't send heartbeat due to backoff")
 			}
 
 			if reset {

@@ -50,6 +50,14 @@ func Run(v *viper.Viper) (int, error) {
 			)
 		}
 
+		var errBackoff api.ErrBackoff
+		if errors.As(err, &errBackoff) {
+			return exitcode.ErrBackoff, fmt.Errorf(
+				"sending heartbeat(s) later because currently rate limited: %w",
+				err,
+			)
+		}
+
 		var errapi api.Err
 		if errors.As(err, &errapi) {
 			return exitcode.ErrAPI, fmt.Errorf(
