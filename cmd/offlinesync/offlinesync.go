@@ -6,12 +6,12 @@ import (
 
 	cmdapi "github.com/wakatime/wakatime-cli/cmd/api"
 	"github.com/wakatime/wakatime-cli/cmd/params"
-	"github.com/wakatime/wakatime-cli/pkg/api"
 	"github.com/wakatime/wakatime-cli/pkg/apikey"
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/offline"
+	"github.com/wakatime/wakatime-cli/pkg/wakaerror"
 
 	"github.com/spf13/viper"
 )
@@ -27,45 +27,16 @@ func Run(v *viper.Viper) (int, error) {
 	}
 
 	err = SyncOfflineActivity(v, queueFilepath)
-	// nolint:nestif
 	if err != nil {
-		var errauth api.ErrAuth
-		if errors.As(err, &errauth) {
-			return exitcode.ErrAuth, fmt.Errorf(
-				"offline sync failed: invalid api key... find yours at wakatime.com/api-key. %s",
-				errauth,
-			)
-		}
-
-		var errbadRequest api.ErrBadRequest
-		if errors.As(err, &errbadRequest) {
-			return exitcode.ErrGeneric, fmt.Errorf(
-				"offline sync failed: bad request: %s",
-				err,
-			)
-		}
-
-		var errBackoff api.ErrBackoff
-		if errors.As(err, &errBackoff) {
-			return exitcode.ErrBackoff, fmt.Errorf(
-				"offline sync failed: rate limited: %s",
-				err,
-			)
-		}
-
-		var errapi api.Err
-		if errors.As(err, &errapi) {
-			return exitcode.ErrAPI, fmt.Errorf(
-				"offline sync failed: api error: %s",
-				err,
-			)
-		}
-
 		var errSyncDisabled ErrSyncDisabled
 		if errors.As(err, &errSyncDisabled) {
 			log.Debugln(err.Error())
 
 			return exitcode.Success, nil
+		}
+
+		if errwaka, ok := err.(wakaerror.Error); ok {
+			return errwaka.ExitCode(), fmt.Errorf("offline sync failed: %s", errwaka.Message())
 		}
 
 		return exitcode.ErrGeneric, fmt.Errorf(
@@ -93,7 +64,7 @@ func SyncOfflineActivity(v *viper.Viper, queueFilepath string) error {
 	}
 
 	if paramOffline.SyncMax == 0 {
-		return ErrSyncDisabled("sync offline activity is disabled")
+		return ErrSyncDisabled{}
 	}
 
 	apiClient, err := cmdapi.NewClientWithoutAuth(paramAPI)

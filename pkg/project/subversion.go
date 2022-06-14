@@ -39,7 +39,7 @@ func (s Subversion) Detect() (Result, bool, error) {
 
 	info, ok, err := svnInfo(filepath.Join(svnConfigFile, "..", ".."), binary)
 	if err != nil {
-		return Result{}, false, Err(fmt.Errorf("failed to get svn info: %w", err).Error())
+		return Result{}, false, fmt.Errorf("failed to get svn info: %s", err)
 	}
 
 	if !ok {
@@ -62,7 +62,7 @@ func svnInfo(fp string, binary string) (map[string]string, bool, error) {
 	out, err := cmd.Output()
 
 	if err != nil {
-		return nil, false, Err(fmt.Sprintf("error getting svn info: %s", err))
+		return nil, false, fmt.Errorf("error getting svn info: %s", err)
 	}
 
 	result := map[string]string{}

@@ -183,11 +183,11 @@ func Load(v *viper.Viper) (Params, error) {
 func LoadAPIParams(v *viper.Viper) (API, error) {
 	apiKey, ok := vipertools.FirstNonEmptyString(v, "key", "settings.api_key", "settings.apikey")
 	if !ok {
-		return API{}, api.ErrAuth("failed to load api key")
+		return API{}, api.ErrAuth{Err: errors.New("failed to load api key")}
 	}
 
 	if !apiKeyRegex.MatchString(apiKey) {
-		return API{}, api.ErrAuth("invalid api key format")
+		return API{}, api.ErrAuth{Err: errors.New("invalid api key format")}
 	}
 
 	var apiKeyPatterns []apikey.MapPattern
@@ -207,7 +207,7 @@ func LoadAPIParams(v *viper.Viper) (API, error) {
 		}
 
 		if !apiKeyRegex.MatchString(s) {
-			return API{}, api.ErrAuth(fmt.Sprintf("invalid api key format for %q", k))
+			return API{}, api.ErrAuth{Err: fmt.Errorf("invalid api key format for %q", k)}
 		}
 
 		if s == apiKey {
