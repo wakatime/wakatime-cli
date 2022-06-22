@@ -13,7 +13,7 @@ import (
 )
 
 func TestWithFormatting(t *testing.T) {
-	opt := heartbeat.WithFormatting(heartbeat.FormatConfig{})
+	opt := heartbeat.WithFormatting()
 
 	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		entity, err := filepath.Abs(hh[0].Entity)

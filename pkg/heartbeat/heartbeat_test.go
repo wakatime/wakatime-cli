@@ -243,6 +243,42 @@ func TestPluginFromUserAgent(t *testing.T) {
 	}
 }
 
+func TestRemoteAddressRegex(t *testing.T) {
+	tests := map[string]struct {
+		Heartbeat heartbeat.Heartbeat
+		Expected  bool
+	}{
+		"ssh full path": {
+			Heartbeat: heartbeat.Heartbeat{Entity: "ssh://user:1234@192.168.1.2/home/pi/unicorn-hat/examples/ascii_pic.py"},
+			Expected:  true,
+		},
+		"sftp full path": {
+			Heartbeat: heartbeat.Heartbeat{Entity: "sftp://user:1234@192.168.1.2/home/pi/unicorn-hat/examples/ascii_pic.py"},
+			Expected:  true,
+		},
+		"without path": {
+			Heartbeat: heartbeat.Heartbeat{Entity: "ssh://user:1234@192.168.1.2"},
+			Expected:  true,
+		},
+		"invalid ftp": {
+			Heartbeat: heartbeat.Heartbeat{Entity: "ftp://user:1234@192.168.1.2"},
+			Expected:  false,
+		},
+		"invalid": {
+			Heartbeat: heartbeat.Heartbeat{Entity: "http://192.168.1.2"},
+			Expected:  false,
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			result := test.Heartbeat.IsRemote()
+
+			assert.Equal(t, test.Expected, result)
+		})
+	}
+}
+
 type mockSender struct {
 	SendHeartbeatsFn        func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error)
 	SendHeartbeatsFnInvoked bool
