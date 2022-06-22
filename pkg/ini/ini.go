@@ -183,11 +183,10 @@ func WakaHomeDir() (string, error) {
 	home, exists := os.LookupEnv("WAKATIME_HOME")
 	if exists && home != "" {
 		home, err := homedir.Expand(home)
-		if err != nil {
-			log.Warnf("failed to expand WAKATIME_HOME filepath: %s", err)
-		} else {
+		if err == nil {
 			return home, nil
 		}
+		log.Warnf("failed to expand WAKATIME_HOME filepath: %s", err)
 	}
 
 	home, err := os.UserHomeDir()

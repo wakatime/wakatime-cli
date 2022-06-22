@@ -216,7 +216,8 @@ func Detect(patterns []MapPattern, args ...DetecterArg) (Result, DetectorID) {
 			if err != nil {
 				log.Errorf("unexpected error occurred at %q: %s", p.ID().String(), err)
 				continue
-			} else if detected {
+			}
+			if detected {
 				return result, p.ID()
 			}
 		}

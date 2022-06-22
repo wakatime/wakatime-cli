@@ -248,7 +248,8 @@ func parseNetUseColumns(line string) (netUseColumns, error) {
 
 	if cols.Local.Empty() {
 		return netUseColumns{}, errors.New("failed to parse local column")
-	} else if cols.Remote.Empty() {
+	}
+	if cols.Remote.Empty() {
 		return netUseColumns{}, errors.New("failed to parse remote column")
 	}
 
