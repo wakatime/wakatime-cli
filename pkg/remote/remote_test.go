@@ -97,7 +97,7 @@ func TestNewClient_Err(t *testing.T) {
 		`failed to parse remote file url: parse "ssh://wakatime:1234@192.168.1.2:port": invalid port ":port" after host`)
 }
 
-func TestWithDetection_sshConfig_Hostname(t *testing.T) {
+func TestWithDetection_SshConfig_Hostname(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("Skipping because OS is Windows.")
 	}
@@ -166,7 +166,7 @@ func TestWithDetection_sshConfig_Hostname(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestWithDetection_sshConfig_UserKnownHostsFile_mismatch(t *testing.T) {
+func TestWithDetection_SshConfig_UserKnownHostsFile_Mismatch(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("Skipping because OS is Windows.")
 	}
@@ -234,7 +234,7 @@ func TestWithDetection_sshConfig_UserKnownHostsFile_mismatch(t *testing.T) {
 	assert.Contains(t, logs.String(), "ssh: handshake failed: ssh: host key mismatch")
 }
 
-func TestWithDetection_sshConfig_UserKnownHostsFile_match(t *testing.T) {
+func TestWithDetection_SshConfig_UserKnownHostsFile_Match(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("Skipping because OS is Windows.")
 	}
@@ -314,6 +314,74 @@ func TestWithDetection_sshConfig_UserKnownHostsFile_match(t *testing.T) {
 		},
 	})
 	require.NoError(t, err)
+}
+
+func TestWithCleanup(t *testing.T) {
+	tmpFile, err := os.CreateTemp(t.TempDir(), "")
+	require.NoError(t, err)
+
+	// Should not defer otherwise it will fail on Windows
+	tmpFile.Close()
+
+	opts := []heartbeat.HandleOption{
+		remote.WithCleanup(),
+	}
+
+	sender := mockSender{
+		SendHeartbeatsFn: func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+			return []heartbeat.Result{
+				{
+					Status:    201,
+					Heartbeat: heartbeat.Heartbeat{},
+				},
+			}, nil
+		},
+	}
+
+	handle := heartbeat.NewHandle(&sender, opts...)
+
+	_, err = handle([]heartbeat.Heartbeat{
+		{
+			LocalFile: tmpFile.Name(),
+			EntityRaw: "/some/remote/file",
+		},
+	})
+	require.NoError(t, err)
+
+	assert.NoFileExists(t, tmpFile.Name())
+}
+
+func TestWithCleanup_NotRemoteFile(t *testing.T) {
+	tmpFile, err := os.CreateTemp(t.TempDir(), "")
+	require.NoError(t, err)
+
+	defer tmpFile.Close()
+
+	opts := []heartbeat.HandleOption{
+		remote.WithCleanup(),
+	}
+
+	sender := mockSender{
+		SendHeartbeatsFn: func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+			return []heartbeat.Result{
+				{
+					Status:    201,
+					Heartbeat: heartbeat.Heartbeat{},
+				},
+			}, nil
+		},
+	}
+
+	handle := heartbeat.NewHandle(&sender, opts...)
+
+	_, err = handle([]heartbeat.Heartbeat{
+		{
+			LocalFile: tmpFile.Name(),
+		},
+	})
+	require.NoError(t, err)
+
+	assert.FileExists(t, tmpFile.Name())
 }
 
 type mockSender struct {
