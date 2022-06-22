@@ -243,6 +243,7 @@ func initHandleOptions(params paramscmd.Params) []heartbeat.HandleOption {
 			ProjectPatterns:      params.Heartbeat.Sanitize.HideProjectNames,
 			RemoteAddressPattern: remote.RemoteAddressRegex,
 		}),
+		filter.WithLengthValidator(),
 	}
 }
 

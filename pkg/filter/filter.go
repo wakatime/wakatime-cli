@@ -38,12 +38,22 @@ func WithFiltering(config Config) heartbeat.HandleOption {
 				filtered = append(filtered, h)
 			}
 
-			if len(filtered) == 0 {
+			return next(filtered)
+		}
+	}
+}
+
+// WithHeartbeatsLengthValidator initializes and returns a heartbeat handle option, which
+// can be used to abort execution if all heartbeats were filtered and the list is empty.
+func WithLengthValidator() heartbeat.HandleOption {
+	return func(next heartbeat.Handle) heartbeat.Handle {
+		return func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+			if len(hh) == 0 {
 				log.Debugln("no heartbeats left after filtering. abort heartbeat handling.")
 				return []heartbeat.Result{}, nil
 			}
 
-			return next(filtered)
+			return next(hh)
 		}
 	}
 }
