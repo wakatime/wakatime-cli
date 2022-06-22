@@ -63,13 +63,13 @@ func TestWithFiltering(t *testing.T) {
 	}, result)
 }
 
-func TestWithFiltering_AbortAllFiltered(t *testing.T) {
-	opt := filter.WithFiltering(filter.Config{})
+func TestWithLengthValidator(t *testing.T) {
+	opt := filter.WithLengthValidator()
 	h := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		return []heartbeat.Result{}, errors.New("this will should never be called")
 	})
 
-	result, err := h([]heartbeat.Heartbeat{testHeartbeat()})
+	result, err := h([]heartbeat.Heartbeat{})
 	require.NoError(t, err)
 
 	assert.Equal(t, result, []heartbeat.Result{})
