@@ -111,6 +111,29 @@ func WithDetection() heartbeat.HandleOption {
 	}
 }
 
+// WithCleanup initializes and returns a heartbeat handle option, which
+// deletes a local temporary file if downloaded from a remote file.
+func WithCleanup() heartbeat.HandleOption {
+	return func(next heartbeat.Handle) heartbeat.Handle {
+		return func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+			log.Debugln("execute remote cleanup")
+
+			for _, h := range hh {
+				if h.EntityRaw != "" {
+					log.Debugln("deleting temporary file: %s", h.LocalFile)
+
+					err := os.Remove(h.LocalFile)
+					if err != nil {
+						log.Warnf("failed to delete temporary file: %s", err)
+					}
+				}
+			}
+
+			return next(hh)
+		}
+	}
+}
+
 // NewClient initializes a new remote client.
 func NewClient(address string) (Client, error) {
 	parsedURL, err := url.Parse(address)
