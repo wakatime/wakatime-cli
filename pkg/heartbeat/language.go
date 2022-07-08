@@ -2249,7 +2249,7 @@ const (
 	languageVHDLStr                        = "VHDL"
 	languageVimHelpFileStr                 = "Vim Help File"
 	languageVimLStr                        = "VimL"
-	languageVimScriptStr                   = "Vim script"
+	languageVimScriptStr                   = "Vim Script"
 	languageVimSnippetStr                  = "Vim Snippet"
 	languageVisualBasicNet                 = "Visual Basic .NET"
 	languageVoltStr                        = "Volt"
