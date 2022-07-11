@@ -86,10 +86,7 @@ func loadParams(v *viper.Viper) (paramscmd.Params, error) {
 func buildHeartbeats(params paramscmd.Params) []heartbeat.Heartbeat {
 	heartbeats := []heartbeat.Heartbeat{}
 
-	userAgent := heartbeat.UserAgentUnknownPlugin()
-	if params.API.Plugin != "" {
-		userAgent = heartbeat.UserAgent(params.API.Plugin)
-	}
+	userAgent := heartbeat.UserAgent(params.API.Plugin)
 
 	heartbeats = append(heartbeats, heartbeat.New(
 		params.Heartbeat.Project.BranchAlternate,

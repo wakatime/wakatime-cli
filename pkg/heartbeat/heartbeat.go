@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/wakatime/wakatime-cli/pkg/log"
+	"github.com/wakatime/wakatime-cli/pkg/system"
 	"github.com/wakatime/wakatime-cli/pkg/version"
 
 	"github.com/matishsiao/goInfo"
@@ -148,12 +149,6 @@ func NewHandle(sender Sender, opts ...HandleOption) Handle {
 	}
 }
 
-// UserAgentUnknownPlugin generates a user agent from various system infos, including
-// a default value for plugin.
-func UserAgentUnknownPlugin() string {
-	return UserAgent("Unknown/0")
-}
-
 // UserAgent generates a user agent from various system infos, including a
 // a passed in value for plugin.
 func UserAgent(plugin string) string {
@@ -162,10 +157,14 @@ func UserAgent(plugin string) string {
 		log.Debugf("goInfo.GetInfo error: %s", err)
 	}
 
+	if plugin == "" {
+		plugin = "Unknown/0"
+	}
+
 	return fmt.Sprintf(
 		"wakatime/%s (%s-%s-%s) %s %s",
 		version.Version,
-		runtime.GOOS,
+		system.OSName(),
 		info.Core,
 		info.Platform,
 		runtime.Version(),

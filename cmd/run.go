@@ -63,16 +63,10 @@ func Run(cmd *cobra.Command, v *viper.Viper) {
 	// setup logging again to use config file settings
 	logFileParams := SetupLogging(v)
 
-	if v.GetBool("useragent") {
-		log.Debugln("command: useragent")
+	if v.GetBool("user-agent") {
+		log.Debugln("command: user-agent")
 
-		if plugin := vipertools.GetString(v, "plugin"); plugin != "" {
-			fmt.Println(heartbeat.UserAgent(plugin))
-
-			os.Exit(exitcode.Success)
-		}
-
-		fmt.Println(heartbeat.UserAgentUnknownPlugin())
+		fmt.Println(heartbeat.UserAgent(vipertools.GetString(v, "plugin")))
 
 		os.Exit(exitcode.Success)
 	}
