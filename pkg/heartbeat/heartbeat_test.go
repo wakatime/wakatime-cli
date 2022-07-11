@@ -197,7 +197,7 @@ func TestUserAgentUnknownPlugin(t *testing.T) {
 		runtime.Version(),
 	)
 
-	assert.Equal(t, expected, heartbeat.UserAgentUnknownPlugin())
+	assert.Equal(t, expected, heartbeat.UserAgent(""))
 }
 
 func TestUserAgent(t *testing.T) {

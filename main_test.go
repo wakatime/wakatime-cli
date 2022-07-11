@@ -60,7 +60,7 @@ func testSendHeartbeats(t *testing.T, entity, project string) {
 		assert.Equal(t, []string{"application/json"}, req.Header["Accept"])
 		assert.Equal(t, []string{"application/json"}, req.Header["Content-Type"])
 		assert.Equal(t, []string{"Basic MDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAw"}, req.Header["Authorization"])
-		assert.Equal(t, []string{heartbeat.UserAgentUnknownPlugin()}, req.Header["User-Agent"])
+		assert.Equal(t, []string{heartbeat.UserAgent("")}, req.Header["User-Agent"])
 
 		// check body
 		expectedBodyTpl, err := os.ReadFile("testdata/api_heartbeats_request_template.json")
@@ -74,7 +74,7 @@ func testSendHeartbeats(t *testing.T, entity, project string) {
 			string(expectedBodyTpl),
 			entityPath,
 			project,
-			heartbeat.UserAgentUnknownPlugin(),
+			heartbeat.UserAgent(""),
 		)
 
 		body, err := io.ReadAll(req.Body)
@@ -144,7 +144,7 @@ func TestSendHeartbeats_SecondaryApiKey(t *testing.T) {
 		assert.Equal(t, []string{"application/json"}, req.Header["Accept"])
 		assert.Equal(t, []string{"application/json"}, req.Header["Content-Type"])
 		assert.Equal(t, []string{"Basic MDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAx"}, req.Header["Authorization"])
-		assert.Equal(t, []string{heartbeat.UserAgentUnknownPlugin()}, req.Header["User-Agent"])
+		assert.Equal(t, []string{heartbeat.UserAgent("")}, req.Header["User-Agent"])
 
 		// check body
 		expectedBodyTpl, err := os.ReadFile("testdata/api_heartbeats_request_template.json")
@@ -158,7 +158,7 @@ func TestSendHeartbeats_SecondaryApiKey(t *testing.T) {
 			string(expectedBodyTpl),
 			entityPath,
 			"wakatime-cli",
-			heartbeat.UserAgentUnknownPlugin(),
+			heartbeat.UserAgent(""),
 		)
 
 		body, err := io.ReadAll(req.Body)
@@ -223,7 +223,7 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 		assert.Equal(t, []string{"application/json"}, req.Header["Accept"])
 		assert.Equal(t, []string{"application/json"}, req.Header["Content-Type"])
 		assert.Equal(t, []string{"Basic MDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAw"}, req.Header["Authorization"])
-		assert.Equal(t, []string{heartbeat.UserAgentUnknownPlugin()}, req.Header["User-Agent"])
+		assert.Equal(t, []string{heartbeat.UserAgent("")}, req.Header["User-Agent"])
 
 		// write response
 		f, err := os.Open("testdata/api_heartbeats_response_extra_heartbeats.json")
@@ -300,7 +300,7 @@ func TestSendHeartbeats_Err(t *testing.T) {
 		assert.Equal(t, []string{"application/json"}, req.Header["Accept"])
 		assert.Equal(t, []string{"application/json"}, req.Header["Content-Type"])
 		assert.Equal(t, []string{"Basic MDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAw"}, req.Header["Authorization"])
-		assert.Equal(t, []string{heartbeat.UserAgentUnknownPlugin()}, req.Header["User-Agent"])
+		assert.Equal(t, []string{heartbeat.UserAgent("")}, req.Header["User-Agent"])
 
 		// check body
 		expectedBodyTpl, err := os.ReadFile("testdata/api_heartbeats_request_template.json")
@@ -314,7 +314,7 @@ func TestSendHeartbeats_Err(t *testing.T) {
 			string(expectedBodyTpl),
 			entityPath,
 			project,
-			heartbeat.UserAgentUnknownPlugin(),
+			heartbeat.UserAgent(""),
 		)
 
 		body, err := io.ReadAll(req.Body)
@@ -455,7 +455,7 @@ func TestTodayGoal(t *testing.T) {
 			assert.Equal(t, http.MethodGet, req.Method)
 			assert.Equal(t, []string{"application/json"}, req.Header["Accept"])
 			assert.Equal(t, []string{"Basic MDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAw"}, req.Header["Authorization"])
-			assert.Equal(t, []string{heartbeat.UserAgentUnknownPlugin()}, req.Header["User-Agent"])
+			assert.Equal(t, []string{heartbeat.UserAgent("")}, req.Header["User-Agent"])
 
 			// write response
 			f, err := os.Open("testdata/api_goals_id_response.json")
@@ -507,7 +507,7 @@ func TestTodaySummary(t *testing.T) {
 		assert.Equal(t, http.MethodGet, req.Method)
 		assert.Equal(t, []string{"application/json"}, req.Header["Accept"])
 		assert.Equal(t, []string{"Basic MDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAw"}, req.Header["Authorization"])
-		assert.Equal(t, []string{heartbeat.UserAgentUnknownPlugin()}, req.Header["User-Agent"])
+		assert.Equal(t, []string{heartbeat.UserAgent("")}, req.Header["User-Agent"])
 
 		// write response
 		f, err := os.Open("testdata/api_statusbar_today_response.json")
@@ -682,19 +682,19 @@ func TestPrintOfflineHeartbeats(t *testing.T) {
 
 	offlineHeartbeatStr := fmt.Sprintf(
 		string(offlineHeartbeat),
-		entity, heartbeat.UserAgentUnknownPlugin(),
+		entity, heartbeat.UserAgent(""),
 	)
 
 	assert.Equal(t, offlineHeartbeatStr+"\n", out)
 }
 
 func TestUserAgent(t *testing.T) {
-	out := runWakatimeCli(t, &bytes.Buffer{}, "--useragent")
-	assert.Equal(t, fmt.Sprintf("%s\n", heartbeat.UserAgentUnknownPlugin()), out)
+	out := runWakatimeCli(t, &bytes.Buffer{}, "--user-agent")
+	assert.Equal(t, fmt.Sprintf("%s\n", heartbeat.UserAgent("")), out)
 }
 
 func TestUserAgentWithPlugin(t *testing.T) {
-	out := runWakatimeCli(t, &bytes.Buffer{}, "--useragent", "--plugin", "Wakatime/1.0.4")
+	out := runWakatimeCli(t, &bytes.Buffer{}, "--user-agent", "--plugin", "Wakatime/1.0.4")
 
 	assert.Equal(t, fmt.Sprintf("%s\n", heartbeat.UserAgent("Wakatime/1.0.4")), out)
 }

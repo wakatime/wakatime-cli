@@ -80,11 +80,7 @@ func newClient(params paramscmd.API, opts ...api.Option) (*api.Client, error) {
 		}
 	}
 
-	if params.Plugin != "" {
-		opts = append(opts, api.WithUserAgent(params.Plugin))
-	} else {
-		opts = append(opts, api.WithUserAgentUnknownPlugin())
-	}
+	opts = append(opts, api.WithUserAgent(params.Plugin))
 
 	return api.NewClient(params.URL, opts...), nil
 }
