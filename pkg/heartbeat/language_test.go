@@ -718,7 +718,7 @@ func languageTests() map[string]heartbeat.Language {
 		"VHDL":                             heartbeat.LanguageVHDL,
 		"Vim Help File":                    heartbeat.LanguageVimHelpFile,
 		"VimL":                             heartbeat.LanguageVimL,
-		"Vim script":                       heartbeat.LanguageVimScript,
+		"Vim Script":                       heartbeat.LanguageVimScript,
 		"Vim Snippet":                      heartbeat.LanguageVimSnippet,
 		"Volt":                             heartbeat.LanguageVolt,
 		"Vue.js":                           heartbeat.LanguageVueJS,

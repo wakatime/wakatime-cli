@@ -38,12 +38,22 @@ func WithFiltering(config Config) heartbeat.HandleOption {
 				filtered = append(filtered, h)
 			}
 
-			if len(filtered) == 0 {
+			return next(filtered)
+		}
+	}
+}
+
+// WithHeartbeatsLengthValidator initializes and returns a heartbeat handle option, which
+// can be used to abort execution if all heartbeats were filtered and the list is empty.
+func WithLengthValidator() heartbeat.HandleOption {
+	return func(next heartbeat.Handle) heartbeat.Handle {
+		return func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+			if len(hh) == 0 {
 				log.Debugln("no heartbeats left after filtering. abort heartbeat handling.")
 				return []heartbeat.Result{}, nil
 			}
 
-			return next(filtered)
+			return next(hh)
 		}
 	}
 }
@@ -54,15 +64,6 @@ func Filter(h heartbeat.Heartbeat, config Config) error {
 	// filter by pattern
 	if err := filterByPattern(h.Entity, config.Include, config.Exclude); err != nil {
 		return fmt.Errorf(fmt.Sprintf("filter by pattern: %s", err))
-	}
-
-	if h.IsUnsavedEntity {
-		return nil
-	}
-
-	// filter file
-	if h.EntityType != heartbeat.FileType {
-		return nil
 	}
 
 	err := filterFileEntity(h, config)
@@ -102,10 +103,22 @@ func filterByPattern(entity string, include, exclude []regex.Regex) error {
 // the existence of the passed in filepath, and optionally by checking if a
 // wakatime project file can be detected in the filepath directory tree.
 // Returns an error to signal to the caller to skip the heartbeat.
-func filterFileEntity(heartbeat heartbeat.Heartbeat, config Config) error {
-	entity := heartbeat.Entity
-	if heartbeat.LocalFile != "" {
-		entity = heartbeat.LocalFile
+func filterFileEntity(h heartbeat.Heartbeat, config Config) error {
+	if h.EntityType != heartbeat.FileType {
+		return nil
+	}
+
+	if h.IsUnsavedEntity {
+		return nil
+	}
+
+	if h.IsRemote() {
+		return nil
+	}
+
+	entity := h.Entity
+	if h.LocalFile != "" {
+		entity = h.LocalFile
 	}
 
 	// skip files that don't exist on disk
@@ -113,9 +126,8 @@ func filterFileEntity(heartbeat heartbeat.Heartbeat, config Config) error {
 		return fmt.Errorf(fmt.Sprintf("skipping because of non-existing file %q", entity))
 	}
 
-	// when including only with project file, skip files when the project does not contain a .wakatime-project file
-	// except when file was downloaded to a tmp local file
-	if config.IncludeOnlyWithProjectFile && heartbeat.LocalFile == "" {
+	// when including only with project file, skip files when the project doesn't have a .wakatime-project file
+	if config.IncludeOnlyWithProjectFile {
 		_, ok := project.FindFileOrDirectory(entity, project.WakaTimeProjectFile)
 		if !ok {
 			return fmt.Errorf("skipping because missing .wakatime-project file in parent path")

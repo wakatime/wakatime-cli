@@ -2,6 +2,7 @@ package project
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -28,7 +29,7 @@ func (f File) Detect() (Result, bool, error) {
 
 	lines, err := readFile(fp, 2)
 	if err != nil {
-		return Result{}, false, Err(fmt.Sprintf("error reading file: %s", err))
+		return Result{}, false, fmt.Errorf("error reading file: %s", err)
 	}
 
 	result := Result{
@@ -55,12 +56,12 @@ func fileExists(fp string) bool {
 // readFile reads a file until max number of lines and return an array of lines.
 func readFile(fp string, max int) ([]string, error) {
 	if fp == "" {
-		return nil, Err("filepath cannot be empty")
+		return nil, errors.New("filepath cannot be empty")
 	}
 
 	file, err := os.Open(fp)
 	if err != nil {
-		return nil, Err(fmt.Errorf("failed while opening file %q: %w", fp, err).Error())
+		return nil, fmt.Errorf("failed while opening file %q: %s", fp, err)
 	}
 
 	defer file.Close()

@@ -55,7 +55,7 @@ func findHgBranch(fp string) (string, error) {
 
 	lines, err := readFile(p, 1)
 	if err != nil {
-		return "", Err(fmt.Sprintf("failed while opening file %q: %s", fp, err))
+		return "", fmt.Errorf("failed while opening file %q: %s", fp, err)
 	}
 
 	if len(lines) > 0 {

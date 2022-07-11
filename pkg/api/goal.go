@@ -24,35 +24,35 @@ func (c *Client) Goal(id string) (*goal.Goal, error) {
 
 	resp, err := c.Do(req)
 	if err != nil {
-		return nil, Err(fmt.Sprintf("failed to make request to %q: %s", url, err))
+		return nil, Err{Err: fmt.Errorf("failed to make request to %q: %s", url, err)}
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, Err(fmt.Sprintf("failed to read response body from %q: %s", url, err))
+		return nil, Err{Err: fmt.Errorf("failed to read response body from %q: %s", url, err)}
 	}
 
 	switch resp.StatusCode {
 	case http.StatusOK:
 		break
 	case http.StatusUnauthorized:
-		return nil, ErrAuth(fmt.Sprintf("authentication failed at %q. body: %q", url, string(body)))
+		return nil, ErrAuth{Err: fmt.Errorf("authentication failed at %q. body: %q", url, string(body))}
 	case http.StatusBadRequest:
-		return nil, ErrBadRequest(fmt.Sprintf("bad request at %q", url))
+		return nil, ErrBadRequest{Err: fmt.Errorf("bad request at %q", url)}
 	default:
-		return nil, Err(fmt.Sprintf(
+		return nil, Err{Err: fmt.Errorf(
 			"invalid response status from %q. got: %d, want: %d. body: %q",
 			url,
 			resp.StatusCode,
 			http.StatusOK,
 			string(body),
-		))
+		)}
 	}
 
 	goal, err := ParseGoalResponse(body)
 	if err != nil {
-		return nil, Err(fmt.Sprintf("failed to parse results from %q: %s", url, err))
+		return nil, Err{Err: fmt.Errorf("failed to parse results from %q: %s", url, err)}
 	}
 
 	return goal, nil

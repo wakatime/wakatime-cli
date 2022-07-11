@@ -282,7 +282,7 @@ func TestOption_WithUserAgentUnknownPlugin(t *testing.T) {
 		numCalls++
 	})
 
-	opts := []api.Option{api.WithUserAgentUnknownPlugin()}
+	opts := []api.Option{api.WithUserAgent("")}
 
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	require.NoError(t, err)

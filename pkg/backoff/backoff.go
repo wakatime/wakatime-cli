@@ -1,6 +1,7 @@
 package backoff
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"strconv"
@@ -41,7 +42,7 @@ func WithBackoff(config Config) heartbeat.HandleOption {
 
 			should, reset := shouldBackoff(config.Retries, config.At)
 			if should {
-				return nil, api.ErrBackoff("won't send heartbeat due to backoff")
+				return nil, api.ErrBackoff{Err: errors.New("won't send heartbeat due to backoff")}
 			}
 
 			if reset {

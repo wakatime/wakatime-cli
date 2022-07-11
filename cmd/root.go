@@ -215,7 +215,7 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 		"Prints time for the given goal id Today, then exits"+
 			" Visit wakatime.com/api/v1/users/current/goals to find your goal id.")
 	flags.Bool(
-		"useragent",
+		"user-agent",
 		false,
 		"(internal) Prints the wakatime-cli useragent, as it will be sent to the api, then exits.",
 	)
@@ -233,7 +233,7 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 
 	// hide internal flags
 	_ = flags.MarkHidden("offline-queue-file")
-	_ = flags.MarkHidden("useragent")
+	_ = flags.MarkHidden("user-agent")
 
 	err := v.BindPFlags(flags)
 	if err != nil {

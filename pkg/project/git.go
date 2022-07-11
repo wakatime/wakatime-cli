@@ -30,7 +30,7 @@ func (g Git) Detect() (Result, bool, error) {
 	// Find for submodule takes priority if enabled
 	gitdirSubmodule, ok, err := findSubmodule(fp, g.SubmodulePatterns)
 	if err != nil {
-		return Result{}, false, Err(fmt.Sprintf("failed to validate submodule: %s", err))
+		return Result{}, false, fmt.Errorf("failed to validate submodule: %s", err)
 	}
 
 	if ok {
@@ -84,14 +84,14 @@ func (g Git) Detect() (Result, bool, error) {
 	// Find for gitdir path
 	gitdir, err := findGitdir(gitConfigFile)
 	if err != nil {
-		return Result{}, false, Err(fmt.Sprintf("error finding gitdir: %s", err))
+		return Result{}, false, fmt.Errorf("error finding gitdir: %s", err)
 	}
 
 	// Commonly .git file is present when it's a worktree
 	// Find for commondir file
 	commondir, ok, err := findCommondir(gitdir)
 	if err != nil {
-		return Result{}, false, Err(fmt.Sprintf("error finding commondir: %s", err))
+		return Result{}, false, fmt.Errorf("error finding commondir: %s", err)
 	}
 
 	if ok {
@@ -149,7 +149,7 @@ func findSubmodule(fp string, patterns []regex.Regex) (string, bool, error) {
 	gitdir, err := findGitdir(gitConfigFile)
 	if err != nil {
 		return "", false,
-			Err(fmt.Sprintf("error finding gitdir for submodule: %s", err))
+			fmt.Errorf("error finding gitdir for submodule: %s", err)
 	}
 
 	if strings.Contains(gitdir, "modules") {
@@ -174,7 +174,7 @@ func shouldTakeSubmodule(fp string, patterns []regex.Regex) bool {
 func findGitdir(fp string) (string, error) {
 	lines, err := readFile(fp, 1)
 	if err != nil {
-		return "", Err(fmt.Sprintf("failed while opening file %q: %s", fp, err))
+		return "", fmt.Errorf("failed while opening file %q: %s", fp, err)
 	}
 
 	if len(lines) > 0 && strings.HasPrefix(lines[0], "gitdir: ") {
@@ -219,7 +219,7 @@ func resolveCommondir(fp string) (string, bool, error) {
 	lines, err := readFile(filepath.Join(fp, "commondir"), 1)
 	if err != nil {
 		return "", false,
-			Err(fmt.Sprintf("failed while opening file %q: %s", fp, err))
+			fmt.Errorf("failed while opening file %q: %s", fp, err)
 	}
 
 	if len(lines) == 0 {
@@ -229,7 +229,7 @@ func resolveCommondir(fp string) (string, bool, error) {
 	gitdir, err := filepath.Abs(filepath.Join(fp, lines[0]))
 	if err != nil {
 		return "", false,
-			Err(fmt.Sprintf("failed to get absolute path: %s", err))
+			fmt.Errorf("failed to get absolute path: %s", err)
 	}
 
 	if filepath.Base(gitdir) == ".git" {
@@ -246,7 +246,7 @@ func findGitBranch(fp string) (string, error) {
 
 	lines, err := readFile(fp, 1)
 	if err != nil {
-		return "", Err(fmt.Sprintf("failed while opening file %q: %s", fp, err))
+		return "", fmt.Errorf("failed while opening file %q: %s", fp, err)
 	}
 
 	if len(lines) > 0 && strings.HasPrefix(strings.TrimSpace(lines[0]), "ref: ") {

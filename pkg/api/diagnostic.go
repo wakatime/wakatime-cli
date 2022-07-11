@@ -59,23 +59,23 @@ func (c *Client) SendDiagnostics(plugin string, diagnostics ...diagnostic.Diagno
 
 	resp, err := c.Do(req)
 	if err != nil {
-		return Err(fmt.Sprintf("failed making request to %q: %s", url, err))
+		return Err{Err: fmt.Errorf("failed making request to %q: %s", url, err)}
 	}
 	defer resp.Body.Close()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return Err(fmt.Sprintf("failed reading response body from %q: %s", url, err))
+		return Err{Err: fmt.Errorf("failed reading response body from %q: %s", url, err)}
 	}
 
 	if resp.StatusCode != http.StatusCreated {
-		return Err(fmt.Sprintf(
+		return Err{Err: fmt.Errorf(
 			"invalid response status from %q. got: %d, want: %d. body: %q",
 			url,
 			resp.StatusCode,
 			http.StatusCreated,
 			string(respBody),
-		))
+		)}
 	}
 
 	return nil

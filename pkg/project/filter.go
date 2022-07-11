@@ -2,6 +2,7 @@ package project
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/log"
@@ -28,15 +29,17 @@ func WithFiltering(config FilterConfig) heartbeat.HandleOption {
 				if err != nil {
 					log.Debugln(err.Error())
 
+					if h.LocalFileNeedsCleanup {
+						err = os.Remove(h.LocalFile)
+						if err != nil {
+							log.Warnf("unable to delete tmp file: %s", err)
+						}
+					}
+
 					continue
 				}
 
 				filtered = append(filtered, h)
-			}
-
-			if len(filtered) == 0 {
-				log.Debugln("no heartbeat left after filtering. abort heartbeat handling.")
-				return []heartbeat.Result{}, nil
 			}
 
 			return next(filtered)

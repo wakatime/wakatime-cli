@@ -11,7 +11,6 @@ import (
 	"testing"
 
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
-	"github.com/wakatime/wakatime-cli/pkg/offline"
 	"github.com/wakatime/wakatime-cli/pkg/version"
 
 	"github.com/spf13/viper"
@@ -90,7 +89,7 @@ func TestRunCmd_ErrOfflineEnqueue(t *testing.T) {
 	v.Set("plugin", "vim")
 
 	ret := runCmd(v, true, func(v *viper.Viper) (int, error) {
-		return exitcode.ErrGeneric, offline.ErrOfflineEnqueue("fail")
+		return exitcode.ErrGeneric, errors.New("fail")
 	})
 
 	assert.Equal(t, exitcode.ErrGeneric, ret)

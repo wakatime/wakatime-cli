@@ -63,36 +63,36 @@ func (c *Client) sendHeartbeats(url string, heartbeats []heartbeat.Heartbeat) ([
 
 	resp, err := c.Do(req)
 	if err != nil {
-		return nil, Err(fmt.Sprintf("failed making request to %q: %s", url, err))
+		return nil, Err{Err: fmt.Errorf("failed making request to %q: %s", url, err)}
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, Err(fmt.Sprintf("failed reading response body from %q: %s", url, err))
+		return nil, Err{Err: fmt.Errorf("failed reading response body from %q: %s", url, err)}
 	}
 
 	switch resp.StatusCode {
 	case http.StatusCreated, http.StatusAccepted:
 		break
 	case http.StatusUnauthorized:
-		return nil, ErrAuth(fmt.Sprintf("authentication failed at %q", url))
+		return nil, ErrAuth{Err: fmt.Errorf("authentication failed at %q", url)}
 	case http.StatusBadRequest:
-		return nil, ErrBadRequest(fmt.Sprintf("bad request at %q", url))
+		return nil, ErrBadRequest{Err: fmt.Errorf("bad request at %q", url)}
 	default:
-		return nil, Err(fmt.Sprintf(
+		return nil, Err{Err: fmt.Errorf(
 			"invalid response status from %q. got: %d, want: %d/%d. body: %q",
 			url,
 			resp.StatusCode,
 			http.StatusCreated,
 			http.StatusAccepted,
 			string(body),
-		))
+		)}
 	}
 
 	results, err := ParseHeartbeatResponses(body)
 	if err != nil {
-		return nil, Err(fmt.Sprintf("failed parsing results from %q: %s", url, err))
+		return nil, Err{Err: fmt.Errorf("failed parsing results from %q: %s", url, err)}
 	}
 
 	return results, nil

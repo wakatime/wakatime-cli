@@ -170,12 +170,6 @@ func WithTimezone(timezone string) Option {
 	}
 }
 
-// WithUserAgentUnknownPlugin sets the User-Agent header on all requests,
-// including default value for plugin.
-func WithUserAgentUnknownPlugin() Option {
-	return WithUserAgent("Unknown/0")
-}
-
 // WithUserAgent sets the User-Agent header on all requests, including the passed
 // in value for plugin.
 func WithUserAgent(plugin string) Option {

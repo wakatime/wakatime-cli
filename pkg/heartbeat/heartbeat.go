@@ -3,40 +3,45 @@ package heartbeat
 import (
 	"fmt"
 	"os"
+	"regexp"
 	"runtime"
 	"strings"
 
 	"github.com/wakatime/wakatime-cli/pkg/log"
+	"github.com/wakatime/wakatime-cli/pkg/system"
 	"github.com/wakatime/wakatime-cli/pkg/version"
 
 	"github.com/matishsiao/goInfo"
 )
 
+// remoteAddressRegex is a pattern for (ssh|sftp)://user:pass@host:port.
+var remoteAddressRegex = regexp.MustCompile(`(?i)^((ssh|sftp)://)+(?P<credentials>[^:@]+(:([^:@])+)?@)?[^:]+(:\d+)?`)
+
 // Heartbeat is a structure representing activity for a user on a some entity.
 type Heartbeat struct {
-	ApiKey              string     `json:"-"`
-	Branch              *string    `json:"branch"`
-	BranchAlternate     string     `json:"-"`
-	Category            Category   `json:"category"`
-	CursorPosition      *int       `json:"cursorpos"`
-	Dependencies        []string   `json:"dependencies"`
-	Entity              string     `json:"entity"`
-	EntityRaw           string     `json:"-"`
-	EntityType          EntityType `json:"type"`
-	IsUnsavedEntity     bool       `json:"-"`
-	IsWrite             *bool      `json:"is_write"`
-	Language            *string    `json:"language"`
-	LanguageAlternate   string     `json:"-"`
-	LineNumber          *int       `json:"lineno"`
-	Lines               *int       `json:"lines"`
-	LocalFile           string     `json:"-"`
-	Project             *string    `json:"project"`
-	ProjectAlternate    string     `json:"-"`
-	ProjectOverride     string     `json:"-"`
-	ProjectPath         string     `json:"-"`
-	ProjectPathOverride string     `json:"-"`
-	Time                float64    `json:"time"`
-	UserAgent           string     `json:"user_agent"`
+	ApiKey                string     `json:"-"`
+	Branch                *string    `json:"branch"`
+	BranchAlternate       string     `json:"-"`
+	Category              Category   `json:"category"`
+	CursorPosition        *int       `json:"cursorpos"`
+	Dependencies          []string   `json:"dependencies"`
+	Entity                string     `json:"entity"`
+	EntityType            EntityType `json:"type"`
+	IsUnsavedEntity       bool       `json:"-"`
+	IsWrite               *bool      `json:"is_write"`
+	Language              *string    `json:"language"`
+	LanguageAlternate     string     `json:"-"`
+	LineNumber            *int       `json:"lineno"`
+	Lines                 *int       `json:"lines"`
+	LocalFile             string     `json:"-"`
+	LocalFileNeedsCleanup bool       `json:"-"`
+	Project               *string    `json:"project"`
+	ProjectAlternate      string     `json:"-"`
+	ProjectOverride       string     `json:"-"`
+	ProjectPath           string     `json:"-"`
+	ProjectPathOverride   string     `json:"-"`
+	Time                  float64    `json:"time"`
+	UserAgent             string     `json:"user_agent"`
 }
 
 // New creates a new instance of Heartbeat with formatted entity
@@ -109,6 +114,19 @@ func (h Heartbeat) ID() string {
 	)
 }
 
+// IsRemote returns true when entity is a remote file.
+func (h Heartbeat) IsRemote() bool {
+	if h.EntityType != FileType {
+		return false
+	}
+
+	if h.IsUnsavedEntity {
+		return false
+	}
+
+	return remoteAddressRegex.MatchString(h.Entity)
+}
+
 // Result represents a response from the wakatime api.
 type Result struct {
 	Errors    []string
@@ -148,12 +166,6 @@ func NewHandle(sender Sender, opts ...HandleOption) Handle {
 	}
 }
 
-// UserAgentUnknownPlugin generates a user agent from various system infos, including
-// a default value for plugin.
-func UserAgentUnknownPlugin() string {
-	return UserAgent("Unknown/0")
-}
-
 // UserAgent generates a user agent from various system infos, including a
 // a passed in value for plugin.
 func UserAgent(plugin string) string {
@@ -162,10 +174,14 @@ func UserAgent(plugin string) string {
 		log.Debugf("goInfo.GetInfo error: %s", err)
 	}
 
+	if plugin == "" {
+		plugin = "Unknown/0"
+	}
+
 	return fmt.Sprintf(
 		"wakatime/%s (%s-%s-%s) %s %s",
 		version.Version,
-		runtime.GOOS,
+		system.OSName(),
 		info.Core,
 		info.Platform,
 		runtime.Version(),
