@@ -2,7 +2,6 @@ package heartbeat
 
 import (
 	"path/filepath"
-	"regexp"
 	"strings"
 
 	"github.com/wakatime/wakatime-cli/pkg/log"
@@ -21,8 +20,6 @@ type SanitizeConfig struct {
 	// ProjectPatterns will be matched against the project name and if matching will obfuscate
 	// common heartbeat meta data (cursor position, dependencies, line number and lines).
 	ProjectPatterns []regex.Regex
-	// RemoteAddressPattern will be matched against a file entity's name and if matching will obfuscate credentials.
-	RemoteAddressPattern *regexp.Regexp
 }
 
 // WithSanitization initializes and returns a heartbeat handle option, which
@@ -72,7 +69,7 @@ func Sanitize(h Heartbeat, config SanitizeConfig) Heartbeat {
 
 	h = hideProjectFolder(h, config.HideProjectFolder)
 
-	h = hideCredentials(h, config.RemoteAddressPattern)
+	h = hideCredentials(h)
 
 	return h
 }
@@ -107,15 +104,15 @@ func hideProjectFolder(h Heartbeat, hideProjectFolder bool) Heartbeat {
 	return h
 }
 
-func hideCredentials(h Heartbeat, remoteAddressPattern *regexp.Regexp) Heartbeat {
-	if remoteAddressPattern == nil {
+func hideCredentials(h Heartbeat) Heartbeat {
+	if !h.IsRemote() {
 		return h
 	}
 
-	match := remoteAddressPattern.FindStringSubmatch(h.Entity)
+	match := remoteAddressRegex.FindStringSubmatch(h.Entity)
 	paramsMap := make(map[string]string)
 
-	for i, name := range remoteAddressPattern.SubexpNames() {
+	for i, name := range remoteAddressRegex.SubexpNames() {
 		if i > 0 && i <= len(match) {
 			paramsMap[name] = match[i]
 		}

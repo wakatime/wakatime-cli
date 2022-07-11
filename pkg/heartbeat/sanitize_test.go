@@ -368,9 +368,7 @@ func TestSanitize_ObfuscateCredentials_RemoteFile(t *testing.T) {
 	h := testHeartbeat()
 	h.Entity = "ssh://wakatime:1234@192.168.1.1/path/to/remote/main.go"
 
-	r := heartbeat.Sanitize(h, heartbeat.SanitizeConfig{
-		RemoteAddressPattern: regexp.MustCompile(`(?i)^((ssh|sftp)://)+(?P<credentials>[^:@]+(:([^:@])+)?@)?[^:]+(:\d+)?`),
-	})
+	r := heartbeat.Sanitize(h, heartbeat.SanitizeConfig{})
 
 	assert.Equal(t, heartbeat.Heartbeat{
 		Branch:         heartbeat.PointerTo("heartbeat"),

@@ -8,7 +8,6 @@ import (
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/log"
-	"github.com/wakatime/wakatime-cli/pkg/remote"
 )
 
 // Max file size supporting line number count stats. Files larger than this in
@@ -36,7 +35,7 @@ func WithDetection() heartbeat.HandleOption {
 					continue
 				}
 
-				if remote.RemoteAddressRegex.MatchString(h.Entity) {
+				if h.IsRemote() {
 					continue
 				}
 

@@ -175,13 +175,13 @@ func TestFilter_ExistingProjectFile(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestFilter_RemoteFile(t *testing.T) {
+func TestFilter_RemoteFileSkipsFiltering(t *testing.T) {
 	h := testHeartbeat()
 	h.LocalFile = h.Entity
 	h.Entity = "ssh://wakatime:1234@192.168.1.1/path/to/remote/main.go"
 
 	err := filter.Filter(h, filter.Config{})
-	assert.EqualError(t, err, "filter file: skipping because of non-existing file \"/tmp/main.go\"")
+	require.NoError(t, err)
 }
 
 func TestFilter_ErrNonExistingProjectFile(t *testing.T) {

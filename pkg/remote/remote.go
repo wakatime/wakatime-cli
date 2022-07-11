@@ -9,7 +9,6 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -23,9 +22,6 @@ import (
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
 )
-
-// RemoteAddressRegex is a pattern for (ssh|sftp)://user:pass@host:port.
-var RemoteAddressRegex = regexp.MustCompile(`(?i)^((ssh|sftp)://)+(?P<credentials>[^:@]+(:([^:@])+)?@)?[^:]+(:\d+)?`)
 
 const (
 	defaultTimeoutSecs = 20
@@ -54,20 +50,14 @@ func WithDetection() heartbeat.HandleOption {
 			log.Debugln("execute remote file detection")
 
 			var (
-				tmpDir string
-				err    error
+				tmpDir   string
+				err      error
+				filtered []heartbeat.Heartbeat
 			)
 
-			for i, h := range hh {
-				if h.EntityType != heartbeat.FileType {
-					continue
-				}
-
-				if h.IsUnsavedEntity {
-					continue
-				}
-
-				if !RemoteAddressRegex.MatchString(h.Entity) {
+			for _, h := range hh {
+				if !h.IsRemote() {
+					filtered = append(filtered, h)
 					continue
 				}
 
@@ -91,6 +81,8 @@ func WithDetection() heartbeat.HandleOption {
 				if err != nil {
 					log.Errorf("failed to create new remote client: %s", err)
 
+					deleteLocalFile(tmpFile.Name())
+
 					continue
 				}
 
@@ -98,15 +90,20 @@ func WithDetection() heartbeat.HandleOption {
 				if err != nil {
 					log.Errorf("failed to download file to temporary folder: %s", err)
 
+					deleteLocalFile(tmpFile.Name())
+
 					continue
 				}
 
-				hh[i].LocalFile = tmpFile.Name()
-				// we save untouched entity for offline handling
-				hh[i].EntityRaw = h.Entity
+				// save original entity for offline handling
+				h.EntityRaw = h.Entity
+				// use downloaded file for stats and language detection
+				h.LocalFile = tmpFile.Name()
+
+				filtered = append(filtered, h)
 			}
 
-			return next(hh)
+			return next(filtered)
 		}
 	}
 }
@@ -122,15 +119,19 @@ func WithCleanup() heartbeat.HandleOption {
 				if h.EntityRaw != "" {
 					log.Debugln("deleting temporary file: %s", h.LocalFile)
 
-					err := os.Remove(h.LocalFile)
-					if err != nil {
-						log.Warnf("failed to delete temporary file: %s", err)
-					}
+					deleteLocalFile(h.LocalFile)
 				}
 			}
 
 			return next(hh)
 		}
+	}
+}
+
+func deleteLocalFile(file string) {
+	err := os.Remove(file)
+	if err != nil {
+		log.Warnf("unable to delete tmp file: %s", err)
 	}
 }
 
