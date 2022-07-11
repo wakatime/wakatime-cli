@@ -29,7 +29,7 @@ func WithFiltering(config FilterConfig) heartbeat.HandleOption {
 				if err != nil {
 					log.Debugln(err.Error())
 
-					if h.EntityRaw != "" {
+					if h.LocalFileNeedsCleanup {
 						err = os.Remove(h.LocalFile)
 						if err != nil {
 							log.Warnf("unable to delete tmp file: %s", err)

@@ -464,10 +464,6 @@ func (q *Queue) PushMany(hh []heartbeat.Heartbeat) error {
 	}
 
 	for _, h := range hh {
-		if h.EntityRaw != "" {
-			h.Entity = h.EntityRaw
-		}
-
 		data, err := json.Marshal(h)
 		if err != nil {
 			return fmt.Errorf("failed to json marshal heartbeat: %s", err)
