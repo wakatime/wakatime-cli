@@ -96,13 +96,13 @@ func TestWithDetection_SshConfig_Hostname(t *testing.T) {
 		SendHeartbeatsFn: func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 			assert.Equal(t, []heartbeat.Heartbeat{
 				{
-					Category:   heartbeat.CodingCategory,
-					Entity:     "ssh://user:pass@example.com:" + strconv.Itoa(port) + entity,
-					EntityRaw:  "ssh://user:pass@example.com:" + strconv.Itoa(port) + entity,
-					EntityType: heartbeat.FileType,
-					LocalFile:  hh[0].LocalFile,
-					Time:       1585598060,
-					UserAgent:  "wakatime/13.0.7",
+					Category:              heartbeat.CodingCategory,
+					Entity:                "ssh://user:pass@example.com:" + strconv.Itoa(port) + entity,
+					EntityType:            heartbeat.FileType,
+					LocalFile:             hh[0].LocalFile,
+					LocalFileNeedsCleanup: true,
+					Time:                  1585598060,
+					UserAgent:             "wakatime/13.0.7",
 				},
 			}, hh)
 			assert.Contains(t, hh[0].LocalFile, "main.go")
@@ -239,13 +239,13 @@ func TestWithDetection_SshConfig_UserKnownHostsFile_Match(t *testing.T) {
 		SendHeartbeatsFn: func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 			assert.Equal(t, []heartbeat.Heartbeat{
 				{
-					Category:   heartbeat.CodingCategory,
-					Entity:     "ssh://user:pass@example.com:" + strconv.Itoa(port) + entity,
-					EntityRaw:  "ssh://user:pass@example.com:" + strconv.Itoa(port) + entity,
-					EntityType: heartbeat.FileType,
-					LocalFile:  hh[0].LocalFile,
-					Time:       1585598060,
-					UserAgent:  "wakatime/13.0.7",
+					Category:              heartbeat.CodingCategory,
+					Entity:                "ssh://user:pass@example.com:" + strconv.Itoa(port) + entity,
+					EntityType:            heartbeat.FileType,
+					LocalFile:             hh[0].LocalFile,
+					LocalFileNeedsCleanup: true,
+					Time:                  1585598060,
+					UserAgent:             "wakatime/13.0.7",
 				},
 			}, hh)
 			assert.Contains(t, hh[0].LocalFile, "main.go")
@@ -413,8 +413,8 @@ func TestWithCleanup(t *testing.T) {
 
 	_, err = handle([]heartbeat.Heartbeat{
 		{
-			LocalFile: tmpFile.Name(),
-			EntityRaw: "/some/remote/file",
+			LocalFile:             tmpFile.Name(),
+			LocalFileNeedsCleanup: true,
 		},
 	})
 	require.NoError(t, err)

@@ -95,10 +95,8 @@ func WithDetection() heartbeat.HandleOption {
 					continue
 				}
 
-				// save original entity for offline handling
-				h.EntityRaw = h.Entity
-				// use downloaded file for stats and language detection
 				h.LocalFile = tmpFile.Name()
+				h.LocalFileNeedsCleanup = true
 
 				filtered = append(filtered, h)
 			}
@@ -116,7 +114,7 @@ func WithCleanup() heartbeat.HandleOption {
 			log.Debugln("execute remote cleanup")
 
 			for _, h := range hh {
-				if h.EntityRaw != "" {
+				if h.LocalFileNeedsCleanup {
 					log.Debugln("deleting temporary file: %s", h.LocalFile)
 
 					deleteLocalFile(h.LocalFile)
