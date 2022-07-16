@@ -294,8 +294,7 @@ func LoadAPIParams(v *viper.Viper) (API, error) {
 
 	var timeout time.Duration
 
-	timeoutSecs, ok := vipertools.FirstNonEmptyInt(v, "timeout", "settings.timeout")
-	if ok {
+	if timeoutSecs, ok := vipertools.FirstNonEmptyInt(v, "timeout", "settings.timeout"); ok {
 		timeout = time.Duration(timeoutSecs) * time.Second
 	}
 
