@@ -52,7 +52,7 @@ func TestLoadParams(t *testing.T) {
 				Verbose: true,
 			},
 		},
-		"log file flag takes preceedence": {
+		"log file flag takes precedence": {
 			ViperLogFile:       tmpFile.Name(),
 			ViperLogFileConfig: "otherfolder/wakatime.config.log",
 			ViperLogFileOld:    "otherfolder/wakatime.old.log",
@@ -60,7 +60,7 @@ func TestLoadParams(t *testing.T) {
 				File: tmpFile.Name(),
 			},
 		},
-		"log file deprecated flag takes preceedence": {
+		"log file deprecated flag takes precedence": {
 			ViperLogFileConfig: "otherfolder/wakatime.config.log",
 			ViperLogFileOld:    tmpFile.Name(),
 			Expected: logfile.Params{

@@ -1417,7 +1417,7 @@ func TestLoadParams_Plugin_Unset(t *testing.T) {
 	assert.Empty(t, params.Plugin)
 }
 
-func TestLoadParams_Timeout_FlagTakesPreceedence(t *testing.T) {
+func TestLoadParams_Timeout_FlagTakesPrecedence(t *testing.T) {
 	v := viper.New()
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("timeout", 5)
@@ -1544,7 +1544,7 @@ func TestLoad_API_APIKey(t *testing.T) {
 		ViperAPIKeyConfigOld string
 		Expected             paramscmd.API
 	}{
-		"api key flag takes preceedence": {
+		"api key flag takes precedence": {
 			ViperAPIKey:          "00000000-0000-4000-8000-000000000000",
 			ViperAPIKeyConfig:    "10000000-0000-4000-8000-000000000000",
 			ViperAPIKeyConfigOld: "20000000-0000-4000-8000-000000000000",
@@ -1554,7 +1554,7 @@ func TestLoad_API_APIKey(t *testing.T) {
 				Hostname: "my-computer",
 			},
 		},
-		"api from config takes preceedence": {
+		"api from config takes precedence": {
 			ViperAPIKeyConfig:    "00000000-0000-4000-8000-000000000000",
 			ViperAPIKeyConfigOld: "10000000-0000-4000-8000-000000000000",
 			Expected: paramscmd.API{
@@ -1618,7 +1618,7 @@ func TestLoad_API_APIUrl(t *testing.T) {
 		ViperAPIUrlOld    string
 		Expected          paramscmd.API
 	}{
-		"api url flag takes preceedence": {
+		"api url flag takes precedence": {
 			ViperAPIUrl:       "http://localhost:8080",
 			ViperAPIUrlConfig: "http://localhost:8081",
 			ViperAPIUrlOld:    "http://localhost:8082",
@@ -1628,7 +1628,7 @@ func TestLoad_API_APIUrl(t *testing.T) {
 				Hostname: "my-computer",
 			},
 		},
-		"api url deprecated flag takes preceedence": {
+		"api url deprecated flag takes precedence": {
 			ViperAPIUrlConfig: "http://localhost:8081",
 			ViperAPIUrlOld:    "http://localhost:8082",
 			Expected: paramscmd.API{
@@ -1756,7 +1756,7 @@ func TestLoad_API_Plugin(t *testing.T) {
 	}, params)
 }
 
-func TestLoad_API_Timeout_FlagTakesPreceedence(t *testing.T) {
+func TestLoad_API_Timeout_FlagTakesPrecedence(t *testing.T) {
 	v := viper.New()
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("timeout", 5)

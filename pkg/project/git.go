@@ -52,31 +52,8 @@ func (g Git) Detect() (Result, bool, error) {
 		}, true, nil
 	}
 
-	// Find for .git/config file
-	gitConfigFile, ok := FindFileOrDirectory(fp, filepath.Join(".git", "config"))
-
-	if ok {
-		gitDir := filepath.Dir(gitConfigFile)
-		projectDir := filepath.Join(gitDir, "..")
-
-		branch, err := findGitBranch(filepath.Join(gitDir, "HEAD"))
-		if err != nil {
-			log.Errorf(
-				"error finding for branch name from %q: %s",
-				filepath.Join(gitDir, "HEAD"),
-				err,
-			)
-		}
-
-		return Result{
-			Project: filepath.Base(projectDir),
-			Branch:  branch,
-			Folder:  projectDir,
-		}, true, nil
-	}
-
-	// Find for .git file
-	gitConfigFile, ok = FindFileOrDirectory(fp, ".git")
+	// Find for .git file or directory
+	gitConfigFile, ok := FindFileOrDirectory(fp, ".git")
 	if !ok {
 		return Result{}, false, nil
 	}
@@ -113,8 +90,8 @@ func (g Git) Detect() (Result, bool, error) {
 		}, true, nil
 	}
 
-	if gitdir != "" {
-		// Otherwise it's only a plain .git file
+	if gitdir != "" && !strings.Contains(gitdir, "modules") {
+		// Otherwise it's only a plain .git file and not a submodule
 		project := filepath.Base(filepath.Join(gitConfigFile, ".."))
 
 		branch, err := findGitBranch(filepath.Join(gitdir, "HEAD"))
@@ -130,6 +107,29 @@ func (g Git) Detect() (Result, bool, error) {
 			Project: project,
 			Branch:  branch,
 			Folder:  filepath.Join(gitdir, ".."),
+		}, true, nil
+	}
+
+	// Find for .git/config file
+	gitConfigFile, ok = FindFileOrDirectory(fp, filepath.Join(".git", "config"))
+
+	if ok {
+		gitDir := filepath.Dir(gitConfigFile)
+		projectDir := filepath.Join(gitDir, "..")
+
+		branch, err := findGitBranch(filepath.Join(gitDir, "HEAD"))
+		if err != nil {
+			log.Errorf(
+				"error finding for branch name from %q: %s",
+				filepath.Join(gitDir, "HEAD"),
+				err,
+			)
+		}
+
+		return Result{
+			Project: filepath.Base(projectDir),
+			Branch:  branch,
+			Folder:  projectDir,
 		}, true, nil
 	}
 
