@@ -1,7 +1,11 @@
 package api
 
 import (
+	"errors"
+	"net"
 	"net/http"
+
+	"github.com/wakatime/wakatime-cli/pkg/log"
 )
 
 const (
@@ -35,8 +39,7 @@ func NewClient(baseURL string, opts ...Option) *Client {
 	c := &Client{
 		baseURL: baseURL,
 		client: &http.Client{
-			Transport:     NewTransport(),
-			CheckRedirect: nil, // defaults to following up to 10 redirects
+			Transport: NewTransport(),
 		},
 		doFunc: func(c *Client, req *http.Request) (*http.Response, error) {
 			req.Header.Set("Accept", "application/json")
@@ -54,5 +57,21 @@ func NewClient(baseURL string, opts ...Option) *Client {
 // Do executes c.doFunc(), which in turn allows wrapping c.client.Do() and manipulating
 // the request behavior of the api client.
 func (c *Client) Do(req *http.Request) (*http.Response, error) {
-	return c.doFunc(c, req)
+	resp, err := c.doFunc(c, req)
+	if err != nil {
+		var dnsError *net.DNSError
+		if errors.As(err, &dnsError) {
+			log.Warnf("dns error: %s. Retrying with fallback dns resolver", req.URL)
+
+			c.client = &http.Client{
+				Transport: NewTransportWithCloudfareDNS(),
+			}
+
+			return c.doFunc(c, req)
+		}
+
+		return nil, err
+	}
+
+	return resp, nil
 }
