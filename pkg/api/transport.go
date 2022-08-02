@@ -1,8 +1,11 @@
 package api
 
 import (
+	"context"
 	"crypto/x509"
+	"net"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/wakatime/wakatime-cli/pkg/log"
@@ -11,13 +14,40 @@ import (
 // NewTransport initializes a new http.Transport.
 func NewTransport() *http.Transport {
 	return &http.Transport{
-		Proxy:               nil,
-		TLSHandshakeTimeout: DefaultTimeoutSecs * time.Second,
+		ForceAttemptHTTP2:   true,
+		MaxConnsPerHost:     1,
 		MaxIdleConns:        1,
 		MaxIdleConnsPerHost: 1,
-		MaxConnsPerHost:     1,
-		ForceAttemptHTTP2:   true,
+		Proxy:               nil,
+		TLSHandshakeTimeout: DefaultTimeoutSecs * time.Second,
 	}
+}
+
+// NewTransportWithCloudfareDNS initializes a new http.Transport with cloudfare DNS resolver.
+func NewTransportWithCloudfareDNS() *http.Transport {
+	t := NewTransport()
+
+	t.DialTLSContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
+		r := &net.Resolver{
+			PreferGo: false,
+			Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+				d := net.Dialer{
+					Timeout: DefaultTimeoutSecs * time.Second,
+				}
+
+				// ipv6 only
+				if strings.HasSuffix(network, "6") {
+					return d.DialContext(ctx, network, "[2606:4700:4700::1111]:53")
+				}
+
+				return d.DialContext(ctx, network, "1.1.1.1:53")
+			},
+		}
+
+		return r.Dial(ctx, network, addr)
+	}
+
+	return t
 }
 
 // LazyCreateNewTransport uses the client's Transport if exists, or creates a new one.
