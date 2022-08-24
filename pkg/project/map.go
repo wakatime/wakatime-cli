@@ -18,7 +18,8 @@ type Map struct {
 // with regex patterns. Project maps go under the [projectmap] config section.
 //
 // For example:
-// 	[projectmap]
+//
+//	[projectmap]
 //	/home/user/projects/foo = new project name
 //	/home/user/projects/bar(\d+)/ = project{0}
 //
