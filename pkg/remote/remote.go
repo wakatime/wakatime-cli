@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/url"
 	"os"
@@ -342,7 +341,7 @@ func (c Client) signerForIdentity() ssh.Signer {
 		return nil
 	}
 
-	key, err := ioutil.ReadFile(identityFile)
+	key, err := os.ReadFile(identityFile)
 	if err != nil {
 		log.Warnf("unable to read private key %s: %v", identityFile, err)
 		return nil
