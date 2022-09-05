@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
 	"regexp"
 	"strconv"
@@ -22,6 +23,7 @@ import (
 
 	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/viper"
+	"golang.org/x/net/http/httpproxy"
 )
 
 const errMsgTemplate = "invalid url %q. Must be in format" +
@@ -220,18 +222,23 @@ func LoadAPIParams(v *viper.Viper) (API, error) {
 		})
 	}
 
-	apiURL := api.BaseURL
+	apiURLStr := api.BaseURL
 
 	if u, ok := vipertools.FirstNonEmptyString(v, "api-url", "apiurl", "settings.api_url"); ok {
-		apiURL = u
+		apiURLStr = u
 	}
 
 	// remove endpoint from api base url to support legacy api_url param
-	apiURL = strings.TrimSuffix(apiURL, "/")
-	apiURL = strings.TrimSuffix(apiURL, ".bulk")
-	apiURL = strings.TrimSuffix(apiURL, "/users/current/heartbeats")
-	apiURL = strings.TrimSuffix(apiURL, "/heartbeats")
-	apiURL = strings.TrimSuffix(apiURL, "/heartbeat")
+	apiURLStr = strings.TrimSuffix(apiURLStr, "/")
+	apiURLStr = strings.TrimSuffix(apiURLStr, ".bulk")
+	apiURLStr = strings.TrimSuffix(apiURLStr, "/users/current/heartbeats")
+	apiURLStr = strings.TrimSuffix(apiURLStr, "/heartbeats")
+	apiURLStr = strings.TrimSuffix(apiURLStr, "/heartbeat")
+
+	apiURL, err := url.Parse(apiURLStr)
+	if err != nil {
+		return API{}, fmt.Errorf("invalid api url: %s", err)
+	}
 
 	var backoffAt time.Time
 
@@ -257,10 +264,7 @@ func LoadAPIParams(v *viper.Viper) (API, error) {
 		}
 	}
 
-	var (
-		hostname string
-		err      error
-	)
+	var hostname string
 
 	hostname, ok = vipertools.FirstNonEmptyString(v, "hostname", "settings.hostname")
 	if !ok {
@@ -279,6 +283,18 @@ func LoadAPIParams(v *viper.Viper) (API, error) {
 
 	if proxyURL != "" && !rgx.MatchString(proxyURL) {
 		return API{}, fmt.Errorf(errMsgTemplate, proxyURL)
+	}
+
+	proxyEnv := httpproxy.FromEnvironment()
+
+	proxyEnvURL, err := proxyEnv.ProxyFunc()(apiURL)
+	if err != nil {
+		log.Warnf("failed to get proxy url from environment for api url: %s", err)
+	}
+
+	// try use proxy from environment if no custom proxy is set
+	if proxyURL == "" && proxyEnvURL != nil {
+		proxyURL = proxyEnvURL.String()
 	}
 
 	var sslCertFilepath string
@@ -309,7 +325,7 @@ func LoadAPIParams(v *viper.Viper) (API, error) {
 		ProxyURL:         proxyURL,
 		SSLCertFilepath:  sslCertFilepath,
 		Timeout:          timeout,
-		URL:              apiURL,
+		URL:              apiURL.String(),
 	}, nil
 }
 
