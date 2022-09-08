@@ -1846,6 +1846,22 @@ func TestLoad_API_ProxyURL_FlagTakesPrecedence(t *testing.T) {
 	assert.Equal(t, "https://john:secret@example.org:8888", params.ProxyURL)
 }
 
+func TestLoad_API_ProxyURL_UserDefinedTakesPrecedenceOverEnvironment(t *testing.T) {
+	v := viper.New()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("proxy", "https://john:secret@example.org:8888")
+
+	err := os.Setenv("HTTPS_PROXY", "https://papa:secret@company.org:9000")
+	require.NoError(t, err)
+
+	defer os.Unsetenv("HTTPS_PROXY")
+
+	params, err := paramscmd.LoadAPIParams(v)
+	require.NoError(t, err)
+
+	assert.Equal(t, "https://john:secret@example.org:8888", params.ProxyURL)
+}
+
 func TestLoad_API_ProxyURL_FromConfig(t *testing.T) {
 	v := viper.New()
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
@@ -1855,6 +1871,36 @@ func TestLoad_API_ProxyURL_FromConfig(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, "https://john:secret@example.org:8888", params.ProxyURL)
+}
+
+func TestLoad_API_ProxyURL_FromEnvironment(t *testing.T) {
+	v := viper.New()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+
+	err := os.Setenv("HTTPS_PROXY", "https://john:secret@example.org:8888")
+	require.NoError(t, err)
+
+	defer os.Unsetenv("HTTPS_PROXY")
+
+	params, err := paramscmd.LoadAPIParams(v)
+	require.NoError(t, err)
+
+	assert.Equal(t, "https://john:secret@example.org:8888", params.ProxyURL)
+}
+
+func TestLoad_API_ProxyURL_NoProxyFromEnvironment(t *testing.T) {
+	v := viper.New()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+
+	err := os.Setenv("NO_PROXY", "https://some.org,https://api.wakatime.com")
+	require.NoError(t, err)
+
+	defer os.Unsetenv("NO_PROXY")
+
+	params, err := paramscmd.LoadAPIParams(v)
+	require.NoError(t, err)
+
+	assert.Empty(t, params.ProxyURL)
 }
 
 func TestLoad_API_ProxyURL_InvalidFormat(t *testing.T) {

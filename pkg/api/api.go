@@ -2,8 +2,10 @@ package api
 
 import (
 	"errors"
+	"fmt"
 	"net"
 	"net/http"
+	"strings"
 
 	"github.com/wakatime/wakatime-cli/pkg/log"
 )
@@ -11,6 +13,10 @@ import (
 const (
 	// BaseURL is the base url of the wakatime api.
 	BaseURL = "https://api.wakatime.com/api/v1"
+	// baseIPAddrv4 is the base ip address v4 of the wakatime api.
+	baseIPAddrv4 = "143.244.210.202"
+	// baseIPAddrv6 is the base ip address v6 of the wakatime api.
+	baseIPAddrv6 = "2604:a880:4:1d0::2a7:b000"
 	// DefaultTimeoutSecs is the default timeout used for requests to the wakatime api.
 	DefaultTimeoutSecs = 120
 )
@@ -59,19 +65,51 @@ func NewClient(baseURL string, opts ...Option) *Client {
 func (c *Client) Do(req *http.Request) (*http.Response, error) {
 	resp, err := c.doFunc(c, req)
 	if err != nil {
-		var dnsError *net.DNSError
-		if errors.As(err, &dnsError) {
-			log.Warnf("dns error: %s. Retrying with fallback dns resolver", req.URL)
-
-			c.client = &http.Client{
-				Transport: NewTransportWithCloudfareDNS(),
-			}
-
-			return c.doFunc(c, req)
+		// don't set alternate host if there's a custom api url
+		if !strings.HasPrefix(c.baseURL, BaseURL) {
+			return nil, err
 		}
 
-		return nil, err
+		var dnsError *net.DNSError
+		if !errors.As(err, &dnsError) {
+			return nil, err
+		}
+
+		t, err := NewTransportWithHostVerificationDisabled()
+		if err != nil {
+			return nil, err
+		}
+
+		c.client = &http.Client{
+			Transport: t,
+		}
+
+		var alternateHost = baseIPAddrv4
+
+		if isLocalIPv6() {
+			alternateHost = baseIPAddrv6
+		}
+
+		req.URL.Host = alternateHost
+
+		log.Warnf("dns error, it will retry with host ip address '%s'", alternateHost)
+
+		return c.doFunc(c, req)
 	}
 
 	return resp, nil
+}
+
+func isLocalIPv6() bool {
+	conn, err := net.Dial("udp", fmt.Sprintf("%s:80", baseIPAddrv4))
+	if err != nil {
+		log.Warnf("failed dialing to detect default local ip address: %s", err)
+		return true
+	}
+
+	defer conn.Close()
+
+	localAddr := conn.LocalAddr().(*net.UDPAddr)
+
+	return localAddr.IP.To4() == nil
 }
