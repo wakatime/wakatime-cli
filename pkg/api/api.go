@@ -75,26 +75,23 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 			return nil, err
 		}
 
-		t, err := NewTransportWithHostVerificationDisabled()
-		if err != nil {
-			return nil, err
-		}
-
 		c.client = &http.Client{
-			Transport: t,
+			Transport: NewTransportWithHostVerificationDisabled(),
 		}
 
-		var alternateHost = baseIPAddrv4
-
+		req.URL.Host = baseIPAddrv4
 		if isLocalIPv6() {
-			alternateHost = baseIPAddrv6
+			req.URL.Host = baseIPAddrv6
 		}
 
-		req.URL.Host = alternateHost
+		log.Debugf("dns error, will retry with host ip '%s': %s", req.URL.Host, err)
 
-		log.Warnf("dns error, it will retry with host ip address '%s'", alternateHost)
+		resp, errRetry := c.doFunc(c, req)
+		if errRetry != nil {
+			return nil, fmt.Errorf("retry request failed: %s. original error: %s", errRetry, err)
+		}
 
-		return c.doFunc(c, req)
+		return resp, nil
 	}
 
 	return resp, nil
