@@ -24,7 +24,7 @@ func NewTransport() *http.Transport {
 }
 
 // NewTransportWithHostVerificationDisabled initializes a new http.Transport with disabled host verification.
-func NewTransportWithHostVerificationDisabled() (*http.Transport, error) {
+func NewTransportWithHostVerificationDisabled() *http.Transport {
 	t := NewTransport()
 
 	t.TLSClientConfig = &tls.Config{
@@ -33,7 +33,7 @@ func NewTransportWithHostVerificationDisabled() (*http.Transport, error) {
 		ServerName: serverName,
 	}
 
-	return t, nil
+	return t
 }
 
 // LazyCreateNewTransport uses the client's Transport if exists, or creates a new one.
