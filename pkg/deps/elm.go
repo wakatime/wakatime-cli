@@ -6,6 +6,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/wakatime/wakatime-cli/pkg/log"
+
 	"github.com/alecthomas/chroma"
 	"github.com/alecthomas/chroma/lexers/e"
 )
@@ -29,12 +31,16 @@ type ParserElm struct {
 
 // Parse parses dependencies from Elm file content using the chroma Elm lexer.
 func (p *ParserElm) Parse(filepath string) ([]string, error) {
-	reader, err := os.Open(filepath)
+	reader, err := os.Open(filepath) // nolint:gosec
 	if err != nil {
 		return nil, fmt.Errorf("failed to open file %q: %s", filepath, err)
 	}
 
-	defer reader.Close()
+	defer func() {
+		if err := reader.Close(); err != nil {
+			log.Debugf("failed to close file: %s", err)
+		}
+	}()
 
 	p.init()
 	defer p.init()

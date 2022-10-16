@@ -185,22 +185,37 @@ func (c Client) DownloadFile(localFile string) error {
 		return fmt.Errorf("failed to connect to sftp host: %s", err)
 	}
 
-	defer conn.Close()
-	defer sc.Close()
+	defer func() {
+		if err := conn.Close(); err != nil {
+			log.Debugf("failed to close connection to ssh server: %s", err)
+		}
+
+		if err := sc.Close(); err != nil {
+			log.Debugf("failed to colose connection to ftp server: %s", err)
+		}
+	}()
 
 	srcFile, err := sc.OpenFile(c.Path, os.O_RDONLY)
 	if err != nil {
 		return fmt.Errorf("failed to open remote file: %s", err)
 	}
 
-	defer srcFile.Close()
+	defer func() {
+		if err := srcFile.Close(); err != nil {
+			log.Debugf("failed to close remote ftp file: %s", err)
+		}
+	}()
 
-	dstFile, err := os.Create(localFile)
+	dstFile, err := os.Create(localFile) // nolint:gosec
 	if err != nil {
 		return fmt.Errorf("failed to open local file: %s", err)
 	}
 
-	defer dstFile.Close()
+	defer func() {
+		if err := dstFile.Close(); err != nil {
+			log.Warnf("failed to close local file: %s", err)
+		}
+	}()
 
 	_, err = io.CopyN(dstFile, srcFile, maxFileSize)
 	if err != nil && err != io.EOF {
@@ -234,13 +249,17 @@ func (c Client) knownHostKeys() []ssh.PublicKey {
 	filenames := c.knownHostsFiles()
 
 	for _, filename := range filenames {
-		file, err := os.Open(filename)
+		file, err := os.Open(filename) // nolint:gosec
 		if err != nil {
 			log.Debugf("failed to read known_hosts file: %s", err)
 			continue
 		}
 
-		defer file.Close()
+		defer func() {
+			if err := file.Close(); err != nil {
+				log.Debugf("failed to close file '%s': %s", file.Name(), err)
+			}
+		}()
 
 		scanner := bufio.NewScanner(file)
 
@@ -335,24 +354,23 @@ func (c Client) identityFile() string {
 	return ""
 }
 
-func (c Client) signerForIdentity() ssh.Signer {
+func (c Client) signerForIdentity() (ssh.Signer, error) {
 	identityFile := c.identityFile()
 	if identityFile == "" {
-		return nil
+		return nil, nil
 	}
 
-	key, err := os.ReadFile(identityFile)
+	key, err := os.ReadFile(identityFile) // nolint:gosec
 	if err != nil {
-		log.Warnf("unable to read private key %s: %v", identityFile, err)
-		return nil
+		return nil, fmt.Errorf("failed to read private key %s: %v", identityFile, err)
 	}
 
 	signer, err := ssh.ParsePrivateKey(key)
 	if err != nil {
-		log.Fatalf("unable to parse private key %s: %v", identityFile, err)
+		return nil, fmt.Errorf("failed to parse private key %s: %v", identityFile, err)
 	}
 
-	return signer
+	return signer, nil
 }
 
 func (c Client) warnIfUsingRevokedHostKeys() {
@@ -375,7 +393,11 @@ func (c Client) sshClient() (*ssh.Client, error) {
 
 	addr := fmt.Sprintf("%s:%d", c.Host, c.Port)
 
-	signer := c.signerForIdentity()
+	signer, err := c.signerForIdentity()
+	if err != nil {
+		log.Warnf("%s", err)
+	}
+
 	if signer != nil {
 		auths = append(auths, ssh.PublicKeys(signer))
 	}

@@ -43,7 +43,7 @@ func WithFiltering(config Config) heartbeat.HandleOption {
 	}
 }
 
-// WithHeartbeatsLengthValidator initializes and returns a heartbeat handle option, which
+// WithLengthValidator initializes and returns a heartbeat handle option, which
 // can be used to abort execution if all heartbeats were filtered and the list is empty.
 func WithLengthValidator() heartbeat.HandleOption {
 	return func(next heartbeat.Handle) heartbeat.Handle {

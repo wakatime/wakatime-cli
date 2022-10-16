@@ -206,7 +206,7 @@ func SetupLogging(v *viper.Viper) *logfile.Params {
 	logFile := os.Stdout
 
 	if !logfileParams.ToStdout {
-		logFile, err = os.OpenFile(logfileParams.File, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0666)
+		logFile, err = os.OpenFile(logfileParams.File, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error opening log file: %s", err)
 			log.Fatalf("error opening log file: %s", err)

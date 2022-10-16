@@ -235,7 +235,11 @@ func popHeartbeats(filepath string, limit int) ([]heartbeat.Heartbeat, error) {
 		return nil, fmt.Errorf("failed to open db connection: %s", err)
 	}
 
-	defer db.Close()
+	defer func() {
+		if err := db.Close(); err != nil {
+			log.Debugf("failed to close db file: %s", err)
+		}
+	}()
 
 	tx, err := db.Begin(true)
 	if err != nil {
@@ -305,7 +309,11 @@ func pushHeartbeats(filepath string, hh []heartbeat.Heartbeat) error {
 		return fmt.Errorf("failed to open db connection: %s", err)
 	}
 
-	defer db.Close()
+	defer func() {
+		if err := db.Close(); err != nil {
+			log.Debugf("failed to close db file: %s", err)
+		}
+	}()
 
 	tx, err := db.Begin(true)
 	if err != nil {
@@ -333,7 +341,11 @@ func CountHeartbeats(filepath string) (int, error) {
 		return 0, fmt.Errorf("failed to open db connection: %s", err)
 	}
 
-	defer db.Close()
+	defer func() {
+		if err := db.Close(); err != nil {
+			log.Debugf("failed to close db file: %s", err)
+		}
+	}()
 
 	tx, err := db.Begin(true)
 	if err != nil {
@@ -364,7 +376,11 @@ func ReadHeartbeats(filepath string, limit int) ([]heartbeat.Heartbeat, error) {
 		return nil, fmt.Errorf("failed to open db connection: %s", err)
 	}
 
-	defer db.Close()
+	defer func() {
+		if err := db.Close(); err != nil {
+			log.Debugf("failed to close db file: %s", err)
+		}
+	}()
 
 	tx, err := db.Begin(true)
 	if err != nil {

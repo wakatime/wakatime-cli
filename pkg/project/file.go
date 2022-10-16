@@ -59,12 +59,16 @@ func readFile(fp string, max int) ([]string, error) {
 		return nil, errors.New("filepath cannot be empty")
 	}
 
-	file, err := os.Open(fp)
+	file, err := os.Open(fp) // nolint:gosec
 	if err != nil {
 		return nil, fmt.Errorf("failed while opening file %q: %s", fp, err)
 	}
 
-	defer file.Close()
+	defer func() {
+		if err := file.Close(); err != nil {
+			log.Debugf("failed to close file '%s': %s", file.Name(), err)
+		}
+	}()
 
 	scanner := bufio.NewScanner(file)
 	scanner.Split(bufio.ScanLines)

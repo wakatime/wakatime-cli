@@ -7,11 +7,12 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/wakatime/wakatime-cli/pkg/log"
+
 	"github.com/alecthomas/chroma"
 	"github.com/alecthomas/chroma/lexers/j"
 )
 
-// nolint:noglobal
 var javaScriptExtensionRegex = regexp.MustCompile(`\.\w{1,4}$`)
 
 // StateJavaScript is a token parsing state.
@@ -33,12 +34,16 @@ type ParserJavaScript struct {
 
 // Parse parses dependencies from JavaScript file content using the chroma JavaScript lexer.
 func (p *ParserJavaScript) Parse(filepath string) ([]string, error) {
-	reader, err := os.Open(filepath)
+	reader, err := os.Open(filepath) // nolint:gosec
 	if err != nil {
 		return nil, fmt.Errorf("failed to open file %q: %s", filepath, err)
 	}
 
-	defer reader.Close()
+	defer func() {
+		if err := reader.Close(); err != nil {
+			log.Debugf("failed to close file: %s", err)
+		}
+	}()
 
 	p.init()
 	defer p.init()

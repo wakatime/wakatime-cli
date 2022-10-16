@@ -203,12 +203,16 @@ func selectByCustomizedPriority(filepath string, lexers chroma.PrioritisedLexers
 
 // fileHead returns the first `maxFileSize` bytes of the file's content.
 func fileHead(filepath string) ([]byte, error) {
-	f, err := os.Open(filepath)
+	f, err := os.Open(filepath) // nolint:gosec
 	if err != nil {
 		return nil, fmt.Errorf("failed to open file: %s", err)
 	}
 
-	defer f.Close()
+	defer func() {
+		if err := f.Close(); err != nil {
+			log.Debugf("failed to close file '%s': %s", filepath, err)
+		}
+	}()
 
 	data := make([]byte, maxFileSize)
 
