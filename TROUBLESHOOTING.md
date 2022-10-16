@@ -4,7 +4,7 @@ First, read [How to debug WakaTime plugins][faq debug plugins].
 
 Set `debug=true` in your `~/.wakatime.cfg` file to enable verbose logging.
 
-The common wakatime-cli program logs to your User `$HOME` directory `~/.wakatime.log`.
+The common wakatime-cli program logs to your user `$HOME` directory `~/.wakatime.log`.
 
 Each plugin also has its own log file:
 
@@ -37,7 +37,10 @@ Useful Resources:
 * [More Troubleshooting Info][faq debug plugins]
 * [Official API Docs][api docs]
 
-
 [faq debug plugins]: https://wakatime.com/faq#debug-plugins
 [api docs]: https://wakatime.com/developers/
 [locating IDE log files]: https://intellij-support.jetbrains.com/hc/en-us/articles/207241085-Locating-IDE-log-files
+
+## SSH configuration
+
+If you are connected to a remote host using the [ssh extension](https://code.visualstudio.com/docs/remote/ssh) you might want to force WakaTime to run locally instead on the server. This configuration is needed when the server you connect is shared among other people. Please follow [this](https://code.visualstudio.com/docs/remote/ssh#_advanced-forcing-an-extension-to-run-locally-remotely) guide.
