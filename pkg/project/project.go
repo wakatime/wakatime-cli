@@ -17,7 +17,6 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/windows"
 )
 
-// nolint:gochecknoglobals
 var driveLetterRegex = regexp.MustCompile(`^[a-zA-Z]:\\$`)
 
 const (
@@ -84,6 +83,7 @@ type (
 		ID() DetectorID
 	}
 
+	// DetecterArg determines for a given path if it needs to run.
 	DetecterArg struct {
 		Filepath  string
 		ShouldRun bool

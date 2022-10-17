@@ -45,7 +45,7 @@ func loadSystemRoots() (*x509.CertPool, error) {
 			break
 		}
 		// Copy the buf, since ParseCertificate does not create its own copy.
-		buf := (*[1 << 20]byte)(unsafe.Pointer(cert.EncodedCert))[:cert.Length:cert.Length]
+		buf := (*[1 << 20]byte)(unsafe.Pointer(cert.EncodedCert))[:cert.Length:cert.Length] // nolint:gosec
 		buf2 := make([]byte, cert.Length)
 		copy(buf2, buf)
 

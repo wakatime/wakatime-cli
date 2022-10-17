@@ -52,12 +52,14 @@ func NewWriter(v *viper.Viper, filepathFn func(v *viper.Viper) (string, error)) 
 	if !fileExists(configFilepath) {
 		log.Debugf("it will create missing config file %q", configFilepath)
 
-		f, err := os.Create(configFilepath)
+		f, err := os.Create(configFilepath) // nolint:gosec
 		if err != nil {
 			return nil, fmt.Errorf("failed creating file: %s", err)
 		}
 
-		f.Close()
+		if err = f.Close(); err != nil {
+			return nil, fmt.Errorf("failed to close file: %s", err)
+		}
 	}
 
 	ini, err := ini.LoadSources(ini.LoadOptions{
