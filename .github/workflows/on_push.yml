@@ -33,6 +33,9 @@ jobs:
         name: Linter
         run: make lint
       -
+        name: Vulnerability scan
+        run: make vulncheck
+      -
         name: Coverage
         uses: codecov/codecov-action@v2
         with:
