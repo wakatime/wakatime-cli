@@ -1520,7 +1520,7 @@ func TestLoad_OfflineSyncMax_NegativeNumber(t *testing.T) {
 	_, err := paramscmd.LoadOfflineParams(v)
 	require.Error(t, err)
 
-	assert.Equal(t, err.Error(), "argument --sync-offline-activity must be \"none\" or a positive integer number")
+	assert.EqualError(t, err, "argument --sync-offline-activity must be \"none\" or a positive integer number")
 }
 
 func TestLoad_OfflineSyncMax_NonIntegerValue(t *testing.T) {
