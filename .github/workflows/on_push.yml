@@ -8,7 +8,8 @@ on:
     tags-ignore: "**"
 
 env:
-  GO_VERSION: "1.19"
+  GO_VERSION_FILE: "go.mod"
+  CHECK_LATEST: true
   TEST_VERSION: "<local-build>"
 
 jobs:
@@ -22,7 +23,8 @@ jobs:
       -
         uses: actions/setup-go@v3
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version-file: ${{ env.GO_VERSION_FILE }}
+          check-latest: ${{ env.CHECK_LATEST }}
       -
         name: Pull dependencies
         run: make install-go-modules
@@ -52,7 +54,8 @@ jobs:
       -
         uses: actions/setup-go@v3
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version-file: ${{ env.GO_VERSION_FILE }}
+          check-latest: ${{ env.CHECK_LATEST }}
       -
         name: Pull dependencies
         run: make install-go-modules
@@ -75,7 +78,8 @@ jobs:
       -
         uses: actions/setup-go@v3
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version-file: ${{ env.GO_VERSION_FILE }}
+          check-latest: ${{ env.CHECK_LATEST }}
       -
         name: Pull dependencies
         run: make install-go-modules
@@ -96,7 +100,8 @@ jobs:
       -
         uses: actions/setup-go@v3
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version-file: ${{ env.GO_VERSION_FILE }}
+          check-latest: ${{ env.CHECK_LATEST }}
       -
         name: Pull dependencies
         run: make install-go-modules
@@ -119,7 +124,8 @@ jobs:
       -
         uses: actions/setup-go@v3
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version-file: ${{ env.GO_VERSION_FILE }}
+          check-latest: ${{ env.CHECK_LATEST }}
       -
         name: Pull dependencies
         run: make install-go-modules
@@ -137,7 +143,8 @@ jobs:
       -
         uses: actions/setup-go@v3
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version-file: ${{ env.GO_VERSION_FILE }}
+          check-latest: ${{ env.CHECK_LATEST }}
       -
         name: Pull dependencies
         run: make install-go-modules
@@ -228,7 +235,8 @@ jobs:
         name: Setup go
         uses: actions/setup-go@v3
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version-file: ${{ env.GO_VERSION_FILE }}
+          check-latest: ${{ env.CHECK_LATEST }}
       -
         name: Build binaries
         env:
@@ -267,7 +275,8 @@ jobs:
         name: Setup go
         uses: actions/setup-go@v3
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version-file: ${{ env.GO_VERSION_FILE }}
+          check-latest: ${{ env.CHECK_LATEST }}
       -
         name: Build binaries
         env:
@@ -306,7 +315,8 @@ jobs:
         name: Setup go
         uses: actions/setup-go@v3
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version-file: ${{ env.GO_VERSION_FILE }}
+          check-latest: ${{ env.CHECK_LATEST }}
       -
         name: Build binaries
         env:
@@ -345,7 +355,8 @@ jobs:
         name: Setup go
         uses: actions/setup-go@v3
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version-file: ${{ env.GO_VERSION_FILE }}
+          check-latest: ${{ env.CHECK_LATEST }}
       -
         name: Build binaries
         env:
@@ -384,7 +395,8 @@ jobs:
         name: Setup go
         uses: actions/setup-go@v3
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version-file: ${{ env.GO_VERSION_FILE }}
+          check-latest: ${{ env.CHECK_LATEST }}
       -
         name: Build binaries
         env:
@@ -423,7 +435,8 @@ jobs:
         name: Setup go
         uses: actions/setup-go@v3
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version-file: ${{ env.GO_VERSION_FILE }}
+          check-latest: ${{ env.CHECK_LATEST }}
       -
         name: Build binaries
         env:
