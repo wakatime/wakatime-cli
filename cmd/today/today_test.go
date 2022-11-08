@@ -165,7 +165,7 @@ func TestToday_ErrAuth_UnsetAPIKey(t *testing.T) {
 	var errauth api.ErrAuth
 
 	assert.True(t, errors.As(err, &errauth))
-	assert.Equal(t, "failed to load API parameters: failed to load api key", err.Error())
+	assert.Equal(t, "failed to load API parameters: api key not found or empty", err.Error())
 }
 
 func setupTestServer() (string, *http.ServeMux, func()) {

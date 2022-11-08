@@ -2,11 +2,13 @@ package params
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/url"
 	"os"
+	"os/exec"
 	"regexp"
 	"strconv"
 	"strings"
@@ -184,12 +186,27 @@ func Load(v *viper.Viper) (Params, error) {
 // if failed to retrieve api key.
 func LoadAPIParams(v *viper.Viper) (API, error) {
 	apiKey, ok := vipertools.FirstNonEmptyString(v, "key", "settings.api_key", "settings.apikey")
-	if !ok {
-		return API{}, api.ErrAuth{Err: errors.New("failed to load api key")}
+	if ok && !apiKeyRegex.MatchString(apiKey) {
+		return API{}, api.ErrAuth{Err: errors.New("invalid api key format")}
 	}
 
-	if !apiKeyRegex.MatchString(apiKey) {
-		return API{}, api.ErrAuth{Err: errors.New("invalid api key format")}
+	var err error
+
+	if !ok {
+		apiKey, err = readApiKeyFromCommand(vipertools.GetString(v, "settings.api_key_vault_cmd"))
+		if err != nil {
+			return API{}, api.ErrAuth{Err: fmt.Errorf("failed to load api key from vault: %s", err)}
+		}
+
+		if apiKey == "" {
+			return API{}, api.ErrAuth{Err: errors.New("api key not found or empty")}
+		}
+
+		if !apiKeyRegex.MatchString(apiKey) {
+			return API{}, api.ErrAuth{Err: errors.New("invalid api key format")}
+		}
+
+		log.Debugln("loaded api key from vault")
 	}
 
 	var apiKeyPatterns []apikey.MapPattern
@@ -647,6 +664,38 @@ func LoadStausBarParams(v *viper.Viper) StatusBar {
 	return StatusBar{
 		HideCategories: hideCategories,
 	}
+}
+
+func readApiKeyFromCommand(cmdStr string) (string, error) {
+	if cmdStr == "" {
+		return "", nil
+	}
+
+	cmdStr = strings.TrimSpace(cmdStr)
+	if cmdStr == "" {
+		return "", nil
+	}
+
+	cmdParts := strings.Split(cmdStr, " ")
+	if len(cmdParts) == 0 {
+		return "", nil
+	}
+
+	cmdName := cmdParts[0]
+	cmdArgs := cmdParts[1:]
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, cmdName, cmdArgs...) // nolint:gosec
+	cmd.Stderr = os.Stderr
+
+	out, err := cmd.Output()
+	if err != nil {
+		return "", fmt.Errorf("failed to read api key from vault: %s", err)
+	}
+
+	return strings.TrimSpace(string(out)), nil
 }
 
 func readExtraHeartbeats() ([]heartbeat.Heartbeat, error) {

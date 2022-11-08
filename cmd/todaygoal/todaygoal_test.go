@@ -176,7 +176,7 @@ func TestGoal_ErrAuth_UnsetAPIKey(t *testing.T) {
 	assert.True(t, errors.As(err, &errauth))
 	assert.Equal(
 		t,
-		"failed to load command parameters: failed to load API parameters: failed to load api key",
+		"failed to load command parameters: failed to load API parameters: api key not found or empty",
 		err.Error(),
 	)
 }
