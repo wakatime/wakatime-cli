@@ -75,7 +75,7 @@ func WithDetection() heartbeat.HandleOption {
 }
 
 func countLineNumbers(filepath string) (int, error) {
-	f, err := os.Open(filepath) //nolint:gosec
+	f, err := os.Open(filepath) // nolint:gosec
 	if err != nil {
 		return 0, fmt.Errorf("failed to open file: %s", err)
 	}

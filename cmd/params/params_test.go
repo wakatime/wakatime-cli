@@ -600,6 +600,23 @@ func TestLoadParams_ProjectApiKey_ParseConfig(t *testing.T) {
 	assert.Equal(t, expected, params.API.KeyPatterns)
 }
 
+func TestLoadParams_ApiKey_SettingTakePrecedence(t *testing.T) {
+	v := viper.New()
+	v.Set("config", "testdata/.wakatime.cfg")
+	v.Set("entity", "testdata/heartbeat_go.json")
+
+	configFile, err := inipkg.FilePath(v)
+	require.NoError(t, err)
+
+	err = inipkg.ReadInConfig(v, configFile)
+	require.NoError(t, err)
+
+	params, err := paramscmd.Load(v)
+	require.NoError(t, err)
+
+	assert.Equal(t, "00000000-0000-4000-8000-000000000000", params.API.Key)
+}
+
 func TestLoadParams_ApiKey_FromVault(t *testing.T) {
 	v := viper.New()
 	v.Set("config", "testdata/.wakatime-vault.cfg")
