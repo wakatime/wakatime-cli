@@ -7,6 +7,8 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/wakatime/wakatime-cli/pkg/log"
+
 	"github.com/alecthomas/chroma"
 	"github.com/alecthomas/chroma/lexers/v"
 )
@@ -33,12 +35,16 @@ type ParserVbNet struct {
 
 // Parse parses dependencies from VB.Net file content using the chroma VB.Net lexer.
 func (p *ParserVbNet) Parse(filepath string) ([]string, error) {
-	reader, err := os.Open(filepath)
+	reader, err := os.Open(filepath) // nolint:gosec
 	if err != nil {
 		return nil, fmt.Errorf("failed to open file %q: %s", filepath, err)
 	}
 
-	defer reader.Close()
+	defer func() {
+		if err := reader.Close(); err != nil {
+			log.Debugf("failed to close file: %s", err)
+		}
+	}()
 
 	p.init()
 	defer p.init()

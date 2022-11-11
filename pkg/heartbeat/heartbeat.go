@@ -139,7 +139,7 @@ type Sender interface {
 	SendHeartbeats(hh []Heartbeat) ([]Result, error)
 }
 
-// Sender is a noop api client, used to always skip sending to the API.
+// Noop is a noop api client, used to always skip sending to the API.
 type Noop struct{}
 
 // SendHeartbeats always returns nil.

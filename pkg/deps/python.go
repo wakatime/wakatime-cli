@@ -7,11 +7,12 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/wakatime/wakatime-cli/pkg/log"
+
 	"github.com/alecthomas/chroma"
 	lp "github.com/alecthomas/chroma/lexers/p"
 )
 
-// nolint:noglobal
 var pythonExcludeRegex = regexp.MustCompile(`(?i)^(os|sys|__[a-z]+__)$`)
 
 // StatePython is a token parsing state.
@@ -36,12 +37,16 @@ type ParserPython struct {
 
 // Parse parses dependencies from Python file content using the chroma Python lexer.
 func (p *ParserPython) Parse(filepath string) ([]string, error) {
-	reader, err := os.Open(filepath)
+	reader, err := os.Open(filepath) // nolint:gosec
 	if err != nil {
 		return nil, fmt.Errorf("failed to open file %q: %s", filepath, err)
 	}
 
-	defer reader.Close()
+	defer func() {
+		if err := reader.Close(); err != nil {
+			log.Debugf("failed to close file: %s", err)
+		}
+	}()
 
 	p.init()
 	defer p.init()

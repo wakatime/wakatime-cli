@@ -61,7 +61,7 @@ func (c *Client) SendDiagnostics(plugin string, diagnostics ...diagnostic.Diagno
 	if err != nil {
 		return Err{Err: fmt.Errorf("failed making request to %q: %s", url, err)}
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() // nolint:errcheck
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {

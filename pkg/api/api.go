@@ -104,7 +104,11 @@ func isLocalIPv6() bool {
 		return true
 	}
 
-	defer conn.Close()
+	defer func() {
+		if err := conn.Close(); err != nil {
+			log.Debugf("failed to close connection to api wakatime: %s", err)
+		}
+	}()
 
 	localAddr := conn.LocalAddr().(*net.UDPAddr)
 

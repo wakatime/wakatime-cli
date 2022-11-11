@@ -7,11 +7,13 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/wakatime/wakatime-cli/pkg/log"
+
 	"github.com/alecthomas/chroma"
 	"github.com/alecthomas/chroma/lexers/j"
 )
 
-// nolint: gochecknoglobals
+// nolint:gochecknoglobals
 var filesJSON = map[string]struct {
 	exact      bool
 	dependency string
@@ -41,12 +43,16 @@ type ParserJSON struct {
 
 // Parse parses dependencies from JSON file content using the chroma JSON lexer.
 func (p *ParserJSON) Parse(filepath string) ([]string, error) {
-	reader, err := os.Open(filepath)
+	reader, err := os.Open(filepath) // nolint:gosec
 	if err != nil {
 		return nil, fmt.Errorf("failed to open file %q: %s", filepath, err)
 	}
 
-	defer reader.Close()
+	defer func() {
+		if err := reader.Close(); err != nil {
+			log.Debugf("failed to close file: %s", err)
+		}
+	}()
 
 	p.init()
 	defer p.init()

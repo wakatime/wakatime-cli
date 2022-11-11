@@ -24,10 +24,13 @@ See [Usage][usage] or the [WakaTime FAQ][faq] for more details.
 Pull requests and issues are welcome!
 See [Contributing][contributing] for more details.
 
+## Troubleshooting
+
+See [Troubleshooting][troubleshooting] for more details.
+
 Many thanks to all [contributors][authors]!
 
 Made with :heart: by the WakaTime Team.
-
 
 [wakatime]: http://wakatime.com
 [editors]: http://wakatime.com/editors
@@ -37,4 +40,5 @@ Made with :heart: by the WakaTime Team.
 [faq]: https://wakatime.com/faq
 [usage]: USAGE.md
 [contributing]: CONTRIBUTING.md
+[troubleshooting]: TROUBLESHOOTING.md
 [authors]: AUTHORS

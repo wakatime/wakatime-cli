@@ -1,14 +1,12 @@
 package heartbeat
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 
 	apicmd "github.com/wakatime/wakatime-cli/cmd/api"
 	offlinecmd "github.com/wakatime/wakatime-cli/cmd/offline"
 	paramscmd "github.com/wakatime/wakatime-cli/cmd/params"
-	"github.com/wakatime/wakatime-cli/pkg/api"
 	"github.com/wakatime/wakatime-cli/pkg/apikey"
 	"github.com/wakatime/wakatime-cli/pkg/backoff"
 	"github.com/wakatime/wakatime-cli/pkg/deps"
@@ -21,6 +19,7 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/offline"
 	"github.com/wakatime/wakatime-cli/pkg/project"
 	"github.com/wakatime/wakatime-cli/pkg/remote"
+	"github.com/wakatime/wakatime-cli/pkg/wakaerror"
 
 	"github.com/spf13/viper"
 )
@@ -34,36 +33,8 @@ func Run(v *viper.Viper) (int, error) {
 
 	err = SendHeartbeats(v, queueFilepath)
 	if err != nil {
-		var errauth api.ErrAuth
-		if errors.As(err, &errauth) {
-			return exitcode.ErrAuth, fmt.Errorf(
-				"sending heartbeat(s) failed: invalid api key... find yours at wakatime.com/api-key. %w",
-				err,
-			)
-		}
-
-		var errbadRequest api.ErrBadRequest
-		if errors.As(err, &errbadRequest) {
-			return exitcode.ErrGeneric, fmt.Errorf(
-				"sending heartbeat(s) later due to bad request: %w",
-				err,
-			)
-		}
-
-		var errBackoff api.ErrBackoff
-		if errors.As(err, &errBackoff) {
-			return exitcode.ErrBackoff, fmt.Errorf(
-				"sending heartbeat(s) later because currently rate limited: %w",
-				err,
-			)
-		}
-
-		var errapi api.Err
-		if errors.As(err, &errapi) {
-			return exitcode.ErrAPI, fmt.Errorf(
-				"sending heartbeat(s) later due to api error: %w",
-				err,
-			)
+		if errwaka, ok := err.(wakaerror.Error); ok {
+			return errwaka.ExitCode(), fmt.Errorf("sending heartbeat(s) failed: %s", errwaka.Message())
 		}
 
 		return exitcode.ErrGeneric, fmt.Errorf(

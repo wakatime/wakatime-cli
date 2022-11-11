@@ -7,11 +7,12 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/wakatime/wakatime-cli/pkg/log"
+
 	"github.com/alecthomas/chroma"
 	"github.com/alecthomas/chroma/lexers/circular"
 )
 
-// nolint:noglobals
 var phpExcludeRegex = regexp.MustCompile(`(?i)(^app|app\.php)$`)
 
 // StatePHP is a token parsing state.
@@ -39,12 +40,16 @@ type ParserPHP struct {
 
 // Parse parses dependencies from PHP file content using the chroma PHP lexer.
 func (p *ParserPHP) Parse(filepath string) ([]string, error) {
-	reader, err := os.Open(filepath)
+	reader, err := os.Open(filepath) // nolint:gosec
 	if err != nil {
 		return nil, fmt.Errorf("failed to open file %q: %s", filepath, err)
 	}
 
-	defer reader.Close()
+	defer func() {
+		if err := reader.Close(); err != nil {
+			log.Debugf("failed to close file: %s", err)
+		}
+	}()
 
 	p.init()
 	defer p.init()

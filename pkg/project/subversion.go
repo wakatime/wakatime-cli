@@ -85,7 +85,7 @@ func findSvnBinary() (string, bool) {
 	}
 
 	for _, loc := range locations {
-		cmd := exec.Command(loc, "--version")
+		cmd := exec.Command(loc, "--version") // nolint:gosec
 
 		err := cmd.Run()
 		if err != nil {
