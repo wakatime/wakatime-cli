@@ -54,7 +54,8 @@ submodules_disabled = false
 | ---                            | ---         | ---  | ---           |
 | debug                          | Turns on debug messages in log file. | _bool_ | `false` |
 | api_key                        | Your wakatime api key. | _string_ | |
-| api_url                        | The WakaTime API base url. Defaults to `https://api.wakatime.com/api/v1`. | _string_ | |
+| api_key_vault_cmd              | Any shell command to get your api key from vault. | _string_ | |
+| api_url                        | The WakaTime API base url. | _string_ | <https://api.wakatime.com/api/v1> |
 | hide_file_names                | Obfuscate filenames. Will not send file names to api. | _bool_;_list_ | `false` |
 | hide_project_names             | Obfuscate project names. When a project folder is detected instead of using the folder name as the project, a `.wakatime-project file` is created with a random project name. | _bool_;_list_ | `false` |
 | hide_branch_names              | Obfuscate branch names. Will not send revision control branch names to api. | _bool_;_list_ | `false` |
