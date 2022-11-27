@@ -35,7 +35,7 @@ const errMsgTemplate = "invalid url %q. Must be in format" +
 
 var (
 	// nolint
-	apiKeyRegex = regexp.MustCompile("^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$")
+	apiKeyRegex = regexp.MustCompile("^(waka_)?[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$")
 	// nolint
 	matchAllRegex = regexp.MustCompile(".*")
 	// nolint
