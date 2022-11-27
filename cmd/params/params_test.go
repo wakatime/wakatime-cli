@@ -2149,3 +2149,11 @@ func TestStatusBar_String(t *testing.T) {
 		statusbar.String(),
 	)
 }
+
+func TestLoadParams_APIKeyPrefixSupported(t *testing.T) {
+	v := viper.New()
+	v.Set("key", "waka_00000000-0000-4000-8000-000000000000")
+
+	_, err := paramscmd.LoadAPIParams(v)
+	require.NoError(t, err)
+}
