@@ -63,17 +63,21 @@ func SendHeartbeats(v *viper.Viper, queueFilepath string) error {
 
 	heartbeats := buildHeartbeats(params)
 
+	var chOfflineSave = make(chan bool)
+
 	// only send at once the maximum amount of `offline.SendLimit`.
 	if len(heartbeats) > offline.SendLimit {
 		extraHeartbeats := heartbeats[offline.SendLimit:]
 
 		log.Debugf("save %d extra heartbeat(s) to offline queue", len(extraHeartbeats))
 
-		go func() {
+		go func(done chan<- bool) {
 			if err := offlinecmd.SaveHeartbeats(v, extraHeartbeats, queueFilepath); err != nil {
 				log.Errorf("failed to save extra heartbeats to offline queue: %s", err)
 			}
-		}()
+
+			done <- true
+		}(chOfflineSave)
 
 		heartbeats = heartbeats[:offline.SendLimit]
 	}
@@ -106,8 +110,13 @@ func SendHeartbeats(v *viper.Viper, queueFilepath string) error {
 	}
 
 	handle := heartbeat.NewHandle(apiClient, handleOpts...)
-
 	results, err := handle(heartbeats)
+
+	// wait for offline queue save to finish
+	if len(heartbeats) > offline.SendLimit {
+		<-chOfflineSave
+	}
+
 	if err != nil {
 		return err
 	}
