@@ -72,6 +72,7 @@ func new() *l.Entry {
 		ReportCaller: true,
 	})
 	entry.Data["version"] = version.Version
+	entry.Data["os/arch"] = fmt.Sprintf("%s/%s", version.OS, version.Arch)
 
 	return entry
 }
@@ -108,10 +109,5 @@ func SetJww(verbose bool, w io.Writer) {
 
 // WithField adds a single field to the Entry.
 func WithField(key string, value interface{}) {
-	logEntry.WithField(key, value)
-}
-
-// WithFields adds a map of fields to the Entry.
-func WithFields(fields map[string]interface{}) {
-	logEntry.WithFields(fields)
+	logEntry.Data[key] = value
 }
