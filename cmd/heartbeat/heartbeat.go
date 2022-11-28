@@ -233,11 +233,12 @@ func initHandleOptions(params paramscmd.Params) []heartbeat.HandleOption {
 }
 
 func setLogFields(params paramscmd.Params) {
+	log.WithField("file", params.Heartbeat.Entity)
+	log.WithField("time", params.Heartbeat.Time)
+
 	if params.API.Plugin != "" {
 		log.WithField("plugin", params.API.Plugin)
 	}
-
-	log.WithField("time", params.Heartbeat.Time)
 
 	if params.Heartbeat.LineNumber != nil {
 		log.WithField("lineno", params.Heartbeat.LineNumber)
@@ -246,6 +247,4 @@ func setLogFields(params paramscmd.Params) {
 	if params.Heartbeat.IsWrite != nil {
 		log.WithField("is_write", params.Heartbeat.IsWrite)
 	}
-
-	log.WithField("file", params.Heartbeat.Entity)
 }
