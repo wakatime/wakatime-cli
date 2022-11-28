@@ -1,12 +1,14 @@
 package heartbeat
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
 	apicmd "github.com/wakatime/wakatime-cli/cmd/api"
 	offlinecmd "github.com/wakatime/wakatime-cli/cmd/offline"
 	paramscmd "github.com/wakatime/wakatime-cli/cmd/params"
+	"github.com/wakatime/wakatime-cli/pkg/api"
 	"github.com/wakatime/wakatime-cli/pkg/apikey"
 	"github.com/wakatime/wakatime-cli/pkg/backoff"
 	"github.com/wakatime/wakatime-cli/pkg/deps"
@@ -33,6 +35,14 @@ func Run(v *viper.Viper) (int, error) {
 
 	err = SendHeartbeats(v, queueFilepath)
 	if err != nil {
+		var errBackoff api.ErrBackoff
+
+		if errors.As(err, &errBackoff) {
+			log.Debugf("sending heartbeat(s) failed: %s", errBackoff.Message())
+
+			return errBackoff.ExitCode(), nil
+		}
+
 		if errwaka, ok := err.(wakaerror.Error); ok {
 			return errwaka.ExitCode(), fmt.Errorf("sending heartbeat(s) failed: %s", errwaka.Message())
 		}
