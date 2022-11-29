@@ -1,12 +1,14 @@
 package heartbeat
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
 	apicmd "github.com/wakatime/wakatime-cli/cmd/api"
 	offlinecmd "github.com/wakatime/wakatime-cli/cmd/offline"
 	paramscmd "github.com/wakatime/wakatime-cli/cmd/params"
+	"github.com/wakatime/wakatime-cli/pkg/api"
 	"github.com/wakatime/wakatime-cli/pkg/apikey"
 	"github.com/wakatime/wakatime-cli/pkg/backoff"
 	"github.com/wakatime/wakatime-cli/pkg/deps"
@@ -33,6 +35,14 @@ func Run(v *viper.Viper) (int, error) {
 
 	err = SendHeartbeats(v, queueFilepath)
 	if err != nil {
+		var errBackoff api.ErrBackoff
+
+		if errors.As(err, &errBackoff) {
+			log.Debugf("sending heartbeat(s) failed: %s", errBackoff.Message())
+
+			return errBackoff.ExitCode(), nil
+		}
+
 		if errwaka, ok := err.(wakaerror.Error); ok {
 			return errwaka.ExitCode(), fmt.Errorf("sending heartbeat(s) failed: %s", errwaka.Message())
 		}
@@ -223,11 +233,12 @@ func initHandleOptions(params paramscmd.Params) []heartbeat.HandleOption {
 }
 
 func setLogFields(params paramscmd.Params) {
+	log.WithField("file", params.Heartbeat.Entity)
+	log.WithField("time", params.Heartbeat.Time)
+
 	if params.API.Plugin != "" {
 		log.WithField("plugin", params.API.Plugin)
 	}
-
-	log.WithField("time", params.Heartbeat.Time)
 
 	if params.Heartbeat.LineNumber != nil {
 		log.WithField("lineno", params.Heartbeat.LineNumber)
@@ -236,6 +247,4 @@ func setLogFields(params paramscmd.Params) {
 	if params.Heartbeat.IsWrite != nil {
 		log.WithField("is_write", params.Heartbeat.IsWrite)
 	}
-
-	log.WithField("file", params.Heartbeat.Entity)
 }
