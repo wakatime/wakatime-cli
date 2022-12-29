@@ -703,12 +703,12 @@ func readExtraHeartbeats() ([]heartbeat.Heartbeat, error) {
 
 	input, err := in.ReadString('\n')
 	if err != nil {
-		return nil, fmt.Errorf("failed to read data from stdin: %s", err)
+		log.Debugf("failed to read data from stdin: %s", err)
 	}
 
 	heartbeats, err := parseExtraHeartbeats(input)
 	if err != nil {
-		return nil, fmt.Errorf("failed to json decode: %s", err)
+		return nil, fmt.Errorf("failed parsing: %s", err)
 	}
 
 	return heartbeats, nil

@@ -1,6 +1,7 @@
 package params_test
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"os"
@@ -340,6 +341,79 @@ func TestLoadParams_ExtraHeartbeats_WithStringValues(t *testing.T) {
 			LineNumber:      heartbeat.PointerTo(43),
 			Lines:           heartbeat.PointerTo(46),
 			Time:            1585598060,
+		},
+	}, params.ExtraHeartbeats)
+}
+
+func TestLoadParams_ExtraHeartbeats_WithEOF(t *testing.T) {
+	r, w, err := os.Pipe()
+	require.NoError(t, err)
+
+	defer func() {
+		r.Close()
+		w.Close()
+	}()
+
+	origStdin := os.Stdin
+
+	defer func() { os.Stdin = origStdin }()
+
+	os.Stdin = r
+
+	data, err := os.ReadFile("testdata/extra_heartbeats.json")
+	require.NoError(t, err)
+
+	go func() {
+		// trim trailing newline and make sure we still parse extra heartbeats
+		_, err := w.Write(bytes.TrimRight(data, "\n"))
+		require.NoError(t, err)
+
+		w.Close()
+	}()
+
+	v := viper.New()
+	v.Set("entity", "/path/to/file")
+	v.Set("extra-heartbeats", true)
+
+	params, err := paramscmd.LoadHeartbeatParams(v)
+	require.NoError(t, err)
+
+	assert.Len(t, params.ExtraHeartbeats, 2)
+
+	assert.NotNil(t, params.ExtraHeartbeats[0].Language)
+	assert.Equal(t, heartbeat.LanguageGo.String(), *params.ExtraHeartbeats[0].Language)
+	assert.NotNil(t, params.ExtraHeartbeats[1].Language)
+	assert.Equal(t, heartbeat.LanguagePython.String(), *params.ExtraHeartbeats[1].Language)
+
+	assert.Equal(t, []heartbeat.Heartbeat{
+		{
+			Category:          heartbeat.CodingCategory,
+			CursorPosition:    heartbeat.PointerTo(12),
+			Entity:            "testdata/main.go",
+			EntityType:        heartbeat.FileType,
+			IsUnsavedEntity:   true,
+			IsWrite:           heartbeat.PointerTo(true),
+			LanguageAlternate: "Golang",
+			LineNumber:        heartbeat.PointerTo(42),
+			Lines:             heartbeat.PointerTo(45),
+			ProjectAlternate:  "billing",
+			ProjectOverride:   "wakatime-cli",
+			Time:              1585598059,
+			// tested above
+			Language: params.ExtraHeartbeats[0].Language,
+		},
+		{
+			Category:          heartbeat.DebuggingCategory,
+			Entity:            "testdata/main.py",
+			EntityType:        heartbeat.FileType,
+			IsWrite:           nil,
+			LanguageAlternate: "Py",
+			LineNumber:        nil,
+			Lines:             nil,
+			ProjectOverride:   "wakatime-cli",
+			Time:              1585598060,
+			// tested above
+			Language: params.ExtraHeartbeats[1].Language,
 		},
 	}, params.ExtraHeartbeats)
 }
