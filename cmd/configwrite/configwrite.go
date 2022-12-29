@@ -45,11 +45,7 @@ func Write(v *viper.Viper, w ini.Writer) error {
 		return fmt.Errorf("failed loading params: %w", err)
 	}
 
-	if err := w.Write(params.Section, params.KeyValue); err != nil {
-		return err
-	}
-
-	return nil
+	return w.Write(params.Section, params.KeyValue)
 }
 
 // LoadParams loads needed data from the configuration file.

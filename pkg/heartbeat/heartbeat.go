@@ -19,7 +19,7 @@ var remoteAddressRegex = regexp.MustCompile(`(?i)^((ssh|sftp)://)+(?P<credential
 
 // Heartbeat is a structure representing activity for a user on a some entity.
 type Heartbeat struct {
-	ApiKey                string     `json:"-"`
+	APIKey                string     `json:"-"`
 	Branch                *string    `json:"branch"`
 	BranchAlternate       string     `json:"-"`
 	Category              Category   `json:"category"`

@@ -108,6 +108,6 @@ func SetJww(verbose bool, w io.Writer) {
 }
 
 // WithField adds a single field to the Entry.
-func WithField(key string, value interface{}) {
+func WithField(key string, value any) {
 	logEntry.Data[key] = value
 }

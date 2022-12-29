@@ -613,7 +613,7 @@ func (chsvr *sshSessionChannelServer) handleReq(req *ssh.Request) {
 	}
 }
 
-func rejectRequestUnmarshalError(req *ssh.Request, s interface{}, err error) error {
+func rejectRequestUnmarshalError(req *ssh.Request, s any, err error) error {
 	fmt.Printf("ssh request unmarshaling error, type '%T': %v\n", s, err)
 
 	_ = rejectRequest(req)

@@ -26,10 +26,10 @@ func TestWithReplacing(t *testing.T) {
 	}
 
 	config := apikey.Config{
-		DefaultApiKey: "00000000-0000-4000-8000-000000000000",
+		DefaultAPIKey: "00000000-0000-4000-8000-000000000000",
 		MapPatterns: []apikey.MapPattern{
 			{
-				ApiKey: "00000000-0000-4000-8000-000000000001",
+				APIKey: "00000000-0000-4000-8000-000000000001",
 				Regex:  regexp.MustCompile(`.workdir.`),
 			},
 		},
@@ -39,11 +39,11 @@ func TestWithReplacing(t *testing.T) {
 	h := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		assert.Equal(t, []heartbeat.Heartbeat{
 			{
-				ApiKey: "00000000-0000-4000-8000-000000000000",
+				APIKey: "00000000-0000-4000-8000-000000000000",
 				Entity: "/tmp/main.go",
 			},
 			{
-				ApiKey: "00000000-0000-4000-8000-000000000001",
+				APIKey: "00000000-0000-4000-8000-000000000001",
 				Entity: "/workdir/main.go",
 			},
 		}, hh)
@@ -74,11 +74,11 @@ func TestApiKey_MatchPattern(t *testing.T) {
 
 	patterns := []apikey.MapPattern{
 		{
-			ApiKey: "00000000-0000-4000-8000-000000000000",
+			APIKey: "00000000-0000-4000-8000-000000000000",
 			Regex:  regexp.MustCompile(formatRegex(filepath.Join(wd, "path", "to", "otherfolder"))),
 		},
 		{
-			ApiKey: "00000000-0000-4000-8000-000000000001",
+			APIKey: "00000000-0000-4000-8000-000000000001",
 			Regex:  regexp.MustCompile(formatRegex(filepath.Join(wd, `test([a-zA-Z]+)`))),
 		},
 	}
@@ -98,11 +98,11 @@ func TestApiKey_MatchPattern_NoMatch(t *testing.T) {
 
 	patterns := []apikey.MapPattern{
 		{
-			ApiKey: "00000000-0000-4000-8000-000000000000",
+			APIKey: "00000000-0000-4000-8000-000000000000",
 			Regex:  regexp.MustCompile(formatRegex(filepath.Join(wd, "path", "to", "otherfolder"))),
 		},
 		{
-			ApiKey: "00000000-0000-4000-8000-000000000001",
+			APIKey: "00000000-0000-4000-8000-000000000001",
 			Regex:  regexp.MustCompile(formatRegex(filepath.Join(wd, "path", "to", "temp"))),
 		},
 	}

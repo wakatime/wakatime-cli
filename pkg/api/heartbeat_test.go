@@ -132,7 +132,7 @@ func TestClient_SendHeartbeats_MultipleApiKey(t *testing.T) {
 	c := api.NewClient(url)
 
 	hh := testHeartbeats()
-	hh[1].ApiKey = "00000000-0000-4000-8000-000000000001"
+	hh[1].APIKey = "00000000-0000-4000-8000-000000000001"
 
 	_, err := c.SendHeartbeats(hh)
 	require.NoError(t, err)
@@ -305,7 +305,7 @@ func TestParseHeartbeatResponses_Errors(t *testing.T) {
 func testHeartbeats() []heartbeat.Heartbeat {
 	return []heartbeat.Heartbeat{
 		{
-			ApiKey:         "00000000-0000-4000-8000-000000000000",
+			APIKey:         "00000000-0000-4000-8000-000000000000",
 			Branch:         heartbeat.PointerTo("heartbeat"),
 			Category:       heartbeat.CodingCategory,
 			CursorPosition: heartbeat.PointerTo(12),
@@ -321,7 +321,7 @@ func testHeartbeats() []heartbeat.Heartbeat {
 			UserAgent:      "wakatime/13.0.6",
 		},
 		{
-			ApiKey:         "00000000-0000-4000-8000-000000000000",
+			APIKey:         "00000000-0000-4000-8000-000000000000",
 			Branch:         nil,
 			Category:       heartbeat.DebuggingCategory,
 			CursorPosition: nil,

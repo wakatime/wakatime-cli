@@ -152,7 +152,7 @@ func TestSyncOfflineActivity_MultipleApiKey(t *testing.T) {
 	err = json.Unmarshal(dataGo, &hgo)
 	require.NoError(t, err)
 
-	hgo.ApiKey = "00000000-0000-4000-8000-000000000000"
+	hgo.APIKey = "00000000-0000-4000-8000-000000000000"
 
 	dataGoChanged, err := json.Marshal(hgo)
 	require.NoError(t, err)
@@ -165,7 +165,7 @@ func TestSyncOfflineActivity_MultipleApiKey(t *testing.T) {
 	err = json.Unmarshal(dataPy, &hpy)
 	require.NoError(t, err)
 
-	hpy.ApiKey = "00000000-0000-4000-8000-000000000001"
+	hpy.APIKey = "00000000-0000-4000-8000-000000000001"
 
 	dataPyChanged, err := json.Marshal(hpy)
 	require.NoError(t, err)
