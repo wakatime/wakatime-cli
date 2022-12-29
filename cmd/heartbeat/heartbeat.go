@@ -205,7 +205,7 @@ func initHandleOptions(params paramscmd.Params) []heartbeat.HandleOption {
 		}),
 		remote.WithDetection(),
 		apikey.WithReplacing(apikey.Config{
-			DefaultApiKey: params.API.Key,
+			DefaultAPIKey: params.API.Key,
 			MapPatterns:   params.API.KeyPatterns,
 		}),
 		filestats.WithDetection(),

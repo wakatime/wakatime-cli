@@ -1,6 +1,6 @@
 # WakaTime CLI
 
-[![Tests](https://img.shields.io/github/workflow/status/wakatime/wakatime-cli/Tests/develop?label=tests)](https://github.com/wakatime/wakatime-cli/actions)
+[![Tests](https://img.shields.io/github/actions/workflow/status/wakatime/wakatime-cli/on_push.yml?branch=develop&label=tests)](https://github.com/wakatime/wakatime-cli/actions)
 [![Coverage](https://img.shields.io/codecov/c/gh/wakatime/wakatime-cli/develop)](https://codecov.io/gh/wakatime/wakatime-cli)
 [![wakatime](https://wakatime.com/badge/github/wakatime/wakatime-cli.svg)](https://wakatime.com)
 

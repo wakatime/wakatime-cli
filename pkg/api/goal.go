@@ -35,7 +35,6 @@ func (c *Client) Goal(id string) (*goal.Goal, error) {
 
 	switch resp.StatusCode {
 	case http.StatusOK:
-		break
 	case http.StatusUnauthorized:
 		return nil, ErrAuth{Err: fmt.Errorf("authentication failed at %q. body: %q", url, string(body))}
 	case http.StatusBadRequest:

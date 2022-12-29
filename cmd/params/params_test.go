@@ -1,6 +1,7 @@
 package params_test
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"os"
@@ -344,6 +345,79 @@ func TestLoadParams_ExtraHeartbeats_WithStringValues(t *testing.T) {
 	}, params.ExtraHeartbeats)
 }
 
+func TestLoadParams_ExtraHeartbeats_WithEOF(t *testing.T) {
+	r, w, err := os.Pipe()
+	require.NoError(t, err)
+
+	defer func() {
+		r.Close()
+		w.Close()
+	}()
+
+	origStdin := os.Stdin
+
+	defer func() { os.Stdin = origStdin }()
+
+	os.Stdin = r
+
+	data, err := os.ReadFile("testdata/extra_heartbeats.json")
+	require.NoError(t, err)
+
+	go func() {
+		// trim trailing newline and make sure we still parse extra heartbeats
+		_, err := w.Write(bytes.TrimRight(data, "\n"))
+		require.NoError(t, err)
+
+		w.Close()
+	}()
+
+	v := viper.New()
+	v.Set("entity", "/path/to/file")
+	v.Set("extra-heartbeats", true)
+
+	params, err := paramscmd.LoadHeartbeatParams(v)
+	require.NoError(t, err)
+
+	assert.Len(t, params.ExtraHeartbeats, 2)
+
+	assert.NotNil(t, params.ExtraHeartbeats[0].Language)
+	assert.Equal(t, heartbeat.LanguageGo.String(), *params.ExtraHeartbeats[0].Language)
+	assert.NotNil(t, params.ExtraHeartbeats[1].Language)
+	assert.Equal(t, heartbeat.LanguagePython.String(), *params.ExtraHeartbeats[1].Language)
+
+	assert.Equal(t, []heartbeat.Heartbeat{
+		{
+			Category:          heartbeat.CodingCategory,
+			CursorPosition:    heartbeat.PointerTo(12),
+			Entity:            "testdata/main.go",
+			EntityType:        heartbeat.FileType,
+			IsUnsavedEntity:   true,
+			IsWrite:           heartbeat.PointerTo(true),
+			LanguageAlternate: "Golang",
+			LineNumber:        heartbeat.PointerTo(42),
+			Lines:             heartbeat.PointerTo(45),
+			ProjectAlternate:  "billing",
+			ProjectOverride:   "wakatime-cli",
+			Time:              1585598059,
+			// tested above
+			Language: params.ExtraHeartbeats[0].Language,
+		},
+		{
+			Category:          heartbeat.DebuggingCategory,
+			Entity:            "testdata/main.py",
+			EntityType:        heartbeat.FileType,
+			IsWrite:           nil,
+			LanguageAlternate: "Py",
+			LineNumber:        nil,
+			Lines:             nil,
+			ProjectOverride:   "wakatime-cli",
+			Time:              1585598060,
+			// tested above
+			Language: params.ExtraHeartbeats[1].Language,
+		},
+	}, params.ExtraHeartbeats)
+}
+
 func TestLoadParams_Filter_IsUnsavedEntity(t *testing.T) {
 	v := viper.New()
 	v.Set("entity", "/path/to/file")
@@ -521,42 +595,42 @@ func TestLoadParams_ProjectApiKey(t *testing.T) {
 	tests := map[string]struct {
 		Entity   string
 		Regex    regex.Regex
-		ApiKey   string
+		APIKey   string
 		Expected []apikey.MapPattern
 	}{
 		"simple regex": {
 			Regex:  regexp.MustCompile("projects/foo"),
-			ApiKey: "00000000-0000-4000-8000-000000000001",
+			APIKey: "00000000-0000-4000-8000-000000000001",
 			Expected: []apikey.MapPattern{
 				{
-					ApiKey: "00000000-0000-4000-8000-000000000001",
+					APIKey: "00000000-0000-4000-8000-000000000001",
 					Regex:  regexp.MustCompile(`(?i)projects/foo`),
 				},
 			},
 		},
 		"complex regex": {
 			Regex:  regexp.MustCompile(`^/home/user/projects/bar(\\d+)/`),
-			ApiKey: "00000000-0000-4000-8000-000000000002",
+			APIKey: "00000000-0000-4000-8000-000000000002",
 			Expected: []apikey.MapPattern{
 				{
-					ApiKey: "00000000-0000-4000-8000-000000000002",
+					APIKey: "00000000-0000-4000-8000-000000000002",
 					Regex:  regexp.MustCompile(`(?i)^/home/user/projects/bar(\\d+)/`),
 				},
 			},
 		},
 		"case insensitive": {
 			Regex:  regexp.MustCompile("projects/foo"),
-			ApiKey: "00000000-0000-4000-8000-000000000001",
+			APIKey: "00000000-0000-4000-8000-000000000001",
 			Expected: []apikey.MapPattern{
 				{
-					ApiKey: "00000000-0000-4000-8000-000000000001",
+					APIKey: "00000000-0000-4000-8000-000000000001",
 					Regex:  regexp.MustCompile(`(?i)projects/foo`),
 				},
 			},
 		},
 		"api key equal to default": {
 			Regex:    regexp.MustCompile(`/some/path`),
-			ApiKey:   "00000000-0000-4000-8000-000000000000",
+			APIKey:   "00000000-0000-4000-8000-000000000000",
 			Expected: nil,
 		},
 	}
@@ -566,7 +640,7 @@ func TestLoadParams_ProjectApiKey(t *testing.T) {
 			v := viper.New()
 			v.Set("key", "00000000-0000-4000-8000-000000000000")
 			// v.Set("entity", test.Entity)
-			v.Set(fmt.Sprintf("project_api_key.%s", test.Regex.String()), test.ApiKey)
+			v.Set(fmt.Sprintf("project_api_key.%s", test.Regex.String()), test.APIKey)
 
 			params, err := paramscmd.LoadAPIParams(v)
 			require.NoError(t, err)
@@ -592,7 +666,7 @@ func TestLoadParams_ProjectApiKey_ParseConfig(t *testing.T) {
 
 	expected := []apikey.MapPattern{
 		{
-			ApiKey: "00000000-0000-4000-8000-000000000001",
+			APIKey: "00000000-0000-4000-8000-000000000001",
 			Regex:  regex.MustCompile("(?i)/some/path"),
 		},
 	}
@@ -2025,7 +2099,7 @@ func TestAPI_String(t *testing.T) {
 		Key:              "00000000-0000-4000-8000-000000000000",
 		KeyPatterns: []apikey.MapPattern{
 			{
-				ApiKey: "00000000-0000-4000-8000-000000000001",
+				APIKey: "00000000-0000-4000-8000-000000000001",
 				Regex:  regex.MustCompile("^/api/v1/"),
 			},
 		},

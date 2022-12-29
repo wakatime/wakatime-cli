@@ -28,7 +28,7 @@ func (c *Client) SendHeartbeats(heartbeats []heartbeat.Heartbeat) ([]heartbeat.R
 
 	var results []heartbeat.Result
 
-	grouped := groupByApiKey(heartbeats)
+	grouped := groupByAPIKey(heartbeats)
 	keys := sortKeys(grouped)
 
 	for _, k := range keys {
@@ -59,7 +59,7 @@ func (c *Client) sendHeartbeats(url string, heartbeats []heartbeat.Heartbeat) ([
 	req.Header.Set("Content-Type", "application/json")
 
 	// set auth header here for every request due to multiple api key support
-	setAuthHeader(req, heartbeats[0].ApiKey)
+	setAuthHeader(req, heartbeats[0].APIKey)
 
 	resp, err := c.Do(req)
 	if err != nil {
@@ -74,7 +74,6 @@ func (c *Client) sendHeartbeats(url string, heartbeats []heartbeat.Heartbeat) ([
 
 	switch resp.StatusCode {
 	case http.StatusCreated, http.StatusAccepted:
-		break
 	case http.StatusUnauthorized:
 		return nil, ErrAuth{Err: fmt.Errorf("authentication failed at %q", url)}
 	case http.StatusBadRequest:
@@ -163,8 +162,8 @@ func parseHeartbeatResponseError(data json.RawMessage) ([]string, error) {
 	var errs []string
 
 	type responseBodyErr struct {
-		Error  *string                 `json:"error"`
-		Errors *map[string]interface{} `json:"errors"`
+		Error  *string         `json:"error"`
+		Errors *map[string]any `json:"errors"`
 	}
 
 	// 1. try "error" key
@@ -181,7 +180,7 @@ func parseHeartbeatResponseError(data json.RawMessage) ([]string, error) {
 	}
 
 	// 2. try "errors" key
-	var resultErrors map[string]interface{}
+	var resultErrors map[string]any
 
 	err = json.Unmarshal(data, &responseBodyErr{Errors: &resultErrors})
 	if err != nil {
@@ -199,8 +198,8 @@ func parseHeartbeatResponseError(data json.RawMessage) ([]string, error) {
 			continue
 		}
 
-		m := make([]string, len(messages.([]interface{})))
-		for i, v := range messages.([]interface{}) {
+		m := make([]string, len(messages.([]any)))
+		for i, v := range messages.([]any) {
 			m[i] = fmt.Sprint(v)
 		}
 
@@ -214,11 +213,11 @@ func parseHeartbeatResponseError(data json.RawMessage) ([]string, error) {
 	return errs, nil
 }
 
-func groupByApiKey(hh []heartbeat.Heartbeat) map[string][]heartbeat.Heartbeat {
+func groupByAPIKey(hh []heartbeat.Heartbeat) map[string][]heartbeat.Heartbeat {
 	var grouped = make(map[string][]heartbeat.Heartbeat, 0)
 
 	for _, h := range hh {
-		grouped[h.ApiKey] = append(grouped[h.ApiKey], h)
+		grouped[h.APIKey] = append(grouped[h.APIKey], h)
 	}
 
 	return grouped
