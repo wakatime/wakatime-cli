@@ -50,7 +50,7 @@ func Format(h Heartbeat) Heartbeat {
 func formatLinuxFilePath(h *Heartbeat) {
 	formatted, err := filepath.Abs(h.Entity)
 	if err != nil {
-		log.Warnf("failed to resolve absolute path for %q: %s", h.Entity, err)
+		log.Debugf("failed to resolve absolute path for %q: %s", h.Entity, err)
 	} else {
 		h.Entity = formatted
 	}
@@ -58,7 +58,7 @@ func formatLinuxFilePath(h *Heartbeat) {
 	// evaluate any symlinks
 	formatted, err = realpath.Realpath(h.Entity)
 	if err != nil {
-		log.Warnf("failed to resolve real path for %q: %s", h.Entity, err)
+		log.Debugf("failed to resolve real path for %q: %s", h.Entity, err)
 	} else {
 		h.Entity = formatted
 	}
@@ -72,7 +72,7 @@ func formatWindowsFilePath(h *Heartbeat) {
 
 		h.LocalFile, err = windows.FormatLocalFilePath(h.LocalFile, h.Entity)
 		if err != nil {
-			log.Warnf("failed to format local file path: %s", err)
+			log.Debugf("failed to format local file path: %s", err)
 		}
 	}
 
