@@ -74,20 +74,20 @@ type (
 	ExtraHeartbeat struct {
 		BranchAlternate   string             `json:"alternate_branch"`
 		Category          heartbeat.Category `json:"category"`
-		CursorPosition    interface{}        `json:"cursorpos"`
+		CursorPosition    any                `json:"cursorpos"`
 		Entity            string             `json:"entity"`
 		EntityType        string             `json:"entity_type"`
 		Type              string             `json:"type"`
-		IsUnsavedEntity   interface{}        `json:"is_unsaved_entity"`
-		IsWrite           interface{}        `json:"is_write"`
+		IsUnsavedEntity   any                `json:"is_unsaved_entity"`
+		IsWrite           any                `json:"is_write"`
 		Language          *string            `json:"language"`
 		LanguageAlternate string             `json:"alternate_language"`
-		LineNumber        interface{}        `json:"lineno"`
-		Lines             interface{}        `json:"lines"`
+		LineNumber        any                `json:"lineno"`
+		Lines             any                `json:"lines"`
 		Project           string             `json:"project"`
 		ProjectAlternate  string             `json:"alternate_project"`
-		Time              interface{}        `json:"time"`
-		Timestamp         interface{}        `json:"timestamp"`
+		Time              any                `json:"time"`
+		Timestamp         any                `json:"timestamp"`
 	}
 
 	// Heartbeat contains heartbeat command parameters.
@@ -193,7 +193,7 @@ func LoadAPIParams(v *viper.Viper) (API, error) {
 	var err error
 
 	if !ok {
-		apiKey, err = readApiKeyFromCommand(vipertools.GetString(v, "settings.api_key_vault_cmd"))
+		apiKey, err = readAPIKeyFromCommand(vipertools.GetString(v, "settings.api_key_vault_cmd"))
 		if err != nil {
 			return API{}, api.ErrAuth{Err: fmt.Errorf("failed to load api key from vault: %s", err)}
 		}
@@ -234,7 +234,7 @@ func LoadAPIParams(v *viper.Viper) (API, error) {
 		}
 
 		apiKeyPatterns = append(apiKeyPatterns, apikey.MapPattern{
-			ApiKey: s,
+			APIKey: s,
 			Regex:  compiled,
 		})
 	}
@@ -632,7 +632,6 @@ func LoadOfflineParams(v *viper.Viper) (Offline, error) {
 		// use default
 		syncMax = v.GetInt("sync-offline-activity")
 	case vipertools.GetString(v, "sync-offline-activity") == "none":
-		break
 	default:
 		syncMax, err = strconv.Atoi(vipertools.GetString(v, "sync-offline-activity"))
 		if err != nil {
@@ -666,7 +665,7 @@ func LoadStausBarParams(v *viper.Viper) StatusBar {
 	}
 }
 
-func readApiKeyFromCommand(cmdStr string) (string, error) {
+func readAPIKeyFromCommand(cmdStr string) (string, error) {
 	if cmdStr == "" {
 		return "", nil
 	}
@@ -915,14 +914,14 @@ func (p API) String() string {
 	keyPatterns := []apikey.MapPattern{}
 
 	for _, k := range p.KeyPatterns {
-		if len(k.ApiKey) > 4 {
+		if len(k.APIKey) > 4 {
 			// only show last 4 chars of api key in logs
-			k.ApiKey = fmt.Sprintf("<hidden>%s", k.ApiKey[len(k.ApiKey)-4:])
+			k.APIKey = fmt.Sprintf("<hidden>%s", k.APIKey[len(k.APIKey)-4:])
 		}
 
 		keyPatterns = append(keyPatterns, apikey.MapPattern{
 			Regex:  k.Regex,
-			ApiKey: k.ApiKey,
+			APIKey: k.APIKey,
 		})
 	}
 
@@ -1063,9 +1062,7 @@ func parseBoolOrRegexList(s string) ([]regex.Regex, error) {
 
 	switch {
 	case s == "":
-		break
 	case strings.ToLower(s) == "false":
-		break
 	case strings.ToLower(s) == "true":
 		patterns = []regex.Regex{matchAllRegex}
 	default:

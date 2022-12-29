@@ -38,9 +38,12 @@ import (
 // Run executes commands parsed from a command line.
 func Run(cmd *cobra.Command, v *viper.Viper) {
 	// force setup logging otherwise log goes to std out
-	_ = SetupLogging(v)
+	_, err := SetupLogging(v)
+	if err != nil {
+		log.Fatalf("failed to setup logging: %s", err)
+	}
 
-	err := parseConfigFiles(v)
+	err = parseConfigFiles(v)
 	if err != nil {
 		log.Errorf("failed to parse config files: %s", err)
 
@@ -61,7 +64,10 @@ func Run(cmd *cobra.Command, v *viper.Viper) {
 	}
 
 	// setup logging again to use config file settings
-	logFileParams := SetupLogging(v)
+	logFileParams, err := SetupLogging(v)
+	if err != nil {
+		log.Fatalf("failed to setup logging: %s", err)
+	}
 
 	if v.GetBool("user-agent") {
 		log.Debugln("command: user-agent")
@@ -196,11 +202,10 @@ func parseConfigFiles(v *viper.Viper) error {
 }
 
 // SetupLogging uses the --log-file param to configure logging to file or stdout.
-func SetupLogging(v *viper.Viper) *logfile.Params {
+func SetupLogging(v *viper.Viper) (*logfile.Params, error) {
 	logfileParams, err := logfile.LoadParams(v)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "failed to load log params: %s", err)
-		log.Fatalf("failed to load log params: %s", err)
+		return nil, fmt.Errorf("failed to load log params: %s", err)
 	}
 
 	logFile := os.Stdout
@@ -208,8 +213,7 @@ func SetupLogging(v *viper.Viper) *logfile.Params {
 	if !logfileParams.ToStdout {
 		logFile, err = os.OpenFile(logfileParams.File, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "error opening log file: %s", err)
-			log.Fatalf("error opening log file: %s", err)
+			return nil, fmt.Errorf("error opening log file: %s", err)
 		}
 
 		log.SetOutput(logFile)
@@ -218,7 +222,7 @@ func SetupLogging(v *viper.Viper) *logfile.Params {
 	log.SetVerbose(logfileParams.Verbose)
 	log.SetJww(logfileParams.Verbose, logFile)
 
-	return &logfileParams
+	return &logfileParams, nil
 }
 
 // cmdFn represents a command function.

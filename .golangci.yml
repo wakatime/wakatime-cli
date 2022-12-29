@@ -1,5 +1,4 @@
 run:
-  go: "1.19"
   timeout: 5m
   build-tags:
     - integration
@@ -28,25 +27,33 @@ linters-settings:
       - name: bare-return
       - name: blank-imports
       - name: duplicated-imports
+      - name: defer
       - name: dot-imports
-      - name: exported
-      - name: superfluous-else
-      - name: indent-error-flow
-      - name: range
+      - name: early-return
       - name: errorf
       - name: error-naming
       - name: error-return
       - name: error-strings
-      - name: receiver-naming
+      - name: exported
+      - name: function-result-limit
+        arguments: [3]
+      - name: if-return
       - name: increment-decrement
-      - name: unexported-return
-      - name: unexported-naming
-      - name: time-naming
-      - name: var-declaration
+      - name: indent-error-flow
       - name: line-length-limit
         arguments: [125]
+      - name: superfluous-else
+      - name: range
+      - name: receiver-naming
+      - name: struct-tag
+      - name: time-naming
+      - name: unexported-naming
+      - name: unexported-return
+      - name: unnecessary-stmt
       - name: unused-parameter
       - name: unused-receiver
+      - name: var-declaration
+      - name: var-naming
 issues:
   exclude-use-default: false
   exclude-rules:

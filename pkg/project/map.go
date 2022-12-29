@@ -44,7 +44,7 @@ func matchPattern(fp string, patterns []MapPattern) (string, bool) {
 		if pattern.Regex.MatchString(fp) {
 			matches := pattern.Regex.FindStringSubmatch(fp)
 			if len(matches) > 0 {
-				params := make([]interface{}, len(matches[1:]))
+				params := make([]any, len(matches[1:]))
 				for i, v := range matches[1:] {
 					params[i] = v
 				}

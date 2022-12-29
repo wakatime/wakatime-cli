@@ -57,7 +57,7 @@ func TestSendHeartbeats(t *testing.T) {
 			Entity string `json:"entity"`
 		}
 
-		err = json.Unmarshal(body, &[]interface{}{&entity})
+		err = json.Unmarshal(body, &[]any{&entity})
 		require.NoError(t, err)
 
 		expectedBodyStr := fmt.Sprintf(string(expectedBody), entity.Entity, heartbeat.UserAgent(plugin))

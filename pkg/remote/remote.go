@@ -249,36 +249,41 @@ func (c Client) knownHostKeys() []ssh.PublicKey {
 	filenames := c.knownHostsFiles()
 
 	for _, filename := range filenames {
-		file, err := os.Open(filename) // nolint:gosec
-		if err != nil {
-			log.Debugf("failed to read known_hosts file: %s", err)
-			continue
-		}
-
-		defer func() {
-			if err := file.Close(); err != nil {
-				log.Debugf("failed to close file '%s': %s", file.Name(), err)
-			}
-		}()
-
-		scanner := bufio.NewScanner(file)
-
-		for scanner.Scan() {
-			fields := strings.Split(scanner.Text(), " ")
-			if len(fields) < 3 {
-				continue
+		if err := func(fn string) error {
+			file, err := os.Open(fn) // nolint:gosec
+			if err != nil {
+				return fmt.Errorf("failed to open known_hosts file: %s", err)
 			}
 
-			hostnames := strings.Split(fields[0], ",")
+			defer func() {
+				if err := file.Close(); err != nil {
+					log.Debugf("failed to close file '%s': %s", file.Name(), err)
+				}
+			}()
 
-			if contains(hostnames, c.HostKeyAlias, c.OriginalHost, c.Host) {
-				hostKey, _, _, _, err := ssh.ParseAuthorizedKey(scanner.Bytes())
-				if err != nil {
-					log.Warnf("failed to parse %q: %s", fields[2], err)
-				} else {
-					hostKeys = append(hostKeys, hostKey)
+			scanner := bufio.NewScanner(file)
+
+			for scanner.Scan() {
+				fields := strings.Split(scanner.Text(), " ")
+				if len(fields) < 3 {
+					continue
+				}
+
+				hostnames := strings.Split(fields[0], ",")
+
+				if contains(hostnames, c.HostKeyAlias, c.OriginalHost, c.Host) {
+					hostKey, _, _, _, err := ssh.ParseAuthorizedKey(scanner.Bytes())
+					if err != nil {
+						log.Warnf("failed to parse %q: %s", fields[2], err)
+					} else {
+						hostKeys = append(hostKeys, hostKey)
+					}
 				}
 			}
+
+			return nil
+		}(filename); err != nil {
+			log.Debugln(err)
 		}
 	}
 

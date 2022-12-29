@@ -79,7 +79,7 @@ func SyncOfflineActivity(v *viper.Viper, queueFilepath string) error {
 	handle := heartbeat.NewHandle(apiClient,
 		offline.WithSync(queueFilepath, paramOffline.SyncMax),
 		apikey.WithReplacing(apikey.Config{
-			DefaultApiKey: paramAPI.Key,
+			DefaultAPIKey: paramAPI.Key,
 			MapPatterns:   paramAPI.KeyPatterns,
 		}),
 	)

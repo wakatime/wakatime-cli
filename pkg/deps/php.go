@@ -109,7 +109,6 @@ func (p *ParserPHP) processToken(token chroma.Token) {
 	case chroma.Punctuation:
 		p.processPunctuation(token.Value)
 	case chroma.Text, chroma.Operator:
-		break
 	default:
 		p.State = StatePHPUnknown
 	}
@@ -160,7 +159,6 @@ func (p *ParserPHP) processNameOther(value string) {
 func (p *ParserPHP) processPunctuation(value string) {
 	switch {
 	case value == "(" || value == ")":
-		break
 	case (p.State == StatePHPUse || p.State == StatePHPAs) && value == ",":
 		p.State = StatePHPUse
 	default:

@@ -8,16 +8,16 @@ import (
 
 // Config contains apikey project detection configurations.
 type Config struct {
-	// DefaultApiKey contains the default api key.
-	DefaultApiKey string
+	// DefaultAPIKey contains the default api key.
+	DefaultAPIKey string
 	// Patterns contains the overridden api key per path.
 	MapPatterns []MapPattern
 }
 
 // MapPattern contains [project_api_key] data.
 type MapPattern struct {
-	// ApiKey is the project related api key.
-	ApiKey string
+	// APIKey is the project related api key.
+	APIKey string
 	// Regex is the regular expression for a specific path.
 	Regex regex.Regex
 }
@@ -33,9 +33,9 @@ func WithReplacing(config Config) heartbeat.HandleOption {
 			for n, h := range hh {
 				result, ok := MatchPattern(h.Entity, config.MapPatterns)
 				if ok {
-					hh[n].ApiKey = result
+					hh[n].APIKey = result
 				} else {
-					hh[n].ApiKey = config.DefaultApiKey
+					hh[n].APIKey = config.DefaultAPIKey
 				}
 			}
 
@@ -49,7 +49,7 @@ func MatchPattern(fp string, patterns []MapPattern) (string, bool) {
 	for _, pattern := range patterns {
 		if pattern.Regex.MatchString(fp) {
 			log.Debugf("api key pattern %q matched path %q", pattern.Regex.String(), fp)
-			return pattern.ApiKey, true
+			return pattern.APIKey, true
 		}
 
 		log.Debugf("api key pattern %q did not match path %q", pattern.Regex.String(), fp)
