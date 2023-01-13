@@ -420,6 +420,7 @@ func TestSendHeartbeats_NonExistingEntity(t *testing.T) {
 	v.Set("entity-type", "file")
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("log-file", logFile.Name())
+	v.Set("verbose", true)
 
 	cmd.SetupLogging(v)
 
