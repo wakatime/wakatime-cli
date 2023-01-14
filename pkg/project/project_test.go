@@ -448,6 +448,7 @@ func TestDetectWithRevControl_GitDetected(t *testing.T) {
 
 	result := project.DetectWithRevControl(
 		[]regex.Regex{},
+		[]project.MapPattern{},
 		project.DetecterArg{
 			Filepath:  filepath.Join(fp, "wakatime-cli/src/pkg/file.go"),
 			ShouldRun: true,

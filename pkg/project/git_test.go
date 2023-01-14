@@ -138,8 +138,8 @@ func TestGit_Detect_Submodule(t *testing.T) {
 	fp := setupTestGitSubmodule(t)
 
 	g := project.Git{
-		Filepath:          filepath.Join(fp, "wakatime-cli/lib/billing/src/lib/lib.cpp"),
-		SubmodulePatterns: []regex.Regex{regexp.MustCompile("not_matching")},
+		Filepath:                  filepath.Join(fp, "wakatime-cli/lib/billing/src/lib/lib.cpp"),
+		SubmoduleDisabledPatterns: []regex.Regex{regexp.MustCompile("not_matching")},
 	}
 
 	result, detected, err := g.Detect()
@@ -158,8 +158,8 @@ func TestGit_Detect_SubmoduleDisabled(t *testing.T) {
 	fp := setupTestGitSubmodule(t)
 
 	g := project.Git{
-		Filepath:          filepath.Join(fp, "wakatime-cli/lib/billing/src/lib/lib.cpp"),
-		SubmodulePatterns: []regex.Regex{regexp.MustCompile(".*billing.*")},
+		Filepath:                  filepath.Join(fp, "wakatime-cli/lib/billing/src/lib/lib.cpp"),
+		SubmoduleDisabledPatterns: []regex.Regex{regexp.MustCompile(".*billing.*")},
 	}
 
 	result, detected, err := g.Detect()
@@ -170,6 +170,56 @@ func TestGit_Detect_SubmoduleDisabled(t *testing.T) {
 	assert.Equal(t, project.Result{
 		Project: "wakatime-cli",
 		Branch:  "feature/billing",
+		Folder:  result.Folder,
+	}, result)
+}
+
+func TestGit_Detect_SubmoduleProjectMap_NotMatch(t *testing.T) {
+	fp := setupTestGitSubmodule(t)
+
+	g := project.Git{
+		Filepath: filepath.Join(fp, "wakatime-cli/lib/billing/src/lib/lib.cpp"),
+		SubmoduleProjectMapPatterns: []project.MapPattern{
+			{
+				Name:  "my-project-1",
+				Regex: regexp.MustCompile(formatRegex("not_matching")),
+			},
+		},
+	}
+
+	result, detected, err := g.Detect()
+	require.NoError(t, err)
+
+	assert.True(t, detected)
+	assert.Contains(t, result.Folder, filepath.Join(fp, "wakatime-cli"))
+	assert.Equal(t, project.Result{
+		Project: "billing",
+		Branch:  "master",
+		Folder:  result.Folder,
+	}, result)
+}
+
+func TestGit_Detect_SubmoduleProjectMap(t *testing.T) {
+	fp := setupTestGitSubmodule(t)
+
+	g := project.Git{
+		Filepath: filepath.Join(fp, "wakatime-cli/lib/billing/src/lib/lib.cpp"),
+		SubmoduleProjectMapPatterns: []project.MapPattern{
+			{
+				Name:  "my-project-1",
+				Regex: regexp.MustCompile(formatRegex(".*billing.*")),
+			},
+		},
+	}
+
+	result, detected, err := g.Detect()
+	require.NoError(t, err)
+
+	assert.True(t, detected)
+	assert.Contains(t, result.Folder, filepath.Join(fp, "wakatime-cli"))
+	assert.Equal(t, project.Result{
+		Project: "my-project-1",
+		Branch:  "master",
 		Folder:  result.Folder,
 	}, result)
 }

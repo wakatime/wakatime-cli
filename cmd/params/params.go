@@ -128,11 +128,12 @@ type (
 
 	// ProjectParams params for project name sanitization.
 	ProjectParams struct {
-		BranchAlternate  string
-		Alternate        string
-		DisableSubmodule []regex.Regex
-		MapPatterns      []project.MapPattern
-		Override         string
+		Alternate            string
+		BranchAlternate      string
+		MapPatterns          []project.MapPattern
+		Override             string
+		SubmodulesDisabled   []regex.Regex
+		SubmoduleMapPatterns []project.MapPattern
 	}
 
 	// SanitizeParams params for heartbeat sanitization.
@@ -576,7 +577,7 @@ func loadSanitizeParams(v *viper.Viper) (SanitizeParams, error) {
 }
 
 func loadProjectParams(v *viper.Viper) (ProjectParams, error) {
-	disableSubmodule, err := parseBoolOrRegexList(vipertools.GetString(v, "git.submodules_disabled"))
+	submodulesDisabled, err := parseBoolOrRegexList(vipertools.GetString(v, "git.submodules_disabled"))
 	if err != nil {
 		return ProjectParams{}, fmt.Errorf(
 			"failed to parse regex submodules disabled param: %s",
@@ -584,11 +585,22 @@ func loadProjectParams(v *viper.Viper) (ProjectParams, error) {
 		)
 	}
 
+	return ProjectParams{
+		Alternate:            vipertools.GetString(v, "alternate-project"),
+		BranchAlternate:      vipertools.GetString(v, "alternate-branch"),
+		MapPatterns:          loadProjectMapPatterns(v, "projectmap"),
+		Override:             vipertools.GetString(v, "project"),
+		SubmodulesDisabled:   submodulesDisabled,
+		SubmoduleMapPatterns: loadProjectMapPatterns(v, "git_submodule_projectmap"),
+	}, nil
+}
+
+func loadProjectMapPatterns(v *viper.Viper, prefix string) []project.MapPattern {
 	var mapPatterns []project.MapPattern
 
-	projectMap := vipertools.GetStringMapString(v, "projectmap")
+	values := vipertools.GetStringMapString(v, prefix)
 
-	for k, s := range projectMap {
+	for k, s := range values {
 		// make all regex case insensitive
 		if !strings.HasPrefix(k, "(?i)") {
 			k = "(?i)" + k
@@ -606,13 +618,7 @@ func loadProjectParams(v *viper.Viper) (ProjectParams, error) {
 		})
 	}
 
-	return ProjectParams{
-		Alternate:        vipertools.GetString(v, "alternate-project"),
-		BranchAlternate:  vipertools.GetString(v, "alternate-branch"),
-		DisableSubmodule: disableSubmodule,
-		MapPatterns:      mapPatterns,
-		Override:         vipertools.GetString(v, "project"),
-	}, nil
+	return mapPatterns
 }
 
 // LoadOfflineParams loads offline params from viper.Viper instance.
@@ -1025,12 +1031,14 @@ func (p Params) String() string {
 
 func (p ProjectParams) String() string {
 	return fmt.Sprintf(
-		"alternate: '%s', branch alternate: '%s', disable submodule: '%s', map patterns: '%s', override: '%s'",
+		"alternate: '%s', branch alternate: '%s', map patterns: '%s', override: '%s',"+
+			" git submodules disabled: '%s', git submodule project map: '%s'",
 		p.Alternate,
 		p.BranchAlternate,
-		p.DisableSubmodule,
 		p.MapPatterns,
 		p.Override,
+		p.SubmodulesDisabled,
+		p.SubmoduleMapPatterns,
 	)
 }
 
