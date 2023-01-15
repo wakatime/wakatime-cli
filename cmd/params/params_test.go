@@ -1427,7 +1427,7 @@ func TestLoadParams_SanitizeParams_OverrideProjectPath(t *testing.T) {
 	}, params.Sanitize)
 }
 
-func TestLoadParams_DisableSubmodule_True(t *testing.T) {
+func TestLoadParams_SubmodulesDisabled_True(t *testing.T) {
 	tests := map[string]string{
 		"lowercase":       "true",
 		"uppercase":       "TRUE",
@@ -1443,12 +1443,12 @@ func TestLoadParams_DisableSubmodule_True(t *testing.T) {
 			params, err := paramscmd.LoadHeartbeatParams(v)
 			require.NoError(t, err)
 
-			assert.Equal(t, []regex.Regex{regexp.MustCompile(".*")}, params.Project.DisableSubmodule)
+			assert.Equal(t, []regex.Regex{regexp.MustCompile(".*")}, params.Project.SubmodulesDisabled)
 		})
 	}
 }
 
-func TestLoadParams_DisableSubmodule_False(t *testing.T) {
+func TestLoadParams_SubmodulesDisabled_False(t *testing.T) {
 	tests := map[string]string{
 		"lowercase":       "false",
 		"uppercase":       "FALSE",
@@ -1464,12 +1464,12 @@ func TestLoadParams_DisableSubmodule_False(t *testing.T) {
 			params, err := paramscmd.LoadHeartbeatParams(v)
 			require.NoError(t, err)
 
-			assert.Empty(t, params.Project.DisableSubmodule)
+			assert.Empty(t, params.Project.SubmodulesDisabled)
 		})
 	}
 }
 
-func TestLoadParams_DisableSubmodule_List(t *testing.T) {
+func TestLoadParams_SubmodulesDisabled_List(t *testing.T) {
 	tests := map[string]struct {
 		ViperValue string
 		Expected   []regex.Regex
@@ -1499,7 +1499,52 @@ func TestLoadParams_DisableSubmodule_List(t *testing.T) {
 			params, err := paramscmd.LoadHeartbeatParams(v)
 			require.NoError(t, err)
 
-			assert.Equal(t, test.Expected, params.Project.DisableSubmodule)
+			assert.Equal(t, test.Expected, params.Project.SubmodulesDisabled)
+		})
+	}
+}
+
+func TestLoadParams_SubmoduleProjectMap(t *testing.T) {
+	tests := map[string]struct {
+		Entity   string
+		Regex    regex.Regex
+		Project  string
+		Expected []project.MapPattern
+	}{
+		"simple regex": {
+			Entity:  "/home/user/projects/foo/file",
+			Regex:   regexp.MustCompile("projects/foo"),
+			Project: "My Awesome Project",
+			Expected: []project.MapPattern{
+				{
+					Name:  "My Awesome Project",
+					Regex: regexp.MustCompile("(?i)projects/foo"),
+				},
+			},
+		},
+		"regex with group replacement": {
+			Entity:  "/home/user/projects/bar123/file",
+			Regex:   regexp.MustCompile(`^/home/user/projects/bar(\\d+)/`),
+			Project: "project{0}",
+			Expected: []project.MapPattern{
+				{
+					Name:  "project{0}",
+					Regex: regexp.MustCompile(`(?i)^/home/user/projects/bar(\\d+)/`),
+				},
+			},
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			v := viper.New()
+			v.Set("entity", test.Entity)
+			v.Set(fmt.Sprintf("git_submodule_projectmap.%s", test.Regex.String()), test.Project)
+
+			params, err := paramscmd.LoadHeartbeatParams(v)
+			require.NoError(t, err)
+
+			assert.Equal(t, test.Expected, params.Project.SubmoduleMapPatterns)
 		})
 	}
 }
@@ -2157,8 +2202,9 @@ func TestHeartbeat_String(t *testing.T) {
 			" num extra heartbeats: 3, is unsaved entity: true, is write: true, language: 'Golang', line number: '4',"+
 			" lines in file: '56', time: 1585598059.00000, filter params: (exclude: '[]', exclude unknown project: false,"+
 			" include: '[]', include only with project file: false), project params: (alternate: '', branch alternate: '',"+
-			" disable submodule: '[]', map patterns: '[]', override: ''), sanitize params: (hide branch names: '[]',"+
-			" hide project folder: false, hide file names: '[]', hide project names: '[]', project path override: '')",
+			" map patterns: '[]', override: '', git submodules disabled: '[]', git submodule project map: '[]'),"+
+			" sanitize params: (hide branch names: '[]', hide project folder: false, hide file names: '[]',"+
+			" hide project names: '[]', project path override: '')",
 		heartbeat.String(),
 	)
 }
@@ -2180,17 +2226,19 @@ func TestOffline_String(t *testing.T) {
 
 func TestProjectParams_String(t *testing.T) {
 	projectparams := paramscmd.ProjectParams{
-		Alternate:        "alternate",
-		BranchAlternate:  "branch-alternate",
-		DisableSubmodule: []regex.Regex{regexp.MustCompile(".*")},
-		MapPatterns:      []project.MapPattern{{Name: "project-1", Regex: regex.MustCompile("^/regex")}},
-		Override:         "override",
+		Alternate:            "alternate",
+		BranchAlternate:      "branch-alternate",
+		MapPatterns:          []project.MapPattern{{Name: "project-1", Regex: regex.MustCompile("^/regex")}},
+		Override:             "override",
+		SubmodulesDisabled:   []regex.Regex{regexp.MustCompile(".*")},
+		SubmoduleMapPatterns: []project.MapPattern{{Name: "awesome-project", Regex: regex.MustCompile("^/regex")}},
 	}
 
 	assert.Equal(
 		t,
-		"alternate: 'alternate', branch alternate: 'branch-alternate', disable submodule: '[.*]',"+
-			" map patterns: '[{project-1 ^/regex}]', override: 'override'",
+		"alternate: 'alternate', branch alternate: 'branch-alternate',"+
+			" map patterns: '[{project-1 ^/regex}]', override: 'override',"+
+			" git submodules disabled: '[.*]', git submodule project map: '[{awesome-project ^/regex}]'",
 		projectparams.String(),
 	)
 }

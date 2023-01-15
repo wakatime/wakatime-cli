@@ -214,9 +214,12 @@ func initHandleOptions(params paramscmd.Params) []heartbeat.HandleOption {
 			FilePatterns: params.Heartbeat.Sanitize.HideFileNames,
 		}),
 		project.WithDetection(project.Config{
-			HideProjectNames:  params.Heartbeat.Sanitize.HideProjectNames,
-			MapPatterns:       params.Heartbeat.Project.MapPatterns,
-			SubmodulePatterns: params.Heartbeat.Project.DisableSubmodule,
+			HideProjectNames: params.Heartbeat.Sanitize.HideProjectNames,
+			MapPatterns:      params.Heartbeat.Project.MapPatterns,
+			Submodule: project.Submodule{
+				DisabledPatterns: params.Heartbeat.Project.SubmodulesDisabled,
+				MapPatterns:      params.Heartbeat.Project.SubmoduleMapPatterns,
+			},
 		}),
 		project.WithFiltering(project.FilterConfig{
 			ExcludeUnknownProject: params.Heartbeat.Filter.ExcludeUnknownProject,
