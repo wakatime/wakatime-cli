@@ -38,14 +38,21 @@ ssl_certs_file =
 timeout = 30
 hostname = machinename
 log_file =
+
 [projectmap]
 projects/foo = new project name
 ^/home/user/projects/bar(\d+)/ = project{0}
+
 [project_api_key]
 projects/foo = your-api-key
 ^/home/user/projects/bar(\d+)/ = your-api-key
+
 [git]
 submodules_disabled = false
+
+[git_submodule_projectmap]
+some/submodule/name = new project name
+^/home/user/projects/bar(\d+)/ = project{0}
 ```
 
 ### Settings Section
@@ -100,6 +107,16 @@ projects/foo = your-api-key
 | option                         | description | type | default value |
 | ---                            | ---         | ---  | ---           |
 | submodules_disabled            | It will be matched against the submodule path and if matching, will skip it. | _bool_;_list_ | false |
+
+### Git Submodule Project Map Section
+
+A key value pair list separated by new line. Use when a submodule project should be renamed to another when sent to the API.
+
+```ini
+[git_submodule_projectmap]
+some/submodule/name = new project name
+^/home/user/projects/bar(\d+)/ = project{0}
+```
 
 For commonly used configuration options, see examples in the [FAQ](https://wakatime.com/faq).
 

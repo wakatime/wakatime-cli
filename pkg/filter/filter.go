@@ -30,7 +30,7 @@ func WithFiltering(config Config) heartbeat.HandleOption {
 			for _, h := range hh {
 				err := Filter(h, config)
 				if err != nil {
-					log.Errorf(err.Error())
+					log.Debugf(err.Error())
 
 					continue
 				}

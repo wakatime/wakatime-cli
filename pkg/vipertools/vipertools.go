@@ -70,7 +70,7 @@ func GetStringMapString(v *viper.Viper, prefix string) map[string]string {
 			continue
 		}
 
-		m[strings.SplitN(k, ".", 2)[1]] = GetString(v, k)
+		m[strings.TrimPrefix(k, prefix+".")] = GetString(v, k)
 	}
 
 	return m

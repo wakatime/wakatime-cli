@@ -15,6 +15,9 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/regex"
 	"github.com/wakatime/wakatime-cli/pkg/windows"
+
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 var driveLetterRegex = regexp.MustCompile(`^[a-zA-Z]:\\$`)
@@ -102,16 +105,25 @@ type (
 		HideProjectNames []regex.Regex
 		// Patterns contains the overridden project name per path.
 		MapPatterns []MapPattern
-		// SubmodulePatterns contains the paths to validate for submodules.
-		SubmodulePatterns []regex.Regex
+		// Submodule contains the submodule configurations.
+		Submodule Submodule
 	}
 
-	// MapPattern contains [projectmap] data.
+	// MapPattern contains the project name and regular expression for a specific path.
 	MapPattern struct {
 		// Name is the project name.
 		Name string
 		// Regex is the regular expression for a specific path.
 		Regex regex.Regex
+	}
+
+	// Submodule contains the submodule configurations.
+	Submodule struct {
+		// DisabledPatterns contains the paths to match against submodules
+		// and if matched it will skip the project detection.
+		DisabledPatterns []regex.Regex
+		// MapPatterns contains the overridden project name per path for submodule.
+		MapPatterns []MapPattern
 	}
 )
 
@@ -143,7 +155,7 @@ func WithDetection(config Config) heartbeat.HandleOption {
 				// Then, autodetect with project folder. This tries to use the same project name
 				// across all IDEs instead of sometimes using alternate project when file is unsaved
 				if result.Project == "" || result.Branch == "" || result.Folder == "" {
-					revControlResult := DetectWithRevControl(config.SubmodulePatterns,
+					revControlResult := DetectWithRevControl(config.Submodule.DisabledPatterns, config.Submodule.MapPatterns,
 						DetecterArg{Filepath: h.Entity, ShouldRun: h.EntityType == heartbeat.FileType},
 						DetecterArg{Filepath: h.ProjectPathOverride, ShouldRun: true},
 					)
@@ -228,7 +240,10 @@ func Detect(patterns []MapPattern, args ...DetecterArg) (Result, DetectorID) {
 }
 
 // DetectWithRevControl finds the current project and branch from rev control.
-func DetectWithRevControl(submodulePatterns []regex.Regex, args ...DetecterArg) Result {
+func DetectWithRevControl(
+	submoduleDisabledPatterns []regex.Regex,
+	submoduleProjectMapPatterns []MapPattern,
+	args ...DetecterArg) Result {
 	for _, arg := range args {
 		if !arg.ShouldRun || arg.Filepath == "" {
 			continue
@@ -236,8 +251,9 @@ func DetectWithRevControl(submodulePatterns []regex.Regex, args ...DetecterArg) 
 
 		var revControlPlugins = []Detecter{
 			Git{
-				Filepath:          arg.Filepath,
-				SubmodulePatterns: submodulePatterns,
+				Filepath:                    arg.Filepath,
+				SubmoduleDisabledPatterns:   submoduleDisabledPatterns,
+				SubmoduleProjectMapPatterns: submoduleProjectMapPatterns,
 			},
 			Mercurial{
 				Filepath: arg.Filepath,
@@ -324,10 +340,12 @@ func generateProjectName() string {
 
 	str := []string{}
 
+	c := cases.Title(language.AmericanEnglish)
+
 	rand.Seed(time.Now().UnixNano())
-	str = append(str, strings.Title(adjectives[rand.Intn(len(adjectives))])) // nolint:gosec,staticcheck
+	str = append(str, c.String(adjectives[rand.Intn(len(adjectives))])) // nolint:gosec
 	rand.Seed(time.Now().UnixNano())
-	str = append(str, strings.Title(nouns[rand.Intn(len(nouns))])) // nolint:gosec,staticcheck
+	str = append(str, c.String(nouns[rand.Intn(len(nouns))])) // nolint:gosec
 	rand.Seed(time.Now().UnixNano())
 	str = append(str, strconv.Itoa(rand.Intn(100))) // nolint:gosec
 

@@ -13,8 +13,10 @@ import (
 type Git struct {
 	// Filepath contains the entity path.
 	Filepath string
-	// SubmodulePatterns will be matched against the submodule path and if matching, will skip it.
-	SubmodulePatterns []regex.Regex
+	// SubmoduleDisabledPatterns will be matched against the submodule path and if matching, will skip it.
+	SubmoduleDisabledPatterns []regex.Regex
+	// SubmoduleProjectMapPatterns will be matched against the submodule path and if matching, will use the project map.
+	SubmoduleProjectMapPatterns []MapPattern
 }
 
 // Detect gets information about the git project for a given file.
@@ -28,13 +30,18 @@ func (g Git) Detect() (Result, bool, error) {
 	}
 
 	// Find for submodule takes priority if enabled
-	gitdirSubmodule, ok, err := findSubmodule(fp, g.SubmodulePatterns)
+	gitdirSubmodule, ok, err := findSubmodule(fp, g.SubmoduleDisabledPatterns)
 	if err != nil {
-		return Result{}, false, fmt.Errorf("failed to validate submodule: %s", err)
+		return Result{}, false, fmt.Errorf("failed to find submodule: %s", err)
 	}
 
 	if ok {
 		project := filepath.Base(gitdirSubmodule)
+
+		// If submodule has a project map, then use it.
+		if result, ok := matchPattern(gitdirSubmodule, g.SubmoduleProjectMapPatterns); ok {
+			project = result
+		}
 
 		branch, err := findGitBranch(filepath.Join(gitdirSubmodule, "HEAD"))
 		if err != nil {
