@@ -123,6 +123,10 @@ func Sync(filepath string, syncLimit int) func(next heartbeat.Handle) error {
 			run         int
 		)
 
+		if syncLimit == 0 {
+			syncLimit = math.MaxInt32
+		}
+
 		for {
 			run++
 

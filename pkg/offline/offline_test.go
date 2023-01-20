@@ -818,6 +818,85 @@ func TestSync_SyncLimit(t *testing.T) {
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
 
+func TestSync_SyncUnlimited(t *testing.T) {
+	// setup
+	f, err := os.CreateTemp(t.TempDir(), "")
+	require.NoError(t, err)
+
+	defer f.Close()
+
+	db, err := bolt.Open(f.Name(), 0600, nil)
+	require.NoError(t, err)
+
+	dataGo, err := os.ReadFile("testdata/heartbeat_go.json")
+	require.NoError(t, err)
+
+	dataPy, err := os.ReadFile("testdata/heartbeat_py.json")
+	require.NoError(t, err)
+
+	insertHeartbeatRecords(t, db, "heartbeats", []heartbeatRecord{
+		{
+			ID:        "1592868367.219124-file-coding-wakatime-cli-heartbeat-/tmp/main.go-true",
+			Heartbeat: string(dataGo),
+		},
+		{
+			ID:        "1592868386.079084-file-debugging-wakatime-summary-/tmp/main.py-false",
+			Heartbeat: string(dataPy),
+		},
+	})
+
+	db.Close()
+
+	syncFn := offline.Sync(f.Name(), 0)
+
+	var numCalls int
+
+	// run
+	err = syncFn(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		numCalls++
+
+		assert.Len(t, hh, 2)
+
+		return []heartbeat.Result{
+			{
+				Status:    201,
+				Heartbeat: testHeartbeats()[0],
+			},
+			{
+				Status:    201,
+				Heartbeat: testHeartbeats()[1],
+			},
+		}, nil
+	})
+	require.NoError(t, err)
+
+	// check db
+	db, err = bolt.Open(f.Name(), 0600, nil)
+	require.NoError(t, err)
+
+	var stored []heartbeatRecord
+
+	err = db.View(func(tx *bolt.Tx) error {
+		c := tx.Bucket([]byte("heartbeats")).Cursor()
+
+		for key, value := c.First(); key != nil; key, value = c.Next() {
+			stored = append(stored, heartbeatRecord{
+				ID:        string(key),
+				Heartbeat: string(value),
+			})
+		}
+
+		return nil
+	})
+	require.NoError(t, err)
+
+	db.Close()
+
+	require.Len(t, stored, 0)
+
+	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+}
+
 func TestCountHeartbeats(t *testing.T) {
 	// setup
 	f, err := os.CreateTemp(t.TempDir(), "")

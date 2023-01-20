@@ -265,8 +265,8 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 		"--internal-config", tmpInternalConfigFile.Name(),
 		"--entity", "testdata/main.go",
 		"--extra-heartbeats", "true",
-		"--sync-offline-activity", "none",
 		"--cursorpos", "12",
+		"--sync-offline-activity", "1",
 		"--offline-queue-file", offlineQueueFile.Name(),
 		"--lineno", "42",
 		"--lines-in-file", "100",
@@ -279,9 +279,9 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 	offlineCount, err := offline.CountHeartbeats(offlineQueueFile.Name())
 	require.NoError(t, err)
 
-	assert.Equal(t, 2, offlineCount)
+	assert.Equal(t, 1, offlineCount)
 
-	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+	assert.Eventually(t, func() bool { return numCalls == 2 }, time.Second, 50*time.Millisecond)
 }
 
 func TestSendHeartbeats_Err(t *testing.T) {

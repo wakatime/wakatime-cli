@@ -1,7 +1,6 @@
 package offlinesync
 
 import (
-	"errors"
 	"fmt"
 
 	cmdapi "github.com/wakatime/wakatime-cli/cmd/api"
@@ -28,13 +27,6 @@ func Run(v *viper.Viper) (int, error) {
 
 	err = SyncOfflineActivity(v, queueFilepath)
 	if err != nil {
-		var errSyncDisabled ErrSyncDisabled
-		if errors.As(err, &errSyncDisabled) {
-			log.Debugln(err.Error())
-
-			return exitcode.Success, nil
-		}
-
 		if errwaka, ok := err.(wakaerror.Error); ok {
 			return errwaka.ExitCode(), fmt.Errorf("offline sync failed: %s", errwaka.Message())
 		}
@@ -61,10 +53,6 @@ func SyncOfflineActivity(v *viper.Viper, queueFilepath string) error {
 	paramAPI, err := params.LoadAPIParams(v)
 	if err != nil {
 		return fmt.Errorf("failed to load API parameters: %w", err)
-	}
-
-	if paramOffline.SyncMax == 0 {
-		return ErrSyncDisabled{}
 	}
 
 	apiClient, err := cmdapi.NewClientWithoutAuth(paramAPI)
