@@ -628,26 +628,9 @@ func LoadOfflineParams(v *viper.Viper) (Offline, error) {
 		disabled = !b
 	}
 
-	var (
-		syncMax int
-		err     error
-	)
-
-	switch {
-	case !v.IsSet("sync-offline-activity"):
-		// use default
-		syncMax = v.GetInt("sync-offline-activity")
-	case vipertools.GetString(v, "sync-offline-activity") == "none":
-	default:
-		syncMax, err = strconv.Atoi(vipertools.GetString(v, "sync-offline-activity"))
-		if err != nil {
-			return Offline{},
-				fmt.Errorf("argument --sync-offline-activity must be \"none\" or a positive integer number: %s", err)
-		}
-	}
-
+	syncMax := v.GetInt("sync-offline-activity")
 	if syncMax < 0 {
-		return Offline{}, errors.New("argument --sync-offline-activity must be \"none\" or a positive integer number")
+		return Offline{}, errors.New("argument --sync-offline-activity must be zero or a positive integer number")
 	}
 
 	return Offline{

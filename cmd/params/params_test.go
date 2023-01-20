@@ -1646,9 +1646,9 @@ func TestLoad_OfflineSyncMax(t *testing.T) {
 	assert.Equal(t, 42, params.SyncMax)
 }
 
-func TestLoad_OfflineSyncMax_None(t *testing.T) {
+func TestLoad_OfflineSyncMax_Zero(t *testing.T) {
 	v := viper.New()
-	v.Set("sync-offline-activity", "none")
+	v.Set("sync-offline-activity", "0")
 
 	params, err := paramscmd.LoadOfflineParams(v)
 	require.NoError(t, err)
@@ -1673,21 +1673,17 @@ func TestLoad_OfflineSyncMax_NegativeNumber(t *testing.T) {
 	_, err := paramscmd.LoadOfflineParams(v)
 	require.Error(t, err)
 
-	assert.EqualError(t, err, "argument --sync-offline-activity must be \"none\" or a positive integer number")
+	assert.EqualError(t, err, "argument --sync-offline-activity must be zero or a positive integer number")
 }
 
 func TestLoad_OfflineSyncMax_NonIntegerValue(t *testing.T) {
 	v := viper.New()
 	v.Set("sync-offline-activity", "invalid")
 
-	_, err := paramscmd.LoadOfflineParams(v)
-	require.Error(t, err)
+	params, err := paramscmd.LoadOfflineParams(v)
+	require.NoError(t, err)
 
-	assert.Equal(
-		t,
-		err.Error(),
-		"argument --sync-offline-activity must be \"none\" or a positive integer number:"+
-			" strconv.Atoi: parsing \"invalid\": invalid syntax")
+	assert.Equal(t, 0, params.SyncMax)
 }
 
 func TestLoad_API_APIKey(t *testing.T) {
