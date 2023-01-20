@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"strconv"
-
 	"github.com/wakatime/wakatime-cli/pkg/api"
 	"github.com/wakatime/wakatime-cli/pkg/offline"
 
@@ -189,15 +187,16 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 		"Override the bundled CA certs file. By default, uses"+
 			" system ca certs.",
 	)
-	flags.String(
+	flags.Int(
 		"sync-offline-activity",
-		strconv.Itoa(offline.SyncMaxDefault),
+		offline.SyncMaxDefault,
 		"Amount of offline activity to sync from your local ~/.wakatime.bdb bolt"+
-			" file to your WakaTime Dashboard before exiting. Can be \"none\" or"+
+			" file to your WakaTime Dashboard before exiting. Can be zero or"+
 			" a positive integer. Defaults to 1000, meaning after sending a heartbeat"+
 			" while online, all queued offline heartbeats are sent to WakaTime API, up"+
-			" to a limit of 1000. Can be used without --entity to only sync offline"+
-			" activity without generating new heartbeats.",
+			" to a limit of 1000. Zero syncs all offline heartbeats. Can be used"+
+			" without --entity to only sync offline activity without generating"+
+			" new heartbeats.",
 	)
 	flags.Bool("offline-count", false, "Prints the number of heartbeats in the offline db, then exits.")
 	flags.Int(
