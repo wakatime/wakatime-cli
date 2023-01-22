@@ -20,7 +20,10 @@ import (
 	"golang.org/x/text/language"
 )
 
-var driveLetterRegex = regexp.MustCompile(`^[a-zA-Z]:\\$`)
+var (
+	backslashReplaceRegex = regexp.MustCompile(`[\\/]+`)
+	driveLetterRegex      = regexp.MustCompile(`^[a-zA-Z]:\\$`)
+)
 
 const (
 	// WakaTimeProjectFile is the special file which if present should contain the project name and optional branch name
@@ -194,6 +197,12 @@ func WithDetection(config Config) heartbeat.HandleOption {
 					result.Project = obfuscateProjectName(result.Folder)
 				}
 
+				// count total subfolders in project's path
+				subfolders := CountSlashesInProjectFolder(result.Folder)
+				if subfolders > 0 {
+					hh[n].ProjectRootCount = &subfolders
+				}
+
 				hh[n].Project = &result.Project
 				hh[n].Branch = &result.Branch
 				hh[n].ProjectPath = result.Folder
@@ -350,6 +359,22 @@ func generateProjectName() string {
 	str = append(str, strconv.Itoa(rand.Intn(100))) // nolint:gosec
 
 	return strings.Join(str, " ")
+}
+
+// CountSlashesInProjectFolder counts the number of slashes in a folder path.
+func CountSlashesInProjectFolder(directory string) int {
+	if directory == "" {
+		return 0
+	}
+
+	directory = backslashReplaceRegex.ReplaceAllString(directory, `/`)
+
+	// Add trailing slash if not present.
+	if !strings.HasSuffix(directory, `/`) {
+		directory += `/`
+	}
+
+	return strings.Count(directory, `/`)
 }
 
 // FindFileOrDirectory searches for a file or directory named `filename`.
