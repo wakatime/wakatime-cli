@@ -43,14 +43,15 @@ func TestSendHeartbeats(t *testing.T) {
 }
 
 func TestSendHeartbeats_EntityFileInTempDir(t *testing.T) {
-	tmpDir := t.TempDir()
+	tmpDir, err := filepath.Abs(t.TempDir())
+	require.NoError(t, err)
+
+	tmpDir, err = realpath.Realpath(tmpDir)
+	require.NoError(t, err)
 
 	runCmd(exec.Command("cp", "./testdata/main.go", tmpDir), &bytes.Buffer{})
 
-	projectFolder, err := filepath.Abs(tmpDir)
-	require.NoError(t, err)
-
-	testSendHeartbeats(t, projectFolder, filepath.Join(tmpDir, "main.go"), "")
+	testSendHeartbeats(t, tmpDir, filepath.Join(tmpDir, "main.go"), "")
 }
 
 func testSendHeartbeats(t *testing.T, projectFolder, entity, p string) {
