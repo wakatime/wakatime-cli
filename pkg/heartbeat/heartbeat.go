@@ -40,6 +40,7 @@ type Heartbeat struct {
 	ProjectOverride       string     `json:"-"`
 	ProjectPath           string     `json:"-"`
 	ProjectPathOverride   string     `json:"-"`
+	ProjectRootCount      *int       `json:"project_root_count,omitempty"`
 	Time                  float64    `json:"time"`
 	UserAgent             string     `json:"user_agent"`
 }

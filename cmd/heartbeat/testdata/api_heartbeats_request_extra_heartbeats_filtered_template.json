@@ -10,6 +10,7 @@
         "lineno": null,
         "lines": 11,
         "project": "wakatime-cli",
+        "project_root_count": %d,
         "type": "file",
         "time": 1585598059.1,
         "user_agent": "%s"
@@ -25,6 +26,7 @@
         "lineno": null,
         "lines": 20,
         "project": "wakatime-cli",
+        "project_root_count": %d,
         "type": "file",
         "time": 1585598060,
         "user_agent": "%s"

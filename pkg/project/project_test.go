@@ -110,12 +110,13 @@ func TestWithDetection_WakatimeProjectTakesPrecedence(t *testing.T) {
 		assert.NotEmpty(t, hh[0].Project)
 		assert.Equal(t, []heartbeat.Heartbeat{
 			{
+				Branch:           heartbeat.PointerTo("master"),
 				Entity:           entity,
 				EntityType:       heartbeat.FileType,
 				Project:          heartbeat.PointerTo("Rough Surf 20"),
-				ProjectPath:      projectPath,
-				Branch:           heartbeat.PointerTo("master"),
 				ProjectAlternate: "alternate",
+				ProjectPath:      projectPath,
+				ProjectRootCount: heartbeat.PointerTo(project.CountSlashesInProjectFolder(projectPath)),
 			},
 		}, hh)
 
@@ -148,12 +149,13 @@ func TestWithDetection_OverrideTakesPrecedence(t *testing.T) {
 	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		assert.Equal(t, []heartbeat.Heartbeat{
 			{
-				Entity:          entity,
-				EntityType:      heartbeat.FileType,
-				Project:         heartbeat.PointerTo("override"),
-				ProjectOverride: "override",
-				ProjectPath:     projectPath,
-				Branch:          heartbeat.PointerTo("master"),
+				Branch:           heartbeat.PointerTo("master"),
+				Entity:           entity,
+				EntityType:       heartbeat.FileType,
+				Project:          heartbeat.PointerTo("override"),
+				ProjectOverride:  "override",
+				ProjectPath:      projectPath,
+				ProjectRootCount: heartbeat.PointerTo(project.CountSlashesInProjectFolder(projectPath)),
 			},
 		}, hh)
 
@@ -184,13 +186,14 @@ func TestWithDetection_OverrideTakesPrecedence_WithProjectPathOverride(t *testin
 	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		assert.Equal(t, []heartbeat.Heartbeat{
 			{
+				Branch:              heartbeat.PointerTo("master"),
 				Entity:              entity,
 				EntityType:          heartbeat.FileType,
 				Project:             heartbeat.PointerTo("override"),
+				ProjectPath:         "/path/to/folder",
 				ProjectOverride:     "override",
 				ProjectPathOverride: "/path/to/folder",
-				ProjectPath:         "/path/to/folder",
-				Branch:              heartbeat.PointerTo("master"),
+				ProjectRootCount:    heartbeat.PointerTo(4),
 			},
 		}, hh)
 
@@ -225,11 +228,12 @@ func TestWithDetection_NoneDetected(t *testing.T) {
 	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		assert.Equal(t, []heartbeat.Heartbeat{
 			{
-				Branch:      heartbeat.PointerTo(""),
-				Entity:      tmpFile.Name(),
-				EntityType:  heartbeat.FileType,
-				Project:     heartbeat.PointerTo(""),
-				ProjectPath: projectPath,
+				Branch:           heartbeat.PointerTo(""),
+				Entity:           tmpFile.Name(),
+				EntityType:       heartbeat.FileType,
+				Project:          heartbeat.PointerTo(""),
+				ProjectPath:      projectPath,
+				ProjectRootCount: heartbeat.PointerTo(project.CountSlashesInProjectFolder(projectPath)),
 			},
 		}, hh)
 
@@ -267,8 +271,9 @@ func TestWithDetection_NoneDetected_AlternateTakesPrecedence(t *testing.T) {
 				Entity:           tmpFile.Name(),
 				EntityType:       heartbeat.FileType,
 				Project:          heartbeat.PointerTo("alternate-project"),
-				ProjectPath:      projectPath,
 				ProjectAlternate: "alternate-project",
+				ProjectPath:      projectPath,
+				ProjectRootCount: heartbeat.PointerTo(project.CountSlashesInProjectFolder(projectPath)),
 			},
 		}, hh)
 
@@ -303,12 +308,13 @@ func TestWithDetection_NoneDetected_OverrideTakesPrecedence(t *testing.T) {
 	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		assert.Equal(t, []heartbeat.Heartbeat{
 			{
-				Entity:          tmpFile.Name(),
-				EntityType:      heartbeat.FileType,
-				Project:         heartbeat.PointerTo("override"),
-				ProjectPath:     projectPath,
-				Branch:          heartbeat.PointerTo(""),
-				ProjectOverride: "override",
+				Branch:           heartbeat.PointerTo(""),
+				Entity:           tmpFile.Name(),
+				EntityType:       heartbeat.FileType,
+				Project:          heartbeat.PointerTo("override"),
+				ProjectOverride:  "override",
+				ProjectPath:      projectPath,
+				ProjectRootCount: heartbeat.PointerTo(project.CountSlashesInProjectFolder(projectPath)),
 			},
 		}, hh)
 
@@ -343,6 +349,7 @@ func TestWithDetection_NoneDetected_WithProjectPathOverride(t *testing.T) {
 				ProjectOverride:     "overridden-project",
 				ProjectPath:         "/path/to/folder",
 				ProjectPathOverride: "/path/to/folder",
+				ProjectRootCount:    heartbeat.PointerTo(4),
 			},
 		}, hh)
 
@@ -379,11 +386,12 @@ func TestWithDetection_ObfuscateProject(t *testing.T) {
 		assert.NotEmpty(t, hh[0].Project)
 		assert.Equal(t, []heartbeat.Heartbeat{
 			{
-				Entity:      entity,
-				EntityType:  heartbeat.FileType,
-				Project:     hh[0].Project,
-				ProjectPath: projectPath,
-				Branch:      heartbeat.PointerTo("master"),
+				Branch:           heartbeat.PointerTo("master"),
+				Entity:           entity,
+				EntityType:       heartbeat.FileType,
+				Project:          hh[0].Project,
+				ProjectPath:      projectPath,
+				ProjectRootCount: heartbeat.PointerTo(project.CountSlashesInProjectFolder(projectPath)),
 			},
 		}, hh)
 
@@ -490,6 +498,46 @@ func TestWrite(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, string([]byte("billing\n")), string(actual))
+}
+
+func TestCountSlashesInProjectFolder(t *testing.T) {
+	tests := map[string]struct {
+		path     string
+		expected int
+	}{
+		"empty path": {
+			path:     "",
+			expected: 0,
+		},
+		"root path": {
+			path:     "/",
+			expected: 1,
+		},
+		"home path": {
+			path:     "/home",
+			expected: 2,
+		},
+		"home user path": {
+			path:     "/home/user",
+			expected: 3,
+		},
+		"home user project path": {
+			path:     "/home/user/project",
+			expected: 4,
+		},
+		"windows path": {
+			path:     `C:\folder\project`,
+			expected: 3,
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			count := project.CountSlashesInProjectFolder(test.path)
+
+			assert.Equal(t, test.expected, count)
+		})
+	}
 }
 
 func detectorIDTests() map[string]project.DetectorID {
