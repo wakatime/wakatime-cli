@@ -172,8 +172,8 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 	flags.String(
 		"project-folder",
 		"",
-		"Optional workspace path. Only used when hide_project_folder = true in the config file,"+
-			" or --hide-project-folder flag is present.")
+		"Optional workspace path. Usually used when hiding the project folder, or when a project"+
+			" root folder can't be auto detected.")
 	flags.String(
 		"proxy",
 		"",
