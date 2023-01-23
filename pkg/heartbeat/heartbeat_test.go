@@ -80,7 +80,7 @@ func TestHeartbeat_ID_NilFields(t *testing.T) {
 		EntityType: heartbeat.FileType,
 		Time:       1592868313.541149,
 	}
-	assert.Equal(t, "1592868313.541149-file-coding---/tmp/main.go-false", h.ID())
+	assert.Equal(t, "1592868313.541149-file-coding-unset-unset-/tmp/main.go-false", h.ID())
 }
 
 func TestHeartbeat_JSON(t *testing.T) {

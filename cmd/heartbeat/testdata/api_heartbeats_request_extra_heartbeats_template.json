@@ -1,6 +1,5 @@
 [
     {
-        "branch": null,
         "category": "debugging",
         "cursorpos": 1,
         "dependencies": ["os"],
@@ -16,7 +15,6 @@
         "user_agent": "%s"
     },
     {
-        "branch": null,
         "cursorpos": 12,
         "category": "coding",
         "dependencies": ["os"],
@@ -32,14 +30,10 @@
         "user_agent": "%s"
     },
     {
-        "branch": null,
         "category": "debugging",
-        "cursorpos": null,
         "dependencies": ["flask","simplejson"],
         "entity": "%s",
-        "is_write": null,
         "language": "Python",
-        "lineno": null,
         "lines": 20,
         "project": "wakatime-cli",
         "project_root_count": %d,
@@ -48,7 +42,6 @@
         "user_agent": "%s"
     },
     {
-        "branch": null,
         "category": "coding",
         "cursorpos": 12,
         "dependencies": ["os"],
@@ -64,7 +57,6 @@
         "user_agent": "%s"
     },
     {
-        "branch": null,
         "category": "coding",
         "cursorpos": 12,
         "dependencies": ["os"],
@@ -80,7 +72,6 @@
         "user_agent": "%s"
     },
     {
-        "branch": null,
         "category": "coding",
         "cursorpos": 12,
         "dependencies": ["os"],
@@ -96,7 +87,6 @@
         "user_agent": "%s"
     },
     {
-        "branch": null,
         "category": "coding",
         "cursorpos": 12,
         "dependencies": ["os"],
@@ -112,7 +102,6 @@
         "user_agent": "%s"
     },
     {
-        "branch": null,
         "category": "coding",
         "cursorpos": 12,
         "dependencies": ["os"],
@@ -128,7 +117,6 @@
         "user_agent": "%s"
     },
     {
-        "branch": null,
         "category": "coding",
         "cursorpos": 12,
         "dependencies": ["os"],
@@ -144,7 +132,6 @@
         "user_agent": "%s"
     },
     {
-        "branch": null,
         "category": "coding",
         "cursorpos": 12,
         "dependencies": ["os"],
@@ -160,7 +147,6 @@
         "user_agent": "%s"
     },
     {
-        "branch": null,
         "category": "coding",
         "cursorpos": 12,
         "dependencies": ["os"],
@@ -176,7 +162,6 @@
         "user_agent": "%s"
     },
     {
-        "branch": null,
         "category": "coding",
         "cursorpos": 12,
         "dependencies": ["os"],
@@ -192,7 +177,6 @@
         "user_agent": "%s"
     },
     {
-        "branch": null,
         "category": "coding",
         "cursorpos": 12,
         "dependencies": ["os"],
@@ -208,7 +192,6 @@
         "user_agent": "%s"
     },
     {
-        "branch": null,
         "category": "coding",
         "cursorpos": 12,
         "dependencies": ["os"],
@@ -224,7 +207,6 @@
         "user_agent": "%s"
     },
     {
-        "branch": null,
         "category": "coding",
         "cursorpos": 12,
         "dependencies": ["os"],
@@ -240,7 +222,6 @@
         "user_agent": "%s"
     },
     {
-        "branch": null,
         "category": "coding",
         "cursorpos": 12,
         "dependencies": ["os"],
@@ -256,7 +237,6 @@
         "user_agent": "%s"
     },
     {
-        "branch": null,
         "category": "coding",
         "cursorpos": 12,
         "dependencies": ["os"],
@@ -272,7 +252,6 @@
         "user_agent": "%s"
     },
     {
-        "branch": null,
         "category": "coding",
         "cursorpos": 12,
         "dependencies": ["os"],
@@ -288,7 +267,6 @@
         "user_agent": "%s"
     },
     {
-        "branch": null,
         "category": "coding",
         "cursorpos": 12,
         "dependencies": ["os"],
@@ -304,7 +282,6 @@
         "user_agent": "%s"
     },
     {
-        "branch": null,
         "category": "coding",
         "cursorpos": 12,
         "dependencies": ["os"],
@@ -320,7 +297,6 @@
         "user_agent": "%s"
     },
     {
-        "branch": null,
         "category": "coding",
         "cursorpos": 12,
         "dependencies": ["os"],
@@ -336,7 +312,6 @@
         "user_agent": "%s"
     },
     {
-        "branch": null,
         "category": "coding",
         "cursorpos": 12,
         "dependencies": ["os"],
@@ -352,7 +327,6 @@
         "user_agent": "%s"
     },
     {
-        "branch": null,
         "category": "coding",
         "cursorpos": 12,
         "dependencies": ["os"],
@@ -368,7 +342,6 @@
         "user_agent": "%s"
     },
     {
-        "branch": null,
         "category": "coding",
         "cursorpos": 12,
         "dependencies": ["os"],
@@ -384,7 +357,6 @@
         "user_agent": "%s"
     },
     {
-        "branch": null,
         "category": "coding",
         "cursorpos": 12,
         "dependencies": ["os"],
