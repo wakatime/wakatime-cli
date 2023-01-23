@@ -51,16 +51,37 @@ func formatLinuxFilePath(h *Heartbeat) {
 	formatted, err := filepath.Abs(h.Entity)
 	if err != nil {
 		log.Debugf("failed to resolve absolute path for %q: %s", h.Entity, err)
-	} else {
-		h.Entity = formatted
+		return
 	}
+
+	h.Entity = formatted
 
 	// evaluate any symlinks
 	formatted, err = realpath.Realpath(h.Entity)
 	if err != nil {
 		log.Debugf("failed to resolve real path for %q: %s", h.Entity, err)
-	} else {
-		h.Entity = formatted
+		return
+	}
+
+	h.Entity = formatted
+
+	if h.ProjectPathOverride != "" {
+		formatted, err = filepath.Abs(h.ProjectPathOverride)
+		if err != nil {
+			log.Debugf("failed to resolve absolute path for %q: %s", h.ProjectPathOverride, err)
+			return
+		}
+
+		h.ProjectPathOverride = formatted
+
+		// evaluate any symlinks
+		formatted, err = realpath.Realpath(h.ProjectPathOverride)
+		if err != nil {
+			log.Debugf("failed to resolve real path for %q: %s", h.ProjectPathOverride, err)
+			return
+		}
+
+		h.ProjectPathOverride = formatted
 	}
 }
 

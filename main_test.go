@@ -21,6 +21,7 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/offline"
+	"github.com/wakatime/wakatime-cli/pkg/project"
 	"github.com/wakatime/wakatime-cli/pkg/version"
 	"github.com/wakatime/wakatime-cli/pkg/windows"
 	"github.com/yookoala/realpath"
@@ -35,22 +36,31 @@ func init() {
 }
 
 func TestSendHeartbeats(t *testing.T) {
-	testSendHeartbeats(t, "testdata/main.go", "wakatime-cli")
+	projectFolder, err := filepath.Abs(".")
+	require.NoError(t, err)
+
+	testSendHeartbeats(t, projectFolder, "testdata/main.go", "wakatime-cli")
 }
 
 func TestSendHeartbeats_EntityFileInTempDir(t *testing.T) {
-	tmpDir := t.TempDir()
+	tmpDir, err := filepath.Abs(t.TempDir())
+	require.NoError(t, err)
+
+	tmpDir, err = realpath.Realpath(tmpDir)
+	require.NoError(t, err)
 
 	runCmd(exec.Command("cp", "./testdata/main.go", tmpDir), &bytes.Buffer{})
 
-	testSendHeartbeats(t, filepath.Join(tmpDir, "main.go"), "")
+	testSendHeartbeats(t, tmpDir, filepath.Join(tmpDir, "main.go"), "")
 }
 
-func testSendHeartbeats(t *testing.T, entity, project string) {
+func testSendHeartbeats(t *testing.T, projectFolder, entity, p string) {
 	apiURL, router, close := setupTestServer()
 	defer close()
 
 	var numCalls int
+
+	subfolders := project.CountSlashesInProjectFolder(projectFolder)
 
 	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
 		numCalls++
@@ -73,7 +83,8 @@ func testSendHeartbeats(t *testing.T, entity, project string) {
 		expectedBody := fmt.Sprintf(
 			string(expectedBodyTpl),
 			entityPath,
-			project,
+			p,
+			subfolders,
 			heartbeat.UserAgent(""),
 		)
 
@@ -122,7 +133,8 @@ func testSendHeartbeats(t *testing.T, entity, project string) {
 		"--lines-in-file", "100",
 		"--time", "1585598059",
 		"--hide-branch-names", ".*",
-		"--project", project,
+		"--project", p,
+		"--project-folder", projectFolder,
 		"--write",
 		"--verbose",
 	)
@@ -135,6 +147,9 @@ func TestSendHeartbeats_SecondaryApiKey(t *testing.T) {
 	defer close()
 
 	var numCalls int
+
+	rootPath, _ := filepath.Abs(".")
+	subfolders := project.CountSlashesInProjectFolder(rootPath)
 
 	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
 		numCalls++
@@ -158,6 +173,7 @@ func TestSendHeartbeats_SecondaryApiKey(t *testing.T) {
 			string(expectedBodyTpl),
 			entityPath,
 			"wakatime-cli",
+			subfolders,
 			heartbeat.UserAgent(""),
 		)
 
@@ -290,7 +306,10 @@ func TestSendHeartbeats_Err(t *testing.T) {
 
 	var numCalls int
 
-	project := "wakatime-cli"
+	projectFolder, err := filepath.Abs(".")
+	require.NoError(t, err)
+
+	subfolders := project.CountSlashesInProjectFolder(projectFolder)
 
 	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
 		numCalls++
@@ -313,7 +332,8 @@ func TestSendHeartbeats_Err(t *testing.T) {
 		expectedBody := fmt.Sprintf(
 			string(expectedBodyTpl),
 			entityPath,
-			project,
+			"wakatime-cli",
+			subfolders,
 			heartbeat.UserAgent(""),
 		)
 
@@ -357,7 +377,7 @@ func TestSendHeartbeats_Err(t *testing.T) {
 		"--lines-in-file", "100",
 		"--time", "1585598059",
 		"--hide-branch-names", ".*",
-		"--project", project,
+		"--project", "wakatime-cli",
 		"--write",
 		"--verbose",
 	)
@@ -677,12 +697,20 @@ func TestPrintOfflineHeartbeats(t *testing.T) {
 		entity = windows.FormatFilePath(entity)
 	}
 
+	t.Logf("entity: %s", entity)
+
+	projectFolder, err := filepath.Abs(".")
+	require.NoError(t, err)
+
+	subfolders := project.CountSlashesInProjectFolder(projectFolder)
+
 	offlineHeartbeat, err := os.ReadFile("testdata/offline_heartbeat_template.json")
 	require.NoError(t, err)
 
 	offlineHeartbeatStr := fmt.Sprintf(
 		string(offlineHeartbeat),
-		entity, heartbeat.UserAgent(""),
+		entity, subfolders,
+		heartbeat.UserAgent(""),
 	)
 
 	assert.Equal(t, offlineHeartbeatStr+"\n", out)

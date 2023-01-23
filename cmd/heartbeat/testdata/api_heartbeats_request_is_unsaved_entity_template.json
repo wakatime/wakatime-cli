@@ -40,6 +40,7 @@
     "lineno": 43,
     "lines": 11,
     "project": "wakatime-cli",
+    "project_root_count": %d,
     "type": "file",
     "time": 1585598053,
     "user_agent": "%s"

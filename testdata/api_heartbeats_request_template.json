@@ -10,6 +10,7 @@
 		"lineno": 42,
 		"lines": 100,
 		"project": "%s",
+		"project_root_count": %d,
 		"type": "file",
 		"time": 1585598059,
 		"user_agent": "%s"

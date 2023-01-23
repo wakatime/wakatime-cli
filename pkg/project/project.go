@@ -15,12 +15,16 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/regex"
 	"github.com/wakatime/wakatime-cli/pkg/windows"
+	"github.com/yookoala/realpath"
 
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
 
-var driveLetterRegex = regexp.MustCompile(`^[a-zA-Z]:\\$`)
+var (
+	backslashReplaceRegex = regexp.MustCompile(`[\\/]+`)
+	driveLetterRegex      = regexp.MustCompile(`^[a-zA-Z]:\\$`)
+)
 
 const (
 	// WakaTimeProjectFile is the special file which if present should contain the project name and optional branch name
@@ -194,6 +198,16 @@ func WithDetection(config Config) heartbeat.HandleOption {
 					result.Project = obfuscateProjectName(result.Folder)
 				}
 
+				result.Folder = FormatProjectFolder(result.Folder)
+
+				// count total subfolders in project's path
+				if result.Folder != "" && strings.HasPrefix(h.Entity, result.Folder) {
+					subfolders := CountSlashesInProjectFolder(result.Folder)
+					if subfolders > 0 {
+						hh[n].ProjectRootCount = &subfolders
+					}
+				}
+
 				hh[n].Project = &result.Project
 				hh[n].Branch = &result.Branch
 				hh[n].ProjectPath = result.Folder
@@ -352,6 +366,22 @@ func generateProjectName() string {
 	return strings.Join(str, " ")
 }
 
+// CountSlashesInProjectFolder counts the number of slashes in a folder path.
+func CountSlashesInProjectFolder(directory string) int {
+	if directory == "" {
+		return 0
+	}
+
+	directory = backslashReplaceRegex.ReplaceAllString(directory, `/`)
+
+	// Add trailing slash if not present.
+	if !strings.HasSuffix(directory, `/`) {
+		directory += `/`
+	}
+
+	return strings.Count(directory, `/`)
+}
+
 // FindFileOrDirectory searches for a file or directory named `filename`.
 // Search starts in `directory` and will traverse through all parent directories.
 // `directory` may also be a file, and in that case will start from the file's directory.
@@ -395,4 +425,29 @@ func firstNonEmptyString(values ...string) string {
 	}
 
 	return ""
+}
+
+// FormatProjectFolder returns the abs and real path for the given directory path.
+func FormatProjectFolder(fp string) string {
+	if fp == "" {
+		return ""
+	}
+
+	if runtime.GOOS == "windows" {
+		return windows.FormatFilePath(fp)
+	}
+
+	formatted, err := filepath.Abs(fp)
+	if err != nil {
+		log.Debugf("failed to resolve absolute path for %q: %s", fp, err)
+		return formatted
+	}
+
+	// evaluate any symlinks
+	formatted, err = realpath.Realpath(formatted)
+	if err != nil {
+		log.Debugf("failed to resolve real path for %q: %s", formatted, err)
+	}
+
+	return formatted
 }

@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
@@ -17,6 +18,7 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/offline"
+	"github.com/wakatime/wakatime-cli/pkg/project"
 	"github.com/wakatime/wakatime-cli/pkg/version"
 
 	"github.com/matishsiao/goInfo"
@@ -34,6 +36,11 @@ func TestSendHeartbeats(t *testing.T) {
 		plugin   = "plugin/0.0.1"
 		numCalls int
 	)
+
+	projectFolder, err := filepath.Abs("../..")
+	require.NoError(t, err)
+
+	subfolders := project.CountSlashesInProjectFolder(projectFolder)
 
 	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
 		// check request
@@ -60,7 +67,7 @@ func TestSendHeartbeats(t *testing.T) {
 		err = json.Unmarshal(body, &[]any{&entity})
 		require.NoError(t, err)
 
-		expectedBodyStr := fmt.Sprintf(string(expectedBody), entity.Entity, heartbeat.UserAgent(plugin))
+		expectedBodyStr := fmt.Sprintf(string(expectedBody), entity.Entity, subfolders, heartbeat.UserAgent(plugin))
 
 		assert.True(t, strings.HasSuffix(entity.Entity, "testdata/main.go"))
 		assert.JSONEq(t, expectedBodyStr, string(body))
@@ -149,6 +156,11 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 		numCalls int
 	)
 
+	projectFolder, err := filepath.Abs("../..")
+	require.NoError(t, err)
+
+	subfolders := project.CountSlashesInProjectFolder(projectFolder)
+
 	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
 		// check request
 		expectedBody, err := os.ReadFile("testdata/api_heartbeats_request_extra_heartbeats_template.json")
@@ -174,31 +186,31 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 
 		expectedBodyStr := fmt.Sprintf(
 			string(expectedBody),
-			entities[0].Entity, heartbeat.UserAgent(plugin),
-			entities[1].Entity, heartbeat.UserAgent(plugin),
-			entities[2].Entity, heartbeat.UserAgent(plugin),
-			entities[3].Entity, heartbeat.UserAgent(plugin),
-			entities[4].Entity, heartbeat.UserAgent(plugin),
-			entities[5].Entity, heartbeat.UserAgent(plugin),
-			entities[6].Entity, heartbeat.UserAgent(plugin),
-			entities[7].Entity, heartbeat.UserAgent(plugin),
-			entities[8].Entity, heartbeat.UserAgent(plugin),
-			entities[9].Entity, heartbeat.UserAgent(plugin),
-			entities[10].Entity, heartbeat.UserAgent(plugin),
-			entities[11].Entity, heartbeat.UserAgent(plugin),
-			entities[12].Entity, heartbeat.UserAgent(plugin),
-			entities[13].Entity, heartbeat.UserAgent(plugin),
-			entities[14].Entity, heartbeat.UserAgent(plugin),
-			entities[15].Entity, heartbeat.UserAgent(plugin),
-			entities[16].Entity, heartbeat.UserAgent(plugin),
-			entities[17].Entity, heartbeat.UserAgent(plugin),
-			entities[18].Entity, heartbeat.UserAgent(plugin),
-			entities[19].Entity, heartbeat.UserAgent(plugin),
-			entities[20].Entity, heartbeat.UserAgent(plugin),
-			entities[21].Entity, heartbeat.UserAgent(plugin),
-			entities[22].Entity, heartbeat.UserAgent(plugin),
-			entities[23].Entity, heartbeat.UserAgent(plugin),
-			entities[24].Entity, heartbeat.UserAgent(plugin),
+			entities[0].Entity, subfolders, heartbeat.UserAgent(plugin),
+			entities[1].Entity, subfolders, heartbeat.UserAgent(plugin),
+			entities[2].Entity, subfolders, heartbeat.UserAgent(plugin),
+			entities[3].Entity, subfolders, heartbeat.UserAgent(plugin),
+			entities[4].Entity, subfolders, heartbeat.UserAgent(plugin),
+			entities[5].Entity, subfolders, heartbeat.UserAgent(plugin),
+			entities[6].Entity, subfolders, heartbeat.UserAgent(plugin),
+			entities[7].Entity, subfolders, heartbeat.UserAgent(plugin),
+			entities[8].Entity, subfolders, heartbeat.UserAgent(plugin),
+			entities[9].Entity, subfolders, heartbeat.UserAgent(plugin),
+			entities[10].Entity, subfolders, heartbeat.UserAgent(plugin),
+			entities[11].Entity, subfolders, heartbeat.UserAgent(plugin),
+			entities[12].Entity, subfolders, heartbeat.UserAgent(plugin),
+			entities[13].Entity, subfolders, heartbeat.UserAgent(plugin),
+			entities[14].Entity, subfolders, heartbeat.UserAgent(plugin),
+			entities[15].Entity, subfolders, heartbeat.UserAgent(plugin),
+			entities[16].Entity, subfolders, heartbeat.UserAgent(plugin),
+			entities[17].Entity, subfolders, heartbeat.UserAgent(plugin),
+			entities[18].Entity, subfolders, heartbeat.UserAgent(plugin),
+			entities[19].Entity, subfolders, heartbeat.UserAgent(plugin),
+			entities[20].Entity, subfolders, heartbeat.UserAgent(plugin),
+			entities[21].Entity, subfolders, heartbeat.UserAgent(plugin),
+			entities[22].Entity, subfolders, heartbeat.UserAgent(plugin),
+			entities[23].Entity, subfolders, heartbeat.UserAgent(plugin),
+			entities[24].Entity, subfolders, heartbeat.UserAgent(plugin),
 		)
 
 		assert.JSONEq(t, expectedBodyStr, string(body))
@@ -385,21 +397,27 @@ func TestSendHeartbeats_ExtraHeartbeats_Sanitize(t *testing.T) {
 		plugin,
 	)
 
+	projectFolder, err := filepath.Abs("../..")
+	require.NoError(t, err)
+
+	subfolders := project.CountSlashesInProjectFolder(projectFolder)
+
 	assert.Equal(t, []heartbeat.Heartbeat{
 		{
-			Branch:         nil,
-			Category:       heartbeat.CodingCategory,
-			CursorPosition: nil,
-			Dependencies:   nil,
-			Entity:         "HIDDEN.go",
-			EntityType:     heartbeat.FileType,
-			IsWrite:        heartbeat.PointerTo(true),
-			Language:       heartbeat.PointerTo("Go"),
-			LineNumber:     nil,
-			Lines:          nil,
-			Project:        heartbeat.PointerTo("wakatime-cli"),
-			Time:           1585598059,
-			UserAgent:      userAgent,
+			Branch:           nil,
+			Category:         heartbeat.CodingCategory,
+			CursorPosition:   nil,
+			Dependencies:     nil,
+			Entity:           "HIDDEN.go",
+			EntityType:       heartbeat.FileType,
+			IsWrite:          heartbeat.PointerTo(true),
+			Language:         heartbeat.PointerTo("Go"),
+			LineNumber:       nil,
+			Lines:            nil,
+			Project:          heartbeat.PointerTo("wakatime-cli"),
+			ProjectRootCount: &subfolders,
+			Time:             1585598059,
+			UserAgent:        userAgent,
 		}}, hh)
 
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
@@ -456,6 +474,11 @@ func TestSendHeartbeats_IsUnsavedEntity(t *testing.T) {
 		numCalls int
 	)
 
+	projectFolder, err := filepath.Abs("../..")
+	require.NoError(t, err)
+
+	subfolders := project.CountSlashesInProjectFolder(projectFolder)
+
 	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
 		// check request
 		expectedBody, err := os.ReadFile("testdata/api_heartbeats_request_is_unsaved_entity_template.json")
@@ -479,7 +502,7 @@ func TestSendHeartbeats_IsUnsavedEntity(t *testing.T) {
 			string(expectedBody),
 			entities[0].Entity, heartbeat.UserAgent(plugin),
 			entities[1].Entity, heartbeat.UserAgent(plugin),
-			entities[2].Entity, heartbeat.UserAgent(plugin),
+			entities[2].Entity, subfolders, heartbeat.UserAgent(plugin),
 		)
 
 		assert.JSONEq(t, expectedBodyStr, string(body))
@@ -583,6 +606,11 @@ func TestSendHeartbeats_NonExistingExtraHeartbeatsEntity(t *testing.T) {
 		numCalls int
 	)
 
+	projectFolder, err := filepath.Abs("../..")
+	require.NoError(t, err)
+
+	subfolders := project.CountSlashesInProjectFolder(projectFolder)
+
 	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
 		// check request
 		expectedBody, err := os.ReadFile("testdata/api_heartbeats_request_extra_heartbeats_filtered_template.json")
@@ -603,8 +631,8 @@ func TestSendHeartbeats_NonExistingExtraHeartbeatsEntity(t *testing.T) {
 
 		expectedBodyStr := fmt.Sprintf(
 			string(expectedBody),
-			entities[0].Entity, heartbeat.UserAgent(plugin),
-			entities[1].Entity, heartbeat.UserAgent(plugin),
+			entities[0].Entity, subfolders, heartbeat.UserAgent(plugin),
+			entities[1].Entity, subfolders, heartbeat.UserAgent(plugin),
 		)
 
 		assert.JSONEq(t, expectedBodyStr, string(body))
