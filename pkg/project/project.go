@@ -15,6 +15,7 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/regex"
 	"github.com/wakatime/wakatime-cli/pkg/windows"
+	"github.com/yookoala/realpath"
 
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
@@ -197,10 +198,14 @@ func WithDetection(config Config) heartbeat.HandleOption {
 					result.Project = obfuscateProjectName(result.Folder)
 				}
 
+				result.Folder = FormatProjectFolder(result.Folder)
+
 				// count total subfolders in project's path
-				subfolders := CountSlashesInProjectFolder(result.Folder)
-				if subfolders > 0 {
-					hh[n].ProjectRootCount = &subfolders
+				if result.Folder != "" && strings.HasPrefix(h.Entity, result.Folder) {
+					subfolders := CountSlashesInProjectFolder(result.Folder)
+					if subfolders > 0 {
+						hh[n].ProjectRootCount = &subfolders
+					}
 				}
 
 				hh[n].Project = &result.Project
@@ -420,4 +425,29 @@ func firstNonEmptyString(values ...string) string {
 	}
 
 	return ""
+}
+
+// FormatProjectFolder returns the abs and real path for the given directory path.
+func FormatProjectFolder(fp string) string {
+	if fp == "" {
+		return ""
+	}
+
+	if runtime.GOOS == "windows" {
+		return windows.FormatFilePath(fp)
+	}
+
+	formatted, err := filepath.Abs(fp)
+	if err != nil {
+		log.Debugf("failed to resolve absolute path for %q: %s", fp, err)
+		return formatted
+	}
+
+	// evaluate any symlinks
+	formatted, err = realpath.Realpath(formatted)
+	if err != nil {
+		log.Debugf("failed to resolve real path for %q: %s", formatted, err)
+	}
+
+	return formatted
 }
