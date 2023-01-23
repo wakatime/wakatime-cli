@@ -1,11 +1,8 @@
 [
   {
-    "branch": null,
     "category": "coding",
     "cursorpos": 41,
-    "dependencies": null,
     "entity": "%s",
-    "is_write": null,
     "language": "Go",
     "lineno": 11,
     "lines": 91,
@@ -15,10 +12,8 @@
     "user_agent": "%s"
   },
   {
-    "branch": null,
     "category": "coding",
     "cursorpos": 12,
-    "dependencies": null,
     "entity": "%s",
     "is_write": true,
     "language": "Go",
@@ -30,7 +25,6 @@
     "user_agent": "%s"
   },
   {
-    "branch": null,
     "category": "coding",
     "cursorpos": 13,
     "dependencies": ["os"],

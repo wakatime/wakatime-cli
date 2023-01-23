@@ -20,22 +20,22 @@ var remoteAddressRegex = regexp.MustCompile(`(?i)^((ssh|sftp)://)+(?P<credential
 // Heartbeat is a structure representing activity for a user on a some entity.
 type Heartbeat struct {
 	APIKey                string     `json:"-"`
-	Branch                *string    `json:"branch"`
+	Branch                *string    `json:"branch,omitempty"`
 	BranchAlternate       string     `json:"-"`
 	Category              Category   `json:"category"`
-	CursorPosition        *int       `json:"cursorpos"`
-	Dependencies          []string   `json:"dependencies"`
+	CursorPosition        *int       `json:"cursorpos,omitempty"`
+	Dependencies          []string   `json:"dependencies,omitempty"`
 	Entity                string     `json:"entity"`
 	EntityType            EntityType `json:"type"`
 	IsUnsavedEntity       bool       `json:"-"`
-	IsWrite               *bool      `json:"is_write"`
-	Language              *string    `json:"language"`
+	IsWrite               *bool      `json:"is_write,omitempty"`
+	Language              *string    `json:"language,omitempty"`
 	LanguageAlternate     string     `json:"-"`
-	LineNumber            *int       `json:"lineno"`
-	Lines                 *int       `json:"lines"`
+	LineNumber            *int       `json:"lineno,omitempty"`
+	Lines                 *int       `json:"lines,omitempty"`
 	LocalFile             string     `json:"-"`
 	LocalFileNeedsCleanup bool       `json:"-"`
-	Project               *string    `json:"project"`
+	Project               *string    `json:"project,omitempty"`
 	ProjectAlternate      string     `json:"-"`
 	ProjectOverride       string     `json:"-"`
 	ProjectPath           string     `json:"-"`
@@ -89,12 +89,12 @@ func New(
 
 // ID returns an ID generated from the heartbeat data.
 func (h Heartbeat) ID() string {
-	var branch string
+	branch := "unset"
 	if h.Branch != nil {
 		branch = *h.Branch
 	}
 
-	var project string
+	project := "unset"
 	if h.Project != nil {
 		project = *h.Project
 	}

@@ -15,16 +15,8 @@
 		"user_agent": "wakatime/13.0.6"
 	},
 	{
-		"branch": null,
 		"category": "debugging",
-		"cursorpos": null,
-		"dependencies": null,
-		"entity": "HIDDEN.py",
-		"is_write": null,
-		"language": null,
-		"lineno": null,
-		"lines": null,
-		"project": null,
+		"entity": "HIDDEN.py",		
 		"type": "file",
 		"time": 1585598060,
 		"user_agent": "wakatime/13.0.7"
