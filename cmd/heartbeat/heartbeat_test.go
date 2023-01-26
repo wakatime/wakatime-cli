@@ -397,11 +397,6 @@ func TestSendHeartbeats_ExtraHeartbeats_Sanitize(t *testing.T) {
 		plugin,
 	)
 
-	projectFolder, err := filepath.Abs("../..")
-	require.NoError(t, err)
-
-	subfolders := project.CountSlashesInProjectFolder(projectFolder)
-
 	assert.Equal(t, []heartbeat.Heartbeat{
 		{
 			Branch:           nil,
@@ -415,7 +410,7 @@ func TestSendHeartbeats_ExtraHeartbeats_Sanitize(t *testing.T) {
 			LineNumber:       nil,
 			Lines:            nil,
 			Project:          heartbeat.PointerTo("wakatime-cli"),
-			ProjectRootCount: &subfolders,
+			ProjectRootCount: nil,
 			Time:             1585598059,
 			UserAgent:        userAgent,
 		}}, hh)

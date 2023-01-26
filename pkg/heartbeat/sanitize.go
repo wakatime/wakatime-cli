@@ -88,6 +88,8 @@ func hideProjectFolder(h Heartbeat, hideProjectFolder bool) Heartbeat {
 
 		if strings.HasPrefix(h.Entity, h.ProjectPath) {
 			h.Entity = strings.TrimPrefix(h.Entity, h.ProjectPath)
+			h.ProjectRootCount = nil
+
 			return h
 		}
 	}
@@ -99,6 +101,7 @@ func hideProjectFolder(h Heartbeat, hideProjectFolder bool) Heartbeat {
 		}
 
 		h.Entity = strings.TrimPrefix(h.Entity, h.ProjectPathOverride)
+		h.ProjectRootCount = nil
 	}
 
 	return h
@@ -131,6 +134,7 @@ func santizeMetaData(h Heartbeat) Heartbeat {
 	h.Dependencies = nil
 	h.LineNumber = nil
 	h.Lines = nil
+	h.ProjectRootCount = nil
 
 	return h
 }
