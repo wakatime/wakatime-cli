@@ -1,6 +1,5 @@
 [
 	{
-		"branch": null,
 		"category": "coding",
 		"cursorpos": 12,
 		"dependencies": ["os"],

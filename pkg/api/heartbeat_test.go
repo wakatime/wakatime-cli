@@ -82,18 +82,11 @@ func TestClient_SendHeartbeats(t *testing.T) {
 				{
 					Status: http.StatusCreated,
 					Heartbeat: heartbeat.Heartbeat{
-						Branch:         nil,
-						Category:       heartbeat.DebuggingCategory,
-						CursorPosition: nil,
-						Dependencies:   nil,
-						Entity:         "HIDDEN.py",
-						EntityType:     heartbeat.FileType,
-						IsWrite:        nil,
-						LineNumber:     nil,
-						Lines:          nil,
-						Project:        nil,
-						Time:           1585598060,
-						UserAgent:      "wakatime/13.0.7",
+						Category:   heartbeat.DebuggingCategory,
+						Entity:     "HIDDEN.py",
+						EntityType: heartbeat.FileType,
+						Time:       1585598060,
+						UserAgent:  "wakatime/13.0.7",
 					},
 				},
 			}, results)

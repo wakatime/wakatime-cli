@@ -1,9 +1,7 @@
 [
     {
-        "branch": null,
         "category": "debugging",
         "cursorpos": 42,
-        "dependencies": null,
         "entity": "%s",
         "is_write": true,
         "language": "Go",
