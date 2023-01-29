@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/wakatime/wakatime-cli/pkg/api"
 	"github.com/wakatime/wakatime-cli/pkg/offline"
 
@@ -165,6 +167,11 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 		"",
 		"(internal) Specify an offline queue file, which will be used instead of the default one.",
 	)
+	flags.String(
+		"output",
+		"",
+		"Format output. Can be \"text\", \"json\" or \"raw-json\". Defaults to \"text\".",
+	)
 	flags.String("plugin", "", "Optional text editor plugin name and version for User-Agent header.")
 	flags.Int("print-offline-heartbeats", offline.PrintMaxDefault, "Prints offline heartbeats to stdout.")
 	flags.String("project", "", "Override auto-detected project."+
@@ -190,24 +197,25 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 	flags.Int(
 		"sync-offline-activity",
 		offline.SyncMaxDefault,
-		"Amount of offline activity to sync from your local ~/.wakatime.bdb bolt"+
+		fmt.Sprintf("Amount of offline activity to sync from your local ~/.wakatime.bdb bolt"+
 			" file to your WakaTime Dashboard before exiting. Can be zero or"+
-			" a positive integer. Defaults to 1000, meaning after sending a heartbeat"+
+			" a positive integer. Defaults to %d, meaning after sending a heartbeat"+
 			" while online, all queued offline heartbeats are sent to WakaTime API, up"+
 			" to a limit of 1000. Zero syncs all offline heartbeats. Can be used"+
 			" without --entity to only sync offline activity without generating"+
-			" new heartbeats.",
+			" new heartbeats.", offline.SyncMaxDefault),
 	)
 	flags.Bool("offline-count", false, "Prints the number of heartbeats in the offline db, then exits.")
 	flags.Int(
 		"timeout",
 		api.DefaultTimeoutSecs,
-		"Number of seconds to wait when sending heartbeats to api. Defaults to 120 seconds.",
+		fmt.Sprintf(
+			"Number of seconds to wait when sending heartbeats to api. Defaults to %d seconds.", api.DefaultTimeoutSecs),
 	)
 	flags.Float64("time", 0, "Optional floating-point unix epoch timestamp. Uses current time by default.")
 	flags.Bool("today", false, "Prints dashboard time for Today, then exits.")
-	flags.Bool("today-hide-categories", false, "When optionally included with --today, causes output to"+
-		" show total code time today without categories.")
+	flags.String("today-hide-categories", "", "When optionally included with --today, causes output to"+
+		" show total code time today without categories. Defaults to false.")
 	flags.String(
 		"today-goal",
 		"",

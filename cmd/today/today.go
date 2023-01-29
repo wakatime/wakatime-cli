@@ -40,7 +40,10 @@ func Today(v *viper.Viper) (string, error) {
 		return "", fmt.Errorf("failed to load API parameters: %w", err)
 	}
 
-	statusBarParam := params.LoadStausBarParams(v)
+	paramStatusBar, err := params.LoadStatusBarParams(v)
+	if err != nil {
+		return "", fmt.Errorf("failed to load status bar parameters: %w", err)
+	}
 
 	apiClient, err := cmdapi.NewClient(paramAPI)
 	if err != nil {
@@ -52,7 +55,7 @@ func Today(v *viper.Viper) (string, error) {
 		return "", fmt.Errorf("failed fetching today from api: %w", err)
 	}
 
-	output, err := summary.RenderToday(s, statusBarParam.HideCategories)
+	output, err := summary.RenderToday(s, paramStatusBar.HideCategories, paramStatusBar.Output)
 	if err != nil {
 		return "", fmt.Errorf("failed generating today output: %s", err)
 	}

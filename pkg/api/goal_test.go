@@ -44,7 +44,7 @@ func TestClient_Goal(t *testing.T) {
 
 	require.NoError(t, err)
 
-	assert.Equal(t, "3 hrs 23 mins", goal.Total)
+	assert.Equal(t, "3 hrs 23 mins", goal.Data.ChartData[len(goal.Data.ChartData)-1].ActualSecondsText)
 
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
