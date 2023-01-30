@@ -1,67 +1,162 @@
-package summary_test
+package api_test
 
 import (
+	"errors"
+	"fmt"
+	"io"
+	"net/http"
 	"os"
+	"strings"
 	"testing"
+	"time"
 
-	"github.com/wakatime/wakatime-cli/pkg/output"
+	"github.com/wakatime/wakatime-cli/pkg/api"
 	"github.com/wakatime/wakatime-cli/pkg/summary"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestRenderToday(t *testing.T) {
-	tests := map[string]struct {
-		Output   output.Output
-		Expected string
-	}{
-		"text output": {
-			Output:   output.TextOutput,
-			Expected: "2 hrs 17 mins Coding, 7 secs Debugging",
-		},
-		"json output": {
-			Output:   output.JSONOutput,
-			Expected: readFile(t, "testdata/statusbar_today_simplified.json"),
-		},
-		"raw json output": {
-			Output:   output.RawJSONOutput,
-			Expected: readFile(t, "testdata/statusbar_today.json"),
-		},
+func TestClient_StatusBar(t *testing.T) {
+	u, router, tearDown := setupTestServer()
+	defer tearDown()
+
+	var numCalls int
+
+	router.HandleFunc("/users/current/statusbar/today", func(w http.ResponseWriter, req *http.Request) {
+		numCalls++
+
+		// check request
+		assert.Equal(t, http.MethodGet, req.Method)
+		assert.Equal(t, []string{"application/json"}, req.Header["Accept"])
+
+		// write response
+		f, err := os.Open("testdata/api_statusbar_today_response.json")
+		require.NoError(t, err)
+
+		w.WriteHeader(http.StatusOK)
+		_, err = io.Copy(w, f)
+		require.NoError(t, err)
+	})
+
+	c := api.NewClient(u)
+	s, err := c.Today()
+
+	require.NoError(t, err)
+
+	assert.Equal(t, s, testSummary())
+
+	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+}
+
+func TestClient_StatusBarWithTimeout(t *testing.T) {
+	u, router, tearDown := setupTestServer()
+	defer tearDown()
+
+	block := make(chan struct{})
+
+	called := make(chan struct{})
+	defer close(called)
+
+	router.HandleFunc("/users/current/statusbar/today", func(w http.ResponseWriter, req *http.Request) {
+		<-block
+		called <- struct{}{}
+	})
+
+	opts := []api.Option{api.WithTimeout(20 * time.Millisecond)}
+	c := api.NewClient(u, opts...)
+	_, err := c.Today()
+	require.Error(t, err)
+
+	errMsg := fmt.Sprintf("error %q does not contain string 'Timeout'", err)
+	assert.True(t, strings.Contains(err.Error(), "Timeout"), errMsg)
+
+	close(block)
+	select {
+	case <-called:
+		break
+	case <-time.After(50 * time.Millisecond):
+		t.Fatal("failed")
 	}
-
-	for name, test := range tests {
-		t.Run(name, func(t *testing.T) {
-			rendered, err := summary.RenderToday(testSummary(), false, test.Output)
-			require.NoError(t, err)
-
-			assert.Equal(t, test.Expected, rendered)
-		})
-	}
 }
 
-func TestRenderToday_OneCategory(t *testing.T) {
-	s := testSummary()
-	s.Data.Categories = s.Data.Categories[:1]
+func TestClient_StatusBar_Err(t *testing.T) {
+	u, router, tearDown := setupTestServer()
+	defer tearDown()
 
-	rendered, err := summary.RenderToday(s, false, output.TextOutput)
-	require.NoError(t, err)
+	var numCalls int
 
-	assert.Equal(t, "2 hrs 17 mins", rendered)
+	router.HandleFunc("/users/current/statusbar/today", func(w http.ResponseWriter, req *http.Request) {
+		numCalls++
+		w.WriteHeader(http.StatusInternalServerError)
+	})
+
+	c := api.NewClient(u)
+	_, err := c.Today()
+
+	var apierr api.Err
+
+	assert.True(t, errors.As(err, &apierr))
+	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
 
-func TestRenderToday_MultipleCategoriesHidden(t *testing.T) {
-	rendered, err := summary.RenderToday(testSummary(), true, output.TextOutput)
-	require.NoError(t, err)
+func TestClient_StatusBar_ErrAuth(t *testing.T) {
+	u, router, tearDown := setupTestServer()
+	defer tearDown()
 
-	assert.Equal(t, "2 hrs 17 mins", rendered)
+	var numCalls int
+
+	router.HandleFunc("/users/current/statusbar/today", func(w http.ResponseWriter, req *http.Request) {
+		numCalls++
+		w.WriteHeader(http.StatusUnauthorized)
+	})
+
+	c := api.NewClient(u)
+	_, err := c.Today()
+
+	var errauth api.ErrAuth
+
+	assert.True(t, errors.As(err, &errauth))
+	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
 
-func readFile(t *testing.T, fp string) string {
-	data, err := os.ReadFile(fp)
+func TestClient_StatusBar_ErrBadRequest(t *testing.T) {
+	u, router, tearDown := setupTestServer()
+	defer tearDown()
+
+	var numCalls int
+
+	router.HandleFunc("/users/current/statusbar/today", func(w http.ResponseWriter, req *http.Request) {
+		numCalls++
+		w.WriteHeader(http.StatusBadRequest)
+	})
+
+	c := api.NewClient(u)
+	_, err := c.Today()
+
+	var errbadRequest api.ErrBadRequest
+
+	assert.True(t, errors.As(err, &errbadRequest))
+	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+}
+
+func TestClient_StatusBar_InvalidUrl(t *testing.T) {
+	c := api.NewClient("invalid-url")
+	_, err := c.Today()
+
+	var apierr api.Err
+
+	assert.True(t, errors.As(err, &apierr))
+}
+
+func TestParseStatusBarResponse(t *testing.T) {
+	data, err := os.ReadFile("testdata/api_statusbar_today_response.json")
 	require.NoError(t, err)
 
-	return string(data)
+	s, err := api.ParseStatusBarResponse(data)
+	require.NoError(t, err)
+
+	assert.Equal(t, s, testSummary())
 }
 
 func testSummary() *summary.Summary {

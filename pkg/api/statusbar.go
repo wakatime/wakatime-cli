@@ -22,6 +22,8 @@ func (c *Client) Today() (*summary.Summary, error) {
 		return nil, Err{fmt.Errorf("failed to create request: %s", err)}
 	}
 
+	req.Header.Set("Content-Type", "application/json")
+
 	q := req.URL.Query()
 	req.URL.RawQuery = q.Encode()
 
@@ -53,7 +55,7 @@ func (c *Client) Today() (*summary.Summary, error) {
 		)}
 	}
 
-	summary, err := ParseSummaryResponse(body)
+	summary, err := ParseStatusBarResponse(body)
 	if err != nil {
 		return nil, Err{Err: fmt.Errorf("failed to parse results from %q: %s", url, err)}
 	}
@@ -61,36 +63,13 @@ func (c *Client) Today() (*summary.Summary, error) {
 	return summary, nil
 }
 
-// ParseSummaryResponse parses the wakatime api response into summary.Summary.
-func ParseSummaryResponse(data []byte) (*summary.Summary, error) {
-	var body struct {
-		Data struct {
-			Categories []struct {
-				Name string `json:"name"`
-				Text string `json:"text"`
-			} `json:"categories"`
-			GrandTotal struct {
-				Text string `json:"text"`
-			} `json:"grand_total"`
-		} `json:"data"`
-	}
+// ParseStatusBarResponse parses the wakatime api response into summary.Summary.
+func ParseStatusBarResponse(data []byte) (*summary.Summary, error) {
+	var body summary.Summary
 
 	if err := json.Unmarshal(data, &body); err != nil {
 		return nil, fmt.Errorf("failed to parse json response body: %s. body: %q", err, data)
 	}
 
-	parsed := summary.Summary{
-		Total: body.Data.GrandTotal.Text,
-	}
-
-	if len(body.Data.Categories) > 0 {
-		for _, category := range body.Data.Categories {
-			parsed.ByCategory = append(parsed.ByCategory, summary.Category{
-				Category: category.Name,
-				Total:    category.Text,
-			})
-		}
-	}
-
-	return &parsed, nil
+	return &body, nil
 }

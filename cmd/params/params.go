@@ -19,6 +19,7 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/ini"
 	"github.com/wakatime/wakatime-cli/pkg/log"
+	"github.com/wakatime/wakatime-cli/pkg/output"
 	"github.com/wakatime/wakatime-cli/pkg/project"
 	"github.com/wakatime/wakatime-cli/pkg/regex"
 	"github.com/wakatime/wakatime-cli/pkg/vipertools"
@@ -148,6 +149,7 @@ type (
 	// StatusBar contains status bar related parameters.
 	StatusBar struct {
 		HideCategories bool
+		Output         output.Output
 	}
 )
 
@@ -173,7 +175,10 @@ func Load(v *viper.Viper) (Params, error) {
 		return Params{}, fmt.Errorf("failed to load offline params: %w", err)
 	}
 
-	statusBarParams := LoadStausBarParams(v)
+	statusBarParams, err := LoadStatusBarParams(v)
+	if err != nil {
+		return Params{}, fmt.Errorf("failed to load status bar params: %w", err)
+	}
 
 	return Params{
 		API:       apiParams,
@@ -641,17 +646,38 @@ func LoadOfflineParams(v *viper.Viper) (Offline, error) {
 	}, nil
 }
 
-// LoadStausBarParams loads status bar params from viper.Viper instance.
-func LoadStausBarParams(v *viper.Viper) StatusBar {
-	hideCategories := vipertools.FirstNonEmptyBool(
+// LoadStatusBarParams loads status bar params from viper.Viper instance.
+func LoadStatusBarParams(v *viper.Viper) (StatusBar, error) {
+	var hideCategories bool
+
+	if hideCategoriesStr, ok := vipertools.FirstNonEmptyString(
 		v,
 		"today-hide-categories",
 		"settings.status_bar_hide_categories",
-	)
+	); ok {
+		val, err := strconv.ParseBool(hideCategoriesStr)
+		if err != nil {
+			return StatusBar{}, fmt.Errorf("failed to parse today-hide-categories: %s", err)
+		}
+
+		hideCategories = val
+	}
+
+	var out output.Output
+
+	if outputStr := vipertools.GetString(v, "output"); outputStr != "" {
+		parsed, err := output.Parse(outputStr)
+		if err != nil {
+			return StatusBar{}, fmt.Errorf("failed to parse output: %s", err)
+		}
+
+		out = parsed
+	}
 
 	return StatusBar{
 		HideCategories: hideCategories,
-	}
+		Output:         out,
+	}, nil
 }
 
 func readAPIKeyFromCommand(cmdStr string) (string, error) {
@@ -1040,8 +1066,9 @@ func (p SanitizeParams) String() string {
 // String implements fmt.Stringer interface.
 func (p StatusBar) String() string {
 	return fmt.Sprintf(
-		"hide categories: %t",
+		"hide categories: %t, output: '%s'",
 		p.HideCategories,
+		p.Output,
 	)
 }
 

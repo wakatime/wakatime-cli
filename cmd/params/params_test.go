@@ -16,6 +16,7 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/apikey"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	inipkg "github.com/wakatime/wakatime-cli/pkg/ini"
+	"github.com/wakatime/wakatime-cli/pkg/output"
 	"github.com/wakatime/wakatime-cli/pkg/project"
 	"github.com/wakatime/wakatime-cli/pkg/regex"
 
@@ -2128,6 +2129,65 @@ func TestLoadParams_Hostname_DefaultFromSystem(t *testing.T) {
 	assert.Equal(t, expected, params.Hostname)
 }
 
+func TestLoadParams_StatusBar_HideCategories_FlagTakesPrecedence(t *testing.T) {
+	v := viper.New()
+	v.Set("today-hide-categories", true)
+	v.Set("settings.status_bar_hide_categories", "ignored")
+
+	params, err := paramscmd.LoadStatusBarParams(v)
+	require.NoError(t, err)
+
+	assert.True(t, params.HideCategories)
+}
+
+func TestLoadParams_StatusBar_HideCategories_ConfigTakesPrecedence(t *testing.T) {
+	v := viper.New()
+	v.Set("settings.status_bar_hide_categories", true)
+
+	params, err := paramscmd.LoadStatusBarParams(v)
+	require.NoError(t, err)
+
+	assert.True(t, params.HideCategories)
+}
+
+func TestLoadParams_StatusBar_Output(t *testing.T) {
+	tests := map[string]output.Output{
+		"text": output.TextOutput,
+		"json": output.JSONOutput,
+	}
+
+	for name, out := range tests {
+		t.Run(name, func(t *testing.T) {
+			v := viper.New()
+			v.Set("output", name)
+
+			params, err := paramscmd.LoadStatusBarParams(v)
+			require.NoError(t, err)
+
+			assert.Equal(t, out, params.Output)
+		})
+	}
+}
+
+func TestLoadParams_StatusBar_Output_Default(t *testing.T) {
+	v := viper.New()
+
+	params, err := paramscmd.LoadStatusBarParams(v)
+	require.NoError(t, err)
+
+	assert.Equal(t, output.TextOutput, params.Output)
+}
+
+func TestLoadParams_StatusBar_Output_Invalid(t *testing.T) {
+	v := viper.New()
+	v.Set("output", "invalid")
+
+	_, err := paramscmd.LoadStatusBarParams(v)
+	require.Error(t, err)
+
+	assert.Equal(t, "failed to parse output: invalid output \"invalid\"", err.Error())
+}
+
 func TestAPI_String(t *testing.T) {
 	backoffat, err := time.Parse(inipkg.DateFormat, "2021-08-30T18:50:42-03:00")
 	require.NoError(t, err)
@@ -2259,11 +2319,12 @@ func TestSanitizeParams_String(t *testing.T) {
 func TestStatusBar_String(t *testing.T) {
 	statusbar := paramscmd.StatusBar{
 		HideCategories: true,
+		Output:         output.JSONOutput,
 	}
 
 	assert.Equal(
 		t,
-		"hide categories: true",
+		"hide categories: true, output: 'json'",
 		statusbar.String(),
 	)
 }

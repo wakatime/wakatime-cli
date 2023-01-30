@@ -3,6 +3,7 @@ package today_test
 import (
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -33,6 +34,7 @@ func TestToday(t *testing.T) {
 		// check request
 		assert.Equal(t, http.MethodGet, req.Method)
 		assert.Equal(t, []string{"application/json"}, req.Header["Accept"])
+		assert.Equal(t, []string{"application/json"}, req.Header["Content-Type"])
 		assert.Equal(t, []string{"Basic MDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAw"}, req.Header["Authorization"])
 		assert.True(t, strings.HasSuffix(req.Header["User-Agent"][0], plugin), fmt.Sprintf(
 			"%q should have suffix %q",
@@ -40,11 +42,14 @@ func TestToday(t *testing.T) {
 			plugin,
 		))
 
-		// write response
-		data, err := os.ReadFile("testdata/api_statusbar_today_response_template.json")
-		require.NoError(t, err)
+		// send response
+		w.WriteHeader(http.StatusOK)
 
-		_, err = w.Write([]byte(string(data)))
+		f, err := os.Open("testdata/api_statusbar_today_response.json")
+		require.NoError(t, err)
+		defer f.Close()
+
+		_, err = io.Copy(w, f)
 		require.NoError(t, err)
 	})
 
