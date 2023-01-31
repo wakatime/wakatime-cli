@@ -22,8 +22,7 @@ import (
 )
 
 var (
-	backslashReplaceRegex = regexp.MustCompile(`[\\/]+`)
-	driveLetterRegex      = regexp.MustCompile(`^[a-zA-Z]:\\$`)
+	driveLetterRegex = regexp.MustCompile(`^[a-zA-Z]:\\$`)
 )
 
 const (
@@ -372,7 +371,7 @@ func CountSlashesInProjectFolder(directory string) int {
 		return 0
 	}
 
-	directory = backslashReplaceRegex.ReplaceAllString(directory, `/`)
+	directory = windows.FormatFilePath(directory)
 
 	// Add trailing slash if not present.
 	if !strings.HasSuffix(directory, `/`) {

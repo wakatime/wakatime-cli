@@ -595,6 +595,10 @@ func TestCountSlashesInProjectFolder(t *testing.T) {
 			path:     `C:\folder\project`,
 			expected: 3,
 		},
+		"wsl path": {
+			path:     `\\wsl$/Ubuntu-22.04/home/folder/project`,
+			expected: 5,
+		},
 	}
 
 	for name, test := range tests {
