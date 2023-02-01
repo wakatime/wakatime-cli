@@ -73,6 +73,7 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 		"Writes value to a config key, then exits. Expects two arguments, key and value.",
 	)
 	flags.Int("cursorpos", 0, "Optional cursor position in the current file.")
+	flags.Bool("devs-for-file", false, "Prints top devs for entity, then exits.")
 	flags.Bool("disable-offline", false, "Disables offline time logging instead of queuing logged time.")
 	flags.Bool("disableoffline", false, "(deprecated) Disables offline time logging instead of queuing logged time.")
 	flags.String(
