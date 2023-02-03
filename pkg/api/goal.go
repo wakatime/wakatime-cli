@@ -22,6 +22,8 @@ func (c *Client) Goal(id string) (*goal.Goal, error) {
 		return nil, fmt.Errorf("failed to create request: %s", err)
 	}
 
+	req.Header.Set("Content-Type", "application/json")
+
 	resp, err := c.Do(req)
 	if err != nil {
 		return nil, Err{Err: fmt.Errorf("failed to make request to %q: %s", url, err)}
@@ -59,19 +61,11 @@ func (c *Client) Goal(id string) (*goal.Goal, error) {
 
 // ParseGoalResponse parses the wakatime api response into goal.Goal.
 func ParseGoalResponse(data []byte) (*goal.Goal, error) {
-	var body struct {
-		Data struct {
-			ChartData []struct {
-				ActualSecondsText string `json:"actual_seconds_text"`
-			} `json:"chart_data"`
-		} `json:"data"`
-	}
+	var body goal.Goal
 
 	if err := json.Unmarshal(data, &body); err != nil {
 		return nil, fmt.Errorf("failed to parse json response body: %s. body: %q", err, data)
 	}
 
-	return &goal.Goal{
-		Total: body.Data.ChartData[len(body.Data.ChartData)-1].ActualSecondsText,
-	}, nil
+	return &body, nil
 }

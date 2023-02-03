@@ -43,14 +43,14 @@ func FormatFilePath(fp string) string {
 
 	fp = backslashReplaceRegex.ReplaceAllString(fp, "/")
 
-	if windowsDriveRegex.MatchString(fp) {
-		fp = strings.ToUpper(fp[:1]) + fp[1:]
+	if isWindowsNetworkMount {
+		// Replace the first single slash with double backslash, since the regex
+		// will have replaced any double backslashes with single forward slash
+		fp = `\\` + fp[1:]
 	}
 
-	if isWindowsNetworkMount {
-		// Replace the first single slash with double backslash, since the previous modifications
-		// will have replaced any double slashes with single
-		fp = `\\` + fp[1:]
+	if windowsDriveRegex.MatchString(fp) {
+		fp = strings.ToUpper(fp[:1]) + fp[1:]
 	}
 
 	return fp
