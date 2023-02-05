@@ -102,6 +102,7 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 		"",
 		"(deprecated) Absolute path to file for the heartbeat."+
 			" Can also be a url, domain or app when --entity-type is not file.")
+	flags.Bool("file-experts", false, "Prints the top developer within a team for the given entity, then exits.")
 	flags.String("hide-branch-names", "", "Obfuscate branch names. Will not send revision control branch names to api.")
 	flags.String("hide-file-names", "", "Obfuscate filenames. Will not send file names to api.")
 	flags.String("hide-filenames", "", "(deprecated) Obfuscate filenames. Will not send file names to api.")
@@ -213,13 +214,13 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 			"Number of seconds to wait when sending heartbeats to api. Defaults to %d seconds.", api.DefaultTimeoutSecs),
 	)
 	flags.Float64("time", 0, "Optional floating-point unix epoch timestamp. Uses current time by default.")
-	flags.Bool("today", false, "Prints dashboard time for Today, then exits.")
+	flags.Bool("today", false, "Prints dashboard time for today, then exits.")
 	flags.String("today-hide-categories", "", "When optionally included with --today, causes output to"+
 		" show total code time today without categories. Defaults to false.")
 	flags.String(
 		"today-goal",
 		"",
-		"Prints time for the given goal id Today, then exits"+
+		"Prints time for the given goal id today, then exits"+
 			" Visit wakatime.com/api/v1/users/current/goals to find your goal id.")
 	flags.Bool(
 		"user-agent",

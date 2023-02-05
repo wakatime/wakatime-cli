@@ -14,17 +14,17 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kevinburke/ssh_config"
-	"github.com/pkg/sftp"
 	"github.com/wakatime/wakatime-cli/pkg/filter"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/regex"
 	"github.com/wakatime/wakatime-cli/pkg/remote"
-	"golang.org/x/crypto/ssh"
 
+	"github.com/kevinburke/ssh_config"
+	"github.com/pkg/sftp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/crypto/ssh"
 )
 
 func TestNewClient(t *testing.T) {

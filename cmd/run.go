@@ -12,6 +12,7 @@ import (
 	cmdapi "github.com/wakatime/wakatime-cli/cmd/api"
 	"github.com/wakatime/wakatime-cli/cmd/configread"
 	"github.com/wakatime/wakatime-cli/cmd/configwrite"
+	"github.com/wakatime/wakatime-cli/cmd/fileexperts"
 	cmdheartbeat "github.com/wakatime/wakatime-cli/cmd/heartbeat"
 	"github.com/wakatime/wakatime-cli/cmd/logfile"
 	cmdoffline "github.com/wakatime/wakatime-cli/cmd/offline"
@@ -94,6 +95,12 @@ func Run(cmd *cobra.Command, v *viper.Viper) {
 		log.Debugln("command: today-goal")
 
 		RunCmd(v, logFileParams.Verbose, todaygoal.Run)
+	}
+
+	if v.GetBool("file-experts") {
+		log.Debugln("command: file-experts")
+
+		RunCmd(v, logFileParams.Verbose, fileexperts.Run)
 	}
 
 	if v.IsSet("entity") {
