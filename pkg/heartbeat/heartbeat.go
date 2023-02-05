@@ -133,6 +133,8 @@ type Result struct {
 	Errors    []string
 	Status    int
 	Heartbeat Heartbeat
+	// it's a temporary solution before we have a better way to handle (avoid import cycle)
+	FileExpert any
 }
 
 // Sender sends heartbeats to the wakatime api.
