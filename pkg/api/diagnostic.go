@@ -13,24 +13,26 @@ import (
 )
 
 type diagnosticsBody struct {
-	Platform     string `json:"platform"`
 	Architecture string `json:"architecture"`
-	Plugin       string `json:"plugin"`
 	CliVersion   string `json:"cli_version"`
+	IsPanic      bool   `json:"is_panic,omitempty"`
 	Logs         string `json:"logs,omitempty"`
+	Platform     string `json:"platform"`
+	Plugin       string `json:"plugin"`
 	Stack        string `json:"stacktrace,omitempty"`
 }
 
 // SendDiagnostics sends diagnostics to the WakaTime api.
-func (c *Client) SendDiagnostics(plugin string, diagnostics ...diagnostic.Diagnostic) error {
+func (c *Client) SendDiagnostics(plugin string, panic bool, diagnostics ...diagnostic.Diagnostic) error {
 	url := c.baseURL + "/plugins/errors"
 
 	log.Debugf("sending diagnostic data to api at %s", url)
 
 	body := diagnosticsBody{
-		Platform:     version.OS,
 		Architecture: version.Arch,
 		CliVersion:   version.Version,
+		IsPanic:      panic,
+		Platform:     version.OS,
 		Plugin:       plugin,
 	}
 

@@ -15,21 +15,26 @@ const defaultFile = ".wakatime.log"
 
 // Params contains log file parameters.
 type Params struct {
-	File     string
-	ToStdout bool
-	Verbose  bool
+	File              string
+	SendDiagsOnErrors bool
+	ToStdout          bool
+	Verbose           bool
 }
 
 // LoadParams loads needed data from the configuration file.
 func LoadParams(v *viper.Viper) (Params, error) {
-	var debug bool
-	if b := v.GetBool("settings.debug"); v.IsSet("settings.debug") {
-		debug = b
-	}
-
 	params := Params{
+		SendDiagsOnErrors: vipertools.FirstNonEmptyBool(
+			v,
+			"send-diagnostics-on-errors",
+			"settings.send_diagnostics_on_errors",
+		),
 		ToStdout: v.GetBool("log-to-stdout"),
-		Verbose:  v.GetBool("verbose") || debug,
+		Verbose: vipertools.FirstNonEmptyBool(
+			v,
+			"verbose",
+			"settings.debug",
+		),
 	}
 
 	logFile, ok := vipertools.FirstNonEmptyString(v, "log-file", "logfile", "settings.log_file")
