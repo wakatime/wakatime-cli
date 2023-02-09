@@ -21,7 +21,7 @@ import (
 func TestRunCmd(t *testing.T) {
 	v := viper.New()
 
-	ret := runCmd(v, false, func(v *viper.Viper) (int, error) {
+	ret := runCmd(v, false, false, func(v *viper.Viper) (int, error) {
 		return exitcode.Success, nil
 	})
 
@@ -31,7 +31,7 @@ func TestRunCmd(t *testing.T) {
 func TestRunCmd_Err(t *testing.T) {
 	v := viper.New()
 
-	ret := runCmd(v, false, func(v *viper.Viper) (int, error) {
+	ret := runCmd(v, false, false, func(v *viper.Viper) (int, error) {
 		return exitcode.ErrGeneric, errors.New("fail")
 	})
 
@@ -88,7 +88,7 @@ func TestRunCmd_ErrOfflineEnqueue(t *testing.T) {
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("plugin", "vim")
 
-	ret := runCmd(v, true, func(v *viper.Viper) (int, error) {
+	ret := runCmd(v, true, false, func(v *viper.Viper) (int, error) {
 		return exitcode.ErrGeneric, errors.New("fail")
 	})
 

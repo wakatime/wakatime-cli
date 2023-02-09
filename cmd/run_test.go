@@ -23,6 +23,7 @@ import (
 
 func TestRunCmd_SendDiagnostics_Error(t *testing.T) {
 	// this is exclusively run in subprocess
+	// TODO: figure out why this test is passing (it should be failing)
 	if os.Getenv("TEST_RUN") == "1" {
 		version.OS = "some os"
 		version.Arch = "some architecture"
@@ -45,7 +46,7 @@ func TestRunCmd_SendDiagnostics_Error(t *testing.T) {
 		v.Set("offline-queue-file", offlineQueueFile.Name())
 		v.Set("plugin", "vim")
 
-		cmd.RunCmd(v, true, func(v *viper.Viper) (int, error) {
+		cmd.RunCmd(v, true, false, func(v *viper.Viper) (int, error) {
 			return 42, errors.New("fail")
 		})
 
@@ -128,7 +129,7 @@ func TestRunCmd_SendDiagnostics_Panic(t *testing.T) {
 		v.Set("offline-queue-file", offlineQueueFile.Name())
 		v.Set("plugin", "vim")
 
-		cmd.RunCmd(v, true, func(v *viper.Viper) (int, error) {
+		cmd.RunCmd(v, true, false, func(v *viper.Viper) (int, error) {
 			panic("fail")
 		})
 
@@ -208,7 +209,7 @@ func TestRunCmdWithOfflineSync(t *testing.T) {
 		v.SetDefault("sync-offline-activity", 24)
 		v.Set("plugin", "vim")
 
-		cmd.RunCmdWithOfflineSync(v, false, func(v *viper.Viper) (int, error) {
+		cmd.RunCmdWithOfflineSync(v, false, false, func(v *viper.Viper) (int, error) {
 			return 0, nil
 		})
 
