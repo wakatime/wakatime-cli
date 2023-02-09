@@ -255,7 +255,7 @@ func runCmd(v *viper.Viper, verbose bool, sendDiagsOnErrors bool, cmd cmdFn) int
 			resetLogs()
 
 			if verbose {
-				if err := sendDiagnostics(v, false, logs.String(), string(debug.Stack())); err != nil {
+				if err := sendDiagnostics(v, true, logs.String(), string(debug.Stack())); err != nil {
 					log.Warnf("failed to send diagnostics: %s", err)
 				}
 			}
@@ -272,7 +272,7 @@ func runCmd(v *viper.Viper, verbose bool, sendDiagsOnErrors bool, cmd cmdFn) int
 		resetLogs()
 
 		if verbose && sendDiagsOnErrors {
-			if err := sendDiagnostics(v, true, logs.String(), string(debug.Stack())); err != nil {
+			if err := sendDiagnostics(v, false, logs.String(), string(debug.Stack())); err != nil {
 				log.Warnf("failed to send diagnostics: %s", err)
 			}
 		}
@@ -294,7 +294,7 @@ func saveHeartbeatsAndExit(v *viper.Viper) {
 	os.Exit(exitcode.ErrConfigFileParse)
 }
 
-func sendDiagnostics(v *viper.Viper, panic bool, logs, stack string) error {
+func sendDiagnostics(v *viper.Viper, panicked bool, logs, stack string) error {
 	paramAPI, err := params.LoadAPIParams(v)
 	if err != nil {
 		var errauth api.ErrAuth
@@ -318,7 +318,7 @@ func sendDiagnostics(v *viper.Viper, panic bool, logs, stack string) error {
 
 	api.WithDisableSSLVerify()(c)
 
-	err = c.SendDiagnostics(paramAPI.Plugin, panic, diagnostics...)
+	err = c.SendDiagnostics(paramAPI.Plugin, panicked, diagnostics...)
 	if err != nil {
 		return fmt.Errorf("failed to send diagnostics to the API: %s", err)
 	}
