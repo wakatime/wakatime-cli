@@ -189,6 +189,11 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 			" For example: 'https://user:pass@host:port' or 'socks5://user:pass@host:port'"+
 			" or 'domain\\user:pass'",
 	)
+	flags.Bool(
+		"send-diagnostics-on-errors",
+		false,
+		"When --verbose or debug enabled, also sends diagnostics on any error not just crashes.",
+	)
 	flags.String(
 		"ssl-certs-file",
 		"",
@@ -227,7 +232,7 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 		false,
 		"(internal) Prints the wakatime-cli useragent, as it will be sent to the api, then exits.",
 	)
-	flags.Bool("verbose", false, "Turns on debug messages in log file.")
+	flags.Bool("verbose", false, "Turns on debug messages in log file, and sends diagnostics if a crash occurs.")
 	flags.Bool("version", false, "Prints the wakatime-cli version number, then exits.")
 	flags.Bool("write", false, "When set, tells api this heartbeat was triggered from writing to a file.")
 

@@ -52,7 +52,7 @@ func TestClient_SendDiagnostics(t *testing.T) {
 	}
 
 	c := api.NewClient(url)
-	err := c.SendDiagnostics("vim", diagnostics...)
+	err := c.SendDiagnostics("vim", false, diagnostics...)
 	require.NoError(t, err)
 
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
