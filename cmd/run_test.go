@@ -21,9 +21,63 @@ import (
 	bolt "go.etcd.io/bbolt"
 )
 
-func TestRunCmd_SendDiagnostics_Error(t *testing.T) {
+func TestRunCmd_Error(t *testing.T) {
 	// this is exclusively run in subprocess
-	// TODO: figure out why this test is passing (it should be failing)
+	if os.Getenv("TEST_RUN") == "1" {
+		version.OS = "some os"
+		version.Arch = "some architecture"
+		version.Version = "some version"
+
+		tmpDir := t.TempDir()
+
+		offlineQueueFile, err := os.CreateTemp(tmpDir, "")
+		require.NoError(t, err)
+
+		logFile, err := os.CreateTemp(tmpDir, "")
+		require.NoError(t, err)
+
+		v := viper.New()
+		v.Set("api-url", os.Getenv("TEST_SERVER_URL"))
+		v.Set("entity", "/path/to/file")
+		v.Set("key", "00000000-0000-4000-8000-000000000000")
+		v.Set("log-file", logFile.Name())
+		v.Set("log-to-stdout", true)
+		v.Set("offline-queue-file", offlineQueueFile.Name())
+		v.Set("plugin", "vim")
+
+		cmd.RunCmd(v, false, false, func(v *viper.Viper) (int, error) {
+			return 42, errors.New("fail")
+		})
+
+		return
+	}
+
+	testServerURL, router, tearDown := setupTestServer()
+	defer tearDown()
+
+	var numCalls int
+
+	router.HandleFunc("/plugins/errors", func(w http.ResponseWriter, req *http.Request) {
+		numCalls++
+	})
+
+	// run command in another runner, to effectively test os.Exit()
+	cmd := exec.Command(os.Args[0], "-test.run=TestRunCmd_Error") // nolint:gosec
+	cmd.Env = append(os.Environ(), "TEST_RUN=1")
+	cmd.Env = append(cmd.Env, fmt.Sprintf("TEST_SERVER_URL=%s", testServerURL))
+
+	err := cmd.Run()
+
+	e, ok := err.(*exec.ExitError)
+	require.True(t, ok)
+
+	assert.Equal(t, 42, e.ExitCode())
+
+	assert.Eventually(t, func() bool { return numCalls == 0 }, time.Second, 50*time.Millisecond)
+}
+
+func TestRunCmd_Verbose_Error(t *testing.T) {
+	// this is exclusively run in subprocess
 	if os.Getenv("TEST_RUN") == "1" {
 		version.OS = "some os"
 		version.Arch = "some architecture"
@@ -56,7 +110,66 @@ func TestRunCmd_SendDiagnostics_Error(t *testing.T) {
 	testServerURL, router, tearDown := setupTestServer()
 	defer tearDown()
 
+	var numCalls int
+
 	router.HandleFunc("/plugins/errors", func(w http.ResponseWriter, req *http.Request) {
+		numCalls++
+	})
+
+	// run command in another runner, to effectively test os.Exit()
+	cmd := exec.Command(os.Args[0], "-test.run=TestRunCmd_Verbose_Error") // nolint:gosec
+	cmd.Env = append(os.Environ(), "TEST_RUN=1")
+	cmd.Env = append(cmd.Env, fmt.Sprintf("TEST_SERVER_URL=%s", testServerURL))
+
+	err := cmd.Run()
+
+	e, ok := err.(*exec.ExitError)
+	require.True(t, ok)
+
+	assert.Equal(t, 42, e.ExitCode())
+
+	assert.Eventually(t, func() bool { return numCalls == 0 }, time.Second, 50*time.Millisecond)
+}
+
+func TestRunCmd_SendDiagnostics_Error(t *testing.T) {
+	// this is exclusively run in subprocess
+	if os.Getenv("TEST_RUN") == "1" {
+		version.OS = "some os"
+		version.Arch = "some architecture"
+		version.Version = "some version"
+
+		tmpDir := t.TempDir()
+
+		offlineQueueFile, err := os.CreateTemp(tmpDir, "")
+		require.NoError(t, err)
+
+		logFile, err := os.CreateTemp(tmpDir, "")
+		require.NoError(t, err)
+
+		v := viper.New()
+		v.Set("api-url", os.Getenv("TEST_SERVER_URL"))
+		v.Set("entity", "/path/to/file")
+		v.Set("key", "00000000-0000-4000-8000-000000000000")
+		v.Set("log-file", logFile.Name())
+		v.Set("log-to-stdout", true)
+		v.Set("offline-queue-file", offlineQueueFile.Name())
+		v.Set("plugin", "vim")
+
+		cmd.RunCmd(v, true, true, func(v *viper.Viper) (int, error) {
+			return 42, errors.New("fail")
+		})
+
+		return
+	}
+
+	testServerURL, router, tearDown := setupTestServer()
+	defer tearDown()
+
+	var numCalls int
+
+	router.HandleFunc("/plugins/errors", func(w http.ResponseWriter, req *http.Request) {
+		numCalls++
+
 		// check request
 		assert.Equal(t, http.MethodPost, req.Method)
 		assert.Nil(t, req.Header["Authorization"])
@@ -103,6 +216,8 @@ func TestRunCmd_SendDiagnostics_Error(t *testing.T) {
 	require.True(t, ok)
 
 	assert.Equal(t, 42, e.ExitCode())
+
+	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
 
 func TestRunCmd_SendDiagnostics_Panic(t *testing.T) {
@@ -139,7 +254,11 @@ func TestRunCmd_SendDiagnostics_Panic(t *testing.T) {
 	testServerURL, router, tearDown := setupTestServer()
 	defer tearDown()
 
+	var numCalls int
+
 	router.HandleFunc("/plugins/errors", func(w http.ResponseWriter, req *http.Request) {
+		numCalls++
+
 		// check request
 		assert.Equal(t, http.MethodPost, req.Method)
 		assert.Nil(t, req.Header["Authorization"])
@@ -152,11 +271,12 @@ func TestRunCmd_SendDiagnostics_Panic(t *testing.T) {
 		require.NoError(t, err)
 
 		var diagnostics struct {
-			Platform     string `json:"platform"`
 			Architecture string `json:"architecture"`
 			CliVersion   string `json:"cli_version"`
 			Editor       string `json:"editor"`
+			IsPanic      bool   `json:"is_panic,omitempty"`
 			Logs         string `json:"logs"`
+			Platform     string `json:"platform"`
 			Stack        string `json:"stacktrace"`
 		}
 
@@ -185,6 +305,8 @@ func TestRunCmd_SendDiagnostics_Panic(t *testing.T) {
 	require.True(t, ok)
 
 	assert.Equal(t, 1, e.ExitCode())
+
+	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
 
 func TestRunCmdWithOfflineSync(t *testing.T) {
