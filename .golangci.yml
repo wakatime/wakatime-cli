@@ -15,10 +15,15 @@ linters:
     - gofmt
     - goimports
     - gosec
+    - gosimple
     - misspell
     - nestif
     - revive
     - testpackage
+    - unconvert
+    - unparam
+    - unused
+    - usestdlibvars
     - whitespace
     - wsl
 linters-settings:
