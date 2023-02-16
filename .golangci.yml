@@ -19,6 +19,8 @@ linters:
     - nestif
     - revive
     - testpackage
+    - unconvert
+    - usestdlibvars
     - whitespace
     - wsl
 linters-settings:

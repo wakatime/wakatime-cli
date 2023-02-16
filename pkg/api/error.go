@@ -16,7 +16,7 @@ var _ wakaerror.Error = Err{}
 
 // Error method to implement error interface.
 func (e Err) Error() string {
-	return string(e.Err.Error())
+	return e.Err.Error()
 }
 
 // ExitCode method to implement wakaerror.Error interface.
@@ -38,7 +38,7 @@ var _ wakaerror.Error = ErrAuth{}
 
 // Error method to implement error interface.
 func (e ErrAuth) Error() string {
-	return string(e.Err.Error())
+	return e.Err.Error()
 }
 
 // ExitCode method to implement wakaerror.Error interface.
@@ -60,7 +60,7 @@ var _ wakaerror.Error = ErrBadRequest{}
 
 // Error method to implement error interface.
 func (e ErrBadRequest) Error() string {
-	return string(e.Err.Error())
+	return e.Err.Error()
 }
 
 // ExitCode method to implement wakaerror.Error interface.
@@ -82,7 +82,7 @@ var _ wakaerror.Error = ErrBackoff{}
 
 // Error method to implement error interface.
 func (e ErrBackoff) Error() string {
-	return string(e.Err.Error())
+	return e.Err.Error()
 }
 
 // ExitCode method to implement wakaerror.Error interface.

@@ -120,7 +120,7 @@ func TestSendHeartbeats_WithFiltering_Exclude(t *testing.T) {
 	var numCalls int
 
 	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
-		w.WriteHeader(500)
+		w.WriteHeader(http.StatusInternalServerError)
 
 		numCalls++
 	})
