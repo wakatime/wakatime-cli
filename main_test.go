@@ -91,7 +91,7 @@ func testSendHeartbeats(t *testing.T, projectFolder, entity, p string) {
 		body, err := io.ReadAll(req.Body)
 		require.NoError(t, err)
 
-		assert.JSONEq(t, string(expectedBody), string(body))
+		assert.JSONEq(t, expectedBody, string(body))
 
 		// write response
 		f, err := os.Open("testdata/api_heartbeats_response.json")
@@ -180,7 +180,7 @@ func TestSendHeartbeats_SecondaryApiKey(t *testing.T) {
 		body, err := io.ReadAll(req.Body)
 		require.NoError(t, err)
 
-		assert.JSONEq(t, string(expectedBody), string(body))
+		assert.JSONEq(t, expectedBody, string(body))
 
 		// write response
 		f, err := os.Open("testdata/api_heartbeats_response.json")
@@ -340,7 +340,7 @@ func TestSendHeartbeats_Err(t *testing.T) {
 		body, err := io.ReadAll(req.Body)
 		require.NoError(t, err)
 
-		assert.JSONEq(t, string(expectedBody), string(body))
+		assert.JSONEq(t, expectedBody, string(body))
 
 		// write response
 		w.WriteHeader(http.StatusBadGateway)

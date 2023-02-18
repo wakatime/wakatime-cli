@@ -733,7 +733,7 @@ func parseExtraHeartbeats(data string) ([]heartbeat.Heartbeat, error) {
 
 	err := json.Unmarshal([]byte(data), &extraHeartbeats)
 	if err != nil {
-		return nil, fmt.Errorf("failed to json decode from data %q: %s", string(data), err)
+		return nil, fmt.Errorf("failed to json decode from data %q: %s", data, err)
 	}
 
 	var heartbeats []heartbeat.Heartbeat
