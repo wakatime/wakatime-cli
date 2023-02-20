@@ -13,13 +13,14 @@ import (
 )
 
 type diagnosticsBody struct {
-	Architecture string `json:"architecture"`
-	CliVersion   string `json:"cli_version"`
-	IsPanic      bool   `json:"is_panic,omitempty"`
-	Logs         string `json:"logs,omitempty"`
-	Platform     string `json:"platform"`
-	Plugin       string `json:"plugin"`
-	Stack        string `json:"stacktrace,omitempty"`
+	Architecture  string `json:"architecture"`
+	CliVersion    string `json:"cli_version"`
+	IsPanic       bool   `json:"is_panic,omitempty"`
+	Logs          string `json:"logs,omitempty"`
+	OriginalError string `json:"error_message,omitempty"`
+	Platform      string `json:"platform"`
+	Plugin        string `json:"plugin"`
+	Stack         string `json:"stacktrace,omitempty"`
 }
 
 // SendDiagnostics sends diagnostics to the WakaTime api.
@@ -38,6 +39,8 @@ func (c *Client) SendDiagnostics(plugin string, panicked bool, diagnostics ...di
 
 	for _, d := range diagnostics {
 		switch d.Type {
+		case diagnostic.TypeError:
+			body.OriginalError = d.Value
 		case diagnostic.TypeLogs:
 			body.Logs = d.Value
 		case diagnostic.TypeStack:
@@ -63,7 +66,7 @@ func (c *Client) SendDiagnostics(plugin string, panicked bool, diagnostics ...di
 	if err != nil {
 		return Err{Err: fmt.Errorf("failed making request to %q: %s", url, err)}
 	}
-	defer resp.Body.Close() // nolint:errcheck
+	defer resp.Body.Close() // nolint:errcheck,gosec
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {

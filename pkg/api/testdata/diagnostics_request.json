@@ -1,8 +1,9 @@
 {
-	"platform": "linux",
 	"architecture": "amd64",
-	"plugin": "vim",
 	"cli_version": "<local-build>",
+	"error_message": "some error",
 	"logs": "some logs",
+	"platform": "linux",
+	"plugin": "vim",
 	"stacktrace": "some stack"
 }
