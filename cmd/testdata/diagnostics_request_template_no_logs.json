@@ -1,6 +1,7 @@
 {
 	"architecture": "some architecture",
 	"cli_version": "some version",
+	"error_message": "%s",
 	"is_panic": true,
 	"platform": "some os",
 	"plugin": "vim",

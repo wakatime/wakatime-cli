@@ -47,6 +47,7 @@ func TestClient_SendDiagnostics(t *testing.T) {
 	version.Version = "<local-build>"
 
 	diagnostics := []diagnostic.Diagnostic{
+		diagnostic.Error("some error"),
 		diagnostic.Logs("some logs"),
 		diagnostic.Stack("some stack"),
 	}

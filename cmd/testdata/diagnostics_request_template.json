@@ -1,8 +1,9 @@
 {
-	"platform": "some os",
 	"architecture": "some architecture",
 	"cli_version": "some version",
-	"plugin": "vim",
+	"error_message": "%s",
 	"logs": "%s",
+	"platform": "some os",
+	"plugin": "vim",
 	"stacktrace": "%s"
 }

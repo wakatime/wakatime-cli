@@ -32,7 +32,7 @@ func (c *Client) Today() (*summary.Summary, error) {
 		return nil, Err{fmt.Errorf("failed to make request to %q: %s", url, err)}
 	}
 
-	defer resp.Body.Close() // nolint:errcheck
+	defer resp.Body.Close() // nolint:errcheck,gosec
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {

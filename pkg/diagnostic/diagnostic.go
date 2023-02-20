@@ -1,11 +1,15 @@
 package diagnostic
 
+import "fmt"
+
 // Type is a type of diagnostic.
 type Type int
 
 const (
 	// TypeUnknown designates an unknown type of diagnostic.
 	TypeUnknown Type = iota
+	// TypeError designates a Diagnostic for error.
+	TypeError
 	// TypeLogs designates a Diagnostic for logs.
 	TypeLogs
 	// TypeStack designates a Diagnostic for stack trace.
@@ -16,6 +20,14 @@ const (
 type Diagnostic struct {
 	Type  Type
 	Value string
+}
+
+// Error creates a new instance of Diagnostic of type TypeError.
+func Error(err any) Diagnostic {
+	return Diagnostic{
+		Type:  TypeError,
+		Value: fmt.Sprintf("%v", err),
+	}
 }
 
 // Logs creates a new instance of Diagnostic of type TypeLogs.

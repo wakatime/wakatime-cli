@@ -182,12 +182,13 @@ func TestRunCmd_SendDiagnostics_Error(t *testing.T) {
 		require.NoError(t, err)
 
 		var diagnostics struct {
-			Platform     string `json:"platform"`
-			Architecture string `json:"architecture"`
-			CliVersion   string `json:"cli_version"`
-			Editor       string `json:"editor"`
-			Logs         string `json:"logs"`
-			Stack        string `json:"stacktrace"`
+			Architecture  string `json:"architecture"`
+			CliVersion    string `json:"cli_version"`
+			Logs          string `json:"logs"`
+			OriginalError string `json:"error_message"`
+			Platform      string `json:"platform"`
+			Plugin        string `json:"plugin"`
+			Stack         string `json:"stacktrace"`
 		}
 
 		err = json.Unmarshal(body, &diagnostics)
@@ -195,6 +196,7 @@ func TestRunCmd_SendDiagnostics_Error(t *testing.T) {
 
 		expectedBodyStr := fmt.Sprintf(
 			string(expectedBodyTpl),
+			jsonEscape(t, diagnostics.OriginalError),
 			jsonEscape(t, diagnostics.Logs),
 			jsonEscape(t, diagnostics.Stack),
 		)
@@ -271,13 +273,13 @@ func TestRunCmd_SendDiagnostics_Panic(t *testing.T) {
 		require.NoError(t, err)
 
 		var diagnostics struct {
-			Architecture string `json:"architecture"`
-			CliVersion   string `json:"cli_version"`
-			Editor       string `json:"editor"`
-			IsPanic      bool   `json:"is_panic,omitempty"`
-			Logs         string `json:"logs"`
-			Platform     string `json:"platform"`
-			Stack        string `json:"stacktrace"`
+			Architecture  string `json:"architecture"`
+			CliVersion    string `json:"cli_version"`
+			IsPanic       bool   `json:"is_panic"`
+			OriginalError string `json:"error_message"`
+			Platform      string `json:"platform"`
+			Plugin        string `json:"plugin"`
+			Stack         string `json:"stacktrace"`
 		}
 
 		err = json.Unmarshal(body, &diagnostics)
@@ -285,6 +287,7 @@ func TestRunCmd_SendDiagnostics_Panic(t *testing.T) {
 
 		expectedBodyStr := fmt.Sprintf(
 			string(expectedBodyTpl),
+			jsonEscape(t, diagnostics.OriginalError),
 			jsonEscape(t, diagnostics.Stack),
 		)
 
