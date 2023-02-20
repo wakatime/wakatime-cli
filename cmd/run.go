@@ -36,6 +36,13 @@ import (
 	iniv1 "gopkg.in/ini.v1"
 )
 
+type diagnostics struct {
+	Logs          string
+	OriginalError any
+	Panicked      bool
+	Stack         string
+}
+
 // Run executes commands parsed from a command line.
 func Run(cmd *cobra.Command, v *viper.Viper) {
 	// force setup logging otherwise log goes to std out
@@ -255,7 +262,12 @@ func runCmd(v *viper.Viper, verbose bool, sendDiagsOnErrors bool, cmd cmdFn) int
 			resetLogs()
 
 			if verbose {
-				if err := sendDiagnostics(v, true, logs.String(), string(debug.Stack())); err != nil {
+				if err := sendDiagnostics(v, diagnostics{
+					Logs:          logs.String(),
+					OriginalError: err,
+					Panicked:      true,
+					Stack:         string(debug.Stack()),
+				}); err != nil {
 					log.Warnf("failed to send diagnostics: %s", err)
 				}
 			}
@@ -272,7 +284,12 @@ func runCmd(v *viper.Viper, verbose bool, sendDiagsOnErrors bool, cmd cmdFn) int
 		resetLogs()
 
 		if verbose && sendDiagsOnErrors {
-			if err := sendDiagnostics(v, false, logs.String(), string(debug.Stack())); err != nil {
+			if err := sendDiagnostics(v,
+				diagnostics{
+					Logs:          logs.String(),
+					OriginalError: err.Error(),
+					Stack:         string(debug.Stack()),
+				}); err != nil {
 				log.Warnf("failed to send diagnostics: %s", err)
 			}
 		}
@@ -294,7 +311,7 @@ func saveHeartbeatsAndExit(v *viper.Viper) {
 	os.Exit(exitcode.ErrConfigFileParse)
 }
 
-func sendDiagnostics(v *viper.Viper, panicked bool, logs, stack string) error {
+func sendDiagnostics(v *viper.Viper, d diagnostics) error {
 	paramAPI, err := params.LoadAPIParams(v)
 	if err != nil {
 		var errauth api.ErrAuth
@@ -312,13 +329,14 @@ func sendDiagnostics(v *viper.Viper, panicked bool, logs, stack string) error {
 	}
 
 	diagnostics := []diagnostic.Diagnostic{
-		diagnostic.Logs(logs),
-		diagnostic.Stack(stack),
+		diagnostic.Error(d.OriginalError),
+		diagnostic.Logs(d.Logs),
+		diagnostic.Stack(d.Stack),
 	}
 
 	api.WithDisableSSLVerify()(c)
 
-	err = c.SendDiagnostics(paramAPI.Plugin, panicked, diagnostics...)
+	err = c.SendDiagnostics(paramAPI.Plugin, d.Panicked, diagnostics...)
 	if err != nil {
 		return fmt.Errorf("failed to send diagnostics to the API: %s", err)
 	}

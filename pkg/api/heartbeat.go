@@ -65,7 +65,7 @@ func (c *Client) sendHeartbeats(url string, heartbeats []heartbeat.Heartbeat) ([
 	if err != nil {
 		return nil, Err{Err: fmt.Errorf("failed making request to %q: %s", url, err)}
 	}
-	defer resp.Body.Close() // nolint:errcheck
+	defer resp.Body.Close() // nolint:errcheck,gosec,gosec
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
