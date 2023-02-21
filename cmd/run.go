@@ -252,6 +252,9 @@ func RunCmdWithOfflineSync(v *viper.Viper, verbose bool, sendDiagsOnErrors bool,
 }
 
 // runCmd contains the main logic of RunCmd.
+// It will send diagnostic on any errors or panics.
+// On panic, it will send diagnostic and exit with ErrGeneric exit code.
+// On error, it will only send diagnostic if sendDiagsOnErrors and verbose is true.
 func runCmd(v *viper.Viper, verbose bool, sendDiagsOnErrors bool, cmd cmdFn) int {
 	logs := bytes.NewBuffer(nil)
 	resetLogs := captureLogs(logs)
@@ -259,17 +262,22 @@ func runCmd(v *viper.Viper, verbose bool, sendDiagsOnErrors bool, cmd cmdFn) int
 	// catch panics
 	defer func() {
 		if err := recover(); err != nil {
+			log.Errorf("panicked: %v", err)
+
 			resetLogs()
 
+			diags := diagnostics{
+				OriginalError: err,
+				Panicked:      true,
+				Stack:         string(debug.Stack()),
+			}
+
 			if verbose {
-				if err := sendDiagnostics(v, diagnostics{
-					Logs:          logs.String(),
-					OriginalError: err,
-					Panicked:      true,
-					Stack:         string(debug.Stack()),
-				}); err != nil {
-					log.Warnf("failed to send diagnostics: %s", err)
-				}
+				diags.Logs = logs.String()
+			}
+
+			if err := sendDiagnostics(v, diags); err != nil {
+				log.Warnf("failed to send diagnostics: %s", err)
 			}
 
 			os.Exit(exitcode.ErrGeneric)
