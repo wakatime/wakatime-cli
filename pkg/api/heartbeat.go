@@ -44,6 +44,10 @@ func (c *Client) SendHeartbeats(heartbeats []heartbeat.Heartbeat) ([]heartbeat.R
 }
 
 func (c *Client) sendHeartbeats(url string, heartbeats []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+	if heartbeats[0].APIKey == "" {
+		return nil, ErrAuth{Err: fmt.Errorf("missing api key")}
+	}
+
 	data, err := json.Marshal(heartbeats)
 	if err != nil {
 		return nil, fmt.Errorf("failed to json encode body: %s", err)

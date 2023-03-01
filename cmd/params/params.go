@@ -167,17 +167,17 @@ func Load(v *viper.Viper) (Params, error) {
 
 	apiParams, err := LoadAPIParams(v)
 	if err != nil {
-		return Params{}, fmt.Errorf("failed to load api params: %w", err)
+		log.Warnf("failed to load api params: %s", err)
 	}
 
 	offlineParams, err := LoadOfflineParams(v)
 	if err != nil {
-		return Params{}, fmt.Errorf("failed to load offline params: %w", err)
+		log.Warnf("failed to load offline params: %s", err)
 	}
 
 	statusBarParams, err := LoadStatusBarParams(v)
 	if err != nil {
-		return Params{}, fmt.Errorf("failed to load status bar params: %w", err)
+		log.Warnf("failed to load status bar params: %s", err)
 	}
 
 	return Params{
