@@ -6,7 +6,7 @@ require (
 	github.com/Azure/go-ntlmssp v0.0.0-20221128193559-754e69321358
 	github.com/alecthomas/chroma v0.10.0
 	github.com/danwakefield/fnmatch v0.0.0-20160403171240-cbb64ac3d964
-	github.com/dlclark/regexp2 v1.7.0
+	github.com/dlclark/regexp2 v1.8.1
 	github.com/gandarez/go-olson-timezone v0.1.0
 	github.com/juju/mutex v0.0.0-20180619145857-d21b13acf4bf
 	github.com/kevinburke/ssh_config v1.2.1-0.20220605204831-a56e914e7283
