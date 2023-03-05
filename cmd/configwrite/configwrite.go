@@ -42,7 +42,7 @@ func Run(v *viper.Viper) (int, error) {
 func Write(v *viper.Viper, w ini.Writer) error {
 	params, err := LoadParams(v)
 	if err != nil {
-		return fmt.Errorf("failed loading params: %w", err)
+		return fmt.Errorf("failed to load command parameters: %w", err)
 	}
 
 	return w.Write(params.Section, params.KeyValue)

@@ -17,12 +17,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-// Params contains file-expert command parameters.
-type Params struct {
-	Entity string
-	Params paramscmd.Params
-}
-
 // Run executes the file-experts command.
 func Run(v *viper.Viper) (int, error) {
 	output, err := FileExperts(v)
@@ -47,19 +41,19 @@ func Run(v *viper.Viper) (int, error) {
 func FileExperts(v *viper.Viper) (string, error) {
 	params, err := LoadParams(v)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to load command parameters: %w", err)
 	}
 
-	handleOpts := initHandleOptions(params.Params)
+	handleOpts := initHandleOptions(params)
 
-	apiClient, err := apicmd.NewClientWithoutAuth(params.Params.API)
+	apiClient, err := apicmd.NewClientWithoutAuth(params.API)
 	if err != nil {
 		return "", fmt.Errorf("failed to initialize api client: %w", err)
 	}
 
 	handle := fileexperts.NewHandle(apiClient, handleOpts...)
 
-	results, err := handle([]heartbeat.Heartbeat{{Entity: params.Entity}})
+	results, err := handle([]heartbeat.Heartbeat{{Entity: params.Heartbeat.Entity}})
 	if err != nil {
 		return "", err
 	}
@@ -70,7 +64,7 @@ func FileExperts(v *viper.Viper) (string, error) {
 
 	output, err := fileexperts.RenderFileExperts(
 		results[0].FileExpert.(*fileexperts.FileExperts),
-		params.Params.StatusBar.Output,
+		params.StatusBar.Output,
 	)
 	if err != nil {
 		return "", fmt.Errorf("failed generating fileexpert output: %s", err)
@@ -81,19 +75,30 @@ func FileExperts(v *viper.Viper) (string, error) {
 
 // LoadParams loads file-expert config params from viper.Viper instance. Returns ErrAuth
 // if failed to retrieve api key.
-func LoadParams(v *viper.Viper) (Params, error) {
+func LoadParams(v *viper.Viper) (paramscmd.Params, error) {
 	if v == nil {
-		return Params{}, fmt.Errorf("viper instance is nil")
+		return paramscmd.Params{}, fmt.Errorf("viper instance unset")
 	}
 
-	params, err := paramscmd.Load(v)
+	heartbeatParams, err := paramscmd.LoadHeartbeatParams(v)
 	if err != nil {
-		return Params{}, fmt.Errorf("failed to load command parameters: %w", err)
+		return paramscmd.Params{}, fmt.Errorf("failed to load heartbeat params: %s", err)
 	}
 
-	return Params{
-		Entity: params.Heartbeat.Entity,
-		Params: params,
+	apiParams, err := paramscmd.LoadAPIParams(v)
+	if err != nil {
+		return paramscmd.Params{}, fmt.Errorf("failed to load API parameters: %w", err)
+	}
+
+	statusBarParams, err := paramscmd.LoadStatusBarParams(v)
+	if err != nil {
+		return paramscmd.Params{}, fmt.Errorf("failed to load status bar params: %w", err)
+	}
+
+	return paramscmd.Params{
+		API:       apiParams,
+		Heartbeat: heartbeatParams,
+		StatusBar: statusBarParams,
 	}, nil
 }
 

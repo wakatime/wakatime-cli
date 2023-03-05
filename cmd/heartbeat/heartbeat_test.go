@@ -2,7 +2,6 @@ package heartbeat_test
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -716,37 +715,20 @@ func TestSendHeartbeats_NonExistingExtraHeartbeatsEntity(t *testing.T) {
 	assert.Contains(t, string(output), "skipping because of non-existing file")
 }
 
-func TestSendHeartbeats_ErrAuth(t *testing.T) {
-	testServerURL, router, tearDown := setupTestServer()
+func TestSendHeartbeats_ErrAuth_UnsetAPIKey(t *testing.T) {
+	_, router, tearDown := setupTestServer()
 	defer tearDown()
 
-	var (
-		plugin = "plugin/0.0.1"
-	)
+	var numCalls int
 
 	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
-		// check request
-		assert.Fail(t, "Should not send heartbeats")
+		numCalls++
+
+		// send response
+		w.WriteHeader(http.StatusCreated)
 	})
 
 	v := viper.New()
-	v.SetDefault("sync-offline-activity", 1000)
-	v.Set("api-url", testServerURL)
-	v.Set("category", "debugging")
-	v.Set("cursorpos", 42)
-	v.Set("entity", "testdata/main.go")
-	v.Set("entity-type", "file")
-	v.Set("key", "00000000-0000-X000-X000-000000000000")
-	v.Set("language", "Go")
-	v.Set("alternate-language", "Golang")
-	v.Set("hide-branch-names", true)
-	v.Set("project", "wakatime-cli")
-	v.Set("lineno", 13)
-	v.Set("local-file", "testdata/localfile.go")
-	v.Set("plugin", plugin)
-	v.Set("time", 1585598059.1)
-	v.Set("timeout", 5)
-	v.Set("write", true)
 
 	offlineQueueFile, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)
@@ -758,17 +740,15 @@ func TestSendHeartbeats_ErrAuth(t *testing.T) {
 
 	var errauth api.ErrAuth
 
-	assert.True(t, errors.As(err, &errauth))
-	assert.Equal(
+	assert.ErrorAs(t, err, &errauth)
+
+	assert.EqualError(
 		t,
-		"missing api key",
-		err.Error(),
+		err,
+		"failed to load command parameters: failed to load API parameters: api key not found or empty",
 	)
 
-	offlineCount, err := offline.CountHeartbeats(offlineQueueFile.Name())
-	require.NoError(t, err)
-
-	assert.Equal(t, 1, offlineCount)
+	assert.Eventually(t, func() bool { return numCalls == 0 }, time.Second, 50*time.Millisecond)
 }
 
 func setupTestServer() (string, *http.ServeMux, func()) {
