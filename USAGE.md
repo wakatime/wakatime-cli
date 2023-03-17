@@ -49,6 +49,7 @@ projects/foo = your-api-key
 
 [git]
 submodules_disabled = false
+project_from_git_remote = false
 
 [git_submodule_projectmap]
 some/submodule/name = new project name
