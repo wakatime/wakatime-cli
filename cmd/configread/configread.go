@@ -36,7 +36,7 @@ func Run(v *viper.Viper) (int, error) {
 func Read(v *viper.Viper) (string, error) {
 	params, err := LoadParams(v)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to load command parameters: %w", err)
 	}
 
 	value := strings.TrimSpace(vipertools.GetString(v, params.ViperKey()))

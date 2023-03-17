@@ -2,7 +2,6 @@ package fileexperts_test
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -93,6 +92,7 @@ func TestFileExperts(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, "You: 40 mins | Karl: 21 mins", output)
+
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
 
@@ -154,13 +154,15 @@ func TestFileExperts_ErrApi(t *testing.T) {
 
 	var errapi api.Err
 
-	assert.True(t, errors.As(err, &errapi))
+	assert.ErrorAs(t, err, &errapi)
 
 	expectedMsg := fmt.Sprintf(
 		`invalid response status from "%s/users/current/file_experts". got: 500, want: 200. body: ""`,
 		testServerURL,
 	)
-	assert.Equal(t, expectedMsg, err.Error())
+
+	assert.EqualError(t, err, expectedMsg)
+
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
 
@@ -186,13 +188,14 @@ func TestFileExperts_ErrAuth(t *testing.T) {
 
 	var errauth api.ErrAuth
 
-	assert.True(t, errors.As(err, &errauth))
+	assert.ErrorAs(t, err, &errauth)
 
 	expectedMsg := fmt.Sprintf(
 		`authentication failed at "%s/users/current/file_experts". body: ""`,
 		testServerURL,
 	)
-	assert.Equal(t, expectedMsg, err.Error())
+	assert.EqualError(t, err, expectedMsg)
+
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
 
@@ -218,32 +221,16 @@ func TestFileExperts_ErrBadRequest(t *testing.T) {
 
 	var errbadRequest api.ErrBadRequest
 
-	assert.True(t, errors.As(err, &errbadRequest))
+	assert.ErrorAs(t, err, &errbadRequest)
 
 	expectedMsg := fmt.Sprintf(
 		`bad request at "%s/users/current/file_experts"`,
 		testServerURL,
 	)
-	assert.Equal(t, expectedMsg, err.Error())
+
+	assert.EqualError(t, err, expectedMsg)
+
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
-}
-
-func TestFileExperts_ErrAuth_UnsetAPIKey(t *testing.T) {
-	v := viper.New()
-	v.Set("entity", "testdata/main.go")
-	v.Set("file-experts", true)
-
-	_, err := fileexperts.FileExperts(v)
-	require.Error(t, err)
-
-	var errauth api.ErrAuth
-
-	assert.True(t, errors.As(err, &errauth))
-	assert.Equal(
-		t,
-		"missing api key",
-		err.Error(),
-	)
 }
 
 func setupTestServer() (string, *http.ServeMux, func()) {

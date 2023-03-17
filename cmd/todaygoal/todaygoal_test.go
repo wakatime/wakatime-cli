@@ -127,14 +127,15 @@ func TestGoal_ErrAuth(t *testing.T) {
 
 	var errauth api.ErrAuth
 
-	assert.True(t, errors.As(err, &errauth))
+	assert.ErrorAs(t, err, &errauth)
 
 	expectedMsg := fmt.Sprintf(
 		`failed fetching todays goal from api: `+
 			`authentication failed at "%s/users/current/goals/00000000-0000-4000-8000-000000000000". body: ""`,
 		testServerURL,
 	)
-	assert.Equal(t, expectedMsg, err.Error())
+	assert.EqualError(t, err, expectedMsg)
+
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
 
@@ -179,7 +180,8 @@ func TestGoal_ErrAuth_UnsetAPIKey(t *testing.T) {
 
 	var errauth api.ErrAuth
 
-	assert.True(t, errors.As(err, &errauth))
+	assert.ErrorAs(t, err, &errauth)
+
 	assert.Equal(
 		t,
 		"failed to load command parameters: failed to load API parameters: api key not found or empty",

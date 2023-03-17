@@ -2,11 +2,11 @@ package params_test
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -640,7 +640,6 @@ func TestLoadParams_ProjectApiKey(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			v := viper.New()
 			v.Set("key", "00000000-0000-4000-8000-000000000000")
-			// v.Set("entity", test.Entity)
 			v.Set(fmt.Sprintf("project_api_key.%s", test.Regex.String()), test.APIKey)
 
 			params, err := paramscmd.LoadAPIParams(v)
@@ -662,7 +661,7 @@ func TestLoadParams_ProjectApiKey_ParseConfig(t *testing.T) {
 	err = inipkg.ReadInConfig(v, configFile)
 	require.NoError(t, err)
 
-	params, err := paramscmd.Load(v)
+	params, err := paramscmd.LoadAPIParams(v)
 	require.NoError(t, err)
 
 	expected := []apikey.MapPattern{
@@ -672,41 +671,7 @@ func TestLoadParams_ProjectApiKey_ParseConfig(t *testing.T) {
 		},
 	}
 
-	assert.Equal(t, expected, params.API.KeyPatterns)
-}
-
-func TestLoadParams_ApiKey_SettingTakePrecedence(t *testing.T) {
-	v := viper.New()
-	v.Set("config", "testdata/.wakatime.cfg")
-	v.Set("entity", "testdata/heartbeat_go.json")
-
-	configFile, err := inipkg.FilePath(v)
-	require.NoError(t, err)
-
-	err = inipkg.ReadInConfig(v, configFile)
-	require.NoError(t, err)
-
-	params, err := paramscmd.Load(v)
-	require.NoError(t, err)
-
-	assert.Equal(t, "00000000-0000-4000-8000-000000000000", params.API.Key)
-}
-
-func TestLoadParams_ApiKey_FromVault(t *testing.T) {
-	v := viper.New()
-	v.Set("config", "testdata/.wakatime-vault.cfg")
-	v.Set("entity", "testdata/heartbeat_go.json")
-
-	configFile, err := inipkg.FilePath(v)
-	require.NoError(t, err)
-
-	err = inipkg.ReadInConfig(v, configFile)
-	require.NoError(t, err)
-
-	params, err := paramscmd.Load(v)
-	require.NoError(t, err)
-
-	assert.Equal(t, "00000000-0000-4000-8000-000000000000", params.API.Key)
+	assert.Equal(t, expected, params.KeyPatterns)
 }
 
 func TestLoadParams_Time(t *testing.T) {
@@ -1600,8 +1565,7 @@ func TestLoad_OfflineDisabled_ConfigTakesPrecedence(t *testing.T) {
 	v.Set("disableoffline", false)
 	v.Set("settings.offline", false)
 
-	params, err := paramscmd.LoadOfflineParams(v)
-	require.NoError(t, err)
+	params := paramscmd.LoadOfflineParams(v)
 
 	assert.True(t, params.Disabled)
 }
@@ -1611,8 +1575,7 @@ func TestLoad_OfflineDisabled_FlagDeprecatedTakesPrecedence(t *testing.T) {
 	v.Set("disable-offline", false)
 	v.Set("disableoffline", true)
 
-	params, err := paramscmd.LoadOfflineParams(v)
-	require.NoError(t, err)
+	params := paramscmd.LoadOfflineParams(v)
 
 	assert.True(t, params.Disabled)
 }
@@ -1621,8 +1584,7 @@ func TestLoad_OfflineDisabled_FromFlag(t *testing.T) {
 	v := viper.New()
 	v.Set("disable-offline", true)
 
-	params, err := paramscmd.LoadOfflineParams(v)
-	require.NoError(t, err)
+	params := paramscmd.LoadOfflineParams(v)
 
 	assert.True(t, params.Disabled)
 }
@@ -1631,8 +1593,7 @@ func TestLoad_OfflineQueueFile(t *testing.T) {
 	v := viper.New()
 	v.Set("offline-queue-file", "/path/to/file")
 
-	params, err := paramscmd.LoadOfflineParams(v)
-	require.NoError(t, err)
+	params := paramscmd.LoadOfflineParams(v)
 
 	assert.Equal(t, "/path/to/file", params.QueueFile)
 }
@@ -1641,8 +1602,7 @@ func TestLoad_OfflineSyncMax(t *testing.T) {
 	v := viper.New()
 	v.Set("sync-offline-activity", 42)
 
-	params, err := paramscmd.LoadOfflineParams(v)
-	require.NoError(t, err)
+	params := paramscmd.LoadOfflineParams(v)
 
 	assert.Equal(t, 42, params.SyncMax)
 }
@@ -1651,8 +1611,7 @@ func TestLoad_OfflineSyncMax_Zero(t *testing.T) {
 	v := viper.New()
 	v.Set("sync-offline-activity", "0")
 
-	params, err := paramscmd.LoadOfflineParams(v)
-	require.NoError(t, err)
+	params := paramscmd.LoadOfflineParams(v)
 
 	assert.Zero(t, params.SyncMax)
 }
@@ -1661,8 +1620,7 @@ func TestLoad_OfflineSyncMax_Default(t *testing.T) {
 	v := viper.New()
 	v.SetDefault("sync-offline-activity", 1000)
 
-	params, err := paramscmd.LoadOfflineParams(v)
-	require.NoError(t, err)
+	params := paramscmd.LoadOfflineParams(v)
 
 	assert.Equal(t, 1000, params.SyncMax)
 }
@@ -1671,18 +1629,16 @@ func TestLoad_OfflineSyncMax_NegativeNumber(t *testing.T) {
 	v := viper.New()
 	v.Set("sync-offline-activity", -1)
 
-	_, err := paramscmd.LoadOfflineParams(v)
-	require.Error(t, err)
+	params := paramscmd.LoadOfflineParams(v)
 
-	assert.EqualError(t, err, "argument --sync-offline-activity must be zero or a positive integer number")
+	assert.Equal(t, 0, params.SyncMax)
 }
 
 func TestLoad_OfflineSyncMax_NonIntegerValue(t *testing.T) {
 	v := viper.New()
 	v.Set("sync-offline-activity", "invalid")
 
-	params, err := paramscmd.LoadOfflineParams(v)
-	require.NoError(t, err)
+	params := paramscmd.LoadOfflineParams(v)
 
 	assert.Equal(t, 0, params.SyncMax)
 }
@@ -1739,9 +1695,22 @@ func TestLoad_API_APIKey(t *testing.T) {
 	}
 }
 
+func TestLoad_API_APIKeyUnset(t *testing.T) {
+	v := viper.New()
+	v.Set("key", "")
+
+	_, err := paramscmd.LoadAPIParams(v)
+	require.Error(t, err)
+
+	var errauth api.ErrAuth
+
+	assert.ErrorAs(t, err, &errauth)
+
+	assert.EqualError(t, errauth, "api key not found or empty")
+}
+
 func TestLoad_API_APIKeyInvalid(t *testing.T) {
 	tests := map[string]string{
-		"unset":            "",
 		"invalid format 1": "not-uuid",
 		"invalid format 2": "00000000-0000-0000-8000-000000000000",
 		"invalid format 3": "00000000-0000-4000-0000-000000000000",
@@ -1756,9 +1725,65 @@ func TestLoad_API_APIKeyInvalid(t *testing.T) {
 			require.Error(t, err)
 
 			var errauth api.ErrAuth
-			require.True(t, errors.As(err, &errauth))
+			assert.ErrorAs(t, err, &errauth)
+
+			assert.EqualError(t, errauth, "invalid api key format")
 		})
 	}
+}
+
+func TestLoadParams_ApiKey_SettingTakePrecedence(t *testing.T) {
+	v := viper.New()
+	v.Set("config", "testdata/.wakatime.cfg")
+	v.Set("entity", "testdata/heartbeat_go.json")
+
+	configFile, err := inipkg.FilePath(v)
+	require.NoError(t, err)
+
+	err = inipkg.ReadInConfig(v, configFile)
+	require.NoError(t, err)
+
+	params, err := paramscmd.LoadAPIParams(v)
+	require.NoError(t, err)
+
+	assert.Equal(t, "00000000-0000-4000-8000-000000000000", params.Key)
+}
+
+func TestLoadParams_ApiKey_FromVault(t *testing.T) {
+	v := viper.New()
+	v.Set("config", "testdata/.wakatime-vault.cfg")
+	v.Set("entity", "testdata/heartbeat_go.json")
+
+	configFile, err := inipkg.FilePath(v)
+	require.NoError(t, err)
+
+	err = inipkg.ReadInConfig(v, configFile)
+	require.NoError(t, err)
+
+	params, err := paramscmd.LoadAPIParams(v)
+	require.NoError(t, err)
+
+	assert.Equal(t, "00000000-0000-4000-8000-000000000000", params.Key)
+}
+
+func TestLoadParams_ApiKey_FromVault_Err_Darwin(t *testing.T) {
+	if runtime.GOOS != "darwin" {
+		t.Skip("Skipping because OS is not darwin.")
+	}
+
+	v := viper.New()
+	v.Set("config", "testdata/.wakatime-vault-error.cfg")
+	v.Set("entity", "testdata/heartbeat_go.json")
+
+	configFile, err := inipkg.FilePath(v)
+	require.NoError(t, err)
+
+	err = inipkg.ReadInConfig(v, configFile)
+	require.NoError(t, err)
+
+	_, err = paramscmd.LoadAPIParams(v)
+
+	assert.EqualError(t, err, "failed to read api key from vault: exit status 1")
 }
 
 func TestLoad_API_APIUrl(t *testing.T) {
@@ -1846,6 +1871,20 @@ func TestLoad_APIUrl_Default(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, api.BaseURL, params.URL)
+}
+
+func TestLoad_APIUrl_InvalidFormat(t *testing.T) {
+	v := viper.New()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("api-url", "http://in valid")
+
+	_, err := paramscmd.LoadAPIParams(v)
+
+	var errauth api.ErrAuth
+
+	assert.ErrorAs(t, err, &errauth)
+
+	assert.EqualError(t, errauth, `invalid api url: parse "http://in valid": invalid character " " in host name`)
 }
 
 func TestLoad_API_BackoffAt(t *testing.T) {
@@ -2059,11 +2098,14 @@ func TestLoad_API_ProxyURL_InvalidFormat(t *testing.T) {
 	v.Set("proxy", "ftp://john:secret@example.org:8888")
 
 	_, err := paramscmd.LoadAPIParams(v)
-	require.Error(t, err)
 
-	assert.Equal(
+	var errauth api.ErrAuth
+
+	assert.ErrorAs(t, err, &errauth)
+
+	assert.EqualError(
 		t,
-		err.Error(),
+		err,
 		"invalid url \"ftp://john:secret@example.org:8888\". Must be in format'https://user:pass@host:port' or"+
 			" 'socks5://user:pass@host:port' or 'domain\\\\user:pass.'")
 }

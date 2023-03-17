@@ -48,7 +48,7 @@ func (ErrAuth) ExitCode() int {
 
 // Message method to implement wakaerror.Error interface.
 func (e ErrAuth) Message() string {
-	return fmt.Sprintf("invalid api key... find yours at wakatime.com/api-key. %s", e.Err)
+	return fmt.Sprintf("invalid api key... find yours at wakatime.com/api-key. %s", e.Err.Error())
 }
 
 // ErrBadRequest represents a 400 response from the API.

@@ -63,24 +63,16 @@ func loadParams(v *viper.Viper) (paramscmd.Params, error) {
 		log.Warnf("failed to load API parameters: %s", err)
 	}
 
-	paramOffline, err := paramscmd.LoadOfflineParams(v)
-	if err != nil {
-		log.Warnf("failed to load offline parameters: %s", err)
-	}
-
-	params := paramscmd.Params{
-		API:     paramAPI,
-		Offline: paramOffline,
-	}
-
 	paramHeartbeat, err := paramscmd.LoadHeartbeatParams(v)
 	if err != nil {
 		return paramscmd.Params{}, fmt.Errorf("failed to load heartbeat parameters: %s", err)
 	}
 
-	params.Heartbeat = paramHeartbeat
-
-	return params, nil
+	return paramscmd.Params{
+		API:       paramAPI,
+		Heartbeat: paramHeartbeat,
+		Offline:   paramscmd.LoadOfflineParams(v),
+	}, nil
 }
 
 func buildHeartbeats(params paramscmd.Params) []heartbeat.Heartbeat {

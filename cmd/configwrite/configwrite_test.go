@@ -122,7 +122,7 @@ func TestWriteErr(t *testing.T) {
 
 			assert.Equal(
 				t,
-				"failed loading params: neither section nor key/value can be empty",
+				"failed to load command parameters: neither section nor key/value can be empty",
 				err.Error(),
 				fmt.Sprintf("error %q differs from the string set", err),
 			)

@@ -20,10 +20,6 @@ import (
 func (c *Client) FileExperts(heartbeats []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 	url := c.baseURL + "/users/current/file_experts"
 
-	if heartbeats[0].APIKey == "" {
-		return nil, ErrAuth{Err: fmt.Errorf("missing api key")}
-	}
-
 	// change from heartbeat.Heartbeat to fileexpert.Entity
 	// it's safe to get the first item in the slice.
 	e := fileexperts.Entity{

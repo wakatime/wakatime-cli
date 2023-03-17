@@ -4,9 +4,10 @@ import (
 	"regexp"
 	"testing"
 
+	"github.com/wakatime/wakatime-cli/pkg/regex"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/wakatime/wakatime-cli/pkg/regex"
 )
 
 func TestParseEditorFromPlugin(t *testing.T) {

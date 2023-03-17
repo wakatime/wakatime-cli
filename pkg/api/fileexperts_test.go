@@ -169,7 +169,7 @@ func TestClient_FileExperts_ErrAuth(t *testing.T) {
 
 	var errauth api.ErrAuth
 
-	assert.True(t, errors.As(err, &errauth))
+	assert.ErrorAs(t, err, &errauth)
 
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }

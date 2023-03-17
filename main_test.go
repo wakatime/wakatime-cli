@@ -387,6 +387,62 @@ func TestSendHeartbeats_Err(t *testing.T) {
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
 
+func TestSendHeartbeats_ErrAuth_InvalidAPIKEY(t *testing.T) {
+	apiURL, router, close := setupTestServer()
+	defer close()
+
+	var numCalls int
+
+	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
+		numCalls++
+	})
+
+	tmpDir := t.TempDir()
+
+	offlineQueueFile, err := os.CreateTemp(tmpDir, "")
+	require.NoError(t, err)
+
+	defer offlineQueueFile.Close()
+
+	tmpConfigFile, err := os.CreateTemp(tmpDir, "wakatime.cfg")
+	require.NoError(t, err)
+
+	defer tmpConfigFile.Close()
+
+	tmpInternalConfigFile, err := os.CreateTemp(tmpDir, "wakatime-internal.cfg")
+	require.NoError(t, err)
+
+	defer tmpInternalConfigFile.Close()
+
+	out := runWakatimeCliExpectErr(
+		t,
+		exitcode.ErrAuth,
+		"--api-url", apiURL,
+		"--key", "invalid",
+		"--config", tmpConfigFile.Name(),
+		"--internal-config", tmpInternalConfigFile.Name(),
+		"--entity", "testdata/main.go",
+		"--cursorpos", "12",
+		"--offline-queue-file", offlineQueueFile.Name(),
+		"--lineno", "42",
+		"--lines-in-file", "100",
+		"--time", "1585598059",
+		"--hide-branch-names", ".*",
+		"--project", "wakatime-cli",
+		"--write",
+		"--verbose",
+	)
+
+	assert.Empty(t, out)
+
+	count, err := offline.CountHeartbeats(offlineQueueFile.Name())
+	require.NoError(t, err)
+
+	assert.Equal(t, 1, count)
+
+	assert.Eventually(t, func() bool { return numCalls == 0 }, time.Second, 50*time.Millisecond)
+}
+
 func TestSendHeartbeats_MalformedConfig(t *testing.T) {
 	tmpDir := t.TempDir()
 
