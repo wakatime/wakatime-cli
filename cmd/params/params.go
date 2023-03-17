@@ -133,6 +133,7 @@ type (
 		BranchAlternate      string
 		MapPatterns          []project.MapPattern
 		Override             string
+		ProjectFromGitRemote bool
 		SubmodulesDisabled   []regex.Regex
 		SubmoduleMapPatterns []project.MapPattern
 	}
@@ -559,6 +560,7 @@ func loadProjectParams(v *viper.Viper) (ProjectParams, error) {
 		BranchAlternate:      vipertools.GetString(v, "alternate-branch"),
 		MapPatterns:          loadProjectMapPatterns(v, "projectmap"),
 		Override:             vipertools.GetString(v, "project"),
+		ProjectFromGitRemote: v.GetBool("git.project_from_git_remote"),
 		SubmodulesDisabled:   submodulesDisabled,
 		SubmoduleMapPatterns: loadProjectMapPatterns(v, "git_submodule_projectmap"),
 	}, nil

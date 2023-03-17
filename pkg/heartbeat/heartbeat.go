@@ -37,6 +37,7 @@ type Heartbeat struct {
 	LocalFileNeedsCleanup bool       `json:"-"`
 	Project               *string    `json:"project,omitempty"`
 	ProjectAlternate      string     `json:"-"`
+	ProjectFromGitRemote  bool       `json:"-"`
 	ProjectOverride       string     `json:"-"`
 	ProjectPath           string     `json:"-"`
 	ProjectPathOverride   string     `json:"-"`
@@ -61,29 +62,31 @@ func New(
 	lines *int,
 	localFile string,
 	projectAlternate string,
+	projectFromGitRemote bool,
 	projectOverride string,
 	projectPathOverride string,
 	time float64,
 	userAgent string,
 ) Heartbeat {
 	return Heartbeat{
-		BranchAlternate:     branchAlternate,
-		Category:            category,
-		CursorPosition:      cursorPosition,
-		Entity:              entity,
-		EntityType:          entityType,
-		IsUnsavedEntity:     isUnsavedEntity,
-		IsWrite:             isWrite,
-		Language:            language,
-		LanguageAlternate:   languageAlternate,
-		LineNumber:          lineNumber,
-		Lines:               lines,
-		LocalFile:           localFile,
-		ProjectAlternate:    projectAlternate,
-		ProjectOverride:     projectOverride,
-		ProjectPathOverride: projectPathOverride,
-		Time:                time,
-		UserAgent:           userAgent,
+		BranchAlternate:      branchAlternate,
+		Category:             category,
+		CursorPosition:       cursorPosition,
+		Entity:               entity,
+		EntityType:           entityType,
+		IsUnsavedEntity:      isUnsavedEntity,
+		IsWrite:              isWrite,
+		Language:             language,
+		LanguageAlternate:    languageAlternate,
+		LineNumber:           lineNumber,
+		Lines:                lines,
+		LocalFile:            localFile,
+		ProjectAlternate:     projectAlternate,
+		ProjectFromGitRemote: projectFromGitRemote,
+		ProjectOverride:      projectOverride,
+		ProjectPathOverride:  projectPathOverride,
+		Time:                 time,
+		UserAgent:            userAgent,
 	}
 }
 

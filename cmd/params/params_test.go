@@ -2341,6 +2341,17 @@ func TestProjectParams_String(t *testing.T) {
 	)
 }
 
+func TestLoadParams_ProjectFromGitRemote(t *testing.T) {
+	v := viper.New()
+	v.Set("git.project_from_git_remote", true)
+	v.Set("entity", "/path/to/file")
+
+	params, err := paramscmd.LoadHeartbeatParams(v)
+	require.NoError(t, err)
+
+	assert.True(t, params.Project.ProjectFromGitRemote)
+}
+
 func TestSanitizeParams_String(t *testing.T) {
 	sanitizeparams := paramscmd.SanitizeParams{
 		HideBranchNames:     []regex.Regex{regex.MustCompile("^/hide")},

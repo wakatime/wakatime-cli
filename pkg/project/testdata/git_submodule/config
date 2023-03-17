@@ -4,13 +4,10 @@
 	bare = false
 	logallrefupdates = true
 	ignorecase = true
-	precomposeunicode = true
+	worktree = ../../../billing
 [remote "origin"]
-	url = git@github.com:wakatime/wakatime-cli.git
+	url = git@github.com:wakatime/billing.git
 	fetch = +refs/heads/*:refs/remotes/origin/*
-[branch "develop"]
+[branch "main"]
 	remote = origin
-	merge = refs/heads/develop
-[user]
-	email = wakatime-cli@wakatime.com
-	name = WakaTime
+	merge = refs/heads/main

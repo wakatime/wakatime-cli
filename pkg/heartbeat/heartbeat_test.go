@@ -32,6 +32,7 @@ func TestNew(t *testing.T) {
 		nil,
 		"/path/to/file",
 		"billing",
+		false,
 		"pci",
 		"/custom-path",
 		1592868313.541149,

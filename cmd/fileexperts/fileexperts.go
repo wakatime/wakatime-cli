@@ -116,8 +116,9 @@ func initHandleOptions(params paramscmd.Params) []heartbeat.HandleOption {
 			MapPatterns:   params.API.KeyPatterns,
 		}),
 		project.WithDetection(project.Config{
-			HideProjectNames: params.Heartbeat.Sanitize.HideProjectNames,
-			MapPatterns:      params.Heartbeat.Project.MapPatterns,
+			HideProjectNames:     params.Heartbeat.Sanitize.HideProjectNames,
+			MapPatterns:          params.Heartbeat.Project.MapPatterns,
+			ProjectFromGitRemote: params.Heartbeat.Project.ProjectFromGitRemote,
 			Submodule: project.Submodule{
 				DisabledPatterns: params.Heartbeat.Project.SubmodulesDisabled,
 				MapPatterns:      params.Heartbeat.Project.SubmoduleMapPatterns,

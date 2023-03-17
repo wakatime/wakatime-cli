@@ -134,6 +134,26 @@ func TestGit_Detect_Worktree(t *testing.T) {
 	}, result)
 }
 
+func TestGit_Detect_WorktreeGitRemote(t *testing.T) {
+	fp := setupTestGitWorktree(t)
+
+	g := project.Git{
+		Filepath:             filepath.Join(fp, "api/src/pkg/file.go"),
+		ProjectFromGitRemote: true,
+	}
+
+	result, detected, err := g.Detect()
+	require.NoError(t, err)
+
+	assert.True(t, detected)
+	assert.Contains(t, result.Folder, filepath.Join(fp, "wakatime-cli"))
+	assert.Equal(t, project.Result{
+		Project: "wakatime/wakatime-cli",
+		Branch:  "feature/api",
+		Folder:  result.Folder,
+	}, result)
+}
+
 func TestGit_Detect_Submodule(t *testing.T) {
 	fp := setupTestGitSubmodule(t)
 
@@ -219,6 +239,27 @@ func TestGit_Detect_SubmoduleProjectMap(t *testing.T) {
 	assert.Contains(t, result.Folder, filepath.Join(fp, "wakatime-cli"))
 	assert.Equal(t, project.Result{
 		Project: "my-project-1",
+		Branch:  "master",
+		Folder:  result.Folder,
+	}, result)
+}
+
+func TestGit_Detect_SubmoduleGitRemote(t *testing.T) {
+	fp := setupTestGitSubmodule(t)
+
+	g := project.Git{
+		Filepath:                  filepath.Join(fp, "wakatime-cli/lib/billing/src/lib/lib.cpp"),
+		ProjectFromGitRemote:      true,
+		SubmoduleDisabledPatterns: []regex.Regex{regexp.MustCompile("not_matching")},
+	}
+
+	result, detected, err := g.Detect()
+	require.NoError(t, err)
+
+	assert.True(t, detected)
+	assert.Contains(t, result.Folder, filepath.Join(fp, "wakatime-cli"))
+	assert.Equal(t, project.Result{
+		Project: "wakatime/billing",
 		Branch:  "master",
 		Folder:  result.Folder,
 	}, result)
@@ -462,7 +503,7 @@ func setupTestGitSubmodule(t *testing.T) (fp string) {
 	copyFile(t, "testdata/git_submodule/HEAD", filepath.Join(tmpDir, "wakatime-cli/.git/HEAD"))
 
 	// Setup git submodule
-	copyFile(t, "testdata/git_basic/config", filepath.Join(tmpDir, "wakatime-cli/.git/modules/lib/billing/config"))
+	copyFile(t, "testdata/git_submodule/config", filepath.Join(tmpDir, "wakatime-cli/.git/modules/lib/billing/config"))
 	copyFile(t, "testdata/git_submodule/HEAD2", filepath.Join(tmpDir, "wakatime-cli/.git/modules/lib/billing/HEAD"))
 	copyFile(t, "testdata/git_basic/config", filepath.Join(tmpDir, "billing/.git/config"))
 	copyFile(t, "testdata/git_submodule/HEAD2", filepath.Join(tmpDir, "billing/.git/HEAD"))
