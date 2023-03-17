@@ -23,10 +23,7 @@ func Run(v *viper.Viper) (int, error) {
 		)
 	}
 
-	p, err := params.LoadOfflineParams(v)
-	if err != nil {
-		return exitcode.ErrGeneric, fmt.Errorf("failed to load offline parameters: %w", err)
-	}
+	p := params.LoadOfflineParams(v)
 
 	if p.QueueFile != "" {
 		queueFilepath = p.QueueFile

@@ -35,12 +35,17 @@ func Run(v *viper.Viper) (int, error) {
 
 	err = SendHeartbeats(v, queueFilepath)
 	if err != nil {
-		var errBackoff api.ErrBackoff
+		var errauth api.ErrAuth
 
-		if errors.As(err, &errBackoff) {
-			log.Debugf("sending heartbeat(s) failed: %s", errBackoff.Message())
+		// api.ErrAuth represents an error when parsing api key.
+		// Save heartbeats to offline db even when api key invalid.
+		// It avoids losing heartbeats when api key is invalid.
+		if errors.As(err, &errauth) {
+			if err := offlinecmd.SaveHeartbeats(v, nil, queueFilepath); err != nil {
+				log.Errorf("failed to save heartbeats to offline queue: %s", err)
+			}
 
-			return errBackoff.ExitCode(), nil
+			return errauth.ExitCode(), fmt.Errorf("sending heartbeat(s) failed: %s", errauth.Message())
 		}
 
 		if errwaka, ok := err.(wakaerror.Error); ok {
@@ -62,13 +67,12 @@ func Run(v *viper.Viper) (int, error) {
 // heartbeats from the offline queue, if available and offline sync is not
 // explicitly disabled.
 func SendHeartbeats(v *viper.Viper, queueFilepath string) error {
-	params, err := paramscmd.Load(v)
+	params, err := LoadParams(v)
 	if err != nil {
 		return fmt.Errorf("failed to load command parameters: %w", err)
 	}
 
 	setLogFields(params)
-
 	log.Debugf("params: %s", params)
 
 	heartbeats := buildHeartbeats(params)
@@ -140,6 +144,30 @@ func SendHeartbeats(v *viper.Viper, queueFilepath string) error {
 	return nil
 }
 
+// LoadParams loads params from viper.Viper instance. Returns ErrAuth
+// if failed to retrieve api key.
+func LoadParams(v *viper.Viper) (paramscmd.Params, error) {
+	if v == nil {
+		return paramscmd.Params{}, errors.New("viper instance unset")
+	}
+
+	apiParams, err := paramscmd.LoadAPIParams(v)
+	if err != nil {
+		return paramscmd.Params{}, fmt.Errorf("failed to load API parameters: %w", err)
+	}
+
+	heartbeatParams, err := paramscmd.LoadHeartbeatParams(v)
+	if err != nil {
+		return paramscmd.Params{}, fmt.Errorf("failed to load heartbeat params: %s", err)
+	}
+
+	return paramscmd.Params{
+		API:       apiParams,
+		Heartbeat: heartbeatParams,
+		Offline:   paramscmd.LoadOfflineParams(v),
+	}, nil
+}
+
 func buildHeartbeats(params paramscmd.Params) []heartbeat.Heartbeat {
 	heartbeats := []heartbeat.Heartbeat{}
 
@@ -159,6 +187,7 @@ func buildHeartbeats(params paramscmd.Params) []heartbeat.Heartbeat {
 		params.Heartbeat.LinesInFile,
 		params.Heartbeat.LocalFile,
 		params.Heartbeat.Project.Alternate,
+		params.Heartbeat.Project.ProjectFromGitRemote,
 		params.Heartbeat.Project.Override,
 		params.Heartbeat.Sanitize.ProjectPathOverride,
 		params.Heartbeat.Time,
@@ -183,6 +212,7 @@ func buildHeartbeats(params paramscmd.Params) []heartbeat.Heartbeat {
 				h.Lines,
 				h.LocalFile,
 				h.ProjectAlternate,
+				h.ProjectFromGitRemote,
 				h.ProjectOverride,
 				h.ProjectPathOverride,
 				h.Time,
@@ -214,8 +244,9 @@ func initHandleOptions(params paramscmd.Params) []heartbeat.HandleOption {
 			FilePatterns: params.Heartbeat.Sanitize.HideFileNames,
 		}),
 		project.WithDetection(project.Config{
-			HideProjectNames: params.Heartbeat.Sanitize.HideProjectNames,
-			MapPatterns:      params.Heartbeat.Project.MapPatterns,
+			HideProjectNames:     params.Heartbeat.Sanitize.HideProjectNames,
+			MapPatterns:          params.Heartbeat.Project.MapPatterns,
+			ProjectFromGitRemote: params.Heartbeat.Project.ProjectFromGitRemote,
 			Submodule: project.Submodule{
 				DisabledPatterns: params.Heartbeat.Project.SubmodulesDisabled,
 				MapPatterns:      params.Heartbeat.Project.SubmoduleMapPatterns,

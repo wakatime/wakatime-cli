@@ -63,24 +63,16 @@ func loadParams(v *viper.Viper) (paramscmd.Params, error) {
 		log.Warnf("failed to load API parameters: %s", err)
 	}
 
-	paramOffline, err := paramscmd.LoadOfflineParams(v)
-	if err != nil {
-		log.Warnf("failed to load offline parameters: %s", err)
-	}
-
-	params := paramscmd.Params{
-		API:     paramAPI,
-		Offline: paramOffline,
-	}
-
 	paramHeartbeat, err := paramscmd.LoadHeartbeatParams(v)
 	if err != nil {
 		return paramscmd.Params{}, fmt.Errorf("failed to load heartbeat parameters: %s", err)
 	}
 
-	params.Heartbeat = paramHeartbeat
-
-	return params, nil
+	return paramscmd.Params{
+		API:       paramAPI,
+		Heartbeat: paramHeartbeat,
+		Offline:   paramscmd.LoadOfflineParams(v),
+	}, nil
 }
 
 func buildHeartbeats(params paramscmd.Params) []heartbeat.Heartbeat {
@@ -102,6 +94,7 @@ func buildHeartbeats(params paramscmd.Params) []heartbeat.Heartbeat {
 		params.Heartbeat.LinesInFile,
 		params.Heartbeat.LocalFile,
 		params.Heartbeat.Project.Alternate,
+		params.Heartbeat.Project.ProjectFromGitRemote,
 		params.Heartbeat.Project.Override,
 		params.Heartbeat.Sanitize.ProjectPathOverride,
 		params.Heartbeat.Time,
@@ -126,6 +119,7 @@ func buildHeartbeats(params paramscmd.Params) []heartbeat.Heartbeat {
 				h.Lines,
 				h.LocalFile,
 				h.ProjectAlternate,
+				h.ProjectFromGitRemote,
 				h.ProjectOverride,
 				h.ProjectPathOverride,
 				h.Time,
@@ -153,8 +147,9 @@ func initHandleOptions(params paramscmd.Params) []heartbeat.HandleOption {
 			FilePatterns: params.Heartbeat.Sanitize.HideFileNames,
 		}),
 		project.WithDetection(project.Config{
-			HideProjectNames: params.Heartbeat.Sanitize.HideProjectNames,
-			MapPatterns:      params.Heartbeat.Project.MapPatterns,
+			HideProjectNames:     params.Heartbeat.Sanitize.HideProjectNames,
+			MapPatterns:          params.Heartbeat.Project.MapPatterns,
+			ProjectFromGitRemote: params.Heartbeat.Project.ProjectFromGitRemote,
 			Submodule: project.Submodule{
 				DisabledPatterns: params.Heartbeat.Project.SubmodulesDisabled,
 				MapPatterns:      params.Heartbeat.Project.SubmoduleMapPatterns,

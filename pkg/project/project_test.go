@@ -523,6 +523,7 @@ func TestDetectWithRevControl_GitDetected(t *testing.T) {
 	result := project.DetectWithRevControl(
 		[]regex.Regex{},
 		[]project.MapPattern{},
+		false,
 		project.DetecterArg{
 			Filepath:  filepath.Join(fp, "wakatime-cli/src/pkg/file.go"),
 			ShouldRun: true,
@@ -532,6 +533,27 @@ func TestDetectWithRevControl_GitDetected(t *testing.T) {
 	assert.Contains(t, result.Folder, filepath.Join(fp, "wakatime-cli"))
 	assert.Equal(t, project.Result{
 		Project: "wakatime-cli",
+		Folder:  result.Folder,
+		Branch:  "master",
+	}, result)
+}
+
+func TestDetectWithRevControl_GitRemoteDetected(t *testing.T) {
+	fp := setupTestGitBasic(t)
+
+	result := project.DetectWithRevControl(
+		[]regex.Regex{},
+		[]project.MapPattern{},
+		true,
+		project.DetecterArg{
+			Filepath:  filepath.Join(fp, "wakatime-cli/src/pkg/file.go"),
+			ShouldRun: true,
+		},
+	)
+
+	assert.Contains(t, result.Folder, filepath.Join(fp, "wakatime-cli"))
+	assert.Equal(t, project.Result{
+		Project: "wakatime/wakatime-cli",
 		Folder:  result.Folder,
 		Branch:  "master",
 	}, result)

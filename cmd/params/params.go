@@ -133,6 +133,7 @@ type (
 		BranchAlternate      string
 		MapPatterns          []project.MapPattern
 		Override             string
+		ProjectFromGitRemote bool
 		SubmodulesDisabled   []regex.Regex
 		SubmoduleMapPatterns []project.MapPattern
 	}
@@ -153,41 +154,6 @@ type (
 	}
 )
 
-// Load loads params from viper.Viper instance. Returns ErrAuth
-// if failed to retrieve api key.
-func Load(v *viper.Viper) (Params, error) {
-	if v == nil {
-		return Params{}, errors.New("viper instance unset")
-	}
-
-	heartbeatParams, err := LoadHeartbeatParams(v)
-	if err != nil {
-		return Params{}, fmt.Errorf("failed to load heartbeat params: %s", err)
-	}
-
-	apiParams, err := LoadAPIParams(v)
-	if err != nil {
-		log.Warnf("failed to load api params: %s", err)
-	}
-
-	offlineParams, err := LoadOfflineParams(v)
-	if err != nil {
-		log.Warnf("failed to load offline params: %s", err)
-	}
-
-	statusBarParams, err := LoadStatusBarParams(v)
-	if err != nil {
-		log.Warnf("failed to load status bar params: %s", err)
-	}
-
-	return Params{
-		API:       apiParams,
-		Heartbeat: heartbeatParams,
-		Offline:   offlineParams,
-		StatusBar: statusBarParams,
-	}, nil
-}
-
 // LoadAPIParams loads API params from viper.Viper instance. Returns ErrAuth
 // if failed to retrieve api key.
 func LoadAPIParams(v *viper.Viper) (API, error) {
@@ -201,7 +167,7 @@ func LoadAPIParams(v *viper.Viper) (API, error) {
 	if !ok {
 		apiKey, err = readAPIKeyFromCommand(vipertools.GetString(v, "settings.api_key_vault_cmd"))
 		if err != nil {
-			return API{}, api.ErrAuth{Err: fmt.Errorf("failed to load api key from vault: %s", err)}
+			return API{}, api.ErrAuth{Err: fmt.Errorf("failed to read api key from vault: %s", err)}
 		}
 
 		if apiKey == "" {
@@ -260,7 +226,7 @@ func LoadAPIParams(v *viper.Viper) (API, error) {
 
 	apiURL, err := url.Parse(apiURLStr)
 	if err != nil {
-		return API{}, fmt.Errorf("invalid api url: %s", err)
+		return API{}, api.ErrAuth{Err: fmt.Errorf("invalid api url: %s", err)}
 	}
 
 	var backoffAt time.Time
@@ -293,7 +259,7 @@ func LoadAPIParams(v *viper.Viper) (API, error) {
 	if !ok {
 		hostname, err = os.Hostname()
 		if err != nil {
-			return API{}, fmt.Errorf("failed to retrieve hostname from system: %s", err)
+			log.Warnf("failed to retrieve hostname from system: %s", err)
 		}
 	}
 
@@ -305,7 +271,7 @@ func LoadAPIParams(v *viper.Viper) (API, error) {
 	}
 
 	if proxyURL != "" && !rgx.MatchString(proxyURL) {
-		return API{}, fmt.Errorf(errMsgTemplate, proxyURL)
+		return API{}, api.ErrAuth{Err: fmt.Errorf(errMsgTemplate, proxyURL)}
 	}
 
 	proxyEnv := httpproxy.FromEnvironment()
@@ -326,8 +292,7 @@ func LoadAPIParams(v *viper.Viper) (API, error) {
 	if ok {
 		sslCertFilepath, err = homedir.Expand(sslCertFilepath)
 		if err != nil {
-			return API{},
-				fmt.Errorf("failed expanding ssl certs file: %s", err)
+			return API{}, api.ErrAuth{Err: fmt.Errorf("failed expanding ssl certs file: %s", err)}
 		}
 	}
 
@@ -595,6 +560,7 @@ func loadProjectParams(v *viper.Viper) (ProjectParams, error) {
 		BranchAlternate:      vipertools.GetString(v, "alternate-branch"),
 		MapPatterns:          loadProjectMapPatterns(v, "projectmap"),
 		Override:             vipertools.GetString(v, "project"),
+		ProjectFromGitRemote: v.GetBool("git.project_from_git_remote"),
 		SubmodulesDisabled:   submodulesDisabled,
 		SubmoduleMapPatterns: loadProjectMapPatterns(v, "git_submodule_projectmap"),
 	}, nil
@@ -627,7 +593,7 @@ func loadProjectMapPatterns(v *viper.Viper, prefix string) []project.MapPattern 
 }
 
 // LoadOfflineParams loads offline params from viper.Viper instance.
-func LoadOfflineParams(v *viper.Viper) (Offline, error) {
+func LoadOfflineParams(v *viper.Viper) Offline {
 	disabled := vipertools.FirstNonEmptyBool(v, "disable-offline", "disableoffline")
 	if b := v.GetBool("settings.offline"); v.IsSet("settings.offline") {
 		disabled = !b
@@ -635,7 +601,9 @@ func LoadOfflineParams(v *viper.Viper) (Offline, error) {
 
 	syncMax := v.GetInt("sync-offline-activity")
 	if syncMax < 0 {
-		return Offline{}, errors.New("argument --sync-offline-activity must be zero or a positive integer number")
+		log.Warnf("argument --sync-offline-activity must be zero or a positive integer number, got %d", syncMax)
+
+		syncMax = 0
 	}
 
 	return Offline{
@@ -643,7 +611,7 @@ func LoadOfflineParams(v *viper.Viper) (Offline, error) {
 		QueueFile: vipertools.GetString(v, "offline-queue-file"),
 		PrintMax:  v.GetInt("print-offline-heartbeats"),
 		SyncMax:   syncMax,
-	}, nil
+	}
 }
 
 // LoadStatusBarParams loads status bar params from viper.Viper instance.
@@ -706,7 +674,7 @@ func readAPIKeyFromCommand(cmdStr string) (string, error) {
 
 	out, err := cmd.Output()
 	if err != nil {
-		return "", fmt.Errorf("failed to read api key from vault: %s", err)
+		return "", err
 	}
 
 	return strings.TrimSpace(string(out)), nil

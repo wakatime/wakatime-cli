@@ -77,17 +77,20 @@ func TestReadErr(t *testing.T) {
 			ErrorMsg: fmt.Sprintf("given section and key \"%s.%s\" returned an empty string", "settings", "api_key"),
 		},
 		"section_missing": {
-			Key:      "api_key",
-			Value:    "b9485572-74bf-419a-916b-22056ca3a24c",
-			ErrorMsg: "failed reading wakatime config file. neither section nor key can be empty",
+			Key:   "api_key",
+			Value: "b9485572-74bf-419a-916b-22056ca3a24c",
+			ErrorMsg: "failed to load command parameters:" +
+				" failed reading wakatime config file. neither section nor key can be empty",
 		},
 		"key_missing": {
-			Section:  "settings",
-			Value:    "b9485572-74bf-419a-916b-22056ca3a24c",
-			ErrorMsg: "failed reading wakatime config file. neither section nor key can be empty",
+			Section: "settings",
+			Value:   "b9485572-74bf-419a-916b-22056ca3a24c",
+			ErrorMsg: "failed to load command parameters:" +
+				" failed reading wakatime config file. neither section nor key can be empty",
 		},
 		"all_missing": {
-			ErrorMsg: "failed reading wakatime config file. neither section nor key can be empty",
+			ErrorMsg: "failed to load command parameters:" +
+				" failed reading wakatime config file. neither section nor key can be empty",
 		},
 	}
 

@@ -108,6 +108,8 @@ type (
 		HideProjectNames []regex.Regex
 		// Patterns contains the overridden project name per path.
 		MapPatterns []MapPattern
+		// ProjectFromGitRemote when enabled uses the git remote as the project name instead of local git folder.
+		ProjectFromGitRemote bool
 		// Submodule contains the submodule configurations.
 		Submodule Submodule
 	}
@@ -158,7 +160,10 @@ func WithDetection(config Config) heartbeat.HandleOption {
 				// Then, autodetect with project folder. This tries to use the same project name
 				// across all IDEs instead of sometimes using alternate project when file is unsaved
 				if result.Project == "" || result.Branch == "" || result.Folder == "" {
-					revControlResult := DetectWithRevControl(config.Submodule.DisabledPatterns, config.Submodule.MapPatterns,
+					revControlResult := DetectWithRevControl(
+						config.Submodule.DisabledPatterns,
+						config.Submodule.MapPatterns,
+						config.ProjectFromGitRemote,
 						DetecterArg{Filepath: h.Entity, ShouldRun: h.EntityType == heartbeat.FileType},
 						DetecterArg{Filepath: h.ProjectPathOverride, ShouldRun: true},
 					)
@@ -256,6 +261,7 @@ func Detect(patterns []MapPattern, args ...DetecterArg) (Result, DetectorID) {
 func DetectWithRevControl(
 	submoduleDisabledPatterns []regex.Regex,
 	submoduleProjectMapPatterns []MapPattern,
+	projectFromGitRemote bool,
 	args ...DetecterArg) Result {
 	for _, arg := range args {
 		if !arg.ShouldRun || arg.Filepath == "" {
@@ -265,6 +271,7 @@ func DetectWithRevControl(
 		var revControlPlugins = []Detecter{
 			Git{
 				Filepath:                    arg.Filepath,
+				ProjectFromGitRemote:        projectFromGitRemote,
 				SubmoduleDisabledPatterns:   submoduleDisabledPatterns,
 				SubmoduleProjectMapPatterns: submoduleProjectMapPatterns,
 			},

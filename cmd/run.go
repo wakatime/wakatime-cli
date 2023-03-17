@@ -56,7 +56,9 @@ func Run(cmd *cobra.Command, v *viper.Viper) {
 		log.Errorf("failed to parse config files: %s", err)
 
 		if v.IsSet("entity") {
-			saveHeartbeatsAndExit(v)
+			saveHeartbeats(v)
+
+			os.Exit(exitcode.ErrConfigFileParse)
 		}
 	}
 
@@ -262,7 +264,7 @@ func runCmd(v *viper.Viper, verbose bool, sendDiagsOnErrors bool, cmd cmdFn) int
 	// catch panics
 	defer func() {
 		if err := recover(); err != nil {
-			log.Errorf("panicked: %v", err)
+			log.Errorf("panicked: %v. Stack: %s", err, string(debug.Stack()))
 
 			resetLogs()
 
@@ -306,7 +308,7 @@ func runCmd(v *viper.Viper, verbose bool, sendDiagsOnErrors bool, cmd cmdFn) int
 	return exitCode
 }
 
-func saveHeartbeatsAndExit(v *viper.Viper) {
+func saveHeartbeats(v *viper.Viper) {
 	queueFilepath, err := offline.QueueFilepath()
 	if err != nil {
 		log.Warnf("failed to load offline queue filepath: %s", err)
@@ -315,8 +317,6 @@ func saveHeartbeatsAndExit(v *viper.Viper) {
 	if err := cmdoffline.SaveHeartbeats(v, nil, queueFilepath); err != nil {
 		log.Errorf("failed to save heartbeats to offline queue: %s", err)
 	}
-
-	os.Exit(exitcode.ErrConfigFileParse)
 }
 
 func sendDiagnostics(v *viper.Viper, d diagnostics) error {
