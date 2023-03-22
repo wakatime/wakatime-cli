@@ -90,6 +90,32 @@ func TestOption_WithHostname(t *testing.T) {
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
 
+func TestOption_WithInvalidHostname(t *testing.T) {
+	url, router, tearDown := setupTestServer()
+	defer tearDown()
+
+	var numCalls int
+
+	router.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
+		assert.Equal(t, []string{"my%2Bcomputer"}, req.Header["X-Machine-Name"])
+
+		numCalls++
+	})
+
+	opts := []api.Option{api.WithHostname("my+computer\n")}
+
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	require.NoError(t, err)
+
+	c := api.NewClient("", opts...)
+	resp, err := c.Do(req)
+	require.NoError(t, err)
+
+	defer resp.Body.Close()
+
+	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+}
+
 func TestOption_WithNTLM(t *testing.T) {
 	tests := map[string]string{
 		"default":  `domain\\john:123456`,
