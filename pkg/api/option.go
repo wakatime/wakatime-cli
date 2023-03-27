@@ -153,7 +153,7 @@ func WithHostname(hostname string) Option {
 	return func(c *Client) {
 		next := c.doFunc
 		c.doFunc = func(c *Client, req *http.Request) (*http.Response, error) {
-			hostname = url.QueryEscape(strings.TrimSpace(hostname))
+			hostname = url.QueryEscape(hostname)
 			req.Header.Set("X-Machine-Name", hostname)
 
 			return next(c, req)
@@ -166,7 +166,6 @@ func WithTimezone(timezone string) Option {
 	return func(c *Client) {
 		next := c.doFunc
 		c.doFunc = func(c *Client, req *http.Request) (*http.Response, error) {
-			timezone = strings.TrimSpace(timezone)
 			req.Header.Set("Timezone", timezone)
 
 			return next(c, req)

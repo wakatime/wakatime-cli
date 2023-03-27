@@ -33,13 +33,13 @@ func NewClientWithoutAuth(params paramscmd.API) (*api.Client, error) {
 // newClient contains the logic of client initialization, except auth initialization.
 func newClient(params paramscmd.API, opts ...api.Option) (*api.Client, error) {
 	opts = append(opts, api.WithTimeout(params.Timeout))
-	opts = append(opts, api.WithHostname(params.Hostname))
+	opts = append(opts, api.WithHostname(strings.TrimSpace(params.Hostname)))
 
 	tz, err := tz.Name()
 	if err != nil {
 		log.Debugf("failed to detect local timezone: %s", err)
 	} else {
-		opts = append(opts, api.WithTimezone(tz))
+		opts = append(opts, api.WithTimezone(strings.TrimSpace(tz)))
 	}
 
 	if params.DisableSSLVerify {

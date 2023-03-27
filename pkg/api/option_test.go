@@ -97,7 +97,7 @@ func TestOption_WithInvalidHostname(t *testing.T) {
 	var numCalls int
 
 	router.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
-		assert.Equal(t, []string{"my%2Bcomputer"}, req.Header["X-Machine-Name"])
+		assert.Equal(t, []string{"my%2Bcomputer%0A"}, req.Header["X-Machine-Name"])
 
 		numCalls++
 	})
