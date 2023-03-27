@@ -186,7 +186,7 @@ func UserAgent(plugin string) string {
 
 	return fmt.Sprintf(
 		"wakatime/%s (%s-%s-%s) %s %s",
-		strings.TrimSpace(version.Version),
+		version.Version,
 		strings.TrimSpace(system.OSName()),
 		strings.TrimSpace(info.Core),
 		strings.TrimSpace(info.Platform),

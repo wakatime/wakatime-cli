@@ -182,7 +182,6 @@ func WithUserAgent(plugin string) Option {
 	return func(c *Client) {
 		next := c.doFunc
 		c.doFunc = func(c *Client, req *http.Request) (*http.Response, error) {
-			userAgent = strings.TrimSpace(userAgent)
 			req.Header.Set("User-Agent", userAgent)
 
 			return next(c, req)
