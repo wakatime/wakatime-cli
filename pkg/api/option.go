@@ -34,17 +34,6 @@ func WithAuth(auth BasicAuth) (Option, error) {
 	}, nil
 }
 
-// WithHostname sets the X-Machine-Name header to the passed in hostname.
-func WithHostname(hostname string) Option {
-	return func(c *Client) {
-		next := c.doFunc
-		c.doFunc = func(c *Client, req *http.Request) (*http.Response, error) {
-			req.Header.Set("X-Machine-Name", hostname)
-			return next(c, req)
-		}
-	}
-}
-
 // WithDisableSSLVerify disables verification of insecure certificates.
 func WithDisableSSLVerify() Option {
 	return func(c *Client) {
@@ -159,12 +148,26 @@ func WithTimeout(timeout time.Duration) Option {
 	}
 }
 
+// WithHostname sets the X-Machine-Name header to the passed in hostname.
+func WithHostname(hostname string) Option {
+	return func(c *Client) {
+		next := c.doFunc
+		c.doFunc = func(c *Client, req *http.Request) (*http.Response, error) {
+			hostname = url.QueryEscape(hostname)
+			req.Header.Set("X-Machine-Name", hostname)
+
+			return next(c, req)
+		}
+	}
+}
+
 // WithTimezone sets the TimeZone header to the passed in timezone.
 func WithTimezone(timezone string) Option {
 	return func(c *Client) {
 		next := c.doFunc
 		c.doFunc = func(c *Client, req *http.Request) (*http.Response, error) {
 			req.Header.Set("Timezone", timezone)
+
 			return next(c, req)
 		}
 	}
@@ -179,6 +182,7 @@ func WithUserAgent(plugin string) Option {
 		next := c.doFunc
 		c.doFunc = func(c *Client, req *http.Request) (*http.Response, error) {
 			req.Header.Set("User-Agent", userAgent)
+
 			return next(c, req)
 		}
 	}
