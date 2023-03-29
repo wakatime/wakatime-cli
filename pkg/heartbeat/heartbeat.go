@@ -210,6 +210,11 @@ func PointerTo[t bool | int | string](v t) *t {
 }
 
 func isDir(filepath string) bool {
-	info, _ := os.Stat(filepath)
+	info, err := os.Stat(filepath)
+	if err != nil {
+		log.Warnf("failed to stat filepath %q: %s", filepath, err)
+		return false
+	}
+
 	return info.IsDir()
 }
