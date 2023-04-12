@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"runtime/debug"
 	"strings"
 
@@ -216,6 +217,14 @@ func SetupLogging(v *viper.Viper) (*logfile.Params, error) {
 	logFile := os.Stdout
 
 	if !logfileParams.ToStdout {
+		dir := filepath.Dir(logfileParams.File)
+		if _, err := os.Stat(dir); os.IsNotExist(err) {
+			err := os.MkdirAll(dir, 0750)
+			if err != nil {
+				return nil, fmt.Errorf("error creating log file directory: %s", err)
+			}
+		}
+
 		logFile, err = os.OpenFile(logfileParams.File, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
 		if err != nil {
 			return nil, fmt.Errorf("error opening log file: %s", err)
