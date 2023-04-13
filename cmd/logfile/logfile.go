@@ -52,17 +52,12 @@ func LoadParams(v *viper.Viper) (Params, error) {
 		return params, nil
 	}
 
-	home, hometype, err := ini.WakaHomeDir()
+	folder, err := ini.WakaResourcesDir()
 	if err != nil {
 		return Params{}, fmt.Errorf("failed getting user's home directory: %s", err)
 	}
 
-	switch hometype {
-	case ini.WakaHomeTypeEnvVar:
-		params.File = filepath.Join(home, defaultFile)
-	default:
-		params.File = filepath.Join(home, defaultFolder, defaultFile)
-	}
+	params.File = filepath.Join(folder, defaultFile)
 
 	return params, nil
 }

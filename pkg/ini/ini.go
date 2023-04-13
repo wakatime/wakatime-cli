@@ -23,6 +23,7 @@ import (
 type WakaHomeType int
 
 const (
+	defaultFolder = ".wakatime"
 	// WakaHomeTypeUnknown is unknown WakaTime home type.
 	WakaHomeTypeUnknown WakaHomeType = iota
 	// WakaHomeTypeEnvVar is WakaTime home type from environment variable.
@@ -35,7 +36,7 @@ const (
 	// defaultFile is the name of the default wakatime config file.
 	defaultFile = ".wakatime.cfg"
 	// defaultInternalFile is the name of the default wakatime internal config file.
-	defaultInternalFile = ".wakatime-internal.cfg"
+	defaultInternalFile = "wakatime-internal.cfg"
 	// DateFormat is the default format for date in config file.
 	DateFormat = time.RFC3339
 	// defaultTimeout is the default timeout for acquiring a lock.
@@ -184,12 +185,12 @@ func InternalFilePath(v *viper.Viper) (string, error) {
 		return p, nil
 	}
 
-	home, _, err := WakaHomeDir()
+	folder, err := WakaResourcesDir()
 	if err != nil {
 		return "", fmt.Errorf("failed getting user's home directory: %s", err)
 	}
 
-	return filepath.Join(home, defaultInternalFile), nil
+	return filepath.Join(folder, defaultInternalFile), nil
 }
 
 // WakaHomeDir returns the current user's home directory.
@@ -223,6 +224,21 @@ func WakaHomeDir() (string, WakaHomeType, error) {
 	}
 
 	return "", WakaHomeTypeUnknown, fmt.Errorf("could not determine wakatime home dir")
+}
+
+// WakaResourcesDir returns the ~/.wakatime/ folder.
+func WakaResourcesDir() (string, error) {
+	home, hometype, err := WakaHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("failed getting user's home directory: %s", err)
+	}
+
+	switch hometype {
+	case WakaHomeTypeEnvVar:
+		return home, nil
+	default:
+		return filepath.Join(home, defaultFolder), nil
+	}
 }
 
 // mutexClock is used to implement mutex.Clock interface.
