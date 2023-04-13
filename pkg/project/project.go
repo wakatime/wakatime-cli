@@ -362,12 +362,12 @@ func generateProjectName() string {
 
 	c := cases.Title(language.AmericanEnglish)
 
-	rand.Seed(time.Now().UnixNano())
-	str = append(str, c.String(adjectives[rand.Intn(len(adjectives))])) // nolint:gosec
-	rand.Seed(time.Now().UnixNano())
-	str = append(str, c.String(nouns[rand.Intn(len(nouns))])) // nolint:gosec
-	rand.Seed(time.Now().UnixNano())
-	str = append(str, strconv.Itoa(rand.Intn(100))) // nolint:gosec
+	r := rand.New(rand.NewSource(time.Now().UnixNano())) // nolint:gosec
+	str = append(str, c.String(adjectives[r.Intn(len(adjectives))]))
+	r = rand.New(rand.NewSource(time.Now().UnixNano())) // nolint:gosec
+	str = append(str, c.String(nouns[r.Intn(len(nouns))]))
+	r = rand.New(rand.NewSource(time.Now().UnixNano())) // nolint:gosec
+	str = append(str, strconv.Itoa(r.Intn(100)))
 
 	return strings.Join(str, " ")
 }
