@@ -1,4 +1,4 @@
-.DEFAULT_GOAL := build-all
+.DEFAULT_GOAL := build
 
 # globals
 BINARY_NAME?=wakatime-cli
@@ -25,94 +25,86 @@ endef
 LATEST_LINT_VERSION=$(shell $(call get_latest_lint_release))
 INSTALLED_LINT_VERSION=$(shell golangci-lint --version 2>/dev/null | awk '{print "v"$$4}')
 
-# get GOPATH according to OS
+# get GOPATH, GOOS and GOARCH according to OS
 ifeq ($(OS),Windows_NT) # is Windows_NT on XP, 2000, 7, Vista, 10...
     GOPATH=$(go env GOPATH)
+	GOOS=$(shell cmd /c go env GOOS)
+	GOARCH=$(shell cmd /c go env GOARCH)
 else
     GOPATH=$(shell go env GOPATH)
+	GOOS=$(shell go env GOOS)
+	GOARCH=$(shell go env GOARCH)
 endif
 
 # targets
-build-all: build-darwin build-freebsd build-linux build-netbsd build-openbsd build-windows
-
-build-darwin: build-darwin-amd64 build-darwin-arm64
-
 build-darwin-amd64:
-	GOOS=darwin GOARCH=amd64 make build-binary
+	GOOS=darwin GOARCH=amd64 make build
 
 build-darwin-arm64:
-	GOOS=darwin GOARCH=arm64 make build-binary
-
-build-freebsd: build-freebsd-386 build-freebsd-amd64 build-freebsd-arm
+	GOOS=darwin GOARCH=arm64 make build
 
 build-freebsd-386:
-	GOOS=freebsd GOARCH=386 make build-binary
+	GOOS=freebsd GOARCH=386 make build
 
 build-freebsd-amd64:
-	GOOS=freebsd GOARCH=amd64 make build-binary
+	GOOS=freebsd GOARCH=amd64 make build
 
 build-freebsd-arm:
-	GOOS=freebsd GOARCH=arm make build-binary
-
-build-linux: build-linux-386 build-linux-amd64 build-linux-arm build-linux-arm64 build-linux-riscv64
+	GOOS=freebsd GOARCH=arm make build
 
 build-linux-386:
-	GOOS=linux GOARCH=386 make build-binary
+	GOOS=linux GOARCH=386 make build
 
 build-linux-amd64:
-	GOOS=linux GOARCH=amd64 make build-binary
+	GOOS=linux GOARCH=amd64 make build
 
 build-linux-arm:
-	GOOS=linux GOARCH=arm make build-binary
+	GOOS=linux GOARCH=arm make build
 
 build-linux-arm64:
-	GOOS=linux GOARCH=arm64 make build-binary
+	GOOS=linux GOARCH=arm64 make build
 
 build-linux-riscv64:
-	GOOS=linux GOARCH=riscv64 make build-binary
-
-build-netbsd: build-netbsd-386 build-netbsd-amd64 build-netbsd-arm
+	GOOS=linux GOARCH=riscv64 make build
 
 build-netbsd-386:
-	GOOS=netbsd GOARCH=386 make build-binary
+	GOOS=netbsd GOARCH=386 make build
 
 build-netbsd-amd64:
-	GOOS=netbsd GOARCH=amd64 make build-binary
+	GOOS=netbsd GOARCH=amd64 make build
 
 build-netbsd-arm:
-	GOOS=netbsd GOARCH=arm make build-binary
-
-build-openbsd: build-openbsd-386 build-openbsd-amd64 build-openbsd-arm build-openbsd-arm64
+	GOOS=netbsd GOARCH=arm make build
 
 build-openbsd-386:
-	GOOS=openbsd GOARCH=386 make build-binary
+	GOOS=openbsd GOARCH=386 make build
 
 build-openbsd-amd64:
-	GOOS=openbsd GOARCH=amd64 make build-binary
+	GOOS=openbsd GOARCH=amd64 make build
 
 build-openbsd-arm:
-	GOOS=openbsd GOARCH=arm make build-binary
+	GOOS=openbsd GOARCH=arm make build
 
 build-openbsd-arm64:
-	GOOS=openbsd GOARCH=arm64 make build-binary
-
-build-windows: build-windows-386 build-windows-amd64 build-windows-arm64
+	GOOS=openbsd GOARCH=arm64 make build
 
 build-windows-386:
-	GOOS=windows GOARCH=386 make build-binary-windows
+	GOOS=windows GOARCH=386 make build-windows
 
 build-windows-amd64:
-	GOOS=windows GOARCH=amd64 make build-binary-windows
+	GOOS=windows GOARCH=amd64 make build-windows
 
 build-windows-arm64:
-	GOOS=windows GOARCH=arm64 make build-binary-windows
+	GOOS=windows GOARCH=arm64 make build-windows
 
-build-binary:
+.PHONY: build
+build:
 	CGO_ENABLED="0" GOOS=$(GOOS) GOARCH=$(GOARCH) $(GOBUILD) -v \
 		-ldflags "${LD_FLAGS} -X ${REPO}/pkg/version.OS=$(GOOS) -X ${REPO}/pkg/version.Arch=$(GOARCH)" \
 		-o ${BUILD_DIR}/$(BINARY_NAME)-$(GOOS)-$(GOARCH)
 
-build-binary-windows:
+.PHONY: build-windows
+build-windows:
 	CGO_ENABLED="0" GOOS=$(GOOS) GOARCH=$(GOARCH) $(GOBUILD) -v \
 		-ldflags "${LD_FLAGS} -X ${REPO}/pkg/version.OS=$(GOOS) -X ${REPO}/pkg/version.Arch=$(GOARCH)" \
 		-o ${BUILD_DIR}/$(BINARY_NAME)-$(GOOS)-$(GOARCH).exe
