@@ -81,7 +81,7 @@ some/submodule/name = new project name
 | ssl_certs_file                 | Path to a CA certs file. By default, uses bundled Letsencrypt CA cert along with system ca certs. | _filepath_ | |
 | timeout                        | Connection timeout in seconds when communicating with the api. | _int_ | `120` |
 | hostname                       | Optional name of local machine. By default, auto-detects the local machine’s hostname. | _string_ | |
-| log_file                       | Optional log file path. | _filepath_ | `~/.wakatime.log` |
+| log_file                       | Optional log file path. | _filepath_ | `~/.wakatime/wakatime.log` |
 
 ### Project Map Section
 

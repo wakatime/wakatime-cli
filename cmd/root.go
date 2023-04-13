@@ -154,8 +154,8 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 			" remote file, this local file will be used for stats and just"+
 			" the value of --entity is sent with the heartbeat.",
 	)
-	flags.String("log-file", "", "Optional log file. Defaults to '~/.wakatime.log'.")
-	flags.String("logfile", "", "(deprecated) Optional log file. Defaults to '~/.wakatime.log'.")
+	flags.String("log-file", "", "Optional log file. Defaults to '~/.wakatime/wakatime.log'.")
+	flags.String("logfile", "", "(deprecated) Optional log file. Defaults to '~/.wakatime/wakatime.log'.")
 	flags.Bool("log-to-stdout", false, "If enabled, logs will go to stdout. Will overwrite logfile configs.")
 	flags.Bool(
 		"no-ssl-verify",
