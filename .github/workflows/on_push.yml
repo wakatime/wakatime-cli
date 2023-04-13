@@ -243,7 +243,7 @@ jobs:
           VERSION: ${{ needs.version.outputs.semver_tag }}
         shell: bash
         # 3 is the number of virtual cpus for macOS. Linux is only 2.
-        run: make -j3 build-linux
+        run: make -j3 build-all-linux
       -
         name: Upload artifacts
         uses: actions/upload-artifact@v2
@@ -283,7 +283,7 @@ jobs:
           VERSION: ${{ needs.version.outputs.semver_tag }}
         shell: bash
         # 3 is the number of virtual cpus for macOS. Linux is only 2.
-        run: make -j3 build-freebsd
+        run: make -j3 build-all-freebsd
       -
         name: Upload artifacts
         uses: actions/upload-artifact@v2
@@ -323,7 +323,7 @@ jobs:
           VERSION: ${{ needs.version.outputs.semver_tag }}
         shell: bash
         # 3 is the number of virtual cpus for macOS. Linux is only 2.
-        run: make -j3 build-netbsd
+        run: make -j3 build-all-netbsd
       -
         name: Upload artifacts
         uses: actions/upload-artifact@v2
@@ -363,7 +363,7 @@ jobs:
           VERSION: ${{ needs.version.outputs.semver_tag }}
         shell: bash
         # 3 is the number of virtual cpus for macOS. Linux is only 2.
-        run: make -j3 build-openbsd
+        run: make -j3 build-all-openbsd
       -
         name: Upload artifacts
         uses: actions/upload-artifact@v2
@@ -403,7 +403,7 @@ jobs:
           VERSION: ${{ needs.version.outputs.semver_tag }}
         shell: bash
         # 3 is the number of virtual cpus for macOS. Linux is only 2.
-        run: make -j3 build-darwin
+        run: make -j3 build-all-darwin
       -
         name: Upload artifacts
         uses: actions/upload-artifact@v2
@@ -443,7 +443,7 @@ jobs:
           VERSION: ${{ needs.version.outputs.semver_tag }}
         shell: bash
         # 3 is the number of virtual cpus for macOS. Linux is only 2.
-        run: make -j3 build-windows
+        run: make -j3 build-all-windows
       -
         name: Upload artifacts
         uses: actions/upload-artifact@v2
@@ -529,7 +529,8 @@ jobs:
       build-openbsd,
       build-darwin,
       build-windows,
-      sign,]
+      sign
+    ]
     steps:
       -
         name: Checkout
