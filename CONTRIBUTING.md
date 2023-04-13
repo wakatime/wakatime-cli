@@ -13,6 +13,9 @@ Prerequisites:
 - We use the [Go](https://golang.org/doc/install) version listed in [go.mod](https://github.com/wakatime/wakatime-cli/blob/develop/go.mod#L3)
 
 After cloning, install dependencies with `make install`.
+Then build with `make build`.
+
+Tip: run `ln -sf ./build/* ~/.wakatime/` to have the plugins use your local build.
 
 ## Branches
 
