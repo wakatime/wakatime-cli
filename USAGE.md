@@ -124,4 +124,4 @@ For commonly used configuration options, see examples in the [FAQ](https://wakat
 ## Internal INI Config File
 
 The plugins and waktime-cli use a separate internal INI file for things like caching auto-update requests to the GitHub releases API, and exponential backoff to the WakaTime API.
-The default internal INI config file location is `$WAKATIME_HOME/.wakatime-internal.cfg`.
+The default internal INI config file location is `$WAKATIME_HOME/.wakatime/wakatime-internal.cfg`.
