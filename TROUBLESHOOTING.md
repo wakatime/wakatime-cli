@@ -4,7 +4,7 @@ First, read [How to debug WakaTime plugins][faq debug plugins].
 
 Set `debug=true` in your `~/.wakatime.cfg` file to enable verbose logging.
 
-The common wakatime-cli program logs to your user `$HOME` directory `~/.wakatime.log`.
+The common wakatime-cli program logs to your user `$HOME` directory `~/.wakatime/wakatime.log`.
 
 Each plugin also has its own log file:
 

@@ -60,7 +60,7 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 			" \"browsing\", or \"designing\". Defaults to \"coding\".",
 	)
 	flags.String("config", "", "Optional config file. Defaults to '~/.wakatime.cfg'.")
-	flags.String("internal-config", "", "Optional internal config file. Defaults to '~/.wakatime-internal.cfg'.")
+	flags.String("internal-config", "", "Optional internal config file. Defaults to '~/.wakatime/wakatime-internal.cfg'.")
 	flags.String("config-read", "", "Prints value for the given config key, then exits.")
 	flags.String(
 		"config-section",
@@ -154,8 +154,8 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 			" remote file, this local file will be used for stats and just"+
 			" the value of --entity is sent with the heartbeat.",
 	)
-	flags.String("log-file", "", "Optional log file. Defaults to '~/.wakatime.log'.")
-	flags.String("logfile", "", "(deprecated) Optional log file. Defaults to '~/.wakatime.log'.")
+	flags.String("log-file", "", "Optional log file. Defaults to '~/.wakatime/wakatime.log'.")
+	flags.String("logfile", "", "(deprecated) Optional log file. Defaults to '~/.wakatime/wakatime.log'.")
 	flags.Bool("log-to-stdout", false, "If enabled, logs will go to stdout. Will overwrite logfile configs.")
 	flags.Bool(
 		"no-ssl-verify",

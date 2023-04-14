@@ -13,14 +13,14 @@ import (
 )
 
 func TestLoadParams(t *testing.T) {
-	tmpFile, err := os.CreateTemp(t.TempDir(), "wakatime.log")
+	tmpFile, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)
 
 	defer tmpFile.Close()
 
 	dir, _ := filepath.Split(tmpFile.Name())
 
-	logFile, err := os.Create(filepath.Join(dir, ".wakatime.log"))
+	logFile, err := os.Create(filepath.Join(dir, "wakatime.log"))
 	require.NoError(t, err)
 
 	defer logFile.Close()
@@ -41,14 +41,14 @@ func TestLoadParams(t *testing.T) {
 		"log file and verbose set": {
 			ViperDebug: true,
 			Expected: logfile.Params{
-				File:    filepath.Join(home, ".wakatime.log"),
+				File:    filepath.Join(home, ".wakatime", "wakatime.log"),
 				Verbose: true,
 			},
 		},
 		"log file and verbose from config": {
 			ViperDebugConfig: true,
 			Expected: logfile.Params{
-				File:    filepath.Join(home, ".wakatime.log"),
+				File:    filepath.Join(home, ".wakatime", "wakatime.log"),
 				Verbose: true,
 			},
 		},
@@ -76,18 +76,18 @@ func TestLoadParams(t *testing.T) {
 		"log file from WAKATIME_HOME": {
 			EnvVar: dir,
 			Expected: logfile.Params{
-				File: filepath.Join(dir, ".wakatime.log"),
+				File: filepath.Join(dir, "wakatime.log"),
 			},
 		},
 		"log file from home dir": {
 			Expected: logfile.Params{
-				File: filepath.Join(home, ".wakatime.log"),
+				File: filepath.Join(home, ".wakatime", "wakatime.log"),
 			},
 		},
 		"log to stdout": {
 			ViperToStdout: true,
 			Expected: logfile.Params{
-				File:     filepath.Join(home, ".wakatime.log"),
+				File:     filepath.Join(home, ".wakatime", "wakatime.log"),
 				ToStdout: true,
 			},
 		},

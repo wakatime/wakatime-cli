@@ -19,5 +19,5 @@ Please fill out the template below to report a bug.
 **Logs**:
 
 <!--
-Paste related logs from your ~/.wakatime.log file.
+Paste related logs from your ~/.wakatime/wakatime.log file.
 -->

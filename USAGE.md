@@ -81,7 +81,7 @@ some/submodule/name = new project name
 | ssl_certs_file                 | Path to a CA certs file. By default, uses bundled Letsencrypt CA cert along with system ca certs. | _filepath_ | |
 | timeout                        | Connection timeout in seconds when communicating with the api. | _int_ | `120` |
 | hostname                       | Optional name of local machine. By default, auto-detects the local machine’s hostname. | _string_ | |
-| log_file                       | Optional log file path. | _filepath_ | `~/.wakatime.log` |
+| log_file                       | Optional log file path. | _filepath_ | `~/.wakatime/wakatime.log` |
 
 ### Project Map Section
 
@@ -124,4 +124,4 @@ For commonly used configuration options, see examples in the [FAQ](https://wakat
 ## Internal INI Config File
 
 The plugins and waktime-cli use a separate internal INI file for things like caching auto-update requests to the GitHub releases API, and exponential backoff to the WakaTime API.
-The default internal INI config file location is `$WAKATIME_HOME/.wakatime-internal.cfg`.
+The default internal INI config file location is `$WAKATIME_HOME/.wakatime/wakatime-internal.cfg`.

@@ -89,7 +89,7 @@ func WithQueue(filepath string) heartbeat.HandleOption {
 // the user's $HOME folder cannot be detected, it defaults to the
 // current directory.
 func QueueFilepath() (string, error) {
-	home, err := ini.WakaHomeDir()
+	home, _, err := ini.WakaHomeDir()
 	if err != nil {
 		return dbFilename, fmt.Errorf("failed getting user's home directory, defaulting to current directory: %s", err)
 	}

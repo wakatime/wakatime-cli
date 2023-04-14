@@ -12,7 +12,9 @@ Prerequisites:
 - We use [bats](https://bats-core.readthedocs.io/en/latest/installation.html) to test shell scripts. (`brew install bats-core`)
 - We use the [Go](https://golang.org/doc/install) version listed in [go.mod](https://github.com/wakatime/wakatime-cli/blob/develop/go.mod#L3)
 
-After cloning, install dependencies with `make install`.
+After cloning, install dependencies with `make install` then build with `make`.
+
+Tip: run `ln -sf $(pwd)/build/* ~/.wakatime/` to have the plugins use your local build.
 
 ## Branches
 

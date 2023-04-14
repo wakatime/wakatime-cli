@@ -172,15 +172,15 @@ func TestInternalFilePath(t *testing.T) {
 		Expected   string
 	}{
 		"default": {
-			Expected: filepath.Join(home, ".wakatime-internal.cfg"),
+			Expected: filepath.Join(home, ".wakatime", "wakatime-internal.cfg"),
 		},
 		"env trailing slash": {
 			EnvVar:   "~/path2/",
-			Expected: filepath.Join(home, "path2", ".wakatime-internal.cfg"),
+			Expected: filepath.Join(home, "path2", "wakatime-internal.cfg"),
 		},
 		"env without trailing slash": {
 			EnvVar:   "~/path2",
-			Expected: filepath.Join(home, "path2", ".wakatime-internal.cfg"),
+			Expected: filepath.Join(home, "path2", "wakatime-internal.cfg"),
 		},
 	}
 
