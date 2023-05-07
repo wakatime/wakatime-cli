@@ -17,6 +17,7 @@ import (
 	cmdheartbeat "github.com/wakatime/wakatime-cli/cmd/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/api"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/ini"
 	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/offline"
 	"github.com/wakatime/wakatime-cli/pkg/project"
@@ -749,6 +750,135 @@ func TestSendHeartbeats_ErrAuth_UnsetAPIKey(t *testing.T) {
 	)
 
 	assert.Eventually(t, func() bool { return numCalls == 0 }, time.Second, 50*time.Millisecond)
+}
+
+func TestSendHeartbeats_ErrBackoff(t *testing.T) {
+	_, router, tearDown := setupTestServer()
+	defer tearDown()
+
+	var numCalls int
+
+	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
+		numCalls++
+
+		// send response
+		w.WriteHeader(http.StatusInternalServerError)
+	})
+
+	tmpDir := t.TempDir()
+
+	logFile, err := os.CreateTemp(tmpDir, "")
+	require.NoError(t, err)
+
+	defer logFile.Close()
+
+	v := viper.New()
+
+	v.Set("internal.backoff_at", time.Now().Add(10*time.Minute).Format(ini.DateFormat))
+	v.Set("internal.backoff_retries", "1")
+	v.SetDefault("sync-offline-activity", 1000)
+	v.Set("api-url", "https://example.org")
+	v.Set("entity", "testdata/main.go")
+	v.Set("entity-type", "file")
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("log-file", logFile.Name())
+
+	cmd.SetupLogging(v)
+
+	defer func() {
+		if file, ok := log.Output().(*os.File); ok {
+			_ = file.Sync()
+			file.Close()
+		} else if handler, ok := log.Output().(io.Closer); ok {
+			handler.Close()
+		}
+	}()
+
+	offlineQueueFile, err := os.CreateTemp(t.TempDir(), "")
+	require.NoError(t, err)
+
+	defer offlineQueueFile.Close()
+
+	err = cmdheartbeat.SendHeartbeats(v, offlineQueueFile.Name())
+	require.Error(t, err)
+	assert.ErrorAs(t, err, &api.ErrBackoff{})
+
+	assert.Equal(t, 0, numCalls)
+
+	offlineCount, err := offline.CountHeartbeats(offlineQueueFile.Name())
+	require.NoError(t, err)
+
+	assert.Equal(t, 1, offlineCount)
+
+	output, err := io.ReadAll(logFile)
+	require.NoError(t, err)
+
+	assert.Empty(t, string(output))
+}
+
+func TestSendHeartbeats_ErrBackoff_Verbose(t *testing.T) {
+	_, router, tearDown := setupTestServer()
+	defer tearDown()
+
+	var numCalls int
+
+	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
+		numCalls++
+
+		// send response
+		w.WriteHeader(http.StatusInternalServerError)
+	})
+
+	tmpDir := t.TempDir()
+
+	logFile, err := os.CreateTemp(tmpDir, "")
+	require.NoError(t, err)
+
+	defer logFile.Close()
+
+	v := viper.New()
+
+	v.Set("internal.backoff_at", time.Now().Add(10*time.Minute).Format(ini.DateFormat))
+	v.Set("internal.backoff_retries", "1")
+	v.SetDefault("sync-offline-activity", 1000)
+	v.Set("api-url", "https://example.org")
+	v.Set("entity", "testdata/main.go")
+	v.Set("entity-type", "file")
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("log-file", logFile.Name())
+	v.Set("verbose", true)
+
+	cmd.SetupLogging(v)
+
+	defer func() {
+		if file, ok := log.Output().(*os.File); ok {
+			_ = file.Sync()
+			file.Close()
+		} else if handler, ok := log.Output().(io.Closer); ok {
+			handler.Close()
+		}
+	}()
+
+	offlineQueueFile, err := os.CreateTemp(t.TempDir(), "")
+	require.NoError(t, err)
+
+	defer offlineQueueFile.Close()
+
+	err = cmdheartbeat.SendHeartbeats(v, offlineQueueFile.Name())
+	require.Error(t, err)
+	assert.ErrorAs(t, err, &api.ErrBackoff{})
+
+	assert.Equal(t, 0, numCalls)
+
+	offlineCount, err := offline.CountHeartbeats(offlineQueueFile.Name())
+	require.NoError(t, err)
+
+	assert.Equal(t, 1, offlineCount)
+
+	output, err := io.ReadAll(logFile)
+	require.NoError(t, err)
+
+	assert.Contains(t, string(output), "will retry at")
 }
 
 func setupTestServer() (string, *http.ServeMux, func()) {
