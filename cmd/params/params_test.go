@@ -896,7 +896,9 @@ func TestLoadParams_SanitizeParams_HideBranchNames_False(t *testing.T) {
 			params, err := paramscmd.LoadHeartbeatParams(v)
 			require.NoError(t, err)
 
-			assert.Equal(t, paramscmd.SanitizeParams{}, params.Sanitize)
+			assert.Equal(t, paramscmd.SanitizeParams{
+				HideBranchNames: []regex.Regex{regex.MustCompile("a^")},
+			}, params.Sanitize)
 		})
 	}
 }
@@ -1050,7 +1052,9 @@ func TestLoadParams_SanitizeParams_HideProjectNames_False(t *testing.T) {
 			params, err := paramscmd.LoadHeartbeatParams(v)
 			require.NoError(t, err)
 
-			assert.Equal(t, paramscmd.SanitizeParams{}, params.Sanitize)
+			assert.Equal(t, paramscmd.SanitizeParams{
+				HideProjectNames: []regex.Regex{regexp.MustCompile("a^")},
+			}, params.Sanitize)
 		})
 	}
 }
@@ -1204,7 +1208,9 @@ func TestLoadParams_SanitizeParams_HideFileNames_False(t *testing.T) {
 			params, err := paramscmd.LoadHeartbeatParams(v)
 			require.NoError(t, err)
 
-			assert.Equal(t, paramscmd.SanitizeParams{}, params.Sanitize)
+			assert.Equal(t, paramscmd.SanitizeParams{
+				HideFileNames: []regex.Regex{regexp.MustCompile("a^")},
+			}, params.Sanitize)
 		})
 	}
 }
@@ -1430,7 +1436,7 @@ func TestLoadParams_SubmodulesDisabled_False(t *testing.T) {
 			params, err := paramscmd.LoadHeartbeatParams(v)
 			require.NoError(t, err)
 
-			assert.Empty(t, params.Project.SubmodulesDisabled)
+			assert.Equal(t, params.Project.SubmodulesDisabled, []regex.Regex{regexp.MustCompile("a^")})
 		})
 	}
 }

@@ -184,7 +184,7 @@ func shouldTakeSubmodule(fp string, patterns []regex.Regex) bool {
 }
 
 func findGitdir(fp string) (string, error) {
-	lines, err := readFile(fp, 1)
+	lines, err := ReadFile(fp, 1)
 	if err != nil {
 		return "", fmt.Errorf("failed while opening file %q: %s", fp, err)
 	}
@@ -228,7 +228,7 @@ func findCommondir(fp string) (string, bool, error) {
 }
 
 func resolveCommondir(fp string) (string, bool, error) {
-	lines, err := readFile(filepath.Join(fp, "commondir"), 1)
+	lines, err := ReadFile(filepath.Join(fp, "commondir"), 1)
 	if err != nil {
 		return "", false,
 			fmt.Errorf("failed while opening file %q: %s", fp, err)
@@ -277,7 +277,7 @@ func findGitBranch(fp string) (string, error) {
 		return "master", nil
 	}
 
-	lines, err := readFile(fp, 1)
+	lines, err := ReadFile(fp, 1)
 	if err != nil {
 		return "", fmt.Errorf("failed while opening file %q: %s", fp, err)
 	}
@@ -294,7 +294,7 @@ func findGitRemote(fp string) (string, error) {
 		return "", nil
 	}
 
-	lines, err := readFile(fp, 1000)
+	lines, err := ReadFile(fp, 1000)
 	if err != nil {
 		return "", fmt.Errorf("failed while opening file %q: %s", fp, err)
 	}
