@@ -753,7 +753,7 @@ func TestSendHeartbeats_ErrAuth_UnsetAPIKey(t *testing.T) {
 }
 
 func TestSendHeartbeats_ErrBackoff(t *testing.T) {
-	_, router, tearDown := setupTestServer()
+	testServerURL, router, tearDown := setupTestServer()
 	defer tearDown()
 
 	var numCalls int
@@ -777,7 +777,7 @@ func TestSendHeartbeats_ErrBackoff(t *testing.T) {
 	v.Set("internal.backoff_at", time.Now().Add(10*time.Minute).Format(ini.DateFormat))
 	v.Set("internal.backoff_retries", "1")
 	v.SetDefault("sync-offline-activity", 1000)
-	v.Set("api-url", "https://example.org")
+	v.Set("api-url", testServerURL)
 	v.Set("entity", "testdata/main.go")
 	v.Set("entity-type", "file")
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
@@ -817,7 +817,7 @@ func TestSendHeartbeats_ErrBackoff(t *testing.T) {
 }
 
 func TestSendHeartbeats_ErrBackoff_Verbose(t *testing.T) {
-	_, router, tearDown := setupTestServer()
+	testServerURL, router, tearDown := setupTestServer()
 	defer tearDown()
 
 	var numCalls int
@@ -841,7 +841,7 @@ func TestSendHeartbeats_ErrBackoff_Verbose(t *testing.T) {
 	v.Set("internal.backoff_at", time.Now().Add(10*time.Minute).Format(ini.DateFormat))
 	v.Set("internal.backoff_retries", "1")
 	v.SetDefault("sync-offline-activity", 1000)
-	v.Set("api-url", "https://example.org")
+	v.Set("api-url", testServerURL)
 	v.Set("entity", "testdata/main.go")
 	v.Set("entity-type", "file")
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
