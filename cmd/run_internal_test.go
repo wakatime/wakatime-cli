@@ -8,9 +8,13 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"runtime"
 	"testing"
+	"time"
 
+	cmdheartbeat "github.com/wakatime/wakatime-cli/cmd/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
+	"github.com/wakatime/wakatime-cli/pkg/ini"
 	"github.com/wakatime/wakatime-cli/pkg/version"
 
 	"github.com/spf13/viper"
@@ -93,6 +97,110 @@ func TestRunCmd_ErrOfflineEnqueue(t *testing.T) {
 	})
 
 	assert.Equal(t, exitcode.ErrGeneric, ret)
+}
+
+func TestRunCmd_BackoffLoggedWithVerbose(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Skipping because OS is windows.")
+	}
+
+	verbose := true
+
+	testServerURL, router, tearDown := setupTestServer()
+	defer tearDown()
+
+	var numCalls int
+
+	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, _ *http.Request) {
+		numCalls++
+
+		w.WriteHeader(http.StatusCreated)
+	})
+
+	tmpDir := t.TempDir()
+
+	logFile, err := os.CreateTemp(tmpDir, "")
+	require.NoError(t, err)
+
+	defer logFile.Close()
+
+	entity, err := os.CreateTemp(tmpDir, "")
+	require.NoError(t, err)
+
+	defer entity.Close()
+
+	v := viper.New()
+	v.Set("api-url", testServerURL)
+	v.Set("entity", entity.Name())
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("log-file", logFile.Name())
+	v.Set("internal.backoff_at", time.Now().Add(10*time.Minute).Format(ini.DateFormat))
+	v.Set("internal.backoff_retries", "1")
+	v.Set("verbose", verbose)
+
+	SetupLogging(v)
+
+	exitCode := runCmd(v, verbose, false, cmdheartbeat.Run)
+	assert.Equal(t, exitcode.ErrBackoff, exitCode)
+
+	assert.Equal(t, 0, numCalls)
+
+	output, err := io.ReadAll(logFile)
+	require.NoError(t, err)
+
+	assert.Contains(t, string(output), "failed to run command: sending heartbeat")
+}
+
+func TestRunCmd_BackoffNotLogged(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Skipping because OS is windows.")
+	}
+
+	verbose := false
+
+	testServerURL, router, tearDown := setupTestServer()
+	defer tearDown()
+
+	var numCalls int
+
+	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, _ *http.Request) {
+		numCalls++
+
+		w.WriteHeader(http.StatusCreated)
+	})
+
+	tmpDir := t.TempDir()
+
+	logFile, err := os.CreateTemp(tmpDir, "")
+	require.NoError(t, err)
+
+	defer logFile.Close()
+
+	entity, err := os.CreateTemp(tmpDir, "")
+	require.NoError(t, err)
+
+	defer entity.Close()
+
+	v := viper.New()
+	v.Set("api-url", testServerURL)
+	v.Set("entity", entity.Name())
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("log-file", logFile.Name())
+	v.Set("internal.backoff_at", time.Now().Add(10*time.Minute).Format(ini.DateFormat))
+	v.Set("internal.backoff_retries", "1")
+	v.Set("verbose", verbose)
+
+	SetupLogging(v)
+
+	exitCode := runCmd(v, verbose, false, cmdheartbeat.Run)
+	assert.Equal(t, exitcode.ErrBackoff, exitCode)
+
+	assert.Equal(t, 0, numCalls)
+
+	output, err := io.ReadAll(logFile)
+	require.NoError(t, err)
+
+	assert.Empty(t, string(output))
 }
 
 func TestParseConfigFiles(t *testing.T) {
