@@ -27,7 +27,7 @@ func (f File) Detect() (Result, bool, error) {
 
 	log.Debugf("wakatime project file found at: %s", fp)
 
-	lines, err := readFile(fp, 2)
+	lines, err := ReadFile(fp, 2)
 	if err != nil {
 		return Result{}, false, fmt.Errorf("error reading file: %s", err)
 	}
@@ -53,8 +53,8 @@ func fileExists(fp string) bool {
 	return err == nil || os.IsExist(err)
 }
 
-// readFile reads a file until max number of lines and return an array of lines.
-func readFile(fp string, max int) ([]string, error) {
+// ReadFile reads a file until max number of lines and return an array of lines.
+func ReadFile(fp string, max int) ([]string, error) {
 	if fp == "" {
 		return nil, errors.New("filepath cannot be empty")
 	}

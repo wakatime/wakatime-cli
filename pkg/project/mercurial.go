@@ -53,7 +53,7 @@ func findHgBranch(fp string) (string, error) {
 		return "default", nil
 	}
 
-	lines, err := readFile(p, 1)
+	lines, err := ReadFile(p, 1)
 	if err != nil {
 		return "", fmt.Errorf("failed while opening file %q: %s", fp, err)
 	}

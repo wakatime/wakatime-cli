@@ -1,0 +1,12 @@
+[
+    {
+        "category": "debugging",
+        "entity": "%s",
+        "is_write": true,
+        "language": "Go",
+        "project": "%s",
+        "type": "file",
+        "time": 1585598059.1,
+        "user_agent": "%s"
+    }
+]
