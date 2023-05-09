@@ -99,7 +99,7 @@ func TestWithDetection_WakatimeProjectTakesPrecedence(t *testing.T) {
 
 	copyFile(
 		t,
-		"testdata/.wakatime-project-other",
+		"testdata/wakatime-project-other",
 		filepath.Join(fp, "wakatime-cli", ".wakatime-project"),
 	)
 
@@ -476,14 +476,29 @@ func TestWithDetection_ObfuscateProject(t *testing.T) {
 }
 
 func TestDetect_FileDetected(t *testing.T) {
+	tmpDir, err := realpath.Realpath(t.TempDir())
+	require.NoError(t, err)
+
+	copyFile(
+		t,
+		"testdata/wakatime-project",
+		filepath.Join(tmpDir, ".wakatime-project"),
+	)
+
+	copyFile(
+		t,
+		"testdata/entity.any",
+		filepath.Join(tmpDir, "entity.any"),
+	)
+
 	result, detector := project.Detect([]project.MapPattern{}, project.DetecterArg{
-		Filepath:  "testdata/entity.any",
+		Filepath:  filepath.Join(tmpDir, "entity.any"),
 		ShouldRun: true,
 	})
 
 	assert.Equal(t, "wakatime-cli", result.Project)
 	assert.Equal(t, "master", result.Branch)
-	assert.Contains(t, result.Folder, "testdata")
+	assert.Contains(t, result.Folder, tmpDir)
 	assert.Equal(t, detector, project.FileDetector)
 }
 

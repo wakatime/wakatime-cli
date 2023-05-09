@@ -58,7 +58,7 @@ func TestParseBoolOrRegexList(t *testing.T) {
 		},
 		"false string": {
 			Input:    "false",
-			Expected: nil,
+			Expected: []regex.Regex{regexp.MustCompile("a^")},
 		},
 		"true string": {
 			Input:    "true",

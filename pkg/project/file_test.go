@@ -13,11 +13,17 @@ import (
 )
 
 func TestFile_Detect_FileExists(t *testing.T) {
-	rp, err := realpath.Realpath("testdata/.wakatime-project")
+	tmpDir, err := realpath.Realpath(t.TempDir())
 	require.NoError(t, err)
 
+	copyFile(
+		t,
+		"testdata/wakatime-project",
+		filepath.Join(tmpDir, ".wakatime-project"),
+	)
+
 	f := project.File{
-		Filepath: rp,
+		Filepath: filepath.Join(tmpDir, ".wakatime-project"),
 	}
 
 	result, detected, err := f.Detect()
@@ -25,7 +31,7 @@ func TestFile_Detect_FileExists(t *testing.T) {
 
 	expected := project.Result{
 		Branch:  "master",
-		Folder:  filepath.Dir(rp),
+		Folder:  tmpDir,
 		Project: "wakatime-cli",
 	}
 
@@ -44,7 +50,7 @@ func TestFile_Detect_ParentFolderExists(t *testing.T) {
 
 	copyFile(
 		t,
-		"testdata/.wakatime-project",
+		"testdata/wakatime-project",
 		filepath.Join(tmpDir, ".wakatime-project"),
 	)
 
@@ -112,7 +118,7 @@ func TestFindFileOrDirectory(t *testing.T) {
 
 	copyFile(
 		t,
-		"testdata/.wakatime-project",
+		"testdata/wakatime-project",
 		filepath.Join(tmpDir, ".wakatime-project"),
 	)
 

@@ -40,6 +40,8 @@ var (
 	// nolint
 	matchAllRegex = regexp.MustCompile(".*")
 	// nolint
+	matchNoneRegex = regexp.MustCompile("a^")
+	// nolint
 	pluginRegex = regexp.MustCompile(`(?i)([a-z\/0-9.]+\s)?(?P<editor>[a-z-]+)\-wakatime\/[0-9.]+`)
 	// nolint
 	proxyRegex = regexp.MustCompile(`^((https?|socks5)://)?([^:@]+(:([^:@])+)?@)?[^:]+(:\d+)?$`)
@@ -1049,6 +1051,7 @@ func parseBoolOrRegexList(s string) ([]regex.Regex, error) {
 	switch {
 	case s == "":
 	case strings.ToLower(s) == "false":
+		patterns = []regex.Regex{matchNoneRegex}
 	case strings.ToLower(s) == "true":
 		patterns = []regex.Regex{matchAllRegex}
 	default:

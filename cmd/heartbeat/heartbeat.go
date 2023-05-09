@@ -45,11 +45,11 @@ func Run(v *viper.Viper) (int, error) {
 				log.Errorf("failed to save heartbeats to offline queue: %s", err)
 			}
 
-			return errauth.ExitCode(), fmt.Errorf("sending heartbeat(s) failed: %s", errauth.Message())
+			return errauth.ExitCode(), fmt.Errorf("sending heartbeat(s) failed: %w", errauth)
 		}
 
 		if errwaka, ok := err.(wakaerror.Error); ok {
-			return errwaka.ExitCode(), fmt.Errorf("sending heartbeat(s) failed: %s", errwaka.Message())
+			return errwaka.ExitCode(), fmt.Errorf("sending heartbeat(s) failed: %w", errwaka)
 		}
 
 		return exitcode.ErrGeneric, fmt.Errorf(
