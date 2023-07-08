@@ -57,7 +57,7 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 		"Category of this heartbeat activity. Can be \"coding\","+
 			" \"building\", \"indexing\", \"debugging\", \"running tests\","+
 			" \"writing tests\", \"manual testing\", \"code reviewing\","+
-			" \"browsing\", or \"designing\". Defaults to \"coding\".",
+			" \"browsing\", \"translating\", or \"designing\". Defaults to \"coding\".",
 	)
 	flags.String("config", "", "Optional config file. Defaults to '~/.wakatime.cfg'.")
 	flags.String("internal-config", "", "Optional internal config file. Defaults to '~/.wakatime/wakatime-internal.cfg'.")
