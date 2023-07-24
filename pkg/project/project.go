@@ -140,7 +140,7 @@ func WithDetection(config Config) heartbeat.HandleOption {
 	return func(next heartbeat.Handle) heartbeat.Handle {
 		return func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 			for n, h := range hh {
-				log.Debugln("execute project detection for:", h.Entity)
+				log.Debugf("execute project detection for: %s", h.Entity)
 
 				// first, use .wakatime-project or [projectmap] section with entity path.
 				// Then, detect with project folder. This tries to use the same project name
@@ -240,7 +240,7 @@ func Detect(patterns []MapPattern, args ...DetecterArg) (Result, DetectorID) {
 		}
 
 		for _, p := range configPlugins {
-			log.Debugln("execute", p.ID().String())
+			log.Debugf("execute %s", p.ID().String())
 
 			result, detected, err := p.Detect()
 			if err != nil {
@@ -287,7 +287,7 @@ func DetectWithRevControl(
 		}
 
 		for _, p := range revControlPlugins {
-			log.Debugln("execute", p.ID().String())
+			log.Debugf("execute %s", p.ID().String())
 
 			result, detected, err := p.Detect()
 			if err != nil {
@@ -388,10 +388,9 @@ func CountSlashesInProjectFolder(directory string) int {
 	return strings.Count(directory, `/`)
 }
 
-// FindFileOrDirectory searches for a file or directory named `filename`.
+// FindFile searches for a file named `filename`.
 // Search starts in `directory` and will traverse through all parent directories.
-// `directory` may also be a file, and in that case will start from the file's directory.
-func FindFileOrDirectory(directory, filename string) (string, bool) {
+func FindFile(directory, filename string) (string, bool) {
 	i := 0
 	for i < maxRecursiveIteration {
 		if isRootPath(directory) {
@@ -412,14 +411,38 @@ func FindFileOrDirectory(directory, filename string) (string, bool) {
 	return "", false
 }
 
+// FindFileOrDirectory searches for a file or directory named `filename`.
+// Search starts in `directory` and will traverse through all parent directories.
+// `directory` may also be a file, and in that case will start from the file's directory.
+func FindFileOrDirectory(directory, filename string) (string, bool) {
+	i := 0
+	for i < maxRecursiveIteration {
+		if isRootPath(directory) {
+			return "", false
+		}
+
+		if fileOrDirExists(filepath.Join(directory, filename)) {
+			return filepath.Join(directory, filename), true
+		}
+
+		directory = filepath.Clean(filepath.Join(directory, ".."))
+
+		i++
+	}
+
+	log.Warnf("max %d iterations reached without finding %s", maxRecursiveIteration, filename)
+
+	return "", false
+}
+
 func isRootPath(directory string) bool {
 	return (directory == "" ||
 		directory == "." ||
 		directory == string(filepath.Separator) ||
-		directory == "\\\\wsl$" ||
-		driveLetterRegex.MatchString(directory) ||
+		directory == filepath.Dir(directory)) ||
 		directory == filepath.VolumeName(directory) ||
-		directory == filepath.Dir(directory))
+		directory == "\\\\wsl$" ||
+		driveLetterRegex.MatchString(directory)
 }
 
 // firstNonEmptyString accepts multiple values and return the first non empty string value.

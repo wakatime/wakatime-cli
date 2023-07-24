@@ -177,7 +177,7 @@ func NewHandle(sender Sender, opts ...HandleOption) Handle {
 func UserAgent(plugin string) string {
 	info, err := goInfo.GetInfo()
 	if err != nil {
-		log.Debugf("goInfo.GetInfo error: %s", err)
+		log.Warnf("goInfo.GetInfo error: %s", err)
 	}
 
 	if plugin == "" {

@@ -114,7 +114,7 @@ func WithCleanup() heartbeat.HandleOption {
 
 			for _, h := range hh {
 				if h.LocalFileNeedsCleanup {
-					log.Debugln("deleting temporary file: %s", h.LocalFile)
+					log.Debugf("deleting temporary file: %s", h.LocalFile)
 
 					deleteLocalFile(h.LocalFile)
 				}

@@ -23,7 +23,6 @@ import (
 type WakaHomeType int
 
 const (
-	defaultFolder = ".wakatime"
 	// WakaHomeTypeUnknown is unknown WakaTime home type.
 	WakaHomeTypeUnknown WakaHomeType = iota
 	// WakaHomeTypeEnvVar is WakaTime home type from environment variable.
@@ -33,6 +32,8 @@ const (
 )
 
 const (
+	// defaultFolder is the name of the default wakatime config folder.
+	defaultFolder = ".wakatime"
 	// defaultFile is the name of the default wakatime config file.
 	defaultFile = ".wakatime.cfg"
 	// defaultInternalFile is the name of the default wakatime internal config file.
@@ -62,7 +63,7 @@ func NewWriter(v *viper.Viper, filepathFn func(v *viper.Viper) (string, error)) 
 	}
 
 	// check if file exists
-	if !fileExists(configFilepath) {
+	if !fileOrDirExists(configFilepath) {
 		log.Debugf("it will create missing config file %q", configFilepath)
 
 		f, err := os.Create(configFilepath) // nolint:gosec
@@ -254,8 +255,8 @@ func (*mutexClock) Now() time.Time {
 	return time.Now()
 }
 
-// fileExists checks if a file or directory exist.
-func fileExists(fp string) bool {
+// fileOrDirExists checks if a file or directory exist.
+func fileOrDirExists(fp string) bool {
 	_, err := os.Stat(fp)
 	return err == nil || os.IsExist(err)
 }

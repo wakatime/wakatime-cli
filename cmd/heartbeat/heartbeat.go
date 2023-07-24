@@ -169,9 +169,9 @@ func LoadParams(v *viper.Viper) (paramscmd.Params, error) {
 }
 
 func buildHeartbeats(params paramscmd.Params) []heartbeat.Heartbeat {
-	heartbeats := []heartbeat.Heartbeat{}
-
 	userAgent := heartbeat.UserAgent(params.API.Plugin)
+
+	heartbeats := []heartbeat.Heartbeat{}
 
 	heartbeats = append(heartbeats, heartbeat.New(
 		params.Heartbeat.Project.BranchAlternate,
@@ -228,6 +228,7 @@ func initHandleOptions(params paramscmd.Params) []heartbeat.HandleOption {
 	return []heartbeat.HandleOption{
 		heartbeat.WithFormatting(),
 		heartbeat.WithEntityModifer(),
+		project.WithConfiguration(), // TODO: verify the execution order of this
 		filter.WithFiltering(filter.Config{
 			Exclude:                    params.Heartbeat.Filter.Exclude,
 			Include:                    params.Heartbeat.Filter.Include,

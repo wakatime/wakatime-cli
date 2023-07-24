@@ -27,7 +27,7 @@ func (g Git) Detect() (Result, bool, error) {
 	fp := g.Filepath
 
 	// Take only the directory
-	if fileExists(fp) {
+	if fileOrDirExists(fp) {
 		fp = filepath.Dir(fp)
 	}
 
@@ -204,7 +204,7 @@ func resolveGitdir(fp string, gitdir string) (string, error) {
 		subPath = filepath.Join(fp, subPath)
 	}
 
-	if fileExists(filepath.Join(subPath, "HEAD")) {
+	if fileOrDirExists(filepath.Join(subPath, "HEAD")) {
 		return subPath, nil
 	}
 
@@ -220,7 +220,7 @@ func findCommondir(fp string) (string, bool, error) {
 		return "", false, nil
 	}
 
-	if fileExists(filepath.Join(fp, "commondir")) {
+	if fileOrDirExists(filepath.Join(fp, "commondir")) {
 		return resolveCommondir(fp)
 	}
 
@@ -273,7 +273,7 @@ func projectOrRemote(projectName string, projectFromGitRemote bool, dotGitFolder
 }
 
 func findGitBranch(fp string) (string, error) {
-	if !fileExists(fp) {
+	if !fileOrDirExists(fp) {
 		return "master", nil
 	}
 
@@ -290,7 +290,7 @@ func findGitBranch(fp string) (string, error) {
 }
 
 func findGitRemote(fp string) (string, error) {
-	if !fileExists(fp) {
+	if !fileOrDirExists(fp) {
 		return "", nil
 	}
 

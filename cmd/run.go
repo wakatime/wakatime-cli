@@ -58,14 +58,18 @@ func Run(cmd *cobra.Command, v *viper.Viper) {
 
 		if v.IsSet("entity") {
 			saveHeartbeats(v)
-
-			os.Exit(exitcode.ErrConfigFileParse)
 		}
+
+		os.Exit(exitcode.ErrConfigFileParse)
 	}
 
 	// setup logging again to use config file settings
 	logFileParams, err := SetupLogging(v)
 	if err != nil {
+		if v.IsSet("entity") {
+			saveHeartbeats(v)
+		}
+
 		log.Fatalf("failed to setup logging: %s", err)
 	}
 
@@ -141,12 +145,13 @@ func Run(cmd *cobra.Command, v *viper.Viper) {
 		"--config-read",
 		"--config-write",
 		"--entity",
+		"--file-experts",
 		"--offline-count",
 		"--print-offline-heartbeats",
 		"--sync-offline-activity",
 		"--today",
 		"--today-goal",
-		"--useragent",
+		"--user-agent",
 		"--version",
 	}, ", "))
 
@@ -170,8 +175,10 @@ func parseConfigFiles(v *viper.Viper) error {
 			vp: v,
 		},
 		{
-			fn:    ini.InternalFilePath,
-			vp:    viper.NewWithOptions(viper.IniLoadOptions(iniv1.LoadOptions{SkipUnrecognizableLines: true})),
+			fn: ini.InternalFilePath,
+			vp: viper.NewWithOptions(viper.IniLoadOptions(iniv1.LoadOptions{
+				SkipUnrecognizableLines: true,
+			})),
 			merge: true,
 		},
 	}
@@ -297,7 +304,7 @@ func runCmd(v *viper.Viper, verbose bool, sendDiagsOnErrors bool, cmd cmdFn) int
 
 	// run command
 	exitCode, err := cmd(v)
-	if err != nil && (verbose || canLogError(err)) {
+	if err != nil && (verbose || !errors.As(err, &api.ErrBackoff{})) {
 		log.Errorf("failed to run command: %s", err)
 
 		resetLogs()
@@ -376,8 +383,4 @@ func captureLogs(dest io.Writer) func() {
 	return func() {
 		log.SetOutput(logOutput)
 	}
-}
-
-func canLogError(err error) bool {
-	return !errors.As(err, &api.ErrBackoff{})
 }
