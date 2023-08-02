@@ -32,9 +32,12 @@ jobs:
       -
         name: Unit tests
         run: make test
-      -
+      - 
         name: Linter
-        run: make lint
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: latest
+          skip-cache: true
       -
         name: Vulnerability scan
         run: make vulncheck
@@ -89,9 +92,12 @@ jobs:
       -
         name: Unit tests
         run: make test
-      -
+      - 
         name: Linter
-        run: make lint
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: latest
+          skip-cache: true
 
   test-integration-windows:
     name: Integration Tests Windows
@@ -137,9 +143,12 @@ jobs:
       -
         name: Unit tests
         run: make test
-      -
+      - 
         name: Linter
-        run: make lint
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: latest
+          skip-cache: true
 
   test-integration-macos:
     name: Integration Tests macOS
