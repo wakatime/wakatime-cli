@@ -11,9 +11,9 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/apikey"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 
+	"github.com/gandarez/go-realpath"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/yookoala/realpath"
 )
 
 func TestWithReplacing(t *testing.T) {
