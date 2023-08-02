@@ -9,43 +9,8 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/log"
 )
 
-const serverName = "api.wakatime.com"
-
-// NewTransport initializes a new http.Transport.
-func NewTransport() *http.Transport {
-	return &http.Transport{
-		ForceAttemptHTTP2:   true,
-		MaxConnsPerHost:     1,
-		MaxIdleConns:        1,
-		MaxIdleConnsPerHost: 1,
-		Proxy:               nil,
-		TLSHandshakeTimeout: DefaultTimeoutSecs * time.Second,
-	}
-}
-
-// NewTransportWithHostVerificationDisabled initializes a new http.Transport with disabled host verification.
-func NewTransportWithHostVerificationDisabled() *http.Transport {
-	t := NewTransport()
-
-	t.TLSClientConfig = &tls.Config{
-		MinVersion: tls.VersionTLS12,
-		RootCAs:    CACerts(),
-		ServerName: serverName,
-	}
-
-	return t
-}
-
-// LazyCreateNewTransport uses the client's Transport if exists, or creates a new one.
-func LazyCreateNewTransport(c *Client) *http.Transport {
-	if c != nil && c.client != nil && c.client.Transport != nil {
-		return c.client.Transport.(*http.Transport).Clone()
-	}
-
-	return NewTransport()
-}
-
-const letsencryptCerts string = `
+const (
+	letsencryptCerts = `
 -----BEGIN CERTIFICATE-----
 MIIEYDCCAkigAwIBAgIQB55JKIY3b9QISMI/xjHkYzANBgkqhkiG9w0BAQsFADBP
 MQswCQYDVQQGEwJVUzEpMCcGA1UEChMgSW50ZXJuZXQgU2VjdXJpdHkgUmVzZWFy
@@ -118,6 +83,42 @@ mRGunUHBcnWEvgJBQl9nJEiU0Zsnvgc/ubhPgXRR4Xq37Z0j4r7g1SgEEzwxA57d
 emyPxgcYxn/eR44/KJ4EBs+lVDR3veyJm+kXQ99b21/+jh5Xos1AnX5iItreGCc=
 -----END CERTIFICATE-----
 `
+	serverName = "api.wakatime.com"
+)
+
+// NewTransport initializes a new http.Transport.
+func NewTransport() *http.Transport {
+	return &http.Transport{
+		ForceAttemptHTTP2:   true,
+		MaxConnsPerHost:     1,
+		MaxIdleConns:        1,
+		MaxIdleConnsPerHost: 1,
+		Proxy:               nil,
+		TLSHandshakeTimeout: DefaultTimeoutSecs * time.Second,
+	}
+}
+
+// NewTransportWithHostVerificationDisabled initializes a new http.Transport with disabled host verification.
+func NewTransportWithHostVerificationDisabled() *http.Transport {
+	t := NewTransport()
+
+	t.TLSClientConfig = &tls.Config{
+		MinVersion: tls.VersionTLS12,
+		RootCAs:    CACerts(),
+		ServerName: serverName,
+	}
+
+	return t
+}
+
+// LazyCreateNewTransport uses the client's Transport if exists, or creates a new one.
+func LazyCreateNewTransport(c *Client) *http.Transport {
+	if c != nil && c.client != nil && c.client.Transport != nil {
+		return c.client.Transport.(*http.Transport).Clone()
+	}
+
+	return NewTransport()
+}
 
 // CACerts returns a root cert pool with the system's cacerts and LetsEncrypt's root certs.
 func CACerts() *x509.CertPool {
