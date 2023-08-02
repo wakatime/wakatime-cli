@@ -24,8 +24,8 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/project"
 	"github.com/wakatime/wakatime-cli/pkg/version"
 	"github.com/wakatime/wakatime-cli/pkg/windows"
-	"github.com/yookoala/realpath"
 
+	"github.com/gandarez/go-realpath"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
