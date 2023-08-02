@@ -76,8 +76,6 @@ github.com/fsnotify/fsnotify v1.6.0 h1:n+5WquG0fcWoWp6xPWfHdbskMCQaFnG6PfBrh1Ky4
 github.com/fsnotify/fsnotify v1.6.0/go.mod h1:sl3t1tCWJFWoRz9R8WJCbQihKKwmorjAbSClcnxKAGw=
 github.com/gandarez/go-olson-timezone v0.1.0 h1:cDRlHKQE0uC3mJNZyKoQIpAuvQtV8KXwIVj8bDEEyuo=
 github.com/gandarez/go-olson-timezone v0.1.0/go.mod h1:+yV/cYNjgs2JqdGShznAD4R13r8lKMGR2XlWAJqa5Yo=
-github.com/gandarez/go-realpath v0.1.0 h1:jaHsXGZp55mXSGoXj2QWUTMLWqTk3jg6yRS6gXold7Y=
-github.com/gandarez/go-realpath v0.1.0/go.mod h1:B5MPsYoZD8dUhGtNbTlOZGuaRD/jM0CnbBWXXD1rSk8=
 github.com/gandarez/go-realpath v1.0.0 h1:fhQBRDshH/MZNmDLWM9vbBameK2fxyLr+ctqkRwbHEU=
 github.com/gandarez/go-realpath v1.0.0/go.mod h1:B5MPsYoZD8dUhGtNbTlOZGuaRD/jM0CnbBWXXD1rSk8=
 github.com/go-gl/glfw v0.0.0-20190409004039-e6da0acd62b1/go.mod h1:vR7hzQXu2zJy9AVAgeJqvqgH9Q5CA+iKCZ2gyEVpxRU=
