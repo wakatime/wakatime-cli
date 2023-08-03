@@ -38,6 +38,7 @@ ssl_certs_file =
 timeout = 30
 hostname = machinename
 log_file =
+import_cfg = /path/to/another/wakatime.cfg
 
 [projectmap]
 projects/foo = new project name
@@ -82,6 +83,7 @@ some/submodule/name = new project name
 | timeout                        | Connection timeout in seconds when communicating with the api. | _int_ | `120` |
 | hostname                       | Optional name of local machine. By default, auto-detects the local machine’s hostname. | _string_ | |
 | log_file                       | Optional log file path. | _filepath_ | `~/.wakatime/wakatime.log` |
+| import_cfg                     | Optional path to another wakatime.cfg file to import. If set it will overwrite values loaded from $WAKATIME_HOME/.wakatime.cfg file. | _filepath_ | |
 
 ### Project Map Section
 
