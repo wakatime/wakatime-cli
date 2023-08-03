@@ -4,11 +4,20 @@ package api
 
 import (
 	"crypto/x509"
+	"runtime/debug"
 	"syscall"
 	"unsafe"
+
+	"github.com/wakatime/wakatime-cli/pkg/log"
 )
 
 func loadSystemRoots() (*x509.CertPool, error) {
+	defer func() {
+		if err := recover(); err != nil {
+			log.Errorf("failed to load system roots on Windows. panicked: %v. Stack: %s", err, string(debug.Stack()))
+		}
+	}()
+
 	const cryptENotFound = 0x80092004
 
 	rootPtr, err := syscall.UTF16PtrFromString("ROOT")

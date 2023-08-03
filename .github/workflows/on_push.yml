@@ -43,7 +43,7 @@ jobs:
         run: make vulncheck
       -
         name: Coverage
-        uses: codecov/codecov-action@v2
+        uses: codecov/codecov-action@v3
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           flags: unittests
@@ -189,6 +189,7 @@ jobs:
         uses: ludeeus/action-shellcheck@master
         with:
           ignore_paths: 'bin/tests/libs'
+          ignore_names: govulncheck-with-excludes.sh
       -
         name: Setup bats
         uses: mig4/setup-bats@v1
