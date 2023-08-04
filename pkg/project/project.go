@@ -15,8 +15,8 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/regex"
 	"github.com/wakatime/wakatime-cli/pkg/windows"
-	"github.com/yookoala/realpath"
 
+	"github.com/gandarez/go-realpath"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )

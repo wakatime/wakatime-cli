@@ -23,8 +23,8 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/project"
 	"github.com/wakatime/wakatime-cli/pkg/version"
 	"github.com/wakatime/wakatime-cli/pkg/windows"
-	"github.com/yookoala/realpath"
 
+	"github.com/gandarez/go-realpath"
 	"github.com/matishsiao/goInfo"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"

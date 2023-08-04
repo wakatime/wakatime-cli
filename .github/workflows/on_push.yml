@@ -21,25 +21,29 @@ jobs:
         name: Checkout
         uses: actions/checkout@v3
       -
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v4
         with:
           go-version-file: ${{ env.GO_VERSION_FILE }}
           check-latest: ${{ env.CHECK_LATEST }}
+          cache: false
       -
         name: Pull dependencies
         run: make install-go-modules
       -
         name: Unit tests
         run: make test
-      -
+      - 
         name: Linter
-        run: make lint
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: latest
+          skip-cache: true
       -
         name: Vulnerability scan
         run: make vulncheck
       -
         name: Coverage
-        uses: codecov/codecov-action@v2
+        uses: codecov/codecov-action@v3
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           flags: unittests
@@ -52,10 +56,11 @@ jobs:
         name: Checkout
         uses: actions/checkout@v3
       -
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v4
         with:
           go-version-file: ${{ env.GO_VERSION_FILE }}
           check-latest: ${{ env.CHECK_LATEST }}
+          cache: false
       -
         name: Pull dependencies
         run: make install-go-modules
@@ -76,19 +81,23 @@ jobs:
         name: Checkout
         uses: actions/checkout@v3
       -
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v4
         with:
           go-version-file: ${{ env.GO_VERSION_FILE }}
           check-latest: ${{ env.CHECK_LATEST }}
+          cache: false
       -
         name: Pull dependencies
         run: make install-go-modules
       -
         name: Unit tests
         run: make test
-      -
+      - 
         name: Linter
-        run: make lint
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: latest
+          skip-cache: true
 
   test-integration-windows:
     name: Integration Tests Windows
@@ -98,10 +107,11 @@ jobs:
         name: Checkout
         uses: actions/checkout@v3
       -
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v4
         with:
           go-version-file: ${{ env.GO_VERSION_FILE }}
           check-latest: ${{ env.CHECK_LATEST }}
+          cache: false
       -
         name: Pull dependencies
         run: make install-go-modules
@@ -122,16 +132,23 @@ jobs:
         name: Checkout
         uses: actions/checkout@v3
       -
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v4
         with:
           go-version-file: ${{ env.GO_VERSION_FILE }}
           check-latest: ${{ env.CHECK_LATEST }}
+          cache: false
       -
         name: Pull dependencies
         run: make install-go-modules
       -
         name: Unit tests
         run: make test
+      - 
+        name: Linter
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: latest
+          skip-cache: true
 
   test-integration-macos:
     name: Integration Tests macOS
@@ -141,10 +158,11 @@ jobs:
         name: Checkout
         uses: actions/checkout@v3
       -
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v4
         with:
           go-version-file: ${{ env.GO_VERSION_FILE }}
           check-latest: ${{ env.CHECK_LATEST }}
+          cache: false
       -
         name: Pull dependencies
         run: make install-go-modules
@@ -171,6 +189,7 @@ jobs:
         uses: ludeeus/action-shellcheck@master
         with:
           ignore_paths: 'bin/tests/libs'
+          ignore_names: govulncheck-with-excludes.sh
       -
         name: Setup bats
         uses: mig4/setup-bats@v1
@@ -233,10 +252,11 @@ jobs:
         uses: actions/checkout@v3
       -
         name: Setup go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v4
         with:
           go-version-file: ${{ env.GO_VERSION_FILE }}
           check-latest: ${{ env.CHECK_LATEST }}
+          cache: false
       -
         name: Build binaries
         env:
@@ -273,10 +293,11 @@ jobs:
         uses: actions/checkout@v3
       -
         name: Setup go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v4
         with:
           go-version-file: ${{ env.GO_VERSION_FILE }}
           check-latest: ${{ env.CHECK_LATEST }}
+          cache: false
       -
         name: Build binaries
         env:
@@ -313,10 +334,11 @@ jobs:
         uses: actions/checkout@v3
       -
         name: Setup go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v4
         with:
           go-version-file: ${{ env.GO_VERSION_FILE }}
           check-latest: ${{ env.CHECK_LATEST }}
+          cache: false
       -
         name: Build binaries
         env:
@@ -353,10 +375,11 @@ jobs:
         uses: actions/checkout@v3
       -
         name: Setup go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v4
         with:
           go-version-file: ${{ env.GO_VERSION_FILE }}
           check-latest: ${{ env.CHECK_LATEST }}
+          cache: false
       -
         name: Build binaries
         env:
@@ -393,10 +416,11 @@ jobs:
         uses: actions/checkout@v3
       -
         name: Setup go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v4
         with:
           go-version-file: ${{ env.GO_VERSION_FILE }}
           check-latest: ${{ env.CHECK_LATEST }}
+          cache: false
       -
         name: Build binaries
         env:
@@ -433,10 +457,11 @@ jobs:
         uses: actions/checkout@v3
       -
         name: Setup go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v4
         with:
           go-version-file: ${{ env.GO_VERSION_FILE }}
           check-latest: ${{ env.CHECK_LATEST }}
+          cache: false
       -
         name: Build binaries
         env:
