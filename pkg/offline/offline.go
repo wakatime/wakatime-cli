@@ -7,6 +7,7 @@ import (
 	"math"
 	"net/http"
 	"path/filepath"
+	"runtime/debug"
 	"time"
 
 	"github.com/wakatime/wakatime-cli/pkg/api"
@@ -67,9 +68,10 @@ func WithQueue(filepath string) heartbeat.HandleOption {
 				requeueErr := pushHeartbeatsWithRetry(filepath, hh)
 				if requeueErr != nil {
 					return nil, fmt.Errorf(
-						"failed to push heartbeats to queue after api error: %s. error: %s",
+						"failed to push heartbeats to queue after api error: %w. error: %w",
 						requeueErr,
-						err)
+						err,
+					)
 				}
 
 				return nil, err
@@ -158,7 +160,7 @@ func Sync(filepath string, syncLimit int) func(next heartbeat.Handle) error {
 			if err != nil {
 				requeueErr := pushHeartbeatsWithRetry(filepath, hh)
 				if requeueErr != nil {
-					log.Warnf("failed to push heatbeats to queue after api error: %s", requeueErr)
+					log.Warnf("failed to push heartbeats to queue after api error: %s", requeueErr)
 				}
 
 				return err
@@ -166,7 +168,7 @@ func Sync(filepath string, syncLimit int) func(next heartbeat.Handle) error {
 
 			err = handleResults(filepath, results, hh)
 			if err != nil {
-				return fmt.Errorf("failed to handle heatbeats api results: %s", err)
+				return fmt.Errorf("failed to handle heartbeats api results: %s", err)
 			}
 		}
 
@@ -213,7 +215,7 @@ func handleResults(filepath string, results []heartbeat.Result, hh []heartbeat.H
 
 		err = pushHeartbeatsWithRetry(filepath, withInvalidStatus)
 		if err != nil {
-			log.Warnf("failed to push heatbeats with invalid status to queue: %s", err)
+			log.Warnf("failed to push heartbeats with invalid status to queue: %s", err)
 		}
 	}
 
@@ -226,7 +228,7 @@ func handleResults(filepath string, results []heartbeat.Result, hh []heartbeat.H
 
 		err = pushHeartbeatsWithRetry(filepath, hh[start:])
 		if err != nil {
-			log.Warnf("failed to push leftover heatbeats to queue: %s", err)
+			log.Warnf("failed to push leftover heartbeats to queue: %s", err)
 		}
 	}
 
@@ -234,16 +236,12 @@ func handleResults(filepath string, results []heartbeat.Result, hh []heartbeat.H
 }
 
 func popHeartbeats(filepath string, limit int) ([]heartbeat.Heartbeat, error) {
-	db, err := bolt.Open(filepath, 0600, &bolt.Options{Timeout: 10 * time.Minute})
+	db, close, err := openDB(filepath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open db connection: %s", err)
+		return nil, err
 	}
 
-	defer func() {
-		if err := db.Close(); err != nil {
-			log.Debugf("failed to close db file: %s", err)
-		}
-	}()
+	defer close()
 
 	tx, err := db.Begin(true)
 	if err != nil {
@@ -308,16 +306,12 @@ func pushHeartbeatsWithRetry(filepath string, hh []heartbeat.Heartbeat) error {
 }
 
 func pushHeartbeats(filepath string, hh []heartbeat.Heartbeat) error {
-	db, err := bolt.Open(filepath, 0600, &bolt.Options{Timeout: 10 * time.Minute})
+	db, close, err := openDB(filepath)
 	if err != nil {
-		return fmt.Errorf("failed to open db connection: %s", err)
+		return err
 	}
 
-	defer func() {
-		if err := db.Close(); err != nil {
-			log.Debugf("failed to close db file: %s", err)
-		}
-	}()
+	defer close()
 
 	tx, err := db.Begin(true)
 	if err != nil {
@@ -340,16 +334,12 @@ func pushHeartbeats(filepath string, hh []heartbeat.Heartbeat) error {
 
 // CountHeartbeats returns the total number of heartbeats in the offline db.
 func CountHeartbeats(filepath string) (int, error) {
-	db, err := bolt.Open(filepath, 0600, &bolt.Options{Timeout: 30 * time.Second})
+	db, close, err := openDB(filepath)
 	if err != nil {
-		return 0, fmt.Errorf("failed to open db connection: %s", err)
+		return 0, err
 	}
 
-	defer func() {
-		if err := db.Close(); err != nil {
-			log.Debugf("failed to close db file: %s", err)
-		}
-	}()
+	defer close()
 
 	tx, err := db.Begin(true)
 	if err != nil {
@@ -375,16 +365,12 @@ func CountHeartbeats(filepath string) (int, error) {
 
 // ReadHeartbeats reads the informed heartbeats in the offline db.
 func ReadHeartbeats(filepath string, limit int) ([]heartbeat.Heartbeat, error) {
-	db, err := bolt.Open(filepath, 0600, &bolt.Options{Timeout: 30 * time.Second})
+	db, close, err := openDB(filepath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open db connection: %s", err)
+		return nil, err
 	}
 
-	defer func() {
-		if err := db.Close(); err != nil {
-			log.Debugf("failed to close db file: %s", err)
-		}
-	}()
+	defer close()
 
 	tx, err := db.Begin(true)
 	if err != nil {
@@ -408,6 +394,31 @@ func ReadHeartbeats(filepath string, limit int) ([]heartbeat.Heartbeat, error) {
 	}
 
 	return hh, nil
+}
+
+// openDB opens a connection to the offline db.
+// It returns the pointer to bolt.DB, a function to close the connection and an error.
+func openDB(filepath string) (*bolt.DB, func(), error) {
+	var err error
+
+	defer func() {
+		if r := recover(); r != nil {
+			err = ErrOpenDB{Err: fmt.Errorf("panicked: %v", r)}
+
+			log.Errorf("%w. Stack: %s", err, string(debug.Stack()))
+		}
+	}()
+
+	db, err := bolt.Open(filepath, 0600, &bolt.Options{Timeout: 30 * time.Second})
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to open db file: %s", err)
+	}
+
+	return db, func() {
+		if err := db.Close(); err != nil {
+			log.Debugf("failed to close db file: %s", err)
+		}
+	}, err
 }
 
 // Queue is a db client to temporarily store heartbeats in bolt db, in case heartbeat
