@@ -31,6 +31,7 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/offline"
 	"github.com/wakatime/wakatime-cli/pkg/vipertools"
+	"github.com/wakatime/wakatime-cli/pkg/wakaerror"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -259,7 +260,9 @@ func RunCmdWithOfflineSync(v *viper.Viper, verbose bool, sendDiagsOnErrors bool,
 		os.Exit(exitCode)
 	}
 
-	os.Exit(runCmd(v, verbose, sendDiagsOnErrors, offlinesync.Run))
+	exitCode = runCmd(v, verbose, sendDiagsOnErrors, offlinesync.Run)
+
+	os.Exit(exitCode)
 }
 
 // runCmd contains the main logic of RunCmd.
@@ -297,8 +300,17 @@ func runCmd(v *viper.Viper, verbose bool, sendDiagsOnErrors bool, cmd cmdFn) int
 
 	// run command
 	exitCode, err := cmd(v)
-	if err != nil && (verbose || canLogError(err)) {
-		log.Errorf("failed to run command: %s", err)
+	// nolint:nestif
+	if err != nil {
+		if errwaka, ok := err.(wakaerror.Error); ok {
+			sendDiagsOnErrors = sendDiagsOnErrors || errwaka.SendDiagsOnErrors()
+			// if verbose is not set, use the value from the error
+			verbose = verbose || errwaka.ShouldLogError()
+		}
+
+		if verbose {
+			log.Errorf("failed to run command: %s", err)
+		}
 
 		resetLogs()
 
@@ -330,30 +342,30 @@ func saveHeartbeats(v *viper.Viper) {
 
 func sendDiagnostics(v *viper.Viper, d diagnostics) error {
 	paramAPI, err := params.LoadAPIParams(v)
-	if err != nil {
-		// Prevent sending diags for api key errors.
-		if !errors.As(err, &api.ErrAuth{}) {
-			return fmt.Errorf("failed to load API parameters: %s", err)
-		}
+	// prevent sending diags for api key errors
+	if err != nil && !errors.As(err, &api.ErrAuth{}) {
+		return fmt.Errorf("failed to load API parameters: %s", err)
+	}
 
-		// Prevent sending diags for api connection errors.
-		if !errors.As(err, &api.ErrBackoff{}) {
-			return fmt.Errorf("failed to load API parameters: %s", err)
+	c, err := cmdapi.NewClient(paramAPI)
+	if err != nil {
+		log.Warnf("failed to initialize api client: %s", err)
+
+		// try without authencation
+		c, err = cmdapi.NewClientWithoutAuth(paramAPI)
+		if err != nil {
+			return fmt.Errorf("failed to initialize api client without auth: %s", err)
 		}
 	}
 
-	c, err := cmdapi.NewClientWithoutAuth(paramAPI)
-	if err != nil {
-		return fmt.Errorf("failed to initialize api client: %s", err)
-	}
+	// foce disable ssl verification
+	api.WithDisableSSLVerify()(c)
 
 	diagnostics := []diagnostic.Diagnostic{
 		diagnostic.Error(d.OriginalError),
 		diagnostic.Logs(d.Logs),
 		diagnostic.Stack(d.Stack),
 	}
-
-	api.WithDisableSSLVerify()(c)
 
 	err = c.SendDiagnostics(paramAPI.Plugin, d.Panicked, diagnostics...)
 	if err != nil {
@@ -376,8 +388,4 @@ func captureLogs(dest io.Writer) func() {
 	return func() {
 		log.SetOutput(logOutput)
 	}
-}
-
-func canLogError(err error) bool {
-	return !errors.As(err, &api.ErrBackoff{})
 }

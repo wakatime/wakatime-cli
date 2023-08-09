@@ -1,0 +1,9 @@
+{
+	"architecture": "some architecture",
+	"cli_version": "some version",
+	"error_message": "%s",
+	"logs": "%s",
+	"platform": "some os",
+	"plugin": "vim",
+	"stacktrace": "%s"
+}

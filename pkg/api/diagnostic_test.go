@@ -1,6 +1,8 @@
 package api_test
 
 import (
+	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -26,25 +28,45 @@ func TestClient_SendDiagnostics(t *testing.T) {
 
 		// check method and headers
 		assert.Equal(t, http.MethodPost, req.Method)
-		assert.Equal(t, []string{"application/json"}, req.Header["Content-Type"])
 		assert.Nil(t, req.Header["Authorization"])
+		assert.Equal(t, []string{"application/json"}, req.Header["Content-Type"])
 
 		// check body
-		expectedBody, err := os.ReadFile("testdata/diagnostics_request.json")
+		expectedBodyTpl, err := os.ReadFile("testdata/diagnostics_request_template.json")
 		require.NoError(t, err)
 
 		body, err := io.ReadAll(req.Body)
 		require.NoError(t, err)
 
-		assert.JSONEq(t, string(expectedBody), string(body))
+		var diagnostics struct {
+			Architecture  string `json:"architecture"`
+			CliVersion    string `json:"cli_version"`
+			Logs          string `json:"logs"`
+			OriginalError string `json:"error_message"`
+			Platform      string `json:"platform"`
+			Plugin        string `json:"plugin"`
+			Stack         string `json:"stacktrace"`
+		}
+
+		err = json.Unmarshal(body, &diagnostics)
+		require.NoError(t, err)
+
+		expectedBodyStr := fmt.Sprintf(
+			string(expectedBodyTpl),
+			jsonEscape(t, diagnostics.OriginalError),
+			jsonEscape(t, diagnostics.Logs),
+			jsonEscape(t, diagnostics.Stack),
+		)
+
+		assert.JSONEq(t, expectedBodyStr, string(body))
 
 		// write response
 		w.WriteHeader(http.StatusCreated)
 	})
 
-	version.OS = "linux"
-	version.Arch = "amd64"
-	version.Version = "<local-build>"
+	version.OS = "some os"
+	version.Arch = "some architecture"
+	version.Version = "some version"
 
 	diagnostics := []diagnostic.Diagnostic{
 		diagnostic.Error("some error"),
