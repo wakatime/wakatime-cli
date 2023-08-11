@@ -351,7 +351,7 @@ func sendDiagnostics(v *viper.Viper, d diagnostics) error {
 	if err != nil {
 		log.Warnf("failed to initialize api client: %s", err)
 
-		// try without authencation
+		// try without authentication
 		c, err = cmdapi.NewClientWithoutAuth(paramAPI)
 		if err != nil {
 			return fmt.Errorf("failed to initialize api client without auth: %s", err)
