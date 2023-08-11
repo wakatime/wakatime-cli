@@ -53,7 +53,7 @@ func TestRunCmd_ErrOfflineEnqueue(t *testing.T) {
 	router.HandleFunc("/plugins/errors", func(w http.ResponseWriter, req *http.Request) {
 		// check request
 		assert.Equal(t, http.MethodPost, req.Method)
-		assert.Nil(t, req.Header["Authorization"])
+		assert.Equal(t, []string{"Basic MDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAw"}, req.Header["Authorization"])
 		assert.Equal(t, []string{"application/json"}, req.Header["Content-Type"])
 
 		expectedBodyTpl, err := os.ReadFile("testdata/diagnostics_request_template.json")
@@ -63,12 +63,14 @@ func TestRunCmd_ErrOfflineEnqueue(t *testing.T) {
 		require.NoError(t, err)
 
 		var diagnostics struct {
-			Platform     string `json:"platform"`
-			Architecture string `json:"architecture"`
-			CliVersion   string `json:"cli_version"`
-			Editor       string `json:"editor"`
-			Logs         string `json:"logs"`
-			Stack        string `json:"stacktrace"`
+			Architecture  string `json:"architecture"`
+			CliVersion    string `json:"cli_version"`
+			Editor        string `json:"editor"`
+			Logs          string `json:"logs"`
+			OriginalError string `json:"error_message"`
+			Platform      string `json:"platform"`
+			Plugin        string `json:"plugin"`
+			Stack         string `json:"stacktrace"`
 		}
 
 		err = json.Unmarshal(body, &diagnostics)
@@ -76,6 +78,7 @@ func TestRunCmd_ErrOfflineEnqueue(t *testing.T) {
 
 		expectedBodyStr := fmt.Sprintf(
 			string(expectedBodyTpl),
+			jsonEscape(t, diagnostics.OriginalError),
 			jsonEscape(t, diagnostics.Logs),
 			jsonEscape(t, diagnostics.Stack),
 		)

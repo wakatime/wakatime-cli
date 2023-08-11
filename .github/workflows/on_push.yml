@@ -228,6 +228,7 @@ jobs:
         id: semver-tag
         uses: wakatime/semver-action@master
         with:
+          prefix: v
           prerelease_id: alpha
           main_branch_name: release
       - name: Create tag

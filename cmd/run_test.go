@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/wakatime/wakatime-cli/cmd"
+	"github.com/wakatime/wakatime-cli/pkg/offline"
 	"github.com/wakatime/wakatime-cli/pkg/version"
 
 	"github.com/spf13/viper"
@@ -172,7 +173,7 @@ func TestRunCmd_SendDiagnostics_Error(t *testing.T) {
 
 		// check request
 		assert.Equal(t, http.MethodPost, req.Method)
-		assert.Nil(t, req.Header["Authorization"])
+		assert.Equal(t, []string{"Basic MDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAw"}, req.Header["Authorization"])
 		assert.Equal(t, []string{"application/json"}, req.Header["Content-Type"])
 
 		expectedBodyTpl, err := os.ReadFile("testdata/diagnostics_request_template.json")
@@ -263,7 +264,7 @@ func TestRunCmd_SendDiagnostics_Panic(t *testing.T) {
 
 		// check request
 		assert.Equal(t, http.MethodPost, req.Method)
-		assert.Nil(t, req.Header["Authorization"])
+		assert.Equal(t, []string{"Basic MDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAw"}, req.Header["Authorization"])
 		assert.Equal(t, []string{"application/json"}, req.Header["Content-Type"])
 
 		expectedBodyTpl, err := os.ReadFile("testdata/diagnostics_request_panic_template.json")
@@ -355,7 +356,7 @@ func TestRunCmd_SendDiagnostics_NoLogs_Panic(t *testing.T) {
 
 		// check request
 		assert.Equal(t, http.MethodPost, req.Method)
-		assert.Nil(t, req.Header["Authorization"])
+		assert.Equal(t, []string{"Basic MDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAw"}, req.Header["Authorization"])
 		assert.Equal(t, []string{"application/json"}, req.Header["Content-Type"])
 
 		expectedBodyTpl, err := os.ReadFile("testdata/diagnostics_request_panic_no_logs_template.json")
@@ -400,6 +401,97 @@ func TestRunCmd_SendDiagnostics_NoLogs_Panic(t *testing.T) {
 	require.True(t, ok)
 
 	assert.Equal(t, 1, e.ExitCode())
+
+	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+}
+
+func TestRunCmd_SendDiagnostics_WakaError(t *testing.T) {
+	// this is exclusively run in subprocess
+	if os.Getenv("TEST_RUN") == "1" {
+		version.OS = "some os"
+		version.Arch = "some architecture"
+		version.Version = "some version"
+
+		tmpDir := t.TempDir()
+
+		offlineQueueFile, err := os.CreateTemp(tmpDir, "")
+		require.NoError(t, err)
+
+		logFile, err := os.CreateTemp(tmpDir, "")
+		require.NoError(t, err)
+
+		v := viper.New()
+		v.Set("api-url", os.Getenv("TEST_SERVER_URL"))
+		v.Set("entity", "/path/to/file")
+		v.Set("key", "00000000-0000-4000-8000-000000000000")
+		v.Set("log-file", logFile.Name())
+		v.Set("log-to-stdout", true)
+		v.Set("offline-queue-file", offlineQueueFile.Name())
+		v.Set("plugin", "vim")
+
+		cmd.RunCmd(v, false, false, func(v *viper.Viper) (int, error) {
+			return 42, offline.ErrOpenDB{Err: errors.New("fail")}
+		})
+
+		return
+	}
+
+	testServerURL, router, tearDown := setupTestServer()
+	defer tearDown()
+
+	var numCalls int
+
+	router.HandleFunc("/plugins/errors", func(w http.ResponseWriter, req *http.Request) {
+		numCalls++
+
+		// check request
+		assert.Equal(t, http.MethodPost, req.Method)
+		assert.Equal(t, []string{"Basic MDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAw"}, req.Header["Authorization"])
+		assert.Equal(t, []string{"application/json"}, req.Header["Content-Type"])
+
+		expectedBodyTpl, err := os.ReadFile("testdata/diagnostics_request_template.json")
+		require.NoError(t, err)
+
+		body, err := io.ReadAll(req.Body)
+		require.NoError(t, err)
+
+		var diagnostics struct {
+			Architecture  string `json:"architecture"`
+			CliVersion    string `json:"cli_version"`
+			Logs          string `json:"logs"`
+			OriginalError string `json:"error_message"`
+			Platform      string `json:"platform"`
+			Plugin        string `json:"plugin"`
+			Stack         string `json:"stacktrace"`
+		}
+
+		err = json.Unmarshal(body, &diagnostics)
+		require.NoError(t, err)
+
+		expectedBodyStr := fmt.Sprintf(
+			string(expectedBodyTpl),
+			jsonEscape(t, diagnostics.OriginalError),
+			jsonEscape(t, diagnostics.Logs),
+			jsonEscape(t, diagnostics.Stack),
+		)
+
+		assert.JSONEq(t, expectedBodyStr, string(body))
+
+		// send response
+		w.WriteHeader(http.StatusCreated)
+	})
+
+	// run command in another runner, to effectively test os.Exit()
+	cmd := exec.Command(os.Args[0], "-test.run=TestRunCmd_SendDiagnostics_WakaError") // nolint:gosec
+	cmd.Env = append(os.Environ(), "TEST_RUN=1")
+	cmd.Env = append(cmd.Env, fmt.Sprintf("TEST_SERVER_URL=%s", testServerURL))
+
+	err := cmd.Run()
+
+	e, ok := err.(*exec.ExitError)
+	require.True(t, ok)
+
+	assert.Equal(t, 42, e.ExitCode())
 
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
