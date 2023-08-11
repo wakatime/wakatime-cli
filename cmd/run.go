@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -23,7 +22,6 @@ import (
 	"github.com/wakatime/wakatime-cli/cmd/params"
 	"github.com/wakatime/wakatime-cli/cmd/today"
 	"github.com/wakatime/wakatime-cli/cmd/todaygoal"
-	"github.com/wakatime/wakatime-cli/pkg/api"
 	"github.com/wakatime/wakatime-cli/pkg/diagnostic"
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
@@ -342,24 +340,14 @@ func saveHeartbeats(v *viper.Viper) {
 
 func sendDiagnostics(v *viper.Viper, d diagnostics) error {
 	paramAPI, err := params.LoadAPIParams(v)
-	// prevent sending diags for api key errors
-	if err != nil && !errors.As(err, &api.ErrAuth{}) {
+	if err != nil {
 		return fmt.Errorf("failed to load API parameters: %s", err)
 	}
 
 	c, err := cmdapi.NewClient(paramAPI)
 	if err != nil {
-		log.Warnf("failed to initialize api client: %s", err)
-
-		// try without authentication
-		c, err = cmdapi.NewClientWithoutAuth(paramAPI)
-		if err != nil {
-			return fmt.Errorf("failed to initialize api client without auth: %s", err)
-		}
+		return fmt.Errorf("failed to initialize api client: %s", err)
 	}
-
-	// foce disable ssl verification
-	api.WithDisableSSLVerify()(c)
 
 	diagnostics := []diagnostic.Diagnostic{
 		diagnostic.Error(d.OriginalError),
