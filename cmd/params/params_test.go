@@ -2011,8 +2011,9 @@ func TestLoad_API_ProxyURL(t *testing.T) {
 	tests := map[string]string{
 		"https":  "https://john:secret@example.org:8888",
 		"http":   "http://john:secret@example.org:8888",
-		"socks5": "socks5://john:secret@example.org:8888",
+		"ipv6":   "socks5://john:secret@2001:0db8:85a3:0000:0000:8a2e:0370:7334:8888",
 		"ntlm":   `domain\\john:123456`,
+		"socks5": "socks5://john:secret@example.org:8888",
 	}
 
 	for name, proxyURL := range tests {
