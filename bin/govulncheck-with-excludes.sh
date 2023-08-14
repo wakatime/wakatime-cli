@@ -6,9 +6,6 @@ set -Eeuo pipefail
 
 excludeVulns="$(jq -nc '[
 
-	# https://pkg.go.dev/vuln/GO-2023-1987
-	"GO-2023-1987",
-
 	empty # trailing comma hack (makes diffs smaller)
 ]')"
 export excludeVulns
