@@ -7,7 +7,6 @@ import (
 	"math"
 	"net/http"
 	"path/filepath"
-	"runtime/debug"
 	"time"
 
 	"github.com/wakatime/wakatime-cli/pkg/api"
@@ -398,18 +397,15 @@ func ReadHeartbeats(filepath string, limit int) ([]heartbeat.Heartbeat, error) {
 
 // openDB opens a connection to the offline db.
 // It returns the pointer to bolt.DB, a function to close the connection and an error.
-func openDB(filepath string) (*bolt.DB, func(), error) {
-	var err error
-
+// Although named parameters should be avoided, this func uses them to access inside the deferred function and set an error.
+func openDB(filepath string) (db *bolt.DB, _ func(), err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = ErrOpenDB{Err: fmt.Errorf("panicked: %v", r)}
-
-			log.Errorf("%w. Stack: %s", err, string(debug.Stack()))
 		}
 	}()
 
-	db, err := bolt.Open(filepath, 0600, &bolt.Options{Timeout: 30 * time.Second})
+	db, err = bolt.Open(filepath, 0600, &bolt.Options{Timeout: 30 * time.Second})
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to open db file: %s", err)
 	}
