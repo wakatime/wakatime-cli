@@ -1087,6 +1087,8 @@ const (
 	LanguageRascal
 	// LanguageRawToken represents the RawToken programming language.
 	LanguageRawToken
+	// LanguageRazor represents the Razor programming language.
+	LanguageRazor
 	// LanguageRConsole represents the RConsole programming language.
 	LanguageRConsole
 	// LanguageRd represents the Rd programming language.
@@ -1225,6 +1227,8 @@ const (
 	LanguageSlice
 	// LanguageSlim represents the Slim programming language.
 	LanguageSlim
+	// LanguageSlint represents the Slint programming language.
+	LanguageSlint
 	// LanguageSlurm represents the Slurm programming language.
 	LanguageSlurm
 	// LanguageSmali represents the Smali programming language.
@@ -2076,6 +2080,7 @@ const (
 	languageRAMLStr                        = "RAML"
 	languageRascalStr                      = "Rascal"
 	languageRawTokenStr                    = "Raw token data" // nolint:gosec
+	languageRazorStr                       = "Razor"
 	languageRConsoleStr                    = "RConsole"
 	languageRdStr                          = "Rd"
 	languageRDocStr                        = "RDoc"
@@ -2146,6 +2151,7 @@ const (
 	languageSlashStr                       = "Slash"
 	languageSliceStr                       = "Slice"
 	languageSlimStr                        = "Slim"
+	languageSlintStr                       = "Slint"
 	languageSlurmStr                       = "Slurm"
 	languageSmaliStr                       = "Smali"
 	languageSmalltalkStr                   = "Smalltalk"
@@ -3431,6 +3437,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageRascal, true
 	case normalizeString(languageRawTokenStr):
 		return LanguageRawToken, true
+	case normalizeString(languageRazorStr):
+		return LanguageRazor, true
 	case normalizeString(languageRConsoleStr):
 		return LanguageRConsole, true
 	case normalizeString(languageRdStr):
@@ -3571,6 +3579,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageSlice, true
 	case normalizeString(languageSlimStr):
 		return LanguageSlim, true
+	case normalizeString(languageSlintStr):
+		return LanguageSlint, true
 	case normalizeString(languageSlurmStr):
 		return LanguageSlurm, true
 	case normalizeString(languageSmaliStr):
@@ -5069,6 +5079,8 @@ func (l Language) String() string {
 		return languageRascalStr
 	case LanguageRawToken:
 		return languageRawTokenStr
+	case LanguageRazor:
+		return languageRazorStr
 	case LanguageRConsole:
 		return languageRConsoleStr
 	case LanguageRd:
@@ -5207,6 +5219,8 @@ func (l Language) String() string {
 		return languageSliceStr
 	case LanguageSlim:
 		return languageSlimStr
+	case LanguageSlint:
+		return languageSlintStr
 	case LanguageSlurm:
 		return languageSlurmStr
 	case LanguageSmali:
