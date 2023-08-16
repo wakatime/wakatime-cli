@@ -305,6 +305,7 @@ func TestDetect_ChromaTopLanguagesRetrofit(t *testing.T) {
 				"path/to/zshrc",
 				"path/to/.zshrc",
 				"path/to/PKGBUILD",
+				"testdata/bash",
 			},
 			Expected: heartbeat.LanguageBash,
 		},
@@ -586,8 +587,11 @@ func TestDetect_ChromaTopLanguagesRetrofit(t *testing.T) {
 			Expected:  heartbeat.LanguagePawn,
 		},
 		"perl not prolog": {
-			Filepaths: []string{"testdata/codefiles/chroma_unsupported_top/perl.pl"},
-			Expected:  heartbeat.LanguagePerl,
+			Filepaths: []string{
+				"testdata/codefiles/chroma_unsupported_top/perl.pl",
+				"testdata/perl",
+			},
+			Expected: heartbeat.LanguagePerl,
 		},
 		"php": {
 			Filepaths: []string{
@@ -655,6 +659,7 @@ func TestDetect_ChromaTopLanguagesRetrofit(t *testing.T) {
 				"path/to/BUILD.bazel",
 				"path/to/WORKSPACE",
 				"path/to/file.tac",
+				"testdata/python3",
 			},
 			Expected: heartbeat.LanguagePython,
 		},
