@@ -97,7 +97,48 @@ func detectChromaCustomized(filepath string) (heartbeat.Language, float32, bool)
 		return language, weight, true
 	}
 
+	// Finally, try matching by file content.
+	head, err := fileHead(filepath)
+	if err != nil {
+		log.Warnf("failed to load head from file %q: %s", filepath, err)
+		return heartbeat.LanguageUnknown, 0, false
+	}
+
+	if len(head) == 0 {
+		return heartbeat.LanguageUnknown, 0, false
+	}
+
+	if lexer := analyse(string(head)); lexer != nil {
+		language, ok := heartbeat.ParseLanguageFromChroma(lexer.Config().Name)
+		if !ok {
+			log.Warnf("failed to parse language from chroma lexer name %q", lexer.Config().Name)
+			return heartbeat.LanguageUnknown, 0, false
+		}
+
+		return language, 0, true
+	}
+
 	return heartbeat.LanguageUnknown, 0, false
+}
+
+// analyse text content and return the "best" lexer.
+// This is a copy of chroma.lexers.internal.api:Analyse().
+func analyse(text string) chroma.Lexer {
+	var picked chroma.Lexer
+
+	highest := float32(0.0)
+
+	for _, lexer := range lexers.Registry.Lexers {
+		if analyser, ok := lexer.(chroma.Analyser); ok {
+			weight := analyser.AnalyseText(text)
+			if weight > highest {
+				picked = lexer
+				highest = weight
+			}
+		}
+	}
+
+	return picked
 }
 
 // weightedLexer is a lexer with priority and weight.
@@ -125,7 +166,7 @@ func selectByCustomizedPriority(filepath string, lexers chroma.PrioritisedLexers
 
 	extensions, err := loadFolderExtensions(dir)
 	if err != nil {
-		log.Warnf("failed to load folder extensions: %s", err)
+		log.Warnf("failed to load folder files extensions: %s", err)
 		return lexers[0], 0
 	}
 
@@ -214,9 +255,7 @@ func fileHead(filepath string) ([]byte, error) {
 		}
 	}()
 
-	data := make([]byte, maxFileSize)
-
-	_, err = f.ReadAt(data, 0)
+	data, err := io.ReadAll(io.LimitReader(f, maxFileSize))
 	if err != nil && err != io.EOF {
 		return nil, fmt.Errorf("failed to read bytes from file: %s", err)
 	}

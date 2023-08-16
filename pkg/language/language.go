@@ -175,7 +175,7 @@ func correspondingFileExists(fp string, extension string) bool {
 	return false
 }
 
-// loadFolderExtensions loads all existing from a folder.
+// loadFolderExtensions loads all existing file extensions from a folder.
 func loadFolderExtensions(dir string) ([]string, error) {
 	files, err := os.ReadDir(dir)
 	if err != nil {
