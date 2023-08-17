@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	fp "path/filepath"
+	"runtime/debug"
 	"sort"
 	"strings"
 
@@ -124,6 +125,12 @@ func detectChromaCustomized(filepath string) (heartbeat.Language, float32, bool)
 // analyse text content and return the "best" lexer.
 // This is a copy of chroma.lexers.internal.api:Analyse().
 func analyse(text string) chroma.Lexer {
+	defer func() {
+		if err := recover(); err != nil {
+			log.Errorf("panicked: %v. Stack: %s", err, string(debug.Stack()))
+		}
+	}()
+
 	var picked chroma.Lexer
 
 	highest := float32(0.0)
