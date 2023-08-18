@@ -6,10 +6,11 @@ import (
 	"os"
 	"strings"
 
+	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/log"
 
-	"github.com/alecthomas/chroma"
-	"github.com/alecthomas/chroma/lexers/e"
+	"github.com/alecthomas/chroma/v2"
+	"github.com/alecthomas/chroma/v2/lexers"
 )
 
 // StateElm is a token parsing state.
@@ -50,7 +51,12 @@ func (p *ParserElm) Parse(filepath string) ([]string, error) {
 		return nil, fmt.Errorf("failed to read from reader: %s", err)
 	}
 
-	iter, err := e.Elm.Tokenise(nil, string(data))
+	l := lexers.Get(heartbeat.LanguageElm.String())
+	if l == nil {
+		return nil, fmt.Errorf("failed to get lexer for %s", heartbeat.LanguageElm.String())
+	}
+
+	iter, err := l.Tokenise(nil, string(data))
 	if err != nil {
 		return nil, fmt.Errorf("failed to tokenize file content: %s", err)
 	}

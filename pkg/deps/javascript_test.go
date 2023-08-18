@@ -4,22 +4,17 @@ import (
 	"testing"
 
 	"github.com/wakatime/wakatime-cli/pkg/deps"
-	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 
-	"github.com/alecthomas/chroma"
-	"github.com/alecthomas/chroma/lexers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestParserJavaScript_Parse(t *testing.T) {
 	tests := map[string]struct {
-		Lexer    chroma.Lexer
 		Filepath string
 		Expected []string
 	}{
 		"js": {
-			Lexer:    lexers.Get(heartbeat.LanguageJavaScript.StringChroma()),
 			Filepath: "testdata/es6.js",
 			Expected: []string{
 				"bravo",
@@ -36,7 +31,6 @@ func TestParserJavaScript_Parse(t *testing.T) {
 			},
 		},
 		"typescript": {
-			Lexer:    lexers.Get(heartbeat.LanguageTypeScript.StringChroma()),
 			Filepath: "testdata/typescript.ts",
 			Expected: []string{
 				"bravo",
@@ -50,6 +44,23 @@ func TestParserJavaScript_Parse(t *testing.T) {
 				"uniform",
 				"victor",
 				"whiskey",
+			},
+		},
+		"react js": {
+			Filepath: "testdata/react.jsx",
+			Expected: []string{
+				"react",
+				"react-dom",
+			},
+		},
+		"react typescript": {
+			Filepath: "testdata/react.tsx",
+			Expected: []string{
+				"head",
+				"react",
+				"contants",
+				"Footer",
+				"Nav",
 			},
 		},
 	}

@@ -6,10 +6,11 @@ import (
 	"os"
 	"strings"
 
+	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/log"
 
-	"github.com/alecthomas/chroma"
-	"github.com/alecthomas/chroma/lexers/s"
+	"github.com/alecthomas/chroma/v2"
+	"github.com/alecthomas/chroma/v2/lexers"
 )
 
 // StateScala is a token parsing state.
@@ -50,7 +51,12 @@ func (p *ParserScala) Parse(filepath string) ([]string, error) {
 		return nil, fmt.Errorf("failed to read from reader: %s", err)
 	}
 
-	iter, err := s.Scala.Tokenise(nil, string(data))
+	l := lexers.Get(heartbeat.LanguageScala.String())
+	if l == nil {
+		return nil, fmt.Errorf("failed to get lexer for %s", heartbeat.LanguageScala.String())
+	}
+
+	iter, err := l.Tokenise(nil, string(data))
 	if err != nil {
 		return nil, fmt.Errorf("failed to tokenize file content: %s", err)
 	}

@@ -7,10 +7,11 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/log"
 
-	"github.com/alecthomas/chroma"
-	"github.com/alecthomas/chroma/lexers/k"
+	"github.com/alecthomas/chroma/v2"
+	"github.com/alecthomas/chroma/v2/lexers"
 )
 
 var kotlinExcludeRegex = regexp.MustCompile(`(?i)^java\.`)
@@ -53,7 +54,12 @@ func (p *ParserKotlin) Parse(filepath string) ([]string, error) {
 		return nil, fmt.Errorf("failed to read from reader: %s", err)
 	}
 
-	iter, err := k.Kotlin.Tokenise(nil, string(data))
+	l := lexers.Get(heartbeat.LanguageKotlin.String())
+	if l == nil {
+		return nil, fmt.Errorf("failed to get lexer for %s", heartbeat.LanguageKotlin.String())
+	}
+
+	iter, err := l.Tokenise(nil, string(data))
 	if err != nil {
 		return nil, fmt.Errorf("failed to tokenize file content: %s", err)
 	}

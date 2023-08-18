@@ -9,8 +9,8 @@ import (
 
 	"github.com/wakatime/wakatime-cli/pkg/log"
 
-	"github.com/alecthomas/chroma"
-	"github.com/alecthomas/chroma/lexers/h"
+	"github.com/alecthomas/chroma/v2"
+	"github.com/alecthomas/chroma/v2/lexers"
 )
 
 var htmlDjangoPlaceholderRegex = regexp.MustCompile(`(?i)\{\{[^\}]+\}\}[/\\]?`)
@@ -55,7 +55,7 @@ func (p *ParserHTML) Parse(filepath string) ([]string, error) {
 		return nil, fmt.Errorf("failed to read from reader: %s", err)
 	}
 
-	iter, err := h.HTML.Tokenise(nil, string(data))
+	iter, err := lexers.HTML.Tokenise(nil, string(data))
 	if err != nil {
 		return nil, fmt.Errorf("failed to tokenize file content: %s", err)
 	}

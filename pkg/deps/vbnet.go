@@ -7,10 +7,11 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/log"
 
-	"github.com/alecthomas/chroma"
-	"github.com/alecthomas/chroma/lexers/v"
+	"github.com/alecthomas/chroma/v2"
+	"github.com/alecthomas/chroma/v2/lexers"
 )
 
 var vbnetExcludeRegex = regexp.MustCompile(`(?i)^(system|microsoft)$`)
@@ -54,7 +55,12 @@ func (p *ParserVbNet) Parse(filepath string) ([]string, error) {
 		return nil, fmt.Errorf("failed to read from reader: %s", err)
 	}
 
-	iter, err := v.VBNet.Tokenise(nil, string(data))
+	l := lexers.Get(heartbeat.LanguageVBNet.String())
+	if l == nil {
+		return nil, fmt.Errorf("failed to get lexer for %s", heartbeat.LanguageVBNet.String())
+	}
+
+	iter, err := l.Tokenise(nil, string(data))
 	if err != nil {
 		return nil, fmt.Errorf("failed to tokenize file content: %s", err)
 	}
