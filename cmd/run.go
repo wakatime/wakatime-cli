@@ -26,6 +26,7 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/ini"
+	"github.com/wakatime/wakatime-cli/pkg/lexer"
 	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/offline"
 	"github.com/wakatime/wakatime-cli/pkg/vipertools"
@@ -66,6 +67,11 @@ func Run(cmd *cobra.Command, v *viper.Viper) {
 	logFileParams, err := SetupLogging(v)
 	if err != nil {
 		log.Fatalf("failed to setup logging: %s", err)
+	}
+
+	// register all custom lexers
+	if err := lexer.RegisterAll(); err != nil {
+		log.Fatalf("failed to register custom lexers: %s", err)
 	}
 
 	if v.GetBool("user-agent") {

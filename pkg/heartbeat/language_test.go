@@ -7,7 +7,7 @@ import (
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 
-	"github.com/alecthomas/chroma/lexers"
+	"github.com/alecthomas/chroma/v2/lexers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -44,6 +44,7 @@ func languageTests() map[string]heartbeat.Language {
 		"Apex":                             heartbeat.LanguageApex,
 		"API Blueprint":                    heartbeat.LanguageAPIBlueprint,
 		"Apollo Guidance Computer":         heartbeat.LanguageApolloGuidanceComputer,
+		"ArangoDB Query Language":          heartbeat.LanguageArangoDBQueryLanguage,
 		"Arc":                              heartbeat.LanguageArc,
 		"Arduino":                          heartbeat.LanguageArduino,
 		"ArmAsm":                           heartbeat.LanguageArmAsm,
@@ -89,6 +90,7 @@ func languageTests() map[string]heartbeat.Language {
 		"Boa":                              heartbeat.LanguageBoa,
 		"Boo":                              heartbeat.LanguageBoo,
 		"Boogie":                           heartbeat.LanguageBoogie,
+		"BQN":                              heartbeat.LanguageBQN,
 		"Brainfuck":                        heartbeat.LanguageBrainfuck,
 		"BrightScript":                     heartbeat.LanguageBrightScript,
 		"Browserslist":                     heartbeat.LanguageBrowserslist,
@@ -351,6 +353,7 @@ func languageTests() map[string]heartbeat.Language {
 		"IRC Logs":                         heartbeat.LanguageIRCLogs,
 		"Isabelle":                         heartbeat.LanguageIsabelle,
 		"Isabelle ROOT":                    heartbeat.LanguageIsabelleRoot,
+		"ISC dhcpd":                        heartbeat.LanguageISCdhcpd,
 		"J":                                heartbeat.LanguageJ,
 		"Jade":                             heartbeat.LanguageJade,
 		"JAGS":                             heartbeat.LanguageJAGS,
@@ -468,6 +471,7 @@ func languageTests() map[string]heartbeat.Language {
 		"Myghty":                           heartbeat.LanguageMyghty,
 		"MySQL":                            heartbeat.LanguageMySQL,
 		"NASM":                             heartbeat.LanguageNASM,
+		"Natural":                          heartbeat.LanguageNatural,
 		"NCL":                              heartbeat.LanguageNCL,
 		"Nemerle":                          heartbeat.LanguageNemerle,
 		"Neon":                             heartbeat.LanguageNeon,
@@ -491,7 +495,7 @@ func languageTests() map[string]heartbeat.Language {
 		"Objective-J":                      heartbeat.LanguageObjectiveJ,
 		"OCaml":                            heartbeat.LanguageOCaml,
 		"Octave":                           heartbeat.LanguageOctave,
-		"ODIN":                             heartbeat.LanguageODIN,
+		"Odin":                             heartbeat.LanguageODIN,
 		"OnesEnterprise":                   heartbeat.LanguageOnesEnterprise,
 		"ooc":                              heartbeat.LanguageOoc,
 		"Opa":                              heartbeat.LanguageOpa,
@@ -527,7 +531,7 @@ func languageTests() map[string]heartbeat.Language {
 		"Processing":                       heartbeat.LanguageProcessing,
 		"Prolog":                           heartbeat.LanguageProlog,
 		"PromQL":                           heartbeat.LanguagePromQL,
-		"Properties":                       heartbeat.LanguagePropertiesJava,
+		"Property Specification Language":  heartbeat.LanguagePSL,
 		"Protocol Buffer":                  heartbeat.LanguageProtocolBuffer,
 		"PsySH console session for PHP":    heartbeat.LanguagePsyShPHP,
 		"Pug":                              heartbeat.LanguagePug,
@@ -640,6 +644,7 @@ func languageTests() map[string]heartbeat.Language {
 		"Squirrel":                         heartbeat.LanguageSquirrel,
 		"SRecode Template":                 heartbeat.LanguageSRecodeTemplate,
 		"SSH Config":                       heartbeat.LanguageSSHConfig,
+		"st(ack) as(sembler)":              heartbeat.LanguageStas,
 		"Stan":                             heartbeat.LanguageStan,
 		"Starlark":                         heartbeat.LanguageStarlark,
 		"Stata":                            heartbeat.LanguageStata,
@@ -703,6 +708,7 @@ func languageTests() map[string]heartbeat.Language {
 		"UrbiScript":                       heartbeat.LanguageUrbiScript,
 		"UrWeb":                            heartbeat.LanguageUrWeb,
 		"USD":                              heartbeat.LanguageUSD,
+		"Uxntal":                           heartbeat.LanguageUxntal,
 		"V":                                heartbeat.LanguageV,
 		"Vala":                             heartbeat.LanguageVala,
 		"VB":                               heartbeat.LanguageVB,
@@ -721,6 +727,7 @@ func languageTests() map[string]heartbeat.Language {
 		"Vim Script":                       heartbeat.LanguageVimScript,
 		"Vim Snippet":                      heartbeat.LanguageVimSnippet,
 		"Volt":                             heartbeat.LanguageVolt,
+		"V shell":                          heartbeat.LanguageVShell,
 		"Vue.js":                           heartbeat.LanguageVueJS,
 		"Wavefront Material":               heartbeat.LanguageWavefrontMaterial,
 		"Wavefront Object":                 heartbeat.LanguageWavefrontObject,
@@ -728,6 +735,7 @@ func languageTests() map[string]heartbeat.Language {
 		"WDTE":                             heartbeat.LanguageWDTE,
 		"WDiff":                            heartbeat.LanguageWDiff,
 		"WebAssembly":                      heartbeat.LanguageWebAssembly,
+		"WebGPU Shading Language":          heartbeat.LanguageWebGPUShadingLanguage,
 		"WebIDL":                           heartbeat.LanguageWebIDL,
 		"Web Ontology Language":            heartbeat.LanguageWebOntologyLanguage,
 		"WebVTT":                           heartbeat.LanguageWebVTT,
@@ -761,6 +769,7 @@ func languageTests() map[string]heartbeat.Language {
 		"YANG":                             heartbeat.LanguageYANG,
 		"YARA":                             heartbeat.LanguageYARA,
 		"YASnippet":                        heartbeat.LanguageYASnippet,
+		"Z80 Assembly":                     heartbeat.LanguageZ80Assembly,
 		"ZAP":                              heartbeat.LanguageZAP,
 		"Zed":                              heartbeat.LanguageZed,
 		"Zeek":                             heartbeat.LanguageZeek,
@@ -777,6 +786,7 @@ func languageTestsAliases() map[string]heartbeat.Language {
 		"ApacheConf":        heartbeat.LanguageApacheConfig,
 		"ASP Classic":       heartbeat.LanguageClassicASP,
 		"Batch Script":      heartbeat.LanguageBatchfile,
+		"csharp":            heartbeat.LanguageCSharp,
 		"FStar":             heartbeat.LanguageFStar,
 		"Golang":            heartbeat.LanguageGo,
 		"JSON-LD":           heartbeat.LanguageJSONLD,
@@ -867,20 +877,22 @@ func TestParseLanguage_Unknown(t *testing.T) {
 func TestParseLanguageFromChroma(t *testing.T) {
 	tests := map[string]heartbeat.Language{
 		"Ampl":               heartbeat.LanguageAMPL,
-		"autohotkey":         heartbeat.LanguageAutoHotkey,
-		"Base Makefile":      heartbeat.LanguageMakefile,
+		"ApacheConf":         heartbeat.LanguageApacheConfig,
+		"ArangoDB AQL":       heartbeat.LanguageArangoDBQueryLanguage,
 		"c-objdump":          heartbeat.LanguageCObjdump,
 		"Coldfusion CFC":     heartbeat.LanguageColdfusionCFC,
 		"Coldfusion HTML":    heartbeat.LanguageColdfusionHTML,
 		"cpp-objdump":        heartbeat.LanguageCppObjdump,
 		"CUDA":               heartbeat.LanguageCUDA,
+		"dns":                heartbeat.LanguageDNSZone,
 		"EmacsLisp":          heartbeat.LanguageEmacsLisp,
-		"Go HTML Template":   heartbeat.LanguageGo,
-		"Go Text Template":   heartbeat.LanguageGo,
 		"FSharp":             heartbeat.LanguageFSharp,
 		"GAS":                heartbeat.LanguageAssembly,
+		"Go HTML Template":   heartbeat.LanguageGo,
+		"Go Text Template":   heartbeat.LanguageGo,
 		"Hxml":               heartbeat.LanguageHxml,
 		"JSON-LD":            heartbeat.LanguageJSONLD,
+		"ISCdhcpd":           heartbeat.LanguageISCdhcpd,
 		"LessCss":            heartbeat.LanguageLess,
 		"liquid":             heartbeat.LanguageLiquid,
 		"markdown":           heartbeat.LanguageMarkdown,
@@ -889,14 +901,18 @@ func TestParseLanguageFromChroma(t *testing.T) {
 		"Ooc":                heartbeat.LanguageOoc,
 		"Org Mode":           heartbeat.LanguageOrg,
 		"plaintext":          heartbeat.LanguageText,
-		"Python 3":           heartbeat.LanguagePython,
+		"properties":         heartbeat.LanguageJavaProperties,
+		"PSL":                heartbeat.LanguagePSL,
 		"R":                  heartbeat.LanguageS,
 		"react":              heartbeat.LanguageJSX,
 		"ReasonML":           heartbeat.LanguageReasonML,
 		"REBOL":              heartbeat.LanguageREBOL,
 		"Rexx":               heartbeat.LanguageRexx,
-		"SWIG":               heartbeat.LanguageSWIG,
+		"Sed":                heartbeat.LanguageSed,
+		"stas":               heartbeat.LanguageStas,
+		"SYSTEMD":            heartbeat.LanguageSYSTEMD,
 		"systemverilog":      heartbeat.LanguageSystemVerilog,
+		"Tal":                heartbeat.LanguageUxntal,
 		"Transact-SQL":       heartbeat.LanguageTransactSQL,
 		"TypoScriptCssData":  heartbeat.LanguageTypoScript,
 		"TypoScriptHtmlData": heartbeat.LanguageTypoScript,
@@ -934,7 +950,7 @@ func TestParseLanguageFromChroma_Unknown(t *testing.T) {
 }
 
 func TestParseLanguageFromChroma_AllLexersSupported(t *testing.T) {
-	for _, lexer := range lexers.Registry.Lexers {
+	for _, lexer := range lexers.GlobalLexerRegistry.Lexers {
 		config := lexer.Config()
 
 		parsed, ok := heartbeat.ParseLanguageFromChroma(config.Name)
@@ -990,36 +1006,44 @@ func TestLanguage_String_UnknownLanguage(t *testing.T) {
 
 func TestLanguage_StringChroma(t *testing.T) {
 	tests := map[string]heartbeat.Language{
-		"ApacheConf":      heartbeat.LanguageApacheConfig,
 		"Ampl":            heartbeat.LanguageAMPL,
-		"autohotkey":      heartbeat.LanguageAutoHotkey,
-		"Base Makefile":   heartbeat.LanguageMakefile,
+		"ApacheConf":      heartbeat.LanguageApacheConfig,
+		"ArangoDB AQL":    heartbeat.LanguageArangoDBQueryLanguage,
 		"c-objdump":       heartbeat.LanguageCObjdump,
 		"Coldfusion CFC":  heartbeat.LanguageColdfusionCFC,
 		"Coldfusion HTML": heartbeat.LanguageColdfusionHTML,
 		"cpp-objdump":     heartbeat.LanguageCppObjdump,
 		"CUDA":            heartbeat.LanguageCUDA,
+		"dns":             heartbeat.LanguageDNSZone,
 		"EmacsLisp":       heartbeat.LanguageEmacsLisp,
 		"GAS":             heartbeat.LanguageAssembly,
 		"FSharp":          heartbeat.LanguageFSharp,
 		"FStar":           heartbeat.LanguageFStar,
 		"Go":              heartbeat.LanguageGo,
 		"Hxml":            heartbeat.LanguageHxml,
+		"ISCdhcpd":        heartbeat.LanguageISCdhcpd,
 		"JSON-LD":         heartbeat.LanguageJSONLD,
 		"LessCss":         heartbeat.LanguageLess,
 		"liquid":          heartbeat.LanguageLiquid,
 		"markdown":        heartbeat.LanguageMarkdown,
+		"NewLisp":         heartbeat.LanguageNewLisp,
 		"Nim":             heartbeat.LanguageNimrod,
 		"Ooc":             heartbeat.LanguageOoc,
 		"Org Mode":        heartbeat.LanguageOrg,
 		"plaintext":       heartbeat.LanguageText,
+		"properties":      heartbeat.LanguageJavaProperties,
+		"PSL":             heartbeat.LanguagePSL,
 		"R":               heartbeat.LanguageS,
 		"react":           heartbeat.LanguageJSX,
 		"ReasonML":        heartbeat.LanguageReasonML,
 		"REBOL":           heartbeat.LanguageREBOL,
 		"Rexx":            heartbeat.LanguageRexx,
-		"SWIG":            heartbeat.LanguageSWIG,
+		"Sed":             heartbeat.LanguageSed,
+		"stas":            heartbeat.LanguageStas,
+		"SYSTEMD":         heartbeat.LanguageSYSTEMD,
 		"systemverilog":   heartbeat.LanguageSystemVerilog,
+		"Tal":             heartbeat.LanguageUxntal,
+		"Transact-SQL":    heartbeat.LanguageTransactSQL,
 		"VB.net":          heartbeat.LanguageVBNet,
 		"verilog":         heartbeat.LanguageVerilog,
 		"vue":             heartbeat.LanguageVueJS,
@@ -1034,14 +1058,12 @@ func TestLanguage_StringChroma(t *testing.T) {
 }
 
 func TestLanguage_StringChroma_AllLexersSupported(t *testing.T) {
-	for _, lexer := range lexers.Registry.Lexers {
+	for _, lexer := range lexers.GlobalLexerRegistry.Lexers {
 		config := lexer.Config()
 
 		// Aliases, which match in addition to standard spelling of languages are ignored here.
 		switch config.Name {
 		case "Go HTML Template", "Go Text Template":
-			continue
-		case "Python 3":
 			continue
 		case "TypoScriptCssData", "TypoScriptHtmlData":
 			continue

@@ -3,9 +3,10 @@ package deps_test
 import (
 	"testing"
 
+	"github.com/wakatime/wakatime-cli/pkg/deps"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/wakatime/wakatime-cli/pkg/deps"
 )
 
 func TestParserElm_Parse(t *testing.T) {
