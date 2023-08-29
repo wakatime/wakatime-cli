@@ -187,6 +187,7 @@ func RegisterAll() error {
 		NewLisp{},
 		Nit{},
 		Notmuch{},
+		Nushell{},
 		NuSMV{},
 		NumPy{},
 		Objdump{},

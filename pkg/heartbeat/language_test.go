@@ -487,6 +487,7 @@ func languageTests() map[string]heartbeat.Language {
 		"Nu":                               heartbeat.LanguageNu,
 		"NSIS":                             heartbeat.LanguageNSIS,
 		"NumPy":                            heartbeat.LanguageNumPy,
+		"Nushell":                          heartbeat.LanguageNushell,
 		"NuSMV":                            heartbeat.LanguageNuSMV,
 		"objdump":                          heartbeat.LanguageObjdump,
 		"objdump-nasm":                     heartbeat.LanguageNASMObjdump,

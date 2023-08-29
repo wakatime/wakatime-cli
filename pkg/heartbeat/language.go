@@ -961,6 +961,8 @@ const (
 	LanguageNu
 	// LanguageNumPy represents the NumPy programming language.
 	LanguageNumPy
+	// LanguageNushell represents the Nushell programming language.
+	LanguageNushell
 	// LanguageNuSMV represents the NuSMV programming language.
 	LanguageNuSMV
 	// LanguageObjdump represents the Objdump programming language.
@@ -2037,6 +2039,7 @@ const (
 	languageNSISStr                        = "NSIS"
 	languageNuStr                          = "Nu"
 	languageNumPyStr                       = "NumPy"
+	languageNushellStr                     = "Nushell"
 	languageNuSMVStr                       = "NuSMV"
 	languageObjdumpStr                     = "objdump"
 	languageObjectiveCStr                  = "Objective-C"
@@ -3345,6 +3348,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageNu, true
 	case normalizeString(languageNumPyStr):
 		return LanguageNumPy, true
+	case normalizeString(languageNushellStr):
+		return LanguageNushell, true
 	case normalizeString(languageNuSMVStr):
 		return LanguageNuSMV, true
 	case normalizeString(languageNASMObjdumpStr):
@@ -5019,6 +5024,8 @@ func (l Language) String() string {
 		return languageNuStr
 	case LanguageNumPy:
 		return languageNumPyStr
+	case LanguageNushell:
+		return languageNushellStr
 	case LanguageNuSMV:
 		return languageNuSMVStr
 	case LanguageNASMObjdump:
