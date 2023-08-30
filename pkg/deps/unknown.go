@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-// nolint: gochecknoglobals
+// nolint:gochecknoglobals
 var filesUnknown = map[string]struct {
 	exact      bool
 	dependency string

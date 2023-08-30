@@ -7,10 +7,11 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/log"
 
-	"github.com/alecthomas/chroma"
-	"github.com/alecthomas/chroma/lexers/j"
+	"github.com/alecthomas/chroma/v2"
+	"github.com/alecthomas/chroma/v2/lexers"
 )
 
 var javaScriptExtensionRegex = regexp.MustCompile(`\.\w{1,4}$`)
@@ -53,7 +54,12 @@ func (p *ParserJavaScript) Parse(filepath string) ([]string, error) {
 		return nil, fmt.Errorf("failed to read from reader: %s", err)
 	}
 
-	iter, err := j.Javascript.Tokenise(nil, string(data))
+	l := lexers.Get(heartbeat.LanguageJavaScript.String())
+	if l == nil {
+		return nil, fmt.Errorf("failed to get lexer for %s", heartbeat.LanguageJavaScript.String())
+	}
+
+	iter, err := l.Tokenise(nil, string(data))
 	if err != nil {
 		return nil, fmt.Errorf("failed to tokenize file content: %s", err)
 	}
@@ -92,7 +98,7 @@ func (p *ParserJavaScript) processToken(token chroma.Token) {
 	switch token.Type {
 	case chroma.KeywordReserved:
 		p.processKeywordReserved(token.Value)
-	case chroma.LiteralStringSingle:
+	case chroma.LiteralStringSingle, chroma.LiteralStringDouble:
 		p.processLiteralStringSingle(token.Value)
 	case chroma.Punctuation:
 		p.processPunctuation(token.Value)

@@ -12,15 +12,22 @@ import (
 
 func categoryTests() map[string]heartbeat.Category {
 	return map[string]heartbeat.Category{
-		"coding":         heartbeat.CodingCategory,
 		"browsing":       heartbeat.BrowsingCategory,
 		"building":       heartbeat.BuildingCategory,
 		"code reviewing": heartbeat.CodeReviewingCategory,
+		"coding":         heartbeat.CodingCategory,
+		"communicating":  heartbeat.CommunicatingCategory,
 		"debugging":      heartbeat.DebuggingCategory,
 		"designing":      heartbeat.DesigningCategory,
 		"indexing":       heartbeat.IndexingCategory,
+		"learning":       heartbeat.LearningCategory,
 		"manual testing": heartbeat.ManualTestingCategory,
+		"meeting":        heartbeat.MeetingCategory,
+		"planning":       heartbeat.PlanningCategory,
+		"researching":    heartbeat.ResearchingCategory,
 		"running tests":  heartbeat.RunningTestsCategory,
+		"translating":    heartbeat.TranslatingCategory,
+		"writing docs":   heartbeat.WritingDocsCategory,
 		"writing tests":  heartbeat.WritingTestsCategory,
 	}
 }

@@ -6,8 +6,8 @@ import (
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 
-	"github.com/alecthomas/chroma"
-	"github.com/alecthomas/chroma/lexers"
+	"github.com/alecthomas/chroma/v2"
+	"github.com/alecthomas/chroma/v2/lexers"
 )
 
 var modelineRegex = regexp.MustCompile(`(?m)(?:vi|vim|ex)(?:[<=>]?\d*)?:.*(?:ft|filetype|syn|syntax)=([^:\s]+)`)

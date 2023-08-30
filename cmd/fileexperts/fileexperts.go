@@ -133,6 +133,7 @@ func initHandleOptions(params paramscmd.Params) []heartbeat.HandleOption {
 			HideProjectFolder: params.Heartbeat.Sanitize.HideProjectFolder,
 			ProjectPatterns:   params.Heartbeat.Sanitize.HideProjectNames,
 		}),
+		fileexperts.WithValidation(),
 		filter.WithLengthValidator(),
 	}
 }

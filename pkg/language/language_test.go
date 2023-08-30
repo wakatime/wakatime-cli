@@ -6,6 +6,7 @@ import (
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/language"
+	"github.com/wakatime/wakatime-cli/pkg/lexer"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -256,6 +257,9 @@ func TestDetect_FSharp_Over_Forth(t *testing.T) {
 }
 
 func TestDetect_ChromaTopLanguagesRetrofit(t *testing.T) {
+	err := lexer.RegisterAll()
+	require.NoError(t, err)
+
 	tests := map[string]struct {
 		Filepaths []string
 		Expected  heartbeat.Language
@@ -314,14 +318,13 @@ func TestDetect_ChromaTopLanguagesRetrofit(t *testing.T) {
 			Expected:  heartbeat.LanguageC,
 		},
 		"c++": {
-			Filepaths: []string{"path/to/file.cpp"},
-			Expected:  heartbeat.LanguageCPP,
+			Filepaths: []string{
+				"path/to/file.cpp",
+				"path/to/file.cxx",
+			},
+			Expected: heartbeat.LanguageCPP,
 		},
-		"c++ 2": {
-			Filepaths: []string{"path/to/file.cxx"},
-			Expected:  heartbeat.LanguageCPP,
-		},
-		"c sharp": {
+		"c#": {
 			Filepaths: []string{"path/to/file.cs"},
 			Expected:  heartbeat.LanguageCSharp,
 		},

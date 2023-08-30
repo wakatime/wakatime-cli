@@ -71,6 +71,8 @@ const (
 	LanguageApolloGuidanceComputer
 	// LanguageAppleScript represents the AppleScript programming language.
 	LanguageAppleScript
+	// LanguageArangoDBQueryLanguage represents the ArangoDB Query Language programming language.
+	LanguageArangoDBQueryLanguage
 	// LanguageArc represents the Arc programming language.
 	LanguageArc
 	// LanguageArduino represents the Arduino programming language.
@@ -117,7 +119,7 @@ const (
 	LanguageBARE
 	// LanguageBash represents the Bash programming language.
 	LanguageBash
-	// LanguageBashSession represents the BashSession programming language.
+	// LanguageBashSession represents the Bash Session programming language.
 	LanguageBashSession
 	// LanguageBasic represents the Basic programming language.
 	LanguageBasic
@@ -161,6 +163,8 @@ const (
 	LanguageBoo
 	// LanguageBoogie represents the Boogie programming language.
 	LanguageBoogie
+	// LanguageBQN represents the BQN programming language.
+	LanguageBQN
 	// LanguageBrainfuck represents the Brainfuck programming language.
 	LanguageBrainfuck
 	// LanguageBrightScript represents the BrightScript programming language.
@@ -687,6 +691,8 @@ const (
 	LanguageIsabelle
 	// LanguageIsabelleRoot represents the IsabelleRoot programming language.
 	LanguageIsabelleRoot
+	// LanguageISCdhcpd represents the ISC dhcpd programming language.
+	LanguageISCdhcpd
 	// LanguageJ represents the J programming language.
 	LanguageJ
 	// LanguageJAGS represents the JAGS programming language.
@@ -697,7 +703,7 @@ const (
 	LanguageJasmin
 	// LanguageJava represents the Java programming language.
 	LanguageJava
-	// LanguageJavaProperties represents the JavaProperties programming language.
+	// LanguageJavaProperties represents the Java Properties programming language.
 	LanguageJavaProperties
 	// LanguageJavaScript represents the JavaScript programming language.
 	LanguageJavaScript
@@ -923,6 +929,8 @@ const (
 	LanguageNASM
 	// LanguageNASMObjdump represents the NASMObjdump programming language.
 	LanguageNASMObjdump
+	// LanguageNatural represents the Natural programming language.
+	LanguageNatural
 	// LanguageNCL represents the NCL programming language.
 	LanguageNCL
 	// LanguageNemerle represents the Nemerle programming language.
@@ -953,6 +961,8 @@ const (
 	LanguageNu
 	// LanguageNumPy represents the NumPy programming language.
 	LanguageNumPy
+	// LanguageNushell represents the Nushell programming language.
+	LanguageNushell
 	// LanguageNuSMV represents the NuSMV programming language.
 	LanguageNuSMV
 	// LanguageObjdump represents the Objdump programming language.
@@ -1039,10 +1049,10 @@ const (
 	LanguageProlog
 	// LanguagePromQL represents the PromQL programming language.
 	LanguagePromQL
-	// LanguagePropertiesJava represents the JavaProperties programming language.
-	LanguagePropertiesJava
 	// LanguageProtocolBuffer represents the ProtocolBuffer programming language.
 	LanguageProtocolBuffer
+	// LanguagePSL represents the Property Specification Language programming language.
+	LanguagePSL
 	// LanguagePsyShPHP represents the PHPPsySH programming language.
 	LanguagePsyShPHP
 	// LanguagePug represents the Pug programming language.
@@ -1283,6 +1293,8 @@ const (
 	LanguageStan
 	// LanguageStarlark represents the LanguageStarlark programming language.
 	LanguageStarlark
+	// LanguageStas represents the st(ack) as(sembler) programming language.
+	LanguageStas
 	// LanguageStata represents the Stata programming language.
 	LanguageStata
 	// LanguageSTON represents the LanguageSTON programming language.
@@ -1403,6 +1415,8 @@ const (
 	LanguageUrWeb
 	// LanguageUSD represents the USD programming language.
 	LanguageUSD
+	// LanguageUxntal represents the Uxntal programming language.
+	LanguageUxntal
 	// LanguageV represents the V programming language.
 	LanguageV
 	// LanguageVala represents the Vala programming language.
@@ -1429,6 +1443,8 @@ const (
 	LanguageVGL
 	// LanguageVHDL represents the VHDL programming language.
 	LanguageVHDL
+	// LanguageVHS represents the VHS programming language.
+	LanguageVHS
 	// LanguageVimHelpFile represents the VimHelpFile programming language.
 	LanguageVimHelpFile
 	// LanguageVimL represents the VimL programming language.
@@ -1439,6 +1455,8 @@ const (
 	LanguageVimSnippet
 	// LanguageVolt represents the Volt programming language.
 	LanguageVolt
+	// LanguageVShell represents the V shell programming language.
+	LanguageVShell
 	// LanguageVueJS represents the VueJS programming language.
 	LanguageVueJS
 	// LanguageWavefrontMaterial represents the WavefrontMaterial programming language.
@@ -1453,6 +1471,8 @@ const (
 	LanguageWDiff
 	// LanguageWebAssembly represents the WebAssembly programming language.
 	LanguageWebAssembly
+	// LanguageWebGPUShadingLanguage represents the WebGPU Shading Language programming language.
+	LanguageWebGPUShadingLanguage
 	// LanguageWebIDL represents the WebIDL programming language.
 	LanguageWebIDL
 	// LanguageWebOntologyLanguage represents the WebOntologyLanguage programming language.
@@ -1519,6 +1539,8 @@ const (
 	LanguageYARA
 	// LanguageYASnippet represents the YASnippet programming language.
 	LanguageYASnippet
+	// LanguageZ80Assembly represents the Z80 Assembly programming language.
+	LanguageZ80Assembly
 	// LanguageZAP represents the ZAP programming language.
 	LanguageZAP
 	// LanguageZed represents the Zed programming language.
@@ -1570,6 +1592,7 @@ const (
 	languageAPLStr                         = "APL"
 	languageApolloGuidanceComputerStr      = "Apollo Guidance Computer"
 	languageAppleScriptStr                 = "AppleScript"
+	languageArangoDBQueryLanguageStr       = "ArangoDB Query Language"
 	languageArcStr                         = "Arc"
 	languageArduinoStr                     = "Arduino"
 	languageArmAsmStr                      = "ArmAsm"
@@ -1617,6 +1640,7 @@ const (
 	languageBoaStr                         = "Boa"
 	languageBooStr                         = "Boo"
 	languageBoogieStr                      = "Boogie"
+	languageBQNStr                         = "BQN"
 	languageBrainfuckStr                   = "Brainfuck"
 	languageBrightScriptStr                = "BrightScript"
 	languageBroStr                         = "Bro"
@@ -1880,6 +1904,7 @@ const (
 	languageIRCLogsStr                     = "IRC Logs"
 	languageIsabelleStr                    = "Isabelle"
 	languageIsabelleRootStr                = "Isabelle ROOT"
+	languageISCdhcpdStr                    = "ISC dhcpd"
 	languageJStr                           = "J"
 	languageJAGSStr                        = "JAGS"
 	languageJadeStr                        = "Jade"
@@ -1998,6 +2023,7 @@ const (
 	languageMySQLStr                       = "MySQL"
 	languageNASMStr                        = "NASM"
 	languageNASMObjdumpStr                 = "objdump-nasm"
+	languageNaturalStr                     = "Natural"
 	languageNCLStr                         = "NCL"
 	languageNemerleStr                     = "Nemerle"
 	languageNeonStr                        = "Neon"
@@ -2013,6 +2039,7 @@ const (
 	languageNSISStr                        = "NSIS"
 	languageNuStr                          = "Nu"
 	languageNumPyStr                       = "NumPy"
+	languageNushellStr                     = "Nushell"
 	languageNuSMVStr                       = "NuSMV"
 	languageObjdumpStr                     = "objdump"
 	languageObjectiveCStr                  = "Objective-C"
@@ -2020,7 +2047,7 @@ const (
 	languageObjectiveJStr                  = "Objective-J"
 	languageOCamlStr                       = "OCaml"
 	languageOctaveStr                      = "Octave"
-	languageODINStr                        = "ODIN"
+	languageODINStr                        = "Odin"
 	languageOnesEnterpriseStr              = "OnesEnterprise"
 	languageOocStr                         = "ooc"
 	languageOpaStr                         = "Opa"
@@ -2056,8 +2083,8 @@ const (
 	languageProcessingStr                  = "Processing"
 	languagePrologStr                      = "Prolog"
 	languagePromQLStr                      = "PromQL"
-	languagePropertiesJavaStr              = "Properties"
 	languageProtocolBufferStr              = "Protocol Buffer"
+	languagePSLStr                         = "Property Specification Language"
 	languagePsyShPHPStr                    = "PsySH console session for PHP"
 	languagePugStr                         = "Pug"
 	languagePuppetStr                      = "Puppet"
@@ -2179,6 +2206,7 @@ const (
 	languageSSPStr                         = "Scalate Server Page"
 	languageStanStr                        = "Stan"
 	languageStarlarkStr                    = "Starlark"
+	languageStasStr                        = "st(ack) as(sembler)"
 	languageStataStr                       = "Stata"
 	languageSTONStr                        = "STON"
 	languageStylusStr                      = "Stylus"
@@ -2240,6 +2268,7 @@ const (
 	languageUrbiScriptStr                  = "UrbiScript"
 	languageUrWebStr                       = "UrWeb"
 	languageUSDStr                         = "USD"
+	languageUxntalStr                      = "Uxntal"
 	languageVStr                           = "V"
 	languageValaStr                        = "Vala"
 	languageVBStr                          = "VB"
@@ -2253,12 +2282,14 @@ const (
 	languageVerilogStr                     = "Verilog"
 	languageVGLStr                         = "VGL"
 	languageVHDLStr                        = "VHDL"
+	languageVHSStr                         = "VHS"
 	languageVimHelpFileStr                 = "Vim Help File"
 	languageVimLStr                        = "VimL"
 	languageVimScriptStr                   = "Vim Script"
 	languageVimSnippetStr                  = "Vim Snippet"
 	languageVisualBasicNet                 = "Visual Basic .NET"
 	languageVoltStr                        = "Volt"
+	languageVShellStr                      = "V shell"
 	languageVueJSStr                       = "Vue.js"
 	languageWavefrontMaterialStr           = "Wavefront Material"
 	languageWavefrontObjectStr             = "Wavefront Object"
@@ -2266,6 +2297,7 @@ const (
 	languageWDTEStr                        = "WDTE"
 	languageWDiffStr                       = "WDiff"
 	languageWebAssemblyStr                 = "WebAssembly"
+	languageWebGPUShadingLanguageStr       = "WebGPU Shading Language"
 	languageWebIDLStr                      = "WebIDL"
 	languageWebOntologyLanguageStr         = "Web Ontology Language"
 	languageWebVTTStr                      = "WebVTT"
@@ -2299,6 +2331,7 @@ const (
 	languageYANGStr                        = "YANG"
 	languageYARAStr                        = "YARA"
 	languageYASnippetStr                   = "YASnippet"
+	languageZ80AssemblyStr                 = "Z80 Assembly"
 	languageZAPStr                         = "ZAP"
 	languageZedStr                         = "Zed"
 	languageZeekStr                        = "Zeek"
@@ -2311,35 +2344,41 @@ const (
 
 const (
 	languageAMPLChromaStr               = "Ampl"
+	languageApacheConfChromaStr         = "ApacheConf"
+	languageArangoDBAQLChromaStr        = "ArangoDB AQL"
 	languageAssemblyChromaStr           = "GAS"
-	languageAutoHotkeyChromaStr         = "autohotkey"
 	languageCObjdumpChromaStr           = "c-objdump"
 	languageColdfusionCFCChromaStr      = "Coldfusion CFC"
 	languageColdfusionHTMLChromaStr     = "Coldfusion HTML"
 	languageCppObjdumpChromaStr         = "cpp-objdump"
 	languageCUDAChromaStr               = "CUDA"
+	languageDNSChromaStr                = "dns"
 	languageFSharpChromaStr             = "FSharp"
 	languageEmacsLispChromaStr          = "EmacsLisp"
 	languageGoHTMLTemplateChromaStr     = "Go HTML Template"
 	languageGoTextTemplateChromaStr     = "Go Text Template"
 	languageHxmlChromaStr               = "Hxml"
+	languageISCdhcpdChromaStr           = "ISCdhcpd"
 	languageJSXChromaStr                = "react"
 	languageJSONLDChromaStr             = "JSON-LD"
 	languageLessChromaStr               = "LessCss"
 	languageLiquidChromaStr             = "liquid"
-	languageMakefileChromaStr           = "Base Makefile"
 	languageMarkdownChromaStr           = "markdown"
 	languageNewLispChromaStr            = "NewLisp"
 	languageNimrodChromaStr             = "Nim"
-	languagePython3ChromaStr            = "Python 3"
+	languagePropertiesJavaChromaStr     = "properties"
+	languagePSLChromaStr                = "PSL"
 	languageOocChromaStr                = "Ooc"
 	languageOrgChromaStr                = "Org Mode"
 	languageRChromaStr                  = "R"
 	languageReasonMLChromaStr           = "ReasonML"
 	languageREBOLChromaStr              = "REBOL"
 	languageRexxChromaStr               = "Rexx"
+	languageSedChromaStr                = "Sed"
+	languageStasChromaStr               = "stas"
 	languageSYSTEMDChromaStr            = "SYSTEMD"
 	languageSystemVerilogChromaStr      = "systemverilog"
+	languageTalChromaStr                = "Tal"
 	languageTextChromaStr               = "plaintext"
 	languageTransactSQLChromaStr        = "Transact-SQL"
 	languageTypoScriptHTMLDataChromaStr = "TypoScriptHtmlData"
@@ -2417,6 +2456,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageApolloGuidanceComputer, true
 	case normalizeString(languageAppleScriptStr):
 		return LanguageAppleScript, true
+	case normalizeString(languageArangoDBQueryLanguageStr):
+		return LanguageArangoDBQueryLanguage, true
 	case normalizeString(languageArcStr):
 		return LanguageArc, true
 	case normalizeString(languageArduinoStr):
@@ -2511,6 +2552,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageBoo, true
 	case normalizeString(languageBoogieStr):
 		return LanguageBoogie, true
+	case normalizeString(languageBQNStr):
+		return LanguageBQN, true
 	case normalizeString(languageBrainfuckStr):
 		return LanguageBrainfuck, true
 	case normalizeString(languageBrightScriptStr):
@@ -3037,6 +3080,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageIsabelle, true
 	case normalizeString(languageIsabelleRootStr):
 		return LanguageIsabelleRoot, true
+	case normalizeString(languageISCdhcpdStr):
+		return LanguageISCdhcpd, true
 	case normalizeString(languageJStr):
 		return LanguageJ, true
 	case normalizeString(languageJAGSStr):
@@ -3271,6 +3316,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageMustache, true
 	case normalizeString(languageNASMStr):
 		return LanguageNASM, true
+	case normalizeString(languageNaturalStr):
+		return LanguageNatural, true
 	case normalizeString(languageNCLStr):
 		return LanguageNCL, true
 	case normalizeString(languageNemerleStr):
@@ -3301,6 +3348,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageNu, true
 	case normalizeString(languageNumPyStr):
 		return LanguageNumPy, true
+	case normalizeString(languageNushellStr):
+		return LanguageNushell, true
 	case normalizeString(languageNuSMVStr):
 		return LanguageNuSMV, true
 	case normalizeString(languageNASMObjdumpStr):
@@ -3389,10 +3438,10 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageProlog, true
 	case normalizeString(languagePromQLStr):
 		return LanguagePromQL, true
-	case normalizeString(languagePropertiesJavaStr):
-		return LanguagePropertiesJava, true
 	case normalizeString(languageProtocolBufferStr):
 		return LanguageProtocolBuffer, true
+	case normalizeString(languagePSLStr):
+		return LanguagePSL, true
 	case normalizeString(languagePsyShPHPStr):
 		return LanguagePsyShPHP, true
 	case normalizeString(languagePugStr):
@@ -3635,6 +3684,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageStan, true
 	case normalizeString(languageStarlarkStr):
 		return LanguageStarlark, true
+	case normalizeString(languageStasStr):
+		return LanguageStas, true
 	case normalizeString(languageStataStr):
 		return LanguageStata, true
 	case normalizeString(languageSTONStr):
@@ -3757,6 +3808,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageUrWeb, true
 	case normalizeString(languageUSDStr):
 		return LanguageUSD, true
+	case normalizeString(languageUxntalStr):
+		return LanguageUxntal, true
 	case normalizeString(languageVStr):
 		return LanguageV, true
 	case normalizeString(languageValaStr):
@@ -3783,6 +3836,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageVGL, true
 	case normalizeString(languageVHDLStr):
 		return LanguageVHDL, true
+	case normalizeString(languageVHSStr):
+		return LanguageVHS, true
 	case normalizeString(languageVimHelpFileStr):
 		return LanguageVimHelpFile, true
 	case normalizeString(languageVimLStr):
@@ -3795,6 +3850,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageVBNet, true
 	case normalizeString(languageVoltStr):
 		return LanguageVolt, true
+	case normalizeString(languageVShellStr):
+		return LanguageVShell, true
 	case normalizeString(languageVueJSStr):
 		return LanguageVueJS, true
 	case normalizeString(languageWavefrontMaterialStr):
@@ -3809,6 +3866,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageWDiff, true
 	case normalizeString(languageWebAssemblyStr):
 		return LanguageWebAssembly, true
+	case normalizeString(languageWebGPUShadingLanguageStr):
+		return LanguageWebGPUShadingLanguage, true
 	case normalizeString(languageWebIDLStr):
 		return LanguageWebIDL, true
 	case normalizeString(languageWebOntologyLanguageStr):
@@ -3877,6 +3936,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageYASnippet, true
 	case normalizeString(languageZAPStr):
 		return LanguageZAP, true
+	case normalizeString(languageZ80AssemblyStr):
+		return LanguageZ80Assembly, true
 	case normalizeString(languageZedStr):
 		return LanguageZed, true
 	case normalizeString(languageZeekStr):
@@ -3903,10 +3964,12 @@ func ParseLanguageFromChroma(lexerName string) (Language, bool) {
 	switch normalizeString(lexerName) {
 	case normalizeString(languageAMPLChromaStr):
 		return LanguageAMPL, true
+	case normalizeString(languageApacheConfChromaStr):
+		return LanguageApacheConfig, true
+	case normalizeString(languageArangoDBAQLChromaStr):
+		return LanguageArangoDBQueryLanguage, true
 	case normalizeString(languageAssemblyChromaStr):
 		return LanguageAssembly, true
-	case normalizeString(languageAutoHotkeyChromaStr):
-		return LanguageAutoHotkey, true
 	case normalizeString(languageCObjdumpChromaStr):
 		return LanguageCObjdump, true
 	case normalizeString(languageColdfusionCFCChromaStr):
@@ -3917,6 +3980,8 @@ func ParseLanguageFromChroma(lexerName string) (Language, bool) {
 		return LanguageCppObjdump, true
 	case normalizeString(languageCUDAChromaStr):
 		return LanguageCUDA, true
+	case normalizeString(languageDNSChromaStr):
+		return LanguageDNSZone, true
 	case normalizeString(languageEmacsLispChromaStr):
 		return LanguageEmacsLisp, true
 	case normalizeString(languageGoHTMLTemplateChromaStr):
@@ -3927,14 +3992,14 @@ func ParseLanguageFromChroma(lexerName string) (Language, bool) {
 		return LanguageFSharp, true
 	case normalizeString(languageHxmlChromaStr):
 		return LanguageHxml, true
+	case normalizeString(languageISCdhcpdChromaStr):
+		return LanguageISCdhcpd, true
 	case normalizeString(languageJSXChromaStr):
 		return LanguageJSX, true
 	case normalizeString(languageLessChromaStr):
 		return LanguageLess, true
 	case normalizeString(languageLiquidChromaStr):
 		return LanguageLiquid, true
-	case normalizeString(languageMakefileChromaStr):
-		return LanguageMakefile, true
 	case normalizeString(languageMarkdownChromaStr):
 		return LanguageMarkdown, true
 	case normalizeString(languageNewLispChromaStr):
@@ -3945,18 +4010,26 @@ func ParseLanguageFromChroma(lexerName string) (Language, bool) {
 		return LanguageOoc, true
 	case normalizeString(languageOrgChromaStr):
 		return LanguageOrg, true
-	case normalizeString(languagePython3ChromaStr):
-		return LanguagePython, true
+	case normalizeString(languagePropertiesJavaChromaStr):
+		return LanguageJavaProperties, true
+	case normalizeString(languagePSLChromaStr):
+		return LanguagePSL, true
 	case normalizeString(languageRChromaStr):
 		return LanguageS, true
-	case normalizeString(languageRexxChromaStr):
-		return LanguageRexx, true
 	case normalizeString(languageReasonMLChromaStr):
 		return LanguageReasonML, true
 	case normalizeString(languageREBOLChromaStr):
 		return LanguageREBOL, true
+	case normalizeString(languageRexxChromaStr):
+		return LanguageRexx, true
+	case normalizeString(languageSedChromaStr):
+		return LanguageSed, true
+	case normalizeString(languageStasChromaStr):
+		return LanguageStas, true
 	case normalizeString(languageSystemVerilogChromaStr):
 		return LanguageSystemVerilog, true
+	case normalizeString(languageTalChromaStr):
+		return LanguageUxntal, true
 	case normalizeString(languageTextChromaStr):
 		return LanguageText, true
 	case normalizeString(languageTransactSQLChromaStr):
@@ -4067,6 +4140,8 @@ func (l Language) String() string {
 		return languageApolloGuidanceComputerStr
 	case LanguageAppleScript:
 		return languageAppleScriptStr
+	case LanguageArangoDBQueryLanguage:
+		return languageArangoDBQueryLanguageStr
 	case LanguageArc:
 		return languageArcStr
 	case LanguageArduino:
@@ -4157,6 +4232,8 @@ func (l Language) String() string {
 		return languageBooStr
 	case LanguageBoogie:
 		return languageBoogieStr
+	case LanguageBQN:
+		return languageBQNStr
 	case LanguageBrainfuck:
 		return languageBrainfuckStr
 	case LanguageBrightScript:
@@ -4679,6 +4756,8 @@ func (l Language) String() string {
 		return languageIsabelleStr
 	case LanguageIsabelleRoot:
 		return languageIsabelleRootStr
+	case LanguageISCdhcpd:
+		return languageISCdhcpdStr
 	case LanguageJ:
 		return languageJStr
 	case LanguageJAGS:
@@ -4913,6 +4992,8 @@ func (l Language) String() string {
 		return languageMustacheStr
 	case LanguageNASM:
 		return languageNASMStr
+	case LanguageNatural:
+		return languageNaturalStr
 	case LanguageNCL:
 		return languageNCLStr
 	case LanguageNemerle:
@@ -4943,6 +5024,8 @@ func (l Language) String() string {
 		return languageNuStr
 	case LanguageNumPy:
 		return languageNumPyStr
+	case LanguageNushell:
+		return languageNushellStr
 	case LanguageNuSMV:
 		return languageNuSMVStr
 	case LanguageNASMObjdump:
@@ -5019,6 +5102,8 @@ func (l Language) String() string {
 		return languagePOVRayStr
 	case LanguagePowerQuery:
 		return languagePowerQueryStr
+	case LanguagePSL:
+		return languagePSLStr
 	case LanguagePowerShell:
 		return languagePowerShellStr
 	case LanguagePowerShellSession:
@@ -5031,8 +5116,6 @@ func (l Language) String() string {
 		return languagePrologStr
 	case LanguagePromQL:
 		return languagePromQLStr
-	case LanguagePropertiesJava:
-		return languagePropertiesJavaStr
 	case LanguageProtocolBuffer:
 		return languageProtocolBufferStr
 	case LanguagePsyShPHP:
@@ -5275,6 +5358,8 @@ func (l Language) String() string {
 		return languageStanStr
 	case LanguageStarlark:
 		return languageStarlarkStr
+	case LanguageStas:
+		return languageStasStr
 	case LanguageStata:
 		return languageStataStr
 	case LanguageSTON:
@@ -5395,6 +5480,8 @@ func (l Language) String() string {
 		return languageUrWebStr
 	case LanguageUSD:
 		return languageUSDStr
+	case LanguageUxntal:
+		return languageUxntalStr
 	case LanguageV:
 		return languageVStr
 	case LanguageVala:
@@ -5421,6 +5508,8 @@ func (l Language) String() string {
 		return languageVerilogStr
 	case LanguageVHDL:
 		return languageVHDLStr
+	case LanguageVHS:
+		return languageVHSStr
 	case LanguageVimHelpFile:
 		return languageVimHelpFileStr
 	case LanguageVimL:
@@ -5431,6 +5520,8 @@ func (l Language) String() string {
 		return languageVimSnippetStr
 	case LanguageVolt:
 		return languageVoltStr
+	case LanguageVShell:
+		return languageVShellStr
 	case LanguageVueJS:
 		return languageVueJSStr
 	case LanguageWavefrontMaterial:
@@ -5445,6 +5536,8 @@ func (l Language) String() string {
 		return languageWDiffStr
 	case LanguageWebAssembly:
 		return languageWebAssemblyStr
+	case LanguageWebGPUShadingLanguage:
+		return languageWebGPUShadingLanguageStr
 	case LanguageWebIDL:
 		return languageWebIDLStr
 	case LanguageWebOntologyLanguage:
@@ -5513,6 +5606,8 @@ func (l Language) String() string {
 		return languageYASnippetStr
 	case LanguageZAP:
 		return languageZAPStr
+	case LanguageZ80Assembly:
+		return languageZ80AssemblyStr
 	case LanguageZed:
 		return languageZedStr
 	case LanguageZeek:
@@ -5540,11 +5635,11 @@ func (l Language) StringChroma() string {
 	case LanguageAMPL:
 		return languageAMPLChromaStr
 	case LanguageApacheConfig:
-		return languageApacheConfStr
+		return languageApacheConfChromaStr
+	case LanguageArangoDBQueryLanguage:
+		return languageArangoDBAQLChromaStr
 	case LanguageAssembly:
 		return languageAssemblyChromaStr
-	case LanguageAutoHotkey:
-		return languageAutoHotkeyChromaStr
 	case LanguageCObjdump:
 		return languageCObjdumpChromaStr
 	case LanguageColdfusionCFC:
@@ -5555,6 +5650,8 @@ func (l Language) StringChroma() string {
 		return languageCppObjdumpChromaStr
 	case LanguageCUDA:
 		return languageCUDAChromaStr
+	case LanguageDNSZone:
+		return languageDNSChromaStr
 	case LanguageEmacsLisp:
 		return languageEmacsLispChromaStr
 	case LanguageFSharp:
@@ -5563,6 +5660,10 @@ func (l Language) StringChroma() string {
 		return languageFStarLiteralStr
 	case LanguageHxml:
 		return languageHxmlChromaStr
+	case LanguageISCdhcpd:
+		return languageISCdhcpdChromaStr
+	case LanguageJavaProperties:
+		return languagePropertiesJavaChromaStr
 	case LanguageJSONLD:
 		return languageJSONLDChromaStr
 	case LanguageJSX:
@@ -5571,8 +5672,6 @@ func (l Language) StringChroma() string {
 		return languageLessChromaStr
 	case LanguageLiquid:
 		return languageLiquidChromaStr
-	case LanguageMakefile:
-		return languageMakefileChromaStr
 	case LanguageMarkdown:
 		return languageMarkdownChromaStr
 	case LanguageNewLisp:
@@ -5583,6 +5682,8 @@ func (l Language) StringChroma() string {
 		return languageOocChromaStr
 	case LanguageOrg:
 		return languageOrgChromaStr
+	case LanguagePSL:
+		return languagePSLChromaStr
 	case LanguageReasonML:
 		return languageReasonMLChromaStr
 	case LanguageREBOL:
@@ -5591,10 +5692,16 @@ func (l Language) StringChroma() string {
 		return languageRexxChromaStr
 	case LanguageS:
 		return languageRChromaStr
+	case LanguageSed:
+		return languageSedChromaStr
+	case LanguageStas:
+		return languageStasChromaStr
 	case LanguageSYSTEMD:
 		return languageSYSTEMDChromaStr
 	case LanguageSystemVerilog:
 		return languageSystemVerilogChromaStr
+	case LanguageUxntal:
+		return languageTalChromaStr
 	case LanguageText:
 		return languageTextChromaStr
 	case LanguageTransactSQL:

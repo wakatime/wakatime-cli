@@ -100,7 +100,7 @@ func Detect(filepath string, language heartbeat.Language) ([]string, error) {
 		parser = &ParserHTML{}
 	case heartbeat.LanguageJava:
 		parser = &ParserJava{}
-	case heartbeat.LanguageJavaScript, heartbeat.LanguageTypeScript:
+	case heartbeat.LanguageJavaScript, heartbeat.LanguageTypeScript, heartbeat.LanguageJSX, heartbeat.LanguageTSX:
 		parser = &ParserJavaScript{}
 	case heartbeat.LanguageJSON:
 		parser = &ParserJSON{}
