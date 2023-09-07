@@ -36,6 +36,18 @@ func TestRenderToday(t *testing.T) {
 	}
 }
 
+func TestRenderToday_NilGoal(t *testing.T) {
+	_, err := goal.RenderToday(nil, output.TextOutput)
+
+	assert.EqualError(t, err, "no goal found for the current day")
+}
+
+func TestRenderToday_EmptyChartData(t *testing.T) {
+	_, err := goal.RenderToday(&goal.Goal{}, output.TextOutput)
+
+	assert.EqualError(t, err, "no chart data found for the current day")
+}
+
 func readFile(t *testing.T, fp string) string {
 	data, err := os.ReadFile(fp)
 	require.NoError(t, err)
