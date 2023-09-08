@@ -98,6 +98,10 @@ func RenderToday(goal *Goal, out output.Output) (string, error) {
 		return "", errors.New("no goal found for the current day")
 	}
 
+	if len(goal.Data.ChartData) == 0 {
+		return "", errors.New("no chart data found for the current day")
+	}
+
 	if out == output.RawJSONOutput {
 		data, err := json.Marshal(goal)
 		if err != nil {
