@@ -169,6 +169,7 @@ func RegisterAll() error {
 		MiniScript{},
 		Modelica{},
 		Modula2{},
+		Mojo{},
 		Monkey{},
 		Monte{},
 		MoonScript{},

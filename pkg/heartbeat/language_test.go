@@ -453,6 +453,7 @@ func languageTests() map[string]heartbeat.Language {
 		"Modelica":                         heartbeat.LanguageModelica,
 		"Modula-2":                         heartbeat.LanguageModula2,
 		"MoinMoin/Trac Wiki markup":        heartbeat.LanguageMoinWiki,
+		"Mojo":                             heartbeat.LanguageMojo,
 		"Monkey":                           heartbeat.LanguageMonkey,
 		"MonkeyC":                          heartbeat.LanguageMonkeyC,
 		"Monte":                            heartbeat.LanguageMonte,

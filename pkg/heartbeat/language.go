@@ -891,6 +891,8 @@ const (
 	LanguageModula2
 	// LanguageMoinWiki represents the MoinWiki programming language.
 	LanguageMoinWiki
+	// LanguageMojo represents the Mojo programming language.
+	LanguageMojo
 	// LanguageMonkey represents the Monkey programming language.
 	LanguageMonkey
 	// LanguageMonkeyC represents the MonkeyC programming language.
@@ -2004,6 +2006,7 @@ const (
 	languageModelicaStr                    = "Modelica"
 	languageModula2Str                     = "Modula-2"
 	languageMoinWikiStr                    = "MoinMoin/Trac Wiki markup"
+	languageMojoStr                        = "Mojo"
 	languageMonkeyStr                      = "Monkey"
 	languageMonkeyCStr                     = "MonkeyC"
 	languageMonteStr                       = "Monte"
@@ -3280,6 +3283,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageModula2, true
 	case normalizeString(languageMoinWikiStr):
 		return LanguageMoinWiki, true
+	case normalizeString(languageMojoStr):
+		return LanguageMojo, true
 	case normalizeString(languageMonkeyStr):
 		return LanguageMonkey, true
 	case normalizeString(languageMonkeyCStr):
@@ -4956,6 +4961,8 @@ func (l Language) String() string {
 		return languageModula2Str
 	case LanguageMoinWiki:
 		return languageMoinWikiStr
+	case LanguageMojo:
+		return languageMojoStr
 	case LanguageMonkey:
 		return languageMonkeyStr
 	case LanguageMonkeyC:
