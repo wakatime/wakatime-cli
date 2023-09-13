@@ -655,6 +655,8 @@ const (
 	LanguageHyPhy
 	// LanguageIcon represents the Icon programming language.
 	LanguageIcon
+	// LanguageIDA represents the IDA programming language.
+	LanguageIDA
 	// LanguageIDL represents the IDL programming language.
 	LanguageIDL
 	// LanguageIdris represents the Idris programming language.
@@ -1888,6 +1890,7 @@ const (
 	languageHybrisStr                      = "Hybris"
 	languageHyPhyStr                       = "HyPhy"
 	languageIconStr                        = "Icon"
+	languageIDAStr                         = "IDA"
 	languageIDLStr                         = "IDL"
 	languageIdrisStr                       = "Idris"
 	languageIgnoreListStr                  = "Ignore List"
@@ -3047,6 +3050,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageHyPhy, true
 	case normalizeString(languageIconStr):
 		return LanguageIcon, true
+	case normalizeString(languageIDAStr):
+		return LanguageIDA, true
 	case normalizeString(languageIDLStr):
 		return LanguageIDL, true
 	case normalizeString(languageIdrisStr):
@@ -4725,6 +4730,8 @@ func (l Language) String() string {
 		return languageHyPhyStr
 	case LanguageIcon:
 		return languageIconStr
+	case LanguageIDA:
+		return languageIDAStr
 	case LanguageIDL:
 		return languageIDLStr
 	case LanguageIdris:

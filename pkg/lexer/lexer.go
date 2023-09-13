@@ -122,6 +122,7 @@ func RegisterAll() error {
 		INI{},
 		IRCLogs{},
 		Icon{},
+		IDA{},
 		Inform6{},
 		Inform6Template{},
 		Inform7{},

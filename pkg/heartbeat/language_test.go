@@ -335,6 +335,7 @@ func languageTests() map[string]heartbeat.Language {
 		"Hybris":                           heartbeat.LanguageHybris,
 		"HyPhy":                            heartbeat.LanguageHyPhy,
 		"Icon":                             heartbeat.LanguageIcon,
+		"IDA":                              heartbeat.LanguageIDA,
 		"IDL":                              heartbeat.LanguageIDL,
 		"Idris":                            heartbeat.LanguageIdris,
 		"Ignore List":                      heartbeat.LanguageIgnoreList,
