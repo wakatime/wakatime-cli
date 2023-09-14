@@ -2,11 +2,13 @@ package remote
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"io"
 	"net"
 	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -88,6 +90,11 @@ func WithDetection() heartbeat.HandleOption {
 				err = c.DownloadFile(tmpFile.Name())
 				if err != nil {
 					log.Errorf("failed to download file to temporary folder: %s", err)
+
+					err = c.DownloadFileFallback(tmpFile.Name())
+					if err != nil {
+						log.Errorf("failed to download remote file using fallback option: %s", err)
+					}
 
 					deleteLocalFile(tmpFile.Name())
 
@@ -223,6 +230,19 @@ func (c Client) DownloadFile(localFile string) error {
 	}
 
 	return nil
+}
+
+// DownloadFileFallback downloads a remote file and copy to a local file using machine's ssh.
+func (c Client) DownloadFileFallback(localFile string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeoutSecs*time.Second)
+	defer cancel()
+
+	log.Infoln("downloading remote file using fallback option")
+
+	cmd := exec.CommandContext(ctx, "scp", fmt.Sprintf("%s:%s", c.OriginalHost, c.Path), localFile) // nolint:gosec
+	cmd.Stderr = os.Stderr
+
+	return cmd.Run()
 }
 
 // Connect connects to sftp host.
