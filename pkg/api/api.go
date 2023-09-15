@@ -13,10 +13,10 @@ import (
 const (
 	// BaseURL is the base url of the wakatime api.
 	BaseURL = "https://api.wakatime.com/api/v1"
-	// baseIPAddrv4 is the base ip address v4 of the wakatime api.
-	baseIPAddrv4 = "143.244.210.202"
-	// baseIPAddrv6 is the base ip address v6 of the wakatime api.
-	baseIPAddrv6 = "2604:a880:4:1d0::2a7:b000"
+	// BaseIPAddrv4 is the base ip address v4 of the wakatime api.
+	BaseIPAddrv4 = "143.244.210.202"
+	// BaseIPAddrv6 is the base ip address v6 of the wakatime api.
+	BaseIPAddrv6 = "2604:a880:4:1d0::2a7:b000"
 	// DefaultTimeoutSecs is the default timeout used for requests to the wakatime api.
 	DefaultTimeoutSecs = 120
 )
@@ -79,9 +79,9 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 			Transport: NewTransportWithHostVerificationDisabled(),
 		}
 
-		req.URL.Host = baseIPAddrv4
+		req.URL.Host = BaseIPAddrv4
 		if isLocalIPv6() {
-			req.URL.Host = baseIPAddrv6
+			req.URL.Host = BaseIPAddrv6
 		}
 
 		log.Debugf("dns error, will retry with host ip '%s': %s", req.URL.Host, err)
@@ -98,7 +98,7 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 }
 
 func isLocalIPv6() bool {
-	conn, err := net.Dial("udp", fmt.Sprintf("%s:80", baseIPAddrv4))
+	conn, err := net.Dial("udp", fmt.Sprintf("%s:80", BaseIPAddrv4))
 	if err != nil {
 		log.Warnf("failed dialing to detect default local ip address: %s", err)
 		return true
