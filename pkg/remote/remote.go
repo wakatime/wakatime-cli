@@ -237,7 +237,7 @@ func (c Client) DownloadFileFallback(localFile string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeoutSecs*time.Second)
 	defer cancel()
 
-	log.Infoln("downloading remote file using fallback option")
+	log.Debugln("downloading remote file using fallback option")
 
 	cmd := exec.CommandContext(ctx, "scp", fmt.Sprintf("%s:%s", c.OriginalHost, c.Path), localFile) // nolint:gosec
 	cmd.Stderr = os.Stderr
