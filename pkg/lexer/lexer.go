@@ -27,6 +27,7 @@ func RegisterAll() error {
 		AspectJ{},
 		AspxCSharp{},
 		AspxVBNet{},
+		Astro{},
 		Asymptote{},
 		Augeas{},
 		BARE{},
