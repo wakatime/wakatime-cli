@@ -97,6 +97,8 @@ const (
 	LanguageAspxVBNet
 	// LanguageAssembly represents the Assembly programming language.
 	LanguageAssembly
+	// LanguageAstro represents the Astro programming language.
+	LanguageAstro
 	// LanguageAsymptote represents the Asymptote programming language.
 	LanguageAsymptote
 	// LanguageATS represents the ATS programming language.
@@ -1610,6 +1612,7 @@ const (
 	languageAspxCSharpStr                  = "aspx-cs"
 	languageAspxVBNetStr                   = "aspx-vb"
 	languageAssemblyStr                    = "Assembly"
+	languageAstroStr                       = "Astro"
 	languageAsymptoteStr                   = "Asymptote"
 	languageATSStr                         = "ATS"
 	languageAugeasStr                      = "Augeas"
@@ -2490,6 +2493,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageAspxVBNet, true
 	case normalizeString(languageAssemblyStr):
 		return LanguageAssembly, true
+	case normalizeString(languageAstroStr):
+		return LanguageAstro, true
 	case normalizeString(languageAsymptoteStr):
 		return LanguageAsymptote, true
 	case normalizeString(languageATSStr):
@@ -4176,6 +4181,8 @@ func (l Language) String() string {
 		return languageAspxVBNetStr
 	case LanguageAssembly:
 		return languageAssemblyStr
+	case LanguageAstro:
+		return languageAstroStr
 	case LanguageAsymptote:
 		return languageAsymptoteStr
 	case LanguageATS:

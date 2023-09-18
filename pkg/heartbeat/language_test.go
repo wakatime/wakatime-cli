@@ -57,6 +57,7 @@ func languageTests() map[string]heartbeat.Language {
 		"aspx-cs":                          heartbeat.LanguageAspxCSharp,
 		"aspx-vb":                          heartbeat.LanguageAspxVBNet,
 		"Assembly":                         heartbeat.LanguageAssembly,
+		"Astro":                            heartbeat.LanguageAstro,
 		"Asymptote":                        heartbeat.LanguageAsymptote,
 		"ATS":                              heartbeat.LanguageATS,
 		"Augeas":                           heartbeat.LanguageAugeas,
