@@ -4,21 +4,27 @@ import (
 	"strings"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	"github.com/alecthomas/chroma/v2"
+	"github.com/alecthomas/chroma/v2/lexers"
 )
 
-// Nemerle lexer.
-type Nemerle struct{}
+// nolint:gochecknoinits
+func init() {
+	language := heartbeat.LanguageNemerle.StringChroma()
+	lexer := lexers.Get(language)
 
-// Lexer returns the lexer.
-func (l Nemerle) Lexer() chroma.Lexer {
-	lexer := chroma.MustNewLexer(
+	if lexer != nil {
+		log.Debugf("lexer %q already registered", language)
+		return
+	}
+
+	_ = lexers.Register(chroma.MustNewLexer(
 		&chroma.Config{
-			Name:      l.Name(),
+			Name:      language,
 			Aliases:   []string{"nemerle"},
 			Filenames: []string{"*.n"},
-			// inferred
 			MimeTypes: []string{"text/x-nemerle"},
 		},
 		func() chroma.Rules {
@@ -26,9 +32,7 @@ func (l Nemerle) Lexer() chroma.Lexer {
 				"root": {},
 			}
 		},
-	)
-
-	lexer.SetAnalyser(func(text string) float32 {
+	).SetAnalyser(func(text string) float32 {
 		// Nemerle is quite similar to Python, but @if is relatively uncommon
 		// elsewhere.
 		if strings.Contains(text, "@if") {
@@ -36,12 +40,5 @@ func (l Nemerle) Lexer() chroma.Lexer {
 		}
 
 		return 0
-	})
-
-	return lexer
-}
-
-// Name returns the name of the lexer.
-func (Nemerle) Name() string {
-	return heartbeat.LanguageNemerle.StringChroma()
+	}))
 }

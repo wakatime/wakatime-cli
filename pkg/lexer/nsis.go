@@ -2,18 +2,25 @@ package lexer
 
 import (
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	"github.com/alecthomas/chroma/v2"
+	"github.com/alecthomas/chroma/v2/lexers"
 )
 
-// NSIS lexer.
-type NSIS struct{}
+// nolint:gochecknoinits
+func init() {
+	language := heartbeat.LanguageNSIS.StringChroma()
+	lexer := lexers.Get(language)
 
-// Lexer returns the lexer.
-func (l NSIS) Lexer() chroma.Lexer {
-	return chroma.MustNewLexer(
+	if lexer != nil {
+		log.Debugf("lexer %q already registered", language)
+		return
+	}
+
+	_ = lexers.Register(chroma.MustNewLexer(
 		&chroma.Config{
-			Name:      l.Name(),
+			Name:      language,
 			Aliases:   []string{"nsis", "nsi", "nsh"},
 			Filenames: []string{"*.nsi", "*.nsh"},
 			MimeTypes: []string{"text/x-nsis"},
@@ -23,10 +30,5 @@ func (l NSIS) Lexer() chroma.Lexer {
 				"root": {},
 			}
 		},
-	)
-}
-
-// Name returns the name of the lexer.
-func (NSIS) Name() string {
-	return heartbeat.LanguageNSIS.StringChroma()
+	))
 }

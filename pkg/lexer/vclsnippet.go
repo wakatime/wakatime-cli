@@ -2,19 +2,27 @@ package lexer
 
 import (
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	"github.com/alecthomas/chroma/v2"
+	"github.com/alecthomas/chroma/v2/lexers"
 )
 
-// VCLSnippets lexer.
-type VCLSnippets struct{}
+// nolint:gochecknoinits
+func init() {
+	language := heartbeat.LanguageVCLSnippets.StringChroma()
+	lexer := lexers.Get(language)
 
-// Lexer returns the lexer.
-func (l VCLSnippets) Lexer() chroma.Lexer {
-	return chroma.MustNewLexer(
+	if lexer != nil {
+		log.Debugf("lexer %q already registered", language)
+		return
+	}
+
+	_ = lexers.Register(chroma.MustNewLexer(
 		&chroma.Config{
-			Name:      l.Name(),
-			Aliases:   []string{"vclsnippets", "vclsnippet"},
+			Name:    language,
+			Aliases: []string{"vclsnippets", "vclsnippet"},
+
 			MimeTypes: []string{"text/x-vclsnippet"},
 		},
 		func() chroma.Rules {
@@ -22,10 +30,5 @@ func (l VCLSnippets) Lexer() chroma.Lexer {
 				"root": {},
 			}
 		},
-	)
-}
-
-// Name returns the name of the lexer.
-func (VCLSnippets) Name() string {
-	return heartbeat.LanguageVCLSnippets.StringChroma()
+	))
 }

@@ -5,8 +5,10 @@ import (
 	"strings"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	"github.com/alecthomas/chroma/v2"
+	"github.com/alecthomas/chroma/v2/lexers"
 )
 
 var (
@@ -14,15 +16,19 @@ var (
 	easytrieveAnalyserMacroHeaderRe = regexp.MustCompile(`\s*MACRO`)
 )
 
-// Easytrieve lexer.
-type Easytrieve struct{}
+// nolint:gochecknoinits,gocyclo
+func init() {
+	language := heartbeat.LanguageEasytrieve.StringChroma()
+	lexer := lexers.Get(language)
 
-// Lexer returns the lexer.
-// nolint: gocyclo
-func (l Easytrieve) Lexer() chroma.Lexer {
-	lexer := chroma.MustNewLexer(
+	if lexer != nil {
+		log.Debugf("lexer %q already registered", language)
+		return
+	}
+
+	_ = lexers.Register(chroma.MustNewLexer(
 		&chroma.Config{
-			Name:      l.Name(),
+			Name:      language,
 			Aliases:   []string{"easytrieve"},
 			Filenames: []string{"*.ezt", "*.mac"},
 			MimeTypes: []string{"text/x-easytrieve"},
@@ -32,9 +38,7 @@ func (l Easytrieve) Lexer() chroma.Lexer {
 				"root": {},
 			}
 		},
-	)
-
-	lexer.SetAnalyser(func(text string) float32 {
+	).SetAnalyser(func(text string) float32 {
 		// Perform a structural analysis for basic Easytrieve constructs.
 		var (
 			result           float32
@@ -146,12 +150,5 @@ func (l Easytrieve) Lexer() chroma.Lexer {
 		}
 
 		return result
-	})
-
-	return lexer
-}
-
-// Name returns the name of the lexer.
-func (Easytrieve) Name() string {
-	return heartbeat.LanguageEasytrieve.StringChroma()
+	}))
 }

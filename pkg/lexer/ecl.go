@@ -4,18 +4,25 @@ import (
 	"strings"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	"github.com/alecthomas/chroma/v2"
+	"github.com/alecthomas/chroma/v2/lexers"
 )
 
-// ECL lexer.
-type ECL struct{}
+// nolint:gochecknoinits
+func init() {
+	language := heartbeat.LanguageECL.StringChroma()
+	lexer := lexers.Get(language)
 
-// Lexer returns the lexer.
-func (l ECL) Lexer() chroma.Lexer {
-	lexer := chroma.MustNewLexer(
+	if lexer != nil {
+		log.Debugf("lexer %q already registered", language)
+		return
+	}
+
+	_ = lexers.Register(chroma.MustNewLexer(
 		&chroma.Config{
-			Name:      l.Name(),
+			Name:      language,
 			Aliases:   []string{"ecl"},
 			Filenames: []string{"*.ecl"},
 			MimeTypes: []string{"application/x-ecl"},
@@ -25,9 +32,7 @@ func (l ECL) Lexer() chroma.Lexer {
 				"root": {},
 			}
 		},
-	)
-
-	lexer.SetAnalyser(func(text string) float32 {
+	).SetAnalyser(func(text string) float32 {
 		// This is very difficult to guess relative to other business languages.
 		// -> in conjunction with BEGIN/END seems relatively rare though.
 
@@ -46,12 +51,5 @@ func (l ECL) Lexer() chroma.Lexer {
 		}
 
 		return result
-	})
-
-	return lexer
-}
-
-// Name returns the name of the lexer.
-func (ECL) Name() string {
-	return heartbeat.LanguageECL.StringChroma()
+	}))
 }

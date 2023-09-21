@@ -4,9 +4,11 @@ import (
 	"os"
 	"testing"
 
-	"github.com/wakatime/wakatime-cli/pkg/lexer"
+	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 
+	"github.com/alecthomas/chroma/v2/lexers"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGap_AnalyseText(t *testing.T) {
@@ -29,7 +31,8 @@ func TestGap_AnalyseText(t *testing.T) {
 			data, err := os.ReadFile(test.Filepath)
 			assert.NoError(t, err)
 
-			l := lexer.Gap{}.Lexer()
+			l := lexers.Get(heartbeat.LanguageGap.StringChroma())
+			require.NotNil(t, l)
 
 			assert.Equal(t, test.Expected, l.AnalyseText(string(data)))
 		})

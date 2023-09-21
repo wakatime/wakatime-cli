@@ -2,18 +2,25 @@ package lexer
 
 import (
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	"github.com/alecthomas/chroma/v2"
+	"github.com/alecthomas/chroma/v2/lexers"
 )
 
-// Razor lexer. Lexer for Blazor's Razor files.
-type Razor struct{}
+// nolint:gochecknoinits
+func init() {
+	language := heartbeat.LanguageRazor.StringChroma()
+	lexer := lexers.Get(language)
 
-// Lexer returns the lexer.
-func (l Razor) Lexer() chroma.Lexer {
-	return chroma.MustNewLexer(
+	if lexer != nil {
+		log.Debugf("lexer %q already registered", language)
+		return
+	}
+
+	_ = lexers.Register(chroma.MustNewLexer(
 		&chroma.Config{
-			Name:      l.Name(),
+			Name:      language,
 			Aliases:   []string{"razor"},
 			Filenames: []string{"*.razor"},
 			MimeTypes: []string{"text/html"},
@@ -23,10 +30,5 @@ func (l Razor) Lexer() chroma.Lexer {
 				"root": {},
 			}
 		},
-	)
-}
-
-// Name returns the name of the lexer.
-func (Razor) Name() string {
-	return heartbeat.LanguageRazor.StringChroma()
+	))
 }

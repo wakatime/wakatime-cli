@@ -4,20 +4,27 @@ import (
 	"regexp"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	"github.com/alecthomas/chroma/v2"
+	"github.com/alecthomas/chroma/v2/lexers"
 )
 
 var inform6AnalyserRe = regexp.MustCompile(`(?i)\borigsource\b`)
 
-// Inform6 lexer.
-type Inform6 struct{}
+// nolint:gochecknoinits
+func init() {
+	language := heartbeat.LanguageInform6.StringChroma()
+	lexer := lexers.Get(language)
 
-// Lexer returns the lexer.
-func (l Inform6) Lexer() chroma.Lexer {
-	lexer := chroma.MustNewLexer(
+	if lexer != nil {
+		log.Debugf("lexer %q already registered", language)
+		return
+	}
+
+	_ = lexers.Register(chroma.MustNewLexer(
 		&chroma.Config{
-			Name:      l.Name(),
+			Name:      language,
 			Aliases:   []string{"inform6", "i6"},
 			Filenames: []string{"*.inf"},
 		},
@@ -26,9 +33,7 @@ func (l Inform6) Lexer() chroma.Lexer {
 				"root": {},
 			}
 		},
-	)
-
-	lexer.SetAnalyser(func(text string) float32 {
+	).SetAnalyser(func(text string) float32 {
 		// We try to find a keyword which seem relatively common, unfortunately
 		// there is a decent overlap with Smalltalk keywords otherwise here.
 		if inform6AnalyserRe.MatchString(text) {
@@ -36,12 +41,5 @@ func (l Inform6) Lexer() chroma.Lexer {
 		}
 
 		return 0
-	})
-
-	return lexer
-}
-
-// Name returns the name of the lexer.
-func (Inform6) Name() string {
-	return heartbeat.LanguageInform6.StringChroma()
+	}))
 }

@@ -5,8 +5,10 @@ import (
 	"regexp"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	"github.com/alecthomas/chroma/v2"
+	"github.com/alecthomas/chroma/v2/lexers"
 )
 
 var (
@@ -16,26 +18,28 @@ var (
 		`(DeclareRepresentation|Install(GlobalFunction|Method|ImmediateMethod|OtherMethod)|New(Family|Type)|Objectify)`)
 )
 
-// Gap lexer.
-type Gap struct{}
+// nolint:gochecknoinits
+func init() {
+	language := heartbeat.LanguageGap.StringChroma()
+	lexer := lexers.Get(language)
 
-// Lexer returns the lexer.
-func (l Gap) Lexer() chroma.Lexer {
-	lexer := chroma.MustNewLexer(
+	if lexer != nil {
+		log.Debugf("lexer %q already registered", language)
+		return
+	}
+
+	_ = lexers.Register(chroma.MustNewLexer(
 		&chroma.Config{
-			Name:      l.Name(),
+			Name:      language,
 			Aliases:   []string{"gap"},
 			Filenames: []string{"*.g", "*.gd", "*.gi", "*.gap"},
-			MimeTypes: []string{},
 		},
 		func() chroma.Rules {
 			return chroma.Rules{
 				"root": {},
 			}
 		},
-	)
-
-	lexer.SetAnalyser(func(text string) float32 {
+	).SetAnalyser(func(text string) float32 {
 		var result float64
 
 		if gapAnalyserDeclarationRe.MatchString(text) {
@@ -47,12 +51,5 @@ func (l Gap) Lexer() chroma.Lexer {
 		}
 
 		return float32(math.Min(result, float64(1.0)))
-	})
-
-	return lexer
-}
-
-// Name returns the name of the lexer.
-func (Gap) Name() string {
-	return heartbeat.LanguageGap.StringChroma()
+	}))
 }

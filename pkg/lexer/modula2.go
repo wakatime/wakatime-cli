@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/log"
 
-	"github.com/alecthomas/chroma/v2"
 	"github.com/alecthomas/chroma/v2/lexers"
 )
 
@@ -15,48 +15,37 @@ var (
 	modula2AnalyserFunctionRe  = regexp.MustCompile(`\bFUNCTION\b`)
 )
 
-// Modula2 lexer.
-type Modula2 struct{}
+// nolint:gochecknoinits
+func init() {
+	language := heartbeat.LanguageModula2.StringChroma()
+	lexer := lexers.Get(language)
 
-// Lexer returns the lexer.
-func (l Modula2) Lexer() chroma.Lexer {
-	lexer := lexers.Get(l.Name())
 	if lexer == nil {
-		return nil
+		log.Debugf("lexer %q not found", language)
+		return
 	}
 
-	if lexer, ok := lexer.(*chroma.RegexLexer); ok {
-		lexer.SetAnalyser(func(text string) float32 {
-			// It's Pascal-like, but does not use FUNCTION -- uses PROCEDURE
-			// instead.
+	lexer.SetAnalyser(func(text string) float32 {
+		// It's Pascal-like, but does not use FUNCTION -- uses PROCEDURE
+		// instead.
 
-			// Check if this looks like Pascal, if not, bail out early
-			if !strings.Contains(text, "(*") && !strings.Contains(text, "*)") && !strings.Contains(text, ":=") {
-				return 0
-			}
+		// Check if this looks like Pascal, if not, bail out early
+		if !strings.Contains(text, "(*") && !strings.Contains(text, "*)") && !strings.Contains(text, ":=") {
+			return 0
+		}
 
-			var result float32
+		var result float32
 
-			// Procedure is in Modula2
-			if modula2AnalyserProcedureRe.MatchString(text) {
-				result += 0.6
-			}
+		// Procedure is in Modula2
+		if modula2AnalyserProcedureRe.MatchString(text) {
+			result += 0.6
+		}
 
-			// FUNCTION is only valid in Pascal, but not in Modula2
-			if modula2AnalyserFunctionRe.MatchString(text) {
-				result = 0
-			}
+		// FUNCTION is only valid in Pascal, but not in Modula2
+		if modula2AnalyserFunctionRe.MatchString(text) {
+			result = 0
+		}
 
-			return result
-		})
-
-		return lexer
-	}
-
-	return nil
-}
-
-// Name returns the name of the lexer.
-func (Modula2) Name() string {
-	return heartbeat.LanguageModula2.StringChroma()
+		return result
+	})
 }

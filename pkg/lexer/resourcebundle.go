@@ -4,19 +4,25 @@ import (
 	"strings"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	"github.com/alecthomas/chroma/v2"
+	"github.com/alecthomas/chroma/v2/lexers"
 )
 
-// ResourceBundle lexer. Lexer for ICU ResourceBundle bundles
-// <http://userguide.icu-project.org/locale/resources>
-type ResourceBundle struct{}
+// nolint:gochecknoinits
+func init() {
+	language := heartbeat.LanguageResourceBundle.StringChroma()
+	lexer := lexers.Get(language)
 
-// Lexer returns the lexer.
-func (l ResourceBundle) Lexer() chroma.Lexer {
-	lexer := chroma.MustNewLexer(
+	if lexer != nil {
+		log.Debugf("lexer %q already registered", language)
+		return
+	}
+
+	_ = lexers.Register(chroma.MustNewLexer(
 		&chroma.Config{
-			Name:    l.Name(),
+			Name:    language,
 			Aliases: []string{"resource", "resourcebundle"},
 		},
 		func() chroma.Rules {
@@ -24,20 +30,11 @@ func (l ResourceBundle) Lexer() chroma.Lexer {
 				"root": {},
 			}
 		},
-	)
-
-	lexer.SetAnalyser(func(text string) float32 {
+	).SetAnalyser(func(text string) float32 {
 		if strings.HasPrefix(text, "root:table") {
 			return 1.0
 		}
 
 		return 0
-	})
-
-	return lexer
-}
-
-// Name returns the name of the lexer.
-func (ResourceBundle) Name() string {
-	return heartbeat.LanguageResourceBundle.StringChroma()
+	}))
 }

@@ -4,8 +4,8 @@ import (
 	"regexp"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/log"
 
-	"github.com/alecthomas/chroma/v2"
 	"github.com/alecthomas/chroma/v2/lexers"
 )
 
@@ -26,42 +26,31 @@ var (
 			`packed-switch|sparse-switch))\b`)
 )
 
-// Smali lexer.
-type Smali struct{}
+// nolint:gochecknoinits
+func init() {
+	language := heartbeat.LanguageSmali.StringChroma()
+	lexer := lexers.Get(language)
 
-// Lexer returns the lexer.
-func (l Smali) Lexer() chroma.Lexer {
-	lexer := lexers.Get(l.Name())
 	if lexer == nil {
-		return nil
+		log.Debugf("lexer %q not found", language)
+		return
 	}
 
-	if lexer, ok := lexer.(*chroma.RegexLexer); ok {
-		lexer.SetAnalyser(func(text string) float32 {
-			var result float32
+	lexer.SetAnalyser(func(text string) float32 {
+		var result float32
 
-			if smaliAnalyserClassRe.MatchString(text) {
-				result += 0.5
+		if smaliAnalyserClassRe.MatchString(text) {
+			result += 0.5
 
-				if smaliAnalyserClassKeywordsRe.MatchString(text) {
-					result += 0.3
-				}
+			if smaliAnalyserClassKeywordsRe.MatchString(text) {
+				result += 0.3
 			}
+		}
 
-			if smaliAnalyserKeywordsRe.MatchString(text) {
-				result += 0.6
-			}
+		if smaliAnalyserKeywordsRe.MatchString(text) {
+			result += 0.6
+		}
 
-			return result
-		})
-
-		return lexer
-	}
-
-	return nil
-}
-
-// Name returns the name of the lexer.
-func (Smali) Name() string {
-	return heartbeat.LanguageSmali.StringChroma()
+		return result
+	})
 }

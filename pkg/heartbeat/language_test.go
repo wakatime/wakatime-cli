@@ -262,8 +262,8 @@ func languageTests() map[string]heartbeat.Language {
 		"Fortran Free Form":                heartbeat.LanguageFortranFreeForm,
 		"FoxPro":                           heartbeat.LanguageFoxPro,
 		"Freefem":                          heartbeat.LanguageFreefem,
-		"FreeMarker":                       heartbeat.LangauageFreeMarker,
-		"Frege":                            heartbeat.LangauageFrege,
+		"FreeMarker":                       heartbeat.LanguageFreeMarker,
+		"Frege":                            heartbeat.LanguageFrege,
 		"Futhark":                          heartbeat.LanguageFuthark,
 		"Game Maker Language":              heartbeat.LanguageGameMakerLanguage,
 		"GAML":                             heartbeat.LanguageGAML,
@@ -1067,7 +1067,7 @@ func TestLanguage_StringChroma_AllLexersSupported(t *testing.T) {
 
 		// Aliases, which match in addition to standard spelling of languages are ignored here.
 		switch config.Name {
-		case "Go HTML Template", "Go Text Template":
+		case "Go HTML Template", "Go Text Template", "Go Template":
 			continue
 		case "TypoScriptCssData", "TypoScriptHtmlData":
 			continue

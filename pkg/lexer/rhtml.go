@@ -3,19 +3,25 @@ package lexer
 import (
 	"github.com/wakatime/wakatime-cli/pkg/doctype"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	"github.com/alecthomas/chroma/v2"
+	"github.com/alecthomas/chroma/v2/lexers"
 )
 
-// RHTML lexer. Subclass of the ERB lexer that highlights the unlexed data
-// with the html lexer.
-type RHTML struct{}
+// nolint:gochecknoinits
+func init() {
+	language := heartbeat.LanguageRHTML.StringChroma()
+	lexer := lexers.Get(language)
 
-// Lexer returns the lexer.
-func (l RHTML) Lexer() chroma.Lexer {
-	lexer := chroma.MustNewLexer(
+	if lexer != nil {
+		log.Debugf("lexer %q already registered", language)
+		return
+	}
+
+	_ = lexers.Register(chroma.MustNewLexer(
 		&chroma.Config{
-			Name:           l.Name(),
+			Name:           language,
 			Aliases:        []string{"rhtml", "html+erb", "html+ruby"},
 			Filenames:      []string{"*.rhtml"},
 			AliasFilenames: []string{"*.html", "*.htm", "*.xhtml"},
@@ -26,10 +32,13 @@ func (l RHTML) Lexer() chroma.Lexer {
 				"root": {},
 			}
 		},
-	)
+	).SetAnalyser(func(text string) float32 {
+		erb := lexers.Get(heartbeat.LanguageERB.StringChroma())
+		if erb == nil {
+			return 0
+		}
 
-	lexer.SetAnalyser(func(text string) float32 {
-		result := ERB{}.Lexer().AnalyseText(text) - 0.01
+		result := erb.AnalyseText(text) - 0.01
 
 		if matched, _ := doctype.MatchString(text, "html"); matched {
 			// one more than the XmlErbLexer returns
@@ -37,12 +46,5 @@ func (l RHTML) Lexer() chroma.Lexer {
 		}
 
 		return result
-	})
-
-	return lexer
-}
-
-// Name returns the name of the lexer.
-func (RHTML) Name() string {
-	return heartbeat.LanguageRHTML.StringChroma()
+	}))
 }

@@ -2,22 +2,25 @@ package lexer
 
 import (
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	"github.com/alecthomas/chroma/v2"
+	"github.com/alecthomas/chroma/v2/lexers"
 )
 
-// SmartGameFormat lexer. Lexer for Smart Game Format (sgf) file format.
-//
-// The format is used to store game records of board games for two players
-// (mainly Go game). For more information about the definition of the format,
-// see: https://www.red-bean.com/sgf/
-type SmartGameFormat struct{}
+// nolint:gochecknoinits
+func init() {
+	language := heartbeat.LanguageSmartGameFormat.StringChroma()
+	lexer := lexers.Get(language)
 
-// Lexer returns the lexer.
-func (l SmartGameFormat) Lexer() chroma.Lexer {
-	return chroma.MustNewLexer(
+	if lexer != nil {
+		log.Debugf("lexer %q already registered", language)
+		return
+	}
+
+	_ = lexers.Register(chroma.MustNewLexer(
 		&chroma.Config{
-			Name:      l.Name(),
+			Name:      language,
 			Aliases:   []string{"sgf"},
 			Filenames: []string{"*.sgf"},
 		},
@@ -26,10 +29,5 @@ func (l SmartGameFormat) Lexer() chroma.Lexer {
 				"root": {},
 			}
 		},
-	)
-}
-
-// Name returns the name of the lexer.
-func (SmartGameFormat) Name() string {
-	return heartbeat.LanguageSmartGameFormat.StringChroma()
+	))
 }

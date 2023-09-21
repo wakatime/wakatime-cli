@@ -4,17 +4,22 @@ import (
 	"strings"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/log"
 
-	"github.com/alecthomas/chroma/v2"
 	"github.com/alecthomas/chroma/v2/lexers"
 )
 
-// HTTP lexer.
-type HTTP struct{}
+// nolint:gochecknoinits
+func init() {
+	language := heartbeat.LanguageHTTP.StringChroma()
+	lexer := lexers.Get(language)
 
-// Lexer returns the lexer.
-func (HTTP) Lexer() chroma.Lexer {
-	return lexers.HTTP.SetAnalyser(func(text string) float32 {
+	if lexer == nil {
+		log.Debugf("lexer %q not found", language)
+		return
+	}
+
+	lexers.HTTP.SetAnalyser(func(text string) float32 {
 		if strings.HasPrefix(text, "GET") ||
 			strings.HasPrefix(text, "POST") ||
 			strings.HasPrefix(text, "PUT") ||
@@ -28,9 +33,4 @@ func (HTTP) Lexer() chroma.Lexer {
 
 		return 0
 	})
-}
-
-// Name returns the name of the lexer.
-func (HTTP) Name() string {
-	return heartbeat.LanguageHTTP.StringChroma()
 }

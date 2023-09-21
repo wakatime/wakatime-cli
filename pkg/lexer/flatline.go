@@ -2,19 +2,27 @@ package lexer
 
 import (
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	"github.com/alecthomas/chroma/v2"
+	"github.com/alecthomas/chroma/v2/lexers"
 )
 
-// Flatline lexer.
-type Flatline struct{}
+// nolint:gochecknoinits
+func init() {
+	language := heartbeat.LanguageFlatline.StringChroma()
+	lexer := lexers.Get(language)
 
-// Lexer returns the lexer.
-func (l Flatline) Lexer() chroma.Lexer {
-	return chroma.MustNewLexer(
+	if lexer != nil {
+		log.Debugf("lexer %q already registered", language)
+		return
+	}
+
+	_ = lexers.Register(chroma.MustNewLexer(
 		&chroma.Config{
-			Name:      l.Name(),
-			Aliases:   []string{"flatline"},
+			Name:    language,
+			Aliases: []string{"flatline"},
+
 			MimeTypes: []string{"text/x-flatline"},
 		},
 		func() chroma.Rules {
@@ -22,10 +30,5 @@ func (l Flatline) Lexer() chroma.Lexer {
 				"root": {},
 			}
 		},
-	)
-}
-
-// Name returns the name of the lexer.
-func (Flatline) Name() string {
-	return heartbeat.LanguageFlatline.StringChroma()
+	))
 }

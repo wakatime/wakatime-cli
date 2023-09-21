@@ -2,18 +2,25 @@ package lexer
 
 import (
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	"github.com/alecthomas/chroma/v2"
+	"github.com/alecthomas/chroma/v2/lexers"
 )
 
-// CObjdump lexer.
-type CObjdump struct{}
+// nolint:gochecknoinits
+func init() {
+	language := heartbeat.LanguageCObjdump.StringChroma()
+	lexer := lexers.Get(language)
 
-// Lexer returns the lexer.
-func (l CObjdump) Lexer() chroma.Lexer {
-	return chroma.MustNewLexer(
+	if lexer != nil {
+		log.Debugf("lexer %q already registered", language)
+		return
+	}
+
+	_ = lexers.Register(chroma.MustNewLexer(
 		&chroma.Config{
-			Name:      l.Name(),
+			Name:      language,
 			Aliases:   []string{"c-objdump"},
 			Filenames: []string{"*.c-objdump"},
 			MimeTypes: []string{"text/x-c-objdump"},
@@ -23,10 +30,5 @@ func (l CObjdump) Lexer() chroma.Lexer {
 				"root": {},
 			}
 		},
-	)
-}
-
-// Name returns the name of the lexer.
-func (CObjdump) Name() string {
-	return heartbeat.LanguageCObjdump.StringChroma()
+	))
 }
