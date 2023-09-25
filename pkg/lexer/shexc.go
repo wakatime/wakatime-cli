@@ -2,18 +2,25 @@ package lexer
 
 import (
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	"github.com/alecthomas/chroma/v2"
+	"github.com/alecthomas/chroma/v2/lexers"
 )
 
-// ShExC lexer. Lexer for ShExC <https://shex.io/shex-semantics/#shexc> shape expressions language syntax.
-type ShExC struct{}
+// nolint:gochecknoinits
+func init() {
+	language := heartbeat.LanguageShExC.StringChroma()
+	lexer := lexers.Get(language)
 
-// Lexer returns the lexer.
-func (l ShExC) Lexer() chroma.Lexer {
-	return chroma.MustNewLexer(
+	if lexer != nil {
+		log.Debugf("lexer %q already registered", language)
+		return
+	}
+
+	_ = lexers.Register(chroma.MustNewLexer(
 		&chroma.Config{
-			Name:      l.Name(),
+			Name:      language,
 			Aliases:   []string{"shexc", "shex"},
 			Filenames: []string{"*.shex"},
 			MimeTypes: []string{"text/shex"},
@@ -23,10 +30,5 @@ func (l ShExC) Lexer() chroma.Lexer {
 				"root": {},
 			}
 		},
-	)
-}
-
-// Name returns the name of the lexer.
-func (ShExC) Name() string {
-	return heartbeat.LanguageShExC.StringChroma()
+	))
 }

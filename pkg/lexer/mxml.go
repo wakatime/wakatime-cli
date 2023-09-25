@@ -2,18 +2,25 @@ package lexer
 
 import (
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	"github.com/alecthomas/chroma/v2"
+	"github.com/alecthomas/chroma/v2/lexers"
 )
 
-// MXML lexer.
-type MXML struct{}
+// nolint:gochecknoinits
+func init() {
+	language := heartbeat.LanguageMXML.StringChroma()
+	lexer := lexers.Get(language)
 
-// Lexer returns the lexer.
-func (l MXML) Lexer() chroma.Lexer {
-	return chroma.MustNewLexer(
+	if lexer != nil {
+		log.Debugf("lexer %q already registered", language)
+		return
+	}
+
+	_ = lexers.Register(chroma.MustNewLexer(
 		&chroma.Config{
-			Name:      l.Name(),
+			Name:      language,
 			Aliases:   []string{"mxml"},
 			Filenames: []string{"*.mxml"},
 			MimeTypes: []string{"text/xml", "application/xml"},
@@ -23,10 +30,5 @@ func (l MXML) Lexer() chroma.Lexer {
 				"root": {},
 			}
 		},
-	)
-}
-
-// Name returns the name of the lexer.
-func (MXML) Name() string {
-	return heartbeat.LanguageMXML.StringChroma()
+	))
 }

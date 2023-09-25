@@ -2,18 +2,25 @@ package lexer
 
 import (
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	"github.com/alecthomas/chroma/v2"
+	"github.com/alecthomas/chroma/v2/lexers"
 )
 
-// FStar lexer.
-type FStar struct{}
+// nolint:gochecknoinits
+func init() {
+	language := heartbeat.LanguageFStar.StringChroma()
+	lexer := lexers.Get(language)
 
-// Lexer returns the lexer.
-func (l FStar) Lexer() chroma.Lexer {
-	return chroma.MustNewLexer(
+	if lexer != nil {
+		log.Debugf("lexer %q already registered", language)
+		return
+	}
+
+	_ = lexers.Register(chroma.MustNewLexer(
 		&chroma.Config{
-			Name:      l.Name(),
+			Name:      language,
 			Aliases:   []string{"fstar"},
 			Filenames: []string{"*.fst", "*.fsti"},
 			MimeTypes: []string{"text/x-fstar"},
@@ -23,10 +30,5 @@ func (l FStar) Lexer() chroma.Lexer {
 				"root": {},
 			}
 		},
-	)
-}
-
-// Name returns the name of the lexer.
-func (FStar) Name() string {
-	return heartbeat.LanguageFStar.StringChroma()
+	))
 }

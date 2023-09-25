@@ -4,8 +4,8 @@ import (
 	"regexp"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/log"
 
-	"github.com/alecthomas/chroma/v2"
 	"github.com/alecthomas/chroma/v2/lexers"
 )
 
@@ -17,26 +17,17 @@ var (
 	tSQLAnalyserNameBetweenBracketRe  = regexp.MustCompile(`\[[a-zA-Z_]\w*\]`)
 )
 
-// TransactSQL lexer.
-type TransactSQL struct{}
+// nolint:gochecknoinits
+func init() {
+	language := heartbeat.LanguageTransactSQL.StringChroma()
+	lexer := lexers.Get(language)
 
-// Lexer returns the lexer.
-func (l TransactSQL) Lexer() chroma.Lexer {
-	lexer := lexers.Get(l.Name())
 	if lexer == nil {
-		return nil
+		log.Debugf("lexer %q not found", language)
+		return
 	}
 
-	var (
-		ok       bool
-		rgxlexer *chroma.RegexLexer
-	)
-
-	if rgxlexer, ok = lexer.(*chroma.RegexLexer); !ok {
-		return nil
-	}
-
-	rgxlexer.SetAnalyser(func(text string) float32 {
+	lexer.SetAnalyser(func(text string) float32 {
 		if tSQLAnalyserDeclareRe.MatchString(text) {
 			// Found T-SQL variable declaration.
 			return 1.0
@@ -72,11 +63,4 @@ func (l TransactSQL) Lexer() chroma.Lexer {
 
 		return result
 	})
-
-	return rgxlexer
-}
-
-// Name returns the name of the lexer.
-func (TransactSQL) Name() string {
-	return heartbeat.LanguageTransactSQL.StringChroma()
 }

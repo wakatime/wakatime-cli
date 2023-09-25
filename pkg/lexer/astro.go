@@ -10,7 +10,7 @@ import (
 
 // nolint:gochecknoinits
 func init() {
-	language := heartbeat.LanguageIDA.StringChroma()
+	language := heartbeat.LanguageAstro.StringChroma()
 	lexer := lexers.Get(language)
 
 	if lexer != nil {
@@ -21,9 +21,8 @@ func init() {
 	_ = lexers.Register(chroma.MustNewLexer(
 		&chroma.Config{
 			Name:      language,
-			Aliases:   []string{"IDA Pro", "IDA Free"},
-			Filenames: []string{"*.i64", "*.idb"},
-			MimeTypes: []string{"text/x-ida"},
+			Aliases:   []string{"astro"},
+			Filenames: []string{"*.astro"},
 		},
 		func() chroma.Rules {
 			return chroma.Rules{

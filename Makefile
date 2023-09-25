@@ -154,8 +154,12 @@ test:
 test-integration:
 	go test -race -tags=integration ./main_test.go
 
+.PHONY: test-ip
+test-ip:
+	go test -race -tags=ip ./ip_test.go
+
 .PHONY: test-shell-script
 test-shell-script:
 	bats --formatter tap ./bin/tests
 
-test-all: lint test test-integration test-shell-script
+test-all: lint test test-integration test-shell-script test-ip

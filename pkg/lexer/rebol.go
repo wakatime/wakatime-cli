@@ -4,8 +4,10 @@ import (
 	"regexp"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	"github.com/alecthomas/chroma/v2"
+	"github.com/alecthomas/chroma/v2/lexers"
 )
 
 var (
@@ -13,14 +15,19 @@ var (
 	rebolAnalyserHeaderPrecedingTextRe = regexp.MustCompile(`\s*REBOL\s*\[`)
 )
 
-// REBOL lexer.
-type REBOL struct{}
+// nolint:gochecknoinits
+func init() {
+	language := heartbeat.LanguageREBOL.StringChroma()
+	lexer := lexers.Get(language)
 
-// Lexer returns the lexer.
-func (l REBOL) Lexer() chroma.Lexer {
-	lexer := chroma.MustNewLexer(
+	if lexer != nil {
+		log.Debugf("lexer %q already registered", language)
+		return
+	}
+
+	_ = lexers.Register(chroma.MustNewLexer(
 		&chroma.Config{
-			Name:      l.Name(),
+			Name:      language,
 			Aliases:   []string{"rebol"},
 			Filenames: []string{"*.r", "*.r3", "*.reb"},
 			MimeTypes: []string{"text/x-rebol"},
@@ -30,9 +37,7 @@ func (l REBOL) Lexer() chroma.Lexer {
 				"root": {},
 			}
 		},
-	)
-
-	lexer.SetAnalyser(func(text string) float32 {
+	).SetAnalyser(func(text string) float32 {
 		// Check if code contains REBOL header, then it's probably not R code
 		if rebolAnalyserHeaderRe.MatchString(text) {
 			return 1.0
@@ -43,12 +48,5 @@ func (l REBOL) Lexer() chroma.Lexer {
 		}
 
 		return 0
-	})
-
-	return lexer
-}
-
-// Name returns the name of the lexer.
-func (REBOL) Name() string {
-	return heartbeat.LanguageREBOL.StringChroma()
+	}))
 }

@@ -2,19 +2,27 @@ package lexer
 
 import (
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	"github.com/alecthomas/chroma/v2"
+	"github.com/alecthomas/chroma/v2/lexers"
 )
 
-// RawToken lexer.
-type RawToken struct{}
+// nolint:gochecknoinits
+func init() {
+	language := heartbeat.LanguageRawToken.StringChroma()
+	lexer := lexers.Get(language)
 
-// Lexer returns the lexer.
-func (l RawToken) Lexer() chroma.Lexer {
-	return chroma.MustNewLexer(
+	if lexer != nil {
+		log.Debugf("lexer %q already registered", language)
+		return
+	}
+
+	_ = lexers.Register(chroma.MustNewLexer(
 		&chroma.Config{
-			Name:      l.Name(),
-			Aliases:   []string{"raw"},
+			Name:    language,
+			Aliases: []string{"raw"},
+
 			MimeTypes: []string{"application/x-pygments-tokens"},
 		},
 		func() chroma.Rules {
@@ -22,10 +30,5 @@ func (l RawToken) Lexer() chroma.Lexer {
 				"root": {},
 			}
 		},
-	)
-}
-
-// Name returns the name of the lexer.
-func (RawToken) Name() string {
-	return heartbeat.LanguageRawToken.StringChroma()
+	))
 }

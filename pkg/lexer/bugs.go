@@ -4,43 +4,40 @@ import (
 	"regexp"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	"github.com/alecthomas/chroma/v2"
+	"github.com/alecthomas/chroma/v2/lexers"
 )
 
 var bugsAnalyzerRe = regexp.MustCompile(`(?m)^\s*model\s*{`)
 
-// BUGS lexer.
-type BUGS struct{}
+// nolint:gochecknoinits
+func init() {
+	language := heartbeat.LanguageBUGS.StringChroma()
+	lexer := lexers.Get(language)
 
-// Lexer returns the lexer.
-func (l BUGS) Lexer() chroma.Lexer {
-	lexer := chroma.MustNewLexer(
+	if lexer != nil {
+		log.Debugf("lexer %q already registered", language)
+		return
+	}
+
+	_ = lexers.Register(chroma.MustNewLexer(
 		&chroma.Config{
-			Name:      l.Name(),
+			Name:      language,
 			Aliases:   []string{"bugs", "winbugs", "openbugs"},
 			Filenames: []string{"*.bug"},
-			MimeTypes: []string{},
 		},
 		func() chroma.Rules {
 			return chroma.Rules{
 				"root": {},
 			}
 		},
-	)
-
-	lexer.SetAnalyser(func(text string) float32 {
+	).SetAnalyser(func(text string) float32 {
 		if bugsAnalyzerRe.MatchString(text) {
 			return 0.7
 		}
 
 		return 0
-	})
-
-	return lexer
-}
-
-// Name returns the name of the lexer.
-func (BUGS) Name() string {
-	return heartbeat.LanguageBUGS.StringChroma()
+	}))
 }

@@ -4,18 +4,25 @@ import (
 	"strings"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	"github.com/alecthomas/chroma/v2"
+	"github.com/alecthomas/chroma/v2/lexers"
 )
 
-// VCL lexer.
-type VCL struct{}
+// nolint:gochecknoinits
+func init() {
+	language := heartbeat.LanguageVCL.StringChroma()
+	lexer := lexers.Get(language)
 
-// Lexer returns the lexer.
-func (l VCL) Lexer() chroma.Lexer {
-	lexer := chroma.MustNewLexer(
+	if lexer != nil {
+		log.Debugf("lexer %q already registered", language)
+		return
+	}
+
+	_ = lexers.Register(chroma.MustNewLexer(
 		&chroma.Config{
-			Name:      l.Name(),
+			Name:      language,
 			Aliases:   []string{"vcl"},
 			Filenames: []string{"*.vcl"},
 			MimeTypes: []string{"text/x-vclsrc"},
@@ -25,9 +32,7 @@ func (l VCL) Lexer() chroma.Lexer {
 				"root": {},
 			}
 		},
-	)
-
-	lexer.SetAnalyser(func(text string) float32 {
+	).SetAnalyser(func(text string) float32 {
 		// If the very first line is 'vcl 4.0;' it's pretty much guaranteed
 		// that this is VCL
 		if strings.HasPrefix(text, "vcl 4.0;") {
@@ -46,12 +51,5 @@ func (l VCL) Lexer() chroma.Lexer {
 		}
 
 		return 0
-	})
-
-	return lexer
-}
-
-// Name returns the name of the lexer.
-func (VCL) Name() string {
-	return heartbeat.LanguageVCL.StringChroma()
+	}))
 }

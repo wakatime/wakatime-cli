@@ -2,18 +2,25 @@ package lexer
 
 import (
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	"github.com/alecthomas/chroma/v2"
+	"github.com/alecthomas/chroma/v2/lexers"
 )
 
-// Juttle lexer.
-type Juttle struct{}
+// nolint:gochecknoinits
+func init() {
+	language := heartbeat.LanguageJuttle.StringChroma()
+	lexer := lexers.Get(language)
 
-// Lexer returns the lexer.
-func (l Juttle) Lexer() chroma.Lexer {
-	return chroma.MustNewLexer(
+	if lexer != nil {
+		log.Debugf("lexer %q already registered", language)
+		return
+	}
+
+	_ = lexers.Register(chroma.MustNewLexer(
 		&chroma.Config{
-			Name:      l.Name(),
+			Name:      language,
 			Aliases:   []string{"juttle"},
 			Filenames: []string{"*.juttle"},
 			MimeTypes: []string{"application/juttle", "application/x-juttle", "text/x-juttle", "text/juttle"},
@@ -23,10 +30,5 @@ func (l Juttle) Lexer() chroma.Lexer {
 				"root": {},
 			}
 		},
-	)
-}
-
-// Name returns the name of the lexer.
-func (Juttle) Name() string {
-	return heartbeat.LanguageJuttle.StringChroma()
+	))
 }

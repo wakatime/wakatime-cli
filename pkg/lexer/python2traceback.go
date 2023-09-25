@@ -2,18 +2,25 @@ package lexer
 
 import (
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	"github.com/alecthomas/chroma/v2"
+	"github.com/alecthomas/chroma/v2/lexers"
 )
 
-// Python2Traceback lexer.
-type Python2Traceback struct{}
+// nolint:gochecknoinits
+func init() {
+	language := heartbeat.LanguagePython2Traceback.StringChroma()
+	lexer := lexers.Get(language)
 
-// Lexer returns the lexer.
-func (l Python2Traceback) Lexer() chroma.Lexer {
-	return chroma.MustNewLexer(
+	if lexer != nil {
+		log.Debugf("lexer %q already registered", language)
+		return
+	}
+
+	_ = lexers.Register(chroma.MustNewLexer(
 		&chroma.Config{
-			Name:      l.Name(),
+			Name:      language,
 			Aliases:   []string{"py2tb"},
 			Filenames: []string{"*.py2tb"},
 			MimeTypes: []string{"text/x-python2-traceback"},
@@ -23,10 +30,5 @@ func (l Python2Traceback) Lexer() chroma.Lexer {
 				"root": {},
 			}
 		},
-	)
-}
-
-// Name returns the name of the lexer.
-func (Python2Traceback) Name() string {
-	return heartbeat.LanguagePython2Traceback.StringChroma()
+	))
 }

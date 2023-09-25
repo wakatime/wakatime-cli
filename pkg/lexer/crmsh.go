@@ -2,18 +2,25 @@ package lexer
 
 import (
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	"github.com/alecthomas/chroma/v2"
+	"github.com/alecthomas/chroma/v2/lexers"
 )
 
-// Crmsh lexer.
-type Crmsh struct{}
+// nolint:gochecknoinits
+func init() {
+	language := heartbeat.LanguageCrmsh.StringChroma()
+	lexer := lexers.Get(language)
 
-// Lexer returns the lexer.
-func (l Crmsh) Lexer() chroma.Lexer {
-	return chroma.MustNewLexer(
+	if lexer != nil {
+		log.Debugf("lexer %q already registered", language)
+		return
+	}
+
+	_ = lexers.Register(chroma.MustNewLexer(
 		&chroma.Config{
-			Name:      l.Name(),
+			Name:      language,
 			Aliases:   []string{"crmsh", "pcmk"},
 			Filenames: []string{"*.crmsh", "*.pcmk"},
 		},
@@ -22,10 +29,5 @@ func (l Crmsh) Lexer() chroma.Lexer {
 				"root": {},
 			}
 		},
-	)
-}
-
-// Name returns the name of the lexer.
-func (Crmsh) Name() string {
-	return heartbeat.LanguageCrmsh.StringChroma()
+	))
 }

@@ -2,18 +2,25 @@ package lexer
 
 import (
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	"github.com/alecthomas/chroma/v2"
+	"github.com/alecthomas/chroma/v2/lexers"
 )
 
-// Cypher lexer.
-type Cypher struct{}
+// nolint:gochecknoinits
+func init() {
+	language := heartbeat.LanguageCypher.StringChroma()
+	lexer := lexers.Get(language)
 
-// Lexer returns the lexer.
-func (l Cypher) Lexer() chroma.Lexer {
-	return chroma.MustNewLexer(
+	if lexer != nil {
+		log.Debugf("lexer %q already registered", language)
+		return
+	}
+
+	_ = lexers.Register(chroma.MustNewLexer(
 		&chroma.Config{
-			Name:      l.Name(),
+			Name:      language,
 			Aliases:   []string{"cypher"},
 			Filenames: []string{"*.cyp", "*.cypher"},
 		},
@@ -22,10 +29,5 @@ func (l Cypher) Lexer() chroma.Lexer {
 				"root": {},
 			}
 		},
-	)
-}
-
-// Name returns the name of the lexer.
-func (Cypher) Name() string {
-	return heartbeat.LanguageCypher.StringChroma()
+	))
 }

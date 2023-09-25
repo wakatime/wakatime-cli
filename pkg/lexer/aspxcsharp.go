@@ -4,8 +4,10 @@ import (
 	"regexp"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	"github.com/alecthomas/chroma/v2"
+	"github.com/alecthomas/chroma/v2/lexers"
 )
 
 var (
@@ -13,26 +15,28 @@ var (
 	csharpAspxAnalyzerScriptLanguageRe = regexp.MustCompile(`(?i)script[^>]+language=["\']C#`)
 )
 
-// AspxCSharp lexer.
-type AspxCSharp struct{}
+// nolint:gochecknoinits
+func init() {
+	language := heartbeat.LanguageAspxCSharp.StringChroma()
+	lexer := lexers.Get(language)
 
-// Lexer returns the lexer.
-func (l AspxCSharp) Lexer() chroma.Lexer {
-	lexer := chroma.MustNewLexer(
+	if lexer != nil {
+		log.Debugf("lexer %q already registered", language)
+		return
+	}
+
+	_ = lexers.Register(chroma.MustNewLexer(
 		&chroma.Config{
-			Name:      l.Name(),
+			Name:      language,
 			Aliases:   []string{"aspx-cs"},
 			Filenames: []string{"*.aspx", "*.asax", "*.ascx", "*.ashx", "*.asmx", "*.axd"},
-			MimeTypes: []string{},
 		},
 		func() chroma.Rules {
 			return chroma.Rules{
 				"root": {},
 			}
 		},
-	)
-
-	lexer.SetAnalyser(func(text string) float32 {
+	).SetAnalyser(func(text string) float32 {
 		if csharpAspxAnalyzerPageLanguageRe.MatchString(text) {
 			return 0.2
 		}
@@ -42,12 +46,5 @@ func (l AspxCSharp) Lexer() chroma.Lexer {
 		}
 
 		return 0
-	})
-
-	return lexer
-}
-
-// Name returns the name of the lexer.
-func (AspxCSharp) Name() string {
-	return heartbeat.LanguageAspxCSharp.StringChroma()
+	}))
 }

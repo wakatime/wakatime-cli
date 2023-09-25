@@ -2,18 +2,25 @@ package lexer
 
 import (
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	"github.com/alecthomas/chroma/v2"
+	"github.com/alecthomas/chroma/v2/lexers"
 )
 
-// Rd lexer. Lexer for R documentation (Rd) files.
-type Rd struct{}
+// nolint:gochecknoinits
+func init() {
+	language := heartbeat.LanguageRd.StringChroma()
+	lexer := lexers.Get(language)
 
-// Lexer returns the lexer.
-func (l Rd) Lexer() chroma.Lexer {
-	return chroma.MustNewLexer(
+	if lexer != nil {
+		log.Debugf("lexer %q already registered", language)
+		return
+	}
+
+	_ = lexers.Register(chroma.MustNewLexer(
 		&chroma.Config{
-			Name:      l.Name(),
+			Name:      language,
 			Aliases:   []string{"rd"},
 			Filenames: []string{"*.Rd"},
 			MimeTypes: []string{"text/x-r-doc"},
@@ -23,10 +30,5 @@ func (l Rd) Lexer() chroma.Lexer {
 				"root": {},
 			}
 		},
-	)
-}
-
-// Name returns the name of the lexer.
-func (Rd) Name() string {
-	return heartbeat.LanguageRd.StringChroma()
+	))
 }

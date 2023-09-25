@@ -2,18 +2,25 @@ package lexer
 
 import (
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	"github.com/alecthomas/chroma/v2"
+	"github.com/alecthomas/chroma/v2/lexers"
 )
 
-// ComponentPascal lexer.
-type ComponentPascal struct{}
+// nolint:gochecknoinits
+func init() {
+	language := heartbeat.LanguageComponentPascal.StringChroma()
+	lexer := lexers.Get(language)
 
-// Lexer returns the lexer.
-func (l ComponentPascal) Lexer() chroma.Lexer {
-	return chroma.MustNewLexer(
+	if lexer != nil {
+		log.Debugf("lexer %q already registered", language)
+		return
+	}
+
+	_ = lexers.Register(chroma.MustNewLexer(
 		&chroma.Config{
-			Name:      l.Name(),
+			Name:      language,
 			Aliases:   []string{"componentpascal", "cp"},
 			Filenames: []string{"*.cp", "*.cps"},
 			MimeTypes: []string{"text/x-component-pascal"},
@@ -23,10 +30,5 @@ func (l ComponentPascal) Lexer() chroma.Lexer {
 				"root": {},
 			}
 		},
-	)
-}
-
-// Name returns the name of the lexer.
-func (ComponentPascal) Name() string {
-	return heartbeat.LanguageComponentPascal.StringChroma()
+	))
 }

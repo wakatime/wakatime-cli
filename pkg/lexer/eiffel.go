@@ -2,18 +2,25 @@ package lexer
 
 import (
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	"github.com/alecthomas/chroma/v2"
+	"github.com/alecthomas/chroma/v2/lexers"
 )
 
-// Eiffel lexer.
-type Eiffel struct{}
+// nolint:gochecknoinits
+func init() {
+	language := heartbeat.LanguageEiffel.StringChroma()
+	lexer := lexers.Get(language)
 
-// Lexer returns the lexer.
-func (l Eiffel) Lexer() chroma.Lexer {
-	return chroma.MustNewLexer(
+	if lexer != nil {
+		log.Debugf("lexer %q already registered", language)
+		return
+	}
+
+	_ = lexers.Register(chroma.MustNewLexer(
 		&chroma.Config{
-			Name:      l.Name(),
+			Name:      language,
 			Aliases:   []string{"eiffel"},
 			Filenames: []string{"*.e"},
 			MimeTypes: []string{"text/x-eiffel"},
@@ -23,10 +30,5 @@ func (l Eiffel) Lexer() chroma.Lexer {
 				"root": {},
 			}
 		},
-	)
-}
-
-// Name returns the name of the lexer.
-func (Eiffel) Name() string {
-	return heartbeat.LanguageEiffel.StringChroma()
+	))
 }
