@@ -2,18 +2,25 @@ package lexer
 
 import (
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	"github.com/alecthomas/chroma/v2"
+	"github.com/alecthomas/chroma/v2/lexers"
 )
 
-// Shen lexer. Lexer for Shen <http://shenlanguage.org/> source code.
-type Shen struct{}
+// nolint:gochecknoinits
+func init() {
+	language := heartbeat.LanguageShen.StringChroma()
+	lexer := lexers.Get(language)
 
-// Lexer returns the lexer.
-func (l Shen) Lexer() chroma.Lexer {
-	return chroma.MustNewLexer(
+	if lexer != nil {
+		log.Debugf("lexer %q already registered", language)
+		return
+	}
+
+	_ = lexers.Register(chroma.MustNewLexer(
 		&chroma.Config{
-			Name:      l.Name(),
+			Name:      language,
 			Aliases:   []string{"shen"},
 			Filenames: []string{"*.shen"},
 			MimeTypes: []string{"text/x-shen", "application/x-shen"},
@@ -23,10 +30,5 @@ func (l Shen) Lexer() chroma.Lexer {
 				"root": {},
 			}
 		},
-	)
-}
-
-// Name returns the name of the lexer.
-func (Shen) Name() string {
-	return heartbeat.LanguageShen.StringChroma()
+	))
 }

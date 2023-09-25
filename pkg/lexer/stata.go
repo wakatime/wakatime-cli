@@ -2,23 +2,25 @@ package lexer
 
 import (
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	"github.com/alecthomas/chroma/v2"
+	"github.com/alecthomas/chroma/v2/lexers"
 )
 
-// Stata lexer. For Stata <http://www.stata.com/> do files.
-//
-// Syntax based on
-// - http://fmwww.bc.edu/RePEc/bocode/s/synlightlist.ado
-// - https://github.com/isagalaev/highlight.js/blob/master/src/languages/stata.js
-// - https://github.com/jpitblado/vim-stata/blob/master/syntax/stata.vim
-type Stata struct{}
+// nolint:gochecknoinits
+func init() {
+	language := heartbeat.LanguageStata.StringChroma()
+	lexer := lexers.Get(language)
 
-// Lexer returns the lexer.
-func (l Stata) Lexer() chroma.Lexer {
-	return chroma.MustNewLexer(
+	if lexer != nil {
+		log.Debugf("lexer %q already registered", language)
+		return
+	}
+
+	_ = lexers.Register(chroma.MustNewLexer(
 		&chroma.Config{
-			Name:      l.Name(),
+			Name:      language,
 			Aliases:   []string{"stata", "do"},
 			Filenames: []string{"*.do", "*.ado"},
 			MimeTypes: []string{"text/x-stata", "text/stata", "application/x-stata"},
@@ -28,10 +30,5 @@ func (l Stata) Lexer() chroma.Lexer {
 				"root": {},
 			}
 		},
-	)
-}
-
-// Name returns the name of the lexer.
-func (Stata) Name() string {
-	return heartbeat.LanguageStata.StringChroma()
+	))
 }

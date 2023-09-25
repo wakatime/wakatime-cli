@@ -4,31 +4,22 @@ import (
 	"strings"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/log"
 
-	"github.com/alecthomas/chroma/v2"
 	"github.com/alecthomas/chroma/v2/lexers"
 )
 
-// Brainfuck lexer.
-type Brainfuck struct{}
+// nolint:gochecknoinits
+func init() {
+	language := heartbeat.LanguageBrainfuck.StringChroma()
+	lexer := lexers.Get(language)
 
-// Lexer returns the lexer.
-func (l Brainfuck) Lexer() chroma.Lexer {
-	lexer := lexers.Get(l.Name())
 	if lexer == nil {
-		return nil
+		log.Debugf("lexer %q not found", language)
+		return
 	}
 
-	var (
-		ok       bool
-		rgxlexer *chroma.RegexLexer
-	)
-
-	if rgxlexer, ok = lexer.(*chroma.RegexLexer); !ok {
-		return nil
-	}
-
-	rgxlexer.SetAnalyser(func(text string) float32 {
+	lexer.SetAnalyser(func(text string) float32 {
 		// it's safe to assume that a program which mostly consists of + -
 		// and < > is brainfuck.
 		var plusMinusCount float64
@@ -63,11 +54,4 @@ func (l Brainfuck) Lexer() chroma.Lexer {
 
 		return 0
 	})
-
-	return rgxlexer
-}
-
-// Name returns the name of the lexer.
-func (Brainfuck) Name() string {
-	return heartbeat.LanguageBrainfuck.StringChroma()
 }

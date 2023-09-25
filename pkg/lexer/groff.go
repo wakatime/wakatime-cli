@@ -5,34 +5,25 @@ import (
 	"unicode"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/log"
 
-	"github.com/alecthomas/chroma/v2"
 	"github.com/alecthomas/chroma/v2/lexers"
 )
 
 // nolint:gochecknoglobals
 var groffAlphanumericRe = regexp.MustCompile(`^[a-zA-Z0-9]+$`)
 
-// Groff lexer.
-type Groff struct{}
+// nolint:gochecknoinits
+func init() {
+	language := heartbeat.LanguageGroff.StringChroma()
+	lexer := lexers.Get(language)
 
-// Lexer returns the lexer.
-func (l Groff) Lexer() chroma.Lexer {
-	lexer := lexers.Get(l.Name())
 	if lexer == nil {
-		return nil
+		log.Debugf("lexer %q not found", language)
+		return
 	}
 
-	var (
-		ok       bool
-		rgxlexer *chroma.RegexLexer
-	)
-
-	if rgxlexer, ok = lexer.(*chroma.RegexLexer); !ok {
-		return nil
-	}
-
-	rgxlexer.SetAnalyser(func(text string) float32 {
+	lexer.SetAnalyser(func(text string) float32 {
 		if len(text) <= 1 {
 			return 0
 		}
@@ -63,11 +54,4 @@ func (l Groff) Lexer() chroma.Lexer {
 
 		return 0
 	})
-
-	return rgxlexer
-}
-
-// Name returns the name of the lexer.
-func (Groff) Name() string {
-	return heartbeat.LanguageGroff.StringChroma()
 }

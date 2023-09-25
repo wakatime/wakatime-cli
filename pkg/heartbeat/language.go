@@ -503,10 +503,10 @@ const (
 	LanguageFoxPro
 	// LanguageFreefem represents the Freefem programming language.
 	LanguageFreefem
-	// LangauageFreeMarker represents the FreeMarker programming language.
-	LangauageFreeMarker
-	// LangauageFrege represents the Frege programming language.
-	LangauageFrege
+	// LanguageFreeMarker represents the FreeMarker programming language.
+	LanguageFreeMarker
+	// LanguageFrege represents the Frege programming language.
+	LanguageFrege
 	// LanguageFStar represents the F* programming language.
 	LanguageFStar
 	// LanguageFuthark represents the Futhark programming language.
@@ -531,6 +531,8 @@ const (
 	LanguageGDNative
 	// LanguageGDScript represents the GDScript programming language.
 	LanguageGDScript
+	// LanguageGDScript3 represents the GDScript3 programming language.
+	LanguageGDScript3
 	// LanguageGEDCOM represents the GEDCOM programming language.
 	LanguageGEDCOM
 	// LanguageGenie represents the Genie programming language.
@@ -573,6 +575,8 @@ const (
 	LanguageGoHTMLTemplate
 	// LanguageGoTextTemplate represents the Go Text Template programming language.
 	LanguageGoTextTemplate
+	// LanguageGoTemplate represents the Go Template programming language.
+	LanguageGoTemplate
 	// LanguageGolo represents the Golo programming language.
 	LanguageGolo
 	// LanguageGoodDataCL represents the GoodData-CL programming language.
@@ -1816,8 +1820,8 @@ const (
 	languageFSharpStr                      = "F#"
 	languageFoxProStr                      = "FoxPro"
 	languageFreefemStr                     = "Freefem"
-	langauageFreeMarkerStr                 = "FreeMarker"
-	langauageFregeStr                      = "Frege"
+	languageFreeMarkerStr                  = "FreeMarker"
+	languageFregeStr                       = "Frege"
 	languageFutharkStr                     = "Futhark"
 	languageFStarStr                       = "F*"
 	languageFStarLiteralStr                = "FStar"
@@ -1831,6 +1835,7 @@ const (
 	languageGDBStr                         = "GDB"
 	languageGDNativeStr                    = "GDNative"
 	languageGDScriptStr                    = "GDScript"
+	languageGDScript3Str                   = "GDScript3"
 	languageGEDCOMStr                      = "GEDCOM"
 	languageGenieStr                       = "Genie"
 	languageGenshiStr                      = "Genshi"
@@ -2365,6 +2370,7 @@ const (
 	languageFSharpChromaStr             = "FSharp"
 	languageEmacsLispChromaStr          = "EmacsLisp"
 	languageGoHTMLTemplateChromaStr     = "Go HTML Template"
+	languageGoTemplateChromaStr         = "Go Template"
 	languageGoTextTemplateChromaStr     = "Go Text Template"
 	languageHxmlChromaStr               = "Hxml"
 	languageISCdhcpdChromaStr           = "ISCdhcpd"
@@ -2901,10 +2907,10 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageFoxPro, true
 	case normalizeString(languageFreefemStr):
 		return LanguageFreefem, true
-	case normalizeString(langauageFreeMarkerStr):
-		return LangauageFreeMarker, true
-	case normalizeString(langauageFregeStr):
-		return LangauageFrege, true
+	case normalizeString(languageFreeMarkerStr):
+		return LanguageFreeMarker, true
+	case normalizeString(languageFregeStr):
+		return LanguageFrege, true
 	case normalizeString(languageFutharkStr):
 		return LanguageFuthark, true
 	case normalizeString(languageFStarStr):
@@ -2931,6 +2937,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageGDNative, true
 	case normalizeString(languageGDScriptStr):
 		return LanguageGDScript, true
+	case normalizeString(languageGDScript3Str):
+		return LanguageGDScript3, true
 	case normalizeString(languageGEDCOMStr):
 		return LanguageGEDCOM, true
 	case normalizeString(languageGenieStr):
@@ -3999,9 +4007,9 @@ func ParseLanguageFromChroma(lexerName string) (Language, bool) {
 		return LanguageDNSZone, true
 	case normalizeString(languageEmacsLispChromaStr):
 		return LanguageEmacsLisp, true
-	case normalizeString(languageGoHTMLTemplateChromaStr):
-		return LanguageGo, true
-	case normalizeString(languageGoTextTemplateChromaStr):
+	case normalizeString(languageGoHTMLTemplateChromaStr),
+		normalizeString(languageGoTextTemplateChromaStr),
+		normalizeString(languageGoTemplateChromaStr):
 		return LanguageGo, true
 	case normalizeString(languageFSharpChromaStr):
 		return LanguageFSharp, true
@@ -4587,10 +4595,10 @@ func (l Language) String() string {
 		return languageFoxProStr
 	case LanguageFreefem:
 		return languageFreefemStr
-	case LangauageFreeMarker:
-		return langauageFreeMarkerStr
-	case LangauageFrege:
-		return langauageFregeStr
+	case LanguageFreeMarker:
+		return languageFreeMarkerStr
+	case LanguageFrege:
+		return languageFregeStr
 	case LanguageFuthark:
 		return languageFutharkStr
 	case LanguageFStar:
@@ -4613,6 +4621,8 @@ func (l Language) String() string {
 		return languageGDBStr
 	case LanguageGDScript:
 		return languageGDScriptStr
+	case LanguageGDScript3:
+		return languageGDScript3Str
 	case LanguageGEDCOM:
 		return languageGEDCOMStr
 	case LanguageGenie:
@@ -4651,7 +4661,7 @@ func (l Language) String() string {
 		return languageGNStr
 	case LanguageGnuplot:
 		return languageGnuplotStr
-	case LanguageGo, LanguageGoHTMLTemplate, LanguageGoTextTemplate:
+	case LanguageGo, LanguageGoTemplate, LanguageGoHTMLTemplate, LanguageGoTextTemplate:
 		return languageGoStr
 	case LanguageGolo:
 		return languageGoloStr

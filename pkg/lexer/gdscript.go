@@ -5,8 +5,8 @@ import (
 	"regexp"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/log"
 
-	"github.com/alecthomas/chroma/v2"
 	"github.com/alecthomas/chroma/v2/lexers"
 )
 
@@ -16,42 +16,31 @@ var (
 	gdscriptAnalyserKeyword2Re = regexp.MustCompile(`(var|const|enum|export|signal|tool)`)
 )
 
-// GDScript lexer.
-type GDScript struct{}
+// nolint:gochecknoinits
+func init() {
+	language := heartbeat.LanguageGDScript.StringChroma()
+	lexer := lexers.Get(language)
 
-// Lexer returns the lexer.
-func (l GDScript) Lexer() chroma.Lexer {
-	lexer := lexers.Get(l.Name())
 	if lexer == nil {
-		return nil
+		log.Debugf("lexer %q not found", language)
+		return
 	}
 
-	if lexer, ok := lexer.(*chroma.RegexLexer); ok {
-		lexer.SetAnalyser(func(text string) float32 {
-			var result float64
+	lexer.SetAnalyser(func(text string) float32 {
+		var result float64
 
-			if gdscriptAnalyserFuncRe.MatchString(text) {
-				result += 0.8
-			}
+		if gdscriptAnalyserFuncRe.MatchString(text) {
+			result += 0.8
+		}
 
-			if gdscriptAnalyserKeywordRe.MatchString(text) {
-				result += 0.4
-			}
+		if gdscriptAnalyserKeywordRe.MatchString(text) {
+			result += 0.4
+		}
 
-			if gdscriptAnalyserKeyword2Re.MatchString(text) {
-				result += 0.2
-			}
+		if gdscriptAnalyserKeyword2Re.MatchString(text) {
+			result += 0.2
+		}
 
-			return float32(math.Min(result, float64(1.0)))
-		})
-
-		return lexer
-	}
-
-	return nil
-}
-
-// Name returns the name of the lexer.
-func (GDScript) Name() string {
-	return heartbeat.LanguageGDScript.StringChroma()
+		return float32(math.Min(result, float64(1.0)))
+	})
 }

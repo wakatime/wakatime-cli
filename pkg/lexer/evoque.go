@@ -4,18 +4,25 @@ import (
 	"strings"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	"github.com/alecthomas/chroma/v2"
+	"github.com/alecthomas/chroma/v2/lexers"
 )
 
-// Evoque lexer.
-type Evoque struct{}
+// nolint:gochecknoinits
+func init() {
+	language := heartbeat.LanguageEvoque.StringChroma()
+	lexer := lexers.Get(language)
 
-// Lexer returns the lexer.
-func (l Evoque) Lexer() chroma.Lexer {
-	lexer := chroma.MustNewLexer(
+	if lexer != nil {
+		log.Debugf("lexer %q already registered", language)
+		return
+	}
+
+	_ = lexers.Register(chroma.MustNewLexer(
 		&chroma.Config{
-			Name:      l.Name(),
+			Name:      language,
 			Aliases:   []string{"evoque"},
 			Filenames: []string{"*.evoque"},
 			MimeTypes: []string{"application/x-evoque"},
@@ -25,21 +32,12 @@ func (l Evoque) Lexer() chroma.Lexer {
 				"root": {},
 			}
 		},
-	)
-
-	lexer.SetAnalyser(func(text string) float32 {
+	).SetAnalyser(func(text string) float32 {
 		// Evoque templates use $evoque, which is unique.
 		if strings.Contains(text, "$evoque") {
 			return 1.0
 		}
 
 		return 0
-	})
-
-	return lexer
-}
-
-// Name returns the name of the lexer.
-func (Evoque) Name() string {
-	return heartbeat.LanguageEvoque.StringChroma()
+	}))
 }

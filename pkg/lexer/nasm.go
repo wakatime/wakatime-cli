@@ -3,41 +3,30 @@ package lexer
 import (
 	"regexp"
 
-	"github.com/alecthomas/chroma/v2"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	"github.com/alecthomas/chroma/v2/lexers"
 )
 
 var nasmAnalyzerRe = regexp.MustCompile(`(?i)PROC`)
 
-// NASM lexer.
-type NASM struct{}
+// nolint:gochecknoinits
+func init() {
+	language := heartbeat.LanguageNASM.StringChroma()
+	lexer := lexers.Get(language)
 
-// Lexer returns the lexer.
-func (l NASM) Lexer() chroma.Lexer {
-	lexer := lexers.Get(l.Name())
 	if lexer == nil {
-		return nil
+		log.Debugf("lexer %q not found", language)
+		return
 	}
 
-	if lexer, ok := lexer.(*chroma.RegexLexer); ok {
-		lexer.SetAnalyser(func(text string) float32 {
-			// Probably TASM
-			if nasmAnalyzerRe.MatchString(text) {
-				return 0
-			}
-
+	lexer.SetAnalyser(func(text string) float32 {
+		// Probably TASM
+		if nasmAnalyzerRe.MatchString(text) {
 			return 0
-		})
+		}
 
-		return lexer
-	}
-
-	return nil
-}
-
-// Name returns the name of the lexer.
-func (NASM) Name() string {
-	return heartbeat.LanguageNASM.StringChroma()
+		return 0
+	})
 }
