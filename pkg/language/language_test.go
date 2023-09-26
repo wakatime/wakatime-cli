@@ -690,6 +690,7 @@ func TestDetect_ChromaTopLanguagesRetrofit(t *testing.T) {
 		},
 		"ruby": {
 			Filepaths: []string{
+				"path/to/.ruby-version",
 				"path/to/file.rb",
 				"path/to/file.rbw",
 				"path/to/Rakefile",
