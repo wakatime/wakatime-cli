@@ -46,7 +46,7 @@ projects/foo = new project name
 
 [project_api_key]
 projects/foo = your-api-key
-^/home/user/projects/bar(\d+)/ = your-api-key
+^/home/user/projects/bar(\d+)/ = waka_0de0750f-05bc-452b-b7e7-baabceb377df
 
 [git]
 submodules_disabled = false
