@@ -3,11 +3,14 @@ package project_test
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"runtime"
 	"testing"
 
+	"github.com/wakatime/wakatime-cli/pkg/git"
+	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/project"
 	"github.com/wakatime/wakatime-cli/pkg/regex"
 	"github.com/wakatime/wakatime-cli/pkg/windows"
@@ -18,36 +21,56 @@ import (
 )
 
 func TestGit_Detect(t *testing.T) {
-	fp := setupTestGitBasic(t)
+	dir := setupTestGitBasic(t)
+	fp := filepath.Join(dir, "wakatime-cli/src/pkg/file.go")
+
+	gc := git.New(fp)
+	gc.GitCmd = func(args ...string) (string, error) {
+		assert.Equal(t, args, []string{"-C", filepath.Dir(fp), "diff", "--numstat", fp})
+
+		return "12       5       pkg/file.go", nil
+	}
 
 	g := project.Git{
-		Filepath: filepath.Join(fp, "wakatime-cli/src/pkg/file.go"),
+		CountLinesChanged: true,
+		Filepath:          filepath.Join(fp, "wakatime-cli/src/pkg/file.go"),
+		GitClient:         gc,
 	}
 
 	result, detected, err := g.Detect()
 	require.NoError(t, err)
 
 	assert.True(t, detected)
-	assert.Contains(t, result.Folder, filepath.Join(fp, "wakatime-cli"))
+	assert.Contains(t, result.Folder, filepath.Join(dir, "wakatime-cli"))
 	assert.Equal(t, project.Result{
-		Project: "wakatime-cli",
-		Branch:  "master",
-		Folder:  result.Folder,
+		Project:      "wakatime-cli",
+		Branch:       "master",
+		Folder:       result.Folder,
+		LinesAdded:   heartbeat.PointerTo(12),
+		LinesRemoved: heartbeat.PointerTo(5),
 	}, result)
 }
 
 func TestGit_Detect_BranchWithSlash(t *testing.T) {
-	fp := setupTestGitBasicBranchWithSlash(t)
+	dir := setupTestGitBasicBranchWithSlash(t)
+
+	fp := filepath.Join(dir, "wakatime-cli/src/pkg/file.go")
+
+	gc := git.New(fp)
+	gc.GitCmd = func(args ...string) (string, error) {
+		return "", nil
+	}
 
 	g := project.Git{
-		Filepath: filepath.Join(fp, "wakatime-cli/src/pkg/file.go"),
+		Filepath:  fp,
+		GitClient: gc,
 	}
 
 	result, detected, err := g.Detect()
 	require.NoError(t, err)
 
 	assert.True(t, detected)
-	assert.Contains(t, result.Folder, filepath.Join(fp, "wakatime-cli"))
+	assert.Contains(t, result.Folder, filepath.Join(dir, "wakatime-cli"))
 	assert.Equal(t, project.Result{
 		Project: "wakatime-cli",
 		Branch:  "feature/detection",
@@ -56,17 +79,25 @@ func TestGit_Detect_BranchWithSlash(t *testing.T) {
 }
 
 func TestGit_Detect_DetachedHead(t *testing.T) {
-	fp := setupTestGitBasicDetachedHead(t)
+	dir := setupTestGitBasicDetachedHead(t)
+
+	fp := filepath.Join(dir, "wakatime-cli/src/pkg/file.go")
+
+	gc := git.New(fp)
+	gc.GitCmd = func(args ...string) (string, error) {
+		return "", nil
+	}
 
 	g := project.Git{
-		Filepath: filepath.Join(fp, "wakatime-cli/src/pkg/file.go"),
+		Filepath:  fp,
+		GitClient: gc,
 	}
 
 	result, detected, err := g.Detect()
 	require.NoError(t, err)
 
 	assert.True(t, detected)
-	assert.Contains(t, result.Folder, filepath.Join(fp, "wakatime-cli"))
+	assert.Contains(t, result.Folder, filepath.Join(dir, "wakatime-cli"))
 	assert.Equal(t, project.Result{
 		Project: "wakatime-cli",
 		Branch:  "",
@@ -75,37 +106,43 @@ func TestGit_Detect_DetachedHead(t *testing.T) {
 }
 
 func TestGit_Detect_GitConfigFile_File(t *testing.T) {
-	fp := setupTestGitFile(t)
+	dir := setupTestGitFile(t)
 
 	tests := map[string]struct {
 		Filepath string
 		Project  string
 	}{
 		"main repo": {
-			Filepath: filepath.Join(fp, "wakatime-cli/src/pkg/file.go"),
+			Filepath: filepath.Join(dir, "wakatime-cli/src/pkg/file.go"),
 			Project:  "wakatime-cli",
 		},
 		"relative path": {
-			Filepath: filepath.Join(fp, "feed/src/pkg/file.go"),
+			Filepath: filepath.Join(dir, "feed/src/pkg/file.go"),
 			Project:  "feed",
 		},
 		"absolute path": {
-			Filepath: filepath.Join(fp, "mobile/src/pkg/file.go"),
+			Filepath: filepath.Join(dir, "mobile/src/pkg/file.go"),
 			Project:  "mobile",
 		},
 	}
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
+			gc := git.New(test.Filepath)
+			gc.GitCmd = func(args ...string) (string, error) {
+				return "", nil
+			}
+
 			g := project.Git{
-				Filepath: test.Filepath,
+				Filepath:  test.Filepath,
+				GitClient: gc,
 			}
 
 			result, detected, err := g.Detect()
 			require.NoError(t, err)
 
 			assert.True(t, detected)
-			assert.Contains(t, result.Folder, filepath.Join(fp, "wakatime-cli"))
+			assert.Contains(t, result.Folder, filepath.Join(dir, "wakatime-cli"))
 			assert.Equal(t, project.Result{
 				Project: test.Project,
 				Branch:  "feature/list-elements",
@@ -116,17 +153,25 @@ func TestGit_Detect_GitConfigFile_File(t *testing.T) {
 }
 
 func TestGit_Detect_Worktree(t *testing.T) {
-	fp := setupTestGitWorktree(t)
+	dir := setupTestGitWorktree(t)
+
+	fp := filepath.Join(dir, "api/src/pkg/file.go")
+
+	gc := git.New(fp)
+	gc.GitCmd = func(args ...string) (string, error) {
+		return "", nil
+	}
 
 	g := project.Git{
-		Filepath: filepath.Join(fp, "api/src/pkg/file.go"),
+		Filepath:  fp,
+		GitClient: gc,
 	}
 
 	result, detected, err := g.Detect()
 	require.NoError(t, err)
 
 	assert.True(t, detected)
-	assert.Contains(t, result.Folder, filepath.Join(fp, "wakatime-cli"))
+	assert.Contains(t, result.Folder, filepath.Join(dir, "wakatime-cli"))
 	assert.Equal(t, project.Result{
 		Project: "wakatime-cli",
 		Branch:  "feature/api",
@@ -135,10 +180,18 @@ func TestGit_Detect_Worktree(t *testing.T) {
 }
 
 func TestGit_Detect_WorktreeGitRemote(t *testing.T) {
-	fp := setupTestGitWorktree(t)
+	dir := setupTestGitWorktree(t)
+
+	fp := filepath.Join(dir, "api/src/pkg/file.go")
+
+	gc := git.New(fp)
+	gc.GitCmd = func(args ...string) (string, error) {
+		return "", nil
+	}
 
 	g := project.Git{
-		Filepath:             filepath.Join(fp, "api/src/pkg/file.go"),
+		Filepath:             fp,
+		GitClient:            gc,
 		ProjectFromGitRemote: true,
 	}
 
@@ -146,7 +199,7 @@ func TestGit_Detect_WorktreeGitRemote(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.True(t, detected)
-	assert.Contains(t, result.Folder, filepath.Join(fp, "wakatime-cli"))
+	assert.Contains(t, result.Folder, filepath.Join(dir, "wakatime-cli"))
 	assert.Equal(t, project.Result{
 		Project: "wakatime/wakatime-cli",
 		Branch:  "feature/api",
@@ -155,10 +208,18 @@ func TestGit_Detect_WorktreeGitRemote(t *testing.T) {
 }
 
 func TestGit_Detect_Submodule(t *testing.T) {
-	fp := setupTestGitSubmodule(t)
+	dir := setupTestGitSubmodule(t)
+
+	fp := filepath.Join(dir, "wakatime-cli/lib/billing/src/lib/lib.cpp")
+
+	gc := git.New(fp)
+	gc.GitCmd = func(args ...string) (string, error) {
+		return "", nil
+	}
 
 	g := project.Git{
-		Filepath:                  filepath.Join(fp, "wakatime-cli/lib/billing/src/lib/lib.cpp"),
+		Filepath:                  fp,
+		GitClient:                 gc,
 		SubmoduleDisabledPatterns: []regex.Regex{regexp.MustCompile("not_matching")},
 	}
 
@@ -166,7 +227,7 @@ func TestGit_Detect_Submodule(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.True(t, detected)
-	assert.Contains(t, result.Folder, filepath.Join(fp, "wakatime-cli"))
+	assert.Contains(t, result.Folder, filepath.Join(dir, "wakatime-cli"))
 	assert.Equal(t, project.Result{
 		Project: "billing",
 		Branch:  "master",
@@ -175,10 +236,18 @@ func TestGit_Detect_Submodule(t *testing.T) {
 }
 
 func TestGit_Detect_SubmoduleDisabled(t *testing.T) {
-	fp := setupTestGitSubmodule(t)
+	dir := setupTestGitSubmodule(t)
+
+	fp := filepath.Join(dir, "wakatime-cli/lib/billing/src/lib/lib.cpp")
+
+	gc := git.New(fp)
+	gc.GitCmd = func(args ...string) (string, error) {
+		return "", nil
+	}
 
 	g := project.Git{
-		Filepath:                  filepath.Join(fp, "wakatime-cli/lib/billing/src/lib/lib.cpp"),
+		Filepath:                  fp,
+		GitClient:                 gc,
 		SubmoduleDisabledPatterns: []regex.Regex{regexp.MustCompile(".*billing.*")},
 	}
 
@@ -186,7 +255,7 @@ func TestGit_Detect_SubmoduleDisabled(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.True(t, detected)
-	assert.Contains(t, result.Folder, filepath.Join(fp, "wakatime-cli"))
+	assert.Contains(t, result.Folder, filepath.Join(dir, "wakatime-cli"))
 	assert.Equal(t, project.Result{
 		Project: "wakatime-cli",
 		Branch:  "feature/billing",
@@ -195,10 +264,18 @@ func TestGit_Detect_SubmoduleDisabled(t *testing.T) {
 }
 
 func TestGit_Detect_SubmoduleProjectMap_NotMatch(t *testing.T) {
-	fp := setupTestGitSubmodule(t)
+	dir := setupTestGitSubmodule(t)
+
+	fp := filepath.Join(dir, "wakatime-cli/lib/billing/src/lib/lib.cpp")
+
+	gc := git.New(fp)
+	gc.GitCmd = func(args ...string) (string, error) {
+		return "", nil
+	}
 
 	g := project.Git{
-		Filepath: filepath.Join(fp, "wakatime-cli/lib/billing/src/lib/lib.cpp"),
+		Filepath:  fp,
+		GitClient: gc,
 		SubmoduleProjectMapPatterns: []project.MapPattern{
 			{
 				Name:  "my-project-1",
@@ -211,7 +288,7 @@ func TestGit_Detect_SubmoduleProjectMap_NotMatch(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.True(t, detected)
-	assert.Contains(t, result.Folder, filepath.Join(fp, "wakatime-cli"))
+	assert.Contains(t, result.Folder, filepath.Join(dir, "wakatime-cli"))
 	assert.Equal(t, project.Result{
 		Project: "billing",
 		Branch:  "master",
@@ -220,10 +297,18 @@ func TestGit_Detect_SubmoduleProjectMap_NotMatch(t *testing.T) {
 }
 
 func TestGit_Detect_SubmoduleProjectMap(t *testing.T) {
-	fp := setupTestGitSubmodule(t)
+	dir := setupTestGitSubmodule(t)
+
+	fp := filepath.Join(dir, "wakatime-cli/lib/billing/src/lib/lib.cpp")
+
+	gc := git.New(fp)
+	gc.GitCmd = func(args ...string) (string, error) {
+		return "", nil
+	}
 
 	g := project.Git{
-		Filepath: filepath.Join(fp, "wakatime-cli/lib/billing/src/lib/lib.cpp"),
+		Filepath:  fp,
+		GitClient: gc,
 		SubmoduleProjectMapPatterns: []project.MapPattern{
 			{
 				Name:  "my-project-1",
@@ -236,7 +321,7 @@ func TestGit_Detect_SubmoduleProjectMap(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.True(t, detected)
-	assert.Contains(t, result.Folder, filepath.Join(fp, "wakatime-cli"))
+	assert.Contains(t, result.Folder, filepath.Join(dir, "wakatime-cli"))
 	assert.Equal(t, project.Result{
 		Project: "my-project-1",
 		Branch:  "master",
@@ -245,10 +330,18 @@ func TestGit_Detect_SubmoduleProjectMap(t *testing.T) {
 }
 
 func TestGit_Detect_SubmoduleGitRemote(t *testing.T) {
-	fp := setupTestGitSubmodule(t)
+	dir := setupTestGitSubmodule(t)
+
+	fp := filepath.Join(dir, "wakatime-cli/lib/billing/src/lib/lib.cpp")
+
+	gc := git.New(fp)
+	gc.GitCmd = func(args ...string) (string, error) {
+		return "", nil
+	}
 
 	g := project.Git{
-		Filepath:                  filepath.Join(fp, "wakatime-cli/lib/billing/src/lib/lib.cpp"),
+		Filepath:                  fp,
+		GitClient:                 gc,
 		ProjectFromGitRemote:      true,
 		SubmoduleDisabledPatterns: []regex.Regex{regexp.MustCompile("not_matching")},
 	}
@@ -257,7 +350,7 @@ func TestGit_Detect_SubmoduleGitRemote(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.True(t, detected)
-	assert.Contains(t, result.Folder, filepath.Join(fp, "wakatime-cli"))
+	assert.Contains(t, result.Folder, filepath.Join(dir, "wakatime-cli"))
 	assert.Equal(t, project.Result{
 		Project: "wakatime/billing",
 		Branch:  "master",
@@ -265,7 +358,29 @@ func TestGit_Detect_SubmoduleGitRemote(t *testing.T) {
 	}, result)
 }
 
-func setupTestGitBasic(t *testing.T) (fp string) {
+func setupTestGitReal(t *testing.T) string {
+	tmpDir := t.TempDir()
+
+	tmpDir, err := realpath.Realpath(tmpDir)
+	require.NoError(t, err)
+
+	if runtime.GOOS == "windows" {
+		tmpDir = windows.FormatFilePath(tmpDir)
+	}
+
+	err = os.MkdirAll(filepath.Join(tmpDir, "wakatime-cli/src/pkg"), os.FileMode(int(0700)))
+	require.NoError(t, err)
+
+	copyFile(t, "testdata/git_real/file.go", filepath.Join(tmpDir, "wakatime-cli/src/pkg/file.go"))
+
+	// setup a real git repo
+	err = exec.Command("git", "-C", filepath.Join(tmpDir, "wakatime-cli"), "init", "-b", "master").Run()
+	require.NoError(t, err)
+
+	return tmpDir
+}
+
+func setupTestGitBasic(t *testing.T) string {
 	tmpDir := t.TempDir()
 
 	tmpDir, err := realpath.Realpath(tmpDir)
@@ -292,7 +407,7 @@ func setupTestGitBasic(t *testing.T) (fp string) {
 	return tmpDir
 }
 
-func setupTestGitBasicBranchWithSlash(t *testing.T) (fp string) {
+func setupTestGitBasicBranchWithSlash(t *testing.T) string {
 	tmpDir := t.TempDir()
 
 	tmpDir, err := realpath.Realpath(tmpDir)
@@ -319,7 +434,7 @@ func setupTestGitBasicBranchWithSlash(t *testing.T) (fp string) {
 	return tmpDir
 }
 
-func setupTestGitBasicDetachedHead(t *testing.T) (fp string) {
+func setupTestGitBasicDetachedHead(t *testing.T) string {
 	tmpDir := t.TempDir()
 
 	tmpDir, err := realpath.Realpath(tmpDir)
@@ -346,7 +461,7 @@ func setupTestGitBasicDetachedHead(t *testing.T) (fp string) {
 	return tmpDir
 }
 
-func setupTestGitFile(t *testing.T) (fp string) {
+func setupTestGitFile(t *testing.T) string {
 	tmpDir := t.TempDir()
 
 	tmpDir, err := realpath.Realpath(tmpDir)
@@ -406,7 +521,7 @@ func setupTestGitFile(t *testing.T) (fp string) {
 	return tmpDir
 }
 
-func setupTestGitWorktree(t *testing.T) (fp string) {
+func setupTestGitWorktree(t *testing.T) string {
 	tmpDir := t.TempDir()
 
 	tmpDir, err := realpath.Realpath(tmpDir)
@@ -456,7 +571,7 @@ func setupTestGitWorktree(t *testing.T) (fp string) {
 	return tmpDir
 }
 
-func setupTestGitSubmodule(t *testing.T) (fp string) {
+func setupTestGitSubmodule(t *testing.T) string {
 	tmpDir := t.TempDir()
 
 	tmpDir, err := realpath.Realpath(tmpDir)

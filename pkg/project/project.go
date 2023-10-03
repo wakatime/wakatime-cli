@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/wakatime/wakatime-cli/pkg/git"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/regex"
@@ -97,13 +98,17 @@ type (
 
 	// Result contains the result of Detect().
 	Result struct {
-		Project string
-		Branch  string
-		Folder  string
+		Branch       string
+		Folder       string
+		LinesAdded   *int
+		LinesRemoved *int
+		Project      string
 	}
 
 	// Config contains project detection configurations.
 	Config struct {
+		// CountLinesChanged when enabled counts the lines added and removed.
+		CountLinesChanged bool
 		// HideProjectNames determines if the project name should be obfuscated by matching its path.
 		HideProjectNames []regex.Regex
 		// Patterns contains the overridden project name per path.
@@ -161,9 +166,10 @@ func WithDetection(config Config) heartbeat.HandleOption {
 				// across all IDEs instead of sometimes using alternate project when file is unsaved
 				if result.Project == "" || result.Branch == "" || result.Folder == "" {
 					revControlResult := DetectWithRevControl(
+						config.CountLinesChanged,
+						config.ProjectFromGitRemote,
 						config.Submodule.DisabledPatterns,
 						config.Submodule.MapPatterns,
-						config.ProjectFromGitRemote,
 						DetecterArg{Filepath: h.Entity, ShouldRun: h.EntityType == heartbeat.FileType},
 						DetecterArg{Filepath: h.ProjectPathOverride, ShouldRun: true},
 					)
@@ -171,6 +177,8 @@ func WithDetection(config Config) heartbeat.HandleOption {
 					result.Project = firstNonEmptyString(result.Project, revControlResult.Project)
 					result.Branch = firstNonEmptyString(result.Branch, revControlResult.Branch)
 					result.Folder = firstNonEmptyString(result.Folder, revControlResult.Folder)
+					result.LinesAdded = revControlResult.LinesAdded
+					result.LinesRemoved = revControlResult.LinesRemoved
 				}
 
 				// fourth, use alternate project
@@ -215,6 +223,8 @@ func WithDetection(config Config) heartbeat.HandleOption {
 				hh[n].Project = &result.Project
 				hh[n].Branch = &result.Branch
 				hh[n].ProjectPath = result.Folder
+				hh[n].LinesAdded = result.LinesAdded
+				hh[n].LinesRemoved = result.LinesRemoved
 			}
 
 			return next(hh)
@@ -259,9 +269,10 @@ func Detect(patterns []MapPattern, args ...DetecterArg) (Result, DetectorID) {
 
 // DetectWithRevControl finds the current project and branch from rev control.
 func DetectWithRevControl(
+	countLinesChanged bool,
+	projectFromGitRemote bool,
 	submoduleDisabledPatterns []regex.Regex,
 	submoduleProjectMapPatterns []MapPattern,
-	projectFromGitRemote bool,
 	args ...DetecterArg) Result {
 	for _, arg := range args {
 		if !arg.ShouldRun || arg.Filepath == "" {
@@ -270,7 +281,9 @@ func DetectWithRevControl(
 
 		var revControlPlugins = []Detecter{
 			Git{
+				CountLinesChanged:           countLinesChanged,
 				Filepath:                    arg.Filepath,
+				GitClient:                   git.New(arg.Filepath),
 				ProjectFromGitRemote:        projectFromGitRemote,
 				SubmoduleDisabledPatterns:   submoduleDisabledPatterns,
 				SubmoduleProjectMapPatterns: submoduleProjectMapPatterns,
@@ -297,9 +310,11 @@ func DetectWithRevControl(
 
 			if detected {
 				return Result{
-					Project: result.Project,
-					Branch:  result.Branch,
-					Folder:  result.Folder,
+					Project:      result.Project,
+					Branch:       result.Branch,
+					Folder:       result.Folder,
+					LinesAdded:   result.LinesAdded,
+					LinesRemoved: result.LinesRemoved,
 				}
 			}
 		}

@@ -33,6 +33,8 @@ type Heartbeat struct {
 	LanguageAlternate     string     `json:"-"`
 	LineNumber            *int       `json:"lineno,omitempty"`
 	Lines                 *int       `json:"lines,omitempty"`
+	LinesAdded            *int       `json:"lines_added,omitempty"`
+	LinesRemoved          *int       `json:"lines_removed,omitempty"`
 	LocalFile             string     `json:"-"`
 	LocalFileNeedsCleanup bool       `json:"-"`
 	Project               *string    `json:"project,omitempty"`

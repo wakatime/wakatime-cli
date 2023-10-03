@@ -5,14 +5,19 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/wakatime/wakatime-cli/pkg/git"
 	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/regex"
 )
 
 // Git contains git data.
 type Git struct {
+	// CountLinesChanged when enabled will count lines added and removed.
+	CountLinesChanged bool
 	// Filepath contains the entity path.
 	Filepath string
+	// git contains the git client.
+	GitClient git.Git
 	// ProjectFromGitRemote when enabled uses the git remote as the project name instead of local git folder.
 	ProjectFromGitRemote bool
 	// SubmoduleDisabledPatterns will be matched against the submodule path and if matching, will skip it.
@@ -37,6 +42,7 @@ func (g Git) Detect() (Result, bool, error) {
 		return Result{}, false, fmt.Errorf("failed to find submodule: %s", err)
 	}
 
+	// nolint:nestif
 	if ok {
 		project := projectOrRemote(filepath.Base(gitdirSubmodule), g.ProjectFromGitRemote, gitdirSubmodule)
 
@@ -48,16 +54,27 @@ func (g Git) Detect() (Result, bool, error) {
 		branch, err := findGitBranch(filepath.Join(gitdirSubmodule, "HEAD"))
 		if err != nil {
 			log.Errorf(
-				"error finding branch from %q: %s",
+				"failed to find branch from %q: %s",
 				filepath.Join(filepath.Dir(gitdirSubmodule), "HEAD"),
 				err,
 			)
 		}
 
+		var added, removed *int
+
+		if g.CountLinesChanged {
+			added, removed, err = g.GitClient.CountLinesChanged()
+			if err != nil {
+				log.Errorf("failed to count lines changed: %s", err)
+			}
+		}
+
 		return Result{
-			Project: project,
-			Branch:  branch,
-			Folder:  filepath.Dir(gitdirSubmodule),
+			Project:      project,
+			Branch:       branch,
+			Folder:       filepath.Dir(gitdirSubmodule),
+			LinesAdded:   added,
+			LinesRemoved: removed,
 		}, true, nil
 	}
 
@@ -70,14 +87,14 @@ func (g Git) Detect() (Result, bool, error) {
 	// Find for gitdir path
 	gitdir, err := findGitdir(dotGit)
 	if err != nil {
-		return Result{}, false, fmt.Errorf("error finding gitdir: %s", err)
+		return Result{}, false, fmt.Errorf("failed to find gitdir: %s", err)
 	}
 
 	// Commonly .git file is present when it's a worktree
 	// Find for commondir file
 	commondir, ok, err := findCommondir(gitdir)
 	if err != nil {
-		return Result{}, false, fmt.Errorf("error finding commondir: %s", err)
+		return Result{}, false, fmt.Errorf("failed to find commondir: %s", err)
 	}
 
 	// we found a commondir file so this is a worktree
@@ -87,16 +104,27 @@ func (g Git) Detect() (Result, bool, error) {
 		branch, err := findGitBranch(filepath.Join(gitdir, "HEAD"))
 		if err != nil {
 			log.Errorf(
-				"error finding branch from %q: %s",
+				"failed to find branch from %q: %s",
 				filepath.Join(filepath.Dir(dotGit), "HEAD"),
 				err,
 			)
 		}
 
+		var added, removed *int
+
+		if g.CountLinesChanged {
+			added, removed, err = g.GitClient.CountLinesChanged()
+			if err != nil {
+				log.Errorf("failed to count lines changed: %s", err)
+			}
+		}
+
 		return Result{
-			Project: project,
-			Branch:  branch,
-			Folder:  filepath.Dir(commondir),
+			Project:      project,
+			Branch:       branch,
+			Folder:       filepath.Dir(commondir),
+			LinesAdded:   added,
+			LinesRemoved: removed,
 		}, true, nil
 	}
 
@@ -107,16 +135,27 @@ func (g Git) Detect() (Result, bool, error) {
 		branch, err := findGitBranch(filepath.Join(gitdir, "HEAD"))
 		if err != nil {
 			log.Errorf(
-				"error finding branch from %q: %s",
+				"failed to find branch from %q: %s",
 				filepath.Join(filepath.Dir(gitdir), "HEAD"),
 				err,
 			)
 		}
 
+		var added, removed *int
+
+		if g.CountLinesChanged {
+			added, removed, err = g.GitClient.CountLinesChanged()
+			if err != nil {
+				log.Errorf("failed to count lines changed: %s", err)
+			}
+		}
+
 		return Result{
-			Project: project,
-			Branch:  branch,
-			Folder:  filepath.Join(gitdir, ".."),
+			Project:      project,
+			Branch:       branch,
+			Folder:       filepath.Join(gitdir, ".."),
+			LinesAdded:   added,
+			LinesRemoved: removed,
 		}, true, nil
 	}
 
@@ -125,23 +164,34 @@ func (g Git) Detect() (Result, bool, error) {
 
 	if ok {
 		gitDir := filepath.Dir(gitConfigFile)
+
 		projectDir := filepath.Join(gitDir, "..")
+		project := projectOrRemote(filepath.Base(projectDir), g.ProjectFromGitRemote, gitDir)
 
 		branch, err := findGitBranch(filepath.Join(gitDir, "HEAD"))
 		if err != nil {
 			log.Errorf(
-				"error finding branch from %q: %s",
+				"failed to find branch from %q: %s",
 				filepath.Join(gitDir, "HEAD"),
 				err,
 			)
 		}
 
-		project := projectOrRemote(filepath.Base(projectDir), g.ProjectFromGitRemote, gitDir)
+		var added, removed *int
+
+		if g.CountLinesChanged {
+			added, removed, err = g.GitClient.CountLinesChanged()
+			if err != nil {
+				log.Errorf("failed to count lines changed: %s", err)
+			}
+		}
 
 		return Result{
-			Project: project,
-			Branch:  branch,
-			Folder:  projectDir,
+			Project:      project,
+			Branch:       branch,
+			Folder:       projectDir,
+			LinesAdded:   added,
+			LinesRemoved: removed,
 		}, true, nil
 	}
 

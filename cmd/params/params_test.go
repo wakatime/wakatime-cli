@@ -135,6 +135,39 @@ func TestLoadParams_CursorPosition_Unset(t *testing.T) {
 	assert.Nil(t, params.CursorPosition)
 }
 
+func TestLoadHeartbeat_CountLinesChanged_FlagTakesPrecedence(t *testing.T) {
+	v := viper.New()
+	v.Set("entity", "/path/to/file")
+	v.Set("count-lines-changed", true)
+	v.Set("settings.count_lines_changed", false)
+
+	params, err := paramscmd.LoadHeartbeatParams(v)
+	require.NoError(t, err)
+
+	assert.True(t, params.CountLinesChanged)
+}
+
+func TestLoadHeartbeat_CountLinesChanged_FromConfig(t *testing.T) {
+	v := viper.New()
+	v.Set("entity", "/path/to/file")
+	v.Set("settings.count_lines_changed", true)
+
+	params, err := paramscmd.LoadHeartbeatParams(v)
+	require.NoError(t, err)
+
+	assert.True(t, params.CountLinesChanged)
+}
+
+func TestLoadHeartbeat_CountLinesChanged_Default(t *testing.T) {
+	v := viper.New()
+	v.Set("entity", "/path/to/file")
+
+	params, err := paramscmd.LoadHeartbeatParams(v)
+	require.NoError(t, err)
+
+	assert.False(t, params.CountLinesChanged)
+}
+
 func TestLoadParams_Entity_EntityFlagTakesPrecedence(t *testing.T) {
 	v := viper.New()
 	v.Set("entity", "/path/to/file")
@@ -2327,30 +2360,30 @@ func TestFilterParams_String(t *testing.T) {
 
 func TestHeartbeat_String(t *testing.T) {
 	heartbeat := paramscmd.Heartbeat{
-		Category:        heartbeat.CodingCategory,
-		CursorPosition:  heartbeat.PointerTo(15),
-		Entity:          "path/to/entity.go",
-		EntityType:      heartbeat.FileType,
-		ExtraHeartbeats: make([]heartbeat.Heartbeat, 3),
-		GuessLanguage:   true,
-		IsUnsavedEntity: true,
-		IsWrite:         heartbeat.PointerTo(true),
-		Language:        heartbeat.PointerTo("Golang"),
-		LineNumber:      heartbeat.PointerTo(4),
-		LinesInFile:     heartbeat.PointerTo(56),
-		Time:            1585598059,
+		Category:          heartbeat.CodingCategory,
+		CountLinesChanged: true,
+		CursorPosition:    heartbeat.PointerTo(15),
+		Entity:            "path/to/entity.go",
+		EntityType:        heartbeat.FileType,
+		ExtraHeartbeats:   make([]heartbeat.Heartbeat, 3),
+		GuessLanguage:     true,
+		IsUnsavedEntity:   true,
+		IsWrite:           heartbeat.PointerTo(true),
+		Language:          heartbeat.PointerTo("Golang"),
+		LineNumber:        heartbeat.PointerTo(4),
+		LinesInFile:       heartbeat.PointerTo(56),
+		Time:              1585598059,
 	}
 
 	assert.Equal(
 		t,
-		"category: 'coding', cursor position: '15', entity: 'path/to/entity.go', entity type: 'file',"+
-			" num extra heartbeats: 3, guess language: true, is unsaved entity: true, is write: true,"+
-			" language: 'Golang', line number: '4', lines in file: '56', time: 1585598059.00000, filter"+
-			" params: (exclude: '[]', exclude unknown project: false, include: '[]', include only with"+
-			" project file: false), project params: (alternate: '', branch alternate: '', map patterns:"+
-			" '[]', override: '', git submodules disabled: '[]', git submodule project map: '[]'), sanitize"+
-			" params: (hide branch names: '[]', hide project folder: false, hide file names: '[]',"+
-			" hide project names: '[]', project path override: '')",
+		"category: 'coding', count lines changed: true, cursor position: '15', entity: 'path/to/entity.go',"+
+			" entity type: 'file', num extra heartbeats: 3, guess language: true, is unsaved entity: true, is write: true,"+
+			" language: 'Golang', line number: '4', lines in file: '56', time: 1585598059.00000, filter params:"+
+			" (exclude: '[]', exclude unknown project: false, include: '[]', include only with project file: false),"+
+			" project params: (alternate: '', branch alternate: '', map patterns: '[]', override: '',"+
+			" git submodules disabled: '[]', git submodule project map: '[]'), sanitize params: (hide branch names: '[]',"+
+			" hide project folder: false, hide file names: '[]', hide project names: '[]', project path override: '')",
 		heartbeat.String(),
 	)
 }

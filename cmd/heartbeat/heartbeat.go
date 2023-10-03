@@ -248,6 +248,7 @@ func initHandleOptions(params paramscmd.Params) []heartbeat.HandleOption {
 			FilePatterns: params.Heartbeat.Sanitize.HideFileNames,
 		}),
 		project.WithDetection(project.Config{
+			CountLinesChanged:    params.Heartbeat.CountLinesChanged,
 			HideProjectNames:     params.Heartbeat.Sanitize.HideProjectNames,
 			MapPatterns:          params.Heartbeat.Project.MapPatterns,
 			ProjectFromGitRemote: params.Heartbeat.Project.ProjectFromGitRemote,

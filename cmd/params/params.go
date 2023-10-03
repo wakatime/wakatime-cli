@@ -29,10 +29,13 @@ import (
 	"golang.org/x/net/http/httpproxy"
 )
 
-const errMsgTemplate = "invalid url %q. Must be in format" +
-	"'https://user:pass@host:port' or " +
-	"'socks5://user:pass@host:port' or " +
-	"'domain\\\\user:pass.'"
+const (
+	defaultReadAPIKeyTimeoutSecs = 2
+	errMsgTemplate               = "invalid url %q. Must be in format" +
+		"'https://user:pass@host:port' or " +
+		"'socks5://user:pass@host:port' or " +
+		"'domain\\\\user:pass.'"
+)
 
 var (
 	// nolint
@@ -96,6 +99,7 @@ type (
 	// Heartbeat contains heartbeat command parameters.
 	Heartbeat struct {
 		Category          heartbeat.Category
+		CountLinesChanged bool
 		CursorPosition    *int
 		Entity            string
 		EntityType        heartbeat.EntityType
@@ -407,6 +411,7 @@ func LoadHeartbeatParams(v *viper.Viper) (Heartbeat, error) {
 
 	return Heartbeat{
 		Category:          category,
+		CountLinesChanged: vipertools.FirstNonEmptyBool(v, "count-lines-changed", "settings.count_lines_changed"),
 		CursorPosition:    cursorPosition,
 		Entity:            entityExpanded,
 		ExtraHeartbeats:   extraHeartbeats,
@@ -670,7 +675,7 @@ func readAPIKeyFromCommand(cmdStr string) (string, error) {
 	cmdName := cmdParts[0]
 	cmdArgs := cmdParts[1:]
 
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), defaultReadAPIKeyTimeoutSecs*time.Second)
 	defer cancel()
 
 	cmd := exec.CommandContext(ctx, cmdName, cmdArgs...) // nolint:gosec
@@ -967,11 +972,12 @@ func (p Heartbeat) String() string {
 	}
 
 	return fmt.Sprintf(
-		"category: '%s', cursor position: '%s', entity: '%s', entity type: '%s',"+
+		"category: '%s', count lines changed: %t, cursor position: '%s', entity: '%s', entity type: '%s',"+
 			" num extra heartbeats: %d, guess language: %t, is unsaved entity: %t,"+
 			" is write: %t, language: '%s', line number: '%s', lines in file: '%s',"+
 			" time: %.5f, filter params: (%s), project params: (%s), sanitize params: (%s)",
 		p.Category,
+		p.CountLinesChanged,
 		cursorPosition,
 		p.Entity,
 		p.EntityType,

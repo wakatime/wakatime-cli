@@ -143,10 +143,7 @@ func findSvnBinary() (string, bool) {
 	}
 
 	for _, loc := range locations {
-		cmd := exec.Command(loc, "--version")
-
-		err := cmd.Run()
-		if err != nil {
+		if err := exec.Command(loc, "--version").Run(); err != nil {
 			continue
 		}
 

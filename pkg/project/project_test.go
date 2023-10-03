@@ -2,6 +2,7 @@ package project_test
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -536,9 +537,10 @@ func TestDetectWithRevControl_GitDetected(t *testing.T) {
 	fp := setupTestGitBasic(t)
 
 	result := project.DetectWithRevControl(
+		false,
+		false,
 		[]regex.Regex{},
 		[]project.MapPattern{},
-		false,
 		project.DetecterArg{
 			Filepath:  filepath.Join(fp, "wakatime-cli/src/pkg/file.go"),
 			ShouldRun: true,
@@ -557,9 +559,10 @@ func TestDetectWithRevControl_GitRemoteDetected(t *testing.T) {
 	fp := setupTestGitBasic(t)
 
 	result := project.DetectWithRevControl(
+		false,
+		true,
 		[]regex.Regex{},
 		[]project.MapPattern{},
-		true,
 		project.DetecterArg{
 			Filepath:  filepath.Join(fp, "wakatime-cli/src/pkg/file.go"),
 			ShouldRun: true,
@@ -571,6 +574,43 @@ func TestDetectWithRevControl_GitRemoteDetected(t *testing.T) {
 		Project: "wakatime/wakatime-cli",
 		Folder:  result.Folder,
 		Branch:  "master",
+	}, result)
+}
+
+func TestDetectWithRevControl_GitDetected_CountLinesChanged(t *testing.T) {
+	skipIfGitNotInstalled(t)
+
+	fp := setupTestGitReal(t)
+
+	err := exec.Command("git", "-C", filepath.Join(fp, "wakatime-cli"), "add", ".").Run()
+	require.NoError(t, err)
+
+	err = exec.Command("git", "-C", filepath.Join(fp, "wakatime-cli"), "commit", "-m", `"Add file.go"`).Run()
+	require.NoError(t, err)
+
+	copyFile(t, "testdata/git_real/file_changed.go", filepath.Join(fp, "wakatime-cli/src/pkg/file.go"))
+
+	err = exec.Command("git", "-C", filepath.Join(fp, "wakatime-cli"), "add", ".").Run()
+	require.NoError(t, err)
+
+	result := project.DetectWithRevControl(
+		true,
+		false,
+		[]regex.Regex{},
+		[]project.MapPattern{},
+		project.DetecterArg{
+			Filepath:  filepath.Join(fp, "wakatime-cli/src/pkg/file.go"),
+			ShouldRun: true,
+		},
+	)
+
+	assert.Contains(t, result.Folder, filepath.Join(fp, "wakatime-cli"))
+	assert.Equal(t, project.Result{
+		Project:      "wakatime-cli",
+		Folder:       result.Folder,
+		Branch:       "master",
+		LinesAdded:   heartbeat.PointerTo(1),
+		LinesRemoved: heartbeat.PointerTo(5),
 	}, result)
 }
 
@@ -683,4 +723,10 @@ type mockSender struct {
 func (m *mockSender) SendHeartbeats(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 	m.SendHeartbeatsFnInvoked = true
 	return m.SendHeartbeatsFn(hh)
+}
+
+func skipIfGitNotInstalled(t *testing.T) {
+	if err := exec.Command("git", "--version").Run(); err != nil {
+		t.Skip("Skipping because git is not installed in this machine.")
+	}
 }
