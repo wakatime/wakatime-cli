@@ -37,7 +37,15 @@ else
 endif
 
 # targets
-build-all: build-darwin build-freebsd build-linux build-netbsd build-openbsd build-windows
+build-all: build-all-android build-darwin build-freebsd build-linux build-netbsd build-openbsd build-windows
+
+build-all-android: build-android-arm build-android-arm64
+
+build-android-arm:
+	GOOS=android GOARCH=arm make build
+
+build-android-arm64:
+	GOOS=android GOARCH=arm64 make build
 
 build-all-darwin: build-darwin-amd64 build-darwin-arm64
 
