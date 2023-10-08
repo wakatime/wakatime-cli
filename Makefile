@@ -3,6 +3,7 @@
 # globals
 BINARY_NAME?=wakatime-cli
 BUILD_DIR?="./build"
+CGO_ENABLED?=0
 COMMIT?=$(shell git rev-parse --short HEAD)
 DATE?=$(shell date -u '+%Y-%m-%dT%H:%M:%S %Z')
 REPO=github.com/wakatime/wakatime-cli
@@ -37,89 +38,100 @@ else
 endif
 
 # targets
-build-all: build-darwin build-freebsd build-linux build-netbsd build-openbsd build-windows
+build-all: build-all-android build-darwin build-freebsd build-linux build-netbsd build-openbsd build-windows
+
+build-all-android: build-android-arm build-android-arm64
+
+# to build for android arm, you need to have the android ndk installed, enable CGO and
+# set CC to the path of the android ndk toolchain
+# example: CC=/path/to/Android/sdk/ndk/26.0.10792818/toolchains/llvm/prebuilt/darwin-x86_64/bin/armv7a-linux-androideabi34-clang
+build-android-arm:
+	GOOS=android GOARCH=arm CGO_ENABLED=1 $(MAKE) build
+
+build-android-arm64:
+	GOOS=android GOARCH=arm64 $(MAKE) build
 
 build-all-darwin: build-darwin-amd64 build-darwin-arm64
 
 build-darwin-amd64:
-	GOOS=darwin GOARCH=amd64 make build
+	GOOS=darwin GOARCH=amd64 $(MAKE) build
 
 build-darwin-arm64:
-	GOOS=darwin GOARCH=arm64 make build
+	GOOS=darwin GOARCH=arm64 $(MAKE) build
 
 build-all-freebsd: build-freebsd-386 build-freebsd-amd64 build-freebsd-arm
 
 build-freebsd-386:
-	GOOS=freebsd GOARCH=386 make build
+	GOOS=freebsd GOARCH=386 $(MAKE) build
 
 build-freebsd-amd64:
-	GOOS=freebsd GOARCH=amd64 make build
+	GOOS=freebsd GOARCH=amd64 $(MAKE) build
 
 build-freebsd-arm:
-	GOOS=freebsd GOARCH=arm make build
+	GOOS=freebsd GOARCH=arm $(MAKE) build
 
 build-all-linux: build-linux-386 build-linux-amd64 build-linux-arm build-linux-arm64 build-linux-riscv64
 
 build-linux-386:
-	GOOS=linux GOARCH=386 make build
+	GOOS=linux GOARCH=386 $(MAKE) build
 
 build-linux-amd64:
-	GOOS=linux GOARCH=amd64 make build
+	GOOS=linux GOARCH=amd64 $(MAKE) build
 
 build-linux-arm:
-	GOOS=linux GOARCH=arm make build
+	GOOS=linux GOARCH=arm $(MAKE) build
 
 build-linux-arm64:
-	GOOS=linux GOARCH=arm64 make build
+	GOOS=linux GOARCH=arm64 $(MAKE) build
 
 build-linux-riscv64:
-	GOOS=linux GOARCH=riscv64 make build
+	GOOS=linux GOARCH=riscv64 $(MAKE) build
 
 build-all-netbsd: build-netbsd-386 build-netbsd-amd64 build-netbsd-arm
 
 build-netbsd-386:
-	GOOS=netbsd GOARCH=386 make build
+	GOOS=netbsd GOARCH=386 $(MAKE) build
 
 build-netbsd-amd64:
-	GOOS=netbsd GOARCH=amd64 make build
+	GOOS=netbsd GOARCH=amd64 $(MAKE) build
 
 build-netbsd-arm:
-	GOOS=netbsd GOARCH=arm make build
+	GOOS=netbsd GOARCH=arm $(MAKE) build
 
 build-all-openbsd: build-openbsd-386 build-openbsd-amd64 build-openbsd-arm build-openbsd-arm64
 
 build-openbsd-386:
-	GOOS=openbsd GOARCH=386 make build
+	GOOS=openbsd GOARCH=386 $(MAKE) build
 
 build-openbsd-amd64:
-	GOOS=openbsd GOARCH=amd64 make build
+	GOOS=openbsd GOARCH=amd64 $(MAKE) build
 
 build-openbsd-arm:
-	GOOS=openbsd GOARCH=arm make build
+	GOOS=openbsd GOARCH=arm $(MAKE) build
 
 build-openbsd-arm64:
-	GOOS=openbsd GOARCH=arm64 make build
+	GOOS=openbsd GOARCH=arm64 $(MAKE) build
 
 build-all-windows: build-windows-386 build-windows-amd64 build-windows-arm64
 
 build-windows-386:
-	GOOS=windows GOARCH=386 make build-windows
+	GOOS=windows GOARCH=386 $(MAKE) build-windows
 
 build-windows-amd64:
-	GOOS=windows GOARCH=amd64 make build-windows
+	GOOS=windows GOARCH=amd64 $(MAKE) build-windows
 
 build-windows-arm64:
-	GOOS=windows GOARCH=arm64 make build-windows
+	GOOS=windows GOARCH=arm64 $(MAKE) build-windows
 
 .PHONY: build
 build:
-	CGO_ENABLED="0" GOOS=$(GOOS) GOARCH=$(GOARCH) $(GOBUILD) -v \
+	CGO_ENABLED=$(CGO_ENABLED) GOOS=$(GOOS) GOARCH=$(GOARCH) $(GOBUILD) -v \
 		-ldflags "${LD_FLAGS} -X ${REPO}/pkg/version.OS=$(GOOS) -X ${REPO}/pkg/version.Arch=$(GOARCH)" \
 		-o ${BUILD_DIR}/$(BINARY_NAME)-$(GOOS)-$(GOARCH)
 
 .PHONY: build-windows
 build-windows:
-	CGO_ENABLED="0" GOOS=$(GOOS) GOARCH=$(GOARCH) $(GOBUILD) -v \
+	CGO_ENABLED=$(CGO_ENABLED) GOOS=$(GOOS) GOARCH=$(GOARCH) $(GOBUILD) -v \
 		-ldflags "${LD_FLAGS} -X ${REPO}/pkg/version.OS=$(GOOS) -X ${REPO}/pkg/version.Arch=$(GOARCH)" \
 		-o ${BUILD_DIR}/$(BINARY_NAME)-$(GOOS)-$(GOARCH).exe
 

@@ -13,6 +13,8 @@ if [ "$(which zip)" = "" ]; then
 fi
 
 # add execution permission
+chmod 750 ./build/wakatime-cli-android-arm
+chmod 750 ./build/wakatime-cli-android-arm64
 chmod 750 ./build/wakatime-cli-freebsd-386
 chmod 750 ./build/wakatime-cli-freebsd-amd64
 chmod 750 ./build/wakatime-cli-freebsd-arm
@@ -33,6 +35,8 @@ chmod 750 ./build/wakatime-cli-windows-amd64.exe
 chmod 750 ./build/wakatime-cli-windows-arm64.exe
 
 # create archives
+zip -j ./release/wakatime-cli-android-arm.zip ./build/wakatime-cli-android-arm
+zip -j ./release/wakatime-cli-android-arm64.zip ./build/wakatime-cli-android-arm64
 zip -j ./release/wakatime-cli-freebsd-386.zip ./build/wakatime-cli-freebsd-386
 zip -j ./release/wakatime-cli-freebsd-amd64.zip ./build/wakatime-cli-freebsd-amd64
 zip -j ./release/wakatime-cli-freebsd-arm.zip ./build/wakatime-cli-freebsd-arm
