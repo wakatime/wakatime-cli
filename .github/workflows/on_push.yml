@@ -267,7 +267,7 @@ jobs:
           VERSION: ${{ needs.version.outputs.semver_tag }}
         shell: bash
         # 2 is the number of virtual cpus for Linux. macOS is 3.
-        run: make -j2 build-android-arm CC="{{ $ANDROID_NDK_LATEST_HOME }}/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi21-clang"
+        run: make -j2 build-android-arm CC="$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi21-clang"
       -
         name: Build binary for arm64
         env:
