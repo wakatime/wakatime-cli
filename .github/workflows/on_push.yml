@@ -262,12 +262,19 @@ jobs:
           check-latest: ${{ env.CHECK_LATEST }}
           cache: false
       -
-        name: Build binaries
+        name: Build binary for arm
         env:
           VERSION: ${{ needs.version.outputs.semver_tag }}
         shell: bash
         # 2 is the number of virtual cpus for Linux. macOS is 3.
-        run: make -j2 build-all-android
+        run: make -j2 build-android-arm CC="{{ $ANDROID_NDK_LATEST_HOME }}/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi21-clang"
+      -
+        name: Build binary for arm64
+        env:
+          VERSION: ${{ needs.version.outputs.semver_tag }}
+        shell: bash
+        # 2 is the number of virtual cpus for Linux. macOS is 3.
+        run: make -j2 build-android-arm64
       -
         name: Upload artifacts
         uses: actions/upload-artifact@v2
