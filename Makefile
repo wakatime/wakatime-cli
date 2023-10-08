@@ -3,6 +3,7 @@
 # globals
 BINARY_NAME?=wakatime-cli
 BUILD_DIR?="./build"
+CGO_ENABLED?=0
 COMMIT?=$(shell git rev-parse --short HEAD)
 DATE?=$(shell date -u '+%Y-%m-%dT%H:%M:%S %Z')
 REPO=github.com/wakatime/wakatime-cli
@@ -41,8 +42,11 @@ build-all: build-all-android build-darwin build-freebsd build-linux build-netbsd
 
 build-all-android: build-android-arm build-android-arm64
 
+# to build for android arm, you need to have the android ndk installed, enable CGO and
+# set CC to the path of the android ndk toolchain
+# example: CC=/path/to/Android/sdk/ndk/26.0.10792818/toolchains/llvm/prebuilt/darwin-x86_64/bin/armv7a-linux-androideabi34-clang
 build-android-arm:
-	GOOS=android GOARCH=arm make build
+	GOOS=android GOARCH=arm CGO_ENABLED=1 make build
 
 build-android-arm64:
 	GOOS=android GOARCH=arm64 make build
@@ -121,13 +125,13 @@ build-windows-arm64:
 
 .PHONY: build
 build:
-	CGO_ENABLED="0" GOOS=$(GOOS) GOARCH=$(GOARCH) $(GOBUILD) -v \
+	CGO_ENABLED=$(CGO_ENABLED) GOOS=$(GOOS) GOARCH=$(GOARCH) $(GOBUILD) -v \
 		-ldflags "${LD_FLAGS} -X ${REPO}/pkg/version.OS=$(GOOS) -X ${REPO}/pkg/version.Arch=$(GOARCH)" \
 		-o ${BUILD_DIR}/$(BINARY_NAME)-$(GOOS)-$(GOARCH)
 
 .PHONY: build-windows
 build-windows:
-	CGO_ENABLED="0" GOOS=$(GOOS) GOARCH=$(GOARCH) $(GOBUILD) -v \
+	CGO_ENABLED=$(CGO_ENABLED) GOOS=$(GOOS) GOARCH=$(GOARCH) $(GOBUILD) -v \
 		-ldflags "${LD_FLAGS} -X ${REPO}/pkg/version.OS=$(GOOS) -X ${REPO}/pkg/version.Arch=$(GOARCH)" \
 		-o ${BUILD_DIR}/$(BINARY_NAME)-$(GOOS)-$(GOARCH).exe
 
