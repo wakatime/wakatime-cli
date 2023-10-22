@@ -19,6 +19,7 @@ const (
 // Params contains log file parameters.
 type Params struct {
 	File              string
+	Metrics           bool
 	SendDiagsOnErrors bool
 	ToStdout          bool
 	Verbose           bool
@@ -27,6 +28,11 @@ type Params struct {
 // LoadParams loads needed data from the configuration file.
 func LoadParams(v *viper.Viper) (Params, error) {
 	params := Params{
+		Metrics: vipertools.FirstNonEmptyBool(
+			v,
+			"metrics",
+			"settings.metrics",
+		),
 		SendDiagsOnErrors: vipertools.FirstNonEmptyBool(
 			v,
 			"send-diagnostics-on-errors",
@@ -38,6 +44,11 @@ func LoadParams(v *viper.Viper) (Params, error) {
 			"verbose",
 			"settings.debug",
 		),
+	}
+
+	// if debug is disabled, disable metrics as well.
+	if !params.Verbose {
+		params.Metrics = false
 	}
 
 	logFile, ok := vipertools.FirstNonEmptyString(v, "log-file", "logfile", "settings.log_file")

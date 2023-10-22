@@ -29,23 +29,25 @@ func TestLoadParams(t *testing.T) {
 	require.NoError(t, err)
 
 	tests := map[string]struct {
-		ViperLogFile       string
-		ViperLogFileConfig string
-		ViperLogFileOld    string
-		ViperToStdout      bool
 		EnvVar             string
 		ViperDebug         bool
 		ViperDebugConfig   bool
+		ViperLogFile       string
+		ViperLogFileConfig string
+		ViperLogFileOld    string
+		ViperMetrics       bool
+		ViperMetricsConfig bool
+		ViperToStdout      bool
 		Expected           logfile.Params
 	}{
-		"log file and verbose set": {
+		"verbose set": {
 			ViperDebug: true,
 			Expected: logfile.Params{
 				File:    filepath.Join(home, ".wakatime", "wakatime.log"),
 				Verbose: true,
 			},
 		},
-		"log file and verbose from config": {
+		"verbose from config": {
 			ViperDebugConfig: true,
 			Expected: logfile.Params{
 				File:    filepath.Join(home, ".wakatime", "wakatime.log"),
@@ -84,6 +86,22 @@ func TestLoadParams(t *testing.T) {
 				File: filepath.Join(home, ".wakatime", "wakatime.log"),
 			},
 		},
+		"metrics set and verbose false": {
+			ViperMetrics: true,
+			Expected: logfile.Params{
+				File:    filepath.Join(home, ".wakatime", "wakatime.log"),
+				Metrics: false,
+			},
+		},
+		"metrics set and verbose true": {
+			ViperDebug:   true,
+			ViperMetrics: true,
+			Expected: logfile.Params{
+				File:    filepath.Join(home, ".wakatime", "wakatime.log"),
+				Metrics: true,
+				Verbose: true,
+			},
+		},
 		"log to stdout": {
 			ViperToStdout: true,
 			Expected: logfile.Params{
@@ -99,6 +117,8 @@ func TestLoadParams(t *testing.T) {
 			v.Set("log-file", test.ViperLogFile)
 			v.Set("logfile", test.ViperLogFileOld)
 			v.Set("log-to-stdout", test.ViperToStdout)
+			v.Set("metrics", test.ViperMetrics)
+			v.Set("settings.metrics", test.ViperMetricsConfig)
 			v.Set("settings.log_file", test.ViperLogFileConfig)
 			v.Set("settings.debug", test.ViperDebug)
 			v.Set("verbose", test.ViperDebugConfig)

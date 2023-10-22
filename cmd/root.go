@@ -160,6 +160,12 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 	flags.String("logfile", "", "(deprecated) Optional log file. Defaults to '~/.wakatime/wakatime.log'.")
 	flags.Bool("log-to-stdout", false, "If enabled, logs will go to stdout. Will overwrite logfile configs.")
 	flags.Bool(
+		"metrics",
+		false,
+		"When set and --verbose or debug enabled, collects metrics usage in '~/.wakatime/metrics' folder."+
+			" Defaults to false.",
+	)
+	flags.Bool(
 		"no-ssl-verify",
 		false,
 		"Disables SSL certificate verification for HTTPS requests. By default,"+
