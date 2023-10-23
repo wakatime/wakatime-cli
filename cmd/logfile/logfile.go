@@ -46,11 +46,6 @@ func LoadParams(v *viper.Viper) (Params, error) {
 		),
 	}
 
-	// if debug is disabled, disable metrics as well.
-	if !params.Verbose {
-		params.Metrics = false
-	}
-
 	logFile, ok := vipertools.FirstNonEmptyString(v, "log-file", "logfile", "settings.log_file")
 	if ok {
 		p, err := homedir.Expand(logFile)
