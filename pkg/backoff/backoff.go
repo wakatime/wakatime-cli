@@ -30,6 +30,8 @@ type Config struct {
 	Retries int
 	// V is an instance of Viper.
 	V *viper.Viper
+	// HasProxy is true when using a proxy
+	HasProxy bool
 }
 
 // WithBackoff initializes and returns a heartbeat handle option, which
@@ -42,7 +44,11 @@ func WithBackoff(config Config) heartbeat.HandleOption {
 
 			should, reset := shouldBackoff(config.Retries, config.At)
 			if should {
-				return nil, api.ErrBackoff{Err: errors.New("won't send heartbeat due to backoff")}
+				if config.HasProxy {
+					return nil, api.ErrBackoff{Err: errors.New("won't send heartbeat due to backoff with proxy")}
+				}
+
+				return nil, api.ErrBackoff{Err: errors.New("won't send heartbeat due to backoff without proxy")}
 			}
 
 			if reset {

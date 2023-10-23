@@ -59,7 +59,30 @@ func TestWithBackoff_BeforeNextBackoff(t *testing.T) {
 	_, err := handle([]heartbeat.Heartbeat{})
 	require.Error(t, err)
 
-	assert.Equal(t, "won't send heartbeat due to backoff", err.Error())
+	assert.Equal(t, "won't send heartbeat due to backoff without proxy", err.Error())
+}
+
+func TestWithBackoff_BeforeNextBackoffWithProxy(t *testing.T) {
+	backoffAt := time.Now().Add(time.Second * -1)
+
+	opt := backoff.WithBackoff(backoff.Config{
+		At:       backoffAt,
+		Retries:  1,
+		HasProxy: true,
+	})
+
+	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		return []heartbeat.Result{
+			{
+				Status: 201,
+			},
+		}, nil
+	})
+
+	_, err := handle([]heartbeat.Heartbeat{})
+	require.Error(t, err)
+
+	assert.Equal(t, "won't send heartbeat due to backoff with proxy", err.Error())
 }
 
 func TestWithBackoff_ApiError(t *testing.T) {

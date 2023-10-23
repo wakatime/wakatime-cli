@@ -108,9 +108,10 @@ func SendHeartbeats(v *viper.Viper, queueFilepath string) error {
 	}
 
 	handleOpts = append(handleOpts, backoff.WithBackoff(backoff.Config{
-		V:       v,
-		At:      params.API.BackoffAt,
-		Retries: params.API.BackoffRetries,
+		V:        v,
+		At:       params.API.BackoffAt,
+		Retries:  params.API.BackoffRetries,
+		HasProxy: params.API.ProxyURL != "",
 	}))
 
 	apiClient, err := apicmd.NewClientWithoutAuth(params.API)
