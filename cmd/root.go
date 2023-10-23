@@ -162,8 +162,7 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 	flags.Bool(
 		"metrics",
 		false,
-		"When set and --verbose or debug enabled, collects metrics usage in '~/.wakatime/metrics' folder."+
-			" Defaults to false.",
+		"When set, collects metrics usage in '~/.wakatime/metrics' folder. Defaults to false.",
 	)
 	flags.Bool(
 		"no-ssl-verify",
