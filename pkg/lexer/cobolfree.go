@@ -2,25 +2,18 @@ package lexer
 
 import (
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
-	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	"github.com/alecthomas/chroma/v2"
-	"github.com/alecthomas/chroma/v2/lexers"
 )
 
-// nolint:gochecknoinits
-func init() {
-	language := heartbeat.LanguageCOBOLFree.StringChroma()
-	lexer := lexers.Get(language)
+// COBOLFree lexer.
+type COBOLFree struct{}
 
-	if lexer != nil {
-		log.Debugf("lexer %q already registered", language)
-		return
-	}
-
-	_ = lexers.Register(chroma.MustNewLexer(
+// Lexer returns the lexer.
+func (l COBOLFree) Lexer() chroma.Lexer {
+	return chroma.MustNewLexer(
 		&chroma.Config{
-			Name:      language,
+			Name:      l.Name(),
 			Aliases:   []string{"cobolfree"},
 			Filenames: []string{"*.cbl", "*.CBL"},
 		},
@@ -29,5 +22,10 @@ func init() {
 				"root": {},
 			}
 		},
-	))
+	)
+}
+
+// Name returns the name of the lexer.
+func (COBOLFree) Name() string {
+	return heartbeat.LanguageCOBOLFree.StringChroma()
 }

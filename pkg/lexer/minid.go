@@ -2,26 +2,20 @@ package lexer
 
 import (
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
-	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	"github.com/alecthomas/chroma/v2"
-	"github.com/alecthomas/chroma/v2/lexers"
 )
 
-// nolint:gochecknoinits
-func init() {
-	language := heartbeat.LanguageMiniD.StringChroma()
-	lexer := lexers.Get(language)
+// MiniD lexer.
+type MiniD struct{}
 
-	if lexer != nil {
-		log.Debugf("lexer %q already registered", language)
-		return
-	}
-
-	_ = lexers.Register(chroma.MustNewLexer(
+// Lexer returns the lexer.
+func (l MiniD) Lexer() chroma.Lexer {
+	return chroma.MustNewLexer(
 		&chroma.Config{
-			Name:      language,
-			Aliases:   []string{"minid"},
+			Name:    l.Name(),
+			Aliases: []string{"minid"},
+			// Don't lex .md as MiniD, reserve for Markdown.
 			Filenames: []string{},
 			MimeTypes: []string{"text/x-minidsrc"},
 		},
@@ -30,5 +24,10 @@ func init() {
 				"root": {},
 			}
 		},
-	))
+	)
+}
+
+// Name returns the name of the lexer.
+func (MiniD) Name() string {
+	return heartbeat.LanguageMiniD.StringChroma()
 }

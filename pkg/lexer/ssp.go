@@ -5,28 +5,21 @@ import (
 	"strings"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
-	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/xml"
 
 	"github.com/alecthomas/chroma/v2"
-	"github.com/alecthomas/chroma/v2/lexers"
 )
 
 var sspAnalyserRe = regexp.MustCompile(`val \w+\s*:`)
 
-// nolint:gochecknoinits
-func init() {
-	language := heartbeat.LanguageSSP.StringChroma()
-	lexer := lexers.Get(language)
+// SSP lexer. Lexer for Scalate Server Pages.
+type SSP struct{}
 
-	if lexer != nil {
-		log.Debugf("lexer %q already registered", language)
-		return
-	}
-
-	_ = lexers.Register(chroma.MustNewLexer(
+// Lexer returns the lexer.
+func (l SSP) Lexer() chroma.Lexer {
+	lexer := chroma.MustNewLexer(
 		&chroma.Config{
-			Name:      language,
+			Name:      l.Name(),
 			Aliases:   []string{"ssp"},
 			Filenames: []string{"*.ssp"},
 			MimeTypes: []string{"application/x-ssp"},
@@ -36,7 +29,9 @@ func init() {
 				"root": {},
 			}
 		},
-	).SetAnalyser(func(text string) float32 {
+	)
+
+	lexer.SetAnalyser(func(text string) float32 {
 		var result float64
 
 		if sspAnalyserRe.MatchString(text) {
@@ -52,5 +47,12 @@ func init() {
 		}
 
 		return float32(result)
-	}))
+	})
+
+	return lexer
+}
+
+// Name returns the name of the lexer.
+func (SSP) Name() string {
+	return heartbeat.LanguageSSP.StringChroma()
 }

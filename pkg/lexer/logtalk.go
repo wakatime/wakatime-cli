@@ -5,27 +5,20 @@ import (
 	"strings"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
-	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	"github.com/alecthomas/chroma/v2"
-	"github.com/alecthomas/chroma/v2/lexers"
 )
 
 var logtalkAnalyserSyntaxRe = regexp.MustCompile(`(?m)^:-\s[a-z]`)
 
-// nolint:gochecknoinits
-func init() {
-	language := heartbeat.LanguageLogtalk.StringChroma()
-	lexer := lexers.Get(language)
+// Logtalk lexer.
+type Logtalk struct{}
 
-	if lexer != nil {
-		log.Debugf("lexer %q already registered", language)
-		return
-	}
-
-	_ = lexers.Register(chroma.MustNewLexer(
+// Lexer returns the lexer.
+func (l Logtalk) Lexer() chroma.Lexer {
+	lexer := chroma.MustNewLexer(
 		&chroma.Config{
-			Name:      language,
+			Name:      l.Name(),
 			Aliases:   []string{"logtalk"},
 			Filenames: []string{"*.lgt", "*.logtalk"},
 			MimeTypes: []string{"text/x-logtalk"},
@@ -35,7 +28,9 @@ func init() {
 				"root": {},
 			}
 		},
-	).SetAnalyser(func(text string) float32 {
+	)
+
+	lexer.SetAnalyser(func(text string) float32 {
 		if strings.Contains(text, ":- object(") ||
 			strings.Contains(text, ":- protocol(") ||
 			strings.Contains(text, ":- category(") {
@@ -47,5 +42,12 @@ func init() {
 		}
 
 		return 0
-	}))
+	})
+
+	return lexer
+}
+
+// Name returns the name of the lexer.
+func (Logtalk) Name() string {
+	return heartbeat.LanguageLogtalk.StringChroma()
 }

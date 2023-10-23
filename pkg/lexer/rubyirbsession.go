@@ -2,27 +2,19 @@ package lexer
 
 import (
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
-	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	"github.com/alecthomas/chroma/v2"
-	"github.com/alecthomas/chroma/v2/lexers"
 )
 
-// nolint:gochecknoinits
-func init() {
-	language := heartbeat.LanguageRubyIRBSession.StringChroma()
-	lexer := lexers.Get(language)
+// RubyIRBSession lexer. For Ruby interactive console (**irb**) output.
+type RubyIRBSession struct{}
 
-	if lexer != nil {
-		log.Debugf("lexer %q already registered", language)
-		return
-	}
-
-	_ = lexers.Register(chroma.MustNewLexer(
+// Lexer returns the lexer.
+func (l RubyIRBSession) Lexer() chroma.Lexer {
+	return chroma.MustNewLexer(
 		&chroma.Config{
-			Name:    language,
-			Aliases: []string{"rbcon", "irb"},
-
+			Name:      l.Name(),
+			Aliases:   []string{"rbcon", "irb"},
 			MimeTypes: []string{"text/x-ruby-shellsession"},
 		},
 		func() chroma.Rules {
@@ -30,5 +22,10 @@ func init() {
 				"root": {},
 			}
 		},
-	))
+	)
+}
+
+// Name returns the name of the lexer.
+func (RubyIRBSession) Name() string {
+	return heartbeat.LanguageRubyIRBSession.StringChroma()
 }

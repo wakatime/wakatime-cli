@@ -5,10 +5,8 @@ import (
 	"regexp"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
-	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	"github.com/alecthomas/chroma/v2"
-	"github.com/alecthomas/chroma/v2/lexers"
 )
 
 var (
@@ -18,19 +16,14 @@ var (
 		`(?m)^\s*\.(attribute|bytecode|debug|deprecated|enclosing|inner|interface|limit|set|signature|stack)\b`)
 )
 
-// nolint:gochecknoinits
-func init() {
-	language := heartbeat.LanguageJasmin.StringChroma()
-	lexer := lexers.Get(language)
+// Jasmin lexer.
+type Jasmin struct{}
 
-	if lexer != nil {
-		log.Debugf("lexer %q already registered", language)
-		return
-	}
-
-	_ = lexers.Register(chroma.MustNewLexer(
+// Lexer returns the lexer.
+func (l Jasmin) Lexer() chroma.Lexer {
+	lexer := chroma.MustNewLexer(
 		&chroma.Config{
-			Name:      language,
+			Name:      l.Name(),
 			Aliases:   []string{"jasmin", "jasminxt"},
 			Filenames: []string{"*.j"},
 		},
@@ -39,7 +32,9 @@ func init() {
 				"root": {},
 			}
 		},
-	).SetAnalyser(func(text string) float32 {
+	)
+
+	lexer.SetAnalyser(func(text string) float32 {
 		var result float64
 
 		if jasminAnalyserClassRe.MatchString(text) {
@@ -55,5 +50,12 @@ func init() {
 		}
 
 		return float32(math.Min(result, float64(1.0)))
-	}))
+	})
+
+	return lexer
+}
+
+// Name returns the name of the lexer.
+func (Jasmin) Name() string {
+	return heartbeat.LanguageJasmin.StringChroma()
 }

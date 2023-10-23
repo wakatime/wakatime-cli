@@ -4,11 +4,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/lexer"
 
-	"github.com/alecthomas/chroma/v2/lexers"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestCUDA_AnalyseText(t *testing.T) {
@@ -35,8 +33,7 @@ func TestCUDA_AnalyseText(t *testing.T) {
 			data, err := os.ReadFile(test.Filepath)
 			assert.NoError(t, err)
 
-			l := lexers.Get(heartbeat.LanguageCUDA.StringChroma())
-			require.NotNil(t, l)
+			l := lexer.CUDA{}.Lexer()
 
 			assert.Equal(t, test.Expected, l.AnalyseText(string(data)))
 		})

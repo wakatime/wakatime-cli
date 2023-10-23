@@ -2,27 +2,38 @@ package lexer
 
 import (
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
-	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/xml"
 
+	"github.com/alecthomas/chroma/v2"
 	"github.com/alecthomas/chroma/v2/lexers"
 )
 
-// nolint:gochecknoinits
-func init() {
-	language := heartbeat.LanguageXML.StringChroma()
-	lexer := lexers.Get(language)
+// XML lexer.
+type XML struct{}
 
+// Lexer returns the lexer.
+func (l XML) Lexer() chroma.Lexer {
+	lexer := lexers.Get(l.Name())
 	if lexer == nil {
-		log.Debugf("lexer %q not found", language)
-		return
+		return nil
 	}
 
-	lexer.SetAnalyser(func(text string) float32 {
-		if xml.MatchString(text) {
-			return 0.45 // less than HTML.
-		}
+	if lexer, ok := lexer.(*chroma.RegexLexer); ok {
+		lexer.SetAnalyser(func(text string) float32 {
+			if xml.MatchString(text) {
+				return 0.45 // less than HTML.
+			}
 
-		return 0
-	})
+			return 0
+		})
+
+		return lexer
+	}
+
+	return nil
+}
+
+// Name returns the name of the lexer.
+func (XML) Name() string {
+	return heartbeat.LanguageXML.StringChroma()
 }

@@ -4,10 +4,8 @@ import (
 	"regexp"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
-	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	"github.com/alecthomas/chroma/v2"
-	"github.com/alecthomas/chroma/v2/lexers"
 )
 
 var (
@@ -17,19 +15,14 @@ var (
 	velocityAnalzserReferenceRe = regexp.MustCompile(`\$!?\{?[a-zA-Z_]\w*(\([^)]*\))?(\.\w+(\([^)]*\))?)*\}?`)
 )
 
-// nolint:gochecknoinits
-func init() {
-	language := heartbeat.LanguageVelocity.StringChroma()
-	lexer := lexers.Get(language)
+// Velocity lexer.
+type Velocity struct{}
 
-	if lexer != nil {
-		log.Debugf("lexer %q already registered", language)
-		return
-	}
-
-	_ = lexers.Register(chroma.MustNewLexer(
+// Lexer returns the lexer.
+func (l Velocity) Lexer() chroma.Lexer {
+	lexer := chroma.MustNewLexer(
 		&chroma.Config{
-			Name:      language,
+			Name:      l.Name(),
 			Aliases:   []string{"velocity"},
 			Filenames: []string{"*.vm", "*.fhtml"},
 		},
@@ -38,7 +31,9 @@ func init() {
 				"root": {},
 			}
 		},
-	).SetAnalyser(func(text string) float32 {
+	)
+
+	lexer.SetAnalyser(func(text string) float32 {
 		var result float64
 
 		if velocityAnalzserMacroRe.MatchString(text) {
@@ -58,5 +53,12 @@ func init() {
 		}
 
 		return float32(result)
-	}))
+	})
+
+	return lexer
+}
+
+// Name returns the name of the lexer.
+func (Velocity) Name() string {
+	return heartbeat.LanguageVelocity.StringChroma()
 }

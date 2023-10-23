@@ -2,25 +2,20 @@ package lexer
 
 import (
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
-	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	"github.com/alecthomas/chroma/v2"
-	"github.com/alecthomas/chroma/v2/lexers"
 )
 
-// nolint:gochecknoinits
-func init() {
-	language := heartbeat.LanguageTNT.StringChroma()
-	lexer := lexers.Get(language)
+// TNT lexer. Lexer for Typographic Number Theory, as described in the book
+// Gödel, Escher, Bach, by Douglas R. Hofstadter, or as summarized here:
+// https://github.com/Kenny2github/language-tnt/blob/master/README.md#summary-of-tnt
+type TNT struct{}
 
-	if lexer != nil {
-		log.Debugf("lexer %q already registered", language)
-		return
-	}
-
-	_ = lexers.Register(chroma.MustNewLexer(
+// Lexer returns the lexer.
+func (l TNT) Lexer() chroma.Lexer {
+	return chroma.MustNewLexer(
 		&chroma.Config{
-			Name:      language,
+			Name:      l.Name(),
 			Aliases:   []string{"tnt"},
 			Filenames: []string{"*.tnt"},
 		},
@@ -29,5 +24,10 @@ func init() {
 				"root": {},
 			}
 		},
-	))
+	)
+}
+
+// Name returns the name of the lexer.
+func (TNT) Name() string {
+	return heartbeat.LanguageTNT.StringChroma()
 }

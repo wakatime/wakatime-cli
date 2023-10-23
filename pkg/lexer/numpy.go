@@ -4,26 +4,19 @@ import (
 	"strings"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
-	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/shebang"
 
 	"github.com/alecthomas/chroma/v2"
-	"github.com/alecthomas/chroma/v2/lexers"
 )
 
-// nolint:gochecknoinits
-func init() {
-	language := heartbeat.LanguageNumPy.StringChroma()
-	lexer := lexers.Get(language)
+// NumPy lexer.
+type NumPy struct{}
 
-	if lexer != nil {
-		log.Debugf("lexer %q already registered", language)
-		return
-	}
-
-	_ = lexers.Register(chroma.MustNewLexer(
+// Lexer returns the lexer.
+func (l NumPy) Lexer() chroma.Lexer {
+	lexer := chroma.MustNewLexer(
 		&chroma.Config{
-			Name:    language,
+			Name:    l.Name(),
 			Aliases: []string{"numpy"},
 		},
 		func() chroma.Rules {
@@ -31,7 +24,9 @@ func init() {
 				"root": {},
 			}
 		},
-	).SetAnalyser(func(text string) float32 {
+	)
+
+	lexer.SetAnalyser(func(text string) float32 {
 		hasPythonShebang, _ := shebang.MatchString(text, `pythonw?(3(\.\d)?)?`)
 		containsNumpyImport := strings.Contains(text, "import numpy")
 		containsFromNumpyImport := strings.Contains(text, "from numpy import")
@@ -49,5 +44,12 @@ func init() {
 		}
 
 		return 0
-	}))
+	})
+
+	return lexer
+}
+
+// Name returns the name of the lexer.
+func (NumPy) Name() string {
+	return heartbeat.LanguageNumPy.StringChroma()
 }

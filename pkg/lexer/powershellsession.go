@@ -2,25 +2,18 @@ package lexer
 
 import (
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
-	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	"github.com/alecthomas/chroma/v2"
-	"github.com/alecthomas/chroma/v2/lexers"
 )
 
-// nolint:gochecknoinits
-func init() {
-	language := heartbeat.LanguagePowerShellSession.StringChroma()
-	lexer := lexers.Get(language)
+// PowerShellSession lexer.
+type PowerShellSession struct{}
 
-	if lexer != nil {
-		log.Debugf("lexer %q already registered", language)
-		return
-	}
-
-	_ = lexers.Register(chroma.MustNewLexer(
+// Lexer returns the lexer.
+func (l PowerShellSession) Lexer() chroma.Lexer {
+	return chroma.MustNewLexer(
 		&chroma.Config{
-			Name:    language,
+			Name:    l.Name(),
 			Aliases: []string{"ps1con"},
 		},
 		func() chroma.Rules {
@@ -28,5 +21,10 @@ func init() {
 				"root": {},
 			}
 		},
-	))
+	)
+}
+
+// Name returns the name of the lexer.
+func (PowerShellSession) Name() string {
+	return heartbeat.LanguagePowerShellSession.StringChroma()
 }

@@ -2,27 +2,19 @@ package lexer
 
 import (
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
-	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	"github.com/alecthomas/chroma/v2"
-	"github.com/alecthomas/chroma/v2/lexers"
 )
 
-// nolint:gochecknoinits
-func init() {
-	language := heartbeat.LanguageBBCode.StringChroma()
-	lexer := lexers.Get(language)
+// BBCode lexer.
+type BBCode struct{}
 
-	if lexer != nil {
-		log.Debugf("lexer %q already registered", language)
-		return
-	}
-
-	_ = lexers.Register(chroma.MustNewLexer(
+// Lexer returns the lexer.
+func (l BBCode) Lexer() chroma.Lexer {
+	return chroma.MustNewLexer(
 		&chroma.Config{
-			Name:    language,
-			Aliases: []string{"bbcode"},
-
+			Name:      l.Name(),
+			Aliases:   []string{"bbcode"},
 			MimeTypes: []string{"text/x-bbcode"},
 		},
 		func() chroma.Rules {
@@ -30,5 +22,10 @@ func init() {
 				"root": {},
 			}
 		},
-	))
+	)
+}
+
+// Name returns the name of the lexer.
+func (BBCode) Name() string {
+	return heartbeat.LanguageBBCode.StringChroma()
 }

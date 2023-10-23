@@ -2,25 +2,18 @@ package lexer
 
 import (
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
-	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	"github.com/alecthomas/chroma/v2"
-	"github.com/alecthomas/chroma/v2/lexers"
 )
 
-// nolint:gochecknoinits
-func init() {
-	language := heartbeat.LanguageKconfig.StringChroma()
-	lexer := lexers.Get(language)
+// Kconfig lexer.
+type Kconfig struct{}
 
-	if lexer != nil {
-		log.Debugf("lexer %q already registered", language)
-		return
-	}
-
-	_ = lexers.Register(chroma.MustNewLexer(
+// Lexer returns the lexer.
+func (l Kconfig) Lexer() chroma.Lexer {
+	return chroma.MustNewLexer(
 		&chroma.Config{
-			Name:      language,
+			Name:      l.Name(),
 			Aliases:   []string{"kconfig", "menuconfig", "linux-config", "kernel-config"},
 			Filenames: []string{"Kconfig*", "*Config.in*", "external.in*", "standard-modules.in"},
 			MimeTypes: []string{"text/x-kconfig"},
@@ -30,5 +23,10 @@ func init() {
 				"root": {},
 			}
 		},
-	))
+	)
+}
+
+// Name returns the name of the lexer.
+func (Kconfig) Name() string {
+	return heartbeat.LanguageKconfig.StringChroma()
 }

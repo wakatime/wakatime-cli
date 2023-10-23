@@ -2,25 +2,18 @@ package lexer
 
 import (
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
-	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	"github.com/alecthomas/chroma/v2"
-	"github.com/alecthomas/chroma/v2/lexers"
 )
 
-// nolint:gochecknoinits
-func init() {
-	language := heartbeat.LanguageXQuery.StringChroma()
-	lexer := lexers.Get(language)
+// XQuery lexer.
+type XQuery struct{}
 
-	if lexer != nil {
-		log.Debugf("lexer %q already registered", language)
-		return
-	}
-
-	_ = lexers.Register(chroma.MustNewLexer(
+// Lexer returns the lexer.
+func (l XQuery) Lexer() chroma.Lexer {
+	return chroma.MustNewLexer(
 		&chroma.Config{
-			Name:      language,
+			Name:      l.Name(),
 			Aliases:   []string{"xquery", "xqy", "xq", "xql", "xqm"},
 			Filenames: []string{"*.xqy", "*.xquery", "*.xq", "*.xql", "*.xqm"},
 			MimeTypes: []string{"text/xquery", "application/xquery"},
@@ -30,5 +23,10 @@ func init() {
 				"root": {},
 			}
 		},
-	))
+	)
+}
+
+// Name returns the name of the lexer.
+func (XQuery) Name() string {
+	return heartbeat.LanguageXQuery.StringChroma()
 }

@@ -4,27 +4,20 @@ import (
 	"regexp"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
-	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	"github.com/alecthomas/chroma/v2"
-	"github.com/alecthomas/chroma/v2/lexers"
 )
 
 var limboAnalyzerRe = regexp.MustCompile(`(?m)^implement \w+;`)
 
-// nolint:gochecknoinits
-func init() {
-	language := heartbeat.LanguageLimbo.StringChroma()
-	lexer := lexers.Get(language)
+// Limbo lexer.
+type Limbo struct{}
 
-	if lexer != nil {
-		log.Debugf("lexer %q already registered", language)
-		return
-	}
-
-	_ = lexers.Register(chroma.MustNewLexer(
+// Lexer returns the lexer.
+func (l Limbo) Lexer() chroma.Lexer {
+	lexer := chroma.MustNewLexer(
 		&chroma.Config{
-			Name:      language,
+			Name:      l.Name(),
 			Aliases:   []string{"limbo"},
 			Filenames: []string{"*.b"},
 			MimeTypes: []string{"text/limbo"},
@@ -34,12 +27,21 @@ func init() {
 				"root": {},
 			}
 		},
-	).SetAnalyser(func(text string) float32 {
+	)
+
+	lexer.SetAnalyser(func(text string) float32 {
 		// Any limbo module implements something
 		if limboAnalyzerRe.MatchString(text) {
 			return 0.7
 		}
 
 		return 0
-	}))
+	})
+
+	return lexer
+}
+
+// Name returns the name of the lexer.
+func (Limbo) Name() string {
+	return heartbeat.LanguageLimbo.StringChroma()
 }
