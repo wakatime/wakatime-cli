@@ -22,7 +22,7 @@ import (
 	bolt "go.etcd.io/bbolt"
 )
 
-func TestRunCmd_Error(t *testing.T) {
+func TestRunCmd_Err(t *testing.T) {
 	// this is exclusively run in subprocess
 	if os.Getenv("TEST_RUN") == "1" {
 		version.OS = "some os"
@@ -46,9 +46,23 @@ func TestRunCmd_Error(t *testing.T) {
 		v.Set("offline-queue-file", offlineQueueFile.Name())
 		v.Set("plugin", "vim")
 
-		cmd.RunCmd(v, false, false, func(v *viper.Viper) (int, error) {
+		var cmdNumCalls int
+
+		cmdFn := func(v *viper.Viper) (int, error) {
+			cmdNumCalls++
 			return 42, errors.New("fail")
-		})
+		}
+
+		var shutdownNumCalls int
+
+		shutdownFn := func() {
+			shutdownNumCalls++
+		}
+
+		cmd.RunCmd(v, false, false, cmdFn, shutdownFn)
+
+		assert.Equal(t, 1, cmdNumCalls)
+		assert.Equal(t, 1, shutdownNumCalls)
 
 		return
 	}
@@ -63,7 +77,7 @@ func TestRunCmd_Error(t *testing.T) {
 	})
 
 	// run command in another runner, to effectively test os.Exit()
-	cmd := exec.Command(os.Args[0], "-test.run=TestRunCmd_Error") // nolint:gosec
+	cmd := exec.Command(os.Args[0], "-test.run=TestRunCmd_Err") // nolint:gosec
 	cmd.Env = append(os.Environ(), "TEST_RUN=1")
 	cmd.Env = append(cmd.Env, fmt.Sprintf("TEST_SERVER_URL=%s", testServerURL))
 
@@ -77,7 +91,7 @@ func TestRunCmd_Error(t *testing.T) {
 	assert.Eventually(t, func() bool { return numCalls == 0 }, time.Second, 50*time.Millisecond)
 }
 
-func TestRunCmd_Verbose_Error(t *testing.T) {
+func TestRunCmd_Verbose_Err(t *testing.T) {
 	// this is exclusively run in subprocess
 	if os.Getenv("TEST_RUN") == "1" {
 		version.OS = "some os"
@@ -101,9 +115,23 @@ func TestRunCmd_Verbose_Error(t *testing.T) {
 		v.Set("offline-queue-file", offlineQueueFile.Name())
 		v.Set("plugin", "vim")
 
-		cmd.RunCmd(v, true, false, func(v *viper.Viper) (int, error) {
+		var cmdNumCalls int
+
+		cmdFn := func(v *viper.Viper) (int, error) {
+			cmdNumCalls++
 			return 42, errors.New("fail")
-		})
+		}
+
+		var shutdownNumCalls int
+
+		shutdownFn := func() {
+			shutdownNumCalls++
+		}
+
+		cmd.RunCmd(v, true, false, cmdFn, shutdownFn)
+
+		assert.Equal(t, 1, cmdNumCalls)
+		assert.Equal(t, 1, shutdownNumCalls)
 
 		return
 	}
@@ -118,7 +146,7 @@ func TestRunCmd_Verbose_Error(t *testing.T) {
 	})
 
 	// run command in another runner, to effectively test os.Exit()
-	cmd := exec.Command(os.Args[0], "-test.run=TestRunCmd_Verbose_Error") // nolint:gosec
+	cmd := exec.Command(os.Args[0], "-test.run=TestRunCmd_Verbose_Err") // nolint:gosec
 	cmd.Env = append(os.Environ(), "TEST_RUN=1")
 	cmd.Env = append(cmd.Env, fmt.Sprintf("TEST_SERVER_URL=%s", testServerURL))
 
@@ -132,7 +160,7 @@ func TestRunCmd_Verbose_Error(t *testing.T) {
 	assert.Eventually(t, func() bool { return numCalls == 0 }, time.Second, 50*time.Millisecond)
 }
 
-func TestRunCmd_SendDiagnostics_Error(t *testing.T) {
+func TestRunCmd_SendDiagnostics_Err(t *testing.T) {
 	// this is exclusively run in subprocess
 	if os.Getenv("TEST_RUN") == "1" {
 		version.OS = "some os"
@@ -156,9 +184,23 @@ func TestRunCmd_SendDiagnostics_Error(t *testing.T) {
 		v.Set("offline-queue-file", offlineQueueFile.Name())
 		v.Set("plugin", "vim")
 
-		cmd.RunCmd(v, true, true, func(v *viper.Viper) (int, error) {
+		var cmdNumCalls int
+
+		cmdFn := func(v *viper.Viper) (int, error) {
+			cmdNumCalls++
 			return 42, errors.New("fail")
-		})
+		}
+
+		var shutdownNumCalls int
+
+		shutdownFn := func() {
+			shutdownNumCalls++
+		}
+
+		cmd.RunCmd(v, true, true, cmdFn, shutdownFn)
+
+		assert.Equal(t, 1, cmdNumCalls)
+		assert.Equal(t, 1, shutdownNumCalls)
 
 		return
 	}
@@ -209,7 +251,7 @@ func TestRunCmd_SendDiagnostics_Error(t *testing.T) {
 	})
 
 	// run command in another runner, to effectively test os.Exit()
-	cmd := exec.Command(os.Args[0], "-test.run=TestRunCmd_SendDiagnostics_Error") // nolint:gosec
+	cmd := exec.Command(os.Args[0], "-test.run=TestRunCmd_SendDiagnostics_Err") // nolint:gosec
 	cmd.Env = append(os.Environ(), "TEST_RUN=1")
 	cmd.Env = append(cmd.Env, fmt.Sprintf("TEST_SERVER_URL=%s", testServerURL))
 
@@ -247,9 +289,24 @@ func TestRunCmd_SendDiagnostics_Panic(t *testing.T) {
 		v.Set("offline-queue-file", offlineQueueFile.Name())
 		v.Set("plugin", "vim")
 
-		cmd.RunCmd(v, true, false, func(v *viper.Viper) (int, error) {
+		var cmdNumCalls int
+
+		cmdFn := func(v *viper.Viper) (int, error) {
+			cmdNumCalls++
+
 			panic("fail")
-		})
+		}
+
+		var shutdownNumCalls int
+
+		shutdownFn := func() {
+			shutdownNumCalls++
+		}
+
+		cmd.RunCmd(v, true, false, cmdFn, shutdownFn)
+
+		assert.Equal(t, 1, cmdNumCalls)
+		assert.Equal(t, 1, shutdownNumCalls)
 
 		return
 	}
@@ -339,9 +396,24 @@ func TestRunCmd_SendDiagnostics_NoLogs_Panic(t *testing.T) {
 		v.Set("offline-queue-file", offlineQueueFile.Name())
 		v.Set("plugin", "vim")
 
-		cmd.RunCmd(v, false, false, func(v *viper.Viper) (int, error) {
+		var cmdNumCalls int
+
+		cmdFn := func(v *viper.Viper) (int, error) {
+			cmdNumCalls++
+
 			panic("fail")
-		})
+		}
+
+		var shutdownNumCalls int
+
+		shutdownFn := func() {
+			shutdownNumCalls++
+		}
+
+		cmd.RunCmd(v, false, false, cmdFn, shutdownFn)
+
+		assert.Equal(t, 1, cmdNumCalls)
+		assert.Equal(t, 1, shutdownNumCalls)
 
 		return
 	}
@@ -429,9 +501,23 @@ func TestRunCmd_SendDiagnostics_WakaError(t *testing.T) {
 		v.Set("offline-queue-file", offlineQueueFile.Name())
 		v.Set("plugin", "vim")
 
-		cmd.RunCmd(v, false, false, func(v *viper.Viper) (int, error) {
+		var cmdNumCalls int
+
+		cmdFn := func(v *viper.Viper) (int, error) {
+			cmdNumCalls++
 			return 42, offline.ErrOpenDB{Err: errors.New("fail")}
-		})
+		}
+
+		var shutdownNumCalls int
+
+		shutdownFn := func() {
+			shutdownNumCalls++
+		}
+
+		cmd.RunCmd(v, false, false, cmdFn, shutdownFn)
+
+		assert.Equal(t, 1, cmdNumCalls)
+		assert.Equal(t, 1, shutdownNumCalls)
 
 		return
 	}
@@ -518,9 +604,23 @@ func TestRunCmdWithOfflineSync(t *testing.T) {
 		v.SetDefault("sync-offline-activity", 24)
 		v.Set("plugin", "vim")
 
-		cmd.RunCmdWithOfflineSync(v, false, false, func(v *viper.Viper) (int, error) {
+		var cmdNumCalls int
+
+		cmdFn := func(v *viper.Viper) (int, error) {
+			cmdNumCalls++
 			return 0, nil
-		})
+		}
+
+		var shutdownNumCalls int
+
+		shutdownFn := func() {
+			shutdownNumCalls++
+		}
+
+		cmd.RunCmdWithOfflineSync(v, false, false, cmdFn, shutdownFn)
+
+		assert.Equal(t, 1, cmdNumCalls)
+		assert.Equal(t, 1, shutdownNumCalls)
 
 		return
 	}
