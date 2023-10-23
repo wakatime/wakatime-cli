@@ -86,20 +86,26 @@ func TestLoadParams(t *testing.T) {
 				File: filepath.Join(home, ".wakatime", "wakatime.log"),
 			},
 		},
-		"metrics set and verbose false": {
-			ViperMetrics: true,
-			Expected: logfile.Params{
-				File:    filepath.Join(home, ".wakatime", "wakatime.log"),
-				Metrics: false,
-			},
-		},
-		"metrics set and verbose true": {
-			ViperDebug:   true,
+		"metrics set": {
 			ViperMetrics: true,
 			Expected: logfile.Params{
 				File:    filepath.Join(home, ".wakatime", "wakatime.log"),
 				Metrics: true,
-				Verbose: true,
+			},
+		},
+		"metrics from config": {
+			ViperMetricsConfig: true,
+			Expected: logfile.Params{
+				File:    filepath.Join(home, ".wakatime", "wakatime.log"),
+				Metrics: true,
+			},
+		},
+		"metrics flag takes precedence": {
+			ViperMetrics:       true,
+			ViperMetricsConfig: false,
+			Expected: logfile.Params{
+				File:    filepath.Join(home, ".wakatime", "wakatime.log"),
+				Metrics: true,
 			},
 		},
 		"log to stdout": {
