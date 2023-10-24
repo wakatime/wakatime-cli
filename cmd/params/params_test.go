@@ -425,7 +425,40 @@ func TestLoadParams_ExtraHeartbeats_WithEOF(t *testing.T) {
 	}, params.ExtraHeartbeats)
 }
 
-func TestLoadParams_Filter_IsUnsavedEntity(t *testing.T) {
+func TestLoadHeartbeat_GuessLanguage_FlagTakesPrecedence(t *testing.T) {
+	v := viper.New()
+	v.Set("entity", "/path/to/file")
+	v.Set("guess-language", true)
+	v.Set("settings.guess_language", false)
+
+	params, err := paramscmd.LoadHeartbeatParams(v)
+	require.NoError(t, err)
+
+	assert.True(t, params.GuessLanguage)
+}
+
+func TestLoadHeartbeat_GuessLanguage_FromConfig(t *testing.T) {
+	v := viper.New()
+	v.Set("entity", "/path/to/file")
+	v.Set("settings.guess_language", true)
+
+	params, err := paramscmd.LoadHeartbeatParams(v)
+	require.NoError(t, err)
+
+	assert.True(t, params.GuessLanguage)
+}
+
+func TestLoadHeartbeat_GuessLanguage_Default(t *testing.T) {
+	v := viper.New()
+	v.Set("entity", "/path/to/file")
+
+	params, err := paramscmd.LoadHeartbeatParams(v)
+	require.NoError(t, err)
+
+	assert.False(t, params.GuessLanguage)
+}
+
+func TestLoadParams_IsUnsavedEntity(t *testing.T) {
 	v := viper.New()
 	v.Set("entity", "/path/to/file")
 	v.Set("is-unsaved-entity", true)
@@ -2299,6 +2332,7 @@ func TestHeartbeat_String(t *testing.T) {
 		Entity:          "path/to/entity.go",
 		EntityType:      heartbeat.FileType,
 		ExtraHeartbeats: make([]heartbeat.Heartbeat, 3),
+		GuessLanguage:   true,
 		IsUnsavedEntity: true,
 		IsWrite:         heartbeat.PointerTo(true),
 		Language:        heartbeat.PointerTo("Golang"),
@@ -2310,7 +2344,7 @@ func TestHeartbeat_String(t *testing.T) {
 	assert.Equal(
 		t,
 		"category: 'coding', cursor position: '15', entity: 'path/to/entity.go', entity type: 'file',"+
-			" num extra heartbeats: 3, guess_language: false, is unsaved entity: true, is write: true,"+
+			" num extra heartbeats: 3, guess language: true, is unsaved entity: true, is write: true,"+
 			" language: 'Golang', line number: '4', lines in file: '56', time: 1585598059.00000, filter"+
 			" params: (exclude: '[]', exclude unknown project: false, include: '[]', include only with"+
 			" project file: false), project params: (alternate: '', branch alternate: '', map patterns:"+
