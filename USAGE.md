@@ -5,6 +5,30 @@ Options can be passed to wakatime-cli via command line, or set in the `$WAKATIME
 Command line arguments take precedence over config file settings.
 Run `wakatime-cli --help` for available command line options.
 
+## Project Detection
+
+WakaTime auto-detects your projects.
+
+The priority of projects detection is:
+
+1. [.wakatime-project file](#wakatime-project-file)
+
+2. [project map](#project-map-section)
+
+3. Version control (Git)
+
+4. IDE project
+
+See the [source code](https://github.com/wakatime/wakatime-cli/blob/36f6372880d7113382e99453c2b94ff727788ae2/pkg/project/project.go#L145) for specifics.
+
+### WakaTime Project File
+
+To overwrite the auto-detected project, create a `.wakatime-project` file in your project’s root folder.
+The first line of the file contents overwrites the project name, if present.
+The second line, if present, overwrites the current branch name when working inside this folder.
+When the `.wakatime-project` file is empty, the folder’s name is used as the project name.
+Whenever a `.wakatime-project` file is found, it overwrites all other project detection.
+
 ## INI Config File
 
 Here's an example `$WAKATIME_HOME/.wakatime.cfg` config file with all available options:

@@ -502,6 +502,36 @@ func TestDetect_FileDetected(t *testing.T) {
 	assert.Equal(t, detector, project.FileDetector)
 }
 
+func TestDetect_EmptyFileDetected(t *testing.T) {
+	tmpDir, err := realpath.Realpath(t.TempDir())
+	require.NoError(t, err)
+
+	err = os.Mkdir(filepath.Join(tmpDir, "wakatime-cli"), os.FileMode(int(0700)))
+	require.NoError(t, err)
+
+	copyFile(
+		t,
+		"testdata/wakatime-project-empty",
+		filepath.Join(tmpDir, "wakatime-cli", ".wakatime-project"),
+	)
+
+	copyFile(
+		t,
+		"testdata/entity.any",
+		filepath.Join(tmpDir, "wakatime-cli", "entity.any"),
+	)
+
+	result, detector := project.Detect([]project.MapPattern{}, project.DetecterArg{
+		Filepath:  filepath.Join(tmpDir, "wakatime-cli", "entity.any"),
+		ShouldRun: true,
+	})
+
+	assert.Equal(t, "wakatime-cli", result.Project)
+	assert.Equal(t, "", result.Branch)
+	assert.Contains(t, result.Folder, tmpDir)
+	assert.Equal(t, detector, project.FileDetector)
+}
+
 func TestDetect_MapDetected(t *testing.T) {
 	tmpDir := t.TempDir()
 
