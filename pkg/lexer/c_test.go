@@ -4,9 +4,9 @@ import (
 	"os"
 	"testing"
 
+	"github.com/alecthomas/chroma/v2/lexers"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 
-	"github.com/alecthomas/chroma/v2/lexers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -30,13 +30,13 @@ func TestC_AnalyseText(t *testing.T) {
 		},
 	}
 
+	l := lexers.Get(heartbeat.LanguageC.StringChroma())
+	require.NotNil(t, l)
+
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			data, err := os.ReadFile(test.Filepath)
 			assert.NoError(t, err)
-
-			l := lexers.Get(heartbeat.LanguageC.StringChroma())
-			require.NotNil(t, l)
 
 			assert.Equal(t, test.Expected, l.AnalyseText(string(data)))
 		})

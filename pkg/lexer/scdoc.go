@@ -4,34 +4,30 @@ import (
 	"strings"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
-	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	"github.com/alecthomas/chroma/v2"
-	"github.com/alecthomas/chroma/v2/lexers"
 )
 
-// nolint:gochecknoinits
-func init() {
-	language := heartbeat.LanguageScdoc.StringChroma()
-	lexer := lexers.Get(language)
+// Scdoc lexer.
+type Scdoc struct{}
 
-	if lexer != nil {
-		log.Debugf("lexer %q already registered", language)
-		return
-	}
-
-	_ = lexers.Register(chroma.MustNewLexer(
+// Lexer returns the lexer.
+func (l Scdoc) Lexer() chroma.Lexer {
+	lexer := chroma.MustNewLexer(
 		&chroma.Config{
-			Name:      language,
+			Name:      l.Name(),
 			Aliases:   []string{"scdoc", "scd"},
 			Filenames: []string{"*.scd", "*.scdoc"},
+			MimeTypes: []string{},
 		},
 		func() chroma.Rules {
 			return chroma.Rules{
 				"root": {},
 			}
 		},
-	).SetAnalyser(func(text string) float32 {
+	)
+
+	lexer.SetAnalyser(func(text string) float32 {
 		// This is very similar to markdown, save for the escape characters
 		// needed for * and _.
 		var result float32
@@ -45,5 +41,12 @@ func init() {
 		}
 
 		return result
-	}))
+	})
+
+	return lexer
+}
+
+// Name returns the name of the lexer.
+func (Scdoc) Name() string {
+	return heartbeat.LanguageScdoc.StringChroma()
 }

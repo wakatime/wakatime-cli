@@ -6,7 +6,7 @@ import (
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/language"
-	_ "github.com/wakatime/wakatime-cli/pkg/lexer" // force to load all lexers
+	"github.com/wakatime/wakatime-cli/pkg/lexer"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -257,6 +257,9 @@ func TestDetect_FSharp_Over_Forth(t *testing.T) {
 }
 
 func TestDetect_ChromaTopLanguagesRetrofit(t *testing.T) {
+	err := lexer.RegisterAll()
+	require.NoError(t, err)
+
 	tests := map[string]struct {
 		Filepaths []string
 		Expected  heartbeat.Language

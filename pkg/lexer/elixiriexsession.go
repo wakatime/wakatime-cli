@@ -2,27 +2,19 @@ package lexer
 
 import (
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
-	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	"github.com/alecthomas/chroma/v2"
-	"github.com/alecthomas/chroma/v2/lexers"
 )
 
-// nolint:gochecknoinits
-func init() {
-	language := heartbeat.LanguageElixirIexSession.StringChroma()
-	lexer := lexers.Get(language)
+// ElixirIexSsession lexer.
+type ElixirIexSsession struct{}
 
-	if lexer != nil {
-		log.Debugf("lexer %q already registered", language)
-		return
-	}
-
-	_ = lexers.Register(chroma.MustNewLexer(
+// Lexer returns the lexer.
+func (l ElixirIexSsession) Lexer() chroma.Lexer {
+	return chroma.MustNewLexer(
 		&chroma.Config{
-			Name:    language,
-			Aliases: []string{"iex"},
-
+			Name:      l.Name(),
+			Aliases:   []string{"iex"},
 			MimeTypes: []string{"text/x-elixir-shellsession"},
 		},
 		func() chroma.Rules {
@@ -30,5 +22,10 @@ func init() {
 				"root": {},
 			}
 		},
-	))
+	)
+}
+
+// Name returns the name of the lexer.
+func (ElixirIexSsession) Name() string {
+	return heartbeat.LanguageElixirIexSession.StringChroma()
 }

@@ -5,10 +5,8 @@ import (
 	"strings"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
-	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	"github.com/alecthomas/chroma/v2"
-	"github.com/alecthomas/chroma/v2/lexers"
 )
 
 var teraTermAnalyserCommandRe = regexp.MustCompile(`(?i)\b(` + strings.Join([]string{
@@ -213,19 +211,14 @@ var teraTermAnalyserCommandRe = regexp.MustCompile(`(?i)\b(` + strings.Join([]st
 	"zmodemsend",
 }, "|") + `)\b`)
 
-// nolint:gochecknoinits
-func init() {
-	language := heartbeat.LanguageTeraTerm.StringChroma()
-	lexer := lexers.Get(language)
+// TeraTerm macro lexer.
+type TeraTerm struct{}
 
-	if lexer != nil {
-		log.Debugf("lexer %q already registered", language)
-		return
-	}
-
-	_ = lexers.Register(chroma.MustNewLexer(
+// Lexer returns the lexer.
+func (l TeraTerm) Lexer() chroma.Lexer {
+	lexer := chroma.MustNewLexer(
 		&chroma.Config{
-			Name:      language,
+			Name:      l.Name(),
 			Aliases:   []string{"ttl", "teraterm", "teratermmacro"},
 			Filenames: []string{"*.ttl"},
 			MimeTypes: []string{"text/x-teratermmacro"},
@@ -235,7 +228,9 @@ func init() {
 				"root": {},
 			}
 		},
-	).SetAnalyser(func(text string) float32 {
+	)
+
+	lexer.SetAnalyser(func(text string) float32 {
 		// Turtle and Tera Term macro files share the same file extension
 		// but each has a recognizable and distinct syntax.
 		if teraTermAnalyserCommandRe.MatchString(text) {
@@ -243,5 +238,12 @@ func init() {
 		}
 
 		return 0
-	}))
+	})
+
+	return lexer
+}
+
+// Name returns the name of the lexer.
+func (TeraTerm) Name() string {
+	return heartbeat.LanguageTeraTerm.StringChroma()
 }

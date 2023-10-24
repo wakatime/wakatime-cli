@@ -5,27 +5,20 @@ import (
 	"strings"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
-	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	"github.com/alecthomas/chroma/v2"
-	"github.com/alecthomas/chroma/v2/lexers"
 )
 
 var jclAnalyserJobHeaderRe = regexp.MustCompile(`(?i)^//[a-z#$@][a-z0-9#$@]{0,7}\s+job(\s+.*)?$`)
 
-// nolint:gochecknoinits
-func init() {
-	language := heartbeat.LanguageJCL.StringChroma()
-	lexer := lexers.Get(language)
+// JCL lexer.
+type JCL struct{}
 
-	if lexer != nil {
-		log.Debugf("lexer %q not found", language)
-		return
-	}
-
-	_ = lexers.Register(chroma.MustNewLexer(
+// Lexer returns the lexer.
+func (l JCL) Lexer() chroma.Lexer {
+	lexer := chroma.MustNewLexer(
 		&chroma.Config{
-			Name:      language,
+			Name:      l.Name(),
 			Aliases:   []string{"jcl"},
 			Filenames: []string{"*.jcl"},
 			MimeTypes: []string{"text/x-jcl"},
@@ -35,7 +28,9 @@ func init() {
 				"root": {},
 			}
 		},
-	).SetAnalyser(func(text string) float32 {
+	)
+
+	lexer.SetAnalyser(func(text string) float32 {
 		// Recognize JCL job by header.
 		lines := strings.Split(text, "\n")
 		if len(lines) == 0 {
@@ -47,5 +42,12 @@ func init() {
 		}
 
 		return 0
-	}))
+	})
+
+	return lexer
+}
+
+// Name returns the name of the lexer.
+func (JCL) Name() string {
+	return heartbeat.LanguageJCL.StringChroma()
 }

@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
-	"github.com/wakatime/wakatime-cli/pkg/log"
 
+	"github.com/alecthomas/chroma/v2"
 	"github.com/alecthomas/chroma/v2/lexers"
 )
 
@@ -23,33 +23,44 @@ var (
 	objectiveCAnalyserNSNumberRe = regexp.MustCompile(`@[0-9]+`)
 )
 
-// nolint:gochecknoinits
-func init() {
-	language := heartbeat.LanguageObjectiveC.StringChroma()
-	lexer := lexers.Get(language)
+// ObjectiveC lexer.
+type ObjectiveC struct{}
 
+// Lexer returns the lexer.
+func (l ObjectiveC) Lexer() chroma.Lexer {
+	lexer := lexers.Get(l.Name())
 	if lexer == nil {
-		log.Debugf("lexer %q not found", language)
-		return
+		return nil
 	}
 
-	lexer.SetAnalyser(func(text string) float32 {
-		if objectiveCAnalyserKeywordsRe.MatchString(text) {
-			return 1.0
-		}
+	if lexer, ok := lexer.(*chroma.RegexLexer); ok {
+		lexer.SetAnalyser(func(text string) float32 {
+			if objectiveCAnalyserKeywordsRe.MatchString(text) {
+				return 1.0
+			}
 
-		if strings.Contains(text, `@"`) {
-			return 0.8
-		}
+			if strings.Contains(text, `@"`) {
+				return 0.8
+			}
 
-		if objectiveCAnalyserNSNumberRe.MatchString(text) {
-			return 0.7
-		}
+			if objectiveCAnalyserNSNumberRe.MatchString(text) {
+				return 0.7
+			}
 
-		if objectiveCAnalyserMessageRe.MatchString(text) {
-			return 0.8
-		}
+			if objectiveCAnalyserMessageRe.MatchString(text) {
+				return 0.8
+			}
 
-		return 0
-	})
+			return 0
+		})
+
+		return lexer
+	}
+
+	return nil
+}
+
+// Name returns the name of the lexer.
+func (ObjectiveC) Name() string {
+	return heartbeat.LanguageObjectiveC.StringChroma()
 }

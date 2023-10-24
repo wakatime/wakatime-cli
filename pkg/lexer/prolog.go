@@ -4,26 +4,37 @@ import (
 	"strings"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
-	"github.com/wakatime/wakatime-cli/pkg/log"
 
+	"github.com/alecthomas/chroma/v2"
 	"github.com/alecthomas/chroma/v2/lexers"
 )
 
-// nolint:gochecknoinits
-func init() {
-	language := heartbeat.LanguageProlog.StringChroma()
-	lexer := lexers.Get(language)
+// Prolog lexer.
+type Prolog struct{}
 
+// Lexer returns the lexer.
+func (l Prolog) Lexer() chroma.Lexer {
+	lexer := lexers.Get(l.Name())
 	if lexer == nil {
-		log.Debugf("lexer %q not found", language)
-		return
+		return nil
 	}
 
-	lexer.SetAnalyser(func(text string) float32 {
-		if strings.Contains(text, ":-") {
-			return 1.0
-		}
+	if lexer, ok := lexer.(*chroma.RegexLexer); ok {
+		lexer.SetAnalyser(func(text string) float32 {
+			if strings.Contains(text, ":-") {
+				return 1.0
+			}
 
-		return 0
-	})
+			return 0
+		})
+
+		return lexer
+	}
+
+	return nil
+}
+
+// Name returns the name of the lexer.
+func (Prolog) Name() string {
+	return heartbeat.LanguageProlog.StringChroma()
 }

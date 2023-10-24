@@ -4,36 +4,32 @@ import (
 	"regexp"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
-	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	"github.com/alecthomas/chroma/v2"
-	"github.com/alecthomas/chroma/v2/lexers"
 )
 
 var cbmBasicV2AnalyserRe = regexp.MustCompile(`^\d+`)
 
-// nolint:gochecknoinits
-func init() {
-	language := heartbeat.LanguageCBMBasicV2.StringChroma()
-	lexer := lexers.Get(language)
+// CBMBasicV2 CBM BASIC V2 lexer.
+type CBMBasicV2 struct{}
 
-	if lexer != nil {
-		log.Debugf("lexer %q already registered", language)
-		return
-	}
-
-	_ = lexers.Register(chroma.MustNewLexer(
+// Lexer returns the lexer.
+func (l CBMBasicV2) Lexer() chroma.Lexer {
+	lexer := chroma.MustNewLexer(
 		&chroma.Config{
-			Name:      language,
+			Name:      l.Name(),
 			Aliases:   []string{"cbmbas"},
 			Filenames: []string{"*.bas"},
+			MimeTypes: []string{},
 		},
 		func() chroma.Rules {
 			return chroma.Rules{
 				"root": {},
 			}
 		},
-	).SetAnalyser(func(text string) float32 {
+	)
+
+	lexer.SetAnalyser(func(text string) float32 {
 		// if it starts with a line number, it shouldn't be a "modern" Basic
 		// like VB.net
 		if cbmBasicV2AnalyserRe.MatchString(text) {
@@ -41,5 +37,12 @@ func init() {
 		}
 
 		return 0
-	}))
+	})
+
+	return lexer
+}
+
+// Name returns the name of the lexer.
+func (CBMBasicV2) Name() string {
+	return heartbeat.LanguageCBMBasicV2.StringChroma()
 }

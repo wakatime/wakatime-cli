@@ -4,25 +4,18 @@ import (
 	"strings"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
-	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	"github.com/alecthomas/chroma/v2"
-	"github.com/alecthomas/chroma/v2/lexers"
 )
 
-// nolint:gochecknoinits
-func init() {
-	language := heartbeat.LanguageUcode.StringChroma()
-	lexer := lexers.Get(language)
+// Ucode lexer.
+type Ucode struct{}
 
-	if lexer != nil {
-		log.Debugf("lexer %q already registered", language)
-		return
-	}
-
-	_ = lexers.Register(chroma.MustNewLexer(
+// Lexer returns the lexer.
+func (l Ucode) Lexer() chroma.Lexer {
+	lexer := chroma.MustNewLexer(
 		&chroma.Config{
-			Name:      language,
+			Name:      l.Name(),
 			Aliases:   []string{"ucode"},
 			Filenames: []string{"*.u", "*.u1", "*.u2"},
 		},
@@ -31,7 +24,9 @@ func init() {
 				"root": {},
 			}
 		},
-	).SetAnalyser(func(text string) float32 {
+	)
+
+	lexer.SetAnalyser(func(text string) float32 {
 		// endsuspend and endrepeat are unique to this language, and
 		// \self, /self doesn't seem to get used anywhere else either.
 		var result float32
@@ -60,5 +55,12 @@ func init() {
 		}
 
 		return result
-	}))
+	})
+
+	return lexer
+}
+
+// Name returns the name of the lexer.
+func (Ucode) Name() string {
+	return heartbeat.LanguageUcode.StringChroma()
 }

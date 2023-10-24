@@ -2,26 +2,21 @@ package lexer
 
 import (
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
-	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	"github.com/alecthomas/chroma/v2"
-	"github.com/alecthomas/chroma/v2/lexers"
 )
 
-// nolint:gochecknoinits
-func init() {
-	language := heartbeat.LanguageTodotxt.StringChroma()
-	lexer := lexers.Get(language)
+// Todotxt lexer. Lexer for Todo.txt <http://todotxt.com/> todo list format.
+type Todotxt struct{}
 
-	if lexer != nil {
-		log.Debugf("lexer %q already registered", language)
-		return
-	}
-
-	_ = lexers.Register(chroma.MustNewLexer(
+// Lexer returns the lexer.
+func (l Todotxt) Lexer() chroma.Lexer {
+	return chroma.MustNewLexer(
 		&chroma.Config{
-			Name:      language,
-			Aliases:   []string{"todotxt"},
+			Name:    l.Name(),
+			Aliases: []string{"todotxt"},
+			// *.todotxt is not a standard extension for Todo.txt files; including it
+			// makes testing easier, and also makes autodetecting file type easier.
 			Filenames: []string{"todo.txt", "*.todotxt"},
 			MimeTypes: []string{"text/x-todo"},
 		},
@@ -30,5 +25,10 @@ func init() {
 				"root": {},
 			}
 		},
-	))
+	)
+}
+
+// Name returns the name of the lexer.
+func (Todotxt) Name() string {
+	return heartbeat.LanguageTodotxt.StringChroma()
 }

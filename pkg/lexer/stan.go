@@ -4,27 +4,24 @@ import (
 	"regexp"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
-	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	"github.com/alecthomas/chroma/v2"
-	"github.com/alecthomas/chroma/v2/lexers"
 )
 
 var stanAnalyserRe = regexp.MustCompile(`(?m)^\s*parameters\s*\{`)
 
-// nolint:gochecknoinits
-func init() {
-	language := heartbeat.LanguageStan.StringChroma()
-	lexer := lexers.Get(language)
+// Stan lexer. Lexer for Stan models.
+//
+// The Stan modeling language is specified in the *Stan Modeling Language
+// User's Guide and Reference Manual, v2.17.0*,
+// pdf <https://github.com/stan-dev/stan/releases/download/v2.17.0/stan-reference-2.17.0.pdf>`.
+type Stan struct{}
 
-	if lexer != nil {
-		log.Debugf("lexer %q already registered", language)
-		return
-	}
-
-	_ = lexers.Register(chroma.MustNewLexer(
+// Lexer returns the lexer.
+func (l Stan) Lexer() chroma.Lexer {
+	lexer := chroma.MustNewLexer(
 		&chroma.Config{
-			Name:      language,
+			Name:      l.Name(),
 			Aliases:   []string{"stan"},
 			Filenames: []string{"*.stan"},
 		},
@@ -33,11 +30,20 @@ func init() {
 				"root": {},
 			}
 		},
-	).SetAnalyser(func(text string) float32 {
+	)
+
+	lexer.SetAnalyser(func(text string) float32 {
 		if stanAnalyserRe.MatchString(text) {
 			return 1.0
 		}
 
 		return 0
-	}))
+	})
+
+	return lexer
+}
+
+// Name returns the name of the lexer.
+func (Stan) Name() string {
+	return heartbeat.LanguageStan.StringChroma()
 }
