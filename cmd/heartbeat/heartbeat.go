@@ -108,9 +108,10 @@ func SendHeartbeats(v *viper.Viper, queueFilepath string) error {
 	}
 
 	handleOpts = append(handleOpts, backoff.WithBackoff(backoff.Config{
-		V:       v,
-		At:      params.API.BackoffAt,
-		Retries: params.API.BackoffRetries,
+		V:        v,
+		At:       params.API.BackoffAt,
+		Retries:  params.API.BackoffRetries,
+		HasProxy: params.API.ProxyURL != "",
 	}))
 
 	apiClient, err := apicmd.NewClientWithoutAuth(params.API)
@@ -240,7 +241,9 @@ func initHandleOptions(params paramscmd.Params) []heartbeat.HandleOption {
 			MapPatterns:   params.API.KeyPatterns,
 		}),
 		filestats.WithDetection(),
-		language.WithDetection(),
+		language.WithDetection(language.Config{
+			GuessLanguage: params.Heartbeat.GuessLanguage,
+		}),
 		deps.WithDetection(deps.Config{
 			FilePatterns: params.Heartbeat.Sanitize.HideFileNames,
 		}),

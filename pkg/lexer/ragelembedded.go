@@ -4,25 +4,18 @@ import (
 	"strings"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
-	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	"github.com/alecthomas/chroma/v2"
-	"github.com/alecthomas/chroma/v2/lexers"
 )
 
-// nolint:gochecknoinits
-func init() {
-	language := heartbeat.LanguageRagelEmbedded.StringChroma()
-	lexer := lexers.Get(language)
+// RagelEmbedded lexer. A lexer for Ragel embedded in a host language file.
+type RagelEmbedded struct{}
 
-	if lexer != nil {
-		log.Debugf("lexer %q already registered", language)
-		return
-	}
-
-	_ = lexers.Register(chroma.MustNewLexer(
+// Lexer returns the lexer.
+func (l RagelEmbedded) Lexer() chroma.Lexer {
+	lexer := chroma.MustNewLexer(
 		&chroma.Config{
-			Name:      language,
+			Name:      l.Name(),
 			Aliases:   []string{"ragel-em"},
 			Filenames: []string{"*.rl"},
 		},
@@ -31,11 +24,20 @@ func init() {
 				"root": {},
 			}
 		},
-	).SetAnalyser(func(text string) float32 {
+	)
+
+	lexer.SetAnalyser(func(text string) float32 {
 		if strings.Contains(text, "@LANG: indep") {
 			return 1.0
 		}
 
 		return 0
-	}))
+	})
+
+	return lexer
+}
+
+// Name returns the name of the lexer.
+func (RagelEmbedded) Name() string {
+	return heartbeat.LanguageRagelEmbedded.StringChroma()
 }

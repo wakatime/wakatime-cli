@@ -22,7 +22,7 @@ const maxFileSize = 512000
 // detectChromaCustomized returns the best by filename matching lexer. Best lexer is determined
 // by customized priority.
 // This is a modified implementation of chroma.lexers.internal.api:Match().
-func detectChromaCustomized(filepath string) (heartbeat.Language, float32, bool) {
+func detectChromaCustomized(filepath string, guessLanguage bool) (heartbeat.Language, float32, bool) {
 	_, file := fp.Split(filepath)
 	filename := fp.Base(file)
 	matched := chroma.PrioritisedLexers{}
@@ -69,6 +69,10 @@ func detectChromaCustomized(filepath string) (heartbeat.Language, float32, bool)
 		}
 
 		return language, weight, true
+	}
+
+	if !guessLanguage {
+		return heartbeat.LanguageUnknown, 0, false
 	}
 
 	// Finally, try matching by file content.

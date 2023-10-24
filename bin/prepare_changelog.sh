@@ -8,8 +8,8 @@ if [[ $# -ne 2 ]]; then
 fi
 
 # Read arguments
-branch=$1
-changelog=$2
+branch=$(echo "$1" | tr -d \")
+changelog=$(echo "$2" | tr -d \")
 slack=
 
 clean_up() {
@@ -61,7 +61,7 @@ parse_for_release() {
 }
 
 case $branch in
-    develop) 
+    develop)
         parse_for_develop
         clean_up
         slack_output_for_develop

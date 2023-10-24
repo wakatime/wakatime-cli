@@ -105,6 +105,10 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 		"(deprecated) Absolute path to file for the heartbeat."+
 			" Can also be a url, domain or app when --entity-type is not file.")
 	flags.Bool("file-experts", false, "Prints the top developer within a team for the given entity, then exits.")
+	flags.Bool(
+		"guess-language",
+		false,
+		"Enable detecting language from file contents.")
 	flags.String("hide-branch-names", "", "Obfuscate branch names. Will not send revision control branch names to api.")
 	flags.String("hide-file-names", "", "Obfuscate filenames. Will not send file names to api.")
 	flags.String("hide-filenames", "", "(deprecated) Obfuscate filenames. Will not send file names to api.")
@@ -159,6 +163,11 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 	flags.String("log-file", "", "Optional log file. Defaults to '~/.wakatime/wakatime.log'.")
 	flags.String("logfile", "", "(deprecated) Optional log file. Defaults to '~/.wakatime/wakatime.log'.")
 	flags.Bool("log-to-stdout", false, "If enabled, logs will go to stdout. Will overwrite logfile configs.")
+	flags.Bool(
+		"metrics",
+		false,
+		"When set, collects metrics usage in '~/.wakatime/metrics' folder. Defaults to false.",
+	)
 	flags.Bool(
 		"no-ssl-verify",
 		false,

@@ -5,11 +5,9 @@ import (
 	"strings"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
-	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/shebang"
 
 	"github.com/alecthomas/chroma/v2"
-	"github.com/alecthomas/chroma/v2/lexers"
 )
 
 var (
@@ -22,38 +20,17 @@ var (
 	perl6EndPodRe          = regexp.MustCompile(`^=(?:end|cut)`)
 )
 
-// nolint:gochecknoinits
-func init() {
-	language := heartbeat.LanguagePerl6.StringChroma()
-	lexer := lexers.Get(language)
+// Perl6 lexer.
+type Perl6 struct{}
 
-	// Roku uses Perl6 as alias
-	if lexer != nil && lexer.Config().Name != "Raku" {
-		log.Debugf("lexer %q already registered", language)
-		return
-	}
-
-	_ = lexers.Register(chroma.MustNewLexer(
+// Lexer returns the lexer.
+func (l Perl6) Lexer() chroma.Lexer {
+	lexer := chroma.MustNewLexer(
 		&chroma.Config{
-			Name:    language,
+			Name:    l.Name(),
 			Aliases: []string{"perl6", "pl6", "raku"},
-			Filenames: []string{
-				"*.pl",
-				"*.pm",
-				"*.nqp",
-				"*.p6",
-				"*.6pl",
-				"*.p6l",
-				"*.pl6",
-				"*.6pm",
-				"*.p6m",
-				"*.pm6",
-				"*.t",
-				"*.raku",
-				"*.rakumod",
-				"*.rakutest",
-				"*.rakudoc",
-			},
+			Filenames: []string{"*.pl", "*.pm", "*.nqp", "*.p6", "*.6pl", "*.p6l", "*.pl6",
+				"*.6pm", "*.p6m", "*.pm6", "*.t", "*.raku", "*.rakumod", "*.rakutest", "*.rakudoc"},
 			MimeTypes: []string{"text/x-perl6", "application/x-perl6"},
 		},
 		func() chroma.Rules {
@@ -61,7 +38,9 @@ func init() {
 				"root": {},
 			}
 		},
-	).SetAnalyser(func(text string) float32 {
+	)
+
+	lexer.SetAnalyser(func(text string) float32 {
 		if matched, _ := shebang.MatchString(text, "perl6|rakudo|niecza|pugs"); matched {
 			return 1.0
 		}
@@ -111,7 +90,9 @@ func init() {
 		}
 
 		return result
-	}))
+	})
+
+	return lexer
 }
 
 func perl6StripPod(text string) []string {
@@ -151,4 +132,9 @@ func perl6GetSubgroups(match []string) map[string]string {
 	}
 
 	return groups
+}
+
+// Name returns the name of the lexer.
+func (Perl6) Name() string {
+	return heartbeat.LanguagePerl6.StringChroma()
 }

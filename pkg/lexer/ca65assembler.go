@@ -4,42 +4,45 @@ import (
 	"regexp"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
-	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	"github.com/alecthomas/chroma/v2"
-	"github.com/alecthomas/chroma/v2/lexers"
 )
 
 // nolint:gochecknoglobals
 var ca65AnalyserCommentRe = regexp.MustCompile(`(?m)^\s*;`)
 
-// nolint:gochecknoinits
-func init() {
-	language := heartbeat.LanguageCa65Assembler.StringChroma()
-	lexer := lexers.Get(language)
+// Ca65Assembler lexer.
+type Ca65Assembler struct{}
 
-	if lexer != nil {
-		log.Debugf("lexer %q already registered", language)
-		return
-	}
-
-	_ = lexers.Register(chroma.MustNewLexer(
+// Lexer returns the lexer.
+func (l Ca65Assembler) Lexer() chroma.Lexer {
+	lexer := chroma.MustNewLexer(
 		&chroma.Config{
-			Name:      language,
+			Name:      l.Name(),
 			Aliases:   []string{"ca65"},
 			Filenames: []string{"*.s"},
+			MimeTypes: []string{},
 		},
 		func() chroma.Rules {
 			return chroma.Rules{
 				"root": {},
 			}
 		},
-	).SetAnalyser(func(text string) float32 {
+	)
+
+	lexer.SetAnalyser(func(text string) float32 {
 		// comments in GAS start with "#".
 		if ca65AnalyserCommentRe.MatchString(text) {
 			return 0.9
 		}
 
 		return 0
-	}))
+	})
+
+	return lexer
+}
+
+// Name returns the name of the lexer.
+func (Ca65Assembler) Name() string {
+	return heartbeat.LanguageCa65Assembler.StringChroma()
 }

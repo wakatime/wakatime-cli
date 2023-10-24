@@ -142,7 +142,9 @@ func initHandleOptions(params paramscmd.Params) []heartbeat.HandleOption {
 		}),
 		remote.WithDetection(),
 		filestats.WithDetection(),
-		language.WithDetection(),
+		language.WithDetection(language.Config{
+			GuessLanguage: params.Heartbeat.GuessLanguage,
+		}),
 		deps.WithDetection(deps.Config{
 			FilePatterns: params.Heartbeat.Sanitize.HideFileNames,
 		}),

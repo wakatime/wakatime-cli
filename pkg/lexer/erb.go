@@ -4,27 +4,19 @@ import (
 	"strings"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
-	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	"github.com/alecthomas/chroma/v2"
-	"github.com/alecthomas/chroma/v2/lexers"
 )
 
-// nolint:gochecknoinits
-func init() {
-	language := heartbeat.LanguageERB.StringChroma()
-	lexer := lexers.Get(language)
+// ERB lexer.
+type ERB struct{}
 
-	if lexer != nil {
-		log.Debugf("lexer %q already registered", language)
-		return
-	}
-
-	_ = lexers.Register(chroma.MustNewLexer(
+// Lexer returns the lexer.
+func (l ERB) Lexer() chroma.Lexer {
+	lexer := chroma.MustNewLexer(
 		&chroma.Config{
-			Name:    language,
-			Aliases: []string{"erb"},
-
+			Name:      l.Name(),
+			Aliases:   []string{"erb"},
 			MimeTypes: []string{"application/x-ruby-templating"},
 		},
 		func() chroma.Rules {
@@ -32,11 +24,20 @@ func init() {
 				"root": {},
 			}
 		},
-	).SetAnalyser(func(text string) float32 {
+	)
+
+	lexer.SetAnalyser(func(text string) float32 {
 		if strings.Contains(text, "<%") && strings.Contains(text, "%>") {
 			return 0.4
 		}
 
 		return 0
-	}))
+	})
+
+	return lexer
+}
+
+// Name returns the name of the lexer.
+func (ERB) Name() string {
+	return heartbeat.LanguageERB.StringChroma()
 }

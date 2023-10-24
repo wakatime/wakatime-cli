@@ -4,26 +4,20 @@ import (
 	"strings"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
-	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/xml"
 
 	"github.com/alecthomas/chroma/v2"
 	"github.com/alecthomas/chroma/v2/lexers"
 )
 
-// nolint:gochecknoinits
-func init() {
-	language := heartbeat.LanguageJSP.StringChroma()
-	lexer := lexers.Get(language)
+// JSP lexer.
+type JSP struct{}
 
-	if lexer != nil {
-		log.Debugf("lexer %q not found", language)
-		return
-	}
-
-	_ = lexers.Register(chroma.MustNewLexer(
+// Lexer returns the lexer.
+func (l JSP) Lexer() chroma.Lexer {
+	lexer := chroma.MustNewLexer(
 		&chroma.Config{
-			Name:      language,
+			Name:      l.Name(),
 			Aliases:   []string{"jsp"},
 			Filenames: []string{"*.jsp"},
 			MimeTypes: []string{"application/x-jsp"},
@@ -33,7 +27,9 @@ func init() {
 				"root": {},
 			}
 		},
-	).SetAnalyser(func(text string) float32 {
+	)
+
+	lexer.SetAnalyser(func(text string) float32 {
 		var result float32
 
 		java := lexers.Get(heartbeat.LanguageJava.StringChroma())
@@ -50,5 +46,12 @@ func init() {
 		}
 
 		return result
-	}))
+	})
+
+	return lexer
+}
+
+// Name returns the name of the lexer.
+func (JSP) Name() string {
+	return heartbeat.LanguageJSP.StringChroma()
 }

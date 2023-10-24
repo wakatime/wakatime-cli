@@ -4,25 +4,18 @@ import (
 	"strings"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
-	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	"github.com/alecthomas/chroma/v2"
-	"github.com/alecthomas/chroma/v2/lexers"
 )
 
-// nolint:gochecknoinits
-func init() {
-	language := heartbeat.LanguageTADS3.StringChroma()
-	lexer := lexers.Get(language)
+// TADS3 lexer.
+type TADS3 struct{}
 
-	if lexer != nil {
-		log.Debugf("lexer %q already registered", language)
-		return
-	}
-
-	_ = lexers.Register(chroma.MustNewLexer(
+// Lexer returns the lexer.
+func (l TADS3) Lexer() chroma.Lexer {
+	lexer := chroma.MustNewLexer(
 		&chroma.Config{
-			Name:      language,
+			Name:      l.Name(),
 			Aliases:   []string{"tads3"},
 			Filenames: []string{"*.t"},
 		},
@@ -31,7 +24,9 @@ func init() {
 				"root": {},
 			}
 		},
-	).SetAnalyser(func(text string) float32 {
+	)
+
+	lexer.SetAnalyser(func(text string) float32 {
 		// This is a rather generic descriptive language without strong
 		// identifiers. It looks like a 'GameMainDef' has to be present,
 		// and/or a 'versionInfo' with an 'IFID' field.
@@ -47,5 +42,12 @@ func init() {
 		}
 
 		return result
-	}))
+	})
+
+	return lexer
+}
+
+// Name returns the name of the lexer.
+func (TADS3) Name() string {
+	return heartbeat.LanguageTADS3.StringChroma()
 }

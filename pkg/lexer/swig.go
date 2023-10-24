@@ -4,10 +4,8 @@ import (
 	"regexp"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
-	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	"github.com/alecthomas/chroma/v2"
-	"github.com/alecthomas/chroma/v2/lexers"
 )
 
 var (
@@ -101,30 +99,28 @@ var (
 	}
 )
 
-// nolint:gochecknoinits
-func init() {
-	language := heartbeat.LanguageSWIG.StringChroma()
-	lexer := lexers.Get(language)
+// SWIG lexer.
+type SWIG struct{}
 
-	if lexer != nil {
-		log.Debugf("lexer %q already registered", language)
-		return
-	}
-
-	_ = lexers.Register(chroma.MustNewLexer(
+// Lexer returns the lexer.
+func (l SWIG) Lexer() chroma.Lexer {
+	lexer := chroma.MustNewLexer(
 		&chroma.Config{
-			Name:      language,
+			Name:      l.Name(),
 			Aliases:   []string{"swig"},
 			Filenames: []string{"*.swg", "*.i"},
 			MimeTypes: []string{"text/swig"},
-			Priority:  0.04,
+			// Lower than C/C++ and Objective C/C++
+			Priority: 0.04,
 		},
 		func() chroma.Rules {
 			return chroma.Rules{
 				"root": {},
 			}
 		},
-	).SetAnalyser(func(text string) float32 {
+	)
+
+	lexer.SetAnalyser(func(text string) float32 {
 		var result float32
 
 		// Search for SWIG directives, which are conventionally at the beginning of
@@ -143,5 +139,12 @@ func init() {
 		}
 
 		return result
-	}))
+	})
+
+	return lexer
+}
+
+// Name returns the name of the lexer.
+func (SWIG) Name() string {
+	return heartbeat.LanguageSWIG.StringChroma()
 }
