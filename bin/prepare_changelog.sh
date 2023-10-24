@@ -8,8 +8,8 @@ if [[ $# -ne 2 ]]; then
 fi
 
 # Read arguments
-branch=$(echo $1 | tr -d \")
-changelog=$(echo $2 | tr -d \")
+branch=$(echo "$1" | tr -d \")
+changelog=$(echo "$2" | tr -d \")
 slack=
 
 clean_up() {
