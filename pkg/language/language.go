@@ -10,10 +10,16 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/log"
 )
 
+// Config defines language detection options.
+type Config struct {
+	// GuessLanguage enables detecting lexer language from file contents.
+	GuessLanguage bool
+}
+
 // WithDetection initializes and returns a heartbeat handle option, which
 // can be used in a heartbeat processing pipeline to detect and add programming
 // language info to heartbeats of entity type 'file'.
-func WithDetection() heartbeat.HandleOption {
+func WithDetection(config Config) heartbeat.HandleOption {
 	return func(next heartbeat.Handle) heartbeat.Handle {
 		return func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 			log.Debugln("execute language detection")
@@ -29,7 +35,7 @@ func WithDetection() heartbeat.HandleOption {
 					filepath = h.LocalFile
 				}
 
-				language, err := Detect(filepath)
+				language, err := Detect(filepath, config.GuessLanguage)
 				if err != nil && hh[n].LanguageAlternate != "" {
 					hh[n].Language = heartbeat.PointerTo(hh[n].LanguageAlternate)
 
@@ -50,15 +56,16 @@ func WithDetection() heartbeat.HandleOption {
 	}
 }
 
-// Detect detects the language of a specific file.
-func Detect(fp string) (heartbeat.Language, error) {
+// Detect detects the language of a specific file. If guessLanguage is true,
+// Chroma will be used to detect a language from the file contents.
+func Detect(fp string, guessLanguage bool) (heartbeat.Language, error) {
 	if language, ok := detectSpecialCases(fp); ok {
 		return language, nil
 	}
 
 	var language heartbeat.Language
 
-	languageChroma, weight, ok := detectChromaCustomized(fp)
+	languageChroma, weight, ok := detectChromaCustomized(fp, guessLanguage)
 	if ok {
 		language = languageChroma
 	}
