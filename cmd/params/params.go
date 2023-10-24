@@ -968,7 +968,7 @@ func (p Heartbeat) String() string {
 
 	return fmt.Sprintf(
 		"category: '%s', cursor position: '%s', entity: '%s', entity type: '%s',"+
-			" num extra heartbeats: %d, guess_language: %t, is unsaved entity: %t,"+
+			" num extra heartbeats: %d, guess language: %t, is unsaved entity: %t,"+
 			" is write: %t, language: '%s', line number: '%s', lines in file: '%s',"+
 			" time: %.5f, filter params: (%s), project params: (%s), sanitize params: (%s)",
 		p.Category,
