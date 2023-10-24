@@ -637,9 +637,13 @@ jobs:
       -
         name: Prepare changelog
         id: changelog
+        env:
+          CHANGELOG: ${{ steps.changelog-develop.outputs.changelog }}
+          PRBODY: ${{ steps.changelog-release.outputs.pr_body }}
         run: |
-          changelog="${{ steps.changelog-develop.outputs.changelog || steps.changelog-release.outputs.pr_body }}"
-          ./bin/prepare_changelog.sh $(echo ${GITHUB_REF#refs/heads/}) "$changelog"
+          CHANGELOG=$(echo "$CHANGELOG" | tr -d \")
+          PRBODY=$(echo "$PRBODY" | tr -d \")
+          ./bin/prepare_changelog.sh $(echo ${GITHUB_REF#refs/heads/}) "${CHANGELOG:-$PRBODY}"
       -
         name: Download artifacts
         uses: actions/download-artifact@v3
