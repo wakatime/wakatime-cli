@@ -105,6 +105,10 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 		"(deprecated) Absolute path to file for the heartbeat."+
 			" Can also be a url, domain or app when --entity-type is not file.")
 	flags.Bool("file-experts", false, "Prints the top developer within a team for the given entity, then exits.")
+	flags.Bool(
+		"guess-language",
+		false,
+		"Enable detecting language from file contents.")
 	flags.String("hide-branch-names", "", "Obfuscate branch names. Will not send revision control branch names to api.")
 	flags.String("hide-file-names", "", "Obfuscate filenames. Will not send file names to api.")
 	flags.String("hide-filenames", "", "(deprecated) Obfuscate filenames. Will not send file names to api.")

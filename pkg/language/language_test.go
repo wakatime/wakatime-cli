@@ -13,7 +13,7 @@ import (
 )
 
 func TestWithDetection(t *testing.T) {
-	opt := language.WithDetection()
+	opt := language.WithDetection(language.Config{})
 
 	h := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		assert.Len(t, hh, 1)
@@ -49,7 +49,7 @@ func TestWithDetection(t *testing.T) {
 }
 
 func TestWithDetection_Override(t *testing.T) {
-	opt := language.WithDetection()
+	opt := language.WithDetection(language.Config{})
 
 	h := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		assert.Len(t, hh, 1)
@@ -86,7 +86,7 @@ func TestWithDetection_Override(t *testing.T) {
 }
 
 func TestWithDetection_NonExistingEntity_Override(t *testing.T) {
-	opt := language.WithDetection()
+	opt := language.WithDetection(language.Config{})
 
 	h := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		assert.Len(t, hh, 1)
@@ -124,7 +124,7 @@ func TestWithDetection_NonExistingEntity_Override(t *testing.T) {
 }
 
 func TestWithDetection_Alternate(t *testing.T) {
-	opt := language.WithDetection()
+	opt := language.WithDetection(language.Config{})
 
 	h := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		assert.Len(t, hh, 1)
@@ -161,96 +161,96 @@ func TestWithDetection_Alternate(t *testing.T) {
 }
 
 func TestDetect_HeaderFile_Corresponding_C_File(t *testing.T) {
-	lang, err := language.Detect("testdata/codefiles/h_with_c_file/empty.h")
+	lang, err := language.Detect("testdata/codefiles/h_with_c_file/empty.h", false)
 	require.NoError(t, err)
 	assert.Equal(t, heartbeat.LanguageC, lang)
 }
 
 func TestDetect_HeaderFile_With_C_Files(t *testing.T) {
-	lang, err := language.Detect("testdata/codefiles/h_with_any_c_file/empty.h")
+	lang, err := language.Detect("testdata/codefiles/h_with_any_c_file/empty.h", false)
 	require.NoError(t, err)
 	assert.Equal(t, heartbeat.LanguageC, lang)
 }
 
 func TestDetect_HeaderFile_With_C_And_CPP_Files(t *testing.T) {
-	lang, err := language.Detect("testdata/codefiles/h_with_any_c_and_cpp_files/cpp.h")
+	lang, err := language.Detect("testdata/codefiles/h_with_any_c_and_cpp_files/cpp.h", false)
 	require.NoError(t, err)
 
 	assert.Equal(t, heartbeat.LanguageCPP, lang)
 }
 
 func TestDetect_HeaderFile_With_C_And_CXX_Files(t *testing.T) {
-	lang, err := language.Detect("testdata/codefiles/h_with_any_c_and_cxx_files/cpp.h")
+	lang, err := language.Detect("testdata/codefiles/h_with_any_c_and_cxx_files/cpp.h", false)
 	require.NoError(t, err)
 
 	assert.Equal(t, heartbeat.LanguageCPP, lang)
 }
 
 func TestDetect_ObjectiveC_Over_Matlab_MatchingHeader(t *testing.T) {
-	lang, err := language.Detect("testdata/codefiles/with_mat_file/objective-c.m")
+	lang, err := language.Detect("testdata/codefiles/with_mat_file/objective-c.m", false)
 	require.NoError(t, err)
 
 	assert.Equal(t, heartbeat.LanguageObjectiveC, lang)
 }
 
 func TestDetect_ObjectiveC_M_FileInFolder(t *testing.T) {
-	lang, err := language.Detect("testdata/codefiles/with_mat_file/objective-c.h")
+	lang, err := language.Detect("testdata/codefiles/with_mat_file/objective-c.h", false)
 	require.NoError(t, err)
 
 	assert.Equal(t, heartbeat.LanguageObjectiveC, lang)
 }
 
 func TestDetect_ObjectiveCPP_MatchingHeader(t *testing.T) {
-	lang, err := language.Detect("testdata/codefiles/with_mat_file/objective-cpp.mm")
+	lang, err := language.Detect("testdata/codefiles/with_mat_file/objective-cpp.mm", false)
 	require.NoError(t, err)
 
 	assert.Equal(t, heartbeat.LanguageObjectiveCPP, lang)
 }
 
 func TestDetect_ObjectiveCPP_MM_FileInFolder(t *testing.T) {
-	lang, err := language.Detect("testdata/codefiles/with_mat_file/objective-cpp.h")
+	lang, err := language.Detect("testdata/codefiles/with_mat_file/objective-cpp.h", false)
 	require.NoError(t, err)
 
 	assert.Equal(t, heartbeat.LanguageObjectiveCPP, lang)
 }
 
 func TestDetect_ObjectiveC(t *testing.T) {
-	lang, err := language.Detect("testdata/codefiles/objective-c.m")
+	lang, err := language.Detect("testdata/codefiles/objective-c.m", false)
 	require.NoError(t, err)
 
 	assert.Equal(t, heartbeat.LanguageObjectiveC, lang)
 }
 
 func TestDetect_Matlab_Over_ObjectiveC_Mat_FileInFolder(t *testing.T) {
-	lang, err := language.Detect("testdata/codefiles/with_mat_file/empty.m")
+	lang, err := language.Detect("testdata/codefiles/with_mat_file/empty.m", false)
 	require.NoError(t, err)
 
 	assert.Equal(t, heartbeat.LanguageMatlab, lang)
 }
 
 func TestDetect_ObjectiveC_Over_Matlab_NonMatchingHeader(t *testing.T) {
-	lang, err := language.Detect("testdata/codefiles/matlab_with_headers/empty.m")
+	lang, err := language.Detect("testdata/codefiles/matlab_with_headers/empty.m", false)
 	require.NoError(t, err)
 
 	assert.Equal(t, heartbeat.LanguageObjectiveC, lang)
 }
 
 func TestDetect_NonHeaderFile_C_FilesInFolder(t *testing.T) {
-	lang, err := language.Detect("testdata/codefiles/py_with_c_files/see.py")
+	lang, err := language.Detect("testdata/codefiles/py_with_c_files/see.py", false)
 	require.NoError(t, err)
 
 	assert.Equal(t, heartbeat.LanguagePython, lang)
 }
 
 func TestDetect_Perl_Over_Prolog(t *testing.T) {
-	lang, err := language.Detect("testdata/codefiles/perl.pl")
+	lang, err := language.Detect("testdata/codefiles/perl.pl", false)
 	require.NoError(t, err)
 
 	assert.Equal(t, heartbeat.LanguagePerl, lang)
 }
 
 func TestDetect_FSharp_Over_Forth(t *testing.T) {
-	lang, err := language.Detect("testdata/codefiles/fsharp.fs")
+	lang, err := language.Detect("testdata/codefiles/fsharp.fs", false)
 	require.NoError(t, err)
 
 	assert.Equal(t, heartbeat.LanguageFSharp, lang)
@@ -261,8 +261,9 @@ func TestDetect_ChromaTopLanguagesRetrofit(t *testing.T) {
 	require.NoError(t, err)
 
 	tests := map[string]struct {
-		Filepaths []string
-		Expected  heartbeat.Language
+		Filepaths     []string
+		GuessLanguage bool
+		Expected      heartbeat.Language
 	}{
 		"apache config": {
 			Filepaths: []string{
@@ -309,9 +310,15 @@ func TestDetect_ChromaTopLanguagesRetrofit(t *testing.T) {
 				"path/to/zshrc",
 				"path/to/.zshrc",
 				"path/to/PKGBUILD",
-				"testdata/bash",
 			},
 			Expected: heartbeat.LanguageBash,
+		},
+		"bash from file contents": {
+			Filepaths: []string{
+				"testdata/bash",
+			},
+			GuessLanguage: true,
+			Expected:      heartbeat.LanguageBash,
 		},
 		"c": {
 			Filepaths: []string{"path/to/file.c"},
@@ -592,9 +599,15 @@ func TestDetect_ChromaTopLanguagesRetrofit(t *testing.T) {
 		"perl not prolog": {
 			Filepaths: []string{
 				"testdata/codefiles/chroma_unsupported_top/perl.pl",
-				"testdata/perl",
 			},
 			Expected: heartbeat.LanguagePerl,
+		},
+		"perl not prolog from file contents": {
+			Filepaths: []string{
+				"testdata/perl",
+			},
+			GuessLanguage: true,
+			Expected:      heartbeat.LanguagePerl,
 		},
 		"php": {
 			Filepaths: []string{
@@ -662,9 +675,15 @@ func TestDetect_ChromaTopLanguagesRetrofit(t *testing.T) {
 				"path/to/BUILD.bazel",
 				"path/to/WORKSPACE",
 				"path/to/file.tac",
-				"testdata/python3",
 			},
 			Expected: heartbeat.LanguagePython,
+		},
+		"python from file contents": {
+			Filepaths: []string{
+				"testdata/python3",
+			},
+			GuessLanguage: true,
+			Expected:      heartbeat.LanguagePython,
 		},
 		"qml": {
 			Filepaths: []string{
@@ -889,7 +908,7 @@ func TestDetect_ChromaTopLanguagesRetrofit(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			for _, filepath := range test.Filepaths {
-				lang, err := language.Detect(filepath)
+				lang, err := language.Detect(filepath, test.GuessLanguage)
 				require.NoError(t, err)
 
 				assert.Equal(t, test.Expected, lang, fmt.Sprintf("Got: %q, want: %q", lang, test.Expected))

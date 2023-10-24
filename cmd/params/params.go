@@ -100,6 +100,7 @@ type (
 		Entity            string
 		EntityType        heartbeat.EntityType
 		ExtraHeartbeats   []heartbeat.Heartbeat
+		GuessLanguage     bool
 		IsUnsavedEntity   bool
 		IsWrite           *bool
 		Language          *string
@@ -410,6 +411,7 @@ func LoadHeartbeatParams(v *viper.Viper) (Heartbeat, error) {
 		Entity:            entityExpanded,
 		ExtraHeartbeats:   extraHeartbeats,
 		EntityType:        entityType,
+		GuessLanguage:     vipertools.FirstNonEmptyBool(v, "guess-language", "settings.guess_language"),
 		IsUnsavedEntity:   v.GetBool("is-unsaved-entity"),
 		IsWrite:           isWrite,
 		Language:          language,
@@ -966,14 +968,15 @@ func (p Heartbeat) String() string {
 
 	return fmt.Sprintf(
 		"category: '%s', cursor position: '%s', entity: '%s', entity type: '%s',"+
-			" num extra heartbeats: %d, is unsaved entity: %t, is write: %t,"+
-			" language: '%s', line number: '%s', lines in file: '%s', time: %.5f,"+
-			" filter params: (%s), project params: (%s), sanitize params: (%s)",
+			" num extra heartbeats: %d, guess_language: %t, is unsaved entity: %t,"+
+			" is write: %t, language: '%s', line number: '%s', lines in file: '%s',"+
+			" time: %.5f, filter params: (%s), project params: (%s), sanitize params: (%s)",
 		p.Category,
 		cursorPosition,
 		p.Entity,
 		p.EntityType,
 		len(p.ExtraHeartbeats),
+		p.GuessLanguage,
 		p.IsUnsavedEntity,
 		isWrite,
 		language,
