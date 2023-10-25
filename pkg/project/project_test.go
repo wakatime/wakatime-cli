@@ -141,6 +141,56 @@ func TestWithDetection_WakatimeProjectTakesPrecedence(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestWithDetection_WakatimeProjectEmpty(t *testing.T) {
+	fp := setupTestGitBasic(t)
+
+	entity := filepath.Join(fp, "wakatime-cli/src/pkg/file.go")
+	projectPath := filepath.Join(fp, "wakatime-cli")
+	projectPath = project.FormatProjectFolder(projectPath)
+
+	if runtime.GOOS == "windows" {
+		entity = windows.FormatFilePath(entity)
+	}
+
+	_, err := os.Create(filepath.Join(fp, "wakatime-cli", ".wakatime-project"))
+	require.NoError(t, err)
+
+	opts := []heartbeat.HandleOption{
+		heartbeat.WithFormatting(),
+		project.WithDetection(project.Config{}),
+	}
+
+	sender := mockSender{
+		SendHeartbeatsFn: func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+			assert.NotEmpty(t, hh[0].Project)
+			assert.Equal(t, []heartbeat.Heartbeat{
+				{
+					Branch:           heartbeat.PointerTo("master"),
+					Entity:           entity,
+					EntityType:       heartbeat.FileType,
+					Project:          heartbeat.PointerTo("override"),
+					ProjectOverride:  "override",
+					ProjectPath:      projectPath,
+					ProjectRootCount: heartbeat.PointerTo(project.CountSlashesInProjectFolder(projectPath)),
+				},
+			}, hh)
+
+			return nil, nil
+		},
+	}
+
+	handle := heartbeat.NewHandle(&sender, opts...)
+
+	_, err = handle([]heartbeat.Heartbeat{
+		{
+			EntityType:      heartbeat.FileType,
+			Entity:          entity,
+			ProjectOverride: "override",
+		},
+	})
+	require.NoError(t, err)
+}
+
 func TestWithDetection_OverrideTakesPrecedence(t *testing.T) {
 	fp := setupTestGitBasic(t)
 
@@ -509,11 +559,8 @@ func TestDetect_EmptyFileDetected(t *testing.T) {
 	err = os.Mkdir(filepath.Join(tmpDir, "wakatime-cli"), os.FileMode(int(0700)))
 	require.NoError(t, err)
 
-	copyFile(
-		t,
-		"testdata/wakatime-project-empty",
-		filepath.Join(tmpDir, "wakatime-cli", ".wakatime-project"),
-	)
+	_, err = os.Create(filepath.Join(tmpDir, "wakatime-cli", ".wakatime-project"))
+	require.NoError(t, err)
 
 	copyFile(
 		t,
@@ -526,8 +573,8 @@ func TestDetect_EmptyFileDetected(t *testing.T) {
 		ShouldRun: true,
 	})
 
-	assert.Equal(t, "wakatime-cli", result.Project)
-	assert.Equal(t, "", result.Branch)
+	assert.Empty(t, result.Project)
+	assert.Empty(t, result.Branch)
 	assert.Contains(t, result.Folder, tmpDir)
 	assert.Equal(t, detector, project.FileDetector)
 }
