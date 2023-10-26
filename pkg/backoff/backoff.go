@@ -16,8 +16,8 @@ import (
 )
 
 const (
-	// resetAfter sets the total seconds a backoff will last.
-	resetAfter = 3600
+	// maxBackoff sets the maximum seconds we will rate limit before retrying to send.
+	maxBackoffSecs = 3600
 	// factor is the total seconds to be multiplied by.
 	factor = 15
 )
@@ -42,8 +42,7 @@ func WithBackoff(config Config) heartbeat.HandleOption {
 		return func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 			log.Debugln("execute heartbeat backoff algorithm")
 
-			should, reset := shouldBackoff(config.Retries, config.At)
-			if should {
+			if shouldBackoff(config.Retries, config.At) {
 				if config.HasProxy {
 					return nil, api.ErrBackoff{Err: errors.New("won't send heartbeat due to backoff with proxy")}
 				}
@@ -51,14 +50,8 @@ func WithBackoff(config Config) heartbeat.HandleOption {
 				return nil, api.ErrBackoff{Err: errors.New("won't send heartbeat due to backoff without proxy")}
 			}
 
-			if reset {
-				config.Retries = 0
-			}
-
 			results, err := next(hh)
 			if err != nil {
-				log.Debugf("incrementing backoff due to error")
-
 				// error response, increment backoff
 				if updateErr := updateBackoffSettings(config.V, config.Retries+1, time.Now()); updateErr != nil {
 					log.Warnf("failed to update backoff settings: %s", updateErr)
@@ -67,8 +60,8 @@ func WithBackoff(config Config) heartbeat.HandleOption {
 				return nil, err
 			}
 
-			if reset || !config.At.IsZero() {
-				// reset or success response, reset backoff
+			// success response, reset backoff
+			if config.Retries > 0 || !config.At.IsZero() {
 				if resetErr := updateBackoffSettings(config.V, 0, time.Time{}); resetErr != nil {
 					log.Warnf("failed to reset backoff settings: %s", resetErr)
 				}
@@ -79,35 +72,37 @@ func WithBackoff(config Config) heartbeat.HandleOption {
 	}
 }
 
-// shouldBackoff returns true if the backoff should be applied. It also returns a boolean value
-// indicating whether the backoff should be reset.
-func shouldBackoff(retries int, at time.Time) (bool, bool) {
+// shouldBackoff returns true if we should save heartbeats directly to offline
+// database and skip sending to API due to rate limiting from too many recent
+// networking errors.
+func shouldBackoff(retries int, at time.Time) bool {
 	if retries < 1 || at.IsZero() {
-		return false, true
+		return false
 	}
 
-	next := float64(factor) * math.Pow(2, float64(retries))
-	if next > float64(resetAfter) {
+	backoffSeconds := float64(factor) * math.Pow(2, float64(retries))
+
+	duration := time.Duration(backoffSeconds) * time.Second
+
+	if backoffSeconds > maxBackoffSecs {
 		log.Debugf(
-			"exponential backoff tried %d times since %s, it will reset due to %d seconds limit",
+			"exponential backoff tried %d times since %s, will reset because reached %s max backoff",
 			retries,
 			at.Format(ini.DateFormat),
-			resetAfter,
+			duration.String(),
 		)
 
-		return false, true
+		return false
 	}
-
-	duration := time.Duration(next) * time.Second
 
 	log.Debugf(
 		"exponential backoff tried %d times since %s, will retry at %s",
 		retries,
 		at.Format(ini.DateFormat),
-		at.Add(duration).Format(ini.DateFormat),
+		time.Now().Add(duration).Format(ini.DateFormat),
 	)
 
-	return time.Now().Before(at.Add(duration)), false
+	return true
 }
 
 func updateBackoffSettings(v *viper.Viper, retries int, at time.Time) error {
