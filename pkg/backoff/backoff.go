@@ -95,8 +95,12 @@ func shouldBackoff(retries int, at time.Time) bool {
 		return false
 	}
 
+	if at.Add(duration).Before(time.Now()) {
+		return false
+	}
+
 	log.Debugf(
-		"exponential backoff tried %d times since %s, will retry at %s",
+		"exponential backoff tried %d times since %s, will retry again after %s",
 		retries,
 		at.Format(ini.DateFormat),
 		time.Now().Add(duration).Format(ini.DateFormat),

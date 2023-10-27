@@ -18,20 +18,26 @@ Tip: run `ln -sf $(pwd)/build/* ~/.wakatime/` to have the plugins use your local
 
 ## Branches
 
-This project currently has two branches
+PR branch names must use one of the following prefixes:
 
-- `develop` - Default branch for every new `feature` or `fix`
-- `release` - Branch for production releases and hotfixes
+- `^major/.+` - `major`
+- `^feature/.+` - `minor`
+- `^bugfix/.+` - `patch`
+- `^docs?/.+` - `build`
+- `^misc/.+` - `build`
+
+This branching strategy comes from [semver-action](https://github.com/wakatime/semver-action#branch-names).
+
+We use two branches:
+
+- `develop` - Default branch. PRs are merged to this branch.
+- `release` - Branch for production releases and hotfixes. GitHub Actions automatically builds releases from this branch.
 
 ## Testing and Linting
 
 Run `make test-all` before creating any pull requests, or your PR won’t pass the automated checks.
 
 > make sure you build binary by setting its version otherwise integration tests will fail. `VERSION=v0.0.1-test make build-<os>-<architecture>`. For testing shell scripts you might initialize submodules by running `git submodule update --init --recursive`.
-
-## Branching Stratgegy
-
-Please follow our guideline for branch names [here](https://github.com/wakatime/semver-action#branch-names). Branches off the pattern won't be accepted.
 
 ## Pull Requests
 

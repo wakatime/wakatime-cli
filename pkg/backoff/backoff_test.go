@@ -143,13 +143,6 @@ func TestWithBackoff_ApiError(t *testing.T) {
 
 	defer tmpFile.Close()
 
-	err = ini.ReadInConfig(v, tmpFile.Name())
-	require.NoError(t, err)
-
-	// make sure backoff settings start empty
-	assert.Empty(t, v.GetString("internal.backoff_at"))
-	assert.Empty(t, v.GetString("internal.backoff_retries"))
-
 	v.Set("internal-config", tmpFile.Name())
 
 	opt := backoff.WithBackoff(backoff.Config{
@@ -301,6 +294,64 @@ func TestWithBackoff_BackoffMaxReachedWithZeroRetries(t *testing.T) {
 		V:       v,
 		Retries: 0,
 		At:      time.Now().Add(time.Hour + 1*time.Second),
+	})
+
+	handle = opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		return []heartbeat.Result{
+			{
+				Status: 201,
+			},
+		}, nil
+	})
+
+	_, err = handle([]heartbeat.Heartbeat{})
+	require.NoError(t, err)
+
+	err = ini.ReadInConfig(v, tmpFile.Name())
+	require.NoError(t, err)
+
+	// make sure backoff settings reset
+	assert.Empty(t, v.GetString("internal.backoff_at"))
+	assert.Equal(t, "0", v.GetString("internal.backoff_retries"))
+}
+
+func TestWithBackoff_ShouldRetry(t *testing.T) {
+	v := viper.New()
+
+	tmpFile, err := os.CreateTemp(t.TempDir(), "wakatime")
+	require.NoError(t, err)
+
+	defer tmpFile.Close()
+
+	v.Set("internal-config", tmpFile.Name())
+
+	opt := backoff.WithBackoff(backoff.Config{
+		V: v,
+	})
+
+	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		return []heartbeat.Result{}, errors.New("error")
+	})
+
+	_, err = handle([]heartbeat.Heartbeat{})
+	require.Error(t, err)
+
+	assert.Equal(t, "error", err.Error())
+
+	err = ini.ReadInConfig(v, tmpFile.Name())
+	require.NoError(t, err)
+
+	// make sure backoff settings written
+	assert.NotEmpty(t, v.GetString("internal.backoff_at"))
+	assert.Equal(t, "1", v.GetString("internal.backoff_retries"))
+
+	at := time.Now()
+
+	// then, make sure we retry if after rate limit
+	opt = backoff.WithBackoff(backoff.Config{
+		V:       v,
+		Retries: 1,
+		At:      at.Add(time.Second * -60),
 	})
 
 	handle = opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
