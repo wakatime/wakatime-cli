@@ -6,6 +6,8 @@ Set `debug=true` in your `~/.wakatime.cfg` file to enable verbose logging.
 
 The common wakatime-cli program logs to your user `$HOME` directory `~/.wakatime/wakatime.log`.
 
+If your error message contains `won't send heartbeat due to backoff`, delete your `~/.wakatime/wakatime-internal.cfg` file to trigger an API connection to get the real error message.
+
 Each plugin also has its own log file:
 
 * **Atom** writes errors to the developer console (View -> Developer -> Toggle Developer Tools)
