@@ -880,7 +880,7 @@ func TestSendHeartbeats_ErrBackoff_Verbose(t *testing.T) {
 	output, err := io.ReadAll(logFile)
 	require.NoError(t, err)
 
-	assert.Contains(t, string(output), "will retry at")
+	assert.Contains(t, string(output), "will retry again after")
 }
 
 func TestSendHeartbeats_ObfuscateProject(t *testing.T) {
