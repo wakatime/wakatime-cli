@@ -4,6 +4,7 @@ bundle_id = "com.wakatime.wakatime-cli"
 apple_id {
   username = "alan@wakatime.com"
   password = "@env:AC_PASSWORD"
+  provider = "538RQNWSWT"
 }
 
 sign {
