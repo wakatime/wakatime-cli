@@ -563,19 +563,29 @@ jobs:
           # The password used to import the PKCS12 file.
           p12-password: ${{ secrets.APPLE_DEVELOPER_CERTIFICATE_PASSWORD }}
       -
-        name: Install gon via Homebrew for code signing and app notarization
+        name: Codesign
         run: |
-          brew tap wakatime/tap
-          brew install wakatime/tap/gon
+          codesign -v --force --deep --timestamp -s "Developer ID Application: WAKATIME, LLC" --options runtime ./build/wakatime-cli-darwin-amd64
+          codesign -v --force --deep --timestamp -s "Developer ID Application: WAKATIME, LLC" --options runtime ./build/wakatime-cli-darwin-arm64
       -
-        name: Sign and notarize mac binaries with gon
+        name: Store Credentials
         env:
-          AC_USERNAME: ${{ secrets.AC_USERNAME }}
-          AC_PASSWORD: ${{ secrets.AC_PASSWORD }}
-        run: gon -log-level=debug -log-json ./gon.hcl
+          NOTARIZATION_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          NOTARIZATION_APPLE_ID: ${{ secrets.AC_USERNAME }}
+          NOTARIZATION_PWD: ${{ secrets.AC_PASSWORD }}
+        run: xcrun notarytool store-credentials "notarytool-profile" --apple-id "$NOTARIZATION_APPLE_ID" --team-id "$NOTARIZATION_TEAM_ID" --password "$NOTARIZATION_PWD"
       -
-        name: Move zip file
-        run: mv ./wakatime-cli-darwin.zip ./build/
+        name: Notarize amd64
+        run: |
+          ditto -c -k --keepParent ./build/wakatime-cli-darwin-amd64 wakatime-cli-darwin-amd64.zip
+          xcrun notarytool submit wakatime-cli-darwin-amd64-signed.zip --keychain-profile "notarytool-profile" --wait
+          xcrun stapler staple ./build/wakatime-cli-darwin-amd64
+      -
+        name: Notarize arm64
+        run: |
+          ditto -c -k --keepParent ./build/wakatime-cli-darwin-arm64 wakatime-cli-darwin-arm64.zip
+          xcrun notarytool submit wakatime-cli-darwin-arm64-signed.zip --keychain-profile "notarytool-profile" --wait
+          xcrun stapler staple ./build/wakatime-cli-darwin-arm64
       -
         name: Upload artifacts
         uses: actions/upload-artifact@v2
