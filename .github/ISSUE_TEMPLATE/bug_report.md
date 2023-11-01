@@ -1,15 +1,12 @@
 ---
-name: 🐛 Bug report
+name: Bug report
 about: Report a bug to help us improve WakaTime CLI
-labels: kind/bug
+title: ''
+labels: bug
+assignees: ''
 ---
-<!--
-Please fill out the template below to report a bug.
--->
 
-**Expected behavior (what should have happened)**:
-
-**Actual behavior (what went wrong)**:
+<!-- Describe the bug here. -->
 
 **Environment**:
 
@@ -20,4 +17,10 @@ Please fill out the template below to report a bug.
 
 <!--
 Paste related logs from your ~/.wakatime/wakatime.log file.
+If there's no error message, enable debug mode and reproduce the bug to trigger an error message.
+
+Don't post backoff error messages.
+If your error message contains "won't send heartbeat due to backoff", delete your `~/.wakatime/wakatime-internal.cfg` file to trigger an API connection so we can see the real error message.
+
+More info: https://github.com/wakatime/wakatime-cli/blob/develop/TROUBLESHOOTING.md
 -->
