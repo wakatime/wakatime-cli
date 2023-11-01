@@ -565,8 +565,8 @@ jobs:
       -
         name: Codesign
         run: |
-          codesign -v --force --deep --timestamp -s "Developer ID Application: WAKATIME, LLC" --options runtime ./build/wakatime-cli-darwin-amd64
-          codesign -v --force --deep --timestamp -s "Developer ID Application: WAKATIME, LLC" --options runtime ./build/wakatime-cli-darwin-arm64
+          codesign -v --force --timestamp -s "Developer ID Application: WAKATIME, LLC" --options runtime ./build/wakatime-cli-darwin-amd64
+          codesign -v --force --timestamp -s "Developer ID Application: WAKATIME, LLC" --options runtime ./build/wakatime-cli-darwin-arm64
       -
         name: Store Credentials
         env:
@@ -577,14 +577,12 @@ jobs:
       -
         name: Notarize amd64
         run: |
-          ditto -c -k --keepParent ./build/wakatime-cli-darwin-amd64 wakatime-cli-darwin-amd64.zip
-          xcrun notarytool submit wakatime-cli-darwin-amd64.zip --keychain-profile "notarytool-profile" --wait
+          xcrun notarytool submit ./build/wakatime-cli-darwin-amd64 --keychain-profile "notarytool-profile" --wait
           xcrun stapler staple ./build/wakatime-cli-darwin-amd64
       -
         name: Notarize arm64
         run: |
-          ditto -c -k --keepParent ./build/wakatime-cli-darwin-arm64 wakatime-cli-darwin-arm64.zip
-          xcrun notarytool submit wakatime-cli-darwin-arm64.zip --keychain-profile "notarytool-profile" --wait
+          xcrun notarytool submit ./build/wakatime-cli-darwin-arm64 --keychain-profile "notarytool-profile" --wait
           xcrun stapler staple ./build/wakatime-cli-darwin-arm64
       -
         name: Upload artifacts
