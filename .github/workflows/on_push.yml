@@ -577,13 +577,13 @@ jobs:
       -
         name: Notarize amd64
         run: |
-          xcrun notarytool submit ./build/wakatime-cli-darwin-amd64 --keychain-profile "notarytool-profile" --wait
-          xcrun stapler staple ./build/wakatime-cli-darwin-amd64
+          ditto -c -k --keepParent ./build/wakatime-cli-darwin-amd64 ./wakatime-cli-darwin-amd64.zip
+          xcrun notarytool submit ./wakatime-cli-darwin-amd64.zip --keychain-profile "notarytool-profile" --wait
       -
         name: Notarize arm64
         run: |
-          xcrun notarytool submit ./build/wakatime-cli-darwin-arm64 --keychain-profile "notarytool-profile" --wait
-          xcrun stapler staple ./build/wakatime-cli-darwin-arm64
+          ditto -c -k --keepParent ./build/wakatime-cli-darwin-arm64 ./wakatime-cli-darwin-arm64.zip
+          xcrun notarytool submit ./wakatime-cli-darwin-arm64.zip --keychain-profile "notarytool-profile" --wait
       -
         name: Upload artifacts
         uses: actions/upload-artifact@v2
