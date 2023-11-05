@@ -53,13 +53,13 @@ func Sanitize(h Heartbeat, config SanitizeConfig) Heartbeat {
 			h.Entity = "HIDDEN"
 		}
 
-		h = santizeMetaData(h)
+		h = sanitizeMetaData(h)
 
 		if h.Branch != nil && (len(config.BranchPatterns) == 0 || ShouldSanitize(*h.Branch, config.BranchPatterns)) {
 			h.Branch = nil
 		}
 	case h.Project != nil && ShouldSanitize(*h.Project, config.ProjectPatterns):
-		h = santizeMetaData(h)
+		h = sanitizeMetaData(h)
 		if h.Branch != nil && (len(config.BranchPatterns) == 0 || ShouldSanitize(*h.Branch, config.BranchPatterns)) {
 			h.Branch = nil
 		}
@@ -128,8 +128,8 @@ func hideCredentials(h Heartbeat) Heartbeat {
 	return h
 }
 
-// santizeMetaData sanitizes metadata (cursor position, dependencies, line number and lines).
-func santizeMetaData(h Heartbeat) Heartbeat {
+// sanitizeMetaData sanitizes metadata (cursor position, dependencies, line number and lines).
+func sanitizeMetaData(h Heartbeat) Heartbeat {
 	h.CursorPosition = nil
 	h.Dependencies = nil
 	h.LineNumber = nil
