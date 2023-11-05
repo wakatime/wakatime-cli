@@ -7,9 +7,9 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/log"
 )
 
-// WithEntityModifer initializes and returns a heartbeat handle option, which
+// WithEntityModifier initializes and returns a heartbeat handle option, which
 // can be used in a heartbeat processing pipeline to change an entity path.
-func WithEntityModifer() HandleOption {
+func WithEntityModifier() HandleOption {
 	return func(next Handle) Handle {
 		return func(hh []Heartbeat) ([]Result, error) {
 			log.Debugln("execute heartbeat entity modifier")

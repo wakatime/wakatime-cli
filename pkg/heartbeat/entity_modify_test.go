@@ -17,7 +17,7 @@ func TestWithEntityModifier_XCodePlayground(t *testing.T) {
 	err := os.Mkdir(filepath.Join(tmpDir, "wakatime.playground"), os.FileMode(int(0700)))
 	require.NoError(t, err)
 
-	opt := heartbeat.WithEntityModifer()
+	opt := heartbeat.WithEntityModifier()
 
 	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		assert.Equal(t, []heartbeat.Heartbeat{

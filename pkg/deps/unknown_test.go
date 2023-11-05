@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestParserUnkwown_Parse(t *testing.T) {
+func TestParserUnknown_Parse(t *testing.T) {
 	tests := map[string]struct {
 		Filepath string
 		Expected []string

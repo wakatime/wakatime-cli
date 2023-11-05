@@ -31,11 +31,11 @@ func TestQueueFilepath(t *testing.T) {
 		"default": {
 			Expected: filepath.Join(home, ".wakatime.bdb"),
 		},
-		"env_trailling_slash": {
+		"env_trailing_slash": {
 			EnvVar:   "~/path2/",
 			Expected: filepath.Join(home, "path2", ".wakatime.bdb"),
 		},
-		"env_without_trailling_slash": {
+		"env_without_trailing_slash": {
 			EnvVar:   "~/path2",
 			Expected: filepath.Join(home, "path2", ".wakatime.bdb"),
 		},
@@ -1425,7 +1425,7 @@ func insertHeartbeatRecord(t *testing.T, db *bolt.DB, bucket string, h heartbeat
 
 		err = b.Put([]byte(h.ID), []byte(h.Heartbeat))
 		if err != nil {
-			return fmt.Errorf("failed put hearbeat: %s", err)
+			return fmt.Errorf("failed put heartbeat: %s", err)
 		}
 
 		return nil

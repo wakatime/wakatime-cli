@@ -134,7 +134,7 @@ func buildHeartbeats(params paramscmd.Params) []heartbeat.Heartbeat {
 func initHandleOptions(params paramscmd.Params) []heartbeat.HandleOption {
 	return []heartbeat.HandleOption{
 		heartbeat.WithFormatting(),
-		heartbeat.WithEntityModifer(),
+		heartbeat.WithEntityModifier(),
 		filter.WithFiltering(filter.Config{
 			Exclude:                    params.Heartbeat.Filter.Exclude,
 			Include:                    params.Heartbeat.Filter.Include,

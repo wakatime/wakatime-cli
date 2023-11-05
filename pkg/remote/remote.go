@@ -199,7 +199,7 @@ func (c Client) DownloadFile(localFile string) error {
 		}
 
 		if err := sc.Close(); err != nil {
-			log.Debugf("failed to colose connection to ftp server: %s", err)
+			log.Debugf("failed to close connection to ftp server: %s", err)
 		}
 	}()
 

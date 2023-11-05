@@ -153,7 +153,7 @@ func filterDependencies(deps []string) []string {
 		// filter dependencies off size
 		if d == "" || len(d) > maxDependencyLength {
 			log.Debugf(
-				"dependency won't be sent because it's either empty or greater than %d characteres: %s",
+				"dependency won't be sent because it's either empty or greater than %d characters: %s",
 				maxDependencyLength,
 				d,
 			)
