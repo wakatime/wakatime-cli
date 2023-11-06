@@ -15,7 +15,7 @@ func (l Delphi) Lexer() chroma.Lexer {
 		&chroma.Config{
 			Name:      l.Name(),
 			Aliases:   []string{"delphi", "pas", "pascal", "objectpascal"},
-			Filenames: []string{"*.pas", "*.dpr"},
+			Filenames: []string{"*.pas", "*.dpr", "*.fmx", "*.dfm"},
 			MimeTypes: []string{"text/x-pascal"},
 		},
 		func() chroma.Rules {
