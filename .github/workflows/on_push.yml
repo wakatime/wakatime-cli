@@ -5,7 +5,7 @@ on:
     types: [opened, reopened, ready_for_review, synchronize]
   push:
     branches: [develop, release]
-    tags-ignore: "**"
+    tags-ignore: ["**"]
 
 env:
   GO_VERSION_FILE: "go.mod"
