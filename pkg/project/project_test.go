@@ -509,11 +509,10 @@ func TestDetect_EmptyFileDetected(t *testing.T) {
 	err = os.Mkdir(filepath.Join(tmpDir, "wakatime-cli"), os.FileMode(int(0700)))
 	require.NoError(t, err)
 
-	copyFile(
-		t,
-		"testdata/wakatime-project-empty",
-		filepath.Join(tmpDir, "wakatime-cli", ".wakatime-project"),
-	)
+	tmpWakatimeProjectEmpty, err := os.Create(filepath.Join(tmpDir, "wakatime-cli", ".wakatime-project"))
+	require.NoError(t, err)
+
+	defer tmpWakatimeProjectEmpty.Close()
 
 	copyFile(
 		t,
