@@ -145,14 +145,6 @@ type Sender interface {
 	SendHeartbeats(hh []Heartbeat) ([]Result, error)
 }
 
-// Noop is a noop api client, used to always skip sending to the API.
-type Noop struct{}
-
-// SendHeartbeats always returns nil.
-func (Noop) SendHeartbeats(_ []Heartbeat) ([]Result, error) {
-	return nil, nil
-}
-
 // Handle does processing of heartbeats.
 type Handle func(hh []Heartbeat) ([]Result, error)
 
@@ -193,15 +185,6 @@ func UserAgent(plugin string) string {
 		strings.TrimSpace(runtime.Version()),
 		strings.TrimSpace(plugin),
 	)
-}
-
-// PluginFromUserAgent parses the plugin name from a wakatime user agent.
-func PluginFromUserAgent(userAgent string) string {
-	splitted := strings.Split(userAgent, " ")
-	splitted = strings.Split(splitted[len(splitted)-1], "/")
-	splitted = strings.Split(splitted[0], "-")
-
-	return splitted[0]
 }
 
 // PointerTo returns a pointer to the value passed in.

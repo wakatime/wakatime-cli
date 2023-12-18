@@ -44,8 +44,6 @@ var (
 	// nolint
 	ntlmProxyRegex = regexp.MustCompile(`^.*\\.+$`)
 	// nolint
-	pluginRegex = regexp.MustCompile(`(?i)([a-z\/0-9.]+\s)?(?P<editor>[a-z-]+)\-wakatime\/[0-9.]+`)
-	// nolint
 	proxyRegex = regexp.MustCompile(`^((https?|socks5)://)?([^:@]+(:([^:@])+)?@)?([^:]+|(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])))(:\d+)?$`)
 )
 
@@ -866,23 +864,6 @@ func parseExtraHeartbeat(h ExtraHeartbeat) (*heartbeat.Heartbeat, error) {
 		ProjectOverride:   h.Project,
 		Time:              timestampParsed,
 	}, nil
-}
-
-func parseEditorFromPlugin(plugin string) (string, error) {
-	match := pluginRegex.FindStringSubmatch(plugin)
-	paramsMap := make(map[string]string)
-
-	for i, name := range pluginRegex.SubexpNames() {
-		if i > 0 && i <= len(match) {
-			paramsMap[name] = match[i]
-		}
-	}
-
-	if len(paramsMap) == 0 || paramsMap["editor"] == "" {
-		return "", fmt.Errorf("plugin malformed: %s", plugin)
-	}
-
-	return paramsMap["editor"], nil
 }
 
 // String implements fmt.Stringer interface.
