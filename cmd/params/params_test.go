@@ -2187,6 +2187,11 @@ func TestLoadParams_Hostname_FlagTakesPrecedence(t *testing.T) {
 	v.Set("hostname", "my-machine")
 	v.Set("settings.hostname", "ignored")
 
+	err := os.Setenv("GITPOD_WORKSPACE_ID", "gitpod")
+	require.NoError(t, err)
+
+	defer os.Unsetenv("GITPOD_WORKSPACE_ID")
+
 	params, err := paramscmd.LoadAPIParams(v)
 	require.NoError(t, err)
 
@@ -2202,6 +2207,37 @@ func TestLoadParams_Hostname_FromConfig(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, "my-machine", params.Hostname)
+}
+
+func TestLoadParams_Hostname_FromConfig_ConfigTakesPrecedence(t *testing.T) {
+	v := viper.New()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("settings.hostname", "my-machine")
+
+	err := os.Setenv("GITPOD_WORKSPACE_ID", "gitpod")
+	require.NoError(t, err)
+
+	defer os.Unsetenv("GITPOD_WORKSPACE_ID")
+
+	params, err := paramscmd.LoadAPIParams(v)
+	require.NoError(t, err)
+
+	assert.Equal(t, "my-machine", params.Hostname)
+}
+
+func TestLoadParams_Hostname_FromGitpodEnv(t *testing.T) {
+	v := viper.New()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+
+	err := os.Setenv("GITPOD_WORKSPACE_ID", "gitpod")
+	require.NoError(t, err)
+
+	defer os.Unsetenv("GITPOD_WORKSPACE_ID")
+
+	params, err := paramscmd.LoadAPIParams(v)
+	require.NoError(t, err)
+
+	assert.Equal(t, "Gitpod", params.Hostname)
 }
 
 func TestLoadParams_Hostname_DefaultFromSystem(t *testing.T) {
