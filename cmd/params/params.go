@@ -258,9 +258,14 @@ func LoadAPIParams(v *viper.Viper) (API, error) {
 
 	hostname, ok = vipertools.FirstNonEmptyString(v, "hostname", "settings.hostname")
 	if !ok {
-		hostname, err = os.Hostname()
-		if err != nil {
-			log.Warnf("failed to retrieve hostname from system: %s", err)
+		gitpod := os.Getenv("GITPOD_WORKSPACE_ID")
+		if gitpod != "" {
+			hostname = "Gitpod"
+		} else {
+			hostname, err = os.Hostname()
+			if err != nil {
+				log.Warnf("failed to retrieve hostname from system: %s", err)
+			}
 		}
 	}
 
