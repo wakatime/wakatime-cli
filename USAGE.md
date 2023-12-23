@@ -131,6 +131,12 @@ projects/foo = your-api-key
 ^/home/user/projects/bar(\d+)/ = your-api-key
 ```
 
+### Api Key Environment Variable
+
+If a `WAKATIME_API_KEY` env var exists, wakatime-cli will use it’s value as the api key.
+This means you don’t need a `~/.wakatime.cfg` file, or you can omit or leave empty the `api_key` setting in your config file if using the env var.
+However, if an api key exists in your `~/.wakatime.cfg` file then it takes precedence over the env var.
+
 ### Git Section
 
 | option                         | description | type | default value |

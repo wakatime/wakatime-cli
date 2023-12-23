@@ -158,28 +158,9 @@ type (
 // LoadAPIParams loads API params from viper.Viper instance. Returns ErrAuth
 // if failed to retrieve api key.
 func LoadAPIParams(v *viper.Viper) (API, error) {
-	apiKey, ok := vipertools.FirstNonEmptyString(v, "key", "settings.api_key", "settings.apikey")
-	if ok && !apiKeyRegex.MatchString(apiKey) {
-		return API{}, api.ErrAuth{Err: errors.New("invalid api key format")}
-	}
-
-	var err error
-
-	if !ok {
-		apiKey, err = readAPIKeyFromCommand(vipertools.GetString(v, "settings.api_key_vault_cmd"))
-		if err != nil {
-			return API{}, api.ErrAuth{Err: fmt.Errorf("failed to read api key from vault: %s", err)}
-		}
-
-		if apiKey == "" {
-			return API{}, api.ErrAuth{Err: errors.New("api key not found or empty")}
-		}
-
-		if !apiKeyRegex.MatchString(apiKey) {
-			return API{}, api.ErrAuth{Err: errors.New("invalid api key format")}
-		}
-
-		log.Debugln("loaded api key from vault")
+	apiKey, err := LoadAPIKey(v)
+	if err != nil {
+		return API{}, err
 	}
 
 	var apiKeyPatterns []apikey.MapPattern
@@ -214,7 +195,7 @@ func LoadAPIParams(v *viper.Viper) (API, error) {
 
 	apiURLStr := api.BaseURL
 
-	if u, ok := vipertools.FirstNonEmptyString(v, "api-url", "apiurl", "settings.api_url"); ok {
+	if u := vipertools.FirstNonEmptyString(v, "api-url", "apiurl", "settings.api_url"); u != "" {
 		apiURLStr = u
 	}
 
@@ -254,10 +235,8 @@ func LoadAPIParams(v *viper.Viper) (API, error) {
 		}
 	}
 
-	var hostname string
-
-	hostname, ok = vipertools.FirstNonEmptyString(v, "hostname", "settings.hostname")
-	if !ok {
+	hostname := vipertools.FirstNonEmptyString(v, "hostname", "settings.hostname")
+	if hostname == "" {
 		gitpod := os.Getenv("GITPOD_WORKSPACE_ID")
 		if gitpod != "" {
 			hostname = "Gitpod"
@@ -269,7 +248,7 @@ func LoadAPIParams(v *viper.Viper) (API, error) {
 		}
 	}
 
-	proxyURL, _ := vipertools.FirstNonEmptyString(v, "proxy", "settings.proxy")
+	proxyURL := vipertools.FirstNonEmptyString(v, "proxy", "settings.proxy")
 
 	rgx := proxyRegex
 	if strings.Contains(proxyURL, `\\`) {
@@ -292,10 +271,8 @@ func LoadAPIParams(v *viper.Viper) (API, error) {
 		proxyURL = proxyEnvURL.String()
 	}
 
-	var sslCertFilepath string
-
-	sslCertFilepath, ok = vipertools.FirstNonEmptyString(v, "ssl-certs-file", "settings.ssl_certs_file")
-	if ok {
+	sslCertFilepath := vipertools.FirstNonEmptyString(v, "ssl-certs-file", "settings.ssl_certs_file")
+	if sslCertFilepath != "" {
 		sslCertFilepath, err = homedir.Expand(sslCertFilepath)
 		if err != nil {
 			return API{}, api.ErrAuth{Err: fmt.Errorf("failed expanding ssl certs file: %s", err)}
@@ -323,6 +300,50 @@ func LoadAPIParams(v *viper.Viper) (API, error) {
 	}, nil
 }
 
+// LoadAPIKey loads a valid default WakaTime API Key or returns an error.
+func LoadAPIKey(v *viper.Viper) (string, error) {
+	apiKey := vipertools.FirstNonEmptyString(v, "key", "settings.api_key", "settings.apikey")
+	if apiKey != "" {
+		if !apiKeyRegex.MatchString(apiKey) {
+			return "", api.ErrAuth{Err: errors.New("invalid api key format")}
+		}
+
+		return apiKey, nil
+	}
+
+	apiKey, err := readAPIKeyFromCommand(vipertools.GetString(v, "settings.api_key_vault_cmd"))
+	if err != nil {
+		return "", api.ErrAuth{Err: fmt.Errorf("failed to read api key from vault: %s", err)}
+	}
+
+	if apiKey != "" {
+		if !apiKeyRegex.MatchString(apiKey) {
+			return "", api.ErrAuth{Err: errors.New("invalid api key format")}
+		}
+
+		log.Debugln("loaded api key from vault")
+
+		return apiKey, nil
+	}
+
+	apiKey = os.Getenv("WAKATIME_API_KEY")
+	if apiKey != "" {
+		if !apiKeyRegex.MatchString(apiKey) {
+			return "", api.ErrAuth{Err: errors.New("invalid api key format")}
+		}
+
+		log.Debugln("loaded api key from env var")
+
+		return apiKey, nil
+	}
+
+	if apiKey == "" {
+		return "", api.ErrAuth{Err: errors.New("api key not found or empty")}
+	}
+
+	return apiKey, nil
+}
+
 // LoadHeartbeatParams loads heartbeats params from viper.Viper instance.
 func LoadHeartbeatParams(v *viper.Viper) (Heartbeat, error) {
 	var category heartbeat.Category
@@ -341,10 +362,8 @@ func LoadHeartbeatParams(v *viper.Viper) (Heartbeat, error) {
 		cursorPosition = heartbeat.PointerTo(pos)
 	}
 
-	var entity string
-
-	entity, ok := vipertools.FirstNonEmptyString(v, "entity", "file")
-	if !ok {
+	entity := vipertools.FirstNonEmptyString(v, "entity", "file")
+	if entity == "" {
 		return Heartbeat{}, errors.New("failed to retrieve entity")
 	}
 
@@ -489,7 +508,7 @@ func loadFilterParams(v *viper.Viper) FilterParams {
 
 func loadSanitizeParams(v *viper.Viper) (SanitizeParams, error) {
 	// hide branch names
-	hideBranchNamesStr, _ := vipertools.FirstNonEmptyString(
+	hideBranchNamesStr := vipertools.FirstNonEmptyString(
 		v,
 		"hide-branch-names",
 		"settings.hide_branch_names",
@@ -507,7 +526,7 @@ func loadSanitizeParams(v *viper.Viper) (SanitizeParams, error) {
 	}
 
 	// hide project names
-	hideProjectNamesStr, _ := vipertools.FirstNonEmptyString(
+	hideProjectNamesStr := vipertools.FirstNonEmptyString(
 		v,
 		"hide-project-names",
 		"settings.hide_project_names",
@@ -525,7 +544,7 @@ func loadSanitizeParams(v *viper.Viper) (SanitizeParams, error) {
 	}
 
 	// hide file names
-	hideFileNamesStr, _ := vipertools.FirstNonEmptyString(
+	hideFileNamesStr := vipertools.FirstNonEmptyString(
 		v,
 		"hide-file-names",
 		"hide-filenames",
@@ -625,11 +644,11 @@ func LoadOfflineParams(v *viper.Viper) Offline {
 func LoadStatusBarParams(v *viper.Viper) (StatusBar, error) {
 	var hideCategories bool
 
-	if hideCategoriesStr, ok := vipertools.FirstNonEmptyString(
+	if hideCategoriesStr := vipertools.FirstNonEmptyString(
 		v,
 		"today-hide-categories",
 		"settings.status_bar_hide_categories",
-	); ok {
+	); hideCategoriesStr != "" {
 		val, err := strconv.ParseBool(hideCategoriesStr)
 		if err != nil {
 			return StatusBar{}, fmt.Errorf("failed to parse today-hide-categories: %s", err)
