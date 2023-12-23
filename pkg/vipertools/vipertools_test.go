@@ -81,25 +81,24 @@ func TestFirstNonEmptyString(t *testing.T) {
 	v.Set("second", "secret")
 	v.Set("third", "ignored")
 
-	value, ok := vipertools.FirstNonEmptyString(v, "first", "second", "third")
-	require.True(t, ok)
+	value := vipertools.FirstNonEmptyString(v, "first", "second", "third")
 	assert.Equal(t, "secret", value)
 }
 
 func TestFirstNonEmptyString_NilPointer(t *testing.T) {
-	_, ok := vipertools.FirstNonEmptyString(nil, "first")
-	assert.False(t, ok)
+	value := vipertools.FirstNonEmptyString(nil, "first")
+	assert.Empty(t, value)
 }
 
 func TestFirstNonEmptyString_EmptyKeys(t *testing.T) {
 	v := viper.New()
-	_, ok := vipertools.FirstNonEmptyString(v)
-	assert.False(t, ok)
+	value := vipertools.FirstNonEmptyString(v)
+	assert.Empty(t, value)
 }
 
 func TestFirstNonEmptyString_NotFound(t *testing.T) {
-	_, ok := vipertools.FirstNonEmptyString(viper.New(), "key")
-	assert.False(t, ok)
+	value := vipertools.FirstNonEmptyString(viper.New(), "key")
+	assert.Empty(t, value)
 }
 
 func TestGetString(t *testing.T) {
