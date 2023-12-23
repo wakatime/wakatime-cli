@@ -105,7 +105,7 @@ func LoadParams(v *viper.Viper) (paramscmd.Params, error) {
 func initHandleOptions(params paramscmd.Params) []heartbeat.HandleOption {
 	return []heartbeat.HandleOption{
 		heartbeat.WithFormatting(),
-		heartbeat.WithEntityModifer(),
+		heartbeat.WithEntityModifier(),
 		filter.WithFiltering(filter.Config{
 			Exclude:                    params.Heartbeat.Filter.Exclude,
 			Include:                    params.Heartbeat.Filter.Include,

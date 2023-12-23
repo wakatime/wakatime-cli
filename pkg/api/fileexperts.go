@@ -33,7 +33,7 @@ func (c *Client) FileExperts(heartbeats []heartbeat.Heartbeat) ([]heartbeat.Resu
 		return nil, fmt.Errorf("failed to json encode body: %s", err)
 	}
 
-	log.Debugf("fileexpert: %s", string(data))
+	log.Debugf("file-experts: %s", string(data))
 
 	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(data))
 	if err != nil {

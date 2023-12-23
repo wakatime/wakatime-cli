@@ -1,0 +1,60 @@
+{
+    "data": [
+        {
+            "user": {
+                "id": "a8d9322f-78f0-4c6f-b4ee-91daa7d97495",
+                "name": "John",
+                "long_name": "John Papa",
+                "is_current_user": true
+            },
+            "total": {
+                "digital": "4:15",
+                "decimal": "4.25",
+                "text": "4 hrs 15 mins",
+                "total_seconds": 15314
+            }
+        },
+        {
+            "user": {
+                "id": "1ddebdf7-d97c-4e4f-8c4a-7f942597d430",
+                "name": "Steve",
+                "long_name": "Steve Wonder",
+                "is_current_user": false
+            },
+            "total": {
+                "digital": "0:22",
+                "decimal": "0.37",
+                "text": "22 mins",
+                "total_seconds": 1352
+            }
+        },
+        {
+            "user": {
+                "id": "dc62fedf-d3ef-4277-90f7-ba3dd80d6780",
+                "name": "Alex",
+                "long_name": "Alex Bowen",
+                "is_current_user": false
+            },
+            "total": {
+                "digital": "0:00",
+                "decimal": "0.00",
+                "text": "0 secs",
+                "total_seconds": 0
+            }
+        },
+        {
+            "user": {
+                "id": "bdad5d80-a9bc-4e3b-978c-657c9be65b3f",
+                "name": "Mike",
+                "long_name": "Mike Bispo",
+                "is_current_user": false
+            },
+            "total": {
+                "digital": "0:00",
+                "decimal": "0.00",
+                "text": "0 secs",
+                "total_seconds": 0
+            }
+        }
+    ]
+}

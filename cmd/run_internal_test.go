@@ -127,6 +127,11 @@ func TestRunCmd_BackoffLoggedWithVerbose(t *testing.T) {
 
 	defer logFile.Close()
 
+	offlineQueueFile, err := os.CreateTemp(tmpDir, "")
+	require.NoError(t, err)
+
+	defer offlineQueueFile.Close()
+
 	entity, err := os.CreateTemp(tmpDir, "")
 	require.NoError(t, err)
 
@@ -137,6 +142,7 @@ func TestRunCmd_BackoffLoggedWithVerbose(t *testing.T) {
 	v.Set("entity", entity.Name())
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("log-file", logFile.Name())
+	v.Set("offline-queue-file", offlineQueueFile.Name())
 	v.Set("internal.backoff_at", time.Now().Add(10*time.Minute).Format(ini.DateFormat))
 	v.Set("internal.backoff_retries", "1")
 	v.Set("verbose", verbose)
@@ -174,6 +180,11 @@ func TestRunCmd_BackoffNotLogged(t *testing.T) {
 
 	tmpDir := t.TempDir()
 
+	offlineQueueFile, err := os.CreateTemp(tmpDir, "")
+	require.NoError(t, err)
+
+	defer offlineQueueFile.Close()
+
 	logFile, err := os.CreateTemp(tmpDir, "")
 	require.NoError(t, err)
 
@@ -189,6 +200,7 @@ func TestRunCmd_BackoffNotLogged(t *testing.T) {
 	v.Set("entity", entity.Name())
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("log-file", logFile.Name())
+	v.Set("offline-queue-file", offlineQueueFile.Name())
 	v.Set("internal.backoff_at", time.Now().Add(10*time.Minute).Format(ini.DateFormat))
 	v.Set("internal.backoff_retries", "1")
 	v.Set("verbose", verbose)

@@ -224,7 +224,7 @@ func insertHeartbeatRecord(t *testing.T, db *bolt.DB, bucket string, h heartbeat
 
 		err = b.Put([]byte(h.ID), []byte(h.Heartbeat))
 		if err != nil {
-			return fmt.Errorf("failed put hearbeat: %s", err)
+			return fmt.Errorf("failed put heartbeat: %s", err)
 		}
 
 		return nil

@@ -15,6 +15,8 @@ fi
 # add execution permission
 chmod 750 ./build/wakatime-cli-android-arm
 chmod 750 ./build/wakatime-cli-android-arm64
+chmod 750 ./build/wakatime-cli-darwin-amd64
+chmod 750 ./build/wakatime-cli-darwin-arm64
 chmod 750 ./build/wakatime-cli-freebsd-386
 chmod 750 ./build/wakatime-cli-freebsd-amd64
 chmod 750 ./build/wakatime-cli-freebsd-arm
@@ -37,6 +39,8 @@ chmod 750 ./build/wakatime-cli-windows-arm64.exe
 # create archives
 zip -j ./release/wakatime-cli-android-arm.zip ./build/wakatime-cli-android-arm
 zip -j ./release/wakatime-cli-android-arm64.zip ./build/wakatime-cli-android-arm64
+zip -j ./release/wakatime-cli-darwin-amd64.zip ./build/wakatime-cli-darwin-amd64
+zip -j ./release/wakatime-cli-darwin-arm64.zip ./build/wakatime-cli-darwin-arm64
 zip -j ./release/wakatime-cli-freebsd-386.zip ./build/wakatime-cli-freebsd-386
 zip -j ./release/wakatime-cli-freebsd-amd64.zip ./build/wakatime-cli-freebsd-amd64
 zip -j ./release/wakatime-cli-freebsd-arm.zip ./build/wakatime-cli-freebsd-arm
@@ -55,13 +59,6 @@ zip -j ./release/wakatime-cli-openbsd-arm64.zip ./build/wakatime-cli-openbsd-arm
 zip -j ./release/wakatime-cli-windows-386.zip ./build/wakatime-cli-windows-386.exe
 zip -j ./release/wakatime-cli-windows-amd64.zip ./build/wakatime-cli-windows-amd64.exe
 zip -j ./release/wakatime-cli-windows-arm64.zip ./build/wakatime-cli-windows-arm64.exe
-
-# handle apple binaries
-unzip ./build/wakatime-cli-darwin.zip
-chmod 750 ./build/wakatime-cli-darwin-amd64
-chmod 750 ./build/wakatime-cli-darwin-arm64
-zip -j ./release/wakatime-cli-darwin-amd64.zip ./build/wakatime-cli-darwin-amd64
-zip -j ./release/wakatime-cli-darwin-arm64.zip ./build/wakatime-cli-darwin-arm64
 
 # calculate checksums
 for file in  ./release/*; do

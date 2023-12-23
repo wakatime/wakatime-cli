@@ -877,7 +877,7 @@ const (
 	LanguageMeson
 	// LanguageMetafont represents the Metafont programming language.
 	LanguageMetafont
-	// LanguageMetal represente the Metal programming language.
+	// LanguageMetal represents the Metal programming language.
 	LanguageMetal
 	// LanguageMetapost represents the Metapost programming language.
 	LanguageMetapost
@@ -1570,7 +1570,7 @@ const (
 )
 
 const (
-	languageUnkownStr                      = "Unknown"
+	languageUnknownStr                     = "Unknown"
 	language1CEnterpriseStr                = "1C Enterprise"
 	language4DStr                          = "4D"
 	languageABAPStr                        = "ABAP"
@@ -5655,7 +5655,7 @@ func (l Language) String() string {
 		return languageZimplStr
 
 	default:
-		return languageUnkownStr
+		return languageUnknownStr
 	}
 }
 

@@ -40,20 +40,19 @@ func FirstNonEmptyInt(v *viper.Viper, keys ...string) (int, bool) {
 }
 
 // FirstNonEmptyString accepts multiple keys and returns the first non empty string value
-// from viper.Viper via these keys. Non-empty meaning "" value will not be accepted.
-// Will return false as second parameter, if non-empty string value could not be retrieved.
-func FirstNonEmptyString(v *viper.Viper, keys ...string) (string, bool) {
+// from viper.Viper via these keys. Returns empty string by default if a value couldn't be found.
+func FirstNonEmptyString(v *viper.Viper, keys ...string) string {
 	if v == nil {
-		return "", false
+		return ""
 	}
 
 	for _, key := range keys {
 		if value := GetString(v, key); value != "" {
-			return value, true
+			return value
 		}
 	}
 
-	return "", false
+	return ""
 }
 
 // GetString gets a parameter/setting by key and strips any quotes.

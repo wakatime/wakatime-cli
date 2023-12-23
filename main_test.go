@@ -505,6 +505,88 @@ func TestSendHeartbeats_MalformedInternalConfig(t *testing.T) {
 	assert.Equal(t, 1, count)
 }
 
+func TestFileExperts(t *testing.T) {
+	t.Skip()
+
+	apiURL, router, close := setupTestServer()
+	defer close()
+
+	projectFolder, err := filepath.Abs(".")
+	require.NoError(t, err)
+
+	subfolders := project.CountSlashesInProjectFolder(projectFolder)
+
+	var numCalls int
+
+	router.HandleFunc("/users/current/file_experts",
+		func(w http.ResponseWriter, req *http.Request) {
+			numCalls++
+
+			// check headers
+			assert.Equal(t, http.MethodPost, req.Method)
+			assert.Equal(t, []string{"application/json"}, req.Header["Accept"])
+			assert.Equal(t, []string{"application/json"}, req.Header["Content-Type"])
+			assert.Equal(t, []string{"Basic MDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAw"}, req.Header["Authorization"])
+			assert.Equal(t, []string{heartbeat.UserAgent("")}, req.Header["User-Agent"])
+
+			// check body
+			expectedBodyTpl, err := os.ReadFile("testdata/api_file_experts_request_template.json")
+			require.NoError(t, err)
+
+			entityPath, err := realpath.Realpath("testdata/main.go")
+			require.NoError(t, err)
+
+			entityPath = strings.ReplaceAll(entityPath, `\`, `/`)
+			expectedBody := fmt.Sprintf(
+				string(expectedBodyTpl),
+				entityPath,
+				"wakatime-cli",
+				subfolders,
+			)
+
+			body, err := io.ReadAll(req.Body)
+			require.NoError(t, err)
+
+			assert.JSONEq(t, expectedBody, string(body))
+
+			// write response
+			f, err := os.Open("testdata/api_file_experts_response.json")
+			require.NoError(t, err)
+
+			w.WriteHeader(http.StatusOK)
+			_, err = io.Copy(w, f)
+			require.NoError(t, err)
+		})
+
+	tmpDir := t.TempDir()
+
+	tmpConfigFile, err := os.CreateTemp(tmpDir, "wakatime.cfg")
+	require.NoError(t, err)
+
+	defer tmpConfigFile.Close()
+
+	tmpInternalConfigFile, err := os.CreateTemp(tmpDir, "wakatime-internal.cfg")
+	require.NoError(t, err)
+
+	defer tmpInternalConfigFile.Close()
+
+	out := runWakatimeCli(
+		t,
+		&bytes.Buffer{},
+		"--api-url", apiURL,
+		"--key", "00000000-0000-4000-8000-000000000000",
+		"--config", tmpConfigFile.Name(),
+		"--internal-config", tmpInternalConfigFile.Name(),
+		"--entity", "testdata/main.go",
+		"--file-experts",
+		"--verbose",
+	)
+
+	assert.Equal(t, "You: 4 hrs 15 mins | Steve: 22 mins\n", out)
+
+	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+}
+
 func TestTodayGoal(t *testing.T) {
 	apiURL, router, close := setupTestServer()
 	defer close()

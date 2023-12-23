@@ -36,10 +36,10 @@ func (f File) Detect() (Result, bool, error) {
 		Folder: filepath.Dir(fp),
 	}
 
+	result.Project = filepath.Base(filepath.Dir(fp))
+
 	if len(lines) > 0 {
 		result.Project = strings.TrimSpace(lines[0])
-	} else {
-		result.Project = filepath.Base(filepath.Dir(fp))
 	}
 
 	if len(lines) > 1 {
