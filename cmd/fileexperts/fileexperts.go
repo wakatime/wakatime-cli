@@ -4,13 +4,13 @@ import (
 	"fmt"
 
 	apicmd "github.com/wakatime/wakatime-cli/cmd/api"
-	paramscmd "github.com/wakatime/wakatime-cli/cmd/params"
 	"github.com/wakatime/wakatime-cli/pkg/apikey"
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
 	"github.com/wakatime/wakatime-cli/pkg/fileexperts"
 	"github.com/wakatime/wakatime-cli/pkg/filter"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/log"
+	paramspkg "github.com/wakatime/wakatime-cli/pkg/params"
 	"github.com/wakatime/wakatime-cli/pkg/project"
 	"github.com/wakatime/wakatime-cli/pkg/wakaerror"
 
@@ -75,34 +75,34 @@ func FileExperts(v *viper.Viper) (string, error) {
 
 // LoadParams loads file-expert config params from viper.Viper instance. Returns ErrAuth
 // if failed to retrieve api key.
-func LoadParams(v *viper.Viper) (paramscmd.Params, error) {
+func LoadParams(v *viper.Viper) (paramspkg.Params, error) {
 	if v == nil {
-		return paramscmd.Params{}, fmt.Errorf("viper instance unset")
+		return paramspkg.Params{}, fmt.Errorf("viper instance unset")
 	}
 
-	heartbeatParams, err := paramscmd.LoadHeartbeatParams(v)
+	heartbeatParams, err := paramspkg.LoadHeartbeatParams(v)
 	if err != nil {
-		return paramscmd.Params{}, fmt.Errorf("failed to load heartbeat params: %s", err)
+		return paramspkg.Params{}, fmt.Errorf("failed to load heartbeat params: %s", err)
 	}
 
-	apiParams, err := paramscmd.LoadAPIParams(v)
+	apiParams, err := paramspkg.LoadAPIParams(v)
 	if err != nil {
-		return paramscmd.Params{}, fmt.Errorf("failed to load API parameters: %w", err)
+		return paramspkg.Params{}, fmt.Errorf("failed to load API parameters: %w", err)
 	}
 
-	statusBarParams, err := paramscmd.LoadStatusBarParams(v)
+	statusBarParams, err := paramspkg.LoadStatusBarParams(v)
 	if err != nil {
-		return paramscmd.Params{}, fmt.Errorf("failed to load status bar params: %w", err)
+		return paramspkg.Params{}, fmt.Errorf("failed to load status bar params: %w", err)
 	}
 
-	return paramscmd.Params{
+	return paramspkg.Params{
 		API:       apiParams,
 		Heartbeat: heartbeatParams,
 		StatusBar: statusBarParams,
 	}, nil
 }
 
-func initHandleOptions(params paramscmd.Params) []heartbeat.HandleOption {
+func initHandleOptions(params paramspkg.Params) []heartbeat.HandleOption {
 	return []heartbeat.HandleOption{
 		heartbeat.WithFormatting(),
 		heartbeat.WithEntityModifer(),

@@ -1,8 +1,14 @@
 package project
 
 import (
+	"fmt"
+
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/ini"
 	"github.com/wakatime/wakatime-cli/pkg/log"
+	paramspkg "github.com/wakatime/wakatime-cli/pkg/params"
+
+	"github.com/spf13/viper"
 )
 
 // defaultConfigFile is the name of the default wakatime config file per project.
@@ -11,7 +17,7 @@ const defaultConfigFile = ".wakatime"
 // WithConfiguration initializes and returns a heartbeat handle option, which
 // can be used in a heartbeat processing pipeline to load project-level configuration params
 // and override the loaded from ~/.wakatime.cfg file.
-func WithConfiguration() heartbeat.HandleOption {
+func WithConfiguration(v *viper.Viper, params *paramspkg.Params) heartbeat.HandleOption {
 	return func(next heartbeat.Handle) heartbeat.Handle {
 		return func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 			for n, h := range hh {
@@ -37,6 +43,10 @@ func WithConfiguration() heartbeat.HandleOption {
 }
 
 // LoadConfig loads project-level configuration params and overrides the loaded from ~/.wakatime.cfg file.
-func LoadConfig(fp string) (Config, error) {
-	return Config{}, nil
+func LoadConfig(fp string, params *paramspkg.Params) error {
+	if err := ini.ReadInConfig(c.vp, configFile); err != nil {
+		return fmt.Errorf("failed to load configuration file: %s", err)
+	}
+	
+	return nil
 }

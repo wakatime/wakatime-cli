@@ -20,7 +20,6 @@ import (
 	"github.com/wakatime/wakatime-cli/cmd/offlinecount"
 	"github.com/wakatime/wakatime-cli/cmd/offlineprint"
 	"github.com/wakatime/wakatime-cli/cmd/offlinesync"
-	"github.com/wakatime/wakatime-cli/cmd/params"
 	"github.com/wakatime/wakatime-cli/cmd/today"
 	"github.com/wakatime/wakatime-cli/cmd/todaygoal"
 	"github.com/wakatime/wakatime-cli/pkg/api"
@@ -30,6 +29,7 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/ini"
 	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/offline"
+	"github.com/wakatime/wakatime-cli/pkg/params"
 	"github.com/wakatime/wakatime-cli/pkg/vipertools"
 
 	"github.com/spf13/cobra"

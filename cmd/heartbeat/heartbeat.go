@@ -7,7 +7,6 @@ import (
 
 	apicmd "github.com/wakatime/wakatime-cli/cmd/api"
 	offlinecmd "github.com/wakatime/wakatime-cli/cmd/offline"
-	paramscmd "github.com/wakatime/wakatime-cli/cmd/params"
 	"github.com/wakatime/wakatime-cli/pkg/api"
 	"github.com/wakatime/wakatime-cli/pkg/apikey"
 	"github.com/wakatime/wakatime-cli/pkg/backoff"
@@ -19,6 +18,7 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/language"
 	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/offline"
+	paramspkg "github.com/wakatime/wakatime-cli/pkg/params"
 	"github.com/wakatime/wakatime-cli/pkg/project"
 	"github.com/wakatime/wakatime-cli/pkg/remote"
 	"github.com/wakatime/wakatime-cli/pkg/wakaerror"
@@ -146,29 +146,29 @@ func SendHeartbeats(v *viper.Viper, queueFilepath string) error {
 
 // LoadParams loads params from viper.Viper instance. Returns ErrAuth
 // if failed to retrieve api key.
-func LoadParams(v *viper.Viper) (paramscmd.Params, error) {
+func LoadParams(v *viper.Viper) (paramspkg.Params, error) {
 	if v == nil {
-		return paramscmd.Params{}, errors.New("viper instance unset")
+		return paramspkg.Params{}, errors.New("viper instance unset")
 	}
 
-	apiParams, err := paramscmd.LoadAPIParams(v)
+	apiParams, err := paramspkg.LoadAPIParams(v)
 	if err != nil {
-		return paramscmd.Params{}, fmt.Errorf("failed to load API parameters: %w", err)
+		return paramspkg.Params{}, fmt.Errorf("failed to load API parameters: %w", err)
 	}
 
-	heartbeatParams, err := paramscmd.LoadHeartbeatParams(v)
+	heartbeatParams, err := paramspkg.LoadHeartbeatParams(v)
 	if err != nil {
-		return paramscmd.Params{}, fmt.Errorf("failed to load heartbeat params: %s", err)
+		return paramspkg.Params{}, fmt.Errorf("failed to load heartbeat params: %s", err)
 	}
 
-	return paramscmd.Params{
+	return paramspkg.Params{
 		API:       apiParams,
 		Heartbeat: heartbeatParams,
-		Offline:   paramscmd.LoadOfflineParams(v),
+		Offline:   paramspkg.LoadOfflineParams(v),
 	}, nil
 }
 
-func buildHeartbeats(params paramscmd.Params) []heartbeat.Heartbeat {
+func buildHeartbeats(params paramspkg.Params) []heartbeat.Heartbeat {
 	userAgent := heartbeat.UserAgent(params.API.Plugin)
 
 	heartbeats := []heartbeat.Heartbeat{}
@@ -224,7 +224,7 @@ func buildHeartbeats(params paramscmd.Params) []heartbeat.Heartbeat {
 	return heartbeats
 }
 
-func initHandleOptions(params paramscmd.Params) []heartbeat.HandleOption {
+func initHandleOptions(params paramspkg.Params) []heartbeat.HandleOption {
 	return []heartbeat.HandleOption{
 		heartbeat.WithFormatting(),
 		heartbeat.WithEntityModifer(),
@@ -267,7 +267,7 @@ func initHandleOptions(params paramscmd.Params) []heartbeat.HandleOption {
 	}
 }
 
-func setLogFields(params paramscmd.Params) {
+func setLogFields(params paramspkg.Params) {
 	log.WithField("file", params.Heartbeat.Entity)
 	log.WithField("time", params.Heartbeat.Time)
 

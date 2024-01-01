@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 
-	paramscmd "github.com/wakatime/wakatime-cli/cmd/params"
 	"github.com/wakatime/wakatime-cli/pkg/deps"
 	"github.com/wakatime/wakatime-cli/pkg/filestats"
 	"github.com/wakatime/wakatime-cli/pkg/filter"
@@ -12,6 +11,7 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/language"
 	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/offline"
+	paramspkg "github.com/wakatime/wakatime-cli/pkg/params"
 	"github.com/wakatime/wakatime-cli/pkg/project"
 	"github.com/wakatime/wakatime-cli/pkg/remote"
 
@@ -57,25 +57,25 @@ func SaveHeartbeats(v *viper.Viper, heartbeats []heartbeat.Heartbeat, queueFilep
 	return nil
 }
 
-func loadParams(v *viper.Viper) (paramscmd.Params, error) {
-	paramAPI, err := paramscmd.LoadAPIParams(v)
+func loadParams(v *viper.Viper) (paramspkg.Params, error) {
+	paramAPI, err := paramspkg.LoadAPIParams(v)
 	if err != nil {
 		log.Warnf("failed to load API parameters: %s", err)
 	}
 
-	paramHeartbeat, err := paramscmd.LoadHeartbeatParams(v)
+	paramHeartbeat, err := paramspkg.LoadHeartbeatParams(v)
 	if err != nil {
-		return paramscmd.Params{}, fmt.Errorf("failed to load heartbeat parameters: %s", err)
+		return paramspkg.Params{}, fmt.Errorf("failed to load heartbeat parameters: %s", err)
 	}
 
-	return paramscmd.Params{
+	return paramspkg.Params{
 		API:       paramAPI,
 		Heartbeat: paramHeartbeat,
-		Offline:   paramscmd.LoadOfflineParams(v),
+		Offline:   paramspkg.LoadOfflineParams(v),
 	}, nil
 }
 
-func buildHeartbeats(params paramscmd.Params) []heartbeat.Heartbeat {
+func buildHeartbeats(params paramspkg.Params) []heartbeat.Heartbeat {
 	heartbeats := []heartbeat.Heartbeat{}
 
 	userAgent := heartbeat.UserAgent(params.API.Plugin)
@@ -131,7 +131,7 @@ func buildHeartbeats(params paramscmd.Params) []heartbeat.Heartbeat {
 	return heartbeats
 }
 
-func initHandleOptions(params paramscmd.Params) []heartbeat.HandleOption {
+func initHandleOptions(params paramspkg.Params) []heartbeat.HandleOption {
 	return []heartbeat.HandleOption{
 		heartbeat.WithFormatting(),
 		heartbeat.WithEntityModifer(),
@@ -169,7 +169,7 @@ func initHandleOptions(params paramscmd.Params) []heartbeat.HandleOption {
 	}
 }
 
-func setLogFields(params paramscmd.Params) {
+func setLogFields(params paramspkg.Params) {
 	if params.API.Plugin != "" {
 		log.WithField("plugin", params.API.Plugin)
 	}

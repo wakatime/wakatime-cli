@@ -4,16 +4,16 @@ import (
 	"fmt"
 	"strings"
 
-	paramscmd "github.com/wakatime/wakatime-cli/cmd/params"
 	"github.com/wakatime/wakatime-cli/pkg/api"
 	"github.com/wakatime/wakatime-cli/pkg/log"
+	paramspkg "github.com/wakatime/wakatime-cli/pkg/params"
 
 	tz "github.com/gandarez/go-olson-timezone"
 )
 
 // NewClient initializes a new api client with all options following the
 // passed in parameters.
-func NewClient(params paramscmd.API) (*api.Client, error) {
+func NewClient(params paramspkg.API) (*api.Client, error) {
 	withAuth, err := api.WithAuth(api.BasicAuth{
 		Secret: params.Key,
 	})
@@ -26,12 +26,12 @@ func NewClient(params paramscmd.API) (*api.Client, error) {
 
 // NewClientWithoutAuth initializes a new api client with all options following the
 // passed in parameters and disabled authentication.
-func NewClientWithoutAuth(params paramscmd.API) (*api.Client, error) {
+func NewClientWithoutAuth(params paramspkg.API) (*api.Client, error) {
 	return newClient(params)
 }
 
 // newClient contains the logic of client initialization, except auth initialization.
-func newClient(params paramscmd.API, opts ...api.Option) (*api.Client, error) {
+func newClient(params paramspkg.API, opts ...api.Option) (*api.Client, error) {
 	opts = append(opts, api.WithTimeout(params.Timeout))
 	opts = append(opts, api.WithHostname(strings.TrimSpace(params.Hostname)))
 
