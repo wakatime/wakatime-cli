@@ -33,7 +33,7 @@ func Run(v *viper.Viper) (int, error) {
 	return exitcode.Success, nil
 }
 
-// Today returns a rendered summary of todays coding activity.
+// Today returns a rendered summary of today's coding activity.
 func Today(v *viper.Viper) (string, error) {
 	paramAPI, err := params.LoadAPIParams(v)
 	if err != nil {

@@ -6,7 +6,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-// FirstNonEmptyBool accepts multiple keys and returns the first non empty bool value
+// FirstNonEmptyBool accepts multiple keys and returns the first non-empty bool value
 // from viper.Viper via these keys. Non-empty meaning false value will not be accepted.
 func FirstNonEmptyBool(v *viper.Viper, keys ...string) bool {
 	if v == nil {
@@ -22,7 +22,7 @@ func FirstNonEmptyBool(v *viper.Viper, keys ...string) bool {
 	return false
 }
 
-// FirstNonEmptyInt accepts multiple keys and returns the first non empty int value
+// FirstNonEmptyInt accepts multiple keys and returns the first non-empty int value
 // from viper.Viper via these keys. Non-empty meaning 0 value will not be accepted.
 // Will return false as second parameter, if non-empty int value could not be retrieved.
 func FirstNonEmptyInt(v *viper.Viper, keys ...string) (int, bool) {
@@ -39,7 +39,7 @@ func FirstNonEmptyInt(v *viper.Viper, keys ...string) (int, bool) {
 	return 0, false
 }
 
-// FirstNonEmptyString accepts multiple keys and returns the first non empty string value
+// FirstNonEmptyString accepts multiple keys and returns the first non-empty string value
 // from viper.Viper via these keys. Returns empty string by default if a value couldn't be found.
 func FirstNonEmptyString(v *viper.Viper, keys ...string) string {
 	if v == nil {
@@ -60,7 +60,7 @@ func GetString(v *viper.Viper, key string) string {
 	return strings.Trim(v.GetString(key), `"'`)
 }
 
-// GetStringMapString gets a parameter/setting by key prefix and stripts any quotes.
+// GetStringMapString gets a parameter/setting by key prefix and strips any quotes.
 func GetStringMapString(v *viper.Viper, prefix string) map[string]string {
 	m := map[string]string{}
 
