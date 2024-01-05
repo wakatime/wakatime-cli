@@ -133,7 +133,7 @@ projects/foo = your-api-key
 
 ### Api Key Environment Variable
 
-If a `WAKATIME_API_KEY` env var exists, wakatime-cli will use it’s value as the api key.
+If a `WAKATIME_API_KEY` env var exists, wakatime-cli will use its value as the api key.
 This means you don’t need a `~/.wakatime.cfg` file, or you can omit or leave empty the `api_key` setting in your config file if using the env var.
 However, if an api key exists in your `~/.wakatime.cfg` file then it takes precedence over the env var.
 
@@ -157,5 +157,5 @@ For commonly used configuration options, see examples in the [FAQ](https://wakat
 
 ## Internal INI Config File
 
-The plugins and waktime-cli use a separate internal INI file for things like caching auto-update requests to the GitHub releases API, and exponential backoff to the WakaTime API.
+The plugins and wakatime-cli use a separate internal INI file for things like caching auto-update requests to the GitHub releases API, and exponential backoff to the WakaTime API.
 The default internal INI config file location is `$WAKATIME_HOME/.wakatime/wakatime-internal.cfg`.
