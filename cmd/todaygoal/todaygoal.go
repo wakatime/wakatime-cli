@@ -45,7 +45,7 @@ func Run(v *viper.Viper) (int, error) {
 	return exitcode.Success, nil
 }
 
-// Goal returns total time of given goal id for todays coding activity.
+// Goal returns total time of given goal id for today's coding activity.
 func Goal(v *viper.Viper) (string, error) {
 	params, err := LoadParams(v)
 	if err != nil {
