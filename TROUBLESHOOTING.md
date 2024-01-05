@@ -20,7 +20,7 @@ Each plugin also has its own log file:
 * **Emacs** messages go to the *messages* buffer window
 * **Jetbrains IDEs (IntelliJ IDEA, PyCharm, RubyMine, PhpStorm, AppCode, AndroidStudio, WebStorm)** log to `idea.log` ([locating IDE log files][locating IDE log files])
 * **Komodo** logs are written to `pystderr.log` (Help -> Troubleshooting -> View Log File)
-* **Netbeans** logs to it's own log file (View -> IDE Log)
+* **Netbeans** logs to its own log file (View -> IDE Log)
 * **Notepad++** errors go to `AppData\Roaming\Notepad++\plugins\config\WakaTime.log` (this file is only created when an error occurs)
 * **Sublime** Text logs to the Sublime Console (View -> Show Console)
 * **TextMate** logs to stderr so run TextMate from Terminal to see any errors ([enable logging][textmate logging])
@@ -34,7 +34,7 @@ Check the [Plugin Status Page][plugins status] to see when the API last heard fr
 Useful API Endpoints for debugging:
 
 * [List of your Plugins and when they were last heard from][user agents api]
-* [List of your Machines and ther IPs][machines api]
+* [List of your Machines and their IPs][machines api]
 
 Useful Resources:
 
