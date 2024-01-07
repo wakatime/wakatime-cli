@@ -19,7 +19,7 @@ func (m Mercurial) Detect() (Result, bool, error) {
 	var fp string
 
 	// Take only the directory
-	if fileExists(m.Filepath) {
+	if fileOrDirExists(m.Filepath) {
 		fp = filepath.Dir(m.Filepath)
 	}
 
@@ -49,7 +49,7 @@ func (m Mercurial) Detect() (Result, bool, error) {
 
 func findHgBranch(fp string) (string, error) {
 	p := filepath.Join(fp, "branch")
-	if !fileExists(p) {
+	if !fileOrDirExists(p) {
 		return "default", nil
 	}
 

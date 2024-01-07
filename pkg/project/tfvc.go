@@ -16,7 +16,7 @@ func (t Tfvc) Detect() (Result, bool, error) {
 	var fp string
 
 	// Take only the directory
-	if fileExists(t.Filepath) {
+	if fileOrDirExists(t.Filepath) {
 		fp = filepath.Dir(t.Filepath)
 	}
 
