@@ -172,6 +172,6 @@ test-ip:
 
 .PHONY: test-shell-script
 test-shell-script:
-	bats --formatter tap ./bin/tests
+	bats ./bin/tests
 
 test-all: lint test test-integration test-shell-script test-ip
