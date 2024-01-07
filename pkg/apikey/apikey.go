@@ -34,9 +34,11 @@ func WithReplacing(config Config) heartbeat.HandleOption {
 				result, ok := MatchPattern(h.Entity, config.MapPatterns)
 				if ok {
 					hh[n].APIKey = result
-				} else {
-					hh[n].APIKey = config.DefaultAPIKey
+
+					continue
 				}
+
+				hh[n].APIKey = config.DefaultAPIKey
 			}
 
 			return next(hh)

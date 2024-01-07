@@ -154,6 +154,45 @@ func TestGit_Detect_WorktreeGitRemote(t *testing.T) {
 	}, result)
 }
 
+func TestGit_Detect_Worktree_BareRepo(t *testing.T) {
+	fp := setupTestGitWorktreeBareRepo(t)
+
+	g := project.Git{
+		Filepath: filepath.Join(fp, "wakatime-cli/master/src/pkg/file.go"),
+	}
+
+	result, detected, err := g.Detect()
+	require.NoError(t, err)
+
+	assert.True(t, detected)
+	assert.Contains(t, result.Folder, filepath.Join(fp, "wakatime-cli"))
+	assert.Equal(t, project.Result{
+		Project: "wakatime-cli",
+		Branch:  "feature/api",
+		Folder:  result.Folder,
+	}, result)
+}
+
+func TestGit_Detect_WorktreeGitRemote_BareRepo(t *testing.T) {
+	fp := setupTestGitWorktreeBareRepo(t)
+
+	g := project.Git{
+		Filepath:             filepath.Join(fp, "wakatime-cli/master/src/pkg/file.go"),
+		ProjectFromGitRemote: true,
+	}
+
+	result, detected, err := g.Detect()
+	require.NoError(t, err)
+
+	assert.True(t, detected)
+	assert.Contains(t, result.Folder, filepath.Join(fp, "wakatime-cli"))
+	assert.Equal(t, project.Result{
+		Project: "wakatime/wakatime-cli",
+		Branch:  "feature/api",
+		Folder:  result.Folder,
+	}, result)
+}
+
 func TestGit_Detect_Submodule(t *testing.T) {
 	fp := setupTestGitSubmodule(t)
 
@@ -451,6 +490,48 @@ func setupTestGitWorktree(t *testing.T) (fp string) {
 	defer tmpFile.Close()
 
 	_, err = tmpFile.WriteString(fmt.Sprintf("gitdir: %s/wakatime-cli/.git/worktrees/api", tmpDir))
+	require.NoError(t, err)
+
+	return tmpDir
+}
+
+func setupTestGitWorktreeBareRepo(t *testing.T) (fp string) {
+	tmpDir := t.TempDir()
+
+	tmpDir, err := realpath.Realpath(tmpDir)
+	require.NoError(t, err)
+
+	if runtime.GOOS == "windows" {
+		tmpDir = windows.FormatFilePath(tmpDir)
+	}
+
+	// Create directories
+	err = os.MkdirAll(filepath.Join(tmpDir, "wakatime-cli/worktrees/master"), os.FileMode(int(0700)))
+	require.NoError(t, err)
+
+	err = os.MkdirAll(filepath.Join(tmpDir, "wakatime-cli/master/src/pkg"), os.FileMode(int(0700)))
+	require.NoError(t, err)
+
+	// Create fake file
+	tmpFile, err := os.Create(filepath.Join(tmpDir, "wakatime-cli/master/src/pkg/file.go"))
+	require.NoError(t, err)
+
+	defer tmpFile.Close()
+
+	// Setup basic git
+	copyFile(t, "testdata/git_basic/config", filepath.Join(tmpDir, "wakatime-cli/config"))
+	copyFile(t, "testdata/git_worktree/HEAD", filepath.Join(tmpDir, "wakatime-cli/HEAD"))
+
+	// Setup git worktree
+	copyFile(t, "testdata/git_worktree/HEAD2", filepath.Join(tmpDir, "wakatime-cli/worktrees/master/HEAD"))
+	copyFile(t, "testdata/git_worktree/commondir", filepath.Join(tmpDir, "wakatime-cli/worktrees/master/commondir"))
+
+	tmpFile, err = os.Create(filepath.Join(tmpDir, "wakatime-cli/master/.git"))
+	require.NoError(t, err)
+
+	defer tmpFile.Close()
+
+	_, err = tmpFile.WriteString(fmt.Sprintf("gitdir: %s/wakatime-cli/worktrees/master", tmpDir))
 	require.NoError(t, err)
 
 	return tmpDir
