@@ -27,7 +27,7 @@ func (g Git) Detect() (Result, bool, error) {
 	fp := g.Filepath
 
 	// Take only the directory
-	if fileExists(fp) {
+	if fileOrDirExists(fp) {
 		fp = filepath.Dir(fp)
 	}
 
@@ -73,7 +73,9 @@ func (g Git) Detect() (Result, bool, error) {
 		return Result{}, false, fmt.Errorf("error finding gitdir: %s", err)
 	}
 
-	// Commonly .git file is present when it's a worktree
+	// Commonly .git folder is present when it's a worktree but there's an exception where
+	// worktree is present but .git folder is not present. In that case, we need to find
+	// for worktree folder.
 	// Find for commondir file
 	commondir, ok, err := findCommondir(gitdir)
 	if err != nil {
@@ -82,7 +84,16 @@ func (g Git) Detect() (Result, bool, error) {
 
 	// we found a commondir file so this is a worktree
 	if ok {
-		project := projectOrRemote(filepath.Base(filepath.Dir(commondir)), g.ProjectFromGitRemote, commondir)
+		dir := filepath.Dir(commondir)
+
+		// Commonly commondir file contains a .git folder but there's an exception where
+		// commondir contains the actual git folder. It's common when repo is bare and
+		// it's a worktree.
+		if strings.LastIndex(commondir, ".git") == -1 {
+			dir = commondir
+		}
+
+		project := projectOrRemote(filepath.Base(dir), g.ProjectFromGitRemote, commondir)
 
 		branch, err := findGitBranch(filepath.Join(gitdir, "HEAD"))
 		if err != nil {
@@ -96,7 +107,7 @@ func (g Git) Detect() (Result, bool, error) {
 		return Result{
 			Project: project,
 			Branch:  branch,
-			Folder:  filepath.Dir(commondir),
+			Folder:  dir,
 		}, true, nil
 	}
 
@@ -198,13 +209,13 @@ func findGitdir(fp string) (string, error) {
 	return "", nil
 }
 
-func resolveGitdir(fp string, gitdir string) (string, error) {
+func resolveGitdir(fp, gitdir string) (string, error) {
 	subPath := strings.TrimSpace(gitdir)
 	if !filepath.IsAbs(subPath) {
 		subPath = filepath.Join(fp, subPath)
 	}
 
-	if fileExists(filepath.Join(subPath, "HEAD")) {
+	if fileOrDirExists(filepath.Join(subPath, "HEAD")) {
 		return subPath, nil
 	}
 
@@ -220,7 +231,7 @@ func findCommondir(fp string) (string, bool, error) {
 		return "", false, nil
 	}
 
-	if fileExists(filepath.Join(fp, "commondir")) {
+	if fileOrDirExists(filepath.Join(fp, "commondir")) {
 		return resolveCommondir(fp)
 	}
 
@@ -244,11 +255,7 @@ func resolveCommondir(fp string) (string, bool, error) {
 			fmt.Errorf("failed to get absolute path: %s", err)
 	}
 
-	if filepath.Base(gitdir) == ".git" {
-		return gitdir, true, nil
-	}
-
-	return "", false, nil
+	return gitdir, true, nil
 }
 
 func projectOrRemote(projectName string, projectFromGitRemote bool, dotGitFolder string) string {
@@ -273,7 +280,7 @@ func projectOrRemote(projectName string, projectFromGitRemote bool, dotGitFolder
 }
 
 func findGitBranch(fp string) (string, error) {
-	if !fileExists(fp) {
+	if !fileOrDirExists(fp) {
 		return "master", nil
 	}
 
@@ -290,7 +297,7 @@ func findGitBranch(fp string) (string, error) {
 }
 
 func findGitRemote(fp string) (string, error) {
-	if !fileExists(fp) {
+	if !fileOrDirExists(fp) {
 		return "", nil
 	}
 

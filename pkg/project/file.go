@@ -49,8 +49,8 @@ func (f File) Detect() (Result, bool, error) {
 	return result, true, nil
 }
 
-// fileExists checks if a file or directory exist.
-func fileExists(fp string) bool {
+// fileOrDirExists checks if a file or directory exist.
+func fileOrDirExists(fp string) bool {
 	_, err := os.Stat(fp)
 	return err == nil || os.IsExist(err)
 }

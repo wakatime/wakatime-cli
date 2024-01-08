@@ -138,7 +138,7 @@ type (
 		TotalSeconds float64 `json:"total_seconds"`
 	}
 
-	// Range represents the the time range of a summary.
+	// Range represents the time range of a summary.
 	Range struct {
 		Date     string `json:"date"`
 		End      string `json:"end"`

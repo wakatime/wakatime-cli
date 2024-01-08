@@ -27,7 +27,7 @@ func (s Subversion) Detect() (Result, bool, error) {
 	var fp string
 
 	// Take only the directory
-	if fileExists(s.Filepath) {
+	if fileOrDirExists(s.Filepath) {
 		fp = filepath.Dir(s.Filepath)
 	}
 

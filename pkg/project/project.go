@@ -630,7 +630,7 @@ func FindFileOrDirectory(directory, filename string) (string, bool) {
 			return "", false
 		}
 
-		if fileExists(filepath.Join(directory, filename)) {
+		if fileOrDirExists(filepath.Join(directory, filename)) {
 			return filepath.Join(directory, filename), true
 		}
 
@@ -648,10 +648,10 @@ func isRootPath(directory string) bool {
 	return (directory == "" ||
 		directory == "." ||
 		directory == string(filepath.Separator) ||
-		directory == "\\\\wsl$" ||
-		driveLetterRegex.MatchString(directory) ||
+		directory == filepath.Dir(directory)) ||
 		directory == filepath.VolumeName(directory) ||
-		directory == filepath.Dir(directory))
+		directory == "\\\\wsl$" ||
+		driveLetterRegex.MatchString(directory)
 }
 
 // firstNonEmptyString accepts multiple values and return the first non empty string value.
