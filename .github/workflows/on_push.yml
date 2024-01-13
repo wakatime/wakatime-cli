@@ -569,7 +569,8 @@ jobs:
         name: Download artifacts
         uses: actions/download-artifact@v4
         with:
-          name: binaries
+          pattern: binaries-*
+          merge-multiple: true
           path: build/
       -
         name: Import Code-Signing Certificates
