@@ -296,7 +296,7 @@ jobs:
         name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: binaries
+          name: binaries-android
           path: build/
       -
         name: Remove tag if failure
@@ -337,7 +337,7 @@ jobs:
         name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: binaries
+          name: binaries-linux
           path: build/
       -
         name: Remove tag if failure
@@ -378,7 +378,7 @@ jobs:
         name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: binaries
+          name: binaries-freebsd
           path: build/
       -
         name: Remove tag if failure
@@ -419,7 +419,7 @@ jobs:
         name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: binaries
+          name: binaries-netbsd
           path: build/
       -
         name: Remove tag if failure
@@ -460,7 +460,7 @@ jobs:
         name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: binaries
+          name: binaries-openbsd
           path: build/
       -
         name: Remove tag if failure
@@ -501,7 +501,7 @@ jobs:
         name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: binaries
+          name: binaries-darwin
           path: build/
       -
         name: Remove tag if failure
@@ -542,7 +542,7 @@ jobs:
         name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: binaries
+          name: binaries-windows
           path: build/
       -
         name: Remove tag if failure
@@ -632,8 +632,7 @@ jobs:
       build-openbsd,
       build-darwin,
       build-windows,
-      sign
-    ]
+      sign]
     steps:
       -
         name: Checkout
@@ -673,7 +672,8 @@ jobs:
         name: Download artifacts
         uses: actions/download-artifact@v4
         with:
-          name: binaries
+          pattern: binaries-*
+          merge-multiple: true
           path: build/
       -
         name: Prepare release assets
