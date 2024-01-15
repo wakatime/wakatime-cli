@@ -162,7 +162,7 @@ func TestDetect(t *testing.T) {
 		"cpp": {
 			Filepath:     "testdata/cpp_minimal.cpp",
 			Language:     heartbeat.LanguageCPP,
-			Dependencies: []string{"iostream"},
+			Dependencies: []string{"wakatime"},
 		},
 		"csharp": {
 			Filepath:     "testdata/csharp_minimal.cs",
