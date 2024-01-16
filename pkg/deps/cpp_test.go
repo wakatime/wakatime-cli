@@ -3,20 +3,19 @@ package deps_test
 import (
 	"testing"
 
-	"github.com/wakatime/wakatime-cli/pkg/deps"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/wakatime/wakatime-cli/pkg/deps"
 )
 
-func TestParserC_Parse(t *testing.T) {
-	parser := deps.ParserC{}
+func TestParserCPP_Parse(t *testing.T) {
+	parser := deps.ParserCPP{}
 
-	dependencies, err := parser.Parse("testdata/c.c")
+	dependencies, err := parser.Parse("testdata/cpp.cpp")
 	require.NoError(t, err)
 
 	assert.Equal(t, []string{
-		"math",
 		"openssl",
+		"wakatime",
 	}, dependencies)
 }
