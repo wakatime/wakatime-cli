@@ -35,7 +35,7 @@ func newClient(params paramscmd.API, opts ...api.Option) (*api.Client, error) {
 	opts = append(opts, api.WithTimeout(params.Timeout))
 	opts = append(opts, api.WithHostname(strings.TrimSpace(params.Hostname)))
 
-	tz, err := tz.Name()
+	tz, err := timezone()
 	if err != nil {
 		log.Debugf("failed to detect local timezone: %s", err)
 	} else {
@@ -83,4 +83,16 @@ func newClient(params paramscmd.API, opts ...api.Option) (*api.Client, error) {
 	opts = append(opts, api.WithUserAgent(params.Plugin))
 
 	return api.NewClient(params.URL, opts...), nil
+}
+
+func timezone() (name string, err error) {
+	defer func() {
+		if e := recover(); e != nil {
+			err = fmt.Errorf("panicked when detecting timezone: %s", e)
+		}
+	}()
+
+	name, err = tz.Name()
+
+	return name, err
 }
