@@ -4,6 +4,8 @@ run:
     - integration
   skip-dirs:
     - "testdata"
+  skip-files:
+    - pkg/file/file_windows.go
 linters:
   enable:
     - bodyclose

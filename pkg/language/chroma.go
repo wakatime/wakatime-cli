@@ -3,11 +3,11 @@ package language
 import (
 	"fmt"
 	"io"
-	"os"
 	fp "path/filepath"
 	"sort"
 	"strings"
 
+	"github.com/wakatime/wakatime-cli/pkg/file"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/log"
 
@@ -200,7 +200,7 @@ func selectByCustomizedPriority(filepath string, lexers chroma.PrioritisedLexers
 
 // fileHead returns the first `maxFileSize` bytes of the file's content.
 func fileHead(filepath string) ([]byte, error) {
-	f, err := os.Open(filepath) // nolint:gosec
+	f, err := file.OpenNoLock(filepath) // nolint:gosec
 	if err != nil {
 		return nil, fmt.Errorf("failed to open file: %s", err)
 	}
