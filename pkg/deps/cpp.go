@@ -14,27 +14,27 @@ import (
 	"github.com/alecthomas/chroma/v2/lexers"
 )
 
-var cExcludeRegex = regexp.MustCompile(`(?i)^(stdio\.h|stdlib\.h|string\.h|time\.h)$`)
+var cppExcludeRegex = regexp.MustCompile(`(?i)^(stdio\.h|iostream|stdlib\.h|string\.h|time\.h)$`)
 
-// StateC is a token parsing state.
-type StateC int
+// StateCPP is a token parsing state.
+type StateCPP int
 
 const (
-	// StateCUnknown represents a unknown token parsing state.
-	StateCUnknown StateC = iota
-	// StateCImport means we are in import section during token parsing.
-	StateCImport
+	// StateCPPUnknown represents a unknown token parsing state.
+	StateCPPUnknown StateCPP = iota
+	// StateCPPImport means we are in import section during token parsing.
+	StateCPPImport
 )
 
-// ParserC is a dependency parser for the C programming language.
+// ParserCPP is a dependency parser for the C++ programming language.
 // It is not thread safe.
-type ParserC struct {
-	State  StateC
+type ParserCPP struct {
+	State  StateCPP
 	Output []string
 }
 
-// Parse parses dependencies from C file content using the C lexer.
-func (p *ParserC) Parse(filepath string) ([]string, error) {
+// Parse parses dependencies from C++ file content using the C lexer.
+func (p *ParserCPP) Parse(filepath string) ([]string, error) {
 	reader, err := os.Open(filepath) // nolint:gosec
 	if err != nil {
 		return nil, fmt.Errorf("failed to open file %q: %s", filepath, err)
@@ -54,9 +54,9 @@ func (p *ParserC) Parse(filepath string) ([]string, error) {
 		return nil, fmt.Errorf("failed to read from reader: %s", err)
 	}
 
-	l := lexers.Get(heartbeat.LanguageC.String())
+	l := lexers.Get(heartbeat.LanguageCPP.String())
 	if l == nil {
-		return nil, fmt.Errorf("failed to get lexer for %s", heartbeat.LanguageC.String())
+		return nil, fmt.Errorf("failed to get lexer for %s", heartbeat.LanguageCPP.String())
 	}
 
 	iter, err := l.Tokenise(nil, string(data))
@@ -71,7 +71,7 @@ func (p *ParserC) Parse(filepath string) ([]string, error) {
 	return p.Output, nil
 }
 
-func (p *ParserC) append(dep string) {
+func (p *ParserCPP) append(dep string) {
 	// only consider first part of an import path
 	dep = strings.Split(dep, "/")[0]
 
@@ -81,7 +81,7 @@ func (p *ParserC) append(dep string) {
 
 	dep = strings.TrimSpace(dep)
 
-	if cExcludeRegex.MatchString(dep) {
+	if cppExcludeRegex.MatchString(dep) {
 		return
 	}
 
@@ -91,12 +91,12 @@ func (p *ParserC) append(dep string) {
 	p.Output = append(p.Output, dep)
 }
 
-func (p *ParserC) init() {
+func (p *ParserCPP) init() {
 	p.Output = nil
-	p.State = StateCUnknown
+	p.State = StateCPPUnknown
 }
 
-func (p *ParserC) processToken(token chroma.Token) {
+func (p *ParserCPP) processToken(token chroma.Token) {
 	switch token.Type {
 	case chroma.CommentPreproc:
 		p.processCommentPreproc(token.Value)
@@ -105,14 +105,14 @@ func (p *ParserC) processToken(token chroma.Token) {
 	}
 }
 
-func (p *ParserC) processCommentPreproc(value string) {
+func (p *ParserCPP) processCommentPreproc(value string) {
 	if strings.HasPrefix(strings.TrimSpace(value), "include") {
-		p.State = StateCImport
+		p.State = StateCPPImport
 	}
 }
 
-func (p *ParserC) processCommentPreprocFile(value string) {
-	if p.State != StateCImport {
+func (p *ParserCPP) processCommentPreprocFile(value string) {
+	if p.State != StateCPPImport {
 		return
 	}
 
@@ -121,5 +121,5 @@ func (p *ParserC) processCommentPreprocFile(value string) {
 		p.append(value)
 	}
 
-	p.State = StateCUnknown
+	p.State = StateCPPUnknown
 }

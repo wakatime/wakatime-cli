@@ -19,9 +19,9 @@ jobs:
     steps:
       -
         name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       -
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
           go-version-file: ${{ env.GO_VERSION_FILE }}
           check-latest: ${{ env.CHECK_LATEST }}
@@ -54,9 +54,9 @@ jobs:
     steps:
       -
         name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       -
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
           go-version-file: ${{ env.GO_VERSION_FILE }}
           check-latest: ${{ env.CHECK_LATEST }}
@@ -72,9 +72,6 @@ jobs:
       -
         name: Integration tests
         run: make test-integration
-      -
-        name: IP Check
-        run: make test-ip
 
   test-windows:
     name: Unit Tests Windows
@@ -82,9 +79,9 @@ jobs:
     steps:
       -
         name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       -
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
           go-version-file: ${{ env.GO_VERSION_FILE }}
           check-latest: ${{ env.CHECK_LATEST }}
@@ -108,9 +105,9 @@ jobs:
     steps:
       -
         name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       -
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
           go-version-file: ${{ env.GO_VERSION_FILE }}
           check-latest: ${{ env.CHECK_LATEST }}
@@ -133,9 +130,9 @@ jobs:
     steps:
       -
         name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       -
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
           go-version-file: ${{ env.GO_VERSION_FILE }}
           check-latest: ${{ env.CHECK_LATEST }}
@@ -159,9 +156,9 @@ jobs:
     steps:
       -
         name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       -
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
           go-version-file: ${{ env.GO_VERSION_FILE }}
           check-latest: ${{ env.CHECK_LATEST }}
@@ -184,7 +181,7 @@ jobs:
     steps:
       -
         name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: recursive
       -
@@ -197,11 +194,30 @@ jobs:
         name: Setup bats
         uses: mig4/setup-bats@v1
         with:
-          bats-version: 1.3.0
+          bats-version: 1.10.0
       -
         name: Unit tests
-        run: |
-          make test-shell-script
+        run: make test-shell-script
+
+  ip-check:
+    name: IP Check
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v4
+      -
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: ${{ env.GO_VERSION_FILE }}
+          check-latest: ${{ env.CHECK_LATEST }}
+          cache: false
+      -
+        name: Pull dependencies
+        run: make install-go-modules
+      -
+        name: IP Check
+        run: make test-ip
 
   version:
     name: Version
@@ -215,7 +231,8 @@ jobs:
       test-integration-windows,
       test-macos,
       test-integration-macos,
-      test-shell-script]
+      test-shell-script,
+      ip-check]
     outputs:
       semver_tag: ${{ steps.semver-tag.outputs.semver_tag }}
       ancestor_tag: ${{ steps.semver-tag.outputs.ancestor_tag }}
@@ -223,7 +240,7 @@ jobs:
     steps:
       -
         name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
       -
@@ -235,7 +252,7 @@ jobs:
           prerelease_id: alpha
           main_branch_name: release
       - name: Create tag
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           github-token: ${{ github.token }}
           script: |
@@ -253,10 +270,10 @@ jobs:
     steps:
       -
         name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       -
         name: Setup go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
           go-version-file: ${{ env.GO_VERSION_FILE }}
           check-latest: ${{ env.CHECK_LATEST }}
@@ -277,14 +294,14 @@ jobs:
         run: make -j2 build-android-arm64
       -
         name: Upload artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
-          name: binaries
+          name: binaries-android
           path: build/
       -
         name: Remove tag if failure
         if: ${{ failure() }}
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           github-token: ${{ github.token }}
           script: |
@@ -301,10 +318,10 @@ jobs:
     steps:
       -
         name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       -
         name: Setup go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
           go-version-file: ${{ env.GO_VERSION_FILE }}
           check-latest: ${{ env.CHECK_LATEST }}
@@ -318,14 +335,14 @@ jobs:
         run: make -j2 build-all-linux
       -
         name: Upload artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
-          name: binaries
+          name: binaries-linux
           path: build/
       -
         name: Remove tag if failure
         if: ${{ failure() }}
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           github-token: ${{ github.token }}
           script: |
@@ -342,10 +359,10 @@ jobs:
     steps:
       -
         name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       -
         name: Setup go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
           go-version-file: ${{ env.GO_VERSION_FILE }}
           check-latest: ${{ env.CHECK_LATEST }}
@@ -359,14 +376,14 @@ jobs:
         run: make -j2 build-all-freebsd
       -
         name: Upload artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
-          name: binaries
+          name: binaries-freebsd
           path: build/
       -
         name: Remove tag if failure
         if: ${{ failure() }}
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           github-token: ${{ github.token }}
           script: |
@@ -383,10 +400,10 @@ jobs:
     steps:
       -
         name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       -
         name: Setup go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
           go-version-file: ${{ env.GO_VERSION_FILE }}
           check-latest: ${{ env.CHECK_LATEST }}
@@ -400,14 +417,14 @@ jobs:
         run: make -j2 build-all-netbsd
       -
         name: Upload artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
-          name: binaries
+          name: binaries-netbsd
           path: build/
       -
         name: Remove tag if failure
         if: ${{ failure() }}
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           github-token: ${{ github.token }}
           script: |
@@ -424,10 +441,10 @@ jobs:
     steps:
       -
         name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       -
         name: Setup go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
           go-version-file: ${{ env.GO_VERSION_FILE }}
           check-latest: ${{ env.CHECK_LATEST }}
@@ -441,14 +458,14 @@ jobs:
         run: make -j2 build-all-openbsd
       -
         name: Upload artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
-          name: binaries
+          name: binaries-openbsd
           path: build/
       -
         name: Remove tag if failure
         if: ${{ failure() }}
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           github-token: ${{ github.token }}
           script: |
@@ -465,10 +482,10 @@ jobs:
     steps:
       -
         name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       -
         name: Setup go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
           go-version-file: ${{ env.GO_VERSION_FILE }}
           check-latest: ${{ env.CHECK_LATEST }}
@@ -482,14 +499,14 @@ jobs:
         run: make -j3 build-all-darwin
       -
         name: Upload artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
-          name: binaries
+          name: binaries-darwin
           path: build/
       -
         name: Remove tag if failure
         if: ${{ failure() }}
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           github-token: ${{ github.token }}
           script: |
@@ -506,10 +523,10 @@ jobs:
     steps:
       -
         name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       -
         name: Setup go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
           go-version-file: ${{ env.GO_VERSION_FILE }}
           check-latest: ${{ env.CHECK_LATEST }}
@@ -523,14 +540,14 @@ jobs:
         run: make -j2 build-all-windows
       -
         name: Upload artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
-          name: binaries
+          name: binaries-windows
           path: build/
       -
         name: Remove tag if failure
         if: ${{ failure() }}
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           github-token: ${{ github.token }}
           script: |
@@ -547,12 +564,13 @@ jobs:
     steps:
       -
         name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       -
         name: Download artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          name: binaries
+          pattern: binaries-*
+          merge-multiple: true
           path: build/
       -
         name: Import Code-Signing Certificates
@@ -586,14 +604,14 @@ jobs:
           xcrun notarytool submit ./wakatime-cli-darwin-arm64.zip --keychain-profile "notarytool-profile" --wait
       -
         name: Upload artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: binaries
           path: build/
       -
         name: Remove tag if failure
         if: ${{ failure() }}
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           github-token: ${{ github.token }}
           script: |
@@ -615,12 +633,11 @@ jobs:
       build-openbsd,
       build-darwin,
       build-windows,
-      sign
-    ]
+      sign]
     steps:
       -
         name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
       -
@@ -638,7 +655,7 @@ jobs:
         # Run only for release branch
         if: ${{ github.ref == 'refs/heads/release' }}
         name: Get related pull request
-        uses: 8BitJonny/gh-get-current-pr@1.4.0
+        uses: 8BitJonny/gh-get-current-pr@v2.2.0
         id: changelog-release
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -654,9 +671,10 @@ jobs:
           ./bin/prepare_changelog.sh $(echo ${GITHUB_REF#refs/heads/}) "${CHANGELOG:-$PRBODY}"
       -
         name: Download artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          name: binaries
+          pattern: binaries-*
+          merge-multiple: true
           path: build/
       -
         name: Prepare release assets
@@ -677,7 +695,7 @@ jobs:
       -
         name: Remove tag if failure
         if: ${{ failure() }}
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           github-token: ${{ github.token }}
           script: |

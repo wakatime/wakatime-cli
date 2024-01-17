@@ -29,10 +29,13 @@ import (
 	"golang.org/x/net/http/httpproxy"
 )
 
-const errMsgTemplate = "invalid url %q. Must be in format" +
-	"'https://user:pass@host:port' or " +
-	"'socks5://user:pass@host:port' or " +
-	"'domain\\\\user:pass.'"
+const (
+	errMsgTemplate = "invalid url %q. Must be in format" +
+		"'https://user:pass@host:port' or " +
+		"'socks5://user:pass@host:port' or " +
+		"'domain\\\\user:pass.'"
+	gitpodHostname = "Gitpod"
+)
 
 var (
 	// nolint
@@ -236,15 +239,16 @@ func LoadAPIParams(v *viper.Viper) (API, error) {
 	}
 
 	hostname := vipertools.FirstNonEmptyString(v, "hostname", "settings.hostname")
+	gitpod := os.Getenv("GITPOD_WORKSPACE_ID")
+
+	if hostname == "" && gitpod != "" {
+		hostname = gitpodHostname
+	}
+
 	if hostname == "" {
-		gitpod := os.Getenv("GITPOD_WORKSPACE_ID")
-		if gitpod != "" {
-			hostname = "Gitpod"
-		} else {
-			hostname, err = os.Hostname()
-			if err != nil {
-				log.Warnf("failed to retrieve hostname from system: %s", err)
-			}
+		hostname, err = os.Hostname()
+		if err != nil {
+			log.Warnf("failed to retrieve hostname from system: %s", err)
 		}
 	}
 
