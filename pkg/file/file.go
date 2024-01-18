@@ -2,9 +2,7 @@
 
 package file
 
-import (
-	"os"
-)
+import "os"
 
 // OpenNoLock opens a file for reading in non-exclusive mode. In Unix-like
 // environments it just calls os.Open, but on Windows it forks syscall.Open
