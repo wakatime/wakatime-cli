@@ -3,10 +3,10 @@ package deps
 import (
 	"fmt"
 	"io"
-	"os"
 	"regexp"
 	"strings"
 
+	"github.com/wakatime/wakatime-cli/pkg/file"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/log"
 
@@ -35,7 +35,7 @@ type ParserCPP struct {
 
 // Parse parses dependencies from C++ file content using the C lexer.
 func (p *ParserCPP) Parse(filepath string) ([]string, error) {
-	reader, err := os.Open(filepath) // nolint:gosec
+	reader, err := file.OpenNoLock(filepath) // nolint:gosec
 	if err != nil {
 		return nil, fmt.Errorf("failed to open file %q: %s", filepath, err)
 	}

@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/mitchellh/go-homedir"
+	"github.com/wakatime/wakatime-cli/pkg/file"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/log"
 
@@ -277,7 +278,7 @@ func (c Client) knownHostKeys() []ssh.PublicKey {
 
 	for _, filename := range filenames {
 		if err := func(fn string) error {
-			file, err := os.Open(fn) // nolint:gosec
+			file, err := file.OpenNoLock(fn) // nolint:gosec
 			if err != nil {
 				return fmt.Errorf("failed to open known_hosts file: %s", err)
 			}
