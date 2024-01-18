@@ -6,15 +6,19 @@ import (
 	"os"
 	"testing"
 
-	"github.com/stretchr/testify/require"
 	"github.com/wakatime/wakatime-cli/pkg/file"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestOpen(t *testing.T) {
 	tmpFile, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)
 
-	defer tmpFile.Close()
+	// name := tmpFile.Name()
+
+	err = tmpFile.Close()
+	require.NoError(t, err)
 
 	f, err := os.Open(tmpFile.Name())
 	require.NoError(t, err)
@@ -22,14 +26,17 @@ func TestOpen(t *testing.T) {
 	defer f.Close()
 
 	err = os.Remove(tmpFile.Name())
-	require.NoError(t, err)
+	require.Error(t, err)
 }
 
 func TestOpenNoLock(t *testing.T) {
 	tmpFile, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)
 
-	defer tmpFile.Close()
+	// name := tmpFile.Name()
+
+	err = tmpFile.Close()
+	require.NoError(t, err)
 
 	f, err := file.OpenNoLock(tmpFile.Name())
 	require.NoError(t, err)
