@@ -501,7 +501,7 @@ jobs:
         name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: binaries-darwin
+          name: unsigned-binaries-darwin
           path: build/
       -
         name: Remove tag if failure
@@ -569,7 +569,7 @@ jobs:
         name: Download artifacts
         uses: actions/download-artifact@v4
         with:
-          pattern: binaries-*
+          pattern: unsigned-binaries-darwin*
           merge-multiple: true
           path: build/
       -
@@ -606,7 +606,7 @@ jobs:
         name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: binaries
+          name: binaries-darwin
           path: build/
       -
         name: Remove tag if failure
