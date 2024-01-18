@@ -727,6 +727,12 @@ func readExtraHeartbeats() ([]heartbeat.Heartbeat, error) {
 }
 
 func parseExtraHeartbeats(data string) ([]heartbeat.Heartbeat, error) {
+	if data == "" {
+		log.Debugln("skipping extra heartbeats, as no data was provided")
+
+		return nil, nil
+	}
+
 	var extraHeartbeats []ExtraHeartbeat
 
 	err := json.Unmarshal([]byte(data), &extraHeartbeats)

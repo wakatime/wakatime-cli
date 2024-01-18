@@ -3,6 +3,7 @@ package params_test
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -16,6 +17,7 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/apikey"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	inipkg "github.com/wakatime/wakatime-cli/pkg/ini"
+	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/output"
 	"github.com/wakatime/wakatime-cli/pkg/project"
 	"github.com/wakatime/wakatime-cli/pkg/regex"
@@ -423,6 +425,46 @@ func TestLoadParams_ExtraHeartbeats_WithEOF(t *testing.T) {
 			Language: params.ExtraHeartbeats[1].Language,
 		},
 	}, params.ExtraHeartbeats)
+}
+
+func TestLoadParams_ExtraHeartbeats_NoData(t *testing.T) {
+	r, w, err := os.Pipe()
+	require.NoError(t, err)
+
+	defer func() {
+		r.Close()
+		w.Close()
+	}()
+
+	logs := bytes.NewBuffer(nil)
+
+	teardownLogCapture := captureLogs(logs)
+	defer teardownLogCapture()
+
+	origStdin := os.Stdin
+
+	defer func() { os.Stdin = origStdin }()
+
+	os.Stdin = r
+
+	go func() {
+		_, err := w.Write([]byte{})
+		require.NoError(t, err)
+
+		w.Close()
+	}()
+
+	v := viper.New()
+	v.Set("entity", "/path/to/file")
+	v.Set("extra-heartbeats", true)
+
+	params, err := paramscmd.LoadHeartbeatParams(v)
+	require.NoError(t, err)
+
+	assert.Empty(t, params.ExtraHeartbeats)
+
+	assert.Contains(t, logs.String(), "skipping extra heartbeats, as no data was provided")
+	assert.NotContains(t, logs.String(), "failed to read extra heartbeats: failed parsing")
 }
 
 func TestLoadHeartbeat_GuessLanguage_FlagTakesPrecedence(t *testing.T) {
@@ -2519,4 +2561,20 @@ func TestLoadParams_APIKeyPrefixSupported(t *testing.T) {
 
 	_, err := paramscmd.LoadAPIParams(v)
 	require.NoError(t, err)
+}
+
+func captureLogs(dest io.Writer) func() {
+	// set verbose
+	log.SetVerbose(true)
+
+	logOutput := log.Output()
+
+	// will write to log output and dest
+	mw := io.MultiWriter(logOutput, dest)
+
+	log.SetOutput(mw)
+
+	return func() {
+		log.SetOutput(logOutput)
+	}
 }
