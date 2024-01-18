@@ -3,10 +3,10 @@ package deps
 import (
 	"fmt"
 	"io"
-	"os"
 	"regexp"
 	"strings"
 
+	"github.com/wakatime/wakatime-cli/pkg/file"
 	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	"github.com/alecthomas/chroma/v2"
@@ -34,7 +34,7 @@ type ParserHaxe struct {
 
 // Parse parses dependencies from Haxe file content using the chroma Haxe lexer.
 func (p *ParserHaxe) Parse(filepath string) ([]string, error) {
-	reader, err := os.Open(filepath) // nolint:gosec
+	reader, err := file.OpenNoLock(filepath) // nolint:gosec
 	if err != nil {
 		return nil, fmt.Errorf("failed to open file %q: %s", filepath, err)
 	}

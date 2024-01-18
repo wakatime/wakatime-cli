@@ -3,9 +3,9 @@ package deps
 import (
 	"fmt"
 	"io"
-	"os"
 	"strings"
 
+	"github.com/wakatime/wakatime-cli/pkg/file"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/log"
 
@@ -34,7 +34,7 @@ type ParserRust struct {
 
 // Parse parses dependencies from Rust file content using the chroma Rust lexer.
 func (p *ParserRust) Parse(filepath string) ([]string, error) {
-	reader, err := os.Open(filepath) // nolint:gosec
+	reader, err := file.OpenNoLock(filepath) // nolint:gosec
 	if err != nil {
 		return nil, fmt.Errorf("failed to open file %q: %s", filepath, err)
 	}
