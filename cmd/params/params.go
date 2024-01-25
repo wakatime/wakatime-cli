@@ -86,6 +86,8 @@ type (
 		IsWrite           any                `json:"is_write"`
 		Language          *string            `json:"language"`
 		LanguageAlternate string             `json:"alternate_language"`
+		LineAdditions     any                `json:"line_additions"`
+		LineDeletions     any                `json:"line_deletions"`
 		LineNumber        any                `json:"lineno"`
 		Lines             any                `json:"lines"`
 		Project           string             `json:"project"`
@@ -106,6 +108,8 @@ type (
 		IsWrite           *bool
 		Language          *string
 		LanguageAlternate string
+		LineAdditions     *int
+		LineDeletions     *int
 		LineNumber        *int
 		LinesInFile       *int
 		LocalFile         string
@@ -401,6 +405,16 @@ func LoadHeartbeatParams(v *viper.Viper) (Heartbeat, error) {
 		isWrite = heartbeat.PointerTo(b)
 	}
 
+	var lineAdditions *int
+	if num := v.GetInt("line-additions"); v.IsSet("line-additions") {
+		lineAdditions = heartbeat.PointerTo(num)
+	}
+
+	var lineDeletions *int
+	if num := v.GetInt("line-deletions"); v.IsSet("line-deletions") {
+		lineDeletions = heartbeat.PointerTo(num)
+	}
+
 	var lineNumber *int
 	if num := v.GetInt("lineno"); v.IsSet("lineno") {
 		lineNumber = heartbeat.PointerTo(num)
@@ -442,6 +456,8 @@ func LoadHeartbeatParams(v *viper.Viper) (Heartbeat, error) {
 		IsWrite:           isWrite,
 		Language:          language,
 		LanguageAlternate: vipertools.GetString(v, "alternate-language"),
+		LineAdditions:     lineAdditions,
+		LineDeletions:     lineDeletions,
 		LineNumber:        lineNumber,
 		LinesInFile:       linesInFile,
 		LocalFile:         vipertools.GetString(v, "local-file"),
@@ -971,6 +987,16 @@ func (p Heartbeat) String() string {
 		language = *p.Language
 	}
 
+	var lineAdditions string
+	if p.LineAdditions != nil {
+		lineAdditions = strconv.Itoa(*p.LineAdditions)
+	}
+
+	var lineDeletions string
+	if p.LineDeletions != nil {
+		lineDeletions = strconv.Itoa(*p.LineDeletions)
+	}
+
 	var lineNumber string
 	if p.LineNumber != nil {
 		lineNumber = strconv.Itoa(*p.LineNumber)
@@ -984,8 +1010,9 @@ func (p Heartbeat) String() string {
 	return fmt.Sprintf(
 		"category: '%s', cursor position: '%s', entity: '%s', entity type: '%s',"+
 			" num extra heartbeats: %d, guess language: %t, is unsaved entity: %t,"+
-			" is write: %t, language: '%s', line number: '%s', lines in file: '%s',"+
-			" time: %.5f, filter params: (%s), project params: (%s), sanitize params: (%s)",
+			" is write: %t, language: '%s', line additions: '%s', line deletions: '%s',"+
+			" line number: '%s', lines in file: '%s', time: %.5f, filter params: (%s),"+
+			" project params: (%s), sanitize params: (%s)",
 		p.Category,
 		cursorPosition,
 		p.Entity,
@@ -995,6 +1022,8 @@ func (p Heartbeat) String() string {
 		p.IsUnsavedEntity,
 		isWrite,
 		language,
+		lineAdditions,
+		lineDeletions,
 		lineNumber,
 		linesInFile,
 		p.Time,
