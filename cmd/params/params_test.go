@@ -2461,6 +2461,8 @@ func TestHeartbeat_String(t *testing.T) {
 		IsUnsavedEntity: true,
 		IsWrite:         heartbeat.PointerTo(true),
 		Language:        heartbeat.PointerTo("Golang"),
+		LineAdditions:   heartbeat.PointerTo(123),
+		LineDeletions:   heartbeat.PointerTo(456),
 		LineNumber:      heartbeat.PointerTo(4),
 		LinesInFile:     heartbeat.PointerTo(56),
 		Time:            1585598059,
@@ -2470,8 +2472,9 @@ func TestHeartbeat_String(t *testing.T) {
 		t,
 		"category: 'coding', cursor position: '15', entity: 'path/to/entity.go', entity type: 'file',"+
 			" num extra heartbeats: 3, guess language: true, is unsaved entity: true, is write: true,"+
-			" language: 'Golang', line number: '4', lines in file: '56', time: 1585598059.00000, filter"+
-			" params: (exclude: '[]', exclude unknown project: false, include: '[]', include only with"+
+			" language: 'Golang', line additions: '123', line deletions: '456', line number: '4',"+
+			" lines in file: '56', time: 1585598059.00000, filter params: (exclude: '[]',"+
+			" exclude unknown project: false, include: '[]', include only with"+
 			" project file: false), project params: (alternate: '', branch alternate: '', map patterns:"+
 			" '[]', override: '', git submodules disabled: '[]', git submodule project map: '[]'), sanitize"+
 			" params: (hide branch names: '[]', hide project folder: false, hide file names: '[]',"+
