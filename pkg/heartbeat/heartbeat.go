@@ -31,6 +31,8 @@ type Heartbeat struct {
 	IsWrite               *bool      `json:"is_write,omitempty"`
 	Language              *string    `json:"language,omitempty"`
 	LanguageAlternate     string     `json:"-"`
+	LineAdditions         *int       `json:"line_additions,omitempty"`
+	LineDeletions         *int       `json:"line_deletions,omitempty"`
 	LineNumber            *int       `json:"lineno,omitempty"`
 	Lines                 *int       `json:"lines,omitempty"`
 	LocalFile             string     `json:"-"`
@@ -58,6 +60,8 @@ func New(
 	isWrite *bool,
 	language *string,
 	languageAlternate string,
+	lineAdditions *int,
+	lineDeletions *int,
 	lineNumber *int,
 	lines *int,
 	localFile string,
@@ -78,6 +82,8 @@ func New(
 		IsWrite:              isWrite,
 		Language:             language,
 		LanguageAlternate:    languageAlternate,
+		LineAdditions:        lineAdditions,
+		LineDeletions:        lineDeletions,
 		LineNumber:           lineNumber,
 		Lines:                lines,
 		LocalFile:            localFile,

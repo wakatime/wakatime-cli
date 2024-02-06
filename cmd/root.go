@@ -153,6 +153,8 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 		0,
 		"Optional lines in the file. Normally, this is detected automatically but"+
 			" can be provided manually for performance, accuracy, or when using --local-file.")
+	flags.Int("line-additions", 0, "Optional number of lines added since last heartbeat in the current file.")
+	flags.Int("line-deletions", 0, "Optional number of lines deleted since last heartbeat in the current file.")
 	flags.String(
 		"local-file",
 		"",

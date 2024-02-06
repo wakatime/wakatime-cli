@@ -3,6 +3,7 @@ package params_test
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -16,6 +17,7 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/apikey"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	inipkg "github.com/wakatime/wakatime-cli/pkg/ini"
+	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/output"
 	"github.com/wakatime/wakatime-cli/pkg/project"
 	"github.com/wakatime/wakatime-cli/pkg/regex"
@@ -423,6 +425,46 @@ func TestLoadParams_ExtraHeartbeats_WithEOF(t *testing.T) {
 			Language: params.ExtraHeartbeats[1].Language,
 		},
 	}, params.ExtraHeartbeats)
+}
+
+func TestLoadParams_ExtraHeartbeats_NoData(t *testing.T) {
+	r, w, err := os.Pipe()
+	require.NoError(t, err)
+
+	defer func() {
+		r.Close()
+		w.Close()
+	}()
+
+	logs := bytes.NewBuffer(nil)
+
+	teardownLogCapture := captureLogs(logs)
+	defer teardownLogCapture()
+
+	origStdin := os.Stdin
+
+	defer func() { os.Stdin = origStdin }()
+
+	os.Stdin = r
+
+	go func() {
+		_, err := w.Write([]byte{})
+		require.NoError(t, err)
+
+		w.Close()
+	}()
+
+	v := viper.New()
+	v.Set("entity", "/path/to/file")
+	v.Set("extra-heartbeats", true)
+
+	params, err := paramscmd.LoadHeartbeatParams(v)
+	require.NoError(t, err)
+
+	assert.Empty(t, params.ExtraHeartbeats)
+
+	assert.Contains(t, logs.String(), "skipping extra heartbeats, as no data was provided")
+	assert.NotContains(t, logs.String(), "failed to read extra heartbeats: failed parsing")
 }
 
 func TestLoadHeartbeat_GuessLanguage_FlagTakesPrecedence(t *testing.T) {
@@ -2419,6 +2461,8 @@ func TestHeartbeat_String(t *testing.T) {
 		IsUnsavedEntity: true,
 		IsWrite:         heartbeat.PointerTo(true),
 		Language:        heartbeat.PointerTo("Golang"),
+		LineAdditions:   heartbeat.PointerTo(123),
+		LineDeletions:   heartbeat.PointerTo(456),
 		LineNumber:      heartbeat.PointerTo(4),
 		LinesInFile:     heartbeat.PointerTo(56),
 		Time:            1585598059,
@@ -2428,8 +2472,9 @@ func TestHeartbeat_String(t *testing.T) {
 		t,
 		"category: 'coding', cursor position: '15', entity: 'path/to/entity.go', entity type: 'file',"+
 			" num extra heartbeats: 3, guess language: true, is unsaved entity: true, is write: true,"+
-			" language: 'Golang', line number: '4', lines in file: '56', time: 1585598059.00000, filter"+
-			" params: (exclude: '[]', exclude unknown project: false, include: '[]', include only with"+
+			" language: 'Golang', line additions: '123', line deletions: '456', line number: '4',"+
+			" lines in file: '56', time: 1585598059.00000, filter params: (exclude: '[]',"+
+			" exclude unknown project: false, include: '[]', include only with"+
 			" project file: false), project params: (alternate: '', branch alternate: '', map patterns:"+
 			" '[]', override: '', git submodules disabled: '[]', git submodule project map: '[]'), sanitize"+
 			" params: (hide branch names: '[]', hide project folder: false, hide file names: '[]',"+
@@ -2519,4 +2564,20 @@ func TestLoadParams_APIKeyPrefixSupported(t *testing.T) {
 
 	_, err := paramscmd.LoadAPIParams(v)
 	require.NoError(t, err)
+}
+
+func captureLogs(dest io.Writer) func() {
+	// set verbose
+	log.SetVerbose(true)
+
+	logOutput := log.Output()
+
+	// will write to log output and dest
+	mw := io.MultiWriter(logOutput, dest)
+
+	log.SetOutput(mw)
+
+	return func() {
+		log.SetOutput(logOutput)
+	}
 }

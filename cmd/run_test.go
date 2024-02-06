@@ -34,8 +34,12 @@ func TestRunCmd_Err(t *testing.T) {
 		offlineQueueFile, err := os.CreateTemp(tmpDir, "")
 		require.NoError(t, err)
 
+		defer offlineQueueFile.Close()
+
 		logFile, err := os.CreateTemp(tmpDir, "")
 		require.NoError(t, err)
+
+		defer logFile.Close()
 
 		v := viper.New()
 		v.Set("api-url", os.Getenv("TEST_SERVER_URL"))
@@ -103,8 +107,12 @@ func TestRunCmd_Verbose_Err(t *testing.T) {
 		offlineQueueFile, err := os.CreateTemp(tmpDir, "")
 		require.NoError(t, err)
 
+		defer offlineQueueFile.Close()
+
 		logFile, err := os.CreateTemp(tmpDir, "")
 		require.NoError(t, err)
+
+		defer logFile.Close()
 
 		v := viper.New()
 		v.Set("api-url", os.Getenv("TEST_SERVER_URL"))
@@ -172,8 +180,12 @@ func TestRunCmd_SendDiagnostics_Err(t *testing.T) {
 		offlineQueueFile, err := os.CreateTemp(tmpDir, "")
 		require.NoError(t, err)
 
+		defer offlineQueueFile.Close()
+
 		logFile, err := os.CreateTemp(tmpDir, "")
 		require.NoError(t, err)
+
+		defer logFile.Close()
 
 		v := viper.New()
 		v.Set("api-url", os.Getenv("TEST_SERVER_URL"))
@@ -277,8 +289,12 @@ func TestRunCmd_SendDiagnostics_Panic(t *testing.T) {
 		offlineQueueFile, err := os.CreateTemp(tmpDir, "")
 		require.NoError(t, err)
 
+		defer offlineQueueFile.Close()
+
 		logFile, err := os.CreateTemp(tmpDir, "")
 		require.NoError(t, err)
+
+		defer logFile.Close()
 
 		v := viper.New()
 		v.Set("api-url", os.Getenv("TEST_SERVER_URL"))
@@ -384,8 +400,12 @@ func TestRunCmd_SendDiagnostics_NoLogs_Panic(t *testing.T) {
 		offlineQueueFile, err := os.CreateTemp(tmpDir, "")
 		require.NoError(t, err)
 
+		defer offlineQueueFile.Close()
+
 		logFile, err := os.CreateTemp(tmpDir, "")
 		require.NoError(t, err)
+
+		defer logFile.Close()
 
 		v := viper.New()
 		v.Set("api-url", os.Getenv("TEST_SERVER_URL"))
@@ -489,8 +509,12 @@ func TestRunCmd_SendDiagnostics_WakaError(t *testing.T) {
 		offlineQueueFile, err := os.CreateTemp(tmpDir, "")
 		require.NoError(t, err)
 
+		defer offlineQueueFile.Close()
+
 		logFile, err := os.CreateTemp(tmpDir, "")
 		require.NoError(t, err)
+
+		defer logFile.Close()
 
 		v := viper.New()
 		v.Set("api-url", os.Getenv("TEST_SERVER_URL"))
