@@ -52,6 +52,7 @@ func TestCategory_UnmarshalJSON(t *testing.T) {
 	for value, category := range categoryTests() {
 		t.Run(value, func(t *testing.T) {
 			var c heartbeat.Category
+
 			require.NoError(t, json.Unmarshal([]byte(`"`+value+`"`), &c))
 
 			assert.Equal(t, category, c)

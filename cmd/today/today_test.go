@@ -72,8 +72,9 @@ func TestToday_ErrApi(t *testing.T) {
 
 	var numCalls int
 
-	router.HandleFunc("/users/current/statusbar/today", func(w http.ResponseWriter, req *http.Request) {
+	router.HandleFunc("/users/current/statusbar/today", func(w http.ResponseWriter, _ *http.Request) {
 		numCalls++
+
 		w.WriteHeader(http.StatusInternalServerError)
 	})
 
@@ -104,8 +105,9 @@ func TestToday_ErrAuth(t *testing.T) {
 
 	var numCalls int
 
-	router.HandleFunc("/users/current/statusbar/today", func(w http.ResponseWriter, req *http.Request) {
+	router.HandleFunc("/users/current/statusbar/today", func(w http.ResponseWriter, _ *http.Request) {
 		numCalls++
+
 		w.WriteHeader(http.StatusUnauthorized)
 	})
 
@@ -137,8 +139,9 @@ func TestToday_ErrBadRequest(t *testing.T) {
 
 	var numCalls int
 
-	router.HandleFunc("/users/current/statusbar/today", func(w http.ResponseWriter, req *http.Request) {
+	router.HandleFunc("/users/current/statusbar/today", func(w http.ResponseWriter, _ *http.Request) {
 		numCalls++
+
 		w.WriteHeader(http.StatusBadRequest)
 	})
 

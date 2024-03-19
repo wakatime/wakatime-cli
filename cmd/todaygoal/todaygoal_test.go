@@ -76,8 +76,9 @@ func TestGoal_ErrApi(t *testing.T) {
 	var numCalls int
 
 	router.HandleFunc(
-		"/users/current/goals/00000000-0000-4000-8000-000000000000", func(w http.ResponseWriter, req *http.Request) {
+		"/users/current/goals/00000000-0000-4000-8000-000000000000", func(w http.ResponseWriter, _ *http.Request) {
 			numCalls++
+
 			w.WriteHeader(http.StatusInternalServerError)
 		})
 
@@ -111,8 +112,9 @@ func TestGoal_ErrAuth(t *testing.T) {
 	var numCalls int
 
 	router.HandleFunc(
-		"/users/current/goals/00000000-0000-4000-8000-000000000000", func(w http.ResponseWriter, req *http.Request) {
+		"/users/current/goals/00000000-0000-4000-8000-000000000000", func(w http.ResponseWriter, _ *http.Request) {
 			numCalls++
+
 			w.WriteHeader(http.StatusUnauthorized)
 		})
 
@@ -146,8 +148,9 @@ func TestGoal_ErrBadRequest(t *testing.T) {
 	var numCalls int
 
 	router.HandleFunc(
-		"/users/current/goals/00000000-0000-4000-8000-000000000000", func(w http.ResponseWriter, req *http.Request) {
+		"/users/current/goals/00000000-0000-4000-8000-000000000000", func(w http.ResponseWriter, _ *http.Request) {
 			numCalls++
+
 			w.WriteHeader(http.StatusBadRequest)
 		})
 

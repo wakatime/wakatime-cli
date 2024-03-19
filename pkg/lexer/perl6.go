@@ -79,8 +79,10 @@ func (l Perl6) Lexer() chroma.Lexer {
 				}
 
 				result = 0.05
+
 				continue
 			}
+
 			break
 		}
 
