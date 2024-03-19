@@ -58,7 +58,7 @@ func TestClient_StatusBarWithTimeout(t *testing.T) {
 	called := make(chan struct{})
 	defer close(called)
 
-	router.HandleFunc("/users/current/statusbar/today", func(w http.ResponseWriter, req *http.Request) {
+	router.HandleFunc("/users/current/statusbar/today", func(_ http.ResponseWriter, _ *http.Request) {
 		<-block
 		called <- struct{}{}
 	})
@@ -86,8 +86,9 @@ func TestClient_StatusBar_Err(t *testing.T) {
 
 	var numCalls int
 
-	router.HandleFunc("/users/current/statusbar/today", func(w http.ResponseWriter, req *http.Request) {
+	router.HandleFunc("/users/current/statusbar/today", func(w http.ResponseWriter, _ *http.Request) {
 		numCalls++
+
 		w.WriteHeader(http.StatusInternalServerError)
 	})
 
@@ -106,8 +107,9 @@ func TestClient_StatusBar_ErrAuth(t *testing.T) {
 
 	var numCalls int
 
-	router.HandleFunc("/users/current/statusbar/today", func(w http.ResponseWriter, req *http.Request) {
+	router.HandleFunc("/users/current/statusbar/today", func(w http.ResponseWriter, _ *http.Request) {
 		numCalls++
+
 		w.WriteHeader(http.StatusUnauthorized)
 	})
 
@@ -127,8 +129,9 @@ func TestClient_StatusBar_ErrBadRequest(t *testing.T) {
 
 	var numCalls int
 
-	router.HandleFunc("/users/current/statusbar/today", func(w http.ResponseWriter, req *http.Request) {
+	router.HandleFunc("/users/current/statusbar/today", func(w http.ResponseWriter, _ *http.Request) {
 		numCalls++
+
 		w.WriteHeader(http.StatusBadRequest)
 	})
 

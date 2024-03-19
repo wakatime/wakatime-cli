@@ -124,8 +124,9 @@ func TestClient_FileExperts_Err(t *testing.T) {
 
 	var numCalls int
 
-	router.HandleFunc("/users/current/file_experts", func(w http.ResponseWriter, req *http.Request) {
+	router.HandleFunc("/users/current/file_experts", func(w http.ResponseWriter, _ *http.Request) {
 		numCalls++
+
 		w.WriteHeader(http.StatusInternalServerError)
 	})
 
@@ -152,8 +153,9 @@ func TestClient_FileExperts_ErrAuth(t *testing.T) {
 
 	var numCalls int
 
-	router.HandleFunc("/users/current/file_experts", func(w http.ResponseWriter, req *http.Request) {
+	router.HandleFunc("/users/current/file_experts", func(w http.ResponseWriter, _ *http.Request) {
 		numCalls++
+
 		w.WriteHeader(http.StatusUnauthorized)
 	})
 
@@ -180,8 +182,9 @@ func TestClient_FileExperts_ErrBadRequest(t *testing.T) {
 
 	var numCalls int
 
-	router.HandleFunc("/users/current/file_experts", func(w http.ResponseWriter, req *http.Request) {
+	router.HandleFunc("/users/current/file_experts", func(w http.ResponseWriter, _ *http.Request) {
 		numCalls++
+
 		w.WriteHeader(http.StatusBadRequest)
 	})
 

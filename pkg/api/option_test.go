@@ -39,8 +39,9 @@ func TestOption_WithAuth(t *testing.T) {
 
 			var numCalls int
 
-			router.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
+			router.HandleFunc("/", func(_ http.ResponseWriter, req *http.Request) {
 				assert.Equal(t, []string{test.AuthHeaderValue}, req.Header["Authorization"])
+
 				numCalls++
 			})
 
@@ -70,7 +71,7 @@ func TestOption_WithHostname(t *testing.T) {
 
 	var numCalls int
 
-	router.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
+	router.HandleFunc("/", func(_ http.ResponseWriter, req *http.Request) {
 		assert.Equal(t, []string{"my-computer"}, req.Header["X-Machine-Name"])
 
 		numCalls++
@@ -96,7 +97,7 @@ func TestOption_WithInvalidHostname(t *testing.T) {
 
 	var numCalls int
 
-	router.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
+	router.HandleFunc("/", func(_ http.ResponseWriter, req *http.Request) {
 		assert.Equal(t, []string{"my%2Bcomputer%0A"}, req.Header["X-Machine-Name"])
 
 		numCalls++
@@ -139,6 +140,7 @@ func TestOption_WithNTLM(t *testing.T) {
 				if strings.HasPrefix(authHeader[0], "Basic ") {
 					w.Header().Set("WWW-Authenticate", "NTLM xyxyxyx")
 					w.WriteHeader(http.StatusUnauthorized)
+
 					return
 				}
 
@@ -146,6 +148,7 @@ func TestOption_WithNTLM(t *testing.T) {
 				require.NoError(t, err)
 
 				numCalls++
+
 				assert.Equal(t, []string{"NTLM " + base64.StdEncoding.EncodeToString(msg)}, authHeader)
 			})
 
@@ -196,6 +199,7 @@ func TestOption_WithNTLMRequestRetry(t *testing.T) {
 		if strings.HasPrefix(authHeader[0], "Basic ") {
 			w.Header().Set("WWW-Authenticate", "NTLM xyxyxyx")
 			w.WriteHeader(http.StatusUnauthorized)
+
 			return
 		}
 
@@ -203,6 +207,7 @@ func TestOption_WithNTLMRequestRetry(t *testing.T) {
 		require.NoError(t, err)
 
 		numCalls++
+
 		assert.Equal(t, []string{"NTLM " + base64.StdEncoding.EncodeToString(msg)}, authHeader)
 	})
 
@@ -227,7 +232,7 @@ func TestOption_WithProxy(t *testing.T) {
 
 	var numCalls int
 
-	router.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
+	router.HandleFunc("/", func(_ http.ResponseWriter, _ *http.Request) {
 		numCalls++
 	})
 
@@ -254,7 +259,7 @@ func TestOption_WithUserAgent(t *testing.T) {
 
 	var numCalls int
 
-	router.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
+	router.HandleFunc("/", func(_ http.ResponseWriter, req *http.Request) {
 		info, err := goInfo.GetInfo()
 		require.NoError(t, err)
 
@@ -291,7 +296,7 @@ func TestOption_WithUserAgentUnknownPlugin(t *testing.T) {
 
 	var numCalls int
 
-	router.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
+	router.HandleFunc("/", func(_ http.ResponseWriter, req *http.Request) {
 		info, err := goInfo.GetInfo()
 		require.NoError(t, err)
 
@@ -328,7 +333,7 @@ func TestOption_WithTimezone(t *testing.T) {
 
 	var numCalls int
 
-	router.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
+	router.HandleFunc("/", func(_ http.ResponseWriter, req *http.Request) {
 		assert.Equal(t, []string{"America/Sao_Paulo"}, req.Header["Timezone"])
 
 		numCalls++

@@ -30,6 +30,7 @@ func (l Matlab) Lexer() chroma.Lexer {
 			lines := strings.Split(strings.ReplaceAll(text, "\r\n", "\n"), "\n")
 
 			var firstNonComment string
+
 			for _, line := range lines {
 				if !matlabAnalyserCommentRe.MatchString(line) {
 					firstNonComment = strings.TrimSpace(line)
