@@ -34,7 +34,7 @@ func WithFormatting() HandleOption {
 	}
 }
 
-// Format accepts a heartbeat formats it's filepath and returns the formatted version.
+// Format accepts a heartbeat to format its filepath and returns the formatted version.
 func Format(h Heartbeat) Heartbeat {
 	if !h.IsUnsavedEntity && (runtime.GOOS != "windows" || !windows.IsWindowsNetworkMount(h.Entity)) {
 		formatLinuxFilePath(&h)

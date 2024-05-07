@@ -53,6 +53,26 @@ func TestWithFormatting(t *testing.T) {
 	}, result)
 }
 
+func TestFormat_WindowsUnixProjectPathOverride(t *testing.T) {
+	if runtime.GOOS != "windows" {
+		t.Skip("Skipping because OS is not windows.")
+	}
+
+	h := heartbeat.Heartbeat{
+		Entity:              `C:\Users\project\main.go`,
+		EntityType:          heartbeat.FileType,
+		ProjectPathOverride: "",
+	}
+
+	r := heartbeat.Format(h)
+
+	assert.Equal(t, heartbeat.Heartbeat{
+		Entity:              `C:/Users/project/main.go`,
+		EntityType:          heartbeat.FileType,
+		ProjectPathOverride: "",
+	}, r)
+}
+
 func TestFormat_NetworkMount(t *testing.T) {
 	if runtime.GOOS != "windows" {
 		t.Skip("Skipping because OS is not windows.")
