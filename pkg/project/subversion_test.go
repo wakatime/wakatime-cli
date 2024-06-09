@@ -126,6 +126,7 @@ func copyDir(t *testing.T, src string, dst string) {
 			// Skip symlinks.
 			info, err := entry.Info()
 			require.NoError(t, err)
+
 			if info.Mode()&os.ModeSymlink != 0 {
 				continue
 			}

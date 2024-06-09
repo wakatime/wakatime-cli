@@ -37,7 +37,7 @@ func WithAuth(auth BasicAuth) (Option, error) {
 // WithDisableSSLVerify disables verification of insecure certificates.
 func WithDisableSSLVerify() Option {
 	return func(c *Client) {
-		var transport = LazyCreateNewTransport(c)
+		transport := LazyCreateNewTransport(c)
 
 		tlsConfig := transport.TLSClientConfig
 		tlsConfig.InsecureSkipVerify = true
@@ -110,7 +110,7 @@ func WithProxy(proxyURL string) (Option, error) {
 	}
 
 	return func(c *Client) {
-		var transport = LazyCreateNewTransport(c)
+		transport := LazyCreateNewTransport(c)
 		transport.Proxy = http.ProxyURL(u)
 		c.client.Transport = transport
 	}, nil
@@ -126,19 +126,21 @@ func WithSSLCertFile(filepath string) (Option, error) {
 	caCertPool := x509.NewCertPool()
 	caCertPool.AppendCertsFromPEM(caCert)
 
-	return WithSSLCertPool(caCertPool)
+	return WithSSLCertPool(caCertPool), nil
 }
 
 // WithSSLCertPool overrides the default CA cert pool to trust specified cert pool.
-func WithSSLCertPool(caCertPool *x509.CertPool) (Option, error) {
+func WithSSLCertPool(caCertPool *x509.CertPool) Option {
 	return func(c *Client) {
-		var transport = LazyCreateNewTransport(c)
+		transport := LazyCreateNewTransport(c)
+
 		tlsConfig := transport.TLSClientConfig
 		tlsConfig.RootCAs = caCertPool
+
 		transport.TLSClientConfig = tlsConfig
 
 		c.client.Transport = transport
-	}, nil
+	}
 }
 
 // WithTimeout configures a timeout for all requests.

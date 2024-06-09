@@ -399,7 +399,7 @@ func TestSendHeartbeats_ErrAuth_InvalidAPIKEY(t *testing.T) {
 
 	var numCalls int
 
-	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
+	router.HandleFunc("/users/current/heartbeats.bulk", func(_ http.ResponseWriter, _ *http.Request) {
 		numCalls++
 	})
 
@@ -702,7 +702,7 @@ func TestOfflineCount(t *testing.T) {
 	apiURL, router, close := setupTestServer()
 	defer close()
 
-	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
+	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		_, err := io.Copy(w, strings.NewReader("500 error test"))
 		require.NoError(t, err)
@@ -781,7 +781,7 @@ func TestPrintOfflineHeartbeats(t *testing.T) {
 	apiURL, router, close := setupTestServer()
 	defer close()
 
-	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
+	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		_, err := io.Copy(w, strings.NewReader("500 error test"))
 		require.NoError(t, err)
@@ -1021,7 +1021,7 @@ func setupTestServer() (string, *http.ServeMux, func()) {
 	router := http.NewServeMux()
 	srv := httptest.NewServer(router)
 
-	router.HandleFunc("/plugins/errors", func(w http.ResponseWriter, req *http.Request) {
+	router.HandleFunc("/plugins/errors", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusCreated)
 	})
 

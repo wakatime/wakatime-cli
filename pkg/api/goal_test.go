@@ -59,7 +59,7 @@ func TestClient_GoalWithTimeout(t *testing.T) {
 	defer close(called)
 
 	router.HandleFunc(
-		"/users/current/goals/00000000-0000-4000-8000-000000000000", func(w http.ResponseWriter, req *http.Request) {
+		"/users/current/goals/00000000-0000-4000-8000-000000000000", func(_ http.ResponseWriter, _ *http.Request) {
 			<-block
 			called <- struct{}{}
 		})
@@ -88,8 +88,9 @@ func TestClient_Goal_Err(t *testing.T) {
 	var numCalls int
 
 	router.HandleFunc(
-		"/users/current/goals/00000000-0000-4000-8000-000000000000", func(w http.ResponseWriter, req *http.Request) {
+		"/users/current/goals/00000000-0000-4000-8000-000000000000", func(w http.ResponseWriter, _ *http.Request) {
 			numCalls++
+
 			w.WriteHeader(http.StatusInternalServerError)
 		})
 
@@ -109,8 +110,9 @@ func TestClient_Goal_ErrAuth(t *testing.T) {
 	var numCalls int
 
 	router.HandleFunc(
-		"/users/current/goals/00000000-0000-4000-8000-000000000000", func(w http.ResponseWriter, req *http.Request) {
+		"/users/current/goals/00000000-0000-4000-8000-000000000000", func(w http.ResponseWriter, _ *http.Request) {
 			numCalls++
+
 			w.WriteHeader(http.StatusUnauthorized)
 		})
 
@@ -131,8 +133,9 @@ func TestClient_Goal_ErrBadRequest(t *testing.T) {
 	var numCalls int
 
 	router.HandleFunc(
-		"/users/current/goals/00000000-0000-4000-8000-000000000000", func(w http.ResponseWriter, req *http.Request) {
+		"/users/current/goals/00000000-0000-4000-8000-000000000000", func(w http.ResponseWriter, _ *http.Request) {
 			numCalls++
+
 			w.WriteHeader(http.StatusBadRequest)
 		})
 

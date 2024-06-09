@@ -989,6 +989,7 @@ func TestLanguage_UnmarshalJSON(t *testing.T) {
 	for value, language := range languageTests() {
 		t.Run(value, func(t *testing.T) {
 			var l heartbeat.Language
+
 			require.NoError(t, json.Unmarshal([]byte(`"`+value+`"`), &l))
 
 			assert.Equal(t, language, l)

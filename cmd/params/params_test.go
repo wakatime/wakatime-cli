@@ -1812,8 +1812,8 @@ func TestLoad_API_APIKeyInvalid(t *testing.T) {
 			require.Error(t, err)
 
 			var errauth api.ErrAuth
-			assert.ErrorAs(t, err, &errauth)
 
+			assert.ErrorAs(t, err, &errauth)
 			assert.EqualError(t, errauth, "invalid api key format")
 		})
 	}

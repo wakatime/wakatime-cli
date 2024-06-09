@@ -37,7 +37,7 @@ Here's an example `$WAKATIME_HOME/.wakatime.cfg` config file with all available 
 [settings]
 debug = false
 api_key = your-api-key
-api_key_vault_cmd = any shell command to get your api key from vault
+api_key_vault_cmd = command arg arg ... (space-separated, no shell syntax)
 api_url = https://api.wakatime.com/api/v1
 hide_file_names = false
 hide_project_names = false
@@ -64,6 +64,7 @@ hostname = machinename
 log_file =
 import_cfg = /path/to/another/wakatime.cfg
 metrics = true
+guess_language = true
 
 [projectmap]
 projects/foo = new project name
@@ -88,7 +89,7 @@ some/submodule/name = new project name
 | ---                            | ---         | ---  | ---           |
 | debug                          | Turns on debug messages in log file. | _bool_ | `false` |
 | api_key                        | Your wakatime api key. | _string_ | |
-| api_key_vault_cmd              | Any shell command to get your api key from vault. | _string_ | |
+| api_key_vault_cmd              | A command to get your api key, perhaps from some sort of secure vault. Actually a space-separated list of an executable and its arguments. Executables in PATH can be referred to by their basenames. Shell syntax not supported. | _string_ | |
 | api_url                        | The WakaTime API base url. | _string_ | <https://api.wakatime.com/api/v1> |
 | hide_file_names                | Obfuscate filenames. Will not send file names to api. | _bool_;_list_ | `false` |
 | hide_project_names             | Obfuscate project names. When a project folder is detected instead of using the folder name as the project, a `.wakatime-project file` is created with a random project name. | _bool_;_list_ | `false` |
@@ -110,6 +111,7 @@ some/submodule/name = new project name
 | log_file                       | Optional log file path. | _filepath_ | `~/.wakatime/wakatime.log` |
 | import_cfg                     | Optional path to another wakatime.cfg file to import. If set it will overwrite values loaded from $WAKATIME_HOME/.wakatime.cfg file. | _filepath_ | |
 | metrics                        | When set, collects metrics usage in '~/.wakatime/metrics' folder. For further reference visit <https://go.dev/blog/pprof>. | _bool_ | `false` |
+| guess_language                 | When `true`, enables detecting programming language from file contents. | _bool_ | `false` |
 
 ### Project Map Section
 

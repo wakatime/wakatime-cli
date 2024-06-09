@@ -65,8 +65,8 @@ func TestWithFiltering(t *testing.T) {
 
 func TestWithLengthValidator(t *testing.T) {
 	opt := filter.WithLengthValidator()
-	h := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
-		return []heartbeat.Result{}, errors.New("this will should never be called")
+	h := opt(func(_ []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		return []heartbeat.Result{}, errors.New("this should never be called")
 	})
 
 	result, err := h([]heartbeat.Heartbeat{})

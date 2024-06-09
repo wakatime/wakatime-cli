@@ -25,7 +25,7 @@ func NewRootCMD() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "wakatime-cli",
 		Short: "Command line interface used by all WakaTime text editor plugins.",
-		Run: func(cmd *cobra.Command, args []string) {
+		Run: func(cmd *cobra.Command, _ []string) {
 			Run(cmd, v)
 		},
 	}

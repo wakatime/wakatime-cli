@@ -52,7 +52,7 @@ func TestRunCmd_Err(t *testing.T) {
 
 		var cmdNumCalls int
 
-		cmdFn := func(v *viper.Viper) (int, error) {
+		cmdFn := func(_ *viper.Viper) (int, error) {
 			cmdNumCalls++
 			return 42, errors.New("fail")
 		}
@@ -76,7 +76,7 @@ func TestRunCmd_Err(t *testing.T) {
 
 	var numCalls int
 
-	router.HandleFunc("/plugins/errors", func(w http.ResponseWriter, req *http.Request) {
+	router.HandleFunc("/plugins/errors", func(_ http.ResponseWriter, _ *http.Request) {
 		numCalls++
 	})
 
@@ -125,7 +125,7 @@ func TestRunCmd_Verbose_Err(t *testing.T) {
 
 		var cmdNumCalls int
 
-		cmdFn := func(v *viper.Viper) (int, error) {
+		cmdFn := func(_ *viper.Viper) (int, error) {
 			cmdNumCalls++
 			return 42, errors.New("fail")
 		}
@@ -149,7 +149,7 @@ func TestRunCmd_Verbose_Err(t *testing.T) {
 
 	var numCalls int
 
-	router.HandleFunc("/plugins/errors", func(w http.ResponseWriter, req *http.Request) {
+	router.HandleFunc("/plugins/errors", func(_ http.ResponseWriter, _ *http.Request) {
 		numCalls++
 	})
 
@@ -198,7 +198,7 @@ func TestRunCmd_SendDiagnostics_Err(t *testing.T) {
 
 		var cmdNumCalls int
 
-		cmdFn := func(v *viper.Viper) (int, error) {
+		cmdFn := func(_ *viper.Viper) (int, error) {
 			cmdNumCalls++
 			return 42, errors.New("fail")
 		}
@@ -307,7 +307,7 @@ func TestRunCmd_SendDiagnostics_Panic(t *testing.T) {
 
 		var cmdNumCalls int
 
-		cmdFn := func(v *viper.Viper) (int, error) {
+		cmdFn := func(_ *viper.Viper) (int, error) {
 			cmdNumCalls++
 
 			panic("fail")
@@ -418,7 +418,7 @@ func TestRunCmd_SendDiagnostics_NoLogs_Panic(t *testing.T) {
 
 		var cmdNumCalls int
 
-		cmdFn := func(v *viper.Viper) (int, error) {
+		cmdFn := func(_ *viper.Viper) (int, error) {
 			cmdNumCalls++
 
 			panic("fail")
@@ -527,7 +527,7 @@ func TestRunCmd_SendDiagnostics_WakaError(t *testing.T) {
 
 		var cmdNumCalls int
 
-		cmdFn := func(v *viper.Viper) (int, error) {
+		cmdFn := func(_ *viper.Viper) (int, error) {
 			cmdNumCalls++
 			return 42, offline.ErrOpenDB{Err: errors.New("fail")}
 		}
@@ -630,7 +630,7 @@ func TestRunCmdWithOfflineSync(t *testing.T) {
 
 		var cmdNumCalls int
 
-		cmdFn := func(v *viper.Viper) (int, error) {
+		cmdFn := func(_ *viper.Viper) (int, error) {
 			cmdNumCalls++
 			return 0, nil
 		}

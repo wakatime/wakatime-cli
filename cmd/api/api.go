@@ -54,12 +54,7 @@ func newClient(params paramscmd.API, opts ...api.Option) (*api.Client, error) {
 
 		opts = append(opts, withSSLCert)
 	} else if !params.DisableSSLVerify {
-		withSSLCert, err := api.WithSSLCertPool(api.CACerts())
-		if err != nil {
-			return nil, fmt.Errorf("failed to set up ssl cert pool option on api client: %s", err)
-		}
-
-		opts = append(opts, withSSLCert)
+		opts = append(opts, api.WithSSLCertPool(api.CACerts()))
 	}
 
 	if params.ProxyURL != "" {

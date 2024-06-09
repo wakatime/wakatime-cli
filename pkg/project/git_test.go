@@ -115,6 +115,29 @@ func TestGit_Detect_GitConfigFile_File(t *testing.T) {
 	}
 }
 
+func TestGit_Detect_GitConfigFile_File_MalformedHEAD(t *testing.T) {
+	fp := setupTestGitFile(t)
+
+	// overwrite HEAD file with a malformed content
+	err := os.WriteFile(filepath.Join(fp, "wakatime-cli/.git/HEAD"), []byte("ref: refs/malformed"), os.FileMode(int(0700)))
+	require.NoError(t, err)
+
+	g := project.Git{
+		Filepath: filepath.Join(fp, "wakatime-cli/src/pkg/file.go"),
+	}
+
+	result, detected, err := g.Detect()
+	require.NoError(t, err)
+
+	assert.True(t, detected)
+	assert.Contains(t, result.Folder, filepath.Join(fp, "wakatime-cli"))
+	assert.Equal(t, project.Result{
+		Project: "wakatime-cli",
+		Branch:  "",
+		Folder:  result.Folder,
+	}, result)
+}
+
 func TestGit_Detect_Worktree(t *testing.T) {
 	fp := setupTestGitWorktree(t)
 

@@ -26,7 +26,7 @@ func (l Modula2) Lexer() chroma.Lexer {
 	}
 
 	if lexer, ok := lexer.(*chroma.RegexLexer); ok {
-		lexer.SetAnalyser(func(text string) float32 {
+		lexer.SetAnalyser(func(text string) float32 { // nolint:wsl
 			// It's Pascal-like, but does not use FUNCTION -- uses PROCEDURE
 			// instead.
 

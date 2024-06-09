@@ -361,7 +361,7 @@ func TestWithCleanup_NotTemporary(t *testing.T) {
 	}
 
 	sender := mockSender{
-		SendHeartbeatsFn: func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		SendHeartbeatsFn: func(_ []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 			return []heartbeat.Result{
 				{
 					Status:    201,
@@ -397,7 +397,7 @@ func TestWithCleanup(t *testing.T) {
 	}
 
 	sender := mockSender{
-		SendHeartbeatsFn: func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		SendHeartbeatsFn: func(_ []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 			return []heartbeat.Result{
 				{
 					Status:    201,
@@ -433,7 +433,7 @@ func TestWithCleanup_NotRemoteFile(t *testing.T) {
 	}
 
 	sender := mockSender{
-		SendHeartbeatsFn: func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		SendHeartbeatsFn: func(_ []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 			return []heartbeat.Result{
 				{
 					Status:    201,

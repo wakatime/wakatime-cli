@@ -411,6 +411,13 @@ func openDB(filepath string) (db *bolt.DB, _ func(), err error) {
 	}
 
 	return db, func() {
+		// recover from panic when closing db
+		defer func() {
+			if r := recover(); r != nil {
+				log.Warnf("panicked: failed to close db file: %v", r)
+			}
+		}()
+
 		if err := db.Close(); err != nil {
 			log.Debugf("failed to close db file: %s", err)
 		}

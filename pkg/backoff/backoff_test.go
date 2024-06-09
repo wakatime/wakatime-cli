@@ -30,7 +30,7 @@ func TestWithBackoff(t *testing.T) {
 		V: v,
 	})
 
-	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+	handle := opt(func(_ []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		return []heartbeat.Result{
 			{
 				Status: 201,
@@ -68,7 +68,7 @@ func TestWithBackoff_BeforeNextBackoff(t *testing.T) {
 		At:      at,
 	})
 
-	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+	handle := opt(func(_ []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		return []heartbeat.Result{}, errors.New("error")
 	})
 
@@ -91,7 +91,7 @@ func TestWithBackoff_BeforeNextBackoff(t *testing.T) {
 		At:      at.Add(time.Second * 15),
 	})
 
-	handle = opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+	handle = opt(func(_ []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		return []heartbeat.Result{
 			{
 				Status: 201,
@@ -121,7 +121,7 @@ func TestWithBackoff_BeforeNextBackoffWithProxy(t *testing.T) {
 		HasProxy: true,
 	})
 
-	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+	handle := opt(func(_ []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		return []heartbeat.Result{
 			{
 				Status: 201,
@@ -149,7 +149,7 @@ func TestWithBackoff_ApiError(t *testing.T) {
 		V: v,
 	})
 
-	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+	handle := opt(func(_ []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		return []heartbeat.Result{}, errors.New("error")
 	})
 
@@ -182,7 +182,7 @@ func TestWithBackoff_BackoffAndNotReset(t *testing.T) {
 		At:      time.Now().Add(time.Second * -1),
 	})
 
-	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+	handle := opt(func(_ []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		return []heartbeat.Result{
 			{
 				Status: 201,
@@ -220,7 +220,7 @@ func TestWithBackoff_BackoffMaxReached(t *testing.T) {
 		V: v,
 	})
 
-	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+	handle := opt(func(_ []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		return []heartbeat.Result{}, errors.New("error")
 	})
 
@@ -241,7 +241,7 @@ func TestWithBackoff_BackoffMaxReached(t *testing.T) {
 		At:      time.Now().Add(time.Second * -1),
 	})
 
-	handle = opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+	handle = opt(func(_ []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		return []heartbeat.Result{
 			{
 				Status: 201,
@@ -275,7 +275,7 @@ func TestWithBackoff_BackoffMaxReachedWithZeroRetries(t *testing.T) {
 		V: v,
 	})
 
-	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+	handle := opt(func(_ []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		return []heartbeat.Result{}, errors.New("error")
 	})
 
@@ -296,7 +296,7 @@ func TestWithBackoff_BackoffMaxReachedWithZeroRetries(t *testing.T) {
 		At:      time.Now().Add(time.Hour + 1*time.Second),
 	})
 
-	handle = opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+	handle = opt(func(_ []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		return []heartbeat.Result{
 			{
 				Status: 201,
@@ -329,7 +329,7 @@ func TestWithBackoff_ShouldRetry(t *testing.T) {
 		V: v,
 	})
 
-	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+	handle := opt(func(_ []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		return []heartbeat.Result{}, errors.New("error")
 	})
 
@@ -354,7 +354,7 @@ func TestWithBackoff_ShouldRetry(t *testing.T) {
 		At:      at.Add(time.Second * -60),
 	})
 
-	handle = opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+	handle = opt(func(_ []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		return []heartbeat.Result{
 			{
 				Status: 201,

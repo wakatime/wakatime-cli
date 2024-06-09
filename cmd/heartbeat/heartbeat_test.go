@@ -123,7 +123,7 @@ func TestSendHeartbeats_WithFiltering_Exclude(t *testing.T) {
 
 	var numCalls int
 
-	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
+	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 
 		numCalls++
@@ -300,7 +300,7 @@ func TestSendHeartbeats_ExtraHeartbeats_Sanitize(t *testing.T) {
 		numCalls int
 	)
 
-	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
+	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, _ *http.Request) {
 		// send response
 		w.WriteHeader(http.StatusCreated)
 
@@ -724,10 +724,9 @@ func TestSendHeartbeats_ErrAuth_UnsetAPIKey(t *testing.T) {
 
 	var numCalls int
 
-	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
+	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, _ *http.Request) {
 		numCalls++
 
-		// send response
 		w.WriteHeader(http.StatusCreated)
 	})
 
@@ -760,10 +759,9 @@ func TestSendHeartbeats_ErrBackoff(t *testing.T) {
 
 	var numCalls int
 
-	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
+	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, _ *http.Request) {
 		numCalls++
 
-		// send response
 		w.WriteHeader(http.StatusInternalServerError)
 	})
 
@@ -824,10 +822,9 @@ func TestSendHeartbeats_ErrBackoff_Verbose(t *testing.T) {
 
 	var numCalls int
 
-	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
+	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, _ *http.Request) {
 		numCalls++
 
-		// send response
 		w.WriteHeader(http.StatusInternalServerError)
 	})
 

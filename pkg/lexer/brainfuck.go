@@ -31,8 +31,10 @@ func (l Brainfuck) Lexer() chroma.Lexer {
 	rgxlexer.SetAnalyser(func(text string) float32 {
 		// it's safe to assume that a program which mostly consists of + -
 		// and < > is brainfuck.
-		var plusMinusCount float64
-		var greaterLessCount float64
+		var (
+			plusMinusCount   float64
+			greaterLessCount float64
+		)
 
 		rangeToCheck := len(text)
 
@@ -44,6 +46,7 @@ func (l Brainfuck) Lexer() chroma.Lexer {
 			if c == '+' || c == '-' {
 				plusMinusCount++
 			}
+
 			if c == '<' || c == '>' {
 				greaterLessCount++
 			}

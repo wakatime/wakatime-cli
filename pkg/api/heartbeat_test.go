@@ -139,8 +139,9 @@ func TestClient_SendHeartbeats_Err(t *testing.T) {
 
 	var numCalls int
 
-	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
+	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, _ *http.Request) {
 		numCalls++
+
 		w.WriteHeader(http.StatusInternalServerError)
 	})
 
@@ -160,8 +161,9 @@ func TestClient_SendHeartbeats_ErrAuth(t *testing.T) {
 
 	var numCalls int
 
-	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
+	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, _ *http.Request) {
 		numCalls++
+
 		w.WriteHeader(http.StatusUnauthorized)
 	})
 
@@ -181,8 +183,9 @@ func TestClient_SendHeartbeats_ErrBadRequest(t *testing.T) {
 
 	var numCalls int
 
-	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
+	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, _ *http.Request) {
 		numCalls++
+
 		w.WriteHeader(http.StatusBadRequest)
 	})
 

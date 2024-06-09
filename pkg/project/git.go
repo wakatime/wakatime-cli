@@ -290,6 +290,13 @@ func findGitBranch(fp string) (string, error) {
 	}
 
 	if len(lines) > 0 && strings.HasPrefix(strings.TrimSpace(lines[0]), "ref: ") {
+		parts := strings.SplitN(lines[0], "/", 3)
+		if len(parts) < 3 {
+			log.Warnf("invalid branch from %q: %s", fp, lines[0])
+
+			return "", nil
+		}
+
 		return strings.TrimSpace(strings.SplitN(lines[0], "/", 3)[2]), nil
 	}
 

@@ -170,7 +170,7 @@ jobs:
         name: Build binary
         env:
           VERSION: ${{ env.TEST_VERSION }}
-        run: make build-darwin-amd64
+        run: make build-darwin-arm64
       -
         name: Integration tests
         run: make test-integration

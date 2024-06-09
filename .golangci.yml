@@ -2,10 +2,6 @@ run:
   timeout: 5m
   build-tags:
     - integration
-  skip-dirs:
-    - "testdata"
-  skip-files:
-    - pkg/file/file_windows.go
 linters:
   enable:
     - bodyclose
@@ -60,6 +56,10 @@ linters-settings:
       - name: var-naming
 issues:
   exclude-use-default: false
+  exclude-dirs:
+    - testdata
+  exclude-files:
+    - pkg/file/file_windows.go
   exclude-rules:
     - path: _test\.go
       linters:
