@@ -51,6 +51,7 @@ func TestLoadParams_AlternateProject_Unset(t *testing.T) {
 
 func TestLoadParams_Category(t *testing.T) {
 	tests := map[string]heartbeat.Category{
+		"advising":       heartbeat.AdvisingCategory,
 		"browsing":       heartbeat.BrowsingCategory,
 		"building":       heartbeat.BuildingCategory,
 		"coding":         heartbeat.CodingCategory,

@@ -12,6 +12,7 @@ import (
 
 func categoryTests() map[string]heartbeat.Category {
 	return map[string]heartbeat.Category{
+		"advising":       heartbeat.AdvisingCategory,
 		"browsing":       heartbeat.BrowsingCategory,
 		"building":       heartbeat.BuildingCategory,
 		"code reviewing": heartbeat.CodeReviewingCategory,
