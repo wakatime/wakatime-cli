@@ -27,6 +27,7 @@ func categoryTests() map[string]heartbeat.Category {
 		"planning":       heartbeat.PlanningCategory,
 		"researching":    heartbeat.ResearchingCategory,
 		"running tests":  heartbeat.RunningTestsCategory,
+		"supporting":     heartbeat.SupportingCategory,
 		"translating":    heartbeat.TranslatingCategory,
 		"writing docs":   heartbeat.WritingDocsCategory,
 		"writing tests":  heartbeat.WritingTestsCategory,

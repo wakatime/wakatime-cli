@@ -39,6 +39,8 @@ const (
 	ResearchingCategory
 	// RunningTestsCategory means user is currently running tests.
 	RunningTestsCategory
+	// SupportingCategory means user is doing customer support.
+	SupportingCategory
 	// TranslatingCategory means user is currently translating.
 	TranslatingCategory
 	// WritingDocsCategory means user is currently writing docs.
@@ -63,6 +65,7 @@ const (
 	planningCategoryString      = "planning"
 	researchingCategoryString   = "researching"
 	runningTestsCategoryString  = "running tests"
+	supportingCategoryString    = "supporting"
 	translatingCategoryString   = "translating"
 	writingDocsCategoryString   = "writing docs"
 	writingTestsCategoryString  = "writing tests"
@@ -101,6 +104,8 @@ func ParseCategory(s string) (Category, error) {
 		return ResearchingCategory, nil
 	case runningTestsCategoryString:
 		return RunningTestsCategory, nil
+	case supportingCategoryString:
+		return SupportingCategory, nil
 	case translatingCategoryString:
 		return TranslatingCategory, nil
 	case writingDocsCategoryString:
@@ -169,6 +174,8 @@ func (c Category) String() string {
 		return researchingCategoryString
 	case RunningTestsCategory:
 		return runningTestsCategoryString
+	case SupportingCategory:
+		return supportingCategoryString
 	case TranslatingCategory:
 		return translatingCategoryString
 	case WritingDocsCategory:
