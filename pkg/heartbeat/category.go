@@ -11,6 +11,8 @@ type Category int
 const (
 	// CodingCategory means user is currently coding. This is the default value.
 	CodingCategory Category = iota
+	// AdvisingCategory means user is currently adivising.
+	AdvisingCategory
 	// BrowsingCategory means user is currently browsing.
 	BrowsingCategory
 	// BuildingCategory means user is currently building.
@@ -46,6 +48,7 @@ const (
 )
 
 const (
+	advisingCategoryString      = "advising"
 	browsingCategoryString      = "browsing"
 	buildingCategoryString      = "building"
 	codeReviewingCategoryString = "code reviewing"
@@ -68,6 +71,8 @@ const (
 // ParseCategory parses a category from a string.
 func ParseCategory(s string) (Category, error) {
 	switch s {
+	case advisingCategoryString:
+		return AdvisingCategory, nil
 	case browsingCategoryString:
 		return BrowsingCategory, nil
 	case buildingCategoryString:
@@ -134,6 +139,8 @@ func (c Category) MarshalJSON() ([]byte, error) {
 // String implements fmt.Stringer interface.
 func (c Category) String() string {
 	switch c {
+	case AdvisingCategory:
+		return advisingCategoryString
 	case BrowsingCategory:
 		return browsingCategoryString
 	case BuildingCategory:
