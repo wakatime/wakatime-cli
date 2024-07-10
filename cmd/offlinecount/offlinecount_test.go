@@ -27,7 +27,9 @@ func TestOfflineCount_Empty(t *testing.T) {
 	require.NoError(t, err)
 
 	insertHeartbeatRecords(t, db, "heartbeats", []heartbeatRecord{})
-	db.Close()
+
+	err = db.Close()
+	require.NoError(t, err)
 
 	v := viper.New()
 	v.Set("verbose", true)
@@ -89,7 +91,8 @@ func TestOfflineCount(t *testing.T) {
 		},
 	})
 
-	db.Close()
+	err = db.Close()
+	require.NoError(t, err)
 
 	v := viper.New()
 	v.Set("offline-count", true)

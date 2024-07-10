@@ -1687,6 +1687,15 @@ func TestLoad_OfflineQueueFile(t *testing.T) {
 	assert.Equal(t, "/path/to/file", params.QueueFile)
 }
 
+func TestLoad_OfflineQueueFileLegacy(t *testing.T) {
+	v := viper.New()
+	v.Set("offline-queue-file-legacy", "/path/to/file")
+
+	params := paramscmd.LoadOfflineParams(v)
+
+	assert.Equal(t, "/path/to/file", params.QueueFileLegacy)
+}
+
 func TestLoad_OfflineSyncMax(t *testing.T) {
 	v := viper.New()
 	v.Set("sync-offline-activity", 42)
@@ -2487,15 +2496,17 @@ func TestHeartbeat_String(t *testing.T) {
 
 func TestOffline_String(t *testing.T) {
 	offline := paramscmd.Offline{
-		Disabled:  true,
-		PrintMax:  6,
-		QueueFile: "/path/to/queue.file",
-		SyncMax:   12,
+		Disabled:        true,
+		PrintMax:        6,
+		QueueFile:       "/path/to/queue.file",
+		QueueFileLegacy: "/path/to/legacy.file",
+		SyncMax:         12,
 	}
 
 	assert.Equal(
 		t,
-		"disabled: true, print max: 6, queue file: '/path/to/queue.file', num sync max: 12",
+		"disabled: true, print max: 6, queue file: '/path/to/queue.file',"+
+			" queue file legacy: '/path/to/legacy.file', num sync max: 12",
 		offline.String(),
 	)
 }

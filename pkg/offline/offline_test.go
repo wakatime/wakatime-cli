@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/ini"
 	"github.com/wakatime/wakatime-cli/pkg/offline"
 
 	"github.com/stretchr/testify/assert"
@@ -20,24 +21,15 @@ import (
 )
 
 func TestQueueFilepath(t *testing.T) {
-	home, err := os.UserHomeDir()
-	require.NoError(t, err)
-
 	tests := map[string]struct {
-		ViperValue string
-		EnvVar     string
-		Expected   string
+		EnvVar string
 	}{
-		"default": {
-			Expected: filepath.Join(home, ".wakatime.bdb"),
-		},
+		"default": {},
 		"env_trailing_slash": {
-			EnvVar:   "~/path2/",
-			Expected: filepath.Join(home, "path2", ".wakatime.bdb"),
+			EnvVar: "~/path2/",
 		},
 		"env_without_trailing_slash": {
-			EnvVar:   "~/path2",
-			Expected: filepath.Join(home, "path2", ".wakatime.bdb"),
+			EnvVar: "~/path2",
 		},
 	}
 
@@ -48,10 +40,15 @@ func TestQueueFilepath(t *testing.T) {
 
 			defer os.Unsetenv("WAKATIME_HOME")
 
+			folder, err := ini.WakaResourcesDir()
+			require.NoError(t, err)
+
 			queueFilepath, err := offline.QueueFilepath()
 			require.NoError(t, err)
 
-			assert.Equal(t, test.Expected, queueFilepath)
+			expected := filepath.Join(folder, "offline_heartbeats.bdb")
+
+			assert.Equal(t, expected, queueFilepath)
 		})
 	}
 }
@@ -76,7 +73,8 @@ func TestWithQueue(t *testing.T) {
 		},
 	})
 
-	db.Close()
+	err = db.Close()
+	require.NoError(t, err)
 
 	opt := offline.WithQueue(f.Name())
 
@@ -135,7 +133,8 @@ func TestWithQueue(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	db.Close()
+	err = db.Close()
+	require.NoError(t, err)
 
 	require.Len(t, stored, 1)
 
@@ -211,7 +210,8 @@ func TestWithQueue_ApiError(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	db.Close()
+	err = db.Close()
+	require.NoError(t, err)
 
 	dataGo, err := os.ReadFile("testdata/heartbeat_go.json")
 	require.NoError(t, err)
@@ -296,7 +296,8 @@ func TestWithQueue_InvalidResults(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	db.Close()
+	err = db.Close()
+	require.NoError(t, err)
 
 	dataPy, err := os.ReadFile("testdata/heartbeat_py.json")
 	require.NoError(t, err)
@@ -364,7 +365,8 @@ func TestWithQueue_HandleLeftovers(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	db.Close()
+	err = db.Close()
+	require.NoError(t, err)
 
 	dataPy, err := os.ReadFile("testdata/heartbeat_py.json")
 	require.NoError(t, err)
@@ -408,7 +410,8 @@ func TestWithSync(t *testing.T) {
 		},
 	})
 
-	db.Close()
+	err = db.Close()
+	require.NoError(t, err)
 
 	opt := offline.WithSync(f.Name(), offline.SyncMaxDefault)
 
@@ -452,7 +455,8 @@ func TestWithSync(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	db.Close()
+	err = db.Close()
+	require.NoError(t, err)
 
 	require.Len(t, stored, 0)
 }
@@ -477,7 +481,8 @@ func TestSync_MultipleRequests(t *testing.T) {
 		})
 	}
 
-	db.Close()
+	err = db.Close()
+	require.NoError(t, err)
 
 	syncFn := offline.Sync(f.Name(), 1000)
 
@@ -540,7 +545,8 @@ func TestSync_MultipleRequests(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	db.Close()
+	err = db.Close()
+	require.NoError(t, err)
 
 	require.Len(t, stored, 0)
 
@@ -574,7 +580,8 @@ func TestSync_APIError(t *testing.T) {
 		},
 	})
 
-	db.Close()
+	err = db.Close()
+	require.NoError(t, err)
 
 	syncFn := offline.Sync(f.Name(), 10)
 
@@ -613,7 +620,8 @@ func TestSync_APIError(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	db.Close()
+	err = db.Close()
+	require.NoError(t, err)
 
 	require.Len(t, stored, 2)
 
@@ -660,7 +668,8 @@ func TestSync_InvalidResults(t *testing.T) {
 		},
 	})
 
-	db.Close()
+	err = db.Close()
+	require.NoError(t, err)
 
 	syncFn := offline.Sync(f.Name(), 1000)
 
@@ -733,7 +742,8 @@ func TestSync_InvalidResults(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	db.Close()
+	err = db.Close()
+	require.NoError(t, err)
 
 	require.Len(t, stored, 0)
 
@@ -767,7 +777,8 @@ func TestSync_SyncLimit(t *testing.T) {
 		},
 	})
 
-	db.Close()
+	err = db.Close()
+	require.NoError(t, err)
 
 	syncFn := offline.Sync(f.Name(), 1)
 
@@ -808,7 +819,8 @@ func TestSync_SyncLimit(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	db.Close()
+	err = db.Close()
+	require.NoError(t, err)
 
 	require.Len(t, stored, 1)
 
@@ -845,7 +857,8 @@ func TestSync_SyncUnlimited(t *testing.T) {
 		},
 	})
 
-	db.Close()
+	err = db.Close()
+	require.NoError(t, err)
 
 	syncFn := offline.Sync(f.Name(), 0)
 
@@ -890,7 +903,8 @@ func TestSync_SyncUnlimited(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	db.Close()
+	err = db.Close()
+	require.NoError(t, err)
 
 	require.Len(t, stored, 0)
 
@@ -922,7 +936,8 @@ func TestCountHeartbeats(t *testing.T) {
 		},
 	})
 
-	db.Close()
+	err = db.Close()
+	require.NoError(t, err)
 
 	count, err := offline.CountHeartbeats(f.Name())
 	require.NoError(t, err)
@@ -970,7 +985,8 @@ func TestReadHeartbeats(t *testing.T) {
 		},
 	})
 
-	db.Close()
+	err = db.Close()
+	require.NoError(t, err)
 
 	hh, err := offline.ReadHeartbeats(f.Name(), offline.PrintMaxDefault)
 	require.NoError(t, err)
@@ -1005,7 +1021,8 @@ func TestReadHeartbeats_WithLimit(t *testing.T) {
 		},
 	})
 
-	db.Close()
+	err = db.Close()
+	require.NoError(t, err)
 
 	hh, err := offline.ReadHeartbeats(f.Name(), 1)
 	require.NoError(t, err)
@@ -1096,7 +1113,10 @@ func TestQueue_PopMany(t *testing.T) {
 	db, err := bolt.Open(f.Name(), 0600, nil)
 	require.NoError(t, err)
 
-	defer db.Close()
+	defer func() {
+		err = db.Close()
+		require.NoError(t, err)
+	}()
 
 	dataGo, err := os.ReadFile("testdata/heartbeat_go.json")
 	require.NoError(t, err)
@@ -1240,7 +1260,10 @@ func TestQueue_ReadMany(t *testing.T) {
 	db, err := bolt.Open(f.Name(), 0600, nil)
 	require.NoError(t, err)
 
-	defer db.Close()
+	defer func() {
+		err = db.Close()
+		require.NoError(t, err)
+	}()
 
 	dataGo, err := os.ReadFile("testdata/heartbeat_go.json")
 	require.NoError(t, err)
@@ -1320,7 +1343,10 @@ func TestQueue_ReadMany_Empty(t *testing.T) {
 	db, err := bolt.Open(f.Name(), 0600, nil)
 	require.NoError(t, err)
 
-	defer db.Close()
+	defer func() {
+		err = db.Close()
+		require.NoError(t, err)
+	}()
 
 	tx, err := db.Begin(true)
 	require.NoError(t, err)
@@ -1349,7 +1375,10 @@ func initDB(t *testing.T) (*bolt.DB, func()) {
 
 	return db, func() {
 		defer f.Close()
-		defer db.Close()
+		defer func() {
+			err = db.Close()
+			require.NoError(t, err)
+		}()
 	}
 }
 

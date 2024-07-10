@@ -182,6 +182,11 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 		"(internal) Specify an offline queue file, which will be used instead of the default one.",
 	)
 	flags.String(
+		"offline-queue-file-legacy",
+		"",
+		"(internal) Specify the legacy offline queue file, which will be used instead of the default one.",
+	)
+	flags.String(
 		"output",
 		"",
 		"Format output. Can be \"text\", \"json\" or \"raw-json\". Defaults to \"text\".",
@@ -216,7 +221,7 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 	flags.Int(
 		"sync-offline-activity",
 		offline.SyncMaxDefault,
-		fmt.Sprintf("Amount of offline activity to sync from your local ~/.wakatime.bdb bolt"+
+		fmt.Sprintf("Amount of offline activity to sync from your local ~/.wakatime/offline_heartbeats.bdb bolt"+
 			" file to your WakaTime Dashboard before exiting. Can be zero or"+
 			" a positive integer. Defaults to %d, meaning after sending a heartbeat"+
 			" while online, all queued offline heartbeats are sent to WakaTime API, up"+
@@ -259,6 +264,7 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 
 	// hide internal flags
 	_ = flags.MarkHidden("offline-queue-file")
+	_ = flags.MarkHidden("offline-queue-file-legacy")
 	_ = flags.MarkHidden("user-agent")
 
 	err := v.BindPFlags(flags)

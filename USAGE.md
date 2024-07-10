@@ -102,7 +102,7 @@ some/submodule/name = new project name
 | status_bar_enabled             | Turns on wakatime status bar for certain editors. | _bool_ | `true` |
 | status_bar_coding_activity     | Enables displaying Today's code stats in the status bar of some editors. When false, only the WakaTime icon is displayed in the status bar. | _bool_ | `true` |
 | status_bar_hide_categories     | When `true`, --today only displays the total code stats, never displaying Categories in the output. | _bool_ | `false` |
-| offline                        | Enables saving code stats locally to ~/.wakatime.bdb when offline, and syncing to the dashboard later when back online. | _bool_ | `true` |
+| offline                        | Enables saving code stats locally to ~/.wakatime/offline_heartbeats.bdb when offline, and syncing to the dashboard later when back online. | _bool_ | `true` |
 | proxy                          | Optional proxy configuration. Supports HTTPS, SOCKS and NTLM proxies. For ex: `https://user:pass@host:port`, `socks5://user:pass@host:port`, `domain\\user:pass` | _string_ | |
 | no_ssl_verify                  | Disables SSL certificate verification for HTTPS requests. By default, SSL certificates are verified. | _bool_ | `false` |
 | ssl_certs_file                 | Path to a CA certs file. By default, uses bundled Letsencrypt CA cert along with system ca certs. | _filepath_ | |

@@ -75,7 +75,7 @@ func Run(cmd *cobra.Command, v *viper.Viper) {
 		log.Fatalf("failed to register custom lexers: %s", err)
 	}
 
-	shutdown := func() {}
+	shutdown := shutdownFn(func() {})
 
 	// start profiling if enabled
 	if logFileParams.Metrics {
@@ -159,12 +159,13 @@ func Run(cmd *cobra.Command, v *viper.Viper) {
 		"--config-read",
 		"--config-write",
 		"--entity",
+		"--file-experts",
 		"--offline-count",
 		"--print-offline-heartbeats",
 		"--sync-offline-activity",
 		"--today",
 		"--today-goal",
-		"--useragent",
+		"--user-agent",
 		"--version",
 	}, ", "))
 

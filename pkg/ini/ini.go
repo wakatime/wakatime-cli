@@ -24,15 +24,6 @@ type WakaHomeType int
 
 const (
 	defaultFolder = ".wakatime"
-	// WakaHomeTypeUnknown is unknown WakaTime home type.
-	WakaHomeTypeUnknown WakaHomeType = iota
-	// WakaHomeTypeEnvVar is WakaTime home type from environment variable.
-	WakaHomeTypeEnvVar
-	// WakaHomeTypeOSDir is WakaTime home type from OS directory.
-	WakaHomeTypeOSDir
-)
-
-const (
 	// defaultFile is the name of the default wakatime config file.
 	defaultFile = ".wakatime.cfg"
 	// defaultInternalFile is the name of the default wakatime internal config file.
@@ -41,6 +32,13 @@ const (
 	DateFormat = time.RFC3339
 	// defaultTimeout is the default timeout for acquiring a lock.
 	defaultTimeout = time.Second * 5
+
+	// WakaHomeTypeUnknown is unknown WakaTime home type.
+	WakaHomeTypeUnknown WakaHomeType = iota
+	// WakaHomeTypeEnvVar is WakaTime home type from environment variable.
+	WakaHomeTypeEnvVar
+	// WakaHomeTypeOSDir is WakaTime home type from OS directory.
+	WakaHomeTypeOSDir
 )
 
 // Writer defines the methods to write to config file.

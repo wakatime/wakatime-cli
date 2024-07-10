@@ -43,7 +43,8 @@ func TestPrintOfflineHeartbeats(t *testing.T) {
 		},
 	})
 
-	db.Close()
+	err = db.Close()
+	require.NoError(t, err)
 
 	v := viper.New()
 	v.Set("print-offline-heartbeats", 10)

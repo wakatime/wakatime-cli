@@ -149,6 +149,7 @@ func TestFilePath(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			v := viper.New()
 			v.Set("config", test.ViperValue)
+
 			err := os.Setenv("WAKATIME_HOME", test.EnvVar)
 			require.NoError(t, err)
 

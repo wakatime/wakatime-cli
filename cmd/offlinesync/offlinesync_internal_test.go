@@ -1,7 +1,6 @@
-package offlinesync_test
+package offlinesync
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -11,16 +10,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/wakatime/wakatime-cli/cmd/offlinesync"
-	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
-
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	bolt "go.etcd.io/bbolt"
 )
 
-func TestSyncOfflineActivity(t *testing.T) {
+func TestSyncOfflineActivityLegacy(t *testing.T) {
 	testServerURL, router, tearDown := setupTestServer()
 	defer tearDown()
 
@@ -66,6 +62,9 @@ func TestSyncOfflineActivity(t *testing.T) {
 	f, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)
 
+	// early close to avoid file locking in Windows
+	f.Close()
+
 	db, err := bolt.Open(f.Name(), 0600, nil)
 	require.NoError(t, err)
 
@@ -102,97 +101,10 @@ func TestSyncOfflineActivity(t *testing.T) {
 	v.Set("sync-offline-activity", 100)
 	v.Set("plugin", plugin)
 
-	err = offlinesync.SyncOfflineActivity(v, f.Name())
+	err = syncOfflineActivityLegacy(v, f.Name())
 	require.NoError(t, err)
 
-	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
-}
-
-func TestSyncOfflineActivity_MultipleApiKey(t *testing.T) {
-	testServerURL, router, tearDown := setupTestServer()
-	defer tearDown()
-
-	var (
-		plugin   = "plugin/0.0.1"
-		numCalls int
-	)
-
-	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
-		numCalls++
-
-		// check auth header
-		switch numCalls {
-		case 1:
-			assert.Equal(t, []string{"Basic MDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAw"}, req.Header["Authorization"])
-		case 2:
-			assert.Equal(t, []string{"Basic MDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAx"}, req.Header["Authorization"])
-		}
-
-		// send response
-		f, err := os.Open("testdata/api_heartbeats_response.json")
-		require.NoError(t, err)
-		defer f.Close()
-
-		w.WriteHeader(http.StatusCreated)
-		_, err = io.Copy(w, f)
-		require.NoError(t, err)
-	})
-
-	// setup offline queue
-	f, err := os.CreateTemp(t.TempDir(), "")
-	require.NoError(t, err)
-
-	db, err := bolt.Open(f.Name(), 0600, nil)
-	require.NoError(t, err)
-
-	dataGo, err := os.ReadFile("testdata/heartbeat_go.json")
-	require.NoError(t, err)
-
-	var hgo heartbeat.Heartbeat
-
-	err = json.Unmarshal(dataGo, &hgo)
-	require.NoError(t, err)
-
-	hgo.APIKey = "00000000-0000-4000-8000-000000000000"
-
-	dataGoChanged, err := json.Marshal(hgo)
-	require.NoError(t, err)
-
-	dataPy, err := os.ReadFile("testdata/heartbeat_py.json")
-	require.NoError(t, err)
-
-	var hpy heartbeat.Heartbeat
-
-	err = json.Unmarshal(dataPy, &hpy)
-	require.NoError(t, err)
-
-	hpy.APIKey = "00000000-0000-4000-8000-000000000001"
-
-	dataPyChanged, err := json.Marshal(hpy)
-	require.NoError(t, err)
-
-	insertHeartbeatRecords(t, db, "heartbeats", []heartbeatRecord{
-		{
-			ID:        "1592868367.219124-file-coding-wakatime-cli-heartbeat-/tmp/main.go-true",
-			Heartbeat: string(dataGoChanged),
-		},
-		{
-			ID:        "1592868386.079084-file-debugging-wakatime-summary-/tmp/main.py-false",
-			Heartbeat: string(dataPyChanged),
-		},
-	})
-
-	err = db.Close()
-	require.NoError(t, err)
-
-	v := viper.New()
-	v.Set("api-url", testServerURL)
-	v.Set("key", "00000000-0000-4000-8000-000000000000")
-	v.Set("sync-offline-activity", 100)
-	v.Set("plugin", plugin)
-
-	err = offlinesync.SyncOfflineActivity(v, f.Name())
-	require.NoError(t, err)
+	assert.NoFileExists(t, f.Name())
 
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }

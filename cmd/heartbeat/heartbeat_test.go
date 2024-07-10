@@ -372,7 +372,10 @@ func TestSendHeartbeats_ExtraHeartbeats_Sanitize(t *testing.T) {
 	db, err := bolt.Open(offlineQueueFile.Name(), 0600, nil)
 	require.NoError(t, err)
 
-	defer db.Close()
+	defer func() {
+		err = db.Close()
+		require.NoError(t, err)
+	}()
 
 	tx, err := db.Begin(true)
 	require.NoError(t, err)

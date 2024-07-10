@@ -11,10 +11,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-const (
-	defaultFile   = "wakatime.log"
-	defaultFolder = ".wakatime"
-)
+const defaultFile = "wakatime.log"
 
 // Params contains log file parameters.
 type Params struct {
@@ -60,7 +57,7 @@ func LoadParams(v *viper.Viper) (Params, error) {
 
 	folder, err := ini.WakaResourcesDir()
 	if err != nil {
-		return Params{}, fmt.Errorf("failed getting user's home directory: %s", err)
+		return Params{}, fmt.Errorf("failed getting resource directory: %s", err)
 	}
 
 	params.File = filepath.Join(folder, defaultFile)

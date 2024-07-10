@@ -675,7 +675,8 @@ func TestRunCmdWithOfflineSync(t *testing.T) {
 		},
 	})
 
-	db.Close()
+	err = db.Close()
+	require.NoError(t, err)
 
 	// setup test server
 	testServerURL, router, tearDown := setupTestServer()
@@ -738,7 +739,8 @@ func TestRunCmdWithOfflineSync(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	db.Close()
+	err = db.Close()
+	require.NoError(t, err)
 
 	require.Len(t, stored, 0)
 
