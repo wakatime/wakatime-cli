@@ -2505,7 +2505,7 @@ func TestOffline_String(t *testing.T) {
 
 	assert.Equal(
 		t,
-		"disabled: true, print max: 6, queue file: '/path/to/queue.file',"+
+		"disabled: true, offline only: false, print max: 6, queue file: '/path/to/queue.file',"+
 			" queue file legacy: '/path/to/legacy.file', num sync max: 12",
 		offline.String(),
 	)

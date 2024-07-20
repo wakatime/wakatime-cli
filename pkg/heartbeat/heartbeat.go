@@ -113,8 +113,14 @@ func (h Heartbeat) ID() string {
 		isWrite = *h.IsWrite
 	}
 
-	return fmt.Sprintf("%f-%s-%s-%s-%s-%s-%t",
+	cursorPos := "nil"
+	if h.CursorPosition != nil {
+		cursorPos = fmt.Sprint(*h.CursorPosition)
+	}
+
+	return fmt.Sprintf("%f-%s-%s-%s-%s-%s-%s-%t",
 		h.Time,
+		cursorPos,
 		h.EntityType,
 		h.Category,
 		project,

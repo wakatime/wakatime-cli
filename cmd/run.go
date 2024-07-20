@@ -134,6 +134,12 @@ func Run(cmd *cobra.Command, v *viper.Viper) {
 	if v.IsSet("entity") {
 		log.Debugln("command: heartbeat")
 
+		if v.GetBool("offline-only") {
+			saveHeartbeats(v)
+			shutdown()
+			os.Exit(exitcode.Success)
+		}
+
 		RunCmdWithOfflineSync(v, logFileParams.Verbose, logFileParams.SendDiagsOnErrors, cmdheartbeat.Run, shutdown)
 	}
 

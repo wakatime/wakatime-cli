@@ -230,6 +230,7 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 			" new heartbeats.", offline.SyncMaxDefault),
 	)
 	flags.Bool("offline-count", false, "Prints the number of heartbeats in the offline db, then exits.")
+	flags.Bool("offline-only", false, "Saves the heartbeat(s) to the offline db, then exits.")
 	flags.Int(
 		"timeout",
 		api.DefaultTimeoutSecs,

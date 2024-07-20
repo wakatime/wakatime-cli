@@ -18,9 +18,9 @@ import (
 	"github.com/spf13/viper"
 )
 
-// SaveHeartbeats saves heartbeats to the offline db, when we haven't
-// tried sending them to the API. If we tried sending to API already,
-// to the API. Used when we have heartbeats unsent to API.
+// SaveHeartbeats saves heartbeats to the offline db without trying to send to the API.
+// Used when we have more heartbeats than `offline.SendLimit`, when --offline-only enabled,
+// when we couldn't send heartbeats to the API, or the API returned an auth error.
 func SaveHeartbeats(v *viper.Viper, heartbeats []heartbeat.Heartbeat, queueFilepath string) error {
 	params, err := loadParams(v)
 	if err != nil {

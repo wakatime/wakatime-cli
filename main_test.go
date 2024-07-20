@@ -327,7 +327,7 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 	offlineCount, err := offline.CountHeartbeats(offlineQueueFile.Name())
 	require.NoError(t, err)
 
-	assert.Zero(t, offlineCount)
+	assert.Equal(t, 1, offlineCount)
 
 	assert.Eventually(t, func() bool { return numCalls == 2 }, time.Second, 50*time.Millisecond)
 }
@@ -356,6 +356,8 @@ func TestSendHeartbeats_ExtraHeartbeats_SyncLegacyOfflineActivity(t *testing.T) 
 		case 2:
 			filename = "testdata/api_heartbeats_response_extra_heartbeats_legacy_offline.json"
 		case 3:
+			filename = "testdata/api_heartbeats_response_extra_heartbeats_extra.json"
+		case 4:
 			filename = "testdata/api_heartbeats_response_extra_heartbeats_extra.json"
 		}
 
@@ -455,7 +457,63 @@ func TestSendHeartbeats_ExtraHeartbeats_SyncLegacyOfflineActivity(t *testing.T) 
 
 	assert.Zero(t, offlineCount)
 
-	assert.Eventually(t, func() bool { return numCalls == 3 }, time.Second, 50*time.Millisecond)
+	assert.Eventually(t, func() bool { return numCalls == 4 }, time.Second, 50*time.Millisecond)
+}
+
+func TestSendHeartbeats_OfflineOnly(t *testing.T) {
+	apiURL, router, close := setupTestServer()
+	defer close()
+
+	router.HandleFunc("/users/current/heartbeats.bulk", func(_ http.ResponseWriter, _ *http.Request) {
+		require.FailNow(t, "Should not make any API request")
+	})
+
+	tmpDir := t.TempDir()
+
+	offlineQueueFile, err := os.CreateTemp(tmpDir, "")
+	require.NoError(t, err)
+
+	defer offlineQueueFile.Close()
+
+	tmpConfigFile, err := os.CreateTemp(tmpDir, "wakatime.cfg")
+	require.NoError(t, err)
+
+	defer tmpConfigFile.Close()
+
+	tmpInternalConfigFile, err := os.CreateTemp(tmpDir, "wakatime-internal.cfg")
+	require.NoError(t, err)
+
+	defer tmpInternalConfigFile.Close()
+
+	data, err := os.ReadFile("testdata/extra_heartbeats.json")
+	require.NoError(t, err)
+
+	buffer := bytes.NewBuffer(data)
+
+	runWakatimeCli(
+		t,
+		buffer,
+		"--api-url", apiURL,
+		"--key", "00000000-0000-4000-8000-000000000000",
+		"--config", tmpConfigFile.Name(),
+		"--internal-config", tmpInternalConfigFile.Name(),
+		"--entity", "testdata/main.go",
+		"--extra-heartbeats", "true",
+		"--cursorpos", "100",
+		"--offline-queue-file", offlineQueueFile.Name(),
+		"--offline-only",
+		"--lineno", "42",
+		"--lines-in-file", "100",
+		"--time", "1585598059",
+		"--hide-branch-names", ".*",
+		"--write",
+		"--verbose",
+	)
+
+	offlineCount, err := offline.CountHeartbeats(offlineQueueFile.Name())
+	require.NoError(t, err)
+
+	assert.Equal(t, 27, offlineCount)
 }
 
 func TestSendHeartbeats_Err(t *testing.T) {

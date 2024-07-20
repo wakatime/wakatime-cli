@@ -62,14 +62,13 @@ func WithQueue(filepath string) heartbeat.HandleOption {
 
 			results, err := next(hh)
 			if err != nil {
-				log.Debugf("pushing %d heartbeat(s) to queue due to error", len(hh))
+				log.Debugf("pushing %d heartbeat(s) to queue after error: %s", len(hh), err)
 
 				requeueErr := pushHeartbeatsWithRetry(filepath, hh)
 				if requeueErr != nil {
 					return nil, fmt.Errorf(
-						"failed to push heartbeats to queue after api error: %w. error: %w",
+						"failed to push heartbeats to queue: %s",
 						requeueErr,
-						err,
 					)
 				}
 

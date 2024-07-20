@@ -75,7 +75,7 @@ func TestHeartbeat_ID(t *testing.T) {
 		Project:    heartbeat.PointerTo("wakatime"),
 		Time:       1592868313.541149,
 	}
-	assert.Equal(t, "1592868313.541149-file-coding-wakatime-heartbeat-/tmp/main.go-true", h.ID())
+	assert.Equal(t, "1592868313.541149-nil-file-coding-wakatime-heartbeat-/tmp/main.go-true", h.ID())
 }
 
 func TestHeartbeat_ID_NilFields(t *testing.T) {
@@ -85,7 +85,7 @@ func TestHeartbeat_ID_NilFields(t *testing.T) {
 		EntityType: heartbeat.FileType,
 		Time:       1592868313.541149,
 	}
-	assert.Equal(t, "1592868313.541149-file-coding-unset-unset-/tmp/main.go-false", h.ID())
+	assert.Equal(t, "1592868313.541149-nil-file-coding-unset-unset-/tmp/main.go-false", h.ID())
 }
 
 func TestHeartbeat_JSON(t *testing.T) {
