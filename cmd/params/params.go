@@ -131,7 +131,6 @@ type (
 	// Offline contains offline related parameters.
 	Offline struct {
 		Disabled        bool
-		OfflineOnly     bool
 		PrintMax        int
 		QueueFile       string
 		QueueFileLegacy string
@@ -657,7 +656,6 @@ func LoadOfflineParams(v *viper.Viper) Offline {
 
 	return Offline{
 		Disabled:        disabled,
-		OfflineOnly:     v.GetBool("offline-only"),
 		PrintMax:        v.GetInt("print-offline-heartbeats"),
 		QueueFile:       vipertools.GetString(v, "offline-queue-file"),
 		QueueFileLegacy: vipertools.GetString(v, "offline-queue-file-legacy"),
@@ -1041,9 +1039,8 @@ func (p Heartbeat) String() string {
 // String implements fmt.Stringer interface.
 func (p Offline) String() string {
 	return fmt.Sprintf(
-		"disabled: %t, offline only: %t, print max: %d, queue file: '%s', queue file legacy: '%s', num sync max: %d",
+		"disabled: %t, print max: %d, queue file: '%s', queue file legacy: '%s', num sync max: %d",
 		p.Disabled,
-		p.OfflineOnly,
 		p.PrintMax,
 		p.QueueFile,
 		p.QueueFileLegacy,

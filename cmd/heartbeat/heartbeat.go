@@ -105,8 +105,6 @@ func SendHeartbeats(v *viper.Viper, queueFilepath string) error {
 		}
 
 		handleOpts = append(handleOpts, offline.WithQueue(queueFilepath))
-	} else if params.Offline.OfflineOnly {
-		return errors.New("--offline-only can NOT be used with --disable-offline")
 	}
 
 	handleOpts = append(handleOpts, backoff.WithBackoff(backoff.Config{

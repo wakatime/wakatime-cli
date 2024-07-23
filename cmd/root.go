@@ -1,9 +1,12 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
+	"os"
 
 	"github.com/wakatime/wakatime-cli/pkg/api"
+	"github.com/wakatime/wakatime-cli/pkg/exitcode"
 	"github.com/wakatime/wakatime-cli/pkg/offline"
 
 	log "github.com/sirupsen/logrus"
@@ -25,8 +28,20 @@ func NewRootCMD() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "wakatime-cli",
 		Short: "Command line interface used by all WakaTime text editor plugins.",
-		Run: func(cmd *cobra.Command, _ []string) {
-			Run(cmd, v)
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			if err := RunE(cmd, v); err != nil {
+				var errexitcode exitcode.Err
+
+				if errors.As(err, &errexitcode) {
+					os.Exit(errexitcode.Code)
+				}
+
+				os.Exit(exitcode.ErrGeneric)
+			}
+
+			os.Exit(exitcode.Success)
+
+			return nil
 		},
 	}
 
@@ -230,7 +245,6 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 			" new heartbeats.", offline.SyncMaxDefault),
 	)
 	flags.Bool("offline-count", false, "Prints the number of heartbeats in the offline db, then exits.")
-	flags.Bool("offline-only", false, "Saves the heartbeat(s) to the offline db, then exits.")
 	flags.Int(
 		"timeout",
 		api.DefaultTimeoutSecs,

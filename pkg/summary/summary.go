@@ -179,7 +179,7 @@ func RenderToday(summary *Summary, hideCategories bool, out output.Output) (stri
 		}
 
 		s := simplified{
-			Text:            summary.Data.GrandTotal.Text,
+			Text:            getText(summary, hideCategories),
 			HasTeamFeatures: summary.HasTeamFeatures,
 		}
 
@@ -191,8 +191,12 @@ func RenderToday(summary *Summary, hideCategories bool, out output.Output) (stri
 		return string(data), nil
 	}
 
+	return getText(summary, hideCategories), nil
+}
+
+func getText(summary *Summary, hideCategories bool) string {
 	if len(summary.Data.Categories) < 2 || hideCategories {
-		return summary.Data.GrandTotal.Text, nil
+		return summary.Data.GrandTotal.Text
 	}
 
 	var outputs []string
@@ -200,5 +204,5 @@ func RenderToday(summary *Summary, hideCategories bool, out output.Output) (stri
 		outputs = append(outputs, fmt.Sprintf("%s %s", category.Text, category.Name))
 	}
 
-	return strings.Join(outputs, ", "), nil
+	return strings.Join(outputs, ", ")
 }

@@ -1,5 +1,7 @@
 package exitcode
 
+import "strconv"
+
 const (
 	// Success is used when a heartbeat was sent successfully.
 	Success = 0
@@ -18,3 +20,13 @@ const (
 	// ErrBackoff is used when sending heartbeats postponed because we're currently rate limited.
 	ErrBackoff = 112
 )
+
+// Err represents a type response for exit code errors. A Success response is also wrapped in this type.
+type Err struct {
+	Code int
+}
+
+// Error method to implement error interface.
+func (e Err) Error() string {
+	return strconv.Itoa(e.Code)
+}

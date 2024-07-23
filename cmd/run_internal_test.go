@@ -25,21 +25,25 @@ import (
 func TestRunCmd(t *testing.T) {
 	v := viper.New()
 
-	ret := runCmd(v, false, false, func(_ *viper.Viper) (int, error) {
+	err := runCmd(v, false, false, func(_ *viper.Viper) (int, error) {
 		return exitcode.Success, nil
 	})
 
-	assert.Equal(t, exitcode.Success, ret)
+	assert.Nil(t, err)
 }
 
 func TestRunCmd_Err(t *testing.T) {
 	v := viper.New()
 
-	ret := runCmd(v, false, false, func(_ *viper.Viper) (int, error) {
+	err := runCmd(v, false, false, func(_ *viper.Viper) (int, error) {
 		return exitcode.ErrGeneric, errors.New("fail")
 	})
 
-	assert.Equal(t, exitcode.ErrGeneric, ret)
+	var errexitcode exitcode.Err
+
+	require.ErrorAs(t, err, &errexitcode)
+
+	assert.Equal(t, exitcode.ErrGeneric, err.(exitcode.Err).Code)
 }
 
 func TestRunCmd_ErrOfflineEnqueue(t *testing.T) {
@@ -95,11 +99,15 @@ func TestRunCmd_ErrOfflineEnqueue(t *testing.T) {
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("plugin", "vim")
 
-	ret := runCmd(v, true, false, func(_ *viper.Viper) (int, error) {
+	err := runCmd(v, true, false, func(_ *viper.Viper) (int, error) {
 		return exitcode.ErrGeneric, errors.New("fail")
 	})
 
-	assert.Equal(t, exitcode.ErrGeneric, ret)
+	var errexitcode exitcode.Err
+
+	require.ErrorAs(t, err, &errexitcode)
+
+	assert.Equal(t, exitcode.ErrGeneric, err.(exitcode.Err).Code)
 }
 
 func TestRunCmd_BackoffLoggedWithVerbose(t *testing.T) {
@@ -147,10 +155,15 @@ func TestRunCmd_BackoffLoggedWithVerbose(t *testing.T) {
 	v.Set("internal.backoff_retries", "1")
 	v.Set("verbose", verbose)
 
-	SetupLogging(v)
+	_, _ = SetupLogging(v)
 
-	exitCode := runCmd(v, verbose, false, cmdheartbeat.Run)
-	assert.Equal(t, exitcode.ErrBackoff, exitCode)
+	err = runCmd(v, verbose, false, cmdheartbeat.Run)
+
+	var errexitcode exitcode.Err
+
+	require.ErrorAs(t, err, &errexitcode)
+
+	assert.Equal(t, exitcode.ErrBackoff, err.(exitcode.Err).Code)
 
 	assert.Equal(t, 0, numCalls)
 
@@ -205,11 +218,14 @@ func TestRunCmd_BackoffNotLogged(t *testing.T) {
 	v.Set("internal.backoff_retries", "1")
 	v.Set("verbose", verbose)
 
-	SetupLogging(v)
+	_, _ = SetupLogging(v)
 
-	exitCode := runCmd(v, verbose, false, cmdheartbeat.Run)
-	assert.Equal(t, exitcode.ErrBackoff, exitCode)
+	err = runCmd(v, verbose, false, cmdheartbeat.Run)
 
+	var errexitcode exitcode.Err
+
+	require.ErrorAs(t, err, &errexitcode)
+	assert.Equal(t, exitcode.ErrBackoff, err.(exitcode.Err).Code)
 	assert.Equal(t, 0, numCalls)
 
 	output, err := io.ReadAll(logFile)

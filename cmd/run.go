@@ -45,8 +45,8 @@ type diagnostics struct {
 	Stack         string
 }
 
-// Run executes commands parsed from a command line.
-func Run(cmd *cobra.Command, v *viper.Viper) {
+// RunE executes commands parsed from a command line.
+func RunE(cmd *cobra.Command, v *viper.Viper) error {
 	// force setup logging otherwise log goes to std out
 	_, err := SetupLogging(v)
 	if err != nil {
@@ -58,9 +58,9 @@ func Run(cmd *cobra.Command, v *viper.Viper) {
 		log.Errorf("failed to parse config files: %s", err)
 
 		if v.IsSet("entity") {
-			saveHeartbeats(v)
+			_ = saveHeartbeats(v)
 
-			os.Exit(exitcode.ErrConfigFileParse)
+			return exitcode.Err{Code: exitcode.ErrConfigFileParse}
 		}
 	}
 
@@ -75,14 +75,14 @@ func Run(cmd *cobra.Command, v *viper.Viper) {
 		log.Fatalf("failed to register custom lexers: %s", err)
 	}
 
-	shutdown := shutdownFn(func() {})
-
 	// start profiling if enabled
 	if logFileParams.Metrics {
-		shutdown, err = metrics.StartProfiling()
+		shutdown, err := metrics.StartProfiling()
 		if err != nil {
 			log.Errorf("failed to start profiling: %s", err)
 		}
+
+		defer shutdown()
 	}
 
 	if v.GetBool("user-agent") {
@@ -90,75 +90,67 @@ func Run(cmd *cobra.Command, v *viper.Viper) {
 
 		fmt.Println(heartbeat.UserAgent(vipertools.GetString(v, "plugin")))
 
-		shutdown()
-
-		os.Exit(exitcode.Success)
+		return nil
 	}
 
 	if v.GetBool("version") {
 		log.Debugln("command: version")
 
-		RunCmd(v, logFileParams.Verbose, logFileParams.SendDiagsOnErrors, runVersion, shutdown)
+		return RunCmd(v, logFileParams.Verbose, logFileParams.SendDiagsOnErrors, runVersion)
 	}
 
 	if v.IsSet("config-read") {
 		log.Debugln("command: config-read")
 
-		RunCmd(v, logFileParams.Verbose, logFileParams.SendDiagsOnErrors, configread.Run, shutdown)
+		return RunCmd(v, logFileParams.Verbose, logFileParams.SendDiagsOnErrors, configread.Run)
 	}
 
 	if v.IsSet("config-write") {
 		log.Debugln("command: config-write")
 
-		RunCmd(v, logFileParams.Verbose, logFileParams.SendDiagsOnErrors, configwrite.Run, shutdown)
+		return RunCmd(v, logFileParams.Verbose, logFileParams.SendDiagsOnErrors, configwrite.Run)
 	}
 
 	if v.GetBool("today") {
 		log.Debugln("command: today")
 
-		RunCmd(v, logFileParams.Verbose, logFileParams.SendDiagsOnErrors, today.Run, shutdown)
+		return RunCmd(v, logFileParams.Verbose, logFileParams.SendDiagsOnErrors, today.Run)
 	}
 
 	if v.IsSet("today-goal") {
 		log.Debugln("command: today-goal")
 
-		RunCmd(v, logFileParams.Verbose, logFileParams.SendDiagsOnErrors, todaygoal.Run, shutdown)
+		return RunCmd(v, logFileParams.Verbose, logFileParams.SendDiagsOnErrors, todaygoal.Run)
 	}
 
 	if v.GetBool("file-experts") {
 		log.Debugln("command: file-experts")
 
-		RunCmd(v, logFileParams.Verbose, logFileParams.SendDiagsOnErrors, fileexperts.Run, shutdown)
+		return RunCmd(v, logFileParams.Verbose, logFileParams.SendDiagsOnErrors, fileexperts.Run)
 	}
 
 	if v.IsSet("entity") {
 		log.Debugln("command: heartbeat")
 
-		if v.GetBool("offline-only") {
-			saveHeartbeats(v)
-			shutdown()
-			os.Exit(exitcode.Success)
-		}
-
-		RunCmdWithOfflineSync(v, logFileParams.Verbose, logFileParams.SendDiagsOnErrors, cmdheartbeat.Run, shutdown)
+		return RunCmdWithOfflineSync(v, logFileParams.Verbose, logFileParams.SendDiagsOnErrors, cmdheartbeat.Run)
 	}
 
 	if v.IsSet("sync-offline-activity") {
 		log.Debugln("command: sync-offline-activity")
 
-		RunCmd(v, logFileParams.Verbose, logFileParams.SendDiagsOnErrors, offlinesync.Run, shutdown)
+		return RunCmd(v, logFileParams.Verbose, logFileParams.SendDiagsOnErrors, offlinesync.Run)
 	}
 
 	if v.GetBool("offline-count") {
 		log.Debugln("command: offline-count")
 
-		RunCmd(v, logFileParams.Verbose, logFileParams.SendDiagsOnErrors, offlinecount.Run, shutdown)
+		return RunCmd(v, logFileParams.Verbose, logFileParams.SendDiagsOnErrors, offlinecount.Run)
 	}
 
 	if v.IsSet("print-offline-heartbeats") {
 		log.Debugln("command: print-offline-heartbeats")
 
-		RunCmd(v, logFileParams.Verbose, logFileParams.SendDiagsOnErrors, offlineprint.Run, shutdown)
+		return RunCmd(v, logFileParams.Verbose, logFileParams.SendDiagsOnErrors, offlineprint.Run)
 	}
 
 	log.Warnf("one of the following parameters has to be provided: %s", strings.Join([]string{
@@ -177,7 +169,7 @@ func Run(cmd *cobra.Command, v *viper.Viper) {
 
 	_ = cmd.Help()
 
-	os.Exit(exitcode.ErrGeneric)
+	return exitcode.Err{Code: exitcode.ErrGeneric}
 }
 
 func parseConfigFiles(v *viper.Viper) error {
@@ -264,46 +256,31 @@ func SetupLogging(v *viper.Viper) (*logfile.Params, error) {
 	return &logfileParams, nil
 }
 
-type (
-	// cmdFn represents a command function.
-	cmdFn func(v *viper.Viper) (int, error)
-	// shutdownFn represents a shutdown function. It will be called before exiting.
-	shutdownFn func()
-)
+// cmdFn represents a command function.
+type cmdFn func(v *viper.Viper) (int, error)
 
 // RunCmd runs a command function and exits with the exit code returned by
 // the command function. Will send diagnostic on any errors or panics.
-func RunCmd(v *viper.Viper, verbose bool, sendDiagsOnErrors bool, cmd cmdFn, shutdown shutdownFn) {
-	exitCode := runCmd(v, verbose, sendDiagsOnErrors, cmd)
-
-	shutdown()
-
-	os.Exit(exitCode)
+func RunCmd(v *viper.Viper, verbose bool, sendDiagsOnErrors bool, cmd cmdFn) error {
+	return runCmd(v, verbose, sendDiagsOnErrors, cmd)
 }
 
 // RunCmdWithOfflineSync runs a command function and exits with the exit code
 // returned by the command function. If command run was successful, it will execute
 // offline sync command afterwards. Will send diagnostic on any errors or panics.
-func RunCmdWithOfflineSync(v *viper.Viper, verbose bool, sendDiagsOnErrors bool, cmd cmdFn, shutdown shutdownFn) {
-	exitCode := runCmd(v, verbose, sendDiagsOnErrors, cmd)
-	if exitCode != exitcode.Success {
-		shutdown()
-
-		os.Exit(exitCode)
+func RunCmdWithOfflineSync(v *viper.Viper, verbose bool, sendDiagsOnErrors bool, cmd cmdFn) error {
+	if err := runCmd(v, verbose, sendDiagsOnErrors, cmd); err != nil {
+		return err
 	}
 
-	exitCode = runCmd(v, verbose, sendDiagsOnErrors, offlinesync.Run)
-
-	shutdown()
-
-	os.Exit(exitCode)
+	return runCmd(v, verbose, sendDiagsOnErrors, offlinesync.Run)
 }
 
 // runCmd contains the main logic of RunCmd.
 // It will send diagnostic on any errors or panics.
 // On panic, it will send diagnostic and exit with ErrGeneric exit code.
 // On error, it will only send diagnostic if sendDiagsOnErrors and verbose is true.
-func runCmd(v *viper.Viper, verbose bool, sendDiagsOnErrors bool, cmd cmdFn) (exitCode int) {
+func runCmd(v *viper.Viper, verbose bool, sendDiagsOnErrors bool, cmd cmdFn) (errresponse error) {
 	logs := bytes.NewBuffer(nil)
 	resetLogs := captureLogs(logs)
 
@@ -328,14 +305,14 @@ func runCmd(v *viper.Viper, verbose bool, sendDiagsOnErrors bool, cmd cmdFn) (ex
 				log.Warnf("failed to send diagnostics: %s", err)
 			}
 
-			exitCode = exitcode.ErrGeneric
+			errresponse = exitcode.Err{Code: exitcode.ErrGeneric}
 		}
 	}()
 
 	var err error
 
 	// run command
-	exitCode, err = cmd(v)
+	exitCode, err := cmd(v)
 	// nolint:nestif
 	if err != nil {
 		if errwaka, ok := err.(wakaerror.Error); ok {
@@ -362,10 +339,16 @@ func runCmd(v *viper.Viper, verbose bool, sendDiagsOnErrors bool, cmd cmdFn) (ex
 		}
 	}
 
-	return exitCode
+	if exitCode != exitcode.Success {
+		log.Debugf("command failed with exit code %d", exitCode)
+
+		errresponse = exitcode.Err{Code: exitCode}
+	}
+
+	return errresponse
 }
 
-func saveHeartbeats(v *viper.Viper) {
+func saveHeartbeats(v *viper.Viper) int {
 	queueFilepath, err := offline.QueueFilepath()
 	if err != nil {
 		log.Warnf("failed to load offline queue filepath: %s", err)
@@ -373,7 +356,11 @@ func saveHeartbeats(v *viper.Viper) {
 
 	if err := cmdoffline.SaveHeartbeats(v, nil, queueFilepath); err != nil {
 		log.Errorf("failed to save heartbeats to offline queue: %s", err)
+
+		return exitcode.ErrGeneric
 	}
+
+	return exitcode.Success
 }
 
 func sendDiagnostics(v *viper.Viper, d diagnostics) error {

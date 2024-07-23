@@ -2,6 +2,7 @@ package summary_test
 
 import (
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/wakatime/wakatime-cli/pkg/output"
@@ -35,7 +36,7 @@ func TestRenderToday(t *testing.T) {
 			rendered, err := summary.RenderToday(testSummary(), false, test.Output)
 			require.NoError(t, err)
 
-			assert.Equal(t, test.Expected, rendered)
+			assert.Equal(t, strings.TrimSpace(test.Expected), strings.TrimSpace(rendered))
 		})
 	}
 }

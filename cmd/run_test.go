@@ -8,11 +8,11 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"os/exec"
 	"testing"
 	"time"
 
 	"github.com/wakatime/wakatime-cli/cmd"
+	"github.com/wakatime/wakatime-cli/pkg/exitcode"
 	"github.com/wakatime/wakatime-cli/pkg/offline"
 	"github.com/wakatime/wakatime-cli/pkg/version"
 
@@ -23,54 +23,6 @@ import (
 )
 
 func TestRunCmd_Err(t *testing.T) {
-	// this is exclusively run in subprocess
-	if os.Getenv("TEST_RUN") == "1" {
-		version.OS = "some os"
-		version.Arch = "some architecture"
-		version.Version = "some version"
-
-		tmpDir := t.TempDir()
-
-		offlineQueueFile, err := os.CreateTemp(tmpDir, "")
-		require.NoError(t, err)
-
-		defer offlineQueueFile.Close()
-
-		logFile, err := os.CreateTemp(tmpDir, "")
-		require.NoError(t, err)
-
-		defer logFile.Close()
-
-		v := viper.New()
-		v.Set("api-url", os.Getenv("TEST_SERVER_URL"))
-		v.Set("entity", "/path/to/file")
-		v.Set("key", "00000000-0000-4000-8000-000000000000")
-		v.Set("log-file", logFile.Name())
-		v.Set("log-to-stdout", true)
-		v.Set("offline-queue-file", offlineQueueFile.Name())
-		v.Set("plugin", "vim")
-
-		var cmdNumCalls int
-
-		cmdFn := func(_ *viper.Viper) (int, error) {
-			cmdNumCalls++
-			return 42, errors.New("fail")
-		}
-
-		var shutdownNumCalls int
-
-		shutdownFn := func() {
-			shutdownNumCalls++
-		}
-
-		cmd.RunCmd(v, false, false, cmdFn, shutdownFn)
-
-		assert.Equal(t, 1, cmdNumCalls)
-		assert.Equal(t, 1, shutdownNumCalls)
-
-		return
-	}
-
 	testServerURL, router, tearDown := setupTestServer()
 	defer tearDown()
 
@@ -80,70 +32,50 @@ func TestRunCmd_Err(t *testing.T) {
 		numCalls++
 	})
 
-	// run command in another runner, to effectively test os.Exit()
-	cmd := exec.Command(os.Args[0], "-test.run=TestRunCmd_Err") // nolint:gosec
-	cmd.Env = append(os.Environ(), "TEST_RUN=1")
-	cmd.Env = append(cmd.Env, fmt.Sprintf("TEST_SERVER_URL=%s", testServerURL))
+	version.OS = "some os"
+	version.Arch = "some architecture"
+	version.Version = "some version"
 
-	err := cmd.Run()
+	tmpDir := t.TempDir()
 
-	e, ok := err.(*exec.ExitError)
-	require.True(t, ok)
+	offlineQueueFile, err := os.CreateTemp(tmpDir, "")
+	require.NoError(t, err)
 
-	assert.Equal(t, 42, e.ExitCode())
+	defer offlineQueueFile.Close()
 
+	logFile, err := os.CreateTemp(tmpDir, "")
+	require.NoError(t, err)
+
+	defer logFile.Close()
+
+	v := viper.New()
+	v.Set("api-url", testServerURL)
+	v.Set("entity", "/path/to/file")
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("log-file", logFile.Name())
+	v.Set("log-to-stdout", true)
+	v.Set("offline-queue-file", offlineQueueFile.Name())
+	v.Set("plugin", "vim")
+
+	var cmdNumCalls int
+
+	cmdFn := func(_ *viper.Viper) (int, error) {
+		cmdNumCalls++
+		return 42, errors.New("fail")
+	}
+
+	err = cmd.RunCmd(v, false, false, cmdFn)
+	require.Error(t, err)
+
+	var errexitcode exitcode.Err
+
+	assert.ErrorAs(t, err, &errexitcode)
+
+	assert.Equal(t, 1, cmdNumCalls)
 	assert.Eventually(t, func() bool { return numCalls == 0 }, time.Second, 50*time.Millisecond)
 }
 
 func TestRunCmd_Verbose_Err(t *testing.T) {
-	// this is exclusively run in subprocess
-	if os.Getenv("TEST_RUN") == "1" {
-		version.OS = "some os"
-		version.Arch = "some architecture"
-		version.Version = "some version"
-
-		tmpDir := t.TempDir()
-
-		offlineQueueFile, err := os.CreateTemp(tmpDir, "")
-		require.NoError(t, err)
-
-		defer offlineQueueFile.Close()
-
-		logFile, err := os.CreateTemp(tmpDir, "")
-		require.NoError(t, err)
-
-		defer logFile.Close()
-
-		v := viper.New()
-		v.Set("api-url", os.Getenv("TEST_SERVER_URL"))
-		v.Set("entity", "/path/to/file")
-		v.Set("key", "00000000-0000-4000-8000-000000000000")
-		v.Set("log-file", logFile.Name())
-		v.Set("log-to-stdout", true)
-		v.Set("offline-queue-file", offlineQueueFile.Name())
-		v.Set("plugin", "vim")
-
-		var cmdNumCalls int
-
-		cmdFn := func(_ *viper.Viper) (int, error) {
-			cmdNumCalls++
-			return 42, errors.New("fail")
-		}
-
-		var shutdownNumCalls int
-
-		shutdownFn := func() {
-			shutdownNumCalls++
-		}
-
-		cmd.RunCmd(v, true, false, cmdFn, shutdownFn)
-
-		assert.Equal(t, 1, cmdNumCalls)
-		assert.Equal(t, 1, shutdownNumCalls)
-
-		return
-	}
-
 	testServerURL, router, tearDown := setupTestServer()
 	defer tearDown()
 
@@ -153,70 +85,50 @@ func TestRunCmd_Verbose_Err(t *testing.T) {
 		numCalls++
 	})
 
-	// run command in another runner, to effectively test os.Exit()
-	cmd := exec.Command(os.Args[0], "-test.run=TestRunCmd_Verbose_Err") // nolint:gosec
-	cmd.Env = append(os.Environ(), "TEST_RUN=1")
-	cmd.Env = append(cmd.Env, fmt.Sprintf("TEST_SERVER_URL=%s", testServerURL))
+	version.OS = "some os"
+	version.Arch = "some architecture"
+	version.Version = "some version"
 
-	err := cmd.Run()
+	tmpDir := t.TempDir()
 
-	e, ok := err.(*exec.ExitError)
-	require.True(t, ok)
+	offlineQueueFile, err := os.CreateTemp(tmpDir, "")
+	require.NoError(t, err)
 
-	assert.Equal(t, 42, e.ExitCode())
+	defer offlineQueueFile.Close()
 
+	logFile, err := os.CreateTemp(tmpDir, "")
+	require.NoError(t, err)
+
+	defer logFile.Close()
+
+	v := viper.New()
+	v.Set("api-url", testServerURL)
+	v.Set("entity", "/path/to/file")
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("log-file", logFile.Name())
+	v.Set("log-to-stdout", true)
+	v.Set("offline-queue-file", offlineQueueFile.Name())
+	v.Set("plugin", "vim")
+
+	var cmdNumCalls int
+
+	cmdFn := func(_ *viper.Viper) (int, error) {
+		cmdNumCalls++
+		return 42, errors.New("fail")
+	}
+
+	err = cmd.RunCmd(v, true, false, cmdFn)
+
+	var errexitcode exitcode.Err
+
+	require.ErrorAs(t, err, &errexitcode)
+
+	assert.Equal(t, 42, err.(exitcode.Err).Code)
+	assert.Equal(t, 1, cmdNumCalls)
 	assert.Eventually(t, func() bool { return numCalls == 0 }, time.Second, 50*time.Millisecond)
 }
 
 func TestRunCmd_SendDiagnostics_Err(t *testing.T) {
-	// this is exclusively run in subprocess
-	if os.Getenv("TEST_RUN") == "1" {
-		version.OS = "some os"
-		version.Arch = "some architecture"
-		version.Version = "some version"
-
-		tmpDir := t.TempDir()
-
-		offlineQueueFile, err := os.CreateTemp(tmpDir, "")
-		require.NoError(t, err)
-
-		defer offlineQueueFile.Close()
-
-		logFile, err := os.CreateTemp(tmpDir, "")
-		require.NoError(t, err)
-
-		defer logFile.Close()
-
-		v := viper.New()
-		v.Set("api-url", os.Getenv("TEST_SERVER_URL"))
-		v.Set("entity", "/path/to/file")
-		v.Set("key", "00000000-0000-4000-8000-000000000000")
-		v.Set("log-file", logFile.Name())
-		v.Set("log-to-stdout", true)
-		v.Set("offline-queue-file", offlineQueueFile.Name())
-		v.Set("plugin", "vim")
-
-		var cmdNumCalls int
-
-		cmdFn := func(_ *viper.Viper) (int, error) {
-			cmdNumCalls++
-			return 42, errors.New("fail")
-		}
-
-		var shutdownNumCalls int
-
-		shutdownFn := func() {
-			shutdownNumCalls++
-		}
-
-		cmd.RunCmd(v, true, true, cmdFn, shutdownFn)
-
-		assert.Equal(t, 1, cmdNumCalls)
-		assert.Equal(t, 1, shutdownNumCalls)
-
-		return
-	}
-
 	testServerURL, router, tearDown := setupTestServer()
 	defer tearDown()
 
@@ -262,71 +174,50 @@ func TestRunCmd_SendDiagnostics_Err(t *testing.T) {
 		w.WriteHeader(http.StatusCreated)
 	})
 
-	// run command in another runner, to effectively test os.Exit()
-	cmd := exec.Command(os.Args[0], "-test.run=TestRunCmd_SendDiagnostics_Err") // nolint:gosec
-	cmd.Env = append(os.Environ(), "TEST_RUN=1")
-	cmd.Env = append(cmd.Env, fmt.Sprintf("TEST_SERVER_URL=%s", testServerURL))
+	version.OS = "some os"
+	version.Arch = "some architecture"
+	version.Version = "some version"
 
-	err := cmd.Run()
+	tmpDir := t.TempDir()
 
-	e, ok := err.(*exec.ExitError)
-	require.True(t, ok)
+	offlineQueueFile, err := os.CreateTemp(tmpDir, "")
+	require.NoError(t, err)
 
-	assert.Equal(t, 42, e.ExitCode())
+	defer offlineQueueFile.Close()
 
+	logFile, err := os.CreateTemp(tmpDir, "")
+	require.NoError(t, err)
+
+	defer logFile.Close()
+
+	v := viper.New()
+	v.Set("api-url", testServerURL)
+	v.Set("entity", "/path/to/file")
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("log-file", logFile.Name())
+	v.Set("log-to-stdout", true)
+	v.Set("offline-queue-file", offlineQueueFile.Name())
+	v.Set("plugin", "vim")
+
+	var cmdNumCalls int
+
+	cmdFn := func(_ *viper.Viper) (int, error) {
+		cmdNumCalls++
+		return 42, errors.New("fail")
+	}
+
+	err = cmd.RunCmd(v, true, true, cmdFn)
+
+	var errexitcode exitcode.Err
+
+	require.ErrorAs(t, err, &errexitcode)
+
+	assert.Equal(t, 42, err.(exitcode.Err).Code)
+	assert.Equal(t, 1, cmdNumCalls)
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
 
 func TestRunCmd_SendDiagnostics_Panic(t *testing.T) {
-	// this is exclusively run in subprocess
-	if os.Getenv("TEST_RUN") == "1" {
-		version.OS = "some os"
-		version.Arch = "some architecture"
-		version.Version = "some version"
-
-		tmpDir := t.TempDir()
-
-		offlineQueueFile, err := os.CreateTemp(tmpDir, "")
-		require.NoError(t, err)
-
-		defer offlineQueueFile.Close()
-
-		logFile, err := os.CreateTemp(tmpDir, "")
-		require.NoError(t, err)
-
-		defer logFile.Close()
-
-		v := viper.New()
-		v.Set("api-url", os.Getenv("TEST_SERVER_URL"))
-		v.Set("entity", "/path/to/file")
-		v.Set("key", "00000000-0000-4000-8000-000000000000")
-		v.Set("log-file", logFile.Name())
-		v.Set("log-to-stdout", true)
-		v.Set("offline-queue-file", offlineQueueFile.Name())
-		v.Set("plugin", "vim")
-
-		var cmdNumCalls int
-
-		cmdFn := func(_ *viper.Viper) (int, error) {
-			cmdNumCalls++
-
-			panic("fail")
-		}
-
-		var shutdownNumCalls int
-
-		shutdownFn := func() {
-			shutdownNumCalls++
-		}
-
-		cmd.RunCmd(v, true, false, cmdFn, shutdownFn)
-
-		assert.Equal(t, 1, cmdNumCalls)
-		assert.Equal(t, 1, shutdownNumCalls)
-
-		return
-	}
-
 	testServerURL, router, tearDown := setupTestServer()
 	defer tearDown()
 
@@ -373,71 +264,51 @@ func TestRunCmd_SendDiagnostics_Panic(t *testing.T) {
 		w.WriteHeader(http.StatusCreated)
 	})
 
-	// run command in another runner, to effectively test os.Exit()
-	cmd := exec.Command(os.Args[0], "-test.run=TestRunCmd_SendDiagnostics_Panic") // nolint:gosec
-	cmd.Env = append(os.Environ(), "TEST_RUN=1")
-	cmd.Env = append(cmd.Env, fmt.Sprintf("TEST_SERVER_URL=%s", testServerURL))
+	version.OS = "some os"
+	version.Arch = "some architecture"
+	version.Version = "some version"
 
-	err := cmd.Run()
+	tmpDir := t.TempDir()
 
-	e, ok := err.(*exec.ExitError)
-	require.True(t, ok)
+	offlineQueueFile, err := os.CreateTemp(tmpDir, "")
+	require.NoError(t, err)
 
-	assert.Equal(t, 1, e.ExitCode())
+	defer offlineQueueFile.Close()
 
+	logFile, err := os.CreateTemp(tmpDir, "")
+	require.NoError(t, err)
+
+	defer logFile.Close()
+
+	v := viper.New()
+	v.Set("api-url", testServerURL)
+	v.Set("entity", "/path/to/file")
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("log-file", logFile.Name())
+	v.Set("log-to-stdout", true)
+	v.Set("offline-queue-file", offlineQueueFile.Name())
+	v.Set("plugin", "vim")
+
+	var cmdNumCalls int
+
+	cmdFn := func(_ *viper.Viper) (int, error) {
+		cmdNumCalls++
+
+		panic("fail")
+	}
+
+	err = cmd.RunCmd(v, true, false, cmdFn)
+
+	var errexitcode exitcode.Err
+
+	require.ErrorAs(t, err, &errexitcode)
+
+	assert.Equal(t, exitcode.ErrGeneric, err.(exitcode.Err).Code)
+	assert.Equal(t, 1, cmdNumCalls)
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
 
 func TestRunCmd_SendDiagnostics_NoLogs_Panic(t *testing.T) {
-	// this is exclusively run in subprocess
-	if os.Getenv("TEST_RUN") == "1" {
-		version.OS = "some os"
-		version.Arch = "some architecture"
-		version.Version = "some version"
-
-		tmpDir := t.TempDir()
-
-		offlineQueueFile, err := os.CreateTemp(tmpDir, "")
-		require.NoError(t, err)
-
-		defer offlineQueueFile.Close()
-
-		logFile, err := os.CreateTemp(tmpDir, "")
-		require.NoError(t, err)
-
-		defer logFile.Close()
-
-		v := viper.New()
-		v.Set("api-url", os.Getenv("TEST_SERVER_URL"))
-		v.Set("entity", "/path/to/file")
-		v.Set("key", "00000000-0000-4000-8000-000000000000")
-		v.Set("log-file", logFile.Name())
-		v.Set("log-to-stdout", true)
-		v.Set("offline-queue-file", offlineQueueFile.Name())
-		v.Set("plugin", "vim")
-
-		var cmdNumCalls int
-
-		cmdFn := func(_ *viper.Viper) (int, error) {
-			cmdNumCalls++
-
-			panic("fail")
-		}
-
-		var shutdownNumCalls int
-
-		shutdownFn := func() {
-			shutdownNumCalls++
-		}
-
-		cmd.RunCmd(v, false, false, cmdFn, shutdownFn)
-
-		assert.Equal(t, 1, cmdNumCalls)
-		assert.Equal(t, 1, shutdownNumCalls)
-
-		return
-	}
-
 	testServerURL, router, tearDown := setupTestServer()
 	defer tearDown()
 
@@ -482,70 +353,51 @@ func TestRunCmd_SendDiagnostics_NoLogs_Panic(t *testing.T) {
 		w.WriteHeader(http.StatusCreated)
 	})
 
-	// run command in another runner, to effectively test os.Exit()
-	cmd := exec.Command(os.Args[0], "-test.run=TestRunCmd_SendDiagnostics_NoLogs_Panic") // nolint:gosec
-	cmd.Env = append(os.Environ(), "TEST_RUN=1")
-	cmd.Env = append(cmd.Env, fmt.Sprintf("TEST_SERVER_URL=%s", testServerURL))
+	version.OS = "some os"
+	version.Arch = "some architecture"
+	version.Version = "some version"
 
-	err := cmd.Run()
+	tmpDir := t.TempDir()
 
-	e, ok := err.(*exec.ExitError)
-	require.True(t, ok)
+	offlineQueueFile, err := os.CreateTemp(tmpDir, "")
+	require.NoError(t, err)
 
-	assert.Equal(t, 1, e.ExitCode())
+	defer offlineQueueFile.Close()
 
+	logFile, err := os.CreateTemp(tmpDir, "")
+	require.NoError(t, err)
+
+	defer logFile.Close()
+
+	v := viper.New()
+	v.Set("api-url", testServerURL)
+	v.Set("entity", "/path/to/file")
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("log-file", logFile.Name())
+	v.Set("log-to-stdout", true)
+	v.Set("offline-queue-file", offlineQueueFile.Name())
+	v.Set("plugin", "vim")
+
+	var cmdNumCalls int
+
+	cmdFn := func(_ *viper.Viper) (int, error) {
+		cmdNumCalls++
+
+		panic("fail")
+	}
+
+	err = cmd.RunCmd(v, false, false, cmdFn)
+
+	var errexitcode exitcode.Err
+
+	require.ErrorAs(t, err, &errexitcode)
+
+	assert.Equal(t, exitcode.ErrGeneric, err.(exitcode.Err).Code)
+	assert.Equal(t, 1, cmdNumCalls)
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
 
 func TestRunCmd_SendDiagnostics_WakaError(t *testing.T) {
-	// this is exclusively run in subprocess
-	if os.Getenv("TEST_RUN") == "1" {
-		version.OS = "some os"
-		version.Arch = "some architecture"
-		version.Version = "some version"
-
-		tmpDir := t.TempDir()
-
-		offlineQueueFile, err := os.CreateTemp(tmpDir, "")
-		require.NoError(t, err)
-
-		defer offlineQueueFile.Close()
-
-		logFile, err := os.CreateTemp(tmpDir, "")
-		require.NoError(t, err)
-
-		defer logFile.Close()
-
-		v := viper.New()
-		v.Set("api-url", os.Getenv("TEST_SERVER_URL"))
-		v.Set("entity", "/path/to/file")
-		v.Set("key", "00000000-0000-4000-8000-000000000000")
-		v.Set("log-file", logFile.Name())
-		v.Set("log-to-stdout", true)
-		v.Set("offline-queue-file", offlineQueueFile.Name())
-		v.Set("plugin", "vim")
-
-		var cmdNumCalls int
-
-		cmdFn := func(_ *viper.Viper) (int, error) {
-			cmdNumCalls++
-			return 42, offline.ErrOpenDB{Err: errors.New("fail")}
-		}
-
-		var shutdownNumCalls int
-
-		shutdownFn := func() {
-			shutdownNumCalls++
-		}
-
-		cmd.RunCmd(v, false, false, cmdFn, shutdownFn)
-
-		assert.Equal(t, 1, cmdNumCalls)
-		assert.Equal(t, 1, shutdownNumCalls)
-
-		return
-	}
-
 	testServerURL, router, tearDown := setupTestServer()
 	defer tearDown()
 
@@ -591,93 +443,50 @@ func TestRunCmd_SendDiagnostics_WakaError(t *testing.T) {
 		w.WriteHeader(http.StatusCreated)
 	})
 
-	// run command in another runner, to effectively test os.Exit()
-	cmd := exec.Command(os.Args[0], "-test.run=TestRunCmd_SendDiagnostics_WakaError") // nolint:gosec
-	cmd.Env = append(os.Environ(), "TEST_RUN=1")
-	cmd.Env = append(cmd.Env, fmt.Sprintf("TEST_SERVER_URL=%s", testServerURL))
+	version.OS = "some os"
+	version.Arch = "some architecture"
+	version.Version = "some version"
 
-	err := cmd.Run()
+	tmpDir := t.TempDir()
 
-	e, ok := err.(*exec.ExitError)
-	require.True(t, ok)
-
-	assert.Equal(t, 42, e.ExitCode())
-
-	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
-}
-
-func TestRunCmdWithOfflineSync(t *testing.T) {
-	// this is exclusively run in subprocess
-	if os.Getenv("TEST_RUN") == "1" {
-		version.OS = "some os"
-		version.Arch = "some architecture"
-		version.Version = "some version"
-
-		logFile, err := os.CreateTemp(t.TempDir(), "")
-		require.NoError(t, err)
-
-		defer logFile.Close()
-
-		v := viper.New()
-		v.Set("api-url", os.Getenv("TEST_SERVER_URL"))
-		v.Set("entity", "/path/to/file")
-		v.Set("key", "00000000-0000-4000-8000-000000000000")
-		v.Set("log-file", logFile.Name())
-		v.Set("log-to-stdout", true)
-		v.Set("offline-queue-file", os.Getenv("OFFLINE_QUEUE_FILE"))
-		v.SetDefault("sync-offline-activity", 24)
-		v.Set("plugin", "vim")
-
-		var cmdNumCalls int
-
-		cmdFn := func(_ *viper.Viper) (int, error) {
-			cmdNumCalls++
-			return 0, nil
-		}
-
-		var shutdownNumCalls int
-
-		shutdownFn := func() {
-			shutdownNumCalls++
-		}
-
-		cmd.RunCmdWithOfflineSync(v, false, false, cmdFn, shutdownFn)
-
-		assert.Equal(t, 1, cmdNumCalls)
-		assert.Equal(t, 1, shutdownNumCalls)
-
-		return
-	}
-
-	// setup test queue
-	offlineQueueFile, err := os.CreateTemp(t.TempDir(), "")
+	offlineQueueFile, err := os.CreateTemp(tmpDir, "")
 	require.NoError(t, err)
 
 	defer offlineQueueFile.Close()
 
-	db, err := bolt.Open(offlineQueueFile.Name(), 0600, nil)
+	logFile, err := os.CreateTemp(tmpDir, "")
 	require.NoError(t, err)
 
-	dataGo, err := os.ReadFile("testdata/heartbeat_go.json")
-	require.NoError(t, err)
+	defer logFile.Close()
 
-	dataPy, err := os.ReadFile("testdata/heartbeat_py.json")
-	require.NoError(t, err)
+	v := viper.New()
+	v.Set("api-url", testServerURL)
+	v.Set("entity", "/path/to/file")
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("log-file", logFile.Name())
+	v.Set("log-to-stdout", true)
+	v.Set("offline-queue-file", offlineQueueFile.Name())
+	v.Set("plugin", "vim")
 
-	insertHeartbeatRecords(t, db, "heartbeats", []heartbeatRecord{
-		{
-			ID:        "1592868367.219124-file-coding-wakatime-cli-heartbeat-/tmp/main.go-true",
-			Heartbeat: string(dataGo),
-		},
-		{
-			ID:        "1592868386.079084-file-debugging-wakatime-summary-/tmp/main.py-false",
-			Heartbeat: string(dataPy),
-		},
-	})
+	var cmdNumCalls int
 
-	err = db.Close()
-	require.NoError(t, err)
+	cmdFn := func(_ *viper.Viper) (int, error) {
+		cmdNumCalls++
+		return 42, offline.ErrOpenDB{Err: errors.New("fail")}
+	}
 
+	err = cmd.RunCmd(v, false, false, cmdFn)
+
+	var errexitcode exitcode.Err
+
+	require.ErrorAs(t, err, &errexitcode)
+
+	assert.Equal(t, 42, err.(exitcode.Err).Code)
+	assert.Equal(t, 1, cmdNumCalls)
+	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+}
+
+func TestRunCmdWithOfflineSync(t *testing.T) {
 	// setup test server
 	testServerURL, router, tearDown := setupTestServer()
 	defer tearDown()
@@ -710,14 +519,65 @@ func TestRunCmdWithOfflineSync(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	// run command in another runner, to effectively test os.Exit()
-	cmd := exec.Command(os.Args[0], "-test.run=TestRunCmdWithOfflineSync") // nolint:gosec
-	cmd.Env = append(os.Environ(), "TEST_RUN=1")
-	cmd.Env = append(cmd.Env, fmt.Sprintf("TEST_SERVER_URL=%s", testServerURL))
-	cmd.Env = append(cmd.Env, fmt.Sprintf("OFFLINE_QUEUE_FILE=%s", offlineQueueFile.Name()))
+	version.OS = "some os"
+	version.Arch = "some architecture"
+	version.Version = "some version"
 
-	err = cmd.Run()
+	logFile, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)
+
+	defer logFile.Close()
+
+	// setup test queue
+	offlineQueueFile, err := os.CreateTemp(t.TempDir(), "")
+	require.NoError(t, err)
+
+	defer offlineQueueFile.Close()
+
+	db, err := bolt.Open(offlineQueueFile.Name(), 0600, nil)
+	require.NoError(t, err)
+
+	dataGo, err := os.ReadFile("testdata/heartbeat_go.json")
+	require.NoError(t, err)
+
+	dataPy, err := os.ReadFile("testdata/heartbeat_py.json")
+	require.NoError(t, err)
+
+	insertHeartbeatRecords(t, db, "heartbeats", []heartbeatRecord{
+		{
+			ID:        "1592868367.219124-file-coding-wakatime-cli-heartbeat-/tmp/main.go-true",
+			Heartbeat: string(dataGo),
+		},
+		{
+			ID:        "1592868386.079084-file-debugging-wakatime-summary-/tmp/main.py-false",
+			Heartbeat: string(dataPy),
+		},
+	})
+
+	err = db.Close()
+	require.NoError(t, err)
+
+	v := viper.New()
+	v.Set("api-url", testServerURL)
+	v.Set("entity", "/path/to/file")
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("log-file", logFile.Name())
+	v.Set("log-to-stdout", true)
+	v.Set("offline-queue-file", offlineQueueFile.Name())
+	v.SetDefault("sync-offline-activity", 24)
+	v.Set("plugin", "vim")
+
+	var cmdNumCalls int
+
+	cmdFn := func(_ *viper.Viper) (int, error) {
+		cmdNumCalls++
+		return exitcode.Success, nil
+	}
+
+	err = cmd.RunCmdWithOfflineSync(v, false, false, cmdFn)
+	require.NoError(t, err)
+
+	assert.Equal(t, 1, cmdNumCalls)
 
 	// check db
 	db, err = bolt.Open(offlineQueueFile.Name(), 0600, nil)
