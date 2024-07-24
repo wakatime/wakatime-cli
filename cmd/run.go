@@ -138,7 +138,7 @@ func RunE(cmd *cobra.Command, v *viper.Viper) error {
 	if v.IsSet("sync-offline-activity") {
 		log.Debugln("command: sync-offline-activity")
 
-		return RunCmd(v, logFileParams.Verbose, logFileParams.SendDiagsOnErrors, offlinesync.Run)
+		return RunCmd(v, logFileParams.Verbose, logFileParams.SendDiagsOnErrors, offlinesync.RunWithoutRateLimiting)
 	}
 
 	if v.GetBool("offline-count") {
@@ -273,7 +273,7 @@ func RunCmdWithOfflineSync(v *viper.Viper, verbose bool, sendDiagsOnErrors bool,
 		return err
 	}
 
-	return runCmd(v, verbose, sendDiagsOnErrors, offlinesync.Run)
+	return runCmd(v, verbose, sendDiagsOnErrors, offlinesync.RunWithRateLimiting)
 }
 
 // runCmd contains the main logic of RunCmd.

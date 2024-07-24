@@ -132,7 +132,7 @@ func TestWriteErr(t *testing.T) {
 
 func TestWriteSaveErr(t *testing.T) {
 	v := viper.New()
-	w := &writerMock{
+	w := &mockWriter{
 		WriteFn: func(section string, keyValue map[string]string) error {
 			assert.Equal(t, "settings", section)
 			assert.Equal(t, map[string]string{"debug": "false"}, keyValue)
@@ -148,10 +148,10 @@ func TestWriteSaveErr(t *testing.T) {
 	assert.Error(t, err)
 }
 
-type writerMock struct {
+type mockWriter struct {
 	WriteFn func(section string, keyValue map[string]string) error
 }
 
-func (m *writerMock) Write(section string, keyValue map[string]string) error {
+func (m *mockWriter) Write(section string, keyValue map[string]string) error {
 	return m.WriteFn(section, keyValue)
 }

@@ -13,6 +13,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/wakatime/wakatime-cli/pkg/api"
@@ -131,9 +132,11 @@ type (
 	// Offline contains offline related parameters.
 	Offline struct {
 		Disabled        bool
+		LastSentAt      time.Time
 		PrintMax        int
 		QueueFile       string
 		QueueFileLegacy string
+		RateLimit       time.Duration
 		SyncMax         int
 	}
 
@@ -396,10 +399,7 @@ func LoadHeartbeatParams(v *viper.Viper) (Heartbeat, error) {
 	var extraHeartbeats []heartbeat.Heartbeat
 
 	if v.GetBool("extra-heartbeats") {
-		extraHeartbeats, err = readExtraHeartbeats()
-		if err != nil {
-			log.Errorf("failed to read extra heartbeats: %s", err)
-		}
+		extraHeartbeats = readExtraHeartbeats()
 	}
 
 	var isWrite *bool
@@ -647,6 +647,13 @@ func LoadOfflineParams(v *viper.Viper) Offline {
 		disabled = !b
 	}
 
+	rateLimit, _ := vipertools.FirstNonEmptyInt(v, "heartbeat-rate-limit-seconds", "settings.heartbeat_rate_limit_seconds")
+	if rateLimit < 0 {
+		log.Warnf("argument --heartbeat-rate-limit-seconds must be zero or a positive integer number, got %d", rateLimit)
+
+		rateLimit = 0
+	}
+
 	syncMax := v.GetInt("sync-offline-activity")
 	if syncMax < 0 {
 		log.Warnf("argument --sync-offline-activity must be zero or a positive integer number, got %d", syncMax)
@@ -654,11 +661,25 @@ func LoadOfflineParams(v *viper.Viper) Offline {
 		syncMax = 0
 	}
 
+	var lastSentAt time.Time
+
+	lastSentAtStr := vipertools.GetString(v, "internal.heartbeats_last_sent_at")
+	if lastSentAtStr != "" {
+		parsed, err := time.Parse(ini.DateFormat, lastSentAtStr)
+		if err != nil {
+			log.Warnf("failed to parse heartbeats_last_sent_at: %s", err)
+		} else {
+			lastSentAt = parsed
+		}
+	}
+
 	return Offline{
 		Disabled:        disabled,
+		LastSentAt:      lastSentAt,
 		PrintMax:        v.GetInt("print-offline-heartbeats"),
 		QueueFile:       vipertools.GetString(v, "offline-queue-file"),
 		QueueFileLegacy: vipertools.GetString(v, "offline-queue-file-legacy"),
+		RateLimit:       time.Duration(rateLimit) * time.Second,
 		SyncMax:         syncMax,
 	}
 }
@@ -729,20 +750,29 @@ func readAPIKeyFromCommand(cmdStr string) (string, error) {
 	return strings.TrimSpace(string(out)), nil
 }
 
-func readExtraHeartbeats() ([]heartbeat.Heartbeat, error) {
-	in := bufio.NewReader(os.Stdin)
+var extraHeartbeatsCache *[]heartbeat.Heartbeat // nolint:gochecknoglobals
 
-	input, err := in.ReadString('\n')
-	if err != nil && err != io.EOF {
-		log.Debugf("failed to read data from stdin: %s", err)
-	}
+// Once prevents reading from stdin twice.
+var Once sync.Once // nolint:gochecknoglobals
 
-	heartbeats, err := parseExtraHeartbeats(input)
-	if err != nil {
-		return nil, fmt.Errorf("failed parsing: %s", err)
-	}
+func readExtraHeartbeats() []heartbeat.Heartbeat {
+	Once.Do(func() {
+		in := bufio.NewReader(os.Stdin)
 
-	return heartbeats, nil
+		input, err := in.ReadString('\n')
+		if err != nil && err != io.EOF {
+			log.Debugf("failed to read data from stdin: %s", err)
+		}
+
+		heartbeats, err := parseExtraHeartbeats(input)
+		if err != nil {
+			log.Errorf("failed parsing: %s", err)
+		}
+
+		extraHeartbeatsCache = &heartbeats
+	})
+
+	return *extraHeartbeatsCache
 }
 
 func parseExtraHeartbeats(data string) ([]heartbeat.Heartbeat, error) {
@@ -1038,12 +1068,20 @@ func (p Heartbeat) String() string {
 
 // String implements fmt.Stringer interface.
 func (p Offline) String() string {
+	var lastSentAt string
+	if !p.LastSentAt.IsZero() {
+		lastSentAt = p.LastSentAt.Format(ini.DateFormat)
+	}
+
 	return fmt.Sprintf(
-		"disabled: %t, print max: %d, queue file: '%s', queue file legacy: '%s', num sync max: %d",
+		"disabled: %t, last sent at: '%s', print max: %d, queue file: '%s', queue file legacy: '%s',"+
+			" num rate limit: %d, num sync max: %d",
 		p.Disabled,
+		lastSentAt,
 		p.PrintMax,
 		p.QueueFile,
 		p.QueueFileLegacy,
+		p.RateLimit,
 		p.SyncMax,
 	)
 }

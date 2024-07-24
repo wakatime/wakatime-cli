@@ -91,6 +91,7 @@ some/submodule/name = new project name
 | api_key                        | Your wakatime api key. | _string_ | |
 | api_key_vault_cmd              | A command to get your api key, perhaps from some sort of secure vault. Actually a space-separated list of an executable and its arguments. Executables in PATH can be referred to by their basenames. Shell syntax not supported. | _string_ | |
 | api_url                        | The WakaTime API base url. | _string_ | <https://api.wakatime.com/api/v1> |
+| heartbeat_rate_limit_seconds   | Rate limit sending heartbeats to the API once per duration. Set to 0 to disable rate limiting. | _int_ | `120` |
 | hide_file_names                | Obfuscate filenames. Will not send file names to api. | _bool_;_list_ | `false` |
 | hide_project_names             | Obfuscate project names. When a project folder is detected instead of using the folder name as the project, a `.wakatime-project file` is created with a random project name. | _bool_;_list_ | `false` |
 | hide_branch_names              | Obfuscate branch names. Will not send revision control branch names to api. | _bool_;_list_ | `false` |

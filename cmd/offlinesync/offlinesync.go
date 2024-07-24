@@ -5,6 +5,7 @@ import (
 	"os"
 
 	cmdapi "github.com/wakatime/wakatime-cli/cmd/api"
+	cmdheartbeat "github.com/wakatime/wakatime-cli/cmd/heartbeat"
 	"github.com/wakatime/wakatime-cli/cmd/params"
 	"github.com/wakatime/wakatime-cli/pkg/apikey"
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
@@ -16,8 +17,33 @@ import (
 	"github.com/spf13/viper"
 )
 
-// Run executes the sync-offline-activity command.
-func Run(v *viper.Viper) (int, error) {
+// RunWithoutRateLimiting executes the sync-offline-activity command without rate limiting.
+func RunWithoutRateLimiting(v *viper.Viper) (int, error) {
+	return run(v)
+}
+
+// RunWithRateLimiting executes sync-offline-activity command with rate limiting enabled.
+func RunWithRateLimiting(v *viper.Viper) (int, error) {
+	paramOffline := params.LoadOfflineParams(v)
+
+	if cmdheartbeat.RateLimited(cmdheartbeat.RateLimitParams{
+		Disabled:   paramOffline.Disabled,
+		LastSentAt: paramOffline.LastSentAt,
+		Timeout:    paramOffline.RateLimit,
+	}) {
+		log.Debugln("skip syncing offline activity to respect rate limit")
+		return exitcode.Success, nil
+	}
+
+	return run(v)
+}
+
+func run(v *viper.Viper) (int, error) {
+	paramOffline := params.LoadOfflineParams(v)
+	if paramOffline.Disabled {
+		return exitcode.Success, nil
+	}
+
 	queueFilepath, err := offline.QueueFilepath()
 	if err != nil {
 		return exitcode.ErrGeneric, fmt.Errorf(
@@ -97,8 +123,6 @@ func syncOfflineActivityLegacy(v *viper.Viper, queueFilepath string) error {
 // SyncOfflineActivity syncs offline activity by sending heartbeats
 // from the offline queue to the WakaTime API.
 func SyncOfflineActivity(v *viper.Viper, queueFilepath string) error {
-	paramOffline := params.LoadOfflineParams(v)
-
 	paramAPI, err := params.LoadAPIParams(v)
 	if err != nil {
 		return fmt.Errorf("failed to load API parameters: %w", err)
@@ -108,6 +132,8 @@ func SyncOfflineActivity(v *viper.Viper, queueFilepath string) error {
 	if err != nil {
 		return fmt.Errorf("failed to initialize api client: %w", err)
 	}
+
+	paramOffline := params.LoadOfflineParams(v)
 
 	if paramOffline.QueueFile != "" {
 		queueFilepath = paramOffline.QueueFile
@@ -124,6 +150,10 @@ func SyncOfflineActivity(v *viper.Viper, queueFilepath string) error {
 	_, err = handle(nil)
 	if err != nil {
 		return err
+	}
+
+	if err := cmdheartbeat.ResetRateLimit(v); err != nil {
+		log.Errorf("failed to reset rate limit: %s", err)
 	}
 
 	return nil

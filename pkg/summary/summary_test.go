@@ -36,7 +36,7 @@ func TestRenderToday(t *testing.T) {
 			rendered, err := summary.RenderToday(testSummary(), false, test.Output)
 			require.NoError(t, err)
 
-			assert.Equal(t, strings.TrimSpace(test.Expected), strings.TrimSpace(rendered))
+			assert.Equal(t, test.Expected, rendered)
 		})
 	}
 }
@@ -62,7 +62,7 @@ func readFile(t *testing.T, fp string) string {
 	data, err := os.ReadFile(fp)
 	require.NoError(t, err)
 
-	return string(data)
+	return strings.TrimSpace(string(data))
 }
 
 func testSummary() *summary.Summary {

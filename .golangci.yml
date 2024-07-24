@@ -67,3 +67,4 @@ issues:
         - gosec
   include:
     - EXC0002
+  fix: true

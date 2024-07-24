@@ -124,6 +124,13 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 		"guess-language",
 		false,
 		"Enable detecting language from file contents.")
+	flags.Int(
+		"heartbeat-rate-limit-seconds",
+		offline.RateLimitDefaultSeconds,
+		fmt.Sprintf("Only sync heartbeats to the API once per these seconds, instead"+
+			" saving to the offline db. Defaults to %d. Use zero to disable.",
+			offline.RateLimitDefaultSeconds),
+	)
 	flags.String("hide-branch-names", "", "Obfuscate branch names. Will not send revision control branch names to api.")
 	flags.String("hide-file-names", "", "Obfuscate filenames. Will not send file names to api.")
 	flags.String("hide-filenames", "", "(deprecated) Obfuscate filenames. Will not send file names to api.")

@@ -27,6 +27,9 @@ const (
 	maxRequeueAttempts = 3
 	// PrintMaxDefault is the default maximum number of heartbeats to print.
 	PrintMaxDefault = 10
+	// RateLimitDefaultSeconds is the default seconds between sending heartbeats
+	// to the API. If not enough time has passed, heartbeats are saved to the offline queue.
+	RateLimitDefaultSeconds = 120
 	// SendLimit is the maximum number of heartbeats, which will be sent at once
 	// to the WakaTime API.
 	SendLimit = 25

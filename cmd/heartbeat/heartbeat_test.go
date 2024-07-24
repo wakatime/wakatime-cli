@@ -10,11 +10,13 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/wakatime/wakatime-cli/cmd"
 	cmdheartbeat "github.com/wakatime/wakatime-cli/cmd/heartbeat"
+	cmdparams "github.com/wakatime/wakatime-cli/cmd/params"
 	"github.com/wakatime/wakatime-cli/pkg/api"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/ini"
@@ -47,6 +49,8 @@ func TestSendHeartbeats(t *testing.T) {
 	subfolders := project.CountSlashesInProjectFolder(projectFolder)
 
 	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
+		numCalls++
+
 		// check request
 		assert.Equal(t, http.MethodPost, req.Method)
 		assert.Equal(t, []string{"application/json"}, req.Header["Accept"])
@@ -85,8 +89,6 @@ func TestSendHeartbeats(t *testing.T) {
 
 		_, err = io.Copy(w, f)
 		require.NoError(t, err)
-
-		numCalls++
 	})
 
 	v := viper.New()
@@ -115,6 +117,50 @@ func TestSendHeartbeats(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+}
+
+func TestSendHeartbeats_RateLimited(t *testing.T) {
+	testServerURL, router, tearDown := setupTestServer()
+	defer tearDown()
+
+	var (
+		plugin   = "plugin/0.0.1"
+		numCalls int
+	)
+
+	router.HandleFunc("/users/current/heartbeats.bulk", func(_ http.ResponseWriter, _ *http.Request) {
+		// Should not be called
+		numCalls++
+	})
+
+	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
+	v.Set("api-url", testServerURL)
+	v.Set("category", "debugging")
+	v.Set("cursorpos", 42)
+	v.Set("entity", "testdata/main.go")
+	v.Set("entity-type", "file")
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("language", "Go")
+	v.Set("alternate-language", "Golang")
+	v.Set("hide-branch-names", true)
+	v.Set("project", "wakatime-cli")
+	v.Set("lineno", 13)
+	v.Set("local-file", "testdata/localfile.go")
+	v.Set("plugin", plugin)
+	v.Set("time", 1585598059.1)
+	v.Set("timeout", 5)
+	v.Set("write", true)
+	v.Set("heartbeat-rate-limit-seconds", 500)
+	v.Set("internal.heartbeats_last_sent_at", time.Now().Add(-time.Minute).Format(time.RFC3339))
+
+	offlineQueueFile, err := os.CreateTemp(t.TempDir(), "")
+	require.NoError(t, err)
+
+	err = cmdheartbeat.SendHeartbeats(v, offlineQueueFile.Name())
+	require.NoError(t, err)
+
+	assert.Zero(t, numCalls)
 }
 
 func TestSendHeartbeats_WithFiltering_Exclude(t *testing.T) {
@@ -246,6 +292,8 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 
 	os.Stdin = r
 
+	cmdparams.Once = sync.Once{}
+
 	data, err := os.ReadFile("testdata/extra_heartbeats.json")
 	require.NoError(t, err)
 
@@ -327,6 +375,8 @@ func TestSendHeartbeats_ExtraHeartbeats_Sanitize(t *testing.T) {
 	defer func() { os.Stdin = origStdin }()
 
 	os.Stdin = r
+
+	cmdparams.Once = sync.Once{}
 
 	data, err := os.ReadFile("testdata/extra_heartbeats.json")
 	require.NoError(t, err)
@@ -536,6 +586,8 @@ func TestSendHeartbeats_IsUnsavedEntity(t *testing.T) {
 
 	os.Stdin = inr
 
+	cmdparams.Once = sync.Once{}
+
 	data, err := os.ReadFile("testdata/extra_heartbeats_is_unsaved_entity.json")
 	require.NoError(t, err)
 
@@ -665,6 +717,8 @@ func TestSendHeartbeats_NonExistingExtraHeartbeatsEntity(t *testing.T) {
 	defer func() { os.Stdin = origStdin }()
 
 	os.Stdin = inr
+
+	cmdparams.Once = sync.Once{}
 
 	data, err := os.ReadFile("testdata/extra_heartbeats_nonexisting_entity.json")
 	require.NoError(t, err)
@@ -1050,6 +1104,75 @@ func TestSendHeartbeats_ObfuscateProjectNotBranch(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+}
+
+func TestRateLimited(t *testing.T) {
+	p := cmdheartbeat.RateLimitParams{
+		Timeout:    time.Duration(offline.RateLimitDefaultSeconds) * time.Second,
+		LastSentAt: time.Now(),
+	}
+
+	assert.True(t, cmdheartbeat.RateLimited(p))
+}
+
+func TestRateLimited_NotLimited(t *testing.T) {
+	p := cmdheartbeat.RateLimitParams{
+		LastSentAt: time.Now().Add(time.Duration(-offline.RateLimitDefaultSeconds*2) * time.Second),
+		Timeout:    time.Duration(offline.RateLimitDefaultSeconds) * time.Second,
+	}
+
+	assert.False(t, cmdheartbeat.RateLimited(p))
+}
+
+func TestRateLimited_Disabled(t *testing.T) {
+	p := cmdheartbeat.RateLimitParams{
+		Disabled: true,
+	}
+
+	assert.False(t, cmdheartbeat.RateLimited(p))
+}
+
+func TestRateLimited_TimeoutZero(t *testing.T) {
+	p := cmdheartbeat.RateLimitParams{
+		LastSentAt: time.Time{},
+	}
+
+	assert.False(t, cmdheartbeat.RateLimited(p))
+}
+
+func TestRateLimited_LastSentAtZero(t *testing.T) {
+	p := cmdheartbeat.RateLimitParams{
+		Timeout: 0,
+	}
+
+	assert.False(t, cmdheartbeat.RateLimited(p))
+}
+
+func TestResetRateLimit(t *testing.T) {
+	tmpFile, err := os.CreateTemp(t.TempDir(), "wakatime")
+	require.NoError(t, err)
+
+	defer tmpFile.Close()
+
+	v := viper.New()
+	v.Set("config", tmpFile.Name())
+	v.Set("internal-config", tmpFile.Name())
+
+	writer, err := ini.NewWriter(v, func(vp *viper.Viper) (string, error) {
+		assert.Equal(t, v, vp)
+		return tmpFile.Name(), nil
+	})
+	require.NoError(t, err)
+
+	err = cmdheartbeat.ResetRateLimit(v)
+	require.NoError(t, err)
+
+	err = writer.File.Reload()
+	require.NoError(t, err)
+
+	lastSentAt := writer.File.Section("internal").Key("heartbeats_last_sent_at").MustTimeFormat(ini.DateFormat)
+
+	assert.WithinDuration(t, time.Now(), lastSentAt, 1*time.Second)
 }
 
 func setupTestServer() (string, *http.ServeMux, func()) {
