@@ -10,13 +10,11 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-	"sync"
 	"testing"
 	"time"
 
 	"github.com/wakatime/wakatime-cli/cmd"
 	cmdheartbeat "github.com/wakatime/wakatime-cli/cmd/heartbeat"
-	cmdparams "github.com/wakatime/wakatime-cli/cmd/params"
 	"github.com/wakatime/wakatime-cli/pkg/api"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/ini"
@@ -292,8 +290,6 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 
 	os.Stdin = r
 
-	cmdparams.Once = sync.Once{}
-
 	data, err := os.ReadFile("testdata/extra_heartbeats.json")
 	require.NoError(t, err)
 
@@ -375,8 +371,6 @@ func TestSendHeartbeats_ExtraHeartbeats_Sanitize(t *testing.T) {
 	defer func() { os.Stdin = origStdin }()
 
 	os.Stdin = r
-
-	cmdparams.Once = sync.Once{}
 
 	data, err := os.ReadFile("testdata/extra_heartbeats.json")
 	require.NoError(t, err)
@@ -586,8 +580,6 @@ func TestSendHeartbeats_IsUnsavedEntity(t *testing.T) {
 
 	os.Stdin = inr
 
-	cmdparams.Once = sync.Once{}
-
 	data, err := os.ReadFile("testdata/extra_heartbeats_is_unsaved_entity.json")
 	require.NoError(t, err)
 
@@ -717,8 +709,6 @@ func TestSendHeartbeats_NonExistingExtraHeartbeatsEntity(t *testing.T) {
 	defer func() { os.Stdin = origStdin }()
 
 	os.Stdin = inr
-
-	cmdparams.Once = sync.Once{}
 
 	data, err := os.ReadFile("testdata/extra_heartbeats_nonexisting_entity.json")
 	require.NoError(t, err)

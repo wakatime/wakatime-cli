@@ -332,6 +332,78 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 	assert.Eventually(t, func() bool { return numCalls == 2 }, time.Second, 50*time.Millisecond)
 }
 
+func TestSendHeartbeats_ExtraHeartbeats_RateLimited(t *testing.T) {
+	apiURL, router, close := setupTestServer()
+	defer close()
+
+	var numCalls int
+
+	router.HandleFunc("/users/current/heartbeats.bulk", func(_ http.ResponseWriter, _ *http.Request) {
+		numCalls++
+	})
+
+	tmpDir := t.TempDir()
+
+	offlineQueueFile, err := os.CreateTemp(tmpDir, "")
+	require.NoError(t, err)
+
+	defer offlineQueueFile.Close()
+
+	offlineQueueFileLegacy, err := os.CreateTemp(tmpDir, "")
+	require.NoError(t, err)
+
+	defer offlineQueueFileLegacy.Close()
+
+	tmpConfigFile, err := os.CreateTemp(tmpDir, "wakatime.cfg")
+	require.NoError(t, err)
+
+	defer tmpConfigFile.Close()
+
+	tmpInternalConfigFile, err := os.CreateTemp(tmpDir, "wakatime-internal.cfg")
+	require.NoError(t, err)
+
+	_, err = tmpInternalConfigFile.WriteString(
+		fmt.Sprintf("[internal]\nheartbeats_last_sent_at = %s\n", time.Now().Format(time.RFC3339)),
+	)
+	require.NoError(t, err)
+
+	defer tmpInternalConfigFile.Close()
+
+	data, err := os.ReadFile("testdata/extra_heartbeats.json")
+	require.NoError(t, err)
+
+	buffer := bytes.NewBuffer(data)
+
+	runWakatimeCli(
+		t,
+		buffer,
+		"--api-url", apiURL,
+		"--key", "00000000-0000-4000-8000-000000000000",
+		"--config", tmpConfigFile.Name(),
+		"--heartbeat-rate-limit-seconds", "100",
+		"--internal-config", tmpInternalConfigFile.Name(),
+		"--entity", "testdata/main.go",
+		"--extra-heartbeats", "true",
+		"--cursorpos", "12",
+		"--sync-offline-activity", "2",
+		"--offline-queue-file", offlineQueueFile.Name(),
+		"--offline-queue-file-legacy", offlineQueueFileLegacy.Name(),
+		"--lineno", "42",
+		"--lines-in-file", "100",
+		"--time", "1585598059",
+		"--hide-branch-names", ".*",
+		"--write",
+		"--verbose",
+	)
+
+	offlineCount, err := offline.CountHeartbeats(offlineQueueFile.Name())
+	require.NoError(t, err)
+
+	assert.Equal(t, 26, offlineCount)
+
+	assert.Zero(t, numCalls)
+}
+
 func TestSendHeartbeats_ExtraHeartbeats_SyncLegacyOfflineActivity(t *testing.T) {
 	apiURL, router, close := setupTestServer()
 	defer close()

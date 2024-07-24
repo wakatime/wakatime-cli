@@ -57,7 +57,13 @@ func SaveHeartbeats(v *viper.Viper, heartbeats []heartbeat.Heartbeat, queueFilep
 	return nil
 }
 
+// loadParams loads params from viper.Viper instance. Returns ErrAuth
+// if failed to retrieve api key.
 func loadParams(v *viper.Viper) (paramscmd.Params, error) {
+	if v == nil {
+		return paramscmd.Params{}, errors.New("viper instance unset")
+	}
+
 	paramAPI, err := paramscmd.LoadAPIParams(v)
 	if err != nil {
 		log.Warnf("failed to load API parameters: %s", err)

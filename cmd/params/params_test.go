@@ -9,7 +9,6 @@ import (
 	"regexp"
 	"runtime"
 	"strings"
-	"sync"
 	"testing"
 	"time"
 
@@ -233,8 +232,6 @@ func TestLoadHeartbeatParams_ExtraHeartbeats(t *testing.T) {
 
 	os.Stdin = r
 
-	cmdparams.Once = sync.Once{}
-
 	data, err := os.ReadFile("testdata/extra_heartbeats.json")
 	require.NoError(t, err)
 
@@ -307,8 +304,6 @@ func TestLoadHeartbeatParams_ExtraHeartbeats_WithStringValues(t *testing.T) {
 
 	os.Stdin = r
 
-	cmdparams.Once = sync.Once{}
-
 	data, err := os.ReadFile("testdata/extra_heartbeats_with_string_values.json")
 	require.NoError(t, err)
 
@@ -375,8 +370,6 @@ func TestLoadHeartbeatParams_ExtraHeartbeats_WithEOF(t *testing.T) {
 	defer func() { os.Stdin = origStdin }()
 
 	os.Stdin = r
-
-	cmdparams.Once = sync.Once{}
 
 	data, err := os.ReadFile("testdata/extra_heartbeats.json")
 	require.NoError(t, err)
@@ -455,8 +448,6 @@ func TestLoadHeartbeatParams_ExtraHeartbeats_NoData(t *testing.T) {
 	defer func() { os.Stdin = origStdin }()
 
 	os.Stdin = r
-
-	cmdparams.Once = sync.Once{}
 
 	go func() {
 		_, err := w.Write([]byte{})

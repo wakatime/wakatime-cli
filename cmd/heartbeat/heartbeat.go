@@ -70,7 +70,7 @@ func Run(v *viper.Viper) (int, error) {
 // heartbeats from the offline queue, if available and offline sync is not
 // explicitly disabled.
 func SendHeartbeats(v *viper.Viper, queueFilepath string) error {
-	params, err := LoadParams(v)
+	params, err := loadParams(v)
 	if err != nil {
 		return fmt.Errorf("failed to load command parameters: %w", err)
 	}
@@ -83,7 +83,11 @@ func SendHeartbeats(v *viper.Viper, queueFilepath string) error {
 		LastSentAt: params.Offline.LastSentAt,
 		Timeout:    params.Offline.RateLimit,
 	}) {
-		if err = offlinecmd.SaveHeartbeats(v, nil, queueFilepath); err == nil {
+		// it prevents reading extra heartbeats again from stdin when we're rate limited.
+		// Otherwise, it would fail to read.
+		v.Set("extra-heartbeats", false)
+
+		if err = offlinecmd.SaveHeartbeats(v, params.Heartbeat.ExtraHeartbeats, queueFilepath); err == nil {
 			return nil
 		}
 
@@ -165,9 +169,9 @@ func SendHeartbeats(v *viper.Viper, queueFilepath string) error {
 	return nil
 }
 
-// LoadParams loads params from viper.Viper instance. Returns ErrAuth
+// loadParams loads params from viper.Viper instance. Returns ErrAuth
 // if failed to retrieve api key.
-func LoadParams(v *viper.Viper) (paramscmd.Params, error) {
+func loadParams(v *viper.Viper) (paramscmd.Params, error) {
 	if v == nil {
 		return paramscmd.Params{}, errors.New("viper instance unset")
 	}
