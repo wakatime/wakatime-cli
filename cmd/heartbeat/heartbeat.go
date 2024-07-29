@@ -31,7 +31,7 @@ import (
 
 // Run executes the heartbeat command.
 func Run(v *viper.Viper) (int, error) {
-	queueFilepath, err := offline.QueueFilepath()
+	queueFilepath, err := offline.QueueFilepath(v)
 	if err != nil {
 		log.Warnf("failed to load offline queue filepath: %s", err)
 	}
@@ -115,10 +115,6 @@ func SendHeartbeats(v *viper.Viper, queueFilepath string) error {
 	handleOpts := initHandleOptions(params)
 
 	if !params.Offline.Disabled {
-		if params.Offline.QueueFile != "" {
-			queueFilepath = params.Offline.QueueFile
-		}
-
 		handleOpts = append(handleOpts, offline.WithQueue(queueFilepath))
 	}
 

@@ -1771,24 +1771,6 @@ func TestLoadOfflineParams_LastSentAt_Err(t *testing.T) {
 	assert.Zero(t, params.LastSentAt)
 }
 
-func TestLoadOfflineParams_QueueFile(t *testing.T) {
-	v := viper.New()
-	v.Set("offline-queue-file", "/path/to/file")
-
-	params := cmdparams.LoadOfflineParams(v)
-
-	assert.Equal(t, "/path/to/file", params.QueueFile)
-}
-
-func TestLoadOfflineParams_QueueFileLegacy(t *testing.T) {
-	v := viper.New()
-	v.Set("offline-queue-file-legacy", "/path/to/file")
-
-	params := cmdparams.LoadOfflineParams(v)
-
-	assert.Equal(t, "/path/to/file", params.QueueFileLegacy)
-}
-
 func TestLoadOfflineParams_SyncMax(t *testing.T) {
 	v := viper.New()
 	v.Set("sync-offline-activity", 42)
@@ -2552,19 +2534,16 @@ func TestOffline_String(t *testing.T) {
 	require.NoError(t, err)
 
 	offline := cmdparams.Offline{
-		Disabled:        true,
-		LastSentAt:      lastSentAt,
-		PrintMax:        6,
-		QueueFile:       "/path/to/queue.file",
-		QueueFileLegacy: "/path/to/legacy.file",
-		RateLimit:       15,
-		SyncMax:         12,
+		Disabled:   true,
+		LastSentAt: lastSentAt,
+		PrintMax:   6,
+		RateLimit:  15,
+		SyncMax:    12,
 	}
 
 	assert.Equal(
 		t,
 		"disabled: true, last sent at: '2021-08-30T18:50:42-03:00', print max: 6,"+
-			" queue file: '/path/to/queue.file', queue file legacy: '/path/to/legacy.file',"+
 			" num rate limit: 15, num sync max: 12",
 		offline.String(),
 	)
@@ -2628,6 +2607,85 @@ func TestStatusBar_String(t *testing.T) {
 		"hide categories: true, output: 'json'",
 		statusbar.String(),
 	)
+}
+
+func TestLoadHeartbeatParams_ExtraHeartbeats_StdinReadOnlyOnce(t *testing.T) {
+	r, w, err := os.Pipe()
+	require.NoError(t, err)
+
+	defer func() {
+		r.Close()
+		w.Close()
+	}()
+
+	origStdin := os.Stdin
+
+	defer func() { os.Stdin = origStdin }()
+
+	os.Stdin = r
+
+	cmdparams.Once = sync.Once{}
+
+	data, err := os.ReadFile("testdata/extra_heartbeats.json")
+	require.NoError(t, err)
+
+	go func() {
+		_, err := w.Write(data)
+		require.NoError(t, err)
+
+		w.Close()
+	}()
+
+	v := viper.New()
+	v.Set("entity", "/path/to/file")
+	v.Set("extra-heartbeats", true)
+
+	params, err := cmdparams.LoadHeartbeatParams(v)
+	require.NoError(t, err)
+
+	assert.Len(t, params.ExtraHeartbeats, 2)
+	assert.Equal(t, "Golang", params.ExtraHeartbeats[0].LanguageAlternate)
+
+	r.Close()
+	w.Close()
+
+	// change stdin and make sure loading params uses old stdin
+	r, w, err = os.Pipe()
+	require.NoError(t, err)
+
+	data, err = os.ReadFile("testdata/extra_heartbeats_with_string_values.json")
+	require.NoError(t, err)
+
+	go func() {
+		_, err := w.Write(data)
+		require.NoError(t, err)
+
+		w.Close()
+	}()
+
+	os.Stdin = r
+
+	v = viper.New()
+	v.Set("entity", "/path/to/file")
+	v.Set("extra-heartbeats", true)
+
+	params, err = cmdparams.LoadHeartbeatParams(v)
+	require.NoError(t, err)
+
+	assert.Len(t, params.ExtraHeartbeats, 2)
+	assert.Equal(t, "Golang", params.ExtraHeartbeats[0].LanguageAlternate)
+
+	v = viper.New()
+	v.Set("entity", "/path/to/file")
+	v.Set("extra-heartbeats", true)
+
+	cmdparams.Once = sync.Once{}
+
+	params, err = cmdparams.LoadHeartbeatParams(v)
+	require.NoError(t, err)
+
+	assert.Len(t, params.ExtraHeartbeats, 2)
+	assert.Empty(t, params.ExtraHeartbeats[0].LanguageAlternate)
 }
 
 func captureLogs(dest io.Writer) func() {

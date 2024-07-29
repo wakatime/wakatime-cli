@@ -3,7 +3,6 @@ package offlinecount
 import (
 	"fmt"
 
-	"github.com/wakatime/wakatime-cli/cmd/params"
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
 	"github.com/wakatime/wakatime-cli/pkg/offline"
 
@@ -12,18 +11,12 @@ import (
 
 // Run executes the offline-count command.
 func Run(v *viper.Viper) (int, error) {
-	queueFilepath, err := offline.QueueFilepath()
+	queueFilepath, err := offline.QueueFilepath(v)
 	if err != nil {
 		return exitcode.ErrGeneric, fmt.Errorf(
 			"failed to load offline queue filepath: %s",
 			err,
 		)
-	}
-
-	p := params.LoadOfflineParams(v)
-
-	if p.QueueFile != "" {
-		queueFilepath = p.QueueFile
 	}
 
 	count, err := offline.CountHeartbeats(queueFilepath)

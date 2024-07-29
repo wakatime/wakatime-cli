@@ -9,10 +9,13 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/mitchellh/go-homedir"
+	"github.com/spf13/viper"
 	"github.com/wakatime/wakatime-cli/pkg/api"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/ini"
 	"github.com/wakatime/wakatime-cli/pkg/log"
+	"github.com/wakatime/wakatime-cli/pkg/vipertools"
 
 	bolt "go.etcd.io/bbolt"
 )
@@ -91,7 +94,17 @@ func WithQueue(filepath string) heartbeat.HandleOption {
 // QueueFilepath returns the path for offline queue db file. If
 // the resource directory cannot be detected, it defaults to the
 // current directory.
-func QueueFilepath() (string, error) {
+func QueueFilepath(v *viper.Viper) (string, error) {
+	paramFile := vipertools.GetString(v, "offline-queue-file")
+	if paramFile != "" {
+		p, err := homedir.Expand(paramFile)
+		if err != nil {
+			return "", fmt.Errorf("failed expanding offline-queue-file param: %s", err)
+		}
+
+		return p, nil
+	}
+
 	folder, err := ini.WakaResourcesDir()
 	if err != nil {
 		return dbFilename, fmt.Errorf("failed getting resource directory, defaulting to current directory: %s", err)

@@ -7,6 +7,7 @@ import (
 
 	"github.com/wakatime/wakatime-cli/pkg/offline"
 
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -40,7 +41,8 @@ func TestQueueFilepathLegacy(t *testing.T) {
 
 			defer os.Unsetenv("WAKATIME_HOME")
 
-			queueFilepath, err := offline.QueueFilepathLegacy()
+			v := viper.New()
+			queueFilepath, err := offline.QueueFilepathLegacy(v)
 			require.NoError(t, err)
 
 			assert.Equal(t, test.Expected, queueFilepath)

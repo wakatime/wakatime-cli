@@ -44,7 +44,7 @@ func run(v *viper.Viper) (int, error) {
 		return exitcode.Success, nil
 	}
 
-	queueFilepath, err := offline.QueueFilepath()
+	queueFilepath, err := offline.QueueFilepath(v)
 	if err != nil {
 		return exitcode.ErrGeneric, fmt.Errorf(
 			"offline sync failed: failed to load offline queue filepath: %s",
@@ -52,7 +52,7 @@ func run(v *viper.Viper) (int, error) {
 		)
 	}
 
-	queueFilepathLegacy, err := offline.QueueFilepathLegacy()
+	queueFilepathLegacy, err := offline.QueueFilepathLegacy(v)
 	if err != nil {
 		log.Warnf("legacy offline sync failed: failed to load offline queue filepath: %s", err)
 	}
@@ -84,6 +84,10 @@ func syncOfflineActivityLegacy(v *viper.Viper, queueFilepath string) error {
 		return nil
 	}
 
+	if !fileExists(queueFilepath) {
+		return nil
+	}
+
 	paramOffline := params.LoadOfflineParams(v)
 
 	paramAPI, err := params.LoadAPIParams(v)
@@ -94,10 +98,6 @@ func syncOfflineActivityLegacy(v *viper.Viper, queueFilepath string) error {
 	apiClient, err := cmdapi.NewClientWithoutAuth(paramAPI)
 	if err != nil {
 		return fmt.Errorf("failed to initialize api client: %w", err)
-	}
-
-	if paramOffline.QueueFileLegacy != "" {
-		queueFilepath = paramOffline.QueueFileLegacy
 	}
 
 	handle := heartbeat.NewHandle(apiClient,
@@ -135,10 +135,6 @@ func SyncOfflineActivity(v *viper.Viper, queueFilepath string) error {
 
 	paramOffline := params.LoadOfflineParams(v)
 
-	if paramOffline.QueueFile != "" {
-		queueFilepath = paramOffline.QueueFile
-	}
-
 	handle := heartbeat.NewHandle(apiClient,
 		offline.WithSync(queueFilepath, paramOffline.SyncMax),
 		apikey.WithReplacing(apikey.Config{
@@ -157,4 +153,10 @@ func SyncOfflineActivity(v *viper.Viper, queueFilepath string) error {
 	}
 
 	return nil
+}
+
+// fileExists checks if a file or directory exist.
+func fileExists(fp string) bool {
+	_, err := os.Stat(fp)
+	return err == nil || os.IsExist(err)
 }

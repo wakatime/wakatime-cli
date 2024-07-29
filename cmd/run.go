@@ -349,7 +349,7 @@ func runCmd(v *viper.Viper, verbose bool, sendDiagsOnErrors bool, cmd cmdFn) (er
 }
 
 func saveHeartbeats(v *viper.Viper) int {
-	queueFilepath, err := offline.QueueFilepath()
+	queueFilepath, err := offline.QueueFilepath(v)
 	if err != nil {
 		log.Warnf("failed to load offline queue filepath: %s", err)
 	}

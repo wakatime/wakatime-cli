@@ -15,7 +15,7 @@ import (
 
 // Run executes the print-offline-heartbeats command.
 func Run(v *viper.Viper) (int, error) {
-	queueFilepath, err := offline.QueueFilepath()
+	queueFilepath, err := offline.QueueFilepath(v)
 	if err != nil {
 		return exitcode.ErrGeneric, fmt.Errorf(
 			"failed to load offline queue filepath: %s",
@@ -24,10 +24,6 @@ func Run(v *viper.Viper) (int, error) {
 	}
 
 	p := params.LoadOfflineParams(v)
-
-	if p.QueueFile != "" {
-		queueFilepath = p.QueueFile
-	}
 
 	hh, err := offline.ReadHeartbeats(queueFilepath, p.PrintMax)
 	if err != nil {

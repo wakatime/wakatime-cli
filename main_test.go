@@ -373,7 +373,7 @@ func TestSendHeartbeats_ExtraHeartbeats_SyncLegacyOfflineActivity(t *testing.T) 
 	tmpDir := t.TempDir()
 
 	// create legacy offline queue file and add some heartbeats
-	offlineQueueFileLegacy, err := os.CreateTemp(tmpDir, "")
+	offlineQueueFileLegacy, err := os.CreateTemp(tmpDir, "legacy-offline-file")
 	require.NoError(t, err)
 
 	// early close to avoid file locking in Windows
@@ -409,7 +409,7 @@ func TestSendHeartbeats_ExtraHeartbeats_SyncLegacyOfflineActivity(t *testing.T) 
 	err = db.Close()
 	require.NoError(t, err)
 
-	offlineQueueFile, err := os.CreateTemp(tmpDir, "")
+	offlineQueueFile, err := os.CreateTemp(tmpDir, "new-offline-file")
 	require.NoError(t, err)
 
 	defer offlineQueueFile.Close()
@@ -429,6 +429,8 @@ func TestSendHeartbeats_ExtraHeartbeats_SyncLegacyOfflineActivity(t *testing.T) 
 
 	buffer := bytes.NewBuffer(data)
 
+	assert.FileExists(t, offlineQueueFileLegacy.Name())
+
 	runWakatimeCli(
 		t,
 		buffer,
@@ -439,11 +441,11 @@ func TestSendHeartbeats_ExtraHeartbeats_SyncLegacyOfflineActivity(t *testing.T) 
 		"--entity", "testdata/main.go",
 		"--extra-heartbeats", "true",
 		"--cursorpos", "12",
-		"--sync-offline-activity", "0",
 		"--offline-queue-file", offlineQueueFile.Name(),
 		"--offline-queue-file-legacy", offlineQueueFileLegacy.Name(),
 		"--lineno", "42",
 		"--lines-in-file", "100",
+		"--heartbeat-rate-limit-seconds", "0",
 		"--time", "1585598059",
 		"--hide-branch-names", ".*",
 		"--write",

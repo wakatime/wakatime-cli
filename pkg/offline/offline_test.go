@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/spf13/viper"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/ini"
 	"github.com/wakatime/wakatime-cli/pkg/offline"
@@ -43,7 +44,8 @@ func TestQueueFilepath(t *testing.T) {
 			folder, err := ini.WakaResourcesDir()
 			require.NoError(t, err)
 
-			queueFilepath, err := offline.QueueFilepath()
+			v := viper.New()
+			queueFilepath, err := offline.QueueFilepath(v)
 			require.NoError(t, err)
 
 			expected := filepath.Join(folder, "offline_heartbeats.bdb")
