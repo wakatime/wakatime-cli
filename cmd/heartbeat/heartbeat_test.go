@@ -137,10 +137,10 @@ func TestSendHeartbeats_RateLimited(t *testing.T) {
 		numCalls++
 	})
 
-	tmpFile, err := os.CreateTemp(t.TempDir(), "wakatime")
+	tmpFile, err := os.CreateTemp(t.TempDir(), "wakatime-internal-config")
 	require.NoError(t, err)
 
-	offlineQueueFile, err := os.CreateTemp(t.TempDir(), "")
+	offlineQueueFile, err := os.CreateTemp(t.TempDir(), "offline-queue-file")
 	require.NoError(t, err)
 
 	v := viper.New()

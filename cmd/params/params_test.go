@@ -2629,12 +2629,10 @@ func TestLoadHeartbeatParams_ExtraHeartbeats_StdinReadOnlyOnce(t *testing.T) {
 	data, err := os.ReadFile("testdata/extra_heartbeats.json")
 	require.NoError(t, err)
 
-	go func() {
-		_, err := w.Write(data)
-		require.NoError(t, err)
+	_, err = w.Write(data)
+	require.NoError(t, err)
 
-		w.Close()
-	}()
+	w.Close()
 
 	v := viper.New()
 	v.Set("entity", "/path/to/file")
@@ -2656,12 +2654,10 @@ func TestLoadHeartbeatParams_ExtraHeartbeats_StdinReadOnlyOnce(t *testing.T) {
 	data, err = os.ReadFile("testdata/extra_heartbeats_with_string_values.json")
 	require.NoError(t, err)
 
-	go func() {
-		_, err := w.Write(data)
-		require.NoError(t, err)
+	_, err = w.Write(data)
+	require.NoError(t, err)
 
-		w.Close()
-	}()
+	w.Close()
 
 	os.Stdin = r
 
