@@ -9,7 +9,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"runtime"
 	"strconv"
 	"strings"
 	"testing"
@@ -64,10 +63,6 @@ func TestNewClient_Err(t *testing.T) {
 }
 
 func TestWithDetection_SshConfig_Hostname(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("Skipping because OS is Windows.")
-	}
-
 	shutdown, host, port := testServer(t, false)
 	defer shutdown()
 
@@ -133,10 +128,6 @@ func TestWithDetection_SshConfig_Hostname(t *testing.T) {
 }
 
 func TestWithDetection_SshConfig_UserKnownHostsFile_Mismatch(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("Skipping because OS is Windows.")
-	}
-
 	logs := bytes.NewBuffer(nil)
 
 	teardownLogCapture := captureLogs(logs)
@@ -199,10 +190,6 @@ func TestWithDetection_SshConfig_UserKnownHostsFile_Mismatch(t *testing.T) {
 }
 
 func TestWithDetection_SshConfig_UserKnownHostsFile_Match(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("Skipping because OS is Windows.")
-	}
-
 	logs := bytes.NewBuffer(nil)
 
 	teardownLogCapture := captureLogs(logs)
@@ -282,10 +269,6 @@ func TestWithDetection_SshConfig_UserKnownHostsFile_Match(t *testing.T) {
 }
 
 func TestWithDetection_Filtered(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("Skipping because OS is Windows.")
-	}
-
 	logs := bytes.NewBuffer(nil)
 
 	teardownLogCapture := captureLogs(logs)

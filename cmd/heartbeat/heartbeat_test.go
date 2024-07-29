@@ -126,10 +126,6 @@ func TestSendHeartbeats(t *testing.T) {
 }
 
 func TestSendHeartbeats_RateLimited(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("Skipping because OS is windows.")
-	}
-
 	resetSingleton(t)
 
 	testServerURL, router, tearDown := setupTestServer()

@@ -112,7 +112,7 @@ func TestFileExperts_NonExistingEntity(t *testing.T) {
 	v.Set("log-file", logFile.Name())
 	v.Set("verbose", true)
 
-	cmd.SetupLogging(v)
+	_, _ = cmd.SetupLogging(v)
 
 	defer func() {
 		if file, ok := log.Output().(*os.File); ok {

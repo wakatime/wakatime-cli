@@ -8,13 +8,13 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"runtime"
 	"testing"
 	"time"
 
 	cmdheartbeat "github.com/wakatime/wakatime-cli/cmd/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
 	"github.com/wakatime/wakatime-cli/pkg/ini"
+	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/version"
 
 	"github.com/spf13/viper"
@@ -111,10 +111,6 @@ func TestRunCmd_ErrOfflineEnqueue(t *testing.T) {
 }
 
 func TestRunCmd_BackoffLoggedWithVerbose(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("Skipping because OS is windows.")
-	}
-
 	verbose := true
 
 	testServerURL, router, tearDown := setupTestServer()
@@ -157,6 +153,15 @@ func TestRunCmd_BackoffLoggedWithVerbose(t *testing.T) {
 
 	_, _ = SetupLogging(v)
 
+	defer func() {
+		if file, ok := log.Output().(*os.File); ok {
+			_ = file.Sync()
+			file.Close()
+		} else if handler, ok := log.Output().(io.Closer); ok {
+			handler.Close()
+		}
+	}()
+
 	err = runCmd(v, verbose, false, cmdheartbeat.Run)
 
 	var errexitcode exitcode.Err
@@ -164,7 +169,6 @@ func TestRunCmd_BackoffLoggedWithVerbose(t *testing.T) {
 	require.ErrorAs(t, err, &errexitcode)
 
 	assert.Equal(t, exitcode.ErrBackoff, err.(exitcode.Err).Code)
-
 	assert.Equal(t, 0, numCalls)
 
 	output, err := io.ReadAll(logFile)
@@ -174,12 +178,6 @@ func TestRunCmd_BackoffLoggedWithVerbose(t *testing.T) {
 }
 
 func TestRunCmd_BackoffNotLogged(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("Skipping because OS is windows.")
-	}
-
-	verbose := false
-
 	testServerURL, router, tearDown := setupTestServer()
 	defer tearDown()
 
@@ -216,11 +214,11 @@ func TestRunCmd_BackoffNotLogged(t *testing.T) {
 	v.Set("offline-queue-file", offlineQueueFile.Name())
 	v.Set("internal.backoff_at", time.Now().Add(10*time.Minute).Format(ini.DateFormat))
 	v.Set("internal.backoff_retries", "1")
-	v.Set("verbose", verbose)
+	v.Set("verbose", false)
 
 	_, _ = SetupLogging(v)
 
-	err = runCmd(v, verbose, false, cmdheartbeat.Run)
+	err = runCmd(v, false, false, cmdheartbeat.Run)
 
 	var errexitcode exitcode.Err
 

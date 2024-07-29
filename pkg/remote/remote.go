@@ -152,12 +152,16 @@ func NewClient(address string) (Client, error) {
 
 	if port == 0 {
 		port, err = strconv.Atoi(ssh_config.Get(host, "Port"))
-		log.Warnf("failed to parse port from host: %s", err)
+		if err != nil {
+			log.Warnf("failed to parse port from host: %s", err)
+		}
 	}
 
 	if port == 0 {
 		port, err = strconv.Atoi(ssh_config.Get(derivedHost, "Port"))
-		log.Warnf("failed to parse port from derived host: %s", err)
+		if err != nil {
+			log.Warnf("failed to parse port from derived host: %s", err)
+		}
 	}
 
 	if port == 0 {
