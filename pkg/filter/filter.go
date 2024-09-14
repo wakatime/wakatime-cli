@@ -63,12 +63,12 @@ func WithLengthValidator() heartbeat.HandleOption {
 func Filter(h heartbeat.Heartbeat, config Config) error {
 	// filter by pattern
 	if err := filterByPattern(h.Entity, config.Include, config.Exclude); err != nil {
-		return fmt.Errorf(fmt.Sprintf("filter by pattern: %s", err))
+		return fmt.Errorf("filter by pattern: %s", err)
 	}
 
 	err := filterFileEntity(h, config)
 	if err != nil {
-		return fmt.Errorf(fmt.Sprintf("filter file: %s", err))
+		return fmt.Errorf("filter file: %s", err)
 	}
 
 	return nil
@@ -92,7 +92,7 @@ func filterByPattern(entity string, include, exclude []regex.Regex) error {
 	// filter by  exclude pattern
 	for _, pattern := range exclude {
 		if pattern.MatchString(entity) {
-			return fmt.Errorf(fmt.Sprintf("skipping because matches exclude pattern %q", pattern.String()))
+			return fmt.Errorf("skipping because matches exclude pattern %q", pattern.String())
 		}
 	}
 
@@ -123,7 +123,7 @@ func filterFileEntity(h heartbeat.Heartbeat, config Config) error {
 
 	// skip files that don't exist on disk
 	if _, err := os.Stat(entity); os.IsNotExist(err) {
-		return fmt.Errorf(fmt.Sprintf("skipping because of non-existing file %q", entity))
+		return fmt.Errorf("skipping because of non-existing file %q", entity)
 	}
 
 	// when including only with project file, skip files when the project doesn't have a .wakatime-project file

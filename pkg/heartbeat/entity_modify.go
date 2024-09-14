@@ -19,6 +19,10 @@ func WithEntityModifier() HandleOption {
 				if h.EntityType == FileType && isXCodePlayground(h.Entity) {
 					hh[n].Entity = filepath.Join(h.Entity, "Contents.swift")
 				}
+				// Support XCode projects
+				if h.EntityType == FileType && isXCodeProject(h.Entity) {
+					hh[n].Entity = filepath.Join(h.Entity, "project.pbxproj")
+				}
 			}
 
 			return next(hh)
@@ -30,6 +34,14 @@ func isXCodePlayground(fp string) bool {
 	if !(strings.HasSuffix(fp, ".playground") ||
 		strings.HasSuffix(fp, ".xcplayground") ||
 		strings.HasSuffix(fp, ".xcplaygroundpage")) {
+		return false
+	}
+
+	return isDir(fp)
+}
+
+func isXCodeProject(fp string) bool {
+	if !(strings.HasSuffix(fp, ".xcodeproj")) {
 		return false
 	}
 

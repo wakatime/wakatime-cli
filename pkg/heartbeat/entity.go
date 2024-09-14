@@ -13,6 +13,10 @@ const (
 	FileType EntityType = iota
 	// DomainType represents a domain entity.
 	DomainType
+	// URLType represents a url entity without the url params.
+	URLType
+	// EventType represents a meeting or calendar event.
+	EventType
 	// AppType represents an app entity.
 	AppType
 )
@@ -20,6 +24,8 @@ const (
 const (
 	fileTypeString   = "file"
 	domainTypeString = "domain"
+	urlTypeString    = "url"
+	eventTypeString  = "event"
 	appTypeString    = "app"
 )
 
@@ -30,6 +36,10 @@ func ParseEntityType(s string) (EntityType, error) {
 		return FileType, nil
 	case domainTypeString:
 		return DomainType, nil
+	case urlTypeString:
+		return URLType, nil
+	case eventTypeString:
+		return EventType, nil
 	case appTypeString:
 		return AppType, nil
 	default:
@@ -68,6 +78,10 @@ func (t EntityType) String() string {
 		return fileTypeString
 	case DomainType:
 		return domainTypeString
+	case URLType:
+		return urlTypeString
+	case EventType:
+		return eventTypeString
 	case AppType:
 		return appTypeString
 	default:

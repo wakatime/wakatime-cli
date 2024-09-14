@@ -100,7 +100,7 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 	flags.String(
 		"entity-type",
 		"",
-		"Entity type for this heartbeat. Can be \"file\", \"domain\" or \"app\". Defaults to \"file\".",
+		"Entity type for this heartbeat. Can be \"file\", \"domain\", \"url\", or \"app\". Defaults to \"file\".",
 	)
 	flags.StringSlice(
 		"exclude",

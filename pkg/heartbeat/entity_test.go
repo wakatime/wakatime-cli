@@ -14,6 +14,8 @@ func typeTests() map[string]heartbeat.EntityType {
 	return map[string]heartbeat.EntityType{
 		"file":   heartbeat.FileType,
 		"domain": heartbeat.DomainType,
+		"url":    heartbeat.URLType,
+		"event":  heartbeat.EventType,
 		"app":    heartbeat.AppType,
 	}
 }

@@ -41,6 +41,30 @@ func TestIsXCodePlayground(t *testing.T) {
 	}
 }
 
+func TestIsXCodeProject(t *testing.T) {
+	tests := map[string]struct {
+		Dir      string
+		Expected bool
+	}{
+		"project directory": {
+			Dir:      setupTestXCodePlayground(t, "wakatime.xcodeproj"),
+			Expected: true,
+		},
+		"not project": {
+			Dir:      setupTestXCodePlayground(t, "wakatime"),
+			Expected: false,
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			ret := isXCodeProject(test.Dir)
+
+			assert.Equal(t, test.Expected, ret)
+		})
+	}
+}
+
 func setupTestXCodePlayground(t *testing.T, dir string) string {
 	tmpDir := t.TempDir()
 

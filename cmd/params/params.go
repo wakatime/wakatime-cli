@@ -226,8 +226,11 @@ func LoadAPIParams(v *viper.Viper) (API, error) {
 	backoffAtStr := vipertools.GetString(v, "internal.backoff_at")
 	if backoffAtStr != "" {
 		parsed, err := time.Parse(ini.DateFormat, backoffAtStr)
+		// nolint:gocritic
 		if err != nil {
 			log.Warnf("failed to parse backoff_at: %s", err)
+		} else if parsed.After(time.Now()) {
+			backoffAt = time.Now()
 		} else {
 			backoffAt = parsed
 		}
@@ -664,8 +667,11 @@ func LoadOfflineParams(v *viper.Viper) Offline {
 	lastSentAtStr := vipertools.GetString(v, "internal.heartbeats_last_sent_at")
 	if lastSentAtStr != "" {
 		parsed, err := time.Parse(ini.DateFormat, lastSentAtStr)
+		// nolint:gocritic
 		if err != nil {
 			log.Warnf("failed to parse heartbeats_last_sent_at: %s", err)
+		} else if parsed.After(time.Now()) {
+			lastSentAt = time.Now()
 		} else {
 			lastSentAt = parsed
 		}

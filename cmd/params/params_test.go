@@ -1771,6 +1771,16 @@ func TestLoadOfflineParams_LastSentAt_Err(t *testing.T) {
 	assert.Zero(t, params.LastSentAt)
 }
 
+func TestLoadOfflineParams_LastSentAtFuture(t *testing.T) {
+	v := viper.New()
+	lastSentAt := time.Now().Add(time.Duration(2) * time.Hour)
+	v.Set("internal.heartbeats_last_sent_at", lastSentAt.Format(inipkg.DateFormat))
+
+	params := cmdparams.LoadOfflineParams(v)
+
+	assert.LessOrEqual(t, params.LastSentAt, time.Now())
+}
+
 func TestLoadOfflineParams_SyncMax(t *testing.T) {
 	v := viper.New()
 	v.Set("sync-offline-activity", 42)
@@ -2146,6 +2156,22 @@ func TestLoadAPIParams_BackoffAtErr(t *testing.T) {
 		URL:            "https://api.wakatime.com/api/v1",
 		Hostname:       "my-computer",
 	}, params)
+}
+
+func TestLoadAPIParams_BackoffAtFuture(t *testing.T) {
+	v := viper.New()
+	backoff := time.Now().Add(time.Duration(2) * time.Hour)
+
+	v.Set("hostname", "my-computer")
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("internal.backoff_at", backoff.Format(inipkg.DateFormat))
+	v.Set("internal.backoff_retries", "3")
+
+	params, err := cmdparams.LoadAPIParams(v)
+	require.NoError(t, err)
+
+	assert.Equal(t, 3, params.BackoffRetries)
+	assert.LessOrEqual(t, params.BackoffAt, time.Now())
 }
 
 func TestLoadAPIParams_DisableSSLVerify_FlagTakesPrecedence(t *testing.T) {
