@@ -55,6 +55,6 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/alecthomas/chroma/v2 => github.com/alecthomas/chroma/v2 v2.11.1
+replace github.com/alecthomas/chroma/v2 => github.com/wakatime/chroma/v2 v2.9.1-wakatime.1
 
 replace github.com/matishsiao/goInfo => github.com/wakatime/goInfo v0.1.0-wakatime.9
