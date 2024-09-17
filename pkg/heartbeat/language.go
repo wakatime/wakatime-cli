@@ -319,6 +319,8 @@ const (
 	LanguageCSV
 	// LanguageCUDA represents the CUDA programming language.
 	LanguageCUDA
+	// LanguageCUE represents the CUE programming language.
+	LanguageCUE
 	// LanguagecURLConfig represents the cURLConfig programming language.
 	LanguagecURLConfig
 	// LanguageCVS represents the CVS programming language.
@@ -1061,6 +1063,8 @@ const (
 	LanguagePromQL
 	// LanguageProtocolBuffer represents the ProtocolBuffer programming language.
 	LanguageProtocolBuffer
+	// LanguagePRQL represents the PRQL programming language.
+	LanguagePRQL
 	// LanguagePSL represents the Property Specification Language programming language.
 	LanguagePSL
 	// LanguagePsyShPHP represents the PHPPsySH programming language.
@@ -1728,6 +1732,7 @@ const (
 	languageCSSStr                         = "CSS"
 	languageCSVStr                         = "CSV"
 	languageCUDAStr                        = "Cuda"
+	languageCUEStr                         = "CUE"
 	languagecURLConfigStr                  = "cURL Config"
 	languageCVSStr                         = "CVS"
 	languageCWebStr                        = "CWeb"
@@ -2098,6 +2103,7 @@ const (
 	languagePrologStr                      = "Prolog"
 	languagePromQLStr                      = "PromQL"
 	languageProtocolBufferStr              = "Protocol Buffer"
+	languagePRQLStr                        = "PRQL"
 	languagePSLStr                         = "Property Specification Language"
 	languagePsyShPHPStr                    = "PsySH console session for PHP"
 	languagePugStr                         = "Pug"
@@ -2723,6 +2729,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageCSV, true
 	case normalizeString(languageCUDAStr):
 		return LanguageCUDA, true
+	case normalizeString(languageCUEStr):
+		return LanguageCUE, true
 	case normalizeString(languagecURLConfigStr):
 		return LanguagecURLConfig, true
 	case normalizeString(languageCVSStr):
@@ -3463,6 +3471,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguagePromQL, true
 	case normalizeString(languageProtocolBufferStr):
 		return LanguageProtocolBuffer, true
+	case normalizeString(languagePRQLStr):
+		return LanguagePRQL, true
 	case normalizeString(languagePSLStr):
 		return LanguagePSL, true
 	case normalizeString(languagePsyShPHPStr):
@@ -4411,6 +4421,8 @@ func (l Language) String() string {
 		return languageCSVStr
 	case LanguageCUDA:
 		return languageCUDAStr
+	case LanguageCUE:
+		return languageCUEStr
 	case LanguagecURLConfig:
 		return languagecURLConfigStr
 	case LanguageCVS:
@@ -5149,6 +5161,8 @@ func (l Language) String() string {
 		return languagePromQLStr
 	case LanguageProtocolBuffer:
 		return languageProtocolBufferStr
+	case LanguagePRQL:
+		return languagePRQLStr
 	case LanguagePsyShPHP:
 		return languagePsyShPHPStr
 	case LanguagePug:

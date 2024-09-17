@@ -5,7 +5,7 @@ go 1.22.5
 require (
 	github.com/Azure/go-ntlmssp v0.0.0-20221128193559-754e69321358
 	github.com/alecthomas/assert v1.0.0
-	github.com/alecthomas/chroma/v2 v2.9.1
+	github.com/alecthomas/chroma/v2 v2.10.0
 	github.com/danwakefield/fnmatch v0.0.0-20160403171240-cbb64ac3d964
 	github.com/dlclark/regexp2 v1.10.0
 	github.com/gandarez/go-olson-timezone v0.1.0
@@ -30,7 +30,7 @@ require (
 
 require (
 	github.com/alecthomas/colour v0.1.0 // indirect
-	github.com/alecthomas/repr v0.2.0 // indirect
+	github.com/alecthomas/repr v0.3.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
@@ -55,6 +55,7 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/alecthomas/chroma/v2 => github.com/gandarez/chroma/v2 v2.9.1-wakatime.1
+// replace github.com/alecthomas/chroma/v2 => github.com/gandarez/chroma/v2 v2.9.1-wakatime.1
+// replace github.com/alecthomas/chroma/v2 => /Users/gandarez/development/git/gandarez/chroma
 
-replace github.com/matishsiao/goInfo => github.com/wakatime/goInfo v0.1.0-wakatime.8
+replace github.com/matishsiao/goInfo => github.com/wakatime/goInfo v0.1.0-wakatime.9

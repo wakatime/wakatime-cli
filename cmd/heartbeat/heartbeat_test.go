@@ -48,6 +48,9 @@ func TestSendHeartbeats(t *testing.T) {
 	projectFolder, err := filepath.Abs("../..")
 	require.NoError(t, err)
 
+	tmpFile, err := os.CreateTemp(t.TempDir(), "wakatime-config")
+	require.NoError(t, err)
+
 	subfolders := project.CountSlashesInProjectFolder(projectFolder)
 
 	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
@@ -96,6 +99,7 @@ func TestSendHeartbeats(t *testing.T) {
 	v := viper.New()
 	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("api-url", testServerURL)
+	v.Set("config", tmpFile.Name())
 	v.Set("category", "debugging")
 	v.Set("cursorpos", 42)
 	v.Set("entity", "testdata/main.go")
@@ -122,6 +126,10 @@ func TestSendHeartbeats(t *testing.T) {
 }
 
 func TestSendHeartbeats_RateLimited(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Skipping because OS is windows.")
+	}
+
 	resetSingleton(t)
 
 	testServerURL, router, tearDown := setupTestServer()
@@ -137,7 +145,10 @@ func TestSendHeartbeats_RateLimited(t *testing.T) {
 		numCalls++
 	})
 
-	tmpFile, err := os.CreateTemp(t.TempDir(), "wakatime-internal-config")
+	tmpFile, err := os.CreateTemp(t.TempDir(), "wakatime-config")
+	require.NoError(t, err)
+
+	tmpFileInternal, err := os.CreateTemp(t.TempDir(), "wakatime-internal-config")
 	require.NoError(t, err)
 
 	offlineQueueFile, err := os.CreateTemp(t.TempDir(), "offline-queue-file")
@@ -162,7 +173,8 @@ func TestSendHeartbeats_RateLimited(t *testing.T) {
 	v.Set("timeout", 5)
 	v.Set("write", true)
 	v.Set("heartbeat-rate-limit-seconds", 500)
-	v.Set("internal-config", tmpFile.Name())
+	v.Set("config", tmpFile.Name())
+	v.Set("internal-config", tmpFileInternal.Name())
 	v.Set("offline-queue-file", offlineQueueFile.Name())
 	v.Set("internal.heartbeats_last_sent_at", time.Now().Add(-time.Minute).Format(time.RFC3339))
 
@@ -1189,13 +1201,18 @@ func TestResetRateLimit(t *testing.T) {
 
 	defer tmpFile.Close()
 
+	tmpFileInternal, err := os.CreateTemp(t.TempDir(), "wakatime-internal")
+	require.NoError(t, err)
+
+	defer tmpFileInternal.Close()
+
 	v := viper.New()
-	v.Set("config", tmpFile.Name())
-	v.Set("internal-config", tmpFile.Name())
+	v.Set("config", tmpFileInternal.Name())
+	v.Set("internal-config", tmpFileInternal.Name())
 
 	writer, err := ini.NewWriter(v, func(vp *viper.Viper) (string, error) {
 		assert.Equal(t, v, vp)
-		return tmpFile.Name(), nil
+		return tmpFileInternal.Name(), nil
 	})
 	require.NoError(t, err)
 

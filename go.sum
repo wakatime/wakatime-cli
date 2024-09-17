@@ -44,10 +44,12 @@ github.com/alecthomas/assert v1.0.0 h1:3XmGh/PSuLzDbK3W2gUbRXwgW5lqPkuqvRgeQ30FI
 github.com/alecthomas/assert v1.0.0/go.mod h1:va/d2JC+M7F6s+80kl/R3G7FUiW6JzUO+hPhLyJ36ZY=
 github.com/alecthomas/assert/v2 v2.2.1 h1:XivOgYcduV98QCahG8T5XTezV5bylXe+lBxLG2K2ink=
 github.com/alecthomas/assert/v2 v2.2.1/go.mod h1:pXcQ2Asjp247dahGEmsZ6ru0UVwnkhktn7S0bBDLxvQ=
+github.com/alecthomas/chroma/v2 v2.10.0 h1:T2iQOCCt4pRmRMfL55gTodMtc7cU0y7lc1Jb8/mK/64=
+github.com/alecthomas/chroma/v2 v2.10.0/go.mod h1:4TQu7gdfuPjSh76j78ietmqh9LiurGF0EpseFXdKMBw=
 github.com/alecthomas/colour v0.1.0 h1:nOE9rJm6dsZ66RGWYSFrXw461ZIt9A6+nHgL7FRrDUk=
 github.com/alecthomas/colour v0.1.0/go.mod h1:QO9JBoKquHd+jz9nshCh40fOfO+JzsoXy8qTHF68zU0=
-github.com/alecthomas/repr v0.2.0 h1:HAzS41CIzNW5syS8Mf9UwXhNH1J9aix/BvDRf1Ml2Yk=
-github.com/alecthomas/repr v0.2.0/go.mod h1:Fr0507jx4eOXV7AlPV6AVZLYrLIuIeSOWtW57eE/O/4=
+github.com/alecthomas/repr v0.3.0 h1:NeYzUPfjjlqHY4KtzgKJiWd6sVq2eNUPTi34PiFGjY8=
+github.com/alecthomas/repr v0.3.0/go.mod h1:Fr0507jx4eOXV7AlPV6AVZLYrLIuIeSOWtW57eE/O/4=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
 github.com/chzyer/logex v1.1.10/go.mod h1:+Ywpsq7O8HXn0nuIou7OrIPyXbp3wmkHB+jjWRnGsAI=
 github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e/go.mod h1:nSuG5e5PlCu98SY8svDHJxuZscDgtXS6KTTbou5AhLI=
@@ -75,8 +77,6 @@ github.com/frankban/quicktest v1.14.4 h1:g2rn0vABPOOXmZUj+vbmUp0lPoXEMuhTpIluN0X
 github.com/frankban/quicktest v1.14.4/go.mod h1:4ptaffx2x8+WTWXmUCuVU6aPUX1/Mz7zb5vbUoiM6w0=
 github.com/fsnotify/fsnotify v1.6.0 h1:n+5WquG0fcWoWp6xPWfHdbskMCQaFnG6PfBrh1Ky4HY=
 github.com/fsnotify/fsnotify v1.6.0/go.mod h1:sl3t1tCWJFWoRz9R8WJCbQihKKwmorjAbSClcnxKAGw=
-github.com/gandarez/chroma/v2 v2.9.1-wakatime.1 h1:czvEuO+JRT4y2HTTh0REP0p0ebfleH6eY70UI0WF4OQ=
-github.com/gandarez/chroma/v2 v2.9.1-wakatime.1/go.mod h1:4TQu7gdfuPjSh76j78ietmqh9LiurGF0EpseFXdKMBw=
 github.com/gandarez/go-olson-timezone v0.1.0 h1:cDRlHKQE0uC3mJNZyKoQIpAuvQtV8KXwIVj8bDEEyuo=
 github.com/gandarez/go-olson-timezone v0.1.0/go.mod h1:+yV/cYNjgs2JqdGShznAD4R13r8lKMGR2XlWAJqa5Yo=
 github.com/gandarez/go-realpath v1.0.0 h1:fhQBRDshH/MZNmDLWM9vbBameK2fxyLr+ctqkRwbHEU=
@@ -270,6 +270,8 @@ github.com/subosito/gotenv v1.6.0 h1:9NlTDc1FTs4qu0DDq7AEtTPNw6SVm7uBMsUCUjABIf8
 github.com/subosito/gotenv v1.6.0/go.mod h1:Dk4QP5c2W3ibzajGcXpNraDfq2IrhjMIvMSWPKKo0FU=
 github.com/wakatime/goInfo v0.1.0-wakatime.8 h1:MgyeRnCkynEmUxLKXnYUAP5Dd+vhKxhqg6Nx1PdAZy4=
 github.com/wakatime/goInfo v0.1.0-wakatime.8/go.mod h1:aEt7p9Rvh67BYApmZwNDPpgircTO2kgdmDUoF/1QmwA=
+github.com/wakatime/goInfo v0.1.0-wakatime.9 h1:QkFBcdCcUwFb2CxacFdt4I4aVPcJRY7nXh0sq1gqu3o=
+github.com/wakatime/goInfo v0.1.0-wakatime.9/go.mod h1:aEt7p9Rvh67BYApmZwNDPpgircTO2kgdmDUoF/1QmwA=
 github.com/yookoala/realpath v1.0.0 h1:7OA9pj4FZd+oZDsyvXWQvjn5oBdcHRTV44PpdMSuImQ=
 github.com/yookoala/realpath v1.0.0/go.mod h1:gJJMA9wuX7AcqLy1+ffPatSCySA1FQ2S8Ya9AIoYBpE=
 github.com/yuin/goldmark v1.1.25/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=

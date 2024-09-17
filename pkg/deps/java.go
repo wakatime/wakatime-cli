@@ -102,8 +102,8 @@ func (p *ParserJava) processToken(token chroma.Token) {
 		p.processNameAttribute(token.Value)
 	case chroma.NameNamespace:
 		p.processNameNamespace(token.Value)
-	case chroma.Operator:
-		p.processOperator(token.Value)
+	case chroma.Punctuation:
+		p.processPunctuation(token.Value)
 	}
 }
 
@@ -170,7 +170,7 @@ func (p *ParserJava) processNameNamespace(value string) {
 	}
 }
 
-func (p *ParserJava) processOperator(value string) {
+func (p *ParserJava) processPunctuation(value string) {
 	if value == ";" {
 		p.State = StateJavaImportFinished
 		p.processKeywordNamespace(p.Buffer)

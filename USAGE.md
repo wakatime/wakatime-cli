@@ -116,7 +116,7 @@ some/submodule/name = new project name
 
 ### Project Map Section
 
-A key value pair list separated by new line. Use when a project should be renamed to another when sent to the API.
+A key value pair list separated by new line, where the value before equal sign is the regex pattern and the latter is the override project name. Use when a project should be renamed to another when sent to the API. The order of the project map is important, the first match is used. Do not add any leading space before the regex pattern.
 
 ```ini
 [projectmap]
@@ -126,7 +126,7 @@ projects/foo = new project name
 
 ### Project Api Key Section
 
-A key value pair list separated by new line. Use when a project should be sent using another api key other than the default on `settings.api_key`.
+A key value pair list separated by new line, where the value before equal sign is the regex pattern and the latter is the override api key. Use when a project should be sent using another api key other than the default on `settings.api_key`. The order of the project api key is important, the first match is used. Do not add any leading space before the regex pattern.
 
 ```ini
 [project_api_key]
@@ -148,7 +148,7 @@ However, if an api key exists in your `~/.wakatime.cfg` file then it takes prece
 
 ### Git Submodule Project Map Section
 
-A key value pair list separated by new line. Use when a submodule project should be renamed to another when sent to the API.
+A key value pair list separated by new line, where the value before equal sign is the regex pattern and the latter is the override project name for submodule. Use when a submodule project should be renamed to another when sent to the API. The order of the git submodule project map is important, the first match is used. Do not add any leading space before the regex pattern.
 
 ```ini
 [git_submodule_projectmap]
