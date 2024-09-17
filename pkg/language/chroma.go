@@ -21,6 +21,7 @@ const maxFileSize = 512000
 
 // detectChromaCustomized returns the best by filename matching lexer. Best lexer is determined
 // by customized priority.
+// If guessLanguage is true, the file content will be used to detect the language.
 // This is a modified implementation of chroma.lexers.internal.api:Match().
 func detectChromaCustomized(filepath string, guessLanguage bool) (heartbeat.Language, float32, bool) {
 	_, file := fp.Split(filepath)

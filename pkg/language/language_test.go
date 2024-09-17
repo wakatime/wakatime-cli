@@ -380,13 +380,6 @@ func TestDetect_ChromaTopLanguagesRetrofit(t *testing.T) {
 			Filepaths: []string{"path/to/file.dart"},
 			Expected:  heartbeat.LanguageDart,
 		},
-		"delphi": {
-			Filepaths: []string{
-				"path/to/file.pas",
-				"path/to/file.dpr",
-			},
-			Expected: heartbeat.LanguageDelphi,
-		},
 		"docker": {
 			Filepaths: []string{
 				"path/to/Dockerfile",
@@ -578,6 +571,13 @@ func TestDetect_ChromaTopLanguagesRetrofit(t *testing.T) {
 		"nix": {
 			Filepaths: []string{"path/to/file.nix"},
 			Expected:  heartbeat.LanguageNix,
+		},
+		"object pascal": {
+			Filepaths: []string{
+				"path/to/file.pas",
+				"path/to/file.dpr",
+			},
+			Expected: heartbeat.LanguageObjectPascal,
 		},
 		"objective j": {
 			Filepaths: []string{"path/to/file.j"},

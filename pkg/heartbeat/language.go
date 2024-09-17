@@ -345,6 +345,8 @@ const (
 	LanguageDataWeave
 	// LanguageDASM16 represents the DASM16 programming language.
 	LanguageDASM16
+	// LanguageDax represents the Dax programming language.
+	LanguageDax
 	// LanguageDCL represents the DCL programming language.
 	LanguageDCL
 	// LanguageDCPU16Asm represents the DCPU16Asm programming language.
@@ -353,8 +355,8 @@ const (
 	LanguageDebianControlFile
 	// LanguageDelphi represents the Delphi programming language.
 	LanguageDelphi
-	// LanguageDesktop represents the desktop programming language.
-	LanguageDesktop
+	// LanguageDesktopFile represents the Desktop file programming language.
+	LanguageDesktopFile
 	// LanguageDevicetree represents the Devicetree programming language.
 	LanguageDevicetree
 	// LanguageDG represents the DG programming language.
@@ -561,6 +563,8 @@ const (
 	LanguageGitAttributes
 	// LanguageGitConfig represents the Git Config programming language.
 	LanguageGitConfig
+	// LanguageGleam represents the Gleam programming language.
+	LanguageGleam
 	// LanguageGLSL represents the GLSL programming language.
 	LanguageGLSL
 	// LanguageGlyph represents the Glyph programming language.
@@ -617,6 +621,8 @@ const (
 	LanguageHAProxy
 	// LanguageHarbour represents the Harbour programming language.
 	LanguageHarbour
+	// LanguageHare represents the Hare programming language.
+	LanguageHare
 	// LanguageHaskell represents the Haskell programming language.
 	LanguageHaskell
 	// LanguageHaxe represents the Haxe programming language.
@@ -863,6 +869,8 @@ const (
 	LanguageMask
 	// LanguageMason represents the Mason programming language.
 	LanguageMason
+	// LanguageMaterializeSQLDialect represents the Materialize SQL dialect programming language.
+	LanguageMaterializeSQLDialect
 	// LanguageMathematica represents the Mathematica programming language.
 	LanguageMathematica
 	// LanguageMatlab represents the Matlab programming language.
@@ -945,6 +953,8 @@ const (
 	LanguageNatural
 	// LanguageNCL represents the NCL programming language.
 	LanguageNCL
+	// LanguageNDISASM represents the NDISASM programming language.
+	LanguageNDISASM
 	// LanguageNemerle represents the Nemerle programming language.
 	LanguageNemerle
 	// LanguageNeon represents the Neon programming language.
@@ -979,6 +989,8 @@ const (
 	LanguageNuSMV
 	// LanguageObjdump represents the Objdump programming language.
 	LanguageObjdump
+	// LanguageObjectPascal represents the ObjectPascal programming language.
+	LanguageObjectPascal
 	// LanguageObjectiveC represents the ObjectiveC programming language.
 	LanguageObjectiveC
 	// LanguageObjectiveCPP represents the ObjectiveC++ programming language.
@@ -1059,6 +1071,8 @@ const (
 	LanguageProcessing
 	// LanguageProlog represents the Prolog programming language.
 	LanguageProlog
+	// LanguagePromela represents the Promela programming language.
+	LanguagePromela
 	// LanguagePromQL represents the PromQL programming language.
 	LanguagePromQL
 	// LanguageProtocolBuffer represents the ProtocolBuffer programming language.
@@ -1133,14 +1147,16 @@ const (
 	LanguageRed
 	// LanguageRedcode represents the Redcode programming language.
 	LanguageRedcode
+	// LanguageRegistry represents the Registry programming language.
+	LanguageRegistry
+	// LanguageRego represents the Rego programming language.
+	LanguageRego
 	// LanguageRegularExpression represents the RegularExpression programming language.
 	LanguageRegularExpression
 	// LanguageRenderScript represents the RenderScript programming language.
 	LanguageRenderScript
 	// LanguageRenPy represents the RenPy programming language.
 	LanguageRenPy
-	// LanguageRegistry represents the Registry programming language.
-	LanguageRegistry
 	// LanguageReScript represents the ReScript programming language.
 	LanguageReScript
 	// LanguageResourceBundle represents the ResourceBundle programming language.
@@ -1745,11 +1761,14 @@ const (
 	languageDartStr                        = "Dart"
 	languageDataWeaveStr                   = "DataWeave"
 	languageDASM16Str                      = "DASM16"
+	languageDaxStr                         = "Dax"
 	languageDCLStr                         = "DCL"
 	languageDCPU16AsmStr                   = "DCPU-16 ASM"
 	languageDebianControlFileStr           = "Debian Control file"
 	languageDelphiStr                      = "Delphi"
 	languageDesktopStr                     = "desktop"
+	languageDesktopEntryStr                = "desktop_entry"
+	languageDesktopFileStr                 = "Desktop file"
 	languageDevicetreeStr                  = "Devicetree"
 	languageDGStr                          = "dg"
 	languageDhallStr                       = "Dhall"
@@ -1854,6 +1873,7 @@ const (
 	languageGitStr                         = "Git"
 	languageGitAttributesStr               = "Git Attributes"
 	languageGitConfigStr                   = "Git Config"
+	languageGleamStr                       = "Gleam"
 	languageGLSLStr                        = "GLSL"
 	languageGlyphStr                       = "Glyph"
 	languageGlyphBitmapStr                 = "Glyph Bitmap Distribution Format"
@@ -1880,6 +1900,7 @@ const (
 	languageHandlebarsStr                  = "Handlebars"
 	languageHAProxyStr                     = "HAProxy"
 	languageHarbourStr                     = "Harbour"
+	languageHareStr                        = "Hare"
 	languageHaskellStr                     = "Haskell"
 	languageHaxeStr                        = "Haxe"
 	languageHCLStr                         = "HCL"
@@ -2003,6 +2024,8 @@ const (
 	languageMarkoStr                       = "Marko"
 	languageMaskStr                        = "Mask"
 	languageMasonStr                       = "Mason"
+	languageMaterializeStr                 = "materialize"
+	languageMaterializeSQLDialectStr       = "Materialize SQL dialect"
 	languageMathematicaStr                 = "Mathematica"
 	languageMatlabStr                      = "Matlab"
 	languageMatlabSessionStr               = "Matlab session"
@@ -2040,10 +2063,12 @@ const (
 	languageMXMLStr                        = "MXML"
 	languageMyghtyStr                      = "Myghty"
 	languageMySQLStr                       = "MySQL"
+	languageMzqlStr                        = "mzql"
 	languageNASMStr                        = "NASM"
 	languageNASMObjdumpStr                 = "objdump-nasm"
 	languageNaturalStr                     = "Natural"
 	languageNCLStr                         = "NCL"
+	languageNDISASMStr                     = "NDISASM"
 	languageNemerleStr                     = "Nemerle"
 	languageNeonStr                        = "Neon"
 	languageNesCStr                        = "nesC"
@@ -2061,6 +2086,7 @@ const (
 	languageNushellStr                     = "Nushell"
 	languageNuSMVStr                       = "NuSMV"
 	languageObjdumpStr                     = "objdump"
+	languageObjectPascalStr                = "ObjectPascal"
 	languageObjectiveCStr                  = "Objective-C"
 	languageObjectiveCPPStr                = "Objective-C++"
 	languageObjectiveJStr                  = "Objective-J"
@@ -2101,6 +2127,7 @@ const (
 	languagePraatStr                       = "Praat"
 	languageProcessingStr                  = "Processing"
 	languagePrologStr                      = "Prolog"
+	languagePromelaStr                     = "Promela"
 	languagePromQLStr                      = "PromQL"
 	languageProtocolBufferStr              = "Protocol Buffer"
 	languagePRQLStr                        = "PRQL"
@@ -2139,6 +2166,7 @@ const (
 	languageRedStr                         = "Red"
 	languageRedcodeStr                     = "Redcode"
 	languageRegistryStr                    = "reg"
+	languageRegoStr                        = "Rego"
 	languageRegularExpressionStr           = "Regular Expression"
 	languageRenderScriptStr                = "RenderScript"
 	languageRenPyStr                       = "Ren'Py"
@@ -2755,6 +2783,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageDataWeave, true
 	case normalizeString(languageDASM16Str):
 		return LanguageDASM16, true
+	case normalizeString(languageDaxStr):
+		return LanguageDax, true
 	case normalizeString(languageDCLStr):
 		return LanguageDCL, true
 	case normalizeString(languageDCPU16AsmStr):
@@ -2763,8 +2793,10 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageDebianControlFile, true
 	case normalizeString(languageDelphiStr):
 		return LanguageDelphi, true
-	case normalizeString(languageDesktopStr):
-		return LanguageDesktop, true
+	case normalizeString(languageDesktopStr),
+		normalizeString(languageDesktopEntryStr),
+		normalizeString(languageDesktopFileStr):
+		return LanguageDesktopFile, true
 	case normalizeString(languageDevicetreeStr):
 		return LanguageDevicetree, true
 	case normalizeString(languageDGStr):
@@ -2973,6 +3005,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageGitAttributes, true
 	case normalizeString(languageGitConfigStr):
 		return LanguageGitConfig, true
+	case normalizeString(languageGleamStr):
+		return LanguageGleam, true
 	case normalizeString(languageGLSLStr):
 		return LanguageGLSL, true
 	case normalizeString(languageGlyphStr):
@@ -3025,6 +3059,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageHAProxy, true
 	case normalizeString(languageHarbourStr):
 		return LanguageHarbour, true
+	case normalizeString(languageHareStr):
+		return LanguageHare, true
 	case normalizeString(languageHaskellStr):
 		return LanguageHaskell, true
 	case normalizeString(languageHaxeStr):
@@ -3271,6 +3307,10 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageMask, true
 	case normalizeString(languageMasonStr):
 		return LanguageMason, true
+	case normalizeString(languageMaterializeStr),
+		normalizeString(languageMaterializeSQLDialectStr),
+		normalizeString(languageMzqlStr):
+		return LanguageMaterializeSQLDialect, true
 	case normalizeString(languageMathematicaStr):
 		return LanguageMathematica, true
 	case normalizeString(languageMatlabStr):
@@ -3351,6 +3391,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageNatural, true
 	case normalizeString(languageNCLStr):
 		return LanguageNCL, true
+	case normalizeString(languageNDISASMStr):
+		return LanguageNDISASM, true
 	case normalizeString(languageNemerleStr):
 		return LanguageNemerle, true
 	case normalizeString(languageNeonStr):
@@ -3387,6 +3429,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageNASMObjdump, true
 	case normalizeString(languageObjdumpStr):
 		return LanguageObjdump, true
+	case normalizeString(languageObjectPascalStr):
+		return LanguageObjectPascal, true
 	case normalizeString(languageObjectiveCStr):
 		return LanguageObjectiveC, true
 	case normalizeString(languageObjectiveCPPStr):
@@ -3467,6 +3511,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageProcessing, true
 	case normalizeString(languagePrologStr):
 		return LanguageProlog, true
+	case normalizeString(languagePromelaStr):
+		return LanguagePromela, true
 	case normalizeString(languagePromQLStr):
 		return LanguagePromQL, true
 	case normalizeString(languageProtocolBufferStr):
@@ -3543,6 +3589,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageRedcode, true
 	case normalizeString(languageRegistryStr):
 		return LanguageRegistry, true
+	case normalizeString(languageRegoStr):
+		return LanguageRego, true
 	case normalizeString(languageRegularExpressionStr):
 		return LanguageRegularExpression, true
 	case normalizeString(languageRenderScriptStr):
@@ -4447,6 +4495,8 @@ func (l Language) String() string {
 		return languageDataWeaveStr
 	case LanguageDASM16:
 		return languageDASM16Str
+	case LanguageDax:
+		return languageDaxStr
 	case LanguageDCL:
 		return languageDCLStr
 	case LanguageDCPU16Asm:
@@ -4455,8 +4505,8 @@ func (l Language) String() string {
 		return languageDebianControlFileStr
 	case LanguageDelphi:
 		return languageDelphiStr
-	case LanguageDesktop:
-		return languageDesktopStr
+	case LanguageDesktopFile:
+		return languageDesktopFileStr
 	case LanguageDevicetree:
 		return languageDevicetreeStr
 	case LanguageDG:
@@ -4663,6 +4713,8 @@ func (l Language) String() string {
 		return languageGitAttributesStr
 	case LanguageGitConfig:
 		return languageGitConfigStr
+	case LanguageGleam:
+		return languageGleamStr
 	case LanguageGLSL:
 		return languageGLSLStr
 	case LanguageGlyph:
@@ -4713,6 +4765,8 @@ func (l Language) String() string {
 		return languageHAProxyStr
 	case LanguageHarbour:
 		return languageHarbourStr
+	case LanguageHare:
+		return languageHareStr
 	case LanguageHaskell:
 		return languageHaskellStr
 	case LanguageHaxe:
@@ -4959,6 +5013,8 @@ func (l Language) String() string {
 		return languageMaskStr
 	case LanguageMason:
 		return languageMasonStr
+	case LanguageMaterializeSQLDialect:
+		return languageMaterializeSQLDialectStr
 	case LanguageMathematica:
 		return languageMathematicaStr
 	case LanguageMatlab:
@@ -5039,6 +5095,8 @@ func (l Language) String() string {
 		return languageNaturalStr
 	case LanguageNCL:
 		return languageNCLStr
+	case LanguageNDISASM:
+		return languageNDISASMStr
 	case LanguageNemerle:
 		return languageNemerleStr
 	case LanguageNeon:
@@ -5075,6 +5133,8 @@ func (l Language) String() string {
 		return languageNASMObjdumpStr
 	case LanguageObjdump:
 		return languageObjdumpStr
+	case LanguageObjectPascal:
+		return languageObjectPascalStr
 	case LanguageObjectiveC:
 		return languageObjectiveCStr
 	case LanguageObjectiveCPP:
@@ -5157,6 +5217,8 @@ func (l Language) String() string {
 		return languageProcessingStr
 	case LanguageProlog:
 		return languagePrologStr
+	case LanguagePromela:
+		return languagePromelaStr
 	case LanguagePromQL:
 		return languagePromQLStr
 	case LanguageProtocolBuffer:
@@ -5231,6 +5293,8 @@ func (l Language) String() string {
 		return languageRedcodeStr
 	case LanguageRegistry:
 		return languageRegistryStr
+	case LanguageRego:
+		return languageRegoStr
 	case LanguageRegularExpression:
 		return languageRegularExpressionStr
 	case LanguageRenderScript:
