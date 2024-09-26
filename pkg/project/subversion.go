@@ -32,8 +32,8 @@ func (s Subversion) Detect() (Result, bool, error) {
 	}
 
 	// Find for .svn/wc.db file
-	svnConfigFile, ok := FindFileOrDirectory(fp, filepath.Join(".svn", "wc.db"))
-	if !ok {
+	svnConfigFile, found := FindFileOrDirectory(fp, filepath.Join(".svn", "wc.db"))
+	if !found {
 		return Result{}, false, nil
 	}
 

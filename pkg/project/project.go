@@ -309,6 +309,11 @@ func DetectWithRevControl(
 }
 
 func obfuscateProjectName(folder string) string {
+	// prevent overwriting existing project files, use Unknown Project instead
+	if fileOrDirExists(filepath.Join(folder, WakaTimeProjectFile)) {
+		return ""
+	}
+
 	project := generateProjectName()
 
 	err := Write(folder, project)
@@ -321,7 +326,7 @@ func obfuscateProjectName(folder string) string {
 
 // Write saves wakatime project file.
 func Write(folder, project string) error {
-	err := os.WriteFile(filepath.Join(folder, WakaTimeProjectFile), []byte(project+"\n"), 0600)
+	err := os.WriteFile(filepath.Join(folder, WakaTimeProjectFile), []byte(project+"\n"), 0644) // nolint:gosec
 	if err != nil {
 		return fmt.Errorf("failed to save wakatime project file: %s", err)
 	}
@@ -620,8 +625,8 @@ func CountSlashesInProjectFolder(directory string) int {
 	return strings.Count(directory, `/`)
 }
 
-// FindFileOrDirectory searches for a file or directory named `filename`.
-// Search starts in `directory` and will traverse through all parent directories.
+// FindFileOrDirectory searches current and all parent folders for a file or directory named `filename`.
+// Starts in `directory` and traverses through all parent directories.
 // `directory` may also be a file, and in that case will start from the file's directory.
 func FindFileOrDirectory(directory, filename string) (string, bool) {
 	i := 0
@@ -688,4 +693,10 @@ func FormatProjectFolder(fp string) string {
 	}
 
 	return formatted
+}
+
+// fileOrDirExists checks if a file or directory exist.
+func fileOrDirExists(fp string) bool {
+	_, err := os.Stat(fp)
+	return err == nil || os.IsExist(err)
 }

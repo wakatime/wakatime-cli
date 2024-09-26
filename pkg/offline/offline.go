@@ -420,7 +420,7 @@ func openDB(filepath string) (db *bolt.DB, _ func(), err error) {
 		}
 	}()
 
-	db, err = bolt.Open(filepath, 0600, &bolt.Options{Timeout: 30 * time.Second})
+	db, err = bolt.Open(filepath, 0644, &bolt.Options{Timeout: 30 * time.Second})
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to open db file: %s", err)
 	}

@@ -242,7 +242,7 @@ func SetupLogging(v *viper.Viper) (*logfile.Params, error) {
 			}
 		}
 
-		logFile, err = os.OpenFile(logfileParams.File, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
+		logFile, err = os.OpenFile(logfileParams.File, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644) // nolint:gosec
 		if err != nil {
 			return nil, fmt.Errorf("error opening log file: %s", err)
 		}

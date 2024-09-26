@@ -26,8 +26,8 @@ func (t Tfvc) Detect() (Result, bool, error) {
 	}
 
 	// Find for tf/properties.tf1 file
-	tfDirectory, ok := FindFileOrDirectory(fp, filepath.Join(tfFolderName, "properties.tf1"))
-	if !ok {
+	tfDirectory, found := FindFileOrDirectory(fp, filepath.Join(tfFolderName, "properties.tf1"))
+	if !found {
 		return Result{}, false, nil
 	}
 

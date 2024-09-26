@@ -20,8 +20,8 @@ type File struct {
 // a given file. First line of .wakatime-project sets the project
 // name. Second line sets the current branch name.
 func (f File) Detect() (Result, bool, error) {
-	fp, ok := FindFileOrDirectory(f.Filepath, WakaTimeProjectFile)
-	if !ok {
+	fp, found := FindFileOrDirectory(f.Filepath, WakaTimeProjectFile)
+	if !found {
 		return Result{}, false, nil
 	}
 
@@ -33,10 +33,9 @@ func (f File) Detect() (Result, bool, error) {
 	}
 
 	result := Result{
-		Folder: filepath.Dir(fp),
+		Folder:  filepath.Dir(fp),
+		Project: filepath.Base(filepath.Dir(fp)),
 	}
-
-	result.Project = filepath.Base(filepath.Dir(fp))
 
 	if len(lines) > 0 {
 		result.Project = strings.TrimSpace(lines[0])
@@ -47,12 +46,6 @@ func (f File) Detect() (Result, bool, error) {
 	}
 
 	return result, true, nil
-}
-
-// fileOrDirExists checks if a file or directory exist.
-func fileOrDirExists(fp string) bool {
-	_, err := os.Stat(fp)
-	return err == nil || os.IsExist(err)
 }
 
 // ReadFile reads a file until max number of lines and return an array of lines.
