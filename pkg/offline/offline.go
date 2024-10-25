@@ -218,8 +218,7 @@ func handleResults(filepath string, results []heartbeat.Result, hh []heartbeat.H
 			continue
 		}
 
-		if result.Status != http.StatusCreated &&
-			result.Status != http.StatusAccepted {
+		if result.Status < http.StatusOK || result.Status > 299 {
 			withInvalidStatus = append(withInvalidStatus, hh[n])
 		}
 	}

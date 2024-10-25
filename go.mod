@@ -12,7 +12,7 @@ require (
 	github.com/gandarez/go-realpath v1.0.0
 	github.com/juju/mutex v0.0.0-20180619145857-d21b13acf4bf
 	github.com/kevinburke/ssh_config v1.2.1-0.20220605204831-a56e914e7283
-	github.com/matishsiao/goInfo v0.0.0-20210923090445-da2e3fa8d45f
+	github.com/matishsiao/goInfo v0.0.0-20240924010139-10388a85396f
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/pkg/sftp v1.13.6
 	github.com/sirupsen/logrus v1.9.3
@@ -54,5 +54,3 @@ require (
 	golang.org/x/sys v0.21.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-replace github.com/matishsiao/goInfo => github.com/wakatime/goInfo v0.1.0-wakatime.9

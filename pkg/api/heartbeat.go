@@ -135,7 +135,7 @@ func parseHeartbeatResponse(data []json.RawMessage) (heartbeat.Result, error) {
 		return heartbeat.Result{}, fmt.Errorf("failed to parse json status: %s", err)
 	}
 
-	if result.Status >= http.StatusBadRequest {
+	if result.Status < http.StatusOK || result.Status > 299 {
 		resultErrors, err := parseHeartbeatResponseError(data[0])
 		if err != nil {
 			return heartbeat.Result{}, fmt.Errorf("failed to parse result errors: %s", err)
