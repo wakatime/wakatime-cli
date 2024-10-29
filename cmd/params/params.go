@@ -225,7 +225,7 @@ func LoadAPIParams(v *viper.Viper) (API, error) {
 
 	backoffAtStr := vipertools.GetString(v, "internal.backoff_at")
 	if backoffAtStr != "" {
-		parsed, err := time.Parse(ini.DateFormat, backoffAtStr)
+		parsed, err := safeTimeParse(ini.DateFormat, backoffAtStr)
 		// nolint:gocritic
 		if err != nil {
 			log.Warnf("failed to parse backoff_at: %s", err)
@@ -666,7 +666,7 @@ func LoadOfflineParams(v *viper.Viper) Offline {
 
 	lastSentAtStr := vipertools.GetString(v, "internal.heartbeats_last_sent_at")
 	if lastSentAtStr != "" {
-		parsed, err := time.Parse(ini.DateFormat, lastSentAtStr)
+		parsed, err := safeTimeParse(ini.DateFormat, lastSentAtStr)
 		// nolint:gocritic
 		if err != nil {
 			log.Warnf("failed to parse heartbeats_last_sent_at: %s", err)
@@ -718,6 +718,16 @@ func LoadStatusBarParams(v *viper.Viper) (StatusBar, error) {
 		HideCategories: hideCategories,
 		Output:         out,
 	}, nil
+}
+
+func safeTimeParse(format string, s string) (parsed time.Time, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("time.Parse panic: %v", r)
+		}
+	}()
+
+	return time.Parse(format, s)
 }
 
 func readAPIKeyFromCommand(cmdStr string) (string, error) {
