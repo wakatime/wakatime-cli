@@ -28,7 +28,7 @@ import (
 
 const (
 	defaultTimeoutSecs = 20
-	// Max file size supporting downloading from remote. Default is 512Kb.
+	// maxFileSize defines the max file size to download from remote. Default is 512Kb.
 	maxFileSize = 512000
 	defaultPort = 22
 )
@@ -52,11 +52,7 @@ func WithDetection() heartbeat.HandleOption {
 		return func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 			log.Debugln("execute remote file detection")
 
-			var (
-				tmpDir   string
-				err      error
-				filtered []heartbeat.Heartbeat
-			)
+			var filtered []heartbeat.Heartbeat
 
 			for _, h := range hh {
 				if !h.IsRemote() {
@@ -64,19 +60,9 @@ func WithDetection() heartbeat.HandleOption {
 					continue
 				}
 
-				if tmpDir == "" {
-					tmpDir, err = os.MkdirTemp(os.TempDir(), "")
-					if err != nil {
-						log.Errorf("failed to create temporary directory: %s", err)
-
-						continue
-					}
-				}
-
-				tmpFile, err := os.CreateTemp(tmpDir, fmt.Sprintf("*%s", filepath.Base(h.Entity)))
+				tmpFile, err := os.CreateTemp("", fmt.Sprintf("*_%s", filepath.Base(h.Entity)))
 				if err != nil {
 					log.Errorf("failed to create temporary file: %s", err)
-
 					continue
 				}
 
@@ -134,8 +120,8 @@ func WithCleanup() heartbeat.HandleOption {
 	}
 }
 
-func deleteLocalFile(file string) {
-	err := os.Remove(file)
+func deleteLocalFile(fp string) {
+	err := os.Remove(fp)
 	if err != nil {
 		log.Warnf("unable to delete tmp file: %s", err)
 	}
@@ -165,11 +151,13 @@ func NewClient(address string) (Client, error) {
 	}
 
 	if port == 0 {
-		port, _ = strconv.Atoi(ssh_config.Get(host, "Port"))
+		port, err = strconv.Atoi(ssh_config.Get(host, "Port"))
+		log.Warnf("failed to parse port from host: %s", err)
 	}
 
 	if port == 0 {
-		port, _ = strconv.Atoi(ssh_config.Get(derivedHost, "Port"))
+		port, err = strconv.Atoi(ssh_config.Get(derivedHost, "Port"))
+		log.Warnf("failed to parse port from derived host: %s", err)
 	}
 
 	if port == 0 {
@@ -541,12 +529,12 @@ func hostKeyAlias(hostOriginal string, hostDerived string) string {
 		return ""
 	}
 
-	aliasExpanded, err := homedir.Expand(alias)
+	alias, err := homedir.Expand(alias)
 	if err != nil {
-		log.Debugf("Unable to expand home directory for HostKeyAlias %s: %w", alias, err)
+		log.Debugf("Unable to expand home directory for HostKeyAlias %q: %w", alias, err)
 	}
 
-	return aliasExpanded
+	return alias
 }
 
 // contains returns true if any case-insensitive arg is found in the list of values.
