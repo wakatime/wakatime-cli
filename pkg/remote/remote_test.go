@@ -63,6 +63,8 @@ func TestNewClient_Err(t *testing.T) {
 }
 
 func TestWithDetection_SshConfig_Hostname(t *testing.T) {
+	log.SetVerbose(true)
+
 	shutdown, host, port := testServer(t, false)
 	defer shutdown()
 
