@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 	"testing"
@@ -18,6 +19,7 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/regex"
 	"github.com/wakatime/wakatime-cli/pkg/remote"
+	"github.com/wakatime/wakatime-cli/pkg/windows"
 
 	"github.com/kevinburke/ssh_config"
 	"github.com/pkg/sftp"
@@ -87,14 +89,21 @@ func TestWithDetection_SshConfig_Hostname(t *testing.T) {
 	err = os.WriteFile(tmpFile.Name(), []byte(fmt.Sprintf(string(template), host)), 0600)
 	require.NoError(t, err)
 
-	entity, _ := filepath.Abs("./testdata/main.go")
+	entityFolder, err := filepath.Abs("./testdata/main.go")
+	require.NoError(t, err)
+
+	entity := "ssh://user:pass@example.com:" + strconv.Itoa(port) + "/" + entityFolder
+
+	if runtime.GOOS == "windows" {
+		entity = windows.FormatFilePath(entity)
+	}
 
 	sender := mockSender{
 		SendHeartbeatsFn: func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 			assert.Equal(t, []heartbeat.Heartbeat{
 				{
 					Category:              heartbeat.CodingCategory,
-					Entity:                "ssh://user:pass@example.com:" + strconv.Itoa(port) + entity,
+					Entity:                entity,
 					EntityType:            heartbeat.FileType,
 					LocalFile:             hh[0].LocalFile,
 					LocalFileNeedsCleanup: true,
@@ -120,7 +129,7 @@ func TestWithDetection_SshConfig_Hostname(t *testing.T) {
 	_, err = handle([]heartbeat.Heartbeat{
 		{
 			Category:   heartbeat.CodingCategory,
-			Entity:     "ssh://user:pass@example.com:" + strconv.Itoa(port) + entity,
+			Entity:     entity,
 			EntityType: heartbeat.FileType,
 			Time:       1585598060,
 			UserAgent:  "wakatime/13.0.7",
