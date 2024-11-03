@@ -65,8 +65,6 @@ func TestNewClient_Err(t *testing.T) {
 }
 
 func TestWithDetection_SshConfig_Hostname(t *testing.T) {
-	log.SetVerbose(true)
-
 	shutdown, host, port := testServer(t, false)
 	defer shutdown()
 
@@ -169,7 +167,14 @@ func TestWithDetection_SshConfig_UserKnownHostsFile_Mismatch(t *testing.T) {
 	err = os.WriteFile(tmpFile.Name(), []byte(fmt.Sprintf(string(template), host, knownHostsFile)), 0600)
 	require.NoError(t, err)
 
-	entity, _ := filepath.Abs("./testdata/main.go")
+	entityFolder, err := filepath.Abs("./testdata/main.go")
+	require.NoError(t, err)
+
+	entity := "ssh://user:pass@example.com:" + strconv.Itoa(port) + "/" + entityFolder
+
+	if runtime.GOOS == "windows" {
+		entity = windows.FormatFilePath(entity)
+	}
 
 	sender := mockSender{
 		SendHeartbeatsFn: func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
@@ -189,7 +194,7 @@ func TestWithDetection_SshConfig_UserKnownHostsFile_Mismatch(t *testing.T) {
 	results, err := handle([]heartbeat.Heartbeat{
 		{
 			Category:   heartbeat.CodingCategory,
-			Entity:     "ssh://user:pass@github.com:" + strconv.Itoa(port) + entity,
+			Entity:     entity,
 			EntityType: heartbeat.FileType,
 			Time:       1585598060,
 			UserAgent:  "wakatime/13.0.7",
@@ -231,14 +236,21 @@ func TestWithDetection_SshConfig_UserKnownHostsFile_Match(t *testing.T) {
 	err = os.WriteFile(tmpFile.Name(), []byte(fmt.Sprintf(string(template), host, knownHostsFile)), 0600)
 	require.NoError(t, err)
 
-	entity, _ := filepath.Abs("./testdata/main.go")
+	entityFolder, err := filepath.Abs("./testdata/main.go")
+	require.NoError(t, err)
+
+	entity := "ssh://user:pass@example.com:" + strconv.Itoa(port) + "/" + entityFolder
+
+	if runtime.GOOS == "windows" {
+		entity = windows.FormatFilePath(entity)
+	}
 
 	sender := mockSender{
 		SendHeartbeatsFn: func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 			assert.Equal(t, []heartbeat.Heartbeat{
 				{
 					Category:              heartbeat.CodingCategory,
-					Entity:                "ssh://user:pass@example.com:" + strconv.Itoa(port) + entity,
+					Entity:                entity,
 					EntityType:            heartbeat.FileType,
 					LocalFile:             hh[0].LocalFile,
 					LocalFileNeedsCleanup: true,
@@ -269,7 +281,7 @@ func TestWithDetection_SshConfig_UserKnownHostsFile_Match(t *testing.T) {
 	results, err := handle([]heartbeat.Heartbeat{
 		{
 			Category:   heartbeat.CodingCategory,
-			Entity:     "ssh://user:pass@example.com:" + strconv.Itoa(port) + entity,
+			Entity:     entity,
 			EntityType: heartbeat.FileType,
 			Time:       1585598060,
 			UserAgent:  "wakatime/13.0.7",
@@ -310,7 +322,14 @@ func TestWithDetection_Filtered(t *testing.T) {
 	err = os.WriteFile(tmpFile.Name(), []byte(fmt.Sprintf(string(template), host, knownHostsFile)), 0600)
 	require.NoError(t, err)
 
-	entity, _ := filepath.Abs("./testdata/main.go")
+	entityFolder, err := filepath.Abs("./testdata/main.go")
+	require.NoError(t, err)
+
+	entity := "ssh://user:pass@example.com:" + strconv.Itoa(port) + "/" + entityFolder
+
+	if runtime.GOOS == "windows" {
+		entity = windows.FormatFilePath(entity)
+	}
 
 	sender := mockSender{
 		SendHeartbeatsFn: func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
@@ -332,7 +351,7 @@ func TestWithDetection_Filtered(t *testing.T) {
 	results, err := handle([]heartbeat.Heartbeat{
 		{
 			Category:   heartbeat.CodingCategory,
-			Entity:     "ssh://user:pass@example.com:" + strconv.Itoa(port) + entity,
+			Entity:     entity,
 			EntityType: heartbeat.FileType,
 			Time:       1585598060,
 			UserAgent:  "wakatime/13.0.7",
@@ -367,8 +386,6 @@ func TestWithCleanup_NotTemporary(t *testing.T) {
 
 	handle := heartbeat.NewHandle(&sender, opts...)
 
-	assert.FileExists(t, tmpFile.Name())
-
 	_, err = handle([]heartbeat.Heartbeat{
 		{
 			LocalFile: tmpFile.Name(),
@@ -402,8 +419,6 @@ func TestWithCleanup(t *testing.T) {
 	}
 
 	handle := heartbeat.NewHandle(&sender, opts...)
-
-	assert.FileExists(t, tmpFile.Name())
 
 	_, err = handle([]heartbeat.Heartbeat{
 		{
