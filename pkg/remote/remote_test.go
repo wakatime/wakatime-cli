@@ -90,10 +90,13 @@ func TestWithDetection_SshConfig_Hostname(t *testing.T) {
 	entityFolder, err := filepath.Abs("./testdata/main.go")
 	require.NoError(t, err)
 
-	entity := "ssh://user:pass@example.com:" + strconv.Itoa(port) + "/" + entityFolder
+	entity := "ssh://user:pass@example.com:" + strconv.Itoa(port)
 
 	if runtime.GOOS == "windows" {
+		entity += "/" + entityFolder
 		entity = windows.FormatFilePath(entity)
+	} else {
+		entity += entityFolder
 	}
 
 	sender := mockSender{
@@ -239,10 +242,13 @@ func TestWithDetection_SshConfig_UserKnownHostsFile_Match(t *testing.T) {
 	entityFolder, err := filepath.Abs("./testdata/main.go")
 	require.NoError(t, err)
 
-	entity := "ssh://user:pass@example.com:" + strconv.Itoa(port) + "/" + entityFolder
+	entity := "ssh://user:pass@example.com:" + strconv.Itoa(port)
 
 	if runtime.GOOS == "windows" {
+		entity += "/" + entityFolder
 		entity = windows.FormatFilePath(entity)
+	} else {
+		entity += entityFolder
 	}
 
 	sender := mockSender{
