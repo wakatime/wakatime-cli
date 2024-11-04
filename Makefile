@@ -160,7 +160,7 @@ vulncheck:
 
 .PHONY: test
 test:
-	go test -race -v -covermode=atomic -coverprofile=coverage.out ./...
+	go test -race -covermode=atomic -coverprofile=coverage.out ./...
 
 .PHONY: test-integration
 test-integration:
