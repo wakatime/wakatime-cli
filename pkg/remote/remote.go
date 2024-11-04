@@ -70,6 +70,10 @@ func WithDetection() heartbeat.HandleOption {
 				if err != nil {
 					log.Errorf("failed to create new remote client: %s", err)
 
+					if err := tmpFile.Close(); err != nil {
+						log.Debugf("failed to close temporary file: %s", err)
+					}
+
 					deleteLocalFile(tmpFile.Name())
 
 					continue
@@ -82,6 +86,10 @@ func WithDetection() heartbeat.HandleOption {
 					err = c.DownloadFileFallback(tmpFile.Name())
 					if err != nil {
 						log.Errorf("failed to download remote file using fallback option: %s", err)
+					}
+
+					if err := tmpFile.Close(); err != nil {
+						log.Debugf("failed to close temporary file: %s", err)
 					}
 
 					deleteLocalFile(tmpFile.Name())

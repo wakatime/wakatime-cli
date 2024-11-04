@@ -151,8 +151,7 @@ func TestWithDetection_SshConfig_UserKnownHostsFile_Mismatch(t *testing.T) {
 	tmpFile, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)
 
-	// Should not defer otherwise it will fail on Windows
-	tmpFile.Close()
+	defer tmpFile.Close()
 
 	ssh_config.DefaultUserSettings = &ssh_config.UserSettings{
 		IgnoreErrors: false,
