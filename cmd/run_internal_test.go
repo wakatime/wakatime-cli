@@ -191,17 +191,17 @@ func TestRunCmd_BackoffNotLogged(t *testing.T) {
 
 	tmpDir := t.TempDir()
 
-	offlineQueueFile, err := os.CreateTemp(tmpDir, "offline-queue-file")
+	offlineQueueFile, err := os.CreateTemp(tmpDir, "")
 	require.NoError(t, err)
 
 	defer offlineQueueFile.Close()
 
-	logFile, err := os.CreateTemp(tmpDir, "log-file")
+	logFile, err := os.CreateTemp(tmpDir, "")
 	require.NoError(t, err)
 
 	defer logFile.Close()
 
-	entity, err := os.CreateTemp(tmpDir, "entity-file")
+	entity, err := os.CreateTemp(tmpDir, "")
 	require.NoError(t, err)
 
 	defer entity.Close()
