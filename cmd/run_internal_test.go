@@ -199,9 +199,6 @@ func TestRunCmd_BackoffNotLogged(t *testing.T) {
 	logFile, err := os.CreateTemp(tmpDir, "log-file")
 	require.NoError(t, err)
 
-	// Should not defer otherwise it will fail on Windows
-	logFile.Close()
-
 	entity, err := os.CreateTemp(tmpDir, "entity-file")
 	require.NoError(t, err)
 
@@ -229,6 +226,9 @@ func TestRunCmd_BackoffNotLogged(t *testing.T) {
 
 	output, err := io.ReadAll(logFile)
 	require.NoError(t, err)
+
+	// Should not defer otherwise it will fail on Windows
+	logFile.Close()
 
 	assert.Empty(t, string(output))
 }
