@@ -70,6 +70,8 @@ func TestWithDetection_SshConfig_Hostname(t *testing.T) {
 
 	teardownLogCapture := captureLogs(logs)
 	defer teardownLogCapture()
+
+	log.SetVerbose(true)
 	// TODO: temporary fix for windows
 
 	shutdown, host, port := testServer(t, false)
