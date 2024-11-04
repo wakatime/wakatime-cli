@@ -102,8 +102,8 @@ func TestWithDetection_SshConfig_Hostname(t *testing.T) {
 	entity := "ssh://user:pass@example.com:" + strconv.Itoa(port)
 
 	if runtime.GOOS == "windows" {
-		entity += "\\" + entityFilepath
-		entity = windows.FormatFilePath(entity)
+		entityFilepath = windows.FormatFilePath(entityFilepath)
+		entity += "/" + entityFilepath
 	} else {
 		entity += entityFilepath
 	}
