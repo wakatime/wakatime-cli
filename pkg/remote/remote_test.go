@@ -65,15 +65,6 @@ func TestNewClient_Err(t *testing.T) {
 }
 
 func TestWithDetection_SshConfig_Hostname(t *testing.T) {
-	// TODO: temporary fix for windows
-	logs := bytes.NewBuffer(nil)
-
-	teardownLogCapture := captureLogs(logs)
-	defer teardownLogCapture()
-
-	log.SetVerbose(true)
-	// TODO: temporary fix for windows
-
 	shutdown, host, port := testServer(t, false)
 	defer shutdown()
 
@@ -145,11 +136,7 @@ func TestWithDetection_SshConfig_Hostname(t *testing.T) {
 			UserAgent:  "wakatime/13.0.7",
 		},
 	})
-	// TODO: temporary fix for windows
-	// require.NoError(t, err)
-
-	t.Log(logs.String())
-	// TODO: temporary fix for windows
+	require.NoError(t, err)
 }
 
 func TestWithDetection_SshConfig_UserKnownHostsFile_Mismatch(t *testing.T) {
@@ -189,8 +176,8 @@ func TestWithDetection_SshConfig_UserKnownHostsFile_Mismatch(t *testing.T) {
 	entity := "ssh://user:pass@github.com:" + strconv.Itoa(port)
 
 	if runtime.GOOS == "windows" {
+		entityFilepath = windows.FormatFilePath(entityFilepath)
 		entity += "/" + entityFilepath
-		entity = windows.FormatFilePath(entity)
 	} else {
 		entity += entityFilepath
 	}
@@ -258,8 +245,8 @@ func TestWithDetection_SshConfig_UserKnownHostsFile_Match(t *testing.T) {
 	entity := "ssh://user:pass@example.com:" + strconv.Itoa(port)
 
 	if runtime.GOOS == "windows" {
+		entityFilepath = windows.FormatFilePath(entityFilepath)
 		entity += "/" + entityFilepath
-		entity = windows.FormatFilePath(entity)
 	} else {
 		entity += entityFilepath
 	}
