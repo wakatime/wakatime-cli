@@ -487,7 +487,6 @@ func TestRunCmd_SendDiagnostics_WakaError(t *testing.T) {
 }
 
 func TestRunCmdWithOfflineSync(t *testing.T) {
-	// setup test server
 	testServerURL, router, tearDown := setupTestServer()
 	defer tearDown()
 
@@ -523,12 +522,6 @@ func TestRunCmdWithOfflineSync(t *testing.T) {
 	version.Arch = "some architecture"
 	version.Version = "some version"
 
-	logFile, err := os.CreateTemp(t.TempDir(), "")
-	require.NoError(t, err)
-
-	defer logFile.Close()
-
-	// setup test queue
 	offlineQueueFile, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)
 
@@ -561,8 +554,6 @@ func TestRunCmdWithOfflineSync(t *testing.T) {
 	v.Set("api-url", testServerURL)
 	v.Set("entity", "/path/to/file")
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
-	v.Set("log-file", logFile.Name())
-	v.Set("log-to-stdout", true)
 	v.Set("offline-queue-file", offlineQueueFile.Name())
 	v.SetDefault("sync-offline-activity", 24)
 	v.Set("plugin", "vim")
@@ -579,7 +570,6 @@ func TestRunCmdWithOfflineSync(t *testing.T) {
 
 	assert.Equal(t, 1, cmdNumCalls)
 
-	// check db
 	db, err = bolt.Open(offlineQueueFile.Name(), 0600, nil)
 	require.NoError(t, err)
 

@@ -12,7 +12,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/wakatime/wakatime-cli/cmd"
 	"github.com/wakatime/wakatime-cli/cmd/fileexperts"
 	"github.com/wakatime/wakatime-cli/pkg/api"
 	"github.com/wakatime/wakatime-cli/pkg/log"
@@ -86,7 +85,6 @@ func TestFileExperts(t *testing.T) {
 	v.Set("plugin", plugin)
 	v.Set("project", "wakatime-cli")
 	v.Set("entity", "testdata/main.go")
-	v.Set("file-experts", true)
 
 	output, err := fileexperts.FileExperts(v)
 	require.NoError(t, err)
@@ -97,39 +95,27 @@ func TestFileExperts(t *testing.T) {
 }
 
 func TestFileExperts_NonExistingEntity(t *testing.T) {
-	tmpDir := t.TempDir()
-
-	logFile, err := os.CreateTemp(tmpDir, "")
+	logFile, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)
 
 	defer logFile.Close()
 
+	// logs := bytes.NewBuffer(nil)
+
+	// teardownLogCapture := captureLogs(logs)
+	// defer teardownLogCapture()
+
 	v := viper.New()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("api-url", "https://example.org")
 	v.Set("entity", "nonexisting")
-	v.Set("file-experts", true)
-	v.Set("key", "00000000-0000-4000-8000-000000000000")
-	v.Set("log-file", logFile.Name())
-	v.Set("verbose", true)
 
-	_, _ = cmd.SetupLogging(v)
+	log.SetVerbose(true)
 
-	defer func() {
-		if file, ok := log.Output().(*os.File); ok {
-			_ = file.Sync()
-			file.Close()
-		} else if handler, ok := log.Output().(io.Closer); ok {
-			handler.Close()
-		}
-	}()
-
-	_, err = fileexperts.FileExperts(v)
+	_, err := fileexperts.FileExperts(v)
 	require.NoError(t, err)
 
-	output, err := io.ReadAll(logFile)
-	require.NoError(t, err)
-
-	assert.Contains(t, string(output), "skipping because of non-existing file")
+	assert.Contains(t, logs.String(), "skipping because of non-existing file")
 }
 
 func TestFileExperts_ErrApi(t *testing.T) {
@@ -148,7 +134,6 @@ func TestFileExperts_ErrApi(t *testing.T) {
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("api-url", testServerURL)
 	v.Set("entity", "testdata/main.go")
-	v.Set("file-experts", true)
 
 	_, err := fileexperts.FileExperts(v)
 	require.Error(t, err)
@@ -183,7 +168,6 @@ func TestFileExperts_ErrAuth(t *testing.T) {
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("api-url", testServerURL)
 	v.Set("entity", "testdata/main.go")
-	v.Set("file-experts", true)
 
 	_, err := fileexperts.FileExperts(v)
 	require.Error(t, err)
@@ -217,7 +201,6 @@ func TestFileExperts_ErrBadRequest(t *testing.T) {
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("api-url", testServerURL)
 	v.Set("entity", "testdata/main.go")
-	v.Set("file-experts", true)
 
 	_, err := fileexperts.FileExperts(v)
 	require.Error(t, err)
@@ -241,4 +224,17 @@ func setupTestServer() (string, *http.ServeMux, func()) {
 	srv := httptest.NewServer(router)
 
 	return srv.URL, router, func() { srv.Close() }
+}
+
+func captureLogs(dest io.Writer) func() {
+	logOutput := log.Output()
+
+	// will write to log output and dest
+	mw := io.MultiWriter(logOutput, dest)
+
+	log.SetOutput(mw)
+
+	return func() {
+		log.SetOutput(logOutput)
+	}
 }

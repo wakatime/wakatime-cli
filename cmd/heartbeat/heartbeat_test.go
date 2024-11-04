@@ -1,6 +1,7 @@
 package heartbeat_test
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -14,7 +15,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/wakatime/wakatime-cli/cmd"
 	cmdheartbeat "github.com/wakatime/wakatime-cli/cmd/heartbeat"
 	cmdparams "github.com/wakatime/wakatime-cli/cmd/params"
 	"github.com/wakatime/wakatime-cli/pkg/api"
@@ -499,10 +499,10 @@ func TestSendHeartbeats_NonExistingEntity(t *testing.T) {
 
 	tmpDir := t.TempDir()
 
-	logFile, err := os.CreateTemp(tmpDir, "")
-	require.NoError(t, err)
+	logs := bytes.NewBuffer(nil)
 
-	defer logFile.Close()
+	teardownLogCapture := captureLogs(logs)
+	defer teardownLogCapture()
 
 	v := viper.New()
 	v.SetDefault("sync-offline-activity", 1000)
@@ -510,19 +510,7 @@ func TestSendHeartbeats_NonExistingEntity(t *testing.T) {
 	v.Set("entity", "nonexisting")
 	v.Set("entity-type", "file")
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
-	v.Set("log-file", logFile.Name())
 	v.Set("verbose", true)
-
-	cmd.SetupLogging(v)
-
-	defer func() {
-		if file, ok := log.Output().(*os.File); ok {
-			_ = file.Sync()
-			file.Close()
-		} else if handler, ok := log.Output().(io.Closer); ok {
-			handler.Close()
-		}
-	}()
 
 	f, err := os.CreateTemp(tmpDir, "")
 	require.NoError(t, err)
@@ -532,10 +520,7 @@ func TestSendHeartbeats_NonExistingEntity(t *testing.T) {
 	err = cmdheartbeat.SendHeartbeats(v, f.Name())
 	require.NoError(t, err)
 
-	output, err := io.ReadAll(logFile)
-	require.NoError(t, err)
-
-	assert.Contains(t, string(output), "skipping because of non-existing file")
+	assert.Contains(t, logs.String(), "skipping because of non-existing file")
 }
 
 func TestSendHeartbeats_IsUnsavedEntity(t *testing.T) {
@@ -621,8 +606,10 @@ func TestSendHeartbeats_IsUnsavedEntity(t *testing.T) {
 
 	tmpDir := t.TempDir()
 
-	logFile, err := os.CreateTemp(tmpDir, "")
-	require.NoError(t, err)
+	logs := bytes.NewBuffer(nil)
+
+	teardownLogCapture := captureLogs(logs)
+	defer teardownLogCapture()
 
 	v := viper.New()
 	v.SetDefault("sync-offline-activity", 1000)
@@ -643,33 +630,17 @@ func TestSendHeartbeats_IsUnsavedEntity(t *testing.T) {
 	v.Set("time", 1585598051)
 	v.Set("timeout", 5)
 	v.Set("extra-heartbeats", true)
-	v.Set("log-file", logFile.Name())
 	v.Set("verbose", true)
-
-	cmd.SetupLogging(v)
 
 	offlineQueueFile, err := os.CreateTemp(tmpDir, "")
 	require.NoError(t, err)
 
-	defer func() {
-		offlineQueueFile.Close()
-		logFile.Close()
-
-		if file, ok := log.Output().(*os.File); ok {
-			_ = file.Sync()
-			file.Close()
-		} else if handler, ok := log.Output().(io.Closer); ok {
-			handler.Close()
-		}
-	}()
+	defer offlineQueueFile.Close()
 
 	err = cmdheartbeat.SendHeartbeats(v, offlineQueueFile.Name())
 	require.NoError(t, err)
 
-	output, err := io.ReadAll(logFile)
-	require.NoError(t, err)
-
-	assert.Contains(t, string(output), "skipping because of non-existing file")
+	assert.Contains(t, logs.String(), "skipping because of non-existing file")
 }
 
 func TestSendHeartbeats_NonExistingExtraHeartbeatsEntity(t *testing.T) {
@@ -753,8 +724,10 @@ func TestSendHeartbeats_NonExistingExtraHeartbeatsEntity(t *testing.T) {
 
 	tmpDir := t.TempDir()
 
-	logFile, err := os.CreateTemp(tmpDir, "")
-	require.NoError(t, err)
+	logs := bytes.NewBuffer(nil)
+
+	teardownLogCapture := captureLogs(logs)
+	defer teardownLogCapture()
 
 	v := viper.New()
 	v.SetDefault("sync-offline-activity", 1000)
@@ -767,33 +740,17 @@ func TestSendHeartbeats_NonExistingExtraHeartbeatsEntity(t *testing.T) {
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("plugin", plugin)
 	v.Set("time", 1585598059.1)
-	v.Set("log-file", logFile.Name())
 	v.Set("verbose", true)
-
-	cmd.SetupLogging(v)
 
 	offlineQueueFile, err := os.CreateTemp(tmpDir, "")
 	require.NoError(t, err)
 
-	defer func() {
-		offlineQueueFile.Close()
-		logFile.Close()
-
-		if file, ok := log.Output().(*os.File); ok {
-			_ = file.Sync()
-			file.Close()
-		} else if handler, ok := log.Output().(io.Closer); ok {
-			handler.Close()
-		}
-	}()
+	defer offlineQueueFile.Close()
 
 	err = cmdheartbeat.SendHeartbeats(v, offlineQueueFile.Name())
 	require.NoError(t, err)
 
-	output, err := io.ReadAll(logFile)
-	require.NoError(t, err)
-
-	assert.Contains(t, string(output), "skipping because of non-existing file")
+	assert.Contains(t, logs.String(), "skipping because of non-existing file")
 }
 
 func TestSendHeartbeats_ErrAuth_UnsetAPIKey(t *testing.T) {
@@ -849,13 +806,12 @@ func TestSendHeartbeats_ErrBackoff(t *testing.T) {
 
 	tmpDir := t.TempDir()
 
-	logFile, err := os.CreateTemp(tmpDir, "")
-	require.NoError(t, err)
+	logs := bytes.NewBuffer(nil)
 
-	defer logFile.Close()
+	teardownLogCapture := captureLogs(logs)
+	defer teardownLogCapture()
 
 	v := viper.New()
-
 	v.Set("internal.backoff_at", time.Now().Add(10*time.Minute).Format(ini.DateFormat))
 	v.Set("internal.backoff_retries", "1")
 	v.SetDefault("sync-offline-activity", 1000)
@@ -863,20 +819,8 @@ func TestSendHeartbeats_ErrBackoff(t *testing.T) {
 	v.Set("entity", "testdata/main.go")
 	v.Set("entity-type", "file")
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
-	v.Set("log-file", logFile.Name())
 
-	cmd.SetupLogging(v)
-
-	defer func() {
-		if file, ok := log.Output().(*os.File); ok {
-			_ = file.Sync()
-			file.Close()
-		} else if handler, ok := log.Output().(io.Closer); ok {
-			handler.Close()
-		}
-	}()
-
-	offlineQueueFile, err := os.CreateTemp(t.TempDir(), "")
+	offlineQueueFile, err := os.CreateTemp(tmpDir, "")
 	require.NoError(t, err)
 
 	defer offlineQueueFile.Close()
@@ -892,10 +836,7 @@ func TestSendHeartbeats_ErrBackoff(t *testing.T) {
 
 	assert.Equal(t, 1, offlineCount)
 
-	output, err := io.ReadAll(logFile)
-	require.NoError(t, err)
-
-	assert.Empty(t, string(output))
+	assert.Empty(t, logs.String())
 }
 
 func TestSendHeartbeats_ErrBackoff_Verbose(t *testing.T) {
@@ -914,13 +855,12 @@ func TestSendHeartbeats_ErrBackoff_Verbose(t *testing.T) {
 
 	tmpDir := t.TempDir()
 
-	logFile, err := os.CreateTemp(tmpDir, "")
-	require.NoError(t, err)
+	logs := bytes.NewBuffer(nil)
 
-	defer logFile.Close()
+	teardownLogCapture := captureLogs(logs)
+	defer teardownLogCapture()
 
 	v := viper.New()
-
 	v.Set("internal.backoff_at", time.Now().Add(10*time.Minute).Format(ini.DateFormat))
 	v.Set("internal.backoff_retries", "1")
 	v.SetDefault("sync-offline-activity", 1000)
@@ -928,21 +868,9 @@ func TestSendHeartbeats_ErrBackoff_Verbose(t *testing.T) {
 	v.Set("entity", "testdata/main.go")
 	v.Set("entity-type", "file")
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
-	v.Set("log-file", logFile.Name())
 	v.Set("verbose", true)
 
-	cmd.SetupLogging(v)
-
-	defer func() {
-		if file, ok := log.Output().(*os.File); ok {
-			_ = file.Sync()
-			file.Close()
-		} else if handler, ok := log.Output().(io.Closer); ok {
-			handler.Close()
-		}
-	}()
-
-	offlineQueueFile, err := os.CreateTemp(t.TempDir(), "")
+	offlineQueueFile, err := os.CreateTemp(tmpDir, "")
 	require.NoError(t, err)
 
 	defer offlineQueueFile.Close()
@@ -958,10 +886,7 @@ func TestSendHeartbeats_ErrBackoff_Verbose(t *testing.T) {
 
 	assert.Equal(t, 1, offlineCount)
 
-	output, err := io.ReadAll(logFile)
-	require.NoError(t, err)
-
-	assert.Contains(t, string(output), "will retry again after")
+	assert.Contains(t, logs.String(), "will retry again after")
 }
 
 func TestSendHeartbeats_ObfuscateProject(t *testing.T) {
@@ -1269,4 +1194,20 @@ func resetSingleton(t *testing.T) {
 	t.Helper()
 
 	cmdparams.Once = sync.Once{}
+}
+
+func captureLogs(dest io.Writer) func() {
+	// set verbose
+	log.SetVerbose(true)
+
+	logOutput := log.Output()
+
+	// will write to log output and dest
+	mw := io.MultiWriter(logOutput, dest)
+
+	log.SetOutput(mw)
+
+	return func() {
+		log.SetOutput(logOutput)
+	}
 }

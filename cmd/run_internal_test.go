@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -14,7 +15,6 @@ import (
 	cmdheartbeat "github.com/wakatime/wakatime-cli/cmd/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
 	"github.com/wakatime/wakatime-cli/pkg/ini"
-	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/version"
 
 	"github.com/spf13/viper"
@@ -126,11 +126,6 @@ func TestRunCmd_BackoffLoggedWithVerbose(t *testing.T) {
 
 	tmpDir := t.TempDir()
 
-	logFile, err := os.CreateTemp(tmpDir, "")
-	require.NoError(t, err)
-
-	defer logFile.Close()
-
 	offlineQueueFile, err := os.CreateTemp(tmpDir, "")
 	require.NoError(t, err)
 
@@ -141,26 +136,20 @@ func TestRunCmd_BackoffLoggedWithVerbose(t *testing.T) {
 
 	defer entity.Close()
 
+	logs := bytes.NewBuffer(nil)
+
+	teardownLogCapture := captureLogs(logs)
+	defer teardownLogCapture()
+
 	v := viper.New()
 	v.Set("api-url", testServerURL)
 	v.Set("entity", entity.Name())
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
-	v.Set("log-file", logFile.Name())
+	v.Set("log-to-stdout", true)
 	v.Set("offline-queue-file", offlineQueueFile.Name())
 	v.Set("internal.backoff_at", time.Now().Add(10*time.Minute).Format(ini.DateFormat))
 	v.Set("internal.backoff_retries", "1")
 	v.Set("verbose", verbose)
-
-	_, _ = SetupLogging(v)
-
-	defer func() {
-		if file, ok := log.Output().(*os.File); ok {
-			_ = file.Sync()
-			file.Close()
-		} else if handler, ok := log.Output().(io.Closer); ok {
-			handler.Close()
-		}
-	}()
 
 	err = runCmd(v, verbose, false, cmdheartbeat.Run)
 
@@ -170,11 +159,7 @@ func TestRunCmd_BackoffLoggedWithVerbose(t *testing.T) {
 
 	assert.Equal(t, exitcode.ErrBackoff, err.(exitcode.Err).Code)
 	assert.Equal(t, 0, numCalls)
-
-	output, err := io.ReadAll(logFile)
-	require.NoError(t, err)
-
-	assert.Contains(t, string(output), "failed to run command: sending heartbeat")
+	assert.Contains(t, logs.String(), "failed to run command: sending heartbeat")
 }
 
 func TestRunCmd_BackoffNotLogged(t *testing.T) {
@@ -196,36 +181,25 @@ func TestRunCmd_BackoffNotLogged(t *testing.T) {
 
 	defer offlineQueueFile.Close()
 
-	logFile, err := os.CreateTemp(tmpDir, "")
-	require.NoError(t, err)
-
-	defer logFile.Close()
-
 	entity, err := os.CreateTemp(tmpDir, "")
 	require.NoError(t, err)
 
 	defer entity.Close()
 
+	logs := bytes.NewBuffer(nil)
+
+	teardownLogCapture := captureLogs(logs)
+	defer teardownLogCapture()
+
 	v := viper.New()
 	v.Set("api-url", testServerURL)
 	v.Set("entity", entity.Name())
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
-	v.Set("log-file", logFile.Name())
+	v.Set("log-to-stdout", true)
 	v.Set("offline-queue-file", offlineQueueFile.Name())
 	v.Set("internal.backoff_at", time.Now().Add(10*time.Minute).Format(ini.DateFormat))
 	v.Set("internal.backoff_retries", "1")
 	v.Set("verbose", false)
-
-	_, _ = SetupLogging(v)
-
-	defer func() {
-		if file, ok := log.Output().(*os.File); ok {
-			_ = file.Sync()
-			file.Close()
-		} else if handler, ok := log.Output().(io.Closer); ok {
-			handler.Close()
-		}
-	}()
 
 	err = runCmd(v, false, false, cmdheartbeat.Run)
 
@@ -234,11 +208,7 @@ func TestRunCmd_BackoffNotLogged(t *testing.T) {
 	require.ErrorAs(t, err, &errexitcode)
 	assert.Equal(t, exitcode.ErrBackoff, err.(exitcode.Err).Code)
 	assert.Equal(t, 0, numCalls)
-
-	output, err := io.ReadAll(logFile)
-	require.NoError(t, err)
-
-	assert.Empty(t, string(output))
+	assert.Empty(t, logs.String())
 }
 
 func TestParseConfigFiles(t *testing.T) {
