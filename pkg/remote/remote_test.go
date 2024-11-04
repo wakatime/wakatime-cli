@@ -151,7 +151,8 @@ func TestWithDetection_SshConfig_UserKnownHostsFile_Mismatch(t *testing.T) {
 	tmpFile, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)
 
-	defer tmpFile.Close()
+	// Should not defer otherwise it will fail on Windows
+	tmpFile.Close()
 
 	ssh_config.DefaultUserSettings = &ssh_config.UserSettings{
 		IgnoreErrors: false,
@@ -371,6 +372,7 @@ func TestWithCleanup_NotTemporary(t *testing.T) {
 	tmpFile, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)
 
+	// Should not defer otherwise it will fail on Windows
 	tmpFile.Close()
 
 	defer os.Remove(tmpFile.Name())
