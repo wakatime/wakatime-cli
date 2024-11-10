@@ -23,31 +23,31 @@ func TestParseBoolOrRegexList(t *testing.T) {
 		},
 		"false string": {
 			Input:    "false",
-			Expected: []regex.Regex{regexp.MustCompile("a^")},
+			Expected: []regex.Regex{regex.NewRegexpWrap(regexp.MustCompile("a^"))},
 		},
 		"true string": {
 			Input:    "true",
-			Expected: []regex.Regex{regexp.MustCompile(".*")},
+			Expected: []regex.Regex{regex.NewRegexpWrap(regexp.MustCompile(".*"))},
 		},
 		"valid regex": {
 			Input: "\t.?\n\t\n \n\t\twakatime.? \t\n",
 			Expected: []regex.Regex{
-				regexp.MustCompile(".?"),
-				regexp.MustCompile("wakatime.?"),
+				regex.NewRegexpWrap(regexp.MustCompile(".?")),
+				regex.NewRegexpWrap(regexp.MustCompile("wakatime.?")),
 			},
 		},
 		"valid regex with windows style": {
 			Input: "\t.?\r\n\t\t\twakatime.? \t\r\n",
 			Expected: []regex.Regex{
-				regexp.MustCompile(".?"),
-				regexp.MustCompile("wakatime.?"),
+				regex.NewRegexpWrap(regexp.MustCompile(".?")),
+				regex.NewRegexpWrap(regexp.MustCompile("wakatime.?")),
 			},
 		},
 		"valid regex with old mac style": {
 			Input: "\t.?\r\t\t\twakatime.? \t\r",
 			Expected: []regex.Regex{
-				regexp.MustCompile(".?"),
-				regexp.MustCompile("wakatime.?"),
+				regex.NewRegexpWrap(regexp.MustCompile(".?")),
+				regex.NewRegexpWrap(regexp.MustCompile("wakatime.?")),
 			},
 		},
 	}

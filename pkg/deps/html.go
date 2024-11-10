@@ -1,6 +1,7 @@
 package deps
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"regexp"
@@ -35,7 +36,9 @@ type ParserHTML struct {
 }
 
 // Parse parses dependencies from HTML file content via ReadCloser using the chroma HTML lexer.
-func (p *ParserHTML) Parse(filepath string) ([]string, error) {
+func (p *ParserHTML) Parse(ctx context.Context, filepath string) ([]string, error) {
+	logger := log.Extract(ctx)
+
 	reader, err := file.OpenNoLock(filepath) // nolint:gosec
 	if err != nil {
 		return nil, fmt.Errorf("failed to open file %q: %s", filepath, err)
@@ -43,7 +46,7 @@ func (p *ParserHTML) Parse(filepath string) ([]string, error) {
 
 	defer func() {
 		if err := reader.Close(); err != nil {
-			log.Debugf("failed to close file: %s", err)
+			logger.Debugf("failed to close file: %s", err)
 		}
 	}()
 

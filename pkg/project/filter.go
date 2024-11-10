@@ -1,6 +1,7 @@
 package project
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -19,20 +20,21 @@ type FilterConfig struct {
 // the provided configurations.
 func WithFiltering(config FilterConfig) heartbeat.HandleOption {
 	return func(next heartbeat.Handle) heartbeat.Handle {
-		return func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
-			log.Debugln("execute project filtering")
+		return func(ctx context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+			logger := log.Extract(ctx)
+			logger.Debugln("execute project filtering")
 
 			var filtered []heartbeat.Heartbeat
 
 			for _, h := range hh {
 				err := Filter(h, config)
 				if err != nil {
-					log.Debugln(err.Error())
+					logger.Debugln(err.Error())
 
 					if h.LocalFileNeedsCleanup {
 						err = os.Remove(h.LocalFile)
 						if err != nil {
-							log.Warnf("unable to delete tmp file: %s", err)
+							logger.Warnf("unable to delete tmp file: %s", err)
 						}
 					}
 
@@ -42,7 +44,7 @@ func WithFiltering(config FilterConfig) heartbeat.HandleOption {
 				filtered = append(filtered, h)
 			}
 
-			return next(filtered)
+			return next(ctx, filtered)
 		}
 	}
 }

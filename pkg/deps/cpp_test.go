@@ -1,6 +1,7 @@
 package deps_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -11,7 +12,7 @@ import (
 func TestParserCPP_Parse(t *testing.T) {
 	parser := deps.ParserCPP{}
 
-	dependencies, err := parser.Parse("testdata/cpp.cpp")
+	dependencies, err := parser.Parse(context.Background(), "testdata/cpp.cpp")
 	require.NoError(t, err)
 
 	assert.Equal(t, []string{

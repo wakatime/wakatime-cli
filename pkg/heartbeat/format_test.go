@@ -1,6 +1,7 @@
 package heartbeat_test
 
 import (
+	"context"
 	"path/filepath"
 	"runtime"
 	"testing"
@@ -16,7 +17,7 @@ import (
 func TestWithFormatting(t *testing.T) {
 	opt := heartbeat.WithFormatting()
 
-	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+	handle := opt(func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		entity, err := filepath.Abs(hh[0].Entity)
 		require.NoError(t, err)
 
@@ -40,7 +41,7 @@ func TestWithFormatting(t *testing.T) {
 		}, nil
 	})
 
-	result, err := handle([]heartbeat.Heartbeat{{
+	result, err := handle(context.Background(), []heartbeat.Heartbeat{{
 		Entity:     "testdata/main.go",
 		EntityType: heartbeat.FileType,
 	}})
@@ -63,7 +64,7 @@ func TestFormat_NetworkMount(t *testing.T) {
 		EntityType: heartbeat.FileType,
 	}
 
-	r := heartbeat.Format(h)
+	r := heartbeat.Format(context.Background(), h)
 
 	assert.Equal(t, heartbeat.Heartbeat{
 		Entity:     `\\192.168.1.1/apilibrary.sl`,

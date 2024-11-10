@@ -1,6 +1,7 @@
 package todaygoal
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 
@@ -26,8 +27,8 @@ type Params struct {
 }
 
 // Run executes the today-goal command.
-func Run(v *viper.Viper) (int, error) {
-	output, err := Goal(v)
+func Run(ctx context.Context, v *viper.Viper) (int, error) {
+	output, err := Goal(ctx, v)
 	if err != nil {
 		if errwaka, ok := err.(wakaerror.Error); ok {
 			return errwaka.ExitCode(), fmt.Errorf("today goal fetch failed: %s", errwaka.Message())
@@ -39,25 +40,27 @@ func Run(v *viper.Viper) (int, error) {
 		)
 	}
 
-	log.Debugln("successfully fetched today goal")
+	logger := log.Extract(ctx)
+
+	logger.Debugln("successfully fetched today goal")
 	fmt.Println(output)
 
 	return exitcode.Success, nil
 }
 
 // Goal returns total time of given goal id for today's coding activity.
-func Goal(v *viper.Viper) (string, error) {
-	params, err := LoadParams(v)
+func Goal(ctx context.Context, v *viper.Viper) (string, error) {
+	params, err := LoadParams(ctx, v)
 	if err != nil {
 		return "", fmt.Errorf("failed to load command parameters: %w", err)
 	}
 
-	apiClient, err := cmdapi.NewClient(params.API)
+	apiClient, err := cmdapi.NewClient(ctx, params.API)
 	if err != nil {
 		return "", fmt.Errorf("failed to initialize api client: %w", err)
 	}
 
-	g, err := apiClient.Goal(params.GoalID)
+	g, err := apiClient.Goal(ctx, params.GoalID)
 	if err != nil {
 		return "", fmt.Errorf("failed fetching todays goal from api: %w", err)
 	}
@@ -72,8 +75,8 @@ func Goal(v *viper.Viper) (string, error) {
 
 // LoadParams loads todaygoal config params from viper.Viper instance. Returns ErrAuth
 // if failed to retrieve api key.
-func LoadParams(v *viper.Viper) (Params, error) {
-	paramAPI, err := params.LoadAPIParams(v)
+func LoadParams(ctx context.Context, v *viper.Viper) (Params, error) {
+	paramAPI, err := params.LoadAPIParams(ctx, v)
 	if err != nil {
 		return Params{}, fmt.Errorf("failed to load API parameters: %w", err)
 	}

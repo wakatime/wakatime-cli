@@ -1,6 +1,7 @@
 package project
 
 import (
+	"context"
 	"path/filepath"
 
 	"github.com/wakatime/wakatime-cli/pkg/log"
@@ -26,8 +27,8 @@ type Map struct {
 // Will result in file '/home/user/projects/foo/src/main.c' to have
 // project name 'new project name' and file '/home/user/projects/bar42/main.c'
 // to have project name 'project42'.
-func (m Map) Detect() (Result, bool, error) {
-	result, ok := matchPattern(m.Filepath, m.Patterns)
+func (m Map) Detect(ctx context.Context) (Result, bool, error) {
+	result, ok := matchPattern(ctx, m.Filepath, m.Patterns)
 	if !ok {
 		return Result{}, false, nil
 	}
@@ -39,10 +40,12 @@ func (m Map) Detect() (Result, bool, error) {
 }
 
 // matchPattern matches regex against entity's path to find project name.
-func matchPattern(fp string, patterns []MapPattern) (string, bool) {
+func matchPattern(ctx context.Context, fp string, patterns []MapPattern) (string, bool) {
+	logger := log.Extract(ctx)
+
 	for _, pattern := range patterns {
-		if pattern.Regex.MatchString(fp) {
-			matches := pattern.Regex.FindStringSubmatch(fp)
+		if pattern.Regex.MatchString(ctx, fp) {
+			matches := pattern.Regex.FindStringSubmatch(ctx, fp)
 			if len(matches) > 0 {
 				params := make([]any, len(matches[1:]))
 				for i, v := range matches[1:] {
@@ -51,7 +54,7 @@ func matchPattern(fp string, patterns []MapPattern) (string, bool) {
 
 				result, err := pyfmt.Fmt(pattern.Name, params...)
 				if err != nil {
-					log.Errorf("error formatting %q: %s", pattern.Name, err)
+					logger.Errorf("error formatting %q: %s", pattern.Name, err)
 					continue
 				}
 

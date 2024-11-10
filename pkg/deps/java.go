@@ -1,6 +1,7 @@
 package deps
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"regexp"
@@ -37,7 +38,9 @@ type ParserJava struct {
 }
 
 // Parse parses dependencies from Java file content using the chroma Java lexer.
-func (p *ParserJava) Parse(filepath string) ([]string, error) {
+func (p *ParserJava) Parse(ctx context.Context, filepath string) ([]string, error) {
+	logger := log.Extract(ctx)
+
 	reader, err := file.OpenNoLock(filepath) // nolint:gosec
 	if err != nil {
 		return nil, fmt.Errorf("failed to open file %q: %s", filepath, err)
@@ -45,7 +48,7 @@ func (p *ParserJava) Parse(filepath string) ([]string, error) {
 
 	defer func() {
 		if err := reader.Close(); err != nil {
-			log.Debugf("failed to close file: %s", err)
+			logger.Debugf("failed to close file: %s", err)
 		}
 	}()
 

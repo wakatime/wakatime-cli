@@ -1,6 +1,7 @@
 package ini_test
 
 import (
+	"context"
 	"errors"
 	"os"
 	"path/filepath"
@@ -20,7 +21,7 @@ func TestReadInConfig(t *testing.T) {
 	v := viper.New()
 	v.Set("config", "testdata/wakatime.cfg")
 
-	filePath, err := ini.FilePath(v)
+	filePath, err := ini.FilePath(context.Background(), v)
 	require.NoError(t, err)
 
 	err = ini.ReadInConfig(v, filePath)
@@ -36,11 +37,11 @@ func TestReadInConfig(t *testing.T) {
 
 func TestReadInConfig_Multiline(t *testing.T) {
 	multilineOption := viper.IniLoadOptions(iniv1.LoadOptions{AllowPythonMultilineValues: true})
-	v := viper.NewWithOptions(multilineOption)
 
+	v := viper.NewWithOptions(multilineOption)
 	v.Set("config", "testdata/wakatime-multiline.cfg")
 
-	filePath, err := ini.FilePath(v)
+	filePath, err := ini.FilePath(context.Background(), v)
 	require.NoError(t, err)
 
 	err = ini.ReadInConfig(v, filePath)
@@ -55,14 +56,15 @@ func TestReadInConfig_Multiline(t *testing.T) {
 
 func TestReadInConfig_Multiple(t *testing.T) {
 	v := viper.New()
-
 	v.Set("config", "testdata/wakatime.cfg")
 	v.Set("internal-config", "testdata/wakatime-internal.cfg")
 
-	filePath, err := ini.FilePath(v)
+	ctx := context.Background()
+
+	filePath, err := ini.FilePath(ctx, v)
 	require.NoError(t, err)
 
-	internalFilePath, err := ini.InternalFilePath(v)
+	internalFilePath, err := ini.InternalFilePath(ctx, v)
 	require.NoError(t, err)
 
 	err = ini.ReadInConfig(v, filePath)
@@ -84,7 +86,7 @@ func TestReadInConfig_Corrupted(t *testing.T) {
 
 	v.Set("config", "testdata/corrupted.cfg")
 
-	filePath, err := ini.FilePath(v)
+	filePath, err := ini.FilePath(context.Background(), v)
 	require.NoError(t, err)
 
 	err = ini.ReadInConfig(v, filePath)
@@ -108,7 +110,7 @@ func TestReadInConfig_Malformed(t *testing.T) {
 	v := viper.New()
 	v.Set("config", "testdata/malformed.cfg")
 
-	filePath, err := ini.FilePath(v)
+	filePath, err := ini.FilePath(context.Background(), v)
 	require.NoError(t, err)
 
 	err = ini.ReadInConfig(v, filePath)
@@ -118,6 +120,8 @@ func TestReadInConfig_Malformed(t *testing.T) {
 func TestFilePath(t *testing.T) {
 	home, err := os.UserHomeDir()
 	require.NoError(t, err)
+
+	ctx := context.Background()
 
 	tests := map[string]struct {
 		ViperValue string
@@ -155,7 +159,7 @@ func TestFilePath(t *testing.T) {
 
 			defer os.Unsetenv("WAKATIME_HOME")
 
-			configFilepath, err := ini.FilePath(v)
+			configFilepath, err := ini.FilePath(ctx, v)
 			require.NoError(t, err)
 
 			assert.Equal(t, test.Expected, configFilepath)
@@ -166,6 +170,8 @@ func TestFilePath(t *testing.T) {
 func TestInternalFilePath(t *testing.T) {
 	home, err := os.UserHomeDir()
 	require.NoError(t, err)
+
+	ctx := context.Background()
 
 	tests := map[string]struct {
 		ViperValue string
@@ -195,7 +201,7 @@ func TestInternalFilePath(t *testing.T) {
 
 			defer os.Unsetenv("WAKATIME_HOME")
 
-			configFilepath, err := ini.InternalFilePath(v)
+			configFilepath, err := ini.InternalFilePath(ctx, v)
 			require.NoError(t, err)
 
 			assert.Equal(t, test.Expected, configFilepath)
@@ -206,7 +212,7 @@ func TestInternalFilePath(t *testing.T) {
 func TestNewWriter(t *testing.T) {
 	v := viper.New()
 
-	w, err := ini.NewWriter(v, func(vp *viper.Viper) (string, error) {
+	w, err := ini.NewWriter(context.Background(), v, func(_ context.Context, vp *viper.Viper) (string, error) {
 		assert.Equal(t, v, vp)
 		return "testdata/wakatime.cfg", nil
 	})
@@ -219,7 +225,7 @@ func TestNewWriter(t *testing.T) {
 func TestNewWriterErr(t *testing.T) {
 	v := viper.New()
 
-	_, err := ini.NewWriter(v, func(vp *viper.Viper) (string, error) {
+	_, err := ini.NewWriter(context.Background(), v, func(_ context.Context, vp *viper.Viper) (string, error) {
 		assert.Equal(t, v, vp)
 		return "", errors.New("error")
 	})
@@ -233,7 +239,7 @@ func TestNewWriter_MissingFile(t *testing.T) {
 
 	tmpDir := t.TempDir()
 
-	w, err := ini.NewWriter(v, func(vp *viper.Viper) (string, error) {
+	w, err := ini.NewWriter(context.Background(), v, func(_ context.Context, vp *viper.Viper) (string, error) {
 		assert.Equal(t, v, vp)
 		return filepath.Join(tmpDir, "missing.cfg"), nil
 	})
@@ -248,7 +254,7 @@ func TestNewWriter_MissingFile(t *testing.T) {
 func TestNewWriter_CorruptedFile(t *testing.T) {
 	v := viper.New()
 
-	w, err := ini.NewWriter(v, func(vp *viper.Viper) (string, error) {
+	w, err := ini.NewWriter(context.Background(), v, func(_ context.Context, vp *viper.Viper) (string, error) {
 		assert.Equal(t, v, vp)
 		return "testdata/corrupted.cfg", nil
 	})
@@ -263,6 +269,8 @@ func TestWrite(t *testing.T) {
 	require.NoError(t, err)
 
 	defer tmpFile.Close()
+
+	ctx := context.Background()
 
 	tests := map[string]struct {
 		Value   map[string]string
@@ -290,7 +298,7 @@ func TestWrite(t *testing.T) {
 				ConfigFilepath: tmpFile.Name(),
 			}
 
-			err := w.Write(test.Section, test.Value)
+			err := w.Write(ctx, test.Section, test.Value)
 
 			require.NoError(t, err)
 		})
@@ -298,25 +306,27 @@ func TestWrite(t *testing.T) {
 }
 
 func TestWrite_NoMultilineSideEffects(t *testing.T) {
-	multilineOption := viper.IniLoadOptions(iniv1.LoadOptions{AllowPythonMultilineValues: true})
-	v := viper.NewWithOptions(multilineOption)
-
 	tmpFile, err := os.CreateTemp(t.TempDir(), "wakatime")
 	require.NoError(t, err)
 
 	defer tmpFile.Close()
 
+	ctx := context.Background()
+
+	multilineOption := viper.IniLoadOptions(iniv1.LoadOptions{AllowPythonMultilineValues: true})
+
+	v := viper.NewWithOptions(multilineOption)
 	v.Set("config", tmpFile.Name())
 
 	copyFile(t, "testdata/wakatime-multiline.cfg", tmpFile.Name())
 
-	w, err := ini.NewWriter(v, func(vp *viper.Viper) (string, error) {
+	w, err := ini.NewWriter(ctx, v, func(_ context.Context, vp *viper.Viper) (string, error) {
 		assert.Equal(t, v, vp)
 		return tmpFile.Name(), nil
 	})
 	require.NoError(t, err)
 
-	err = w.Write("settings", map[string]string{"debug": "true"})
+	err = w.Write(ctx, "settings", map[string]string{"debug": "true"})
 	require.NoError(t, err)
 
 	actual, err := os.ReadFile(tmpFile.Name())
@@ -331,25 +341,27 @@ func TestWrite_NoMultilineSideEffects(t *testing.T) {
 }
 
 func TestWrite_NullsRemoved(t *testing.T) {
-	multilineOption := viper.IniLoadOptions(iniv1.LoadOptions{AllowPythonMultilineValues: true})
-	v := viper.NewWithOptions(multilineOption)
-
 	tmpFile, err := os.CreateTemp(t.TempDir(), "wakatime")
 	require.NoError(t, err)
 
 	defer tmpFile.Close()
 
+	ctx := context.Background()
+
+	multilineOption := viper.IniLoadOptions(iniv1.LoadOptions{AllowPythonMultilineValues: true})
+
+	v := viper.NewWithOptions(multilineOption)
 	v.Set("config", tmpFile.Name())
 
 	copyFile(t, "testdata/wakatime-nulls.cfg", tmpFile.Name())
 
-	w, err := ini.NewWriter(v, func(vp *viper.Viper) (string, error) {
+	w, err := ini.NewWriter(ctx, v, func(_ context.Context, vp *viper.Viper) (string, error) {
 		assert.Equal(t, v, vp)
 		return tmpFile.Name(), nil
 	})
 	require.NoError(t, err)
 
-	err = w.Write("settings", map[string]string{"debug": "true"})
+	err = w.Write(ctx, "settings", map[string]string{"debug": "true"})
 	require.NoError(t, err)
 
 	actual, err := os.ReadFile(tmpFile.Name())
@@ -366,7 +378,7 @@ func TestWrite_NullsRemoved(t *testing.T) {
 func TestWriteErr(t *testing.T) {
 	w := ini.WriterConfig{}
 
-	err := w.Write("settings", map[string]string{"debug": "true"})
+	err := w.Write(context.Background(), "settings", map[string]string{"debug": "true"})
 	require.Error(t, err)
 
 	assert.Equal(t, "got undefined wakatime config file instance", err.Error())

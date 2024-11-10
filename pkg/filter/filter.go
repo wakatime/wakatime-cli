@@ -1,6 +1,7 @@
 package filter
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -22,15 +23,16 @@ type Config struct {
 // the provided configurations.
 func WithFiltering(config Config) heartbeat.HandleOption {
 	return func(next heartbeat.Handle) heartbeat.Handle {
-		return func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
-			log.Debugln("execute heartbeat filtering")
+		return func(ctx context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+			logger := log.Extract(ctx)
+			logger.Debugln("execute heartbeat filtering")
 
 			var filtered []heartbeat.Heartbeat
 
 			for _, h := range hh {
-				err := Filter(h, config)
+				err := Filter(ctx, h, config)
 				if err != nil {
-					log.Debugf(err.Error())
+					logger.Debugln(err.Error())
 
 					continue
 				}
@@ -38,7 +40,7 @@ func WithFiltering(config Config) heartbeat.HandleOption {
 				filtered = append(filtered, h)
 			}
 
-			return next(filtered)
+			return next(ctx, filtered)
 		}
 	}
 }
@@ -47,26 +49,28 @@ func WithFiltering(config Config) heartbeat.HandleOption {
 // can be used to abort execution if all heartbeats were filtered and the list is empty.
 func WithLengthValidator() heartbeat.HandleOption {
 	return func(next heartbeat.Handle) heartbeat.Handle {
-		return func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		return func(ctx context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+			logger := log.Extract(ctx)
+
 			if len(hh) == 0 {
-				log.Debugln("no heartbeats left after filtering. abort heartbeat handling.")
+				logger.Debugln("no heartbeats left after filtering. abort heartbeat handling.")
 				return []heartbeat.Result{}, nil
 			}
 
-			return next(hh)
+			return next(ctx, hh)
 		}
 	}
 }
 
 // Filter determines, following the passed in configurations, if a heartbeat
 // should be skipped.
-func Filter(h heartbeat.Heartbeat, config Config) error {
+func Filter(ctx context.Context, h heartbeat.Heartbeat, config Config) error {
 	// filter by pattern
-	if err := filterByPattern(h.Entity, config.Include, config.Exclude); err != nil {
+	if err := filterByPattern(ctx, h.Entity, config.Include, config.Exclude); err != nil {
 		return fmt.Errorf("filter by pattern: %s", err)
 	}
 
-	err := filterFileEntity(h, config)
+	err := filterFileEntity(ctx, h, config)
 	if err != nil {
 		return fmt.Errorf("filter file: %s", err)
 	}
@@ -77,21 +81,21 @@ func Filter(h heartbeat.Heartbeat, config Config) error {
 // filterByPattern determines if a heartbeat should be skipped by checking an
 // entity against include and exclude patterns. Include will override exclude.
 // Returns Err to signal to the caller to skip the heartbeat.
-func filterByPattern(entity string, include, exclude []regex.Regex) error {
+func filterByPattern(ctx context.Context, entity string, include, exclude []regex.Regex) error {
 	if entity == "" {
 		return nil
 	}
 
 	// filter by include pattern
 	for _, pattern := range include {
-		if pattern.MatchString(entity) {
+		if pattern.MatchString(ctx, entity) {
 			return nil
 		}
 	}
 
 	// filter by  exclude pattern
 	for _, pattern := range exclude {
-		if pattern.MatchString(entity) {
+		if pattern.MatchString(ctx, entity) {
 			return fmt.Errorf("skipping because matches exclude pattern %q", pattern.String())
 		}
 	}
@@ -103,7 +107,7 @@ func filterByPattern(entity string, include, exclude []regex.Regex) error {
 // the existence of the passed in filepath, and optionally by checking if a
 // wakatime project file can be detected in the filepath directory tree.
 // Returns an error to signal to the caller to skip the heartbeat.
-func filterFileEntity(h heartbeat.Heartbeat, config Config) error {
+func filterFileEntity(ctx context.Context, h heartbeat.Heartbeat, config Config) error {
 	if h.EntityType != heartbeat.FileType {
 		return nil
 	}
@@ -128,7 +132,7 @@ func filterFileEntity(h heartbeat.Heartbeat, config Config) error {
 
 	// when including only with project file, skip files when the project doesn't have a .wakatime-project file
 	if config.IncludeOnlyWithProjectFile {
-		_, ok := project.FindFileOrDirectory(entity, project.WakaTimeProjectFile)
+		_, ok := project.FindFileOrDirectory(ctx, entity, project.WakaTimeProjectFile)
 		if !ok {
 			return fmt.Errorf("skipping because missing .wakatime-project file in parent path")
 		}

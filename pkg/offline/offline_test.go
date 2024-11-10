@@ -1,6 +1,7 @@
 package offline_test
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -22,6 +23,8 @@ import (
 )
 
 func TestQueueFilepath(t *testing.T) {
+	ctx := context.Background()
+
 	tests := map[string]struct {
 		EnvVar string
 	}{
@@ -41,11 +44,11 @@ func TestQueueFilepath(t *testing.T) {
 
 			defer os.Unsetenv("WAKATIME_HOME")
 
-			folder, err := ini.WakaResourcesDir()
+			folder, err := ini.WakaResourcesDir(ctx)
 			require.NoError(t, err)
 
 			v := viper.New()
-			queueFilepath, err := offline.QueueFilepath(v)
+			queueFilepath, err := offline.QueueFilepath(ctx, v)
 			require.NoError(t, err)
 
 			expected := filepath.Join(folder, "offline_heartbeats.bdb")
@@ -80,7 +83,7 @@ func TestWithQueue(t *testing.T) {
 
 	opt := offline.WithQueue(f.Name())
 
-	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+	handle := opt(func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		assert.Len(t, hh, 2)
 		assert.Contains(t, hh, testHeartbeats()[0])
 		assert.Contains(t, hh, testHeartbeats()[1])
@@ -98,7 +101,7 @@ func TestWithQueue(t *testing.T) {
 	})
 
 	// run
-	results, err := handle([]heartbeat.Heartbeat{
+	results, err := handle(context.Background(), []heartbeat.Heartbeat{
 		testHeartbeats()[0],
 		testHeartbeats()[1],
 	})
@@ -153,14 +156,14 @@ func TestWithQueue_NoHeartbeats(t *testing.T) {
 
 	opt := offline.WithQueue(f.Name())
 
-	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+	handle := opt(func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		assert.Len(t, hh, 0)
 
 		return []heartbeat.Result{}, nil
 	})
 
 	// run
-	results, err := handle([]heartbeat.Heartbeat{})
+	results, err := handle(context.Background(), []heartbeat.Heartbeat{})
 	require.NoError(t, err)
 
 	// check
@@ -176,7 +179,7 @@ func TestWithQueue_ApiError(t *testing.T) {
 
 	opt := offline.WithQueue(f.Name())
 
-	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+	handle := opt(func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		assert.Equal(t, hh, []heartbeat.Heartbeat{
 			testHeartbeats()[0],
 			testHeartbeats()[1],
@@ -186,7 +189,7 @@ func TestWithQueue_ApiError(t *testing.T) {
 	})
 
 	// run
-	_, err = handle([]heartbeat.Heartbeat{
+	_, err = handle(context.Background(), []heartbeat.Heartbeat{
 		testHeartbeats()[0],
 		testHeartbeats()[1],
 	})
@@ -239,7 +242,7 @@ func TestWithQueue_InvalidResults(t *testing.T) {
 
 	opt := offline.WithQueue(f.Name())
 
-	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+	handle := opt(func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		assert.Equal(t, hh, testHeartbeats())
 
 		return []heartbeat.Result{
@@ -259,7 +262,7 @@ func TestWithQueue_InvalidResults(t *testing.T) {
 	})
 
 	// run
-	results, err := handle(testHeartbeats())
+	results, err := handle(context.Background(), testHeartbeats())
 	require.NoError(t, err)
 
 	// check
@@ -325,7 +328,7 @@ func TestWithQueue_HandleLeftovers(t *testing.T) {
 
 	opt := offline.WithQueue(f.Name())
 
-	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+	handle := opt(func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		assert.Equal(t, hh, testHeartbeats())
 
 		return []heartbeat.Result{
@@ -337,7 +340,7 @@ func TestWithQueue_HandleLeftovers(t *testing.T) {
 	})
 
 	// run
-	results, err := handle(testHeartbeats())
+	results, err := handle(context.Background(), testHeartbeats())
 	require.NoError(t, err)
 
 	// check
@@ -417,7 +420,7 @@ func TestWithSync(t *testing.T) {
 
 	opt := offline.WithSync(f.Name(), offline.SyncMaxDefault)
 
-	handle := opt(func(_ []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+	handle := opt(func(_ context.Context, _ []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		return []heartbeat.Result{
 			{
 				Status:    http.StatusCreated,
@@ -431,7 +434,7 @@ func TestWithSync(t *testing.T) {
 	})
 
 	// run
-	results, err := handle(nil)
+	results, err := handle(context.Background(), nil)
 	require.NoError(t, err)
 
 	// check
@@ -486,12 +489,12 @@ func TestSync_MultipleRequests(t *testing.T) {
 	err = db.Close()
 	require.NoError(t, err)
 
-	syncFn := offline.Sync(f.Name(), 1000)
+	syncFn := offline.Sync(context.Background(), f.Name(), 1000)
 
 	var numCalls int
 
 	// run
-	err = syncFn(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+	err = syncFn(func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		numCalls++
 
 		// first request
@@ -585,12 +588,12 @@ func TestSync_APIError(t *testing.T) {
 	err = db.Close()
 	require.NoError(t, err)
 
-	syncFn := offline.Sync(f.Name(), 10)
+	syncFn := offline.Sync(context.Background(), f.Name(), 10)
 
 	var numCalls int
 
 	// run
-	err = syncFn(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+	err = syncFn(func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		numCalls++
 
 		assert.Equal(t, []heartbeat.Heartbeat{
@@ -673,12 +676,12 @@ func TestSync_InvalidResults(t *testing.T) {
 	err = db.Close()
 	require.NoError(t, err)
 
-	syncFn := offline.Sync(f.Name(), 1000)
+	syncFn := offline.Sync(context.Background(), f.Name(), 1000)
 
 	var numCalls int
 
 	// run
-	err = syncFn(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+	err = syncFn(func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		numCalls++
 
 		// first request
@@ -782,12 +785,12 @@ func TestSync_SyncLimit(t *testing.T) {
 	err = db.Close()
 	require.NoError(t, err)
 
-	syncFn := offline.Sync(f.Name(), 1)
+	syncFn := offline.Sync(context.Background(), f.Name(), 1)
 
 	var numCalls int
 
 	// run
-	err = syncFn(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+	err = syncFn(func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		numCalls++
 
 		assert.Len(t, hh, 1)
@@ -862,12 +865,12 @@ func TestSync_SyncUnlimited(t *testing.T) {
 	err = db.Close()
 	require.NoError(t, err)
 
-	syncFn := offline.Sync(f.Name(), 0)
+	syncFn := offline.Sync(context.Background(), f.Name(), 0)
 
 	var numCalls int
 
 	// run
-	err = syncFn(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+	err = syncFn(func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		numCalls++
 
 		assert.Len(t, hh, 2)
@@ -941,7 +944,7 @@ func TestCountHeartbeats(t *testing.T) {
 	err = db.Close()
 	require.NoError(t, err)
 
-	count, err := offline.CountHeartbeats(f.Name())
+	count, err := offline.CountHeartbeats(context.Background(), f.Name())
 	require.NoError(t, err)
 
 	assert.Equal(t, count, 3)
@@ -954,7 +957,7 @@ func TestCountHeartbeats_Empty(t *testing.T) {
 
 	defer f.Close()
 
-	count, err := offline.CountHeartbeats(f.Name())
+	count, err := offline.CountHeartbeats(context.Background(), f.Name())
 	require.NoError(t, err)
 
 	assert.Equal(t, count, 0)
@@ -990,7 +993,7 @@ func TestReadHeartbeats(t *testing.T) {
 	err = db.Close()
 	require.NoError(t, err)
 
-	hh, err := offline.ReadHeartbeats(f.Name(), offline.PrintMaxDefault)
+	hh, err := offline.ReadHeartbeats(context.Background(), f.Name(), offline.PrintMaxDefault)
 	require.NoError(t, err)
 
 	assert.Len(t, hh, 2)
@@ -1026,7 +1029,7 @@ func TestReadHeartbeats_WithLimit(t *testing.T) {
 	err = db.Close()
 	require.NoError(t, err)
 
-	hh, err := offline.ReadHeartbeats(f.Name(), 1)
+	hh, err := offline.ReadHeartbeats(context.Background(), f.Name(), 1)
 	require.NoError(t, err)
 
 	assert.Len(t, hh, 1)
@@ -1039,7 +1042,7 @@ func TestReadHeartbeats_Empty(t *testing.T) {
 
 	defer f.Close()
 
-	hh, err := offline.ReadHeartbeats(f.Name(), offline.PrintMaxDefault)
+	hh, err := offline.ReadHeartbeats(context.Background(), f.Name(), offline.PrintMaxDefault)
 	require.NoError(t, err)
 
 	assert.Len(t, hh, 0)

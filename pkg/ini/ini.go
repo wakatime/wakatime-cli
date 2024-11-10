@@ -1,6 +1,7 @@
 package ini
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -43,7 +44,7 @@ const (
 
 // Writer defines the methods to write to config file.
 type Writer interface {
-	Write(section string, keyValue map[string]string) error
+	Write(ctx context.Context, section string, keyValue map[string]string) error
 }
 
 // WriterConfig stores the configuration necessary to write to config file.
@@ -53,15 +54,21 @@ type WriterConfig struct {
 }
 
 // NewWriter creates a new writer instance.
-func NewWriter(v *viper.Viper, filepathFn func(v *viper.Viper) (string, error)) (*WriterConfig, error) {
-	configFilepath, err := filepathFn(v)
+func NewWriter(
+	ctx context.Context,
+	v *viper.Viper,
+	filepathFn func(ctx context.Context, v *viper.Viper) (string, error),
+) (*WriterConfig, error) {
+	configFilepath, err := filepathFn(ctx, v)
 	if err != nil {
 		return nil, fmt.Errorf("error getting filepath: %s", err)
 	}
 
+	logger := log.Extract(ctx)
+
 	// check if file exists
 	if !fileExists(configFilepath) {
-		log.Debugf("it will create missing config file %q", configFilepath)
+		logger.Debugf("it will create missing config file %q", configFilepath)
 
 		f, err := os.Create(configFilepath) // nolint:gosec
 		if err != nil {
@@ -88,7 +95,9 @@ func NewWriter(v *viper.Viper, filepathFn func(v *viper.Viper) (string, error)) 
 }
 
 // Write persists key(s) and value(s) on disk.
-func (w *WriterConfig) Write(section string, keyValue map[string]string) error {
+func (w *WriterConfig) Write(ctx context.Context, section string, keyValue map[string]string) error {
+	logger := log.Extract(ctx)
+
 	if w.File == nil || w.ConfigFilepath == "" {
 		return errors.New("got undefined wakatime config file instance")
 	}
@@ -108,7 +117,7 @@ func (w *WriterConfig) Write(section string, keyValue map[string]string) error {
 		Clock:   &mutexClock{delay: time.Millisecond},
 	})
 	if err != nil {
-		log.Debugf("failed to acquire mutex: %s", err)
+		logger.Debugf("failed to acquire mutex: %s", err)
 	}
 
 	defer func() {
@@ -137,7 +146,7 @@ func ReadInConfig(v *viper.Viper, configFilePath string) error {
 }
 
 // FilePath returns the path for wakatime config file.
-func FilePath(v *viper.Viper) (string, error) {
+func FilePath(ctx context.Context, v *viper.Viper) (string, error) {
 	configFilepath := vipertools.GetString(v, "config")
 	if configFilepath != "" {
 		p, err := homedir.Expand(configFilepath)
@@ -148,7 +157,7 @@ func FilePath(v *viper.Viper) (string, error) {
 		return p, nil
 	}
 
-	home, _, err := WakaHomeDir()
+	home, _, err := WakaHomeDir(ctx)
 	if err != nil {
 		return "", fmt.Errorf("failed getting user's home directory: %s", err)
 	}
@@ -157,7 +166,7 @@ func FilePath(v *viper.Viper) (string, error) {
 }
 
 // ImportFilePath returns the path for import wakatime config file.
-func ImportFilePath(v *viper.Viper) (string, error) {
+func ImportFilePath(_ context.Context, v *viper.Viper) (string, error) {
 	configFilepath := vipertools.GetString(v, "settings.import_cfg")
 	if configFilepath != "" {
 		p, err := homedir.Expand(configFilepath)
@@ -172,7 +181,7 @@ func ImportFilePath(v *viper.Viper) (string, error) {
 }
 
 // InternalFilePath returns the path for the wakatime internal config file.
-func InternalFilePath(v *viper.Viper) (string, error) {
+func InternalFilePath(ctx context.Context, v *viper.Viper) (string, error) {
 	configFilepath := vipertools.GetString(v, "internal-config")
 	if configFilepath != "" {
 		p, err := homedir.Expand(configFilepath)
@@ -183,7 +192,7 @@ func InternalFilePath(v *viper.Viper) (string, error) {
 		return p, nil
 	}
 
-	folder, err := WakaResourcesDir()
+	folder, err := WakaResourcesDir(ctx)
 	if err != nil {
 		return "", fmt.Errorf("failed getting user's home directory: %s", err)
 	}
@@ -192,7 +201,9 @@ func InternalFilePath(v *viper.Viper) (string, error) {
 }
 
 // WakaHomeDir returns the current user's home directory.
-func WakaHomeDir() (string, WakaHomeType, error) {
+func WakaHomeDir(ctx context.Context) (string, WakaHomeType, error) {
+	logger := log.Extract(ctx)
+
 	home, exists := os.LookupEnv("WAKATIME_HOME")
 	if exists && home != "" {
 		home, err := homedir.Expand(home)
@@ -200,12 +211,12 @@ func WakaHomeDir() (string, WakaHomeType, error) {
 			return home, WakaHomeTypeEnvVar, nil
 		}
 
-		log.Warnf("failed to expand WAKATIME_HOME filepath: %s", err)
+		logger.Warnf("failed to expand WAKATIME_HOME filepath: %s", err)
 	}
 
 	home, err := os.UserHomeDir()
 	if err != nil {
-		log.Warnf("failed to get user home dir: %s", err)
+		logger.Warnf("failed to get user home dir: %s", err)
 	}
 
 	if home != "" {
@@ -214,7 +225,7 @@ func WakaHomeDir() (string, WakaHomeType, error) {
 
 	u, err := user.LookupId(strconv.Itoa(os.Getuid()))
 	if err != nil {
-		log.Warnf("failed to user info by userid: %s", err)
+		logger.Warnf("failed to user info by userid: %s", err)
 	}
 
 	if u.HomeDir != "" {
@@ -225,8 +236,8 @@ func WakaHomeDir() (string, WakaHomeType, error) {
 }
 
 // WakaResourcesDir returns the ~/.wakatime/ folder.
-func WakaResourcesDir() (string, error) {
-	home, hometype, err := WakaHomeDir()
+func WakaResourcesDir(ctx context.Context) (string, error) {
+	home, hometype, err := WakaHomeDir(ctx)
 	if err != nil {
 		return "", fmt.Errorf("failed getting user's home directory: %s", err)
 	}

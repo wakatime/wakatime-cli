@@ -1,6 +1,7 @@
 package heartbeat_test
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -51,6 +52,8 @@ func TestSendHeartbeats(t *testing.T) {
 	tmpFile, err := os.CreateTemp(t.TempDir(), "wakatime-config")
 	require.NoError(t, err)
 
+	defer tmpFile.Close()
+
 	subfolders := project.CountSlashesInProjectFolder(projectFolder)
 
 	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
@@ -80,7 +83,12 @@ func TestSendHeartbeats(t *testing.T) {
 		err = json.Unmarshal(body, &[]any{&entity})
 		require.NoError(t, err)
 
-		expectedBodyStr := fmt.Sprintf(string(expectedBody), entity.Entity, subfolders, heartbeat.UserAgent(plugin))
+		expectedBodyStr := fmt.Sprintf(
+			string(expectedBody),
+			entity.Entity,
+			subfolders,
+			heartbeat.UserAgent(context.Background(), plugin),
+		)
 
 		assert.True(t, strings.HasSuffix(entity.Entity, "testdata/main.go"))
 		assert.JSONEq(t, expectedBodyStr, string(body))
@@ -119,17 +127,15 @@ func TestSendHeartbeats(t *testing.T) {
 	offlineQueueFile, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)
 
-	err = cmdheartbeat.SendHeartbeats(v, offlineQueueFile.Name())
+	defer offlineQueueFile.Close()
+
+	err = cmdheartbeat.SendHeartbeats(context.Background(), v, offlineQueueFile.Name())
 	require.NoError(t, err)
 
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
 
 func TestSendHeartbeats_RateLimited(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("Skipping because OS is windows.")
-	}
-
 	resetSingleton(t)
 
 	testServerURL, router, tearDown := setupTestServer()
@@ -148,11 +154,17 @@ func TestSendHeartbeats_RateLimited(t *testing.T) {
 	tmpFile, err := os.CreateTemp(t.TempDir(), "wakatime-config")
 	require.NoError(t, err)
 
+	defer tmpFile.Close()
+
 	tmpFileInternal, err := os.CreateTemp(t.TempDir(), "wakatime-internal-config")
 	require.NoError(t, err)
 
+	defer tmpFileInternal.Close()
+
 	offlineQueueFile, err := os.CreateTemp(t.TempDir(), "offline-queue-file")
 	require.NoError(t, err)
+
+	defer offlineQueueFile.Close()
 
 	v := viper.New()
 	v.SetDefault("sync-offline-activity", 1000)
@@ -178,7 +190,7 @@ func TestSendHeartbeats_RateLimited(t *testing.T) {
 	v.Set("offline-queue-file", offlineQueueFile.Name())
 	v.Set("internal.heartbeats_last_sent_at", time.Now().Add(-time.Minute).Format(time.RFC3339))
 
-	err = cmdheartbeat.SendHeartbeats(v, offlineQueueFile.Name())
+	err = cmdheartbeat.SendHeartbeats(context.Background(), v, offlineQueueFile.Name())
 	require.NoError(t, err)
 
 	assert.Zero(t, numCalls)
@@ -214,7 +226,9 @@ func TestSendHeartbeats_WithFiltering_Exclude(t *testing.T) {
 	offlineQueueFile, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)
 
-	err = cmdheartbeat.SendHeartbeats(v, offlineQueueFile.Name())
+	defer offlineQueueFile.Close()
+
+	err = cmdheartbeat.SendHeartbeats(context.Background(), v, offlineQueueFile.Name())
 	require.NoError(t, err)
 
 	assert.Equal(t, 0, numCalls)
@@ -230,6 +244,8 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 		plugin   = "plugin/0.0.1"
 		numCalls int
 	)
+
+	ctx := context.Background()
 
 	projectFolder, err := filepath.Abs("../..")
 	require.NoError(t, err)
@@ -259,33 +275,35 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 			assert.True(t, strings.HasSuffix(entities[i].Entity, "testdata/main.go"))
 		}
 
+		userAgent := heartbeat.UserAgent(ctx, plugin)
+
 		expectedBodyStr := fmt.Sprintf(
 			string(expectedBody),
-			entities[0].Entity, subfolders, heartbeat.UserAgent(plugin),
-			entities[1].Entity, subfolders, heartbeat.UserAgent(plugin),
-			entities[2].Entity, subfolders, heartbeat.UserAgent(plugin),
-			entities[3].Entity, subfolders, heartbeat.UserAgent(plugin),
-			entities[4].Entity, subfolders, heartbeat.UserAgent(plugin),
-			entities[5].Entity, subfolders, heartbeat.UserAgent(plugin),
-			entities[6].Entity, subfolders, heartbeat.UserAgent(plugin),
-			entities[7].Entity, subfolders, heartbeat.UserAgent(plugin),
-			entities[8].Entity, subfolders, heartbeat.UserAgent(plugin),
-			entities[9].Entity, subfolders, heartbeat.UserAgent(plugin),
-			entities[10].Entity, subfolders, heartbeat.UserAgent(plugin),
-			entities[11].Entity, subfolders, heartbeat.UserAgent(plugin),
-			entities[12].Entity, subfolders, heartbeat.UserAgent(plugin),
-			entities[13].Entity, subfolders, heartbeat.UserAgent(plugin),
-			entities[14].Entity, subfolders, heartbeat.UserAgent(plugin),
-			entities[15].Entity, subfolders, heartbeat.UserAgent(plugin),
-			entities[16].Entity, subfolders, heartbeat.UserAgent(plugin),
-			entities[17].Entity, subfolders, heartbeat.UserAgent(plugin),
-			entities[18].Entity, subfolders, heartbeat.UserAgent(plugin),
-			entities[19].Entity, subfolders, heartbeat.UserAgent(plugin),
-			entities[20].Entity, subfolders, heartbeat.UserAgent(plugin),
-			entities[21].Entity, subfolders, heartbeat.UserAgent(plugin),
-			entities[22].Entity, subfolders, heartbeat.UserAgent(plugin),
-			entities[23].Entity, subfolders, heartbeat.UserAgent(plugin),
-			entities[24].Entity, subfolders, heartbeat.UserAgent(plugin),
+			entities[0].Entity, subfolders, userAgent,
+			entities[1].Entity, subfolders, userAgent,
+			entities[2].Entity, subfolders, userAgent,
+			entities[3].Entity, subfolders, userAgent,
+			entities[4].Entity, subfolders, userAgent,
+			entities[5].Entity, subfolders, userAgent,
+			entities[6].Entity, subfolders, userAgent,
+			entities[7].Entity, subfolders, userAgent,
+			entities[8].Entity, subfolders, userAgent,
+			entities[9].Entity, subfolders, userAgent,
+			entities[10].Entity, subfolders, userAgent,
+			entities[11].Entity, subfolders, userAgent,
+			entities[12].Entity, subfolders, userAgent,
+			entities[13].Entity, subfolders, userAgent,
+			entities[14].Entity, subfolders, userAgent,
+			entities[15].Entity, subfolders, userAgent,
+			entities[16].Entity, subfolders, userAgent,
+			entities[17].Entity, subfolders, userAgent,
+			entities[18].Entity, subfolders, userAgent,
+			entities[19].Entity, subfolders, userAgent,
+			entities[20].Entity, subfolders, userAgent,
+			entities[21].Entity, subfolders, userAgent,
+			entities[22].Entity, subfolders, userAgent,
+			entities[23].Entity, subfolders, userAgent,
+			entities[24].Entity, subfolders, userAgent,
 		)
 
 		assert.JSONEq(t, expectedBodyStr, string(body))
@@ -351,10 +369,10 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 
 	defer offlineQueueFile.Close()
 
-	err = cmdheartbeat.SendHeartbeats(v, offlineQueueFile.Name())
+	err = cmdheartbeat.SendHeartbeats(ctx, v, offlineQueueFile.Name())
 	require.NoError(t, err)
 
-	offlineCount, err := offline.CountHeartbeats(offlineQueueFile.Name())
+	offlineCount, err := offline.CountHeartbeats(ctx, offlineQueueFile.Name())
 	require.NoError(t, err)
 
 	assert.Equal(t, 1, offlineCount)
@@ -372,6 +390,8 @@ func TestSendHeartbeats_ExtraHeartbeats_Sanitize(t *testing.T) {
 		plugin   = "plugin/0.0.1"
 		numCalls int
 	)
+
+	ctx := context.Background()
 
 	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, _ *http.Request) {
 		// send response
@@ -436,10 +456,10 @@ func TestSendHeartbeats_ExtraHeartbeats_Sanitize(t *testing.T) {
 
 	defer offlineQueueFile.Close()
 
-	err = cmdheartbeat.SendHeartbeats(v, offlineQueueFile.Name())
+	err = cmdheartbeat.SendHeartbeats(ctx, v, offlineQueueFile.Name())
 	require.NoError(t, err)
 
-	offlineCount, err := offline.CountHeartbeats(offlineQueueFile.Name())
+	offlineCount, err := offline.CountHeartbeats(ctx, offlineQueueFile.Name())
 	require.NoError(t, err)
 
 	db, err := bolt.Open(offlineQueueFile.Name(), 0600, nil)
@@ -508,6 +528,8 @@ func TestSendHeartbeats_NonExistingEntity(t *testing.T) {
 
 	defer logFile.Close()
 
+	ctx := context.Background()
+
 	v := viper.New()
 	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("api-url", "https://example.org")
@@ -517,23 +539,19 @@ func TestSendHeartbeats_NonExistingEntity(t *testing.T) {
 	v.Set("log-file", logFile.Name())
 	v.Set("verbose", true)
 
-	cmd.SetupLogging(v)
-
-	defer func() {
-		if file, ok := log.Output().(*os.File); ok {
-			_ = file.Sync()
-			file.Close()
-		} else if handler, ok := log.Output().(io.Closer); ok {
-			handler.Close()
-		}
-	}()
-
-	f, err := os.CreateTemp(tmpDir, "")
+	logger, err := cmd.SetupLogging(ctx, v)
 	require.NoError(t, err)
 
-	defer f.Close()
+	defer logger.Flush()
 
-	err = cmdheartbeat.SendHeartbeats(v, f.Name())
+	ctx = log.ToContext(ctx, logger)
+
+	offlineQueueFile, err := os.CreateTemp(tmpDir, "")
+	require.NoError(t, err)
+
+	defer offlineQueueFile.Close()
+
+	err = cmdheartbeat.SendHeartbeats(ctx, v, offlineQueueFile.Name())
 	require.NoError(t, err)
 
 	output, err := io.ReadAll(logFile)
@@ -552,6 +570,8 @@ func TestSendHeartbeats_IsUnsavedEntity(t *testing.T) {
 		plugin   = "plugin/0.0.1"
 		numCalls int
 	)
+
+	ctx := context.Background()
 
 	projectFolder, err := filepath.Abs("../..")
 	require.NoError(t, err)
@@ -577,11 +597,13 @@ func TestSendHeartbeats_IsUnsavedEntity(t *testing.T) {
 		assert.True(t, strings.HasSuffix(entities[1].Entity, "missing-from-extra-heartbeats"))
 		assert.True(t, strings.HasSuffix(entities[2].Entity, "main.go"))
 
+		userAgent := heartbeat.UserAgent(ctx, plugin)
+
 		expectedBodyStr := fmt.Sprintf(
 			string(expectedBody),
-			entities[0].Entity, heartbeat.UserAgent(plugin),
-			entities[1].Entity, heartbeat.UserAgent(plugin),
-			entities[2].Entity, subfolders, heartbeat.UserAgent(plugin),
+			entities[0].Entity, userAgent,
+			entities[1].Entity, userAgent,
+			entities[2].Entity, subfolders, userAgent,
 		)
 
 		assert.JSONEq(t, expectedBodyStr, string(body))
@@ -628,6 +650,8 @@ func TestSendHeartbeats_IsUnsavedEntity(t *testing.T) {
 	logFile, err := os.CreateTemp(tmpDir, "")
 	require.NoError(t, err)
 
+	defer logFile.Close()
+
 	v := viper.New()
 	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("api-url", testServerURL)
@@ -650,24 +674,19 @@ func TestSendHeartbeats_IsUnsavedEntity(t *testing.T) {
 	v.Set("log-file", logFile.Name())
 	v.Set("verbose", true)
 
-	cmd.SetupLogging(v)
+	logger, err := cmd.SetupLogging(ctx, v)
+	require.NoError(t, err)
+
+	defer logger.Flush()
+
+	ctx = log.ToContext(ctx, logger)
 
 	offlineQueueFile, err := os.CreateTemp(tmpDir, "")
 	require.NoError(t, err)
 
-	defer func() {
-		offlineQueueFile.Close()
-		logFile.Close()
+	defer offlineQueueFile.Close()
 
-		if file, ok := log.Output().(*os.File); ok {
-			_ = file.Sync()
-			file.Close()
-		} else if handler, ok := log.Output().(io.Closer); ok {
-			handler.Close()
-		}
-	}()
-
-	err = cmdheartbeat.SendHeartbeats(v, offlineQueueFile.Name())
+	err = cmdheartbeat.SendHeartbeats(ctx, v, offlineQueueFile.Name())
 	require.NoError(t, err)
 
 	output, err := io.ReadAll(logFile)
@@ -686,6 +705,8 @@ func TestSendHeartbeats_NonExistingExtraHeartbeatsEntity(t *testing.T) {
 		plugin   = "plugin/0.0.1"
 		numCalls int
 	)
+
+	ctx := context.Background()
 
 	projectFolder, err := filepath.Abs("../..")
 	require.NoError(t, err)
@@ -710,10 +731,12 @@ func TestSendHeartbeats_NonExistingExtraHeartbeatsEntity(t *testing.T) {
 		assert.True(t, strings.HasSuffix(entities[0].Entity, "testdata/main.go"))
 		assert.True(t, strings.HasSuffix(entities[1].Entity, "testdata/main.py"))
 
+		userAgent := heartbeat.UserAgent(ctx, plugin)
+
 		expectedBodyStr := fmt.Sprintf(
 			string(expectedBody),
-			entities[0].Entity, subfolders, heartbeat.UserAgent(plugin),
-			entities[1].Entity, subfolders, heartbeat.UserAgent(plugin),
+			entities[0].Entity, subfolders, userAgent,
+			entities[1].Entity, subfolders, userAgent,
 		)
 
 		assert.JSONEq(t, expectedBodyStr, string(body))
@@ -760,6 +783,8 @@ func TestSendHeartbeats_NonExistingExtraHeartbeatsEntity(t *testing.T) {
 	logFile, err := os.CreateTemp(tmpDir, "")
 	require.NoError(t, err)
 
+	defer logFile.Close()
+
 	v := viper.New()
 	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("api-url", testServerURL)
@@ -774,24 +799,19 @@ func TestSendHeartbeats_NonExistingExtraHeartbeatsEntity(t *testing.T) {
 	v.Set("log-file", logFile.Name())
 	v.Set("verbose", true)
 
-	cmd.SetupLogging(v)
+	logger, err := cmd.SetupLogging(ctx, v)
+	require.NoError(t, err)
+
+	defer logger.Flush()
+
+	ctx = log.ToContext(ctx, logger)
 
 	offlineQueueFile, err := os.CreateTemp(tmpDir, "")
 	require.NoError(t, err)
 
-	defer func() {
-		offlineQueueFile.Close()
-		logFile.Close()
+	defer offlineQueueFile.Close()
 
-		if file, ok := log.Output().(*os.File); ok {
-			_ = file.Sync()
-			file.Close()
-		} else if handler, ok := log.Output().(io.Closer); ok {
-			handler.Close()
-		}
-	}()
-
-	err = cmdheartbeat.SendHeartbeats(v, offlineQueueFile.Name())
+	err = cmdheartbeat.SendHeartbeats(ctx, v, offlineQueueFile.Name())
 	require.NoError(t, err)
 
 	output, err := io.ReadAll(logFile)
@@ -821,7 +841,7 @@ func TestSendHeartbeats_ErrAuth_UnsetAPIKey(t *testing.T) {
 
 	defer offlineQueueFile.Close()
 
-	err = cmdheartbeat.SendHeartbeats(v, offlineQueueFile.Name())
+	err = cmdheartbeat.SendHeartbeats(context.Background(), v, offlineQueueFile.Name())
 	require.Error(t, err)
 
 	var errauth api.ErrAuth
@@ -851,6 +871,8 @@ func TestSendHeartbeats_ErrBackoff(t *testing.T) {
 		w.WriteHeader(http.StatusInternalServerError)
 	})
 
+	ctx := context.Background()
+
 	tmpDir := t.TempDir()
 
 	logFile, err := os.CreateTemp(tmpDir, "")
@@ -859,7 +881,6 @@ func TestSendHeartbeats_ErrBackoff(t *testing.T) {
 	defer logFile.Close()
 
 	v := viper.New()
-
 	v.Set("internal.backoff_at", time.Now().Add(10*time.Minute).Format(ini.DateFormat))
 	v.Set("internal.backoff_retries", "1")
 	v.SetDefault("sync-offline-activity", 1000)
@@ -869,29 +890,24 @@ func TestSendHeartbeats_ErrBackoff(t *testing.T) {
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("log-file", logFile.Name())
 
-	cmd.SetupLogging(v)
+	logger, err := cmd.SetupLogging(ctx, v)
+	require.NoError(t, err)
 
-	defer func() {
-		if file, ok := log.Output().(*os.File); ok {
-			_ = file.Sync()
-			file.Close()
-		} else if handler, ok := log.Output().(io.Closer); ok {
-			handler.Close()
-		}
-	}()
+	defer logger.Flush()
+
+	ctx = log.ToContext(ctx, logger)
 
 	offlineQueueFile, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)
 
 	defer offlineQueueFile.Close()
 
-	err = cmdheartbeat.SendHeartbeats(v, offlineQueueFile.Name())
-	require.Error(t, err)
-	assert.ErrorAs(t, err, &api.ErrBackoff{})
+	err = cmdheartbeat.SendHeartbeats(ctx, v, offlineQueueFile.Name())
+	require.ErrorAs(t, err, &api.ErrBackoff{})
 
 	assert.Equal(t, 0, numCalls)
 
-	offlineCount, err := offline.CountHeartbeats(offlineQueueFile.Name())
+	offlineCount, err := offline.CountHeartbeats(ctx, offlineQueueFile.Name())
 	require.NoError(t, err)
 
 	assert.Equal(t, 1, offlineCount)
@@ -916,6 +932,8 @@ func TestSendHeartbeats_ErrBackoff_Verbose(t *testing.T) {
 		w.WriteHeader(http.StatusInternalServerError)
 	})
 
+	ctx := context.Background()
+
 	tmpDir := t.TempDir()
 
 	logFile, err := os.CreateTemp(tmpDir, "")
@@ -924,7 +942,6 @@ func TestSendHeartbeats_ErrBackoff_Verbose(t *testing.T) {
 	defer logFile.Close()
 
 	v := viper.New()
-
 	v.Set("internal.backoff_at", time.Now().Add(10*time.Minute).Format(ini.DateFormat))
 	v.Set("internal.backoff_retries", "1")
 	v.SetDefault("sync-offline-activity", 1000)
@@ -935,29 +952,25 @@ func TestSendHeartbeats_ErrBackoff_Verbose(t *testing.T) {
 	v.Set("log-file", logFile.Name())
 	v.Set("verbose", true)
 
-	cmd.SetupLogging(v)
+	logger, err := cmd.SetupLogging(ctx, v)
+	require.NoError(t, err)
 
-	defer func() {
-		if file, ok := log.Output().(*os.File); ok {
-			_ = file.Sync()
-			file.Close()
-		} else if handler, ok := log.Output().(io.Closer); ok {
-			handler.Close()
-		}
-	}()
+	defer logger.Flush()
+
+	ctx = log.ToContext(ctx, logger)
 
 	offlineQueueFile, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)
 
 	defer offlineQueueFile.Close()
 
-	err = cmdheartbeat.SendHeartbeats(v, offlineQueueFile.Name())
+	err = cmdheartbeat.SendHeartbeats(ctx, v, offlineQueueFile.Name())
 	require.Error(t, err)
 	assert.ErrorAs(t, err, &api.ErrBackoff{})
 
 	assert.Equal(t, 0, numCalls)
 
-	offlineCount, err := offline.CountHeartbeats(offlineQueueFile.Name())
+	offlineCount, err := offline.CountHeartbeats(ctx, offlineQueueFile.Name())
 	require.NoError(t, err)
 
 	assert.Equal(t, 1, offlineCount)
@@ -978,6 +991,8 @@ func TestSendHeartbeats_ObfuscateProject(t *testing.T) {
 		plugin   = "plugin/0.0.1"
 		numCalls int
 	)
+
+	ctx := context.Background()
 
 	fp := setupTestGitBasic(t)
 
@@ -1006,10 +1021,10 @@ func TestSendHeartbeats_ObfuscateProject(t *testing.T) {
 		err = json.Unmarshal(body, &[]any{&entity})
 		require.NoError(t, err)
 
-		lines, err := project.ReadFile(filepath.Join(fp, "wakatime-cli", ".wakatime-project"), 1)
+		lines, err := project.ReadFile(ctx, filepath.Join(fp, "wakatime-cli", ".wakatime-project"), 1)
 		require.NoError(t, err)
 
-		expectedBodyStr := fmt.Sprintf(string(expectedBody), entity.Entity, lines[0], heartbeat.UserAgent(plugin))
+		expectedBodyStr := fmt.Sprintf(string(expectedBody), entity.Entity, lines[0], heartbeat.UserAgent(ctx, plugin))
 
 		assert.True(t, strings.HasSuffix(entity.Entity, "src/pkg/file.go"))
 		assert.JSONEq(t, expectedBodyStr, string(body))
@@ -1048,7 +1063,9 @@ func TestSendHeartbeats_ObfuscateProject(t *testing.T) {
 	offlineQueueFile, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)
 
-	err = cmdheartbeat.SendHeartbeats(v, offlineQueueFile.Name())
+	defer offlineQueueFile.Close()
+
+	err = cmdheartbeat.SendHeartbeats(ctx, v, offlineQueueFile.Name())
 	require.NoError(t, err)
 
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
@@ -1064,6 +1081,8 @@ func TestSendHeartbeats_ObfuscateProjectNotBranch(t *testing.T) {
 		plugin   = "plugin/0.0.1"
 		numCalls int
 	)
+
+	ctx := context.Background()
 
 	fp := setupTestGitBasic(t)
 
@@ -1092,10 +1111,10 @@ func TestSendHeartbeats_ObfuscateProjectNotBranch(t *testing.T) {
 		err = json.Unmarshal(body, &[]any{&entity})
 		require.NoError(t, err)
 
-		lines, err := project.ReadFile(filepath.Join(fp, "wakatime-cli", ".wakatime-project"), 1)
+		lines, err := project.ReadFile(ctx, filepath.Join(fp, "wakatime-cli", ".wakatime-project"), 1)
 		require.NoError(t, err)
 
-		expectedBodyStr := fmt.Sprintf(string(expectedBody), entity.Entity, lines[0], heartbeat.UserAgent(plugin))
+		expectedBodyStr := fmt.Sprintf(string(expectedBody), entity.Entity, lines[0], heartbeat.UserAgent(ctx, plugin))
 
 		assert.True(t, strings.HasSuffix(entity.Entity, "src/pkg/file.go"))
 		assert.JSONEq(t, expectedBodyStr, string(body))
@@ -1135,7 +1154,9 @@ func TestSendHeartbeats_ObfuscateProjectNotBranch(t *testing.T) {
 	offlineQueueFile, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)
 
-	err = cmdheartbeat.SendHeartbeats(v, offlineQueueFile.Name())
+	defer offlineQueueFile.Close()
+
+	err = cmdheartbeat.SendHeartbeats(ctx, v, offlineQueueFile.Name())
 	require.NoError(t, err)
 
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
@@ -1177,7 +1198,7 @@ func TestRateLimited_TimeoutZero(t *testing.T) {
 	resetSingleton(t)
 
 	p := cmdheartbeat.RateLimitParams{
-		LastSentAt: time.Time{},
+		Timeout: 0,
 	}
 
 	assert.False(t, cmdheartbeat.RateLimited(p))
@@ -1187,7 +1208,7 @@ func TestRateLimited_LastSentAtZero(t *testing.T) {
 	resetSingleton(t)
 
 	p := cmdheartbeat.RateLimitParams{
-		Timeout: 0,
+		LastSentAt: time.Time{},
 	}
 
 	assert.False(t, cmdheartbeat.RateLimited(p))
@@ -1206,17 +1227,19 @@ func TestResetRateLimit(t *testing.T) {
 
 	defer tmpFileInternal.Close()
 
+	ctx := context.Background()
+
 	v := viper.New()
 	v.Set("config", tmpFileInternal.Name())
 	v.Set("internal-config", tmpFileInternal.Name())
 
-	writer, err := ini.NewWriter(v, func(vp *viper.Viper) (string, error) {
+	writer, err := ini.NewWriter(ctx, v, func(_ context.Context, vp *viper.Viper) (string, error) {
 		assert.Equal(t, v, vp)
 		return tmpFileInternal.Name(), nil
 	})
 	require.NoError(t, err)
 
-	err = cmdheartbeat.ResetRateLimit(v)
+	err = cmdheartbeat.ResetRateLimit(ctx, v)
 	require.NoError(t, err)
 
 	err = writer.File.Reload()

@@ -1,6 +1,7 @@
 package project
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -23,7 +24,8 @@ type Git struct {
 
 // Detect gets information about the git project for a given file.
 // It tries to return a project and branch name.
-func (g Git) Detect() (Result, bool, error) {
+func (g Git) Detect(ctx context.Context) (Result, bool, error) {
+	logger := log.Extract(ctx)
 	fp := g.Filepath
 
 	// Take only the directory
@@ -32,22 +34,22 @@ func (g Git) Detect() (Result, bool, error) {
 	}
 
 	// Find for submodule takes priority if enabled
-	gitdirSubmodule, ok, err := findSubmodule(fp, g.SubmoduleDisabledPatterns)
+	gitdirSubmodule, ok, err := findSubmodule(ctx, fp, g.SubmoduleDisabledPatterns)
 	if err != nil {
 		return Result{}, false, fmt.Errorf("failed to find submodule: %s", err)
 	}
 
 	if ok {
-		project := projectOrRemote(filepath.Base(gitdirSubmodule), g.ProjectFromGitRemote, gitdirSubmodule)
+		project := projectOrRemote(ctx, filepath.Base(gitdirSubmodule), g.ProjectFromGitRemote, gitdirSubmodule)
 
 		// If submodule has a project map, then use it.
-		if result, ok := matchPattern(gitdirSubmodule, g.SubmoduleProjectMapPatterns); ok {
+		if result, ok := matchPattern(ctx, gitdirSubmodule, g.SubmoduleProjectMapPatterns); ok {
 			project = result
 		}
 
-		branch, err := findGitBranch(filepath.Join(gitdirSubmodule, "HEAD"))
+		branch, err := findGitBranch(ctx, filepath.Join(gitdirSubmodule, "HEAD"))
 		if err != nil {
-			log.Errorf(
+			logger.Errorf(
 				"error finding branch from %q: %s",
 				filepath.Join(filepath.Dir(gitdirSubmodule), "HEAD"),
 				err,
@@ -62,13 +64,13 @@ func (g Git) Detect() (Result, bool, error) {
 	}
 
 	// Find for .git file or directory
-	dotGit, found := FindFileOrDirectory(fp, ".git")
+	dotGit, found := FindFileOrDirectory(ctx, fp, ".git")
 	if !found {
 		return Result{}, false, nil
 	}
 
 	// Find for gitdir path
-	gitdir, err := findGitdir(dotGit)
+	gitdir, err := findGitdir(ctx, dotGit)
 	if err != nil {
 		return Result{}, false, fmt.Errorf("error finding gitdir: %s", err)
 	}
@@ -77,7 +79,7 @@ func (g Git) Detect() (Result, bool, error) {
 	// worktree is present but .git folder is not present. In that case, we need to find
 	// for worktree folder.
 	// Find for commondir file
-	commondir, ok, err := findCommondir(gitdir)
+	commondir, ok, err := findCommondir(ctx, gitdir)
 	if err != nil {
 		return Result{}, false, fmt.Errorf("error finding commondir: %s", err)
 	}
@@ -93,11 +95,11 @@ func (g Git) Detect() (Result, bool, error) {
 			dir = commondir
 		}
 
-		project := projectOrRemote(filepath.Base(dir), g.ProjectFromGitRemote, commondir)
+		project := projectOrRemote(ctx, filepath.Base(dir), g.ProjectFromGitRemote, commondir)
 
-		branch, err := findGitBranch(filepath.Join(gitdir, "HEAD"))
+		branch, err := findGitBranch(ctx, filepath.Join(gitdir, "HEAD"))
 		if err != nil {
-			log.Errorf(
+			logger.Errorf(
 				"error finding branch from %q: %s",
 				filepath.Join(filepath.Dir(dotGit), "HEAD"),
 				err,
@@ -113,11 +115,11 @@ func (g Git) Detect() (Result, bool, error) {
 
 	// Otherwise it's only a plain .git file and not a submodule
 	if gitdir != "" && !strings.Contains(gitdir, "modules") {
-		project := projectOrRemote(filepath.Base(filepath.Join(dotGit, "..")), g.ProjectFromGitRemote, gitdir)
+		project := projectOrRemote(ctx, filepath.Base(filepath.Join(dotGit, "..")), g.ProjectFromGitRemote, gitdir)
 
-		branch, err := findGitBranch(filepath.Join(gitdir, "HEAD"))
+		branch, err := findGitBranch(ctx, filepath.Join(gitdir, "HEAD"))
 		if err != nil {
-			log.Errorf(
+			logger.Errorf(
 				"error finding branch from %q: %s",
 				filepath.Join(filepath.Dir(gitdir), "HEAD"),
 				err,
@@ -132,22 +134,22 @@ func (g Git) Detect() (Result, bool, error) {
 	}
 
 	// Find for .git/config file
-	gitConfigFile, found := FindFileOrDirectory(fp, filepath.Join(".git", "config"))
+	gitConfigFile, found := FindFileOrDirectory(ctx, fp, filepath.Join(".git", "config"))
 
 	if found {
 		gitDir := filepath.Dir(gitConfigFile)
 		projectDir := filepath.Join(gitDir, "..")
 
-		branch, err := findGitBranch(filepath.Join(gitDir, "HEAD"))
+		branch, err := findGitBranch(ctx, filepath.Join(gitDir, "HEAD"))
 		if err != nil {
-			log.Errorf(
+			logger.Errorf(
 				"error finding branch from %q: %s",
 				filepath.Join(gitDir, "HEAD"),
 				err,
 			)
 		}
 
-		project := projectOrRemote(filepath.Base(projectDir), g.ProjectFromGitRemote, gitDir)
+		project := projectOrRemote(ctx, filepath.Base(projectDir), g.ProjectFromGitRemote, gitDir)
 
 		return Result{
 			Project: project,
@@ -159,17 +161,17 @@ func (g Git) Detect() (Result, bool, error) {
 	return Result{}, false, nil
 }
 
-func findSubmodule(fp string, patterns []regex.Regex) (string, bool, error) {
-	if !shouldTakeSubmodule(fp, patterns) {
+func findSubmodule(ctx context.Context, fp string, patterns []regex.Regex) (string, bool, error) {
+	if !shouldTakeSubmodule(ctx, fp, patterns) {
 		return "", false, nil
 	}
 
-	gitConfigFile, found := FindFileOrDirectory(fp, ".git")
+	gitConfigFile, found := FindFileOrDirectory(ctx, fp, ".git")
 	if !found {
 		return "", false, nil
 	}
 
-	gitdir, err := findGitdir(gitConfigFile)
+	gitdir, err := findGitdir(ctx, gitConfigFile)
 	if err != nil {
 		return "", false,
 			fmt.Errorf("error finding gitdir for submodule: %s", err)
@@ -184,9 +186,9 @@ func findSubmodule(fp string, patterns []regex.Regex) (string, bool, error) {
 
 // shouldTakeSubmodule checks a filepath against the passed in regex patterns to determine,
 // if submodule filepath should be taken.
-func shouldTakeSubmodule(fp string, patterns []regex.Regex) bool {
+func shouldTakeSubmodule(ctx context.Context, fp string, patterns []regex.Regex) bool {
 	for _, p := range patterns {
-		if p.MatchString(fp) {
+		if p.MatchString(ctx, fp) {
 			return false
 		}
 	}
@@ -194,8 +196,8 @@ func shouldTakeSubmodule(fp string, patterns []regex.Regex) bool {
 	return true
 }
 
-func findGitdir(fp string) (string, error) {
-	lines, err := ReadFile(fp, 1)
+func findGitdir(ctx context.Context, fp string) (string, error) {
+	lines, err := ReadFile(ctx, fp, 1)
 	if err != nil {
 		return "", fmt.Errorf("failed while opening file %q: %s", fp, err)
 	}
@@ -222,7 +224,7 @@ func resolveGitdir(fp, gitdir string) (string, error) {
 	return "", nil
 }
 
-func findCommondir(fp string) (string, bool, error) {
+func findCommondir(ctx context.Context, fp string) (string, bool, error) {
 	if fp == "" {
 		return "", false, nil
 	}
@@ -232,14 +234,14 @@ func findCommondir(fp string) (string, bool, error) {
 	}
 
 	if fileOrDirExists(filepath.Join(fp, "commondir")) {
-		return resolveCommondir(fp)
+		return resolveCommondir(ctx, fp)
 	}
 
 	return "", false, nil
 }
 
-func resolveCommondir(fp string) (string, bool, error) {
-	lines, err := ReadFile(filepath.Join(fp, "commondir"), 1)
+func resolveCommondir(ctx context.Context, fp string) (string, bool, error) {
+	lines, err := ReadFile(ctx, filepath.Join(fp, "commondir"), 1)
 	if err != nil {
 		return "", false,
 			fmt.Errorf("failed while opening file %q: %s", fp, err)
@@ -258,16 +260,17 @@ func resolveCommondir(fp string) (string, bool, error) {
 	return gitdir, true, nil
 }
 
-func projectOrRemote(projectName string, projectFromGitRemote bool, dotGitFolder string) string {
+func projectOrRemote(ctx context.Context, projectName string, projectFromGitRemote bool, dotGitFolder string) string {
 	if !projectFromGitRemote {
 		return projectName
 	}
 
+	logger := log.Extract(ctx)
 	configFile := filepath.Join(dotGitFolder, "config")
 
-	remote, err := findGitRemote(configFile)
+	remote, err := findGitRemote(ctx, configFile)
 	if err != nil {
-		log.Errorf("error finding git remote from %q: %s", configFile, err)
+		logger.Errorf("error finding git remote from %q: %s", configFile, err)
 
 		return projectName
 	}
@@ -279,20 +282,22 @@ func projectOrRemote(projectName string, projectFromGitRemote bool, dotGitFolder
 	return projectName
 }
 
-func findGitBranch(fp string) (string, error) {
+func findGitBranch(ctx context.Context, fp string) (string, error) {
 	if !fileOrDirExists(fp) {
 		return "master", nil
 	}
 
-	lines, err := ReadFile(fp, 1)
+	lines, err := ReadFile(ctx, fp, 1)
 	if err != nil {
 		return "", fmt.Errorf("failed while opening file %q: %s", fp, err)
 	}
 
+	logger := log.Extract(ctx)
+
 	if len(lines) > 0 && strings.HasPrefix(strings.TrimSpace(lines[0]), "ref: ") {
 		parts := strings.SplitN(lines[0], "/", 3)
 		if len(parts) < 3 {
-			log.Warnf("invalid branch from %q: %s", fp, lines[0])
+			logger.Warnf("invalid branch from %q: %s", fp, lines[0])
 
 			return "", nil
 		}
@@ -303,12 +308,12 @@ func findGitBranch(fp string) (string, error) {
 	return "", nil
 }
 
-func findGitRemote(fp string) (string, error) {
+func findGitRemote(ctx context.Context, fp string) (string, error) {
 	if !fileOrDirExists(fp) {
 		return "", nil
 	}
 
-	lines, err := ReadFile(fp, 1000)
+	lines, err := ReadFile(ctx, fp, 1000)
 	if err != nil {
 		return "", fmt.Errorf("failed while opening file %q: %s", fp, err)
 	}

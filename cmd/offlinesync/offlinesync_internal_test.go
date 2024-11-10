@@ -1,6 +1,7 @@
 package offlinesync
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -101,7 +102,7 @@ func TestSyncOfflineActivityLegacy(t *testing.T) {
 	v.Set("sync-offline-activity", 100)
 	v.Set("plugin", plugin)
 
-	err = syncOfflineActivityLegacy(v, f.Name())
+	err = syncOfflineActivityLegacy(context.Background(), v, f.Name())
 	require.NoError(t, err)
 
 	assert.NoFileExists(t, f.Name())

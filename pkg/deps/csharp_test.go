@@ -1,6 +1,7 @@
 package deps_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/wakatime/wakatime-cli/pkg/deps"
@@ -12,7 +13,7 @@ import (
 func TestParserCSharp_Parse(t *testing.T) {
 	parser := deps.ParserCSharp{}
 
-	dependencies, err := parser.Parse("testdata/csharp.cs")
+	dependencies, err := parser.Parse(context.Background(), "testdata/csharp.cs")
 	require.NoError(t, err)
 
 	assert.Equal(t, []string{

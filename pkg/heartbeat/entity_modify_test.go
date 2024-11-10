@@ -1,6 +1,7 @@
 package heartbeat_test
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -19,7 +20,7 @@ func TestWithEntityModifier_XCodePlayground(t *testing.T) {
 
 	opt := heartbeat.WithEntityModifier()
 
-	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+	handle := opt(func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		assert.Equal(t, []heartbeat.Heartbeat{
 			{
 				Entity:     filepath.Join(tmpDir, "wakatime.playground", "Contents.swift"),
@@ -34,7 +35,7 @@ func TestWithEntityModifier_XCodePlayground(t *testing.T) {
 		}, nil
 	})
 
-	result, err := handle([]heartbeat.Heartbeat{
+	result, err := handle(context.Background(), []heartbeat.Heartbeat{
 		{
 			Entity:     filepath.Join(tmpDir, "wakatime.playground"),
 			EntityType: heartbeat.FileType,

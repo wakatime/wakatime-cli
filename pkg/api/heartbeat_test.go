@@ -1,6 +1,7 @@
 package api_test
 
 import (
+	"context"
 	"errors"
 	"io"
 	"net/http"
@@ -55,7 +56,7 @@ func TestClient_SendHeartbeats(t *testing.T) {
 			})
 
 			c := api.NewClient(url)
-			results, err := c.SendHeartbeats(testHeartbeats())
+			results, err := c.SendHeartbeats(context.Background(), testHeartbeats())
 			require.NoError(t, err)
 
 			// check via assert.Equal on complete slice here, to assert exact order of results,
@@ -127,7 +128,7 @@ func TestClient_SendHeartbeats_MultipleApiKey(t *testing.T) {
 	hh := testHeartbeats()
 	hh[1].APIKey = "00000000-0000-4000-8000-000000000001"
 
-	_, err := c.SendHeartbeats(hh)
+	_, err := c.SendHeartbeats(context.Background(), hh)
 	require.NoError(t, err)
 
 	assert.Eventually(t, func() bool { return numCalls == 2 }, time.Second, 50*time.Millisecond)
@@ -146,7 +147,8 @@ func TestClient_SendHeartbeats_Err(t *testing.T) {
 	})
 
 	c := api.NewClient(url)
-	_, err := c.SendHeartbeats(testHeartbeats())
+
+	_, err := c.SendHeartbeats(context.Background(), testHeartbeats())
 
 	var errapi api.Err
 
@@ -168,7 +170,8 @@ func TestClient_SendHeartbeats_ErrAuth(t *testing.T) {
 	})
 
 	c := api.NewClient(url)
-	_, err := c.SendHeartbeats(testHeartbeats())
+
+	_, err := c.SendHeartbeats(context.Background(), testHeartbeats())
 
 	var errauth api.ErrAuth
 
@@ -190,7 +193,8 @@ func TestClient_SendHeartbeats_ErrBadRequest(t *testing.T) {
 	})
 
 	c := api.NewClient(url)
-	_, err := c.SendHeartbeats(testHeartbeats())
+
+	_, err := c.SendHeartbeats(context.Background(), testHeartbeats())
 
 	var errbadRequest api.ErrBadRequest
 
@@ -201,7 +205,8 @@ func TestClient_SendHeartbeats_ErrBadRequest(t *testing.T) {
 
 func TestClient_SendHeartbeats_InvalidUrl(t *testing.T) {
 	c := api.NewClient("invalid-url")
-	_, err := c.SendHeartbeats(testHeartbeats())
+
+	_, err := c.SendHeartbeats(context.Background(), testHeartbeats())
 
 	var apierr api.Err
 
@@ -212,7 +217,7 @@ func TestParseHeartbeatResponses(t *testing.T) {
 	data, err := os.ReadFile("testdata/api_heartbeats_response.json")
 	require.NoError(t, err)
 
-	results, err := api.ParseHeartbeatResponses(data)
+	results, err := api.ParseHeartbeatResponses(context.Background(), data)
 	require.NoError(t, err)
 
 	// check via assert.Equal on complete slice here, to assert exact order of results,
@@ -260,7 +265,7 @@ func TestParseHeartbeatResponses_Error(t *testing.T) {
 	data, err := os.ReadFile("testdata/api_heartbeats_response_error.json")
 	require.NoError(t, err)
 
-	results, err := api.ParseHeartbeatResponses(data)
+	results, err := api.ParseHeartbeatResponses(context.Background(), data)
 	require.NoError(t, err)
 
 	// asserting here the exact order of results, which is assumed to exactly match the request order
@@ -281,7 +286,7 @@ func TestParseHeartbeatResponses_Errors(t *testing.T) {
 	data, err := os.ReadFile("testdata/api_heartbeats_response_errors.json")
 	require.NoError(t, err)
 
-	results, err := api.ParseHeartbeatResponses(data)
+	results, err := api.ParseHeartbeatResponses(context.Background(), data)
 	require.NoError(t, err)
 
 	// asserting here the exact order of results, which is assumed to exactly match the request order

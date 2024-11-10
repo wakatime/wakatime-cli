@@ -1,6 +1,7 @@
 package deps
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"strings"
@@ -31,7 +32,9 @@ type ParserScala struct {
 }
 
 // Parse parses dependencies from Scala file content using the chroma Scala lexer.
-func (p *ParserScala) Parse(filepath string) ([]string, error) {
+func (p *ParserScala) Parse(ctx context.Context, filepath string) ([]string, error) {
+	logger := log.Extract(ctx)
+
 	reader, err := file.OpenNoLock(filepath) // nolint:gosec
 	if err != nil {
 		return nil, fmt.Errorf("failed to open file %q: %s", filepath, err)
@@ -39,7 +42,7 @@ func (p *ParserScala) Parse(filepath string) ([]string, error) {
 
 	defer func() {
 		if err := reader.Close(); err != nil {
-			log.Debugf("failed to close file: %s", err)
+			logger.Debugf("failed to close file: %s", err)
 		}
 	}()
 

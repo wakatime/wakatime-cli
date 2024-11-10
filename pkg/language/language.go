@@ -1,6 +1,7 @@
 package language
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -21,8 +22,9 @@ type Config struct {
 // language info to heartbeats of entity type 'file'.
 func WithDetection(config Config) heartbeat.HandleOption {
 	return func(next heartbeat.Handle) heartbeat.Handle {
-		return func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
-			log.Debugln("execute language detection")
+		return func(ctx context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+			logger := log.Extract(ctx)
+			logger.Debugln("execute language detection")
 
 			for n, h := range hh {
 				if hh[n].Language != nil {
@@ -35,7 +37,7 @@ func WithDetection(config Config) heartbeat.HandleOption {
 					filepath = h.LocalFile
 				}
 
-				language, err := Detect(filepath, config.GuessLanguage)
+				language, err := Detect(ctx, filepath, config.GuessLanguage)
 				if err != nil && hh[n].LanguageAlternate != "" {
 					hh[n].Language = heartbeat.PointerTo(hh[n].LanguageAlternate)
 
@@ -43,7 +45,7 @@ func WithDetection(config Config) heartbeat.HandleOption {
 				}
 
 				if err != nil {
-					log.Debugf("failed to detect language on file entity %q: %s", h.Entity, err)
+					logger.Debugf("failed to detect language on file entity %q: %s", h.Entity, err)
 
 					continue
 				}
@@ -51,21 +53,21 @@ func WithDetection(config Config) heartbeat.HandleOption {
 				hh[n].Language = heartbeat.PointerTo(language.String())
 			}
 
-			return next(hh)
+			return next(ctx, hh)
 		}
 	}
 }
 
 // Detect detects the language of a specific file. If guessLanguage is true,
 // Chroma will be used to detect a language from the file contents.
-func Detect(fp string, guessLanguage bool) (heartbeat.Language, error) {
-	if language, ok := detectSpecialCases(fp); ok {
+func Detect(ctx context.Context, fp string, guessLanguage bool) (heartbeat.Language, error) {
+	if language, ok := detectSpecialCases(ctx, fp); ok {
 		return language, nil
 	}
 
 	var language heartbeat.Language
 
-	languageChroma, weight, ok := detectChromaCustomized(fp, guessLanguage)
+	languageChroma, weight, ok := detectChromaCustomized(ctx, fp, guessLanguage)
 	if ok {
 		language = languageChroma
 	}
@@ -84,7 +86,7 @@ func Detect(fp string, guessLanguage bool) (heartbeat.Language, error) {
 }
 
 // detectSpecialCases detects the language by file extension for some special cases.
-func detectSpecialCases(fp string) (heartbeat.Language, bool) {
+func detectSpecialCases(ctx context.Context, fp string) (heartbeat.Language, bool) {
 	dir, file := filepath.Split(fp)
 	ext := strings.ToLower(filepath.Ext(file))
 
@@ -109,11 +111,11 @@ func detectSpecialCases(fp string) (heartbeat.Language, bool) {
 			return heartbeat.LanguageObjectiveCPP, true
 		}
 
-		if folderContainsCPPFiles(dir) {
+		if folderContainsCPPFiles(ctx, dir) {
 			return heartbeat.LanguageCPP, true
 		}
 
-		if folderContainsCFiles(dir) {
+		if folderContainsCFiles(ctx, dir) {
 			return heartbeat.LanguageC, true
 		}
 	}
@@ -130,10 +132,12 @@ func detectSpecialCases(fp string) (heartbeat.Language, bool) {
 }
 
 // folderContainsCFiles returns true, if filder contains c files.
-func folderContainsCFiles(dir string) bool {
+func folderContainsCFiles(ctx context.Context, dir string) bool {
+	logger := log.Extract(ctx)
+
 	extensions, err := loadFolderExtensions(dir)
 	if err != nil {
-		log.Warnf("failed loading folder extensions: %s", err)
+		logger.Warnf("failed loading folder extensions: %s", err)
 		return false
 	}
 
@@ -147,10 +151,12 @@ func folderContainsCFiles(dir string) bool {
 }
 
 // folderContainsCFiles returns true, if filder contains c++ files.
-func folderContainsCPPFiles(dir string) bool {
+func folderContainsCPPFiles(ctx context.Context, dir string) bool {
+	logger := log.Extract(ctx)
+
 	extensions, err := loadFolderExtensions(dir)
 	if err != nil {
-		log.Warnf("failed loading folder extensions: %s", err)
+		logger.Warnf("failed loading folder extensions: %s", err)
 		return false
 	}
 

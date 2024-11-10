@@ -1,6 +1,7 @@
 package offline_test
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -15,6 +16,8 @@ import (
 func TestQueueFilepathLegacy(t *testing.T) {
 	home, err := os.UserHomeDir()
 	require.NoError(t, err)
+
+	ctx := context.Background()
 
 	tests := map[string]struct {
 		ViperValue string
@@ -42,7 +45,7 @@ func TestQueueFilepathLegacy(t *testing.T) {
 			defer os.Unsetenv("WAKATIME_HOME")
 
 			v := viper.New()
-			queueFilepath, err := offline.QueueFilepathLegacy(v)
+			queueFilepath, err := offline.QueueFilepathLegacy(ctx, v)
 			require.NoError(t, err)
 
 			assert.Equal(t, test.Expected, queueFilepath)

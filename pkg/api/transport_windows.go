@@ -3,6 +3,7 @@
 package api
 
 import (
+	"context"
 	"crypto/x509"
 	"runtime/debug"
 	"syscall"
@@ -11,10 +12,12 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/log"
 )
 
-func loadSystemRoots() (*x509.CertPool, error) {
+func loadSystemRoots(ctx context.Context) (*x509.CertPool, error) {
 	defer func() {
+		logger := log.Extract(ctx)
+
 		if err := recover(); err != nil {
-			log.Errorf("failed to load system roots on Windows. panicked: %v. Stack: %s", err, string(debug.Stack()))
+			logger.Errorf("failed to load system roots on Windows. panicked: %v. Stack: %s", err, string(debug.Stack()))
 		}
 	}()
 

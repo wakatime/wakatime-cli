@@ -167,11 +167,13 @@ type (
 
 // LoadAPIParams loads API params from viper.Viper instance. Returns ErrAuth
 // if failed to retrieve api key.
-func LoadAPIParams(v *viper.Viper) (API, error) {
-	apiKey, err := LoadAPIKey(v)
+func LoadAPIParams(ctx context.Context, v *viper.Viper) (API, error) {
+	apiKey, err := LoadAPIKey(ctx, v)
 	if err != nil {
 		return API{}, err
 	}
+
+	logger := log.Extract(ctx)
 
 	var apiKeyPatterns []apikey.MapPattern
 
@@ -185,7 +187,7 @@ func LoadAPIParams(v *viper.Viper) (API, error) {
 
 		compiled, err := regex.Compile(k)
 		if err != nil {
-			log.Warnf("failed to compile project_api_key regex pattern %q", k)
+			logger.Warnf("failed to compile project_api_key regex pattern %q", k)
 			continue
 		}
 
@@ -228,7 +230,7 @@ func LoadAPIParams(v *viper.Viper) (API, error) {
 		parsed, err := safeTimeParse(ini.DateFormat, backoffAtStr)
 		// nolint:gocritic
 		if err != nil {
-			log.Warnf("failed to parse backoff_at: %s", err)
+			logger.Warnf("failed to parse backoff_at: %s", err)
 		} else if parsed.After(time.Now()) {
 			backoffAt = time.Now()
 		} else {
@@ -242,7 +244,7 @@ func LoadAPIParams(v *viper.Viper) (API, error) {
 	if backoffRetriesStr != "" {
 		parsed, err := strconv.Atoi(backoffRetriesStr)
 		if err != nil {
-			log.Warnf("failed to parse backoff_retries: %s", err)
+			logger.Warnf("failed to parse backoff_retries: %s", err)
 		} else {
 			backoffRetries = parsed
 		}
@@ -258,7 +260,7 @@ func LoadAPIParams(v *viper.Viper) (API, error) {
 	if hostname == "" {
 		hostname, err = os.Hostname()
 		if err != nil {
-			log.Warnf("failed to retrieve hostname from system: %s", err)
+			logger.Warnf("failed to retrieve hostname from system: %s", err)
 		}
 	}
 
@@ -277,7 +279,7 @@ func LoadAPIParams(v *viper.Viper) (API, error) {
 
 	proxyEnvURL, err := proxyEnv.ProxyFunc()(apiURL)
 	if err != nil {
-		log.Warnf("failed to get proxy url from environment for api url: %s", err)
+		logger.Warnf("failed to get proxy url from environment for api url: %s", err)
 	}
 
 	// try use proxy from environment if no custom proxy is set
@@ -315,7 +317,7 @@ func LoadAPIParams(v *viper.Viper) (API, error) {
 }
 
 // LoadAPIKey loads a valid default WakaTime API Key or returns an error.
-func LoadAPIKey(v *viper.Viper) (string, error) {
+func LoadAPIKey(ctx context.Context, v *viper.Viper) (string, error) {
 	apiKey := vipertools.FirstNonEmptyString(v, "key", "settings.api_key", "settings.apikey")
 	if apiKey != "" {
 		if !apiKeyRegex.MatchString(apiKey) {
@@ -330,12 +332,14 @@ func LoadAPIKey(v *viper.Viper) (string, error) {
 		return "", api.ErrAuth{Err: fmt.Errorf("failed to read api key from vault: %s", err)}
 	}
 
+	logger := log.Extract(ctx)
+
 	if apiKey != "" {
 		if !apiKeyRegex.MatchString(apiKey) {
 			return "", api.ErrAuth{Err: errors.New("invalid api key format")}
 		}
 
-		log.Debugln("loaded api key from vault")
+		logger.Debugln("loaded api key from vault")
 
 		return apiKey, nil
 	}
@@ -346,7 +350,7 @@ func LoadAPIKey(v *viper.Viper) (string, error) {
 			return "", api.ErrAuth{Err: errors.New("invalid api key format")}
 		}
 
-		log.Debugln("loaded api key from env var")
+		logger.Debugln("loaded api key from env var")
 
 		return apiKey, nil
 	}
@@ -359,7 +363,7 @@ func LoadAPIKey(v *viper.Viper) (string, error) {
 }
 
 // LoadHeartbeatParams loads heartbeats params from viper.Viper instance.
-func LoadHeartbeatParams(v *viper.Viper) (Heartbeat, error) {
+func LoadHeartbeatParams(ctx context.Context, v *viper.Viper) (Heartbeat, error) {
 	var category heartbeat.Category
 
 	if categoryStr := vipertools.GetString(v, "category"); categoryStr != "" {
@@ -400,7 +404,7 @@ func LoadHeartbeatParams(v *viper.Viper) (Heartbeat, error) {
 	var extraHeartbeats []heartbeat.Heartbeat
 
 	if v.GetBool("extra-heartbeats") {
-		extraHeartbeats = readExtraHeartbeats()
+		extraHeartbeats = readExtraHeartbeats(ctx)
 	}
 
 	var isWrite *bool
@@ -433,7 +437,7 @@ func LoadHeartbeatParams(v *viper.Viper) (Heartbeat, error) {
 		timeSecs = float64(time.Now().UnixNano()) / 1000000000
 	}
 
-	projectParams, err := loadProjectParams(v)
+	projectParams, err := loadProjectParams(ctx, v)
 	if err != nil {
 		return Heartbeat{}, fmt.Errorf("failed to parse project params: %s", err)
 	}
@@ -465,16 +469,18 @@ func LoadHeartbeatParams(v *viper.Viper) (Heartbeat, error) {
 		LinesInFile:       linesInFile,
 		LocalFile:         vipertools.GetString(v, "local-file"),
 		Time:              timeSecs,
-		Filter:            loadFilterParams(v),
+		Filter:            loadFilterParams(ctx, v),
 		Project:           projectParams,
 		Sanitize:          sanitizeParams,
 	}, nil
 }
 
-func loadFilterParams(v *viper.Viper) FilterParams {
+func loadFilterParams(ctx context.Context, v *viper.Viper) FilterParams {
 	exclude := v.GetStringSlice("exclude")
 	exclude = append(exclude, v.GetStringSlice("settings.exclude")...)
 	exclude = append(exclude, v.GetStringSlice("settings.ignore")...)
+
+	logger := log.Extract(ctx)
 
 	var excludePatterns []regex.Regex
 
@@ -486,7 +492,7 @@ func loadFilterParams(v *viper.Viper) FilterParams {
 
 		compiled, err := regex.Compile(s)
 		if err != nil {
-			log.Warnf("failed to compile exclude regex pattern %q", s)
+			logger.Warnf("failed to compile exclude regex pattern %q", s)
 			continue
 		}
 
@@ -506,7 +512,7 @@ func loadFilterParams(v *viper.Viper) FilterParams {
 
 		compiled, err := regex.Compile(s)
 		if err != nil {
-			log.Warnf("failed to compile include regex pattern %q", s)
+			logger.Warnf("failed to compile include regex pattern %q", s)
 			continue
 		}
 
@@ -595,7 +601,7 @@ func loadSanitizeParams(v *viper.Viper) (SanitizeParams, error) {
 	}, nil
 }
 
-func loadProjectParams(v *viper.Viper) (ProjectParams, error) {
+func loadProjectParams(ctx context.Context, v *viper.Viper) (ProjectParams, error) {
 	submodulesDisabled, err := parseBoolOrRegexList(vipertools.GetString(v, "git.submodules_disabled"))
 	if err != nil {
 		return ProjectParams{}, fmt.Errorf(
@@ -607,15 +613,17 @@ func loadProjectParams(v *viper.Viper) (ProjectParams, error) {
 	return ProjectParams{
 		Alternate:            vipertools.GetString(v, "alternate-project"),
 		BranchAlternate:      vipertools.GetString(v, "alternate-branch"),
-		MapPatterns:          loadProjectMapPatterns(v, "projectmap"),
+		MapPatterns:          loadProjectMapPatterns(ctx, v, "projectmap"),
 		Override:             vipertools.GetString(v, "project"),
 		ProjectFromGitRemote: v.GetBool("git.project_from_git_remote"),
 		SubmodulesDisabled:   submodulesDisabled,
-		SubmoduleMapPatterns: loadProjectMapPatterns(v, "git_submodule_projectmap"),
+		SubmoduleMapPatterns: loadProjectMapPatterns(ctx, v, "git_submodule_projectmap"),
 	}, nil
 }
 
-func loadProjectMapPatterns(v *viper.Viper, prefix string) []project.MapPattern {
+func loadProjectMapPatterns(ctx context.Context, v *viper.Viper, prefix string) []project.MapPattern {
+	logger := log.Extract(ctx)
+
 	var mapPatterns []project.MapPattern
 
 	values := vipertools.GetStringMapString(v, prefix)
@@ -628,7 +636,7 @@ func loadProjectMapPatterns(v *viper.Viper, prefix string) []project.MapPattern 
 
 		compiled, err := regex.Compile(k)
 		if err != nil {
-			log.Warnf("failed to compile projectmap regex pattern %q", k)
+			logger.Warnf("failed to compile projectmap regex pattern %q", k)
 			continue
 		}
 
@@ -642,22 +650,24 @@ func loadProjectMapPatterns(v *viper.Viper, prefix string) []project.MapPattern 
 }
 
 // LoadOfflineParams loads offline params from viper.Viper instance.
-func LoadOfflineParams(v *viper.Viper) Offline {
+func LoadOfflineParams(ctx context.Context, v *viper.Viper) Offline {
 	disabled := vipertools.FirstNonEmptyBool(v, "disable-offline", "disableoffline")
 	if b := v.GetBool("settings.offline"); v.IsSet("settings.offline") {
 		disabled = !b
 	}
 
+	logger := log.Extract(ctx)
+
 	rateLimit, _ := vipertools.FirstNonEmptyInt(v, "heartbeat-rate-limit-seconds", "settings.heartbeat_rate_limit_seconds")
 	if rateLimit < 0 {
-		log.Warnf("argument --heartbeat-rate-limit-seconds must be zero or a positive integer number, got %d", rateLimit)
+		logger.Warnf("argument --heartbeat-rate-limit-seconds must be zero or a positive integer number, got %d", rateLimit)
 
 		rateLimit = 0
 	}
 
 	syncMax := v.GetInt("sync-offline-activity")
 	if syncMax < 0 {
-		log.Warnf("argument --sync-offline-activity must be zero or a positive integer number, got %d", syncMax)
+		logger.Warnf("argument --sync-offline-activity must be zero or a positive integer number, got %d", syncMax)
 
 		syncMax = 0
 	}
@@ -669,7 +679,7 @@ func LoadOfflineParams(v *viper.Viper) Offline {
 		parsed, err := safeTimeParse(ini.DateFormat, lastSentAtStr)
 		// nolint:gocritic
 		if err != nil {
-			log.Warnf("failed to parse heartbeats_last_sent_at: %s", err)
+			logger.Warnf("failed to parse heartbeats_last_sent_at: %s", err)
 		} else if parsed.After(time.Now()) {
 			lastSentAt = time.Now()
 		} else {
@@ -767,18 +777,20 @@ var extraHeartbeatsCache []heartbeat.Heartbeat // nolint:gochecknoglobals
 // Once prevents reading from stdin twice.
 var Once sync.Once // nolint:gochecknoglobals
 
-func readExtraHeartbeats() []heartbeat.Heartbeat {
+func readExtraHeartbeats(ctx context.Context) []heartbeat.Heartbeat {
 	Once.Do(func() {
+		logger := log.Extract(ctx)
+
 		in := bufio.NewReader(os.Stdin)
 
 		input, err := in.ReadString('\n')
 		if err != nil && err != io.EOF {
-			log.Debugf("failed to read data from stdin: %s", err)
+			logger.Debugf("failed to read data from stdin: %s", err)
 		}
 
-		heartbeats, err := parseExtraHeartbeats(input)
+		heartbeats, err := parseExtraHeartbeats(ctx, input)
 		if err != nil {
-			log.Errorf("failed parsing: %s", err)
+			logger.Errorf("failed parsing: %s", err)
 		}
 
 		extraHeartbeatsCache = heartbeats
@@ -787,9 +799,11 @@ func readExtraHeartbeats() []heartbeat.Heartbeat {
 	return extraHeartbeatsCache
 }
 
-func parseExtraHeartbeats(data string) ([]heartbeat.Heartbeat, error) {
+func parseExtraHeartbeats(ctx context.Context, data string) ([]heartbeat.Heartbeat, error) {
+	logger := log.Extract(ctx)
+
 	if data == "" {
-		log.Debugln("skipping extra heartbeats, as no data was provided")
+		logger.Debugln("skipping extra heartbeats, as no data was provided")
 
 		return nil, nil
 	}
@@ -1149,9 +1163,9 @@ func parseBoolOrRegexList(s string) ([]regex.Regex, error) {
 	switch {
 	case s == "":
 	case strings.ToLower(s) == "false":
-		patterns = []regex.Regex{matchNoneRegex}
+		patterns = []regex.Regex{regex.NewRegexpWrap(matchNoneRegex)}
 	case strings.ToLower(s) == "true":
-		patterns = []regex.Regex{matchAllRegex}
+		patterns = []regex.Regex{regex.NewRegexpWrap(matchAllRegex)}
 	default:
 		splitted := strings.Split(s, "\n")
 		for _, s := range splitted {

@@ -3,9 +3,10 @@
 package api
 
 import (
+	"context"
 	"crypto/x509"
 )
 
-func loadSystemRoots() (*x509.CertPool, error) {
+func loadSystemRoots(_ context.Context) (*x509.CertPool, error) {
 	return x509.SystemCertPool()
 }

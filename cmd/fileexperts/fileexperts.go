@@ -1,6 +1,7 @@
 package fileexperts
 
 import (
+	"context"
 	"fmt"
 
 	apicmd "github.com/wakatime/wakatime-cli/cmd/api"
@@ -18,8 +19,8 @@ import (
 )
 
 // Run executes the file-experts command.
-func Run(v *viper.Viper) (int, error) {
-	output, err := FileExperts(v)
+func Run(ctx context.Context, v *viper.Viper) (int, error) {
+	output, err := FileExperts(ctx, v)
 	if err != nil {
 		if errwaka, ok := err.(wakaerror.Error); ok {
 			return errwaka.ExitCode(), fmt.Errorf("file experts fetch failed: %s", errwaka.Message())
@@ -31,29 +32,31 @@ func Run(v *viper.Viper) (int, error) {
 		)
 	}
 
-	log.Debugln("successfully fetched file experts")
+	logger := log.Extract(ctx)
+	logger.Debugln("successfully fetched file experts")
+
 	fmt.Println(output)
 
 	return exitcode.Success, nil
 }
 
 // FileExperts returns a rendered file experts of todays coding activity.
-func FileExperts(v *viper.Viper) (string, error) {
-	params, err := LoadParams(v)
+func FileExperts(ctx context.Context, v *viper.Viper) (string, error) {
+	params, err := LoadParams(ctx, v)
 	if err != nil {
 		return "", fmt.Errorf("failed to load command parameters: %w", err)
 	}
 
 	handleOpts := initHandleOptions(params)
 
-	apiClient, err := apicmd.NewClientWithoutAuth(params.API)
+	apiClient, err := apicmd.NewClientWithoutAuth(ctx, params.API)
 	if err != nil {
 		return "", fmt.Errorf("failed to initialize api client: %w", err)
 	}
 
 	handle := fileexperts.NewHandle(apiClient, handleOpts...)
 
-	results, err := handle([]heartbeat.Heartbeat{{Entity: params.Heartbeat.Entity}})
+	results, err := handle(ctx, []heartbeat.Heartbeat{{Entity: params.Heartbeat.Entity}})
 	if err != nil {
 		return "", err
 	}
@@ -75,17 +78,17 @@ func FileExperts(v *viper.Viper) (string, error) {
 
 // LoadParams loads file-expert config params from viper.Viper instance. Returns ErrAuth
 // if failed to retrieve api key.
-func LoadParams(v *viper.Viper) (paramscmd.Params, error) {
+func LoadParams(ctx context.Context, v *viper.Viper) (paramscmd.Params, error) {
 	if v == nil {
 		return paramscmd.Params{}, fmt.Errorf("viper instance unset")
 	}
 
-	heartbeatParams, err := paramscmd.LoadHeartbeatParams(v)
+	heartbeatParams, err := paramscmd.LoadHeartbeatParams(ctx, v)
 	if err != nil {
 		return paramscmd.Params{}, fmt.Errorf("failed to load heartbeat params: %s", err)
 	}
 
-	apiParams, err := paramscmd.LoadAPIParams(v)
+	apiParams, err := paramscmd.LoadAPIParams(ctx, v)
 	if err != nil {
 		return paramscmd.Params{}, fmt.Errorf("failed to load API parameters: %w", err)
 	}

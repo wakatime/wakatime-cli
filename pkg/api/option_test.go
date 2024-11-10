@@ -1,6 +1,7 @@
 package api_test
 
 import (
+	"context"
 	"encoding/base64"
 	"fmt"
 	"net/http"
@@ -19,6 +20,8 @@ import (
 )
 
 func TestOption_WithAuth(t *testing.T) {
+	ctx := context.Background()
+
 	tests := map[string]struct {
 		User            string
 		AuthHeaderValue string
@@ -55,7 +58,8 @@ func TestOption_WithAuth(t *testing.T) {
 			require.NoError(t, err)
 
 			c := api.NewClient("", []api.Option{withAuth}...)
-			resp, err := c.Do(req)
+
+			resp, err := c.Do(ctx, req)
 			require.NoError(t, err)
 
 			defer resp.Body.Close()
@@ -83,7 +87,8 @@ func TestOption_WithHostname(t *testing.T) {
 	require.NoError(t, err)
 
 	c := api.NewClient("", opts...)
-	resp, err := c.Do(req)
+
+	resp, err := c.Do(context.Background(), req)
 	require.NoError(t, err)
 
 	defer resp.Body.Close()
@@ -109,7 +114,8 @@ func TestOption_WithInvalidHostname(t *testing.T) {
 	require.NoError(t, err)
 
 	c := api.NewClient("", opts...)
-	resp, err := c.Do(req)
+
+	resp, err := c.Do(context.Background(), req)
 	require.NoError(t, err)
 
 	defer resp.Body.Close()
@@ -118,6 +124,8 @@ func TestOption_WithInvalidHostname(t *testing.T) {
 }
 
 func TestOption_WithNTLM(t *testing.T) {
+	ctx := context.Background()
+
 	tests := map[string]string{
 		"default":  `domain\\john:123456`,
 		"useronly": `domain\\john`,
@@ -159,7 +167,8 @@ func TestOption_WithNTLM(t *testing.T) {
 			require.NoError(t, err)
 
 			c := api.NewClient("", []api.Option{withNTLM}...)
-			resp, err := c.Do(req)
+
+			resp, err := c.Do(ctx, req)
 			require.NoError(t, err)
 
 			defer resp.Body.Close()
@@ -172,6 +181,8 @@ func TestOption_WithNTLM(t *testing.T) {
 func TestOption_WithNTLMRequestRetry(t *testing.T) {
 	url, router, close := setupTestServer()
 	defer close()
+
+	ctx := context.Background()
 
 	var numCalls int
 
@@ -211,14 +222,15 @@ func TestOption_WithNTLMRequestRetry(t *testing.T) {
 		assert.Equal(t, []string{"NTLM " + base64.StdEncoding.EncodeToString(msg)}, authHeader)
 	})
 
-	withNTLMRetry, err := api.WithNTLMRequestRetry(`domain\\john:secret`)
+	withNTLMRetry, err := api.WithNTLMRequestRetry(ctx, `domain\\john:secret`)
 	require.NoError(t, err)
 
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	require.NoError(t, err)
 
 	c := api.NewClient("", []api.Option{withNTLMRetry}...)
-	resp, err := c.Do(req)
+
+	resp, err := c.Do(ctx, req)
 	require.NoError(t, err)
 
 	defer resp.Body.Close()
@@ -245,7 +257,8 @@ func TestOption_WithProxy(t *testing.T) {
 	require.NoError(t, err)
 
 	c := api.NewClient("", opts...)
-	resp, err := c.Do(req)
+
+	resp, err := c.Do(context.Background(), req)
 	require.NoError(t, err)
 
 	defer resp.Body.Close()
@@ -256,6 +269,8 @@ func TestOption_WithProxy(t *testing.T) {
 func TestOption_WithUserAgent(t *testing.T) {
 	url, router, tearDown := setupTestServer()
 	defer tearDown()
+
+	ctx := context.Background()
 
 	var numCalls int
 
@@ -276,13 +291,14 @@ func TestOption_WithUserAgent(t *testing.T) {
 		numCalls++
 	})
 
-	opts := []api.Option{api.WithUserAgent("testplugin")}
+	opts := []api.Option{api.WithUserAgent(ctx, "testplugin")}
 
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	require.NoError(t, err)
 
 	c := api.NewClient("", opts...)
-	resp, err := c.Do(req)
+
+	resp, err := c.Do(ctx, req)
 	require.NoError(t, err)
 
 	defer resp.Body.Close()
@@ -293,6 +309,8 @@ func TestOption_WithUserAgent(t *testing.T) {
 func TestOption_WithUserAgentUnknownPlugin(t *testing.T) {
 	url, router, tearDown := setupTestServer()
 	defer tearDown()
+
+	ctx := context.Background()
 
 	var numCalls int
 
@@ -313,13 +331,14 @@ func TestOption_WithUserAgentUnknownPlugin(t *testing.T) {
 		numCalls++
 	})
 
-	opts := []api.Option{api.WithUserAgent("")}
+	opts := []api.Option{api.WithUserAgent(ctx, "")}
 
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	require.NoError(t, err)
 
 	c := api.NewClient("", opts...)
-	resp, err := c.Do(req)
+
+	resp, err := c.Do(ctx, req)
 	require.NoError(t, err)
 
 	defer resp.Body.Close()
@@ -345,7 +364,8 @@ func TestOption_WithTimezone(t *testing.T) {
 	require.NoError(t, err)
 
 	c := api.NewClient("", opts...)
-	resp, err := c.Do(req)
+
+	resp, err := c.Do(context.Background(), req)
 	require.NoError(t, err)
 
 	defer resp.Body.Close()

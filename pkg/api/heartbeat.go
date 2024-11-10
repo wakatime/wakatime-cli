@@ -2,6 +2,7 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -21,10 +22,12 @@ import (
 // ErrRequest is returned upon request failure with no received response from api.
 // ErrAuth is returned upon receiving a 401 Unauthorized api response.
 // Err is returned on any other api response related error.
-func (c *Client) SendHeartbeats(heartbeats []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+func (c *Client) SendHeartbeats(ctx context.Context, heartbeats []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+	logger := log.Extract(ctx)
+
 	url := c.baseURL + "/users/current/heartbeats.bulk"
 
-	log.Debugf("sending %d heartbeat(s) to api at %s", len(heartbeats), url)
+	logger.Debugf("sending %d heartbeat(s) to api at %s", len(heartbeats), url)
 
 	var results []heartbeat.Result
 
@@ -32,7 +35,7 @@ func (c *Client) SendHeartbeats(heartbeats []heartbeat.Heartbeat) ([]heartbeat.R
 	keys := sortKeys(grouped)
 
 	for _, k := range keys {
-		res, err := c.sendHeartbeats(url, grouped[k])
+		res, err := c.sendHeartbeats(ctx, url, grouped[k])
 		if err != nil {
 			return nil, err
 		}
@@ -43,13 +46,15 @@ func (c *Client) SendHeartbeats(heartbeats []heartbeat.Heartbeat) ([]heartbeat.R
 	return results, nil
 }
 
-func (c *Client) sendHeartbeats(url string, heartbeats []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
-	data, err := json.Marshal(heartbeats)
+func (c *Client) sendHeartbeats(ctx context.Context, url string, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+	logger := log.Extract(ctx)
+
+	data, err := json.Marshal(hh)
 	if err != nil {
 		return nil, fmt.Errorf("failed to json encode body: %s", err)
 	}
 
-	log.Debugf("heartbeats: %s", string(data))
+	logger.Debugf("heartbeats: %s", string(data))
 
 	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(data))
 	if err != nil {
@@ -59,9 +64,9 @@ func (c *Client) sendHeartbeats(url string, heartbeats []heartbeat.Heartbeat) ([
 	req.Header.Set("Content-Type", "application/json")
 
 	// set auth header here for every request due to multiple api key support
-	setAuthHeader(req, heartbeats[0].APIKey)
+	setAuthHeader(req, hh[0].APIKey)
 
-	resp, err := c.Do(req)
+	resp, err := c.Do(ctx, req)
 	if err != nil {
 		return nil, Err{Err: fmt.Errorf("failed making request to %q: %s", url, err)}
 	}
@@ -89,7 +94,7 @@ func (c *Client) sendHeartbeats(url string, heartbeats []heartbeat.Heartbeat) ([
 		)}
 	}
 
-	results, err := ParseHeartbeatResponses(body)
+	results, err := ParseHeartbeatResponses(ctx, body)
 	if err != nil {
 		return nil, Err{Err: fmt.Errorf("failed parsing results from %q: %s", url, err)}
 	}
@@ -98,7 +103,7 @@ func (c *Client) sendHeartbeats(url string, heartbeats []heartbeat.Heartbeat) ([
 }
 
 // ParseHeartbeatResponses parses the aggregated responses returned by the heartbeat bulk endpoint.
-func ParseHeartbeatResponses(data []byte) ([]heartbeat.Result, error) {
+func ParseHeartbeatResponses(ctx context.Context, data []byte) ([]heartbeat.Result, error) {
 	var responsesBody struct {
 		Responses [][]json.RawMessage `json:"responses"`
 	}
@@ -111,7 +116,7 @@ func ParseHeartbeatResponses(data []byte) ([]heartbeat.Result, error) {
 	var results []heartbeat.Result
 
 	for n, r := range responsesBody.Responses {
-		result, err := parseHeartbeatResponse(r)
+		result, err := parseHeartbeatResponse(ctx, r)
 		if err != nil {
 			return nil, fmt.Errorf("failed parsing result #%d: %s. body: %q", n, err, string(data))
 		}
@@ -123,7 +128,7 @@ func ParseHeartbeatResponses(data []byte) ([]heartbeat.Result, error) {
 }
 
 // parseHeartbeatResponse parses one response of the aggregated responses returned by the heartbeat bulk endpoint.
-func parseHeartbeatResponse(data []json.RawMessage) (heartbeat.Result, error) {
+func parseHeartbeatResponse(ctx context.Context, data []json.RawMessage) (heartbeat.Result, error) {
 	var result heartbeat.Result
 
 	type responseBody struct {
@@ -136,7 +141,7 @@ func parseHeartbeatResponse(data []json.RawMessage) (heartbeat.Result, error) {
 	}
 
 	if result.Status < http.StatusOK || result.Status > 299 {
-		resultErrors, err := parseHeartbeatResponseError(data[0])
+		resultErrors, err := parseHeartbeatResponseError(ctx, data[0])
 		if err != nil {
 			return heartbeat.Result{}, fmt.Errorf("failed to parse result errors: %s", err)
 		}
@@ -158,7 +163,9 @@ func parseHeartbeatResponse(data []json.RawMessage) (heartbeat.Result, error) {
 }
 
 // parseHeartbeatResponseError parses one error of the aggregated responses returned by the heartbeat bulk endpoint.
-func parseHeartbeatResponseError(data json.RawMessage) ([]string, error) {
+func parseHeartbeatResponseError(ctx context.Context, data json.RawMessage) ([]string, error) {
+	logger := log.Extract(ctx)
+
 	var errs []string
 
 	type responseBodyErr struct {
@@ -171,7 +178,7 @@ func parseHeartbeatResponseError(data json.RawMessage) ([]string, error) {
 
 	err := json.Unmarshal(data, &responseBodyErr{Error: &resultError})
 	if err != nil {
-		log.Debugf("failed to parse json heartbeat error or 'error' key not found: %s", err)
+		logger.Debugf("failed to parse json heartbeat error or 'error' key not found: %s", err)
 	}
 
 	if resultError != "" {
@@ -184,7 +191,7 @@ func parseHeartbeatResponseError(data json.RawMessage) ([]string, error) {
 
 	err = json.Unmarshal(data, &responseBodyErr{Errors: &resultErrors})
 	if err != nil {
-		log.Debugf("failed to parse json heartbeat errors or 'errors' key not found: %s", err)
+		logger.Debugf("failed to parse json heartbeat errors or 'errors' key not found: %s", err)
 	}
 
 	if resultErrors == nil {

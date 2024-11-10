@@ -1,9 +1,10 @@
 package language
 
 import (
+	"context"
 	"fmt"
 	"io"
-	fp "path/filepath"
+	"path/filepath"
 	"sort"
 	"strings"
 
@@ -23,9 +24,11 @@ const maxFileSize = 512000
 // by customized priority.
 // If guessLanguage is true, the file content will be used to detect the language.
 // This is a modified implementation of chroma.lexers.internal.api:Match().
-func detectChromaCustomized(filepath string, guessLanguage bool) (heartbeat.Language, float32, bool) {
-	_, file := fp.Split(filepath)
-	filename := fp.Base(file)
+func detectChromaCustomized(ctx context.Context, fp string, guessLanguage bool) (heartbeat.Language, float32, bool) {
+	logger := log.Extract(ctx)
+
+	_, file := filepath.Split(fp)
+	filename := filepath.Base(file)
 	matched := chroma.PrioritisedLexers{}
 
 	// First, try primary filename matches.
@@ -39,11 +42,11 @@ func detectChromaCustomized(filepath string, guessLanguage bool) (heartbeat.Lang
 	}
 
 	if len(matched) > 0 {
-		bestLexer, weight := selectByCustomizedPriority(filepath, matched)
+		bestLexer, weight := selectByCustomizedPriority(ctx, fp, matched)
 
 		language, ok := heartbeat.ParseLanguageFromChroma(bestLexer.Config().Name)
 		if !ok {
-			log.Warnf("failed to parse language from chroma lexer name %q", bestLexer.Config().Name)
+			logger.Warnf("failed to parse language from chroma lexer name %q", bestLexer.Config().Name)
 			return heartbeat.LanguageUnknown, 0, false
 		}
 
@@ -61,11 +64,11 @@ func detectChromaCustomized(filepath string, guessLanguage bool) (heartbeat.Lang
 	}
 
 	if len(matched) > 0 {
-		bestLexer, weight := selectByCustomizedPriority(filepath, matched)
+		bestLexer, weight := selectByCustomizedPriority(ctx, fp, matched)
 
 		language, ok := heartbeat.ParseLanguageFromChroma(bestLexer.Config().Name)
 		if !ok {
-			log.Warnf("failed to parse language from chroma lexer name %q", bestLexer.Config().Name)
+			logger.Warnf("failed to parse language from chroma lexer name %q", bestLexer.Config().Name)
 			return heartbeat.LanguageUnknown, 0, false
 		}
 
@@ -77,9 +80,9 @@ func detectChromaCustomized(filepath string, guessLanguage bool) (heartbeat.Lang
 	}
 
 	// Finally, try matching by file content.
-	head, err := fileHead(filepath)
+	head, err := fileHead(ctx, fp)
 	if err != nil {
-		log.Warnf("failed to load head from file %q: %s", filepath, err)
+		logger.Warnf("failed to load head from file %q: %s", fp, err)
 		return heartbeat.LanguageUnknown, 0, false
 	}
 
@@ -90,7 +93,7 @@ func detectChromaCustomized(filepath string, guessLanguage bool) (heartbeat.Lang
 	if lexer := lexers.Analyse(string(head)); lexer != nil {
 		language, ok := heartbeat.ParseLanguageFromChroma(lexer.Config().Name)
 		if !ok {
-			log.Warnf("failed to parse language from chroma lexer name %q", lexer.Config().Name)
+			logger.Warnf("failed to parse language from chroma lexer name %q", lexer.Config().Name)
 			return heartbeat.LanguageUnknown, 0, false
 		}
 
@@ -108,7 +111,9 @@ type weightedLexer struct {
 }
 
 // selectByCustomizedPriority selects the best matching lexer by customized priority evaluation.
-func selectByCustomizedPriority(filepath string, lexers chroma.PrioritisedLexers) (chroma.Lexer, float32) {
+func selectByCustomizedPriority(ctx context.Context, fp string, lexers chroma.PrioritisedLexers) (chroma.Lexer, float32) {
+	logger := log.Extract(ctx)
+
 	sort.Slice(lexers, func(i, j int) bool {
 		icfg, jcfg := lexers[i].Config(), lexers[j].Config()
 
@@ -121,16 +126,16 @@ func selectByCustomizedPriority(filepath string, lexers chroma.PrioritisedLexers
 		return strings.ToLower(icfg.Name) > strings.ToLower(jcfg.Name)
 	})
 
-	dir, _ := fp.Split(filepath)
+	dir, _ := filepath.Split(fp)
 
 	extensions, err := loadFolderExtensions(dir)
 	if err != nil {
-		log.Warnf("failed to load folder files extensions: %s", err)
+		logger.Warnf("failed to load folder files extensions: %s", err)
 	}
 
-	head, err := fileHead(filepath)
+	head, err := fileHead(ctx, fp)
 	if err != nil {
-		log.Warnf("failed to load head from file %q: %s", filepath, err)
+		logger.Warnf("failed to load head from file %q: %s", fp, err)
 	}
 
 	var weighted []weightedLexer
@@ -200,7 +205,9 @@ func selectByCustomizedPriority(filepath string, lexers chroma.PrioritisedLexers
 }
 
 // fileHead returns the first `maxFileSize` bytes of the file's content.
-func fileHead(filepath string) ([]byte, error) {
+func fileHead(ctx context.Context, filepath string) ([]byte, error) {
+	logger := log.Extract(ctx)
+
 	f, err := file.OpenNoLock(filepath) // nolint:gosec
 	if err != nil {
 		return nil, fmt.Errorf("failed to open file: %s", err)
@@ -208,7 +215,7 @@ func fileHead(filepath string) ([]byte, error) {
 
 	defer func() {
 		if err := f.Close(); err != nil {
-			log.Debugf("failed to close file '%s': %s", filepath, err)
+			logger.Debugf("failed to close file '%s': %s", filepath, err)
 		}
 	}()
 

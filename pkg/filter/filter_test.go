@@ -1,6 +1,7 @@
 package filter_test
 
 import (
+	"context"
 	"errors"
 	"os"
 	"path/filepath"
@@ -27,7 +28,7 @@ func TestWithFiltering(t *testing.T) {
 	second.Time++
 
 	opt := filter.WithFiltering(filter.Config{})
-	h := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+	h := opt(func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		assert.Equal(t, []heartbeat.Heartbeat{
 			{
 				Branch:         heartbeat.PointerTo("heartbeat"),
@@ -53,7 +54,7 @@ func TestWithFiltering(t *testing.T) {
 		}, nil
 	})
 
-	result, err := h([]heartbeat.Heartbeat{first, second})
+	result, err := h(context.Background(), []heartbeat.Heartbeat{first, second})
 	require.NoError(t, err)
 
 	assert.Equal(t, []heartbeat.Result{
@@ -65,11 +66,11 @@ func TestWithFiltering(t *testing.T) {
 
 func TestWithLengthValidator(t *testing.T) {
 	opt := filter.WithLengthValidator()
-	h := opt(func(_ []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+	h := opt(func(_ context.Context, _ []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		return []heartbeat.Result{}, errors.New("this should never be called")
 	})
 
-	result, err := h([]heartbeat.Heartbeat{})
+	result, err := h(context.Background(), []heartbeat.Heartbeat{})
 	require.NoError(t, err)
 
 	assert.Equal(t, result, []heartbeat.Result{})
@@ -84,7 +85,7 @@ func TestFilter(t *testing.T) {
 	h := testHeartbeat()
 	h.Entity = tmpFile.Name()
 
-	err = filter.Filter(h, filter.Config{})
+	err = filter.Filter(context.Background(), h, filter.Config{})
 	require.NoError(t, err)
 }
 
@@ -93,7 +94,7 @@ func TestFilter_NonFileTypeEmptyEntity(t *testing.T) {
 	h.Entity = ""
 	h.EntityType = heartbeat.AppType
 
-	err := filter.Filter(h, filter.Config{})
+	err := filter.Filter(context.Background(), h, filter.Config{})
 	require.NoError(t, err)
 }
 
@@ -103,7 +104,7 @@ func TestFilter_IsUnsavedEntity(t *testing.T) {
 	h.EntityType = heartbeat.FileType
 	h.IsUnsavedEntity = true
 
-	err := filter.Filter(h, filter.Config{})
+	err := filter.Filter(context.Background(), h, filter.Config{})
 	require.NoError(t, err)
 }
 
@@ -116,7 +117,7 @@ func TestFilter_IncludeMatchOverwritesExcludeMatch(t *testing.T) {
 	h := testHeartbeat()
 	h.Entity = tmpFile.Name()
 
-	err = filter.Filter(h, filter.Config{
+	err = filter.Filter(context.Background(), h, filter.Config{
 		Exclude: []regex.Regex{
 			regex.MustCompile(".*main.go$"),
 		},
@@ -136,7 +137,7 @@ func TestFilter_ErrMatchesExcludePattern(t *testing.T) {
 	h := testHeartbeat()
 	h.Entity = tmpFile.Name()
 
-	err = filter.Filter(h, filter.Config{
+	err = filter.Filter(context.Background(), h, filter.Config{
 		Exclude: []regex.Regex{
 			regex.MustCompile("^.*exclude-this-file.*$"),
 		},
@@ -148,7 +149,7 @@ func TestFilter_ErrMatchesExcludePattern(t *testing.T) {
 func TestFilter_ErrNonExistingFile(t *testing.T) {
 	h := testHeartbeat()
 
-	err := filter.Filter(h, filter.Config{})
+	err := filter.Filter(context.Background(), h, filter.Config{})
 
 	assert.EqualError(t, err, "filter file: skipping because of non-existing file \"/tmp/main.go\"")
 }
@@ -169,7 +170,7 @@ func TestFilter_ExistingProjectFile(t *testing.T) {
 	h := testHeartbeat()
 	h.Entity = tmpFile.Name()
 
-	err = filter.Filter(h, filter.Config{
+	err = filter.Filter(context.Background(), h, filter.Config{
 		IncludeOnlyWithProjectFile: true,
 	})
 	require.NoError(t, err)
@@ -180,7 +181,7 @@ func TestFilter_RemoteFileSkipsFiltering(t *testing.T) {
 	h.LocalFile = h.Entity
 	h.Entity = "ssh://wakatime:1234@192.168.1.1/path/to/remote/main.go"
 
-	err := filter.Filter(h, filter.Config{})
+	err := filter.Filter(context.Background(), h, filter.Config{})
 	require.NoError(t, err)
 }
 
@@ -193,7 +194,7 @@ func TestFilter_ErrNonExistingProjectFile(t *testing.T) {
 	h := testHeartbeat()
 	h.Entity = tmpFile.Name()
 
-	err = filter.Filter(h, filter.Config{
+	err = filter.Filter(context.Background(), h, filter.Config{
 		IncludeOnlyWithProjectFile: true,
 	})
 

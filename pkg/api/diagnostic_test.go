@@ -1,6 +1,7 @@
 package api_test
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -75,7 +76,7 @@ func TestClient_SendDiagnostics(t *testing.T) {
 	}
 
 	c := api.NewClient(url)
-	err := c.SendDiagnostics("vim", false, diagnostics...)
+	err := c.SendDiagnostics(context.Background(), "vim", false, diagnostics...)
 	require.NoError(t, err)
 
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)

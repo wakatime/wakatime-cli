@@ -1,6 +1,7 @@
 package backoff_test
 
 import (
+	"context"
 	"errors"
 	"os"
 	"testing"
@@ -17,20 +18,19 @@ import (
 )
 
 func TestWithBackoff(t *testing.T) {
-	v := viper.New()
-
 	tmpFile, err := os.CreateTemp(t.TempDir(), "wakatime")
 	require.NoError(t, err)
 
 	defer tmpFile.Close()
 
+	v := viper.New()
 	v.Set("internal-config", tmpFile.Name())
 
 	opt := backoff.WithBackoff(backoff.Config{
 		V: v,
 	})
 
-	handle := opt(func(_ []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+	handle := opt(func(_ context.Context, _ []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		return []heartbeat.Result{
 			{
 				Status: 201,
@@ -38,7 +38,7 @@ func TestWithBackoff(t *testing.T) {
 		}, nil
 	})
 
-	_, err = handle([]heartbeat.Heartbeat{})
+	_, err = handle(context.Background(), []heartbeat.Heartbeat{})
 	require.NoError(t, err)
 
 	err = ini.ReadInConfig(v, tmpFile.Name())
@@ -50,13 +50,14 @@ func TestWithBackoff(t *testing.T) {
 }
 
 func TestWithBackoff_BeforeNextBackoff(t *testing.T) {
-	v := viper.New()
-
 	tmpFile, err := os.CreateTemp(t.TempDir(), "wakatime")
 	require.NoError(t, err)
 
 	defer tmpFile.Close()
 
+	ctx := context.Background()
+
+	v := viper.New()
 	v.Set("internal-config", tmpFile.Name())
 
 	at := time.Now()
@@ -68,11 +69,11 @@ func TestWithBackoff_BeforeNextBackoff(t *testing.T) {
 		At:      at,
 	})
 
-	handle := opt(func(_ []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+	handle := opt(func(_ context.Context, _ []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		return []heartbeat.Result{}, errors.New("error")
 	})
 
-	_, err = handle([]heartbeat.Heartbeat{})
+	_, err = handle(ctx, []heartbeat.Heartbeat{})
 	require.Error(t, err)
 
 	assert.Equal(t, "error", err.Error())
@@ -91,7 +92,7 @@ func TestWithBackoff_BeforeNextBackoff(t *testing.T) {
 		At:      at.Add(time.Second * 15),
 	})
 
-	handle = opt(func(_ []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+	handle = opt(func(_ context.Context, _ []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		return []heartbeat.Result{
 			{
 				Status: 201,
@@ -99,7 +100,7 @@ func TestWithBackoff_BeforeNextBackoff(t *testing.T) {
 		}, nil
 	})
 
-	_, err = handle([]heartbeat.Heartbeat{})
+	_, err = handle(ctx, []heartbeat.Heartbeat{})
 	require.Error(t, err)
 
 	assert.Equal(t, "won't send heartbeat due to backoff without proxy", err.Error())
@@ -121,7 +122,7 @@ func TestWithBackoff_BeforeNextBackoffWithProxy(t *testing.T) {
 		HasProxy: true,
 	})
 
-	handle := opt(func(_ []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+	handle := opt(func(_ context.Context, _ []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		return []heartbeat.Result{
 			{
 				Status: 201,
@@ -129,7 +130,7 @@ func TestWithBackoff_BeforeNextBackoffWithProxy(t *testing.T) {
 		}, nil
 	})
 
-	_, err := handle([]heartbeat.Heartbeat{})
+	_, err := handle(context.Background(), []heartbeat.Heartbeat{})
 	require.Error(t, err)
 
 	assert.Equal(t, "won't send heartbeat due to backoff with proxy", err.Error())
@@ -149,11 +150,11 @@ func TestWithBackoff_ApiError(t *testing.T) {
 		V: v,
 	})
 
-	handle := opt(func(_ []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+	handle := opt(func(_ context.Context, _ []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		return []heartbeat.Result{}, errors.New("error")
 	})
 
-	_, err = handle([]heartbeat.Heartbeat{})
+	_, err = handle(context.Background(), []heartbeat.Heartbeat{})
 	require.Error(t, err)
 
 	assert.Equal(t, "error", err.Error())
@@ -167,13 +168,12 @@ func TestWithBackoff_ApiError(t *testing.T) {
 }
 
 func TestWithBackoff_BackoffAndNotReset(t *testing.T) {
-	v := viper.New()
-
 	tmpFile, err := os.CreateTemp(t.TempDir(), "wakatime")
 	require.NoError(t, err)
 
 	defer tmpFile.Close()
 
+	v := viper.New()
 	v.Set("internal-config", tmpFile.Name())
 
 	opt := backoff.WithBackoff(backoff.Config{
@@ -182,7 +182,7 @@ func TestWithBackoff_BackoffAndNotReset(t *testing.T) {
 		At:      time.Now().Add(time.Second * -1),
 	})
 
-	handle := opt(func(_ []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+	handle := opt(func(_ context.Context, _ []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		return []heartbeat.Result{
 			{
 				Status: 201,
@@ -190,7 +190,7 @@ func TestWithBackoff_BackoffAndNotReset(t *testing.T) {
 		}, nil
 	})
 
-	_, err = handle([]heartbeat.Heartbeat{})
+	_, err = handle(context.Background(), []heartbeat.Heartbeat{})
 	require.Error(t, err)
 
 	var errbackoff api.ErrBackoff
@@ -206,13 +206,14 @@ func TestWithBackoff_BackoffAndNotReset(t *testing.T) {
 }
 
 func TestWithBackoff_BackoffMaxReached(t *testing.T) {
-	v := viper.New()
-
 	tmpFile, err := os.CreateTemp(t.TempDir(), "wakatime")
 	require.NoError(t, err)
 
 	defer tmpFile.Close()
 
+	ctx := context.Background()
+
+	v := viper.New()
 	v.Set("internal-config", tmpFile.Name())
 
 	// first, cause backoff to be set
@@ -220,11 +221,11 @@ func TestWithBackoff_BackoffMaxReached(t *testing.T) {
 		V: v,
 	})
 
-	handle := opt(func(_ []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+	handle := opt(func(_ context.Context, _ []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		return []heartbeat.Result{}, errors.New("error")
 	})
 
-	_, err = handle([]heartbeat.Heartbeat{})
+	_, err = handle(ctx, []heartbeat.Heartbeat{})
 	require.Error(t, err)
 
 	err = ini.ReadInConfig(v, tmpFile.Name())
@@ -241,7 +242,7 @@ func TestWithBackoff_BackoffMaxReached(t *testing.T) {
 		At:      time.Now().Add(time.Second * -1),
 	})
 
-	handle = opt(func(_ []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+	handle = opt(func(_ context.Context, _ []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		return []heartbeat.Result{
 			{
 				Status: 201,
@@ -249,7 +250,7 @@ func TestWithBackoff_BackoffMaxReached(t *testing.T) {
 		}, nil
 	})
 
-	_, err = handle([]heartbeat.Heartbeat{})
+	_, err = handle(ctx, []heartbeat.Heartbeat{})
 	require.NoError(t, err)
 
 	err = ini.ReadInConfig(v, tmpFile.Name())
@@ -261,13 +262,14 @@ func TestWithBackoff_BackoffMaxReached(t *testing.T) {
 }
 
 func TestWithBackoff_BackoffMaxReachedWithZeroRetries(t *testing.T) {
-	v := viper.New()
-
 	tmpFile, err := os.CreateTemp(t.TempDir(), "wakatime")
 	require.NoError(t, err)
 
 	defer tmpFile.Close()
 
+	ctx := context.Background()
+
+	v := viper.New()
 	v.Set("internal-config", tmpFile.Name())
 
 	// first, cause backoff to be set
@@ -275,11 +277,11 @@ func TestWithBackoff_BackoffMaxReachedWithZeroRetries(t *testing.T) {
 		V: v,
 	})
 
-	handle := opt(func(_ []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+	handle := opt(func(_ context.Context, _ []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		return []heartbeat.Result{}, errors.New("error")
 	})
 
-	_, err = handle([]heartbeat.Heartbeat{})
+	_, err = handle(ctx, []heartbeat.Heartbeat{})
 	require.Error(t, err)
 
 	err = ini.ReadInConfig(v, tmpFile.Name())
@@ -296,7 +298,7 @@ func TestWithBackoff_BackoffMaxReachedWithZeroRetries(t *testing.T) {
 		At:      time.Now().Add(time.Hour + 1*time.Second),
 	})
 
-	handle = opt(func(_ []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+	handle = opt(func(_ context.Context, _ []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		return []heartbeat.Result{
 			{
 				Status: 201,
@@ -304,7 +306,7 @@ func TestWithBackoff_BackoffMaxReachedWithZeroRetries(t *testing.T) {
 		}, nil
 	})
 
-	_, err = handle([]heartbeat.Heartbeat{})
+	_, err = handle(ctx, []heartbeat.Heartbeat{})
 	require.NoError(t, err)
 
 	err = ini.ReadInConfig(v, tmpFile.Name())
@@ -316,24 +318,25 @@ func TestWithBackoff_BackoffMaxReachedWithZeroRetries(t *testing.T) {
 }
 
 func TestWithBackoff_ShouldRetry(t *testing.T) {
-	v := viper.New()
-
 	tmpFile, err := os.CreateTemp(t.TempDir(), "wakatime")
 	require.NoError(t, err)
 
 	defer tmpFile.Close()
 
+	ctx := context.Background()
+
+	v := viper.New()
 	v.Set("internal-config", tmpFile.Name())
 
 	opt := backoff.WithBackoff(backoff.Config{
 		V: v,
 	})
 
-	handle := opt(func(_ []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+	handle := opt(func(_ context.Context, _ []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		return []heartbeat.Result{}, errors.New("error")
 	})
 
-	_, err = handle([]heartbeat.Heartbeat{})
+	_, err = handle(ctx, []heartbeat.Heartbeat{})
 	require.Error(t, err)
 
 	assert.Equal(t, "error", err.Error())
@@ -354,7 +357,7 @@ func TestWithBackoff_ShouldRetry(t *testing.T) {
 		At:      at.Add(time.Second * -60),
 	})
 
-	handle = opt(func(_ []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+	handle = opt(func(_ context.Context, _ []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		return []heartbeat.Result{
 			{
 				Status: 201,
@@ -362,7 +365,7 @@ func TestWithBackoff_ShouldRetry(t *testing.T) {
 		}, nil
 	})
 
-	_, err = handle([]heartbeat.Heartbeat{})
+	_, err = handle(ctx, []heartbeat.Heartbeat{})
 	require.NoError(t, err)
 
 	err = ini.ReadInConfig(v, tmpFile.Name())

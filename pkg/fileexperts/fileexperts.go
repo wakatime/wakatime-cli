@@ -1,6 +1,7 @@
 package fileexperts
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -47,19 +48,19 @@ type (
 
 // Caller calls wakatime api to get the file expert.
 type Caller interface {
-	FileExperts(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error)
+	FileExperts(context.Context, []heartbeat.Heartbeat) ([]heartbeat.Result, error)
 }
 
 // NewHandle creates a new Handle, which acts like a processing pipeline,
 // with a caller eventually requesting the API.
 func NewHandle(caller Caller, opts ...heartbeat.HandleOption) heartbeat.Handle {
-	return func(heartbeats []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+	return func(ctx context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		var handle heartbeat.Handle = caller.FileExperts
 		for i := len(opts) - 1; i >= 0; i-- {
 			handle = opts[i](handle)
 		}
 
-		return handle(heartbeats)
+		return handle(ctx, hh)
 	}
 }
 

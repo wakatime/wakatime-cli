@@ -1,6 +1,7 @@
 package project
 
 import (
+	"context"
 	"fmt"
 	"os/exec"
 	"path/filepath"
@@ -17,10 +18,12 @@ type Subversion struct {
 }
 
 // Detect gets information about the svn project for a given file.
-func (s Subversion) Detect() (Result, bool, error) {
-	binary, ok := findSvnBinary()
+func (s Subversion) Detect(ctx context.Context) (Result, bool, error) {
+	logger := log.Extract(ctx)
+
+	binary, ok := findSvnBinary(ctx)
 	if !ok {
-		log.Debugln("svn binary not found")
+		logger.Debugln("svn binary not found")
 		return Result{}, false, nil
 	}
 
@@ -32,7 +35,7 @@ func (s Subversion) Detect() (Result, bool, error) {
 	}
 
 	// Find for .svn/wc.db file
-	svnConfigFile, found := FindFileOrDirectory(fp, filepath.Join(".svn", "wc.db"))
+	svnConfigFile, found := FindFileOrDirectory(ctx, fp, filepath.Join(".svn", "wc.db"))
 	if !found {
 		return Result{}, false, nil
 	}
@@ -77,19 +80,21 @@ func svnInfo(fp string, binary string) (map[string]string, bool, error) {
 	return result, true, nil
 }
 
-func findSvnBinary() (string, bool) {
+func findSvnBinary(ctx context.Context) (string, bool) {
 	locations := []string{
 		"svn",
 		"/usr/bin/svn",
 		"/usr/local/bin/svn",
 	}
 
+	logger := log.Extract(ctx)
+
 	for _, loc := range locations {
 		cmd := exec.Command(loc, "--version") // nolint:gosec
 
 		err := cmd.Run()
 		if err != nil {
-			log.Debugf("failed while calling %s --version: %s", loc, err)
+			logger.Debugf("failed while calling %s --version: %s", loc, err)
 			continue
 		}
 

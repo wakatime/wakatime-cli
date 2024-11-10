@@ -1,6 +1,7 @@
 package apikey_test
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/wakatime/wakatime-cli/pkg/apikey"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/regex"
 
 	"github.com/gandarez/go-realpath"
 	"github.com/stretchr/testify/assert"
@@ -30,13 +32,13 @@ func TestWithReplacing(t *testing.T) {
 		MapPatterns: []apikey.MapPattern{
 			{
 				APIKey: "00000000-0000-4000-8000-000000000001",
-				Regex:  regexp.MustCompile(`.workdir.`),
+				Regex:  regex.NewRegexpWrap(regexp.MustCompile(`.workdir.`)),
 			},
 		},
 	}
 
 	opt := apikey.WithReplacing(config)
-	h := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+	h := opt(func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		assert.Equal(t, []heartbeat.Heartbeat{
 			{
 				APIKey: "00000000-0000-4000-8000-000000000000",
@@ -55,7 +57,7 @@ func TestWithReplacing(t *testing.T) {
 		}, nil
 	})
 
-	result, err := h([]heartbeat.Heartbeat{first, second})
+	result, err := h(context.Background(), []heartbeat.Heartbeat{first, second})
 	require.NoError(t, err)
 
 	assert.Equal(t, []heartbeat.Result{
@@ -75,15 +77,15 @@ func TestApiKey_MatchPattern(t *testing.T) {
 	patterns := []apikey.MapPattern{
 		{
 			APIKey: "00000000-0000-4000-8000-000000000000",
-			Regex:  regexp.MustCompile(formatRegex(filepath.Join(wd, "path", "to", "otherfolder"))),
+			Regex:  regex.NewRegexpWrap(regexp.MustCompile(formatRegex(filepath.Join(wd, "path", "to", "otherfolder")))),
 		},
 		{
 			APIKey: "00000000-0000-4000-8000-000000000001",
-			Regex:  regexp.MustCompile(formatRegex(filepath.Join(wd, `test([a-zA-Z]+)`))),
+			Regex:  regex.NewRegexpWrap(regexp.MustCompile(formatRegex(filepath.Join(wd, `test([a-zA-Z]+)`)))),
 		},
 	}
 
-	result, ok := apikey.MatchPattern(rp, patterns)
+	result, ok := apikey.MatchPattern(context.Background(), rp, patterns)
 
 	assert.True(t, ok)
 	assert.Equal(t, "00000000-0000-4000-8000-000000000001", result)
@@ -99,21 +101,21 @@ func TestApiKey_MatchPattern_NoMatch(t *testing.T) {
 	patterns := []apikey.MapPattern{
 		{
 			APIKey: "00000000-0000-4000-8000-000000000000",
-			Regex:  regexp.MustCompile(formatRegex(filepath.Join(wd, "path", "to", "otherfolder"))),
+			Regex:  regex.NewRegexpWrap(regexp.MustCompile(formatRegex(filepath.Join(wd, "path", "to", "otherfolder")))),
 		},
 		{
 			APIKey: "00000000-0000-4000-8000-000000000001",
-			Regex:  regexp.MustCompile(formatRegex(filepath.Join(wd, "path", "to", "temp"))),
+			Regex:  regex.NewRegexpWrap(regexp.MustCompile(formatRegex(filepath.Join(wd, "path", "to", "temp")))),
 		},
 	}
 
-	_, ok := apikey.MatchPattern(rp, patterns)
+	_, ok := apikey.MatchPattern(context.Background(), rp, patterns)
 
 	assert.False(t, ok)
 }
 
 func TestApiKey_MatchPattern_ZeroPatterns(t *testing.T) {
-	_, ok := apikey.MatchPattern("", []apikey.MapPattern{})
+	_, ok := apikey.MatchPattern(context.Background(), "", []apikey.MapPattern{})
 
 	assert.False(t, ok)
 }

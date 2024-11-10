@@ -1,6 +1,7 @@
 package deps
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"strings"
@@ -33,7 +34,9 @@ type ParserRust struct {
 }
 
 // Parse parses dependencies from Rust file content using the chroma Rust lexer.
-func (p *ParserRust) Parse(filepath string) ([]string, error) {
+func (p *ParserRust) Parse(ctx context.Context, filepath string) ([]string, error) {
+	logger := log.Extract(ctx)
+
 	reader, err := file.OpenNoLock(filepath) // nolint:gosec
 	if err != nil {
 		return nil, fmt.Errorf("failed to open file %q: %s", filepath, err)
@@ -41,7 +44,7 @@ func (p *ParserRust) Parse(filepath string) ([]string, error) {
 
 	defer func() {
 		if err := reader.Close(); err != nil {
-			log.Debugf("failed to close file: %s", err)
+			logger.Debugf("failed to close file: %s", err)
 		}
 	}()
 

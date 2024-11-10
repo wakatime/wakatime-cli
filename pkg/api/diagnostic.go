@@ -2,6 +2,7 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -24,10 +25,17 @@ type diagnosticsBody struct {
 }
 
 // SendDiagnostics sends diagnostics to the WakaTime api.
-func (c *Client) SendDiagnostics(plugin string, panicked bool, diagnostics ...diagnostic.Diagnostic) error {
+func (c *Client) SendDiagnostics(
+	ctx context.Context,
+	plugin string,
+	panicked bool,
+	diagnostics ...diagnostic.Diagnostic,
+) error {
+	logger := log.Extract(ctx)
+
 	url := c.baseURL + "/plugins/errors"
 
-	log.Debugf("sending diagnostic data to api at %s", url)
+	logger.Debugf("sending diagnostic data to api at %s", url)
 
 	body := diagnosticsBody{
 		Architecture: version.Arch,
@@ -62,7 +70,7 @@ func (c *Client) SendDiagnostics(plugin string, panicked bool, diagnostics ...di
 
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := c.Do(req)
+	resp, err := c.Do(ctx, req)
 	if err != nil {
 		return Err{Err: fmt.Errorf("failed making request to %q: %s", url, err)}
 	}

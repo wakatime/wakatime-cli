@@ -1,6 +1,7 @@
 package configwrite_test
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -72,8 +73,10 @@ func TestWrite(t *testing.T) {
 
 	defer tmpFile.Close()
 
+	ctx := context.Background()
+
 	v := viper.New()
-	ini, err := ini.NewWriter(v, func(vp *viper.Viper) (string, error) {
+	ini, err := ini.NewWriter(ctx, v, func(_ context.Context, vp *viper.Viper) (string, error) {
 		assert.Equal(t, v, vp)
 		return tmpFile.Name(), nil
 	})
@@ -82,7 +85,7 @@ func TestWrite(t *testing.T) {
 	v.Set("config-section", "settings")
 	v.Set("config-write", map[string]string{"debug": "false"})
 
-	err = configwrite.Write(v, ini)
+	err = configwrite.Write(ctx, v, ini)
 	require.NoError(t, err)
 
 	err = ini.File.Reload()
@@ -117,7 +120,7 @@ func TestWriteErr(t *testing.T) {
 			v.Set("config-section", test.Section)
 			v.Set("config-write", test.Value)
 
-			err := configwrite.Write(v, w)
+			err := configwrite.Write(context.Background(), v, w)
 			require.Error(t, err)
 
 			assert.Equal(
@@ -133,7 +136,7 @@ func TestWriteErr(t *testing.T) {
 func TestWriteSaveErr(t *testing.T) {
 	v := viper.New()
 	w := &mockWriter{
-		WriteFn: func(section string, keyValue map[string]string) error {
+		WriteFn: func(_ context.Context, section string, keyValue map[string]string) error {
 			assert.Equal(t, "settings", section)
 			assert.Equal(t, map[string]string{"debug": "false"}, keyValue)
 
@@ -144,14 +147,14 @@ func TestWriteSaveErr(t *testing.T) {
 	v.Set("config-section", "settings")
 	v.Set("config-write", map[string]string{"debug": "false"})
 
-	err := configwrite.Write(v, w)
+	err := configwrite.Write(context.Background(), v, w)
 	assert.Error(t, err)
 }
 
 type mockWriter struct {
-	WriteFn func(section string, keyValue map[string]string) error
+	WriteFn func(ctx context.Context, section string, keyValue map[string]string) error
 }
 
-func (m *mockWriter) Write(section string, keyValue map[string]string) error {
-	return m.WriteFn(section, keyValue)
+func (m *mockWriter) Write(ctx context.Context, section string, keyValue map[string]string) error {
+	return m.WriteFn(ctx, section, keyValue)
 }

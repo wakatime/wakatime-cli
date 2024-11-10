@@ -1,12 +1,14 @@
 package project_test
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"regexp"
 	"testing"
 
 	"github.com/wakatime/wakatime-cli/pkg/project"
+	"github.com/wakatime/wakatime-cli/pkg/regex"
 
 	"github.com/gandarez/go-realpath"
 	"github.com/stretchr/testify/assert"
@@ -25,12 +27,12 @@ func TestMap_Detect(t *testing.T) {
 		Patterns: []project.MapPattern{
 			{
 				Name:  "my-project-1",
-				Regex: regexp.MustCompile(formatRegex(filepath.Join(wd, "testdata"))),
+				Regex: regex.NewRegexpWrap(regexp.MustCompile(formatRegex(filepath.Join(wd, "testdata")))),
 			},
 		},
 	}
 
-	result, detected, err := m.Detect()
+	result, detected, err := m.Detect(context.Background())
 	require.NoError(t, err)
 
 	assert.True(t, detected)
@@ -51,16 +53,16 @@ func TestMap_Detect_RegexReplace(t *testing.T) {
 		Patterns: []project.MapPattern{
 			{
 				Name:  "my-project-1",
-				Regex: regexp.MustCompile(formatRegex(filepath.Join(wd, "path", "to", "otherfolder"))),
+				Regex: regex.NewRegexpWrap(regexp.MustCompile(formatRegex(filepath.Join(wd, "path", "to", "otherfolder")))),
 			},
 			{
 				Name:  "my-project-2-{0}",
-				Regex: regexp.MustCompile(formatRegex(filepath.Join(wd, `test([a-zA-Z]+)`))),
+				Regex: regex.NewRegexpWrap(regexp.MustCompile(formatRegex(filepath.Join(wd, `test([a-zA-Z]+)`)))),
 			},
 		},
 	}
 
-	result, detected, err := m.Detect()
+	result, detected, err := m.Detect(context.Background())
 	require.NoError(t, err)
 
 	assert.True(t, detected)
@@ -78,16 +80,16 @@ func TestMap_Detect_NoMatch(t *testing.T) {
 		Patterns: []project.MapPattern{
 			{
 				Name:  "my_project_1",
-				Regex: regexp.MustCompile(formatRegex(filepath.Join(wd, "path", "to", "otherfolder"))),
+				Regex: regex.NewRegexpWrap(regexp.MustCompile(formatRegex(filepath.Join(wd, "path", "to", "otherfolder")))),
 			},
 			{
 				Name:  "my_project_2",
-				Regex: regexp.MustCompile(formatRegex(filepath.Join(wd, "path", "to", "temp"))),
+				Regex: regex.NewRegexpWrap(regexp.MustCompile(formatRegex(filepath.Join(wd, "path", "to", "temp")))),
 			},
 		},
 	}
 
-	result, detected, err := m.Detect()
+	result, detected, err := m.Detect(context.Background())
 	require.NoError(t, err)
 
 	assert.False(t, detected)
@@ -101,7 +103,7 @@ func TestMap_Detect_ZeroPatterns(t *testing.T) {
 		Patterns: []project.MapPattern{},
 	}
 
-	_, detected, err := m.Detect()
+	_, detected, err := m.Detect(context.Background())
 	require.NoError(t, err)
 
 	assert.False(t, detected)

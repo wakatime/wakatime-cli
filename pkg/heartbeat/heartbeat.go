@@ -1,6 +1,7 @@
 package heartbeat
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"regexp"
@@ -154,11 +155,11 @@ type Result struct {
 
 // Sender sends heartbeats to the wakatime api.
 type Sender interface {
-	SendHeartbeats(hh []Heartbeat) ([]Result, error)
+	SendHeartbeats(context.Context, []Heartbeat) ([]Result, error)
 }
 
 // Handle does processing of heartbeats.
-type Handle func(hh []Heartbeat) ([]Result, error)
+type Handle func(context.Context, []Heartbeat) ([]Result, error)
 
 // HandleOption is a function, which allows chaining multiple Handles.
 type HandleOption func(next Handle) Handle
@@ -166,22 +167,24 @@ type HandleOption func(next Handle) Handle
 // NewHandle creates a new Handle, which acts like a processing pipeline,
 // with a sender eventually sending the heartbeats.
 func NewHandle(sender Sender, opts ...HandleOption) Handle {
-	return func(heartbeats []Heartbeat) ([]Result, error) {
+	return func(ctx context.Context, hh []Heartbeat) ([]Result, error) {
 		var handle Handle = sender.SendHeartbeats
 		for i := len(opts) - 1; i >= 0; i-- {
 			handle = opts[i](handle)
 		}
 
-		return handle(heartbeats)
+		return handle(ctx, hh)
 	}
 }
 
 // UserAgent generates a user agent from various system infos, including a
 // a passed in value for plugin.
-func UserAgent(plugin string) string {
+func UserAgent(ctx context.Context, plugin string) string {
+	logger := log.Extract(ctx)
+
 	info, err := goInfo.GetInfo()
 	if err != nil {
-		log.Debugf("goInfo.GetInfo error: %s", err)
+		logger.Debugf("goInfo.GetInfo error: %s", err)
 	}
 
 	if plugin == "" {
@@ -191,7 +194,7 @@ func UserAgent(plugin string) string {
 	return fmt.Sprintf(
 		"wakatime/%s (%s-%s-%s) %s %s",
 		version.Version,
-		strings.TrimSpace(system.OSName()),
+		strings.TrimSpace(system.OSName(ctx)),
 		strings.TrimSpace(info.Core),
 		strings.TrimSpace(info.Platform),
 		strings.TrimSpace(runtime.Version()),
@@ -204,10 +207,12 @@ func PointerTo[t bool | int | string](v t) *t {
 	return &v
 }
 
-func isDir(filepath string) bool {
+func isDir(ctx context.Context, filepath string) bool {
+	logger := log.Extract(ctx)
+
 	info, err := os.Stat(filepath)
 	if err != nil {
-		log.Warnf("failed to stat filepath %q: %s", filepath, err)
+		logger.Warnf("failed to stat filepath %q: %s", filepath, err)
 		return false
 	}
 

@@ -1,6 +1,7 @@
 package project
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"os"
@@ -85,7 +86,7 @@ func (d DetectorID) String() string {
 type (
 	// Detecter is a common interface for project.
 	Detecter interface {
-		Detect() (Result, bool, error)
+		Detect(context.Context) (Result, bool, error)
 		ID() DetectorID
 	}
 
@@ -138,14 +139,16 @@ type (
 // Last, uses the --alternate-project arg.
 func WithDetection(config Config) heartbeat.HandleOption {
 	return func(next heartbeat.Handle) heartbeat.Handle {
-		return func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		return func(ctx context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+			logger := log.Extract(ctx)
+
 			for n, h := range hh {
-				log.Debugln("execute project detection for:", h.Entity)
+				logger.Debugf("execute project detection for: %s", h.Entity)
 
 				// first, use .wakatime-project or [projectmap] section with entity path.
 				// Then, detect with project folder. This tries to use the same project name
 				// across all IDEs instead of sometimes using alternate project when file is unsaved
-				result, detector := Detect(config.MapPatterns,
+				result, detector := Detect(ctx, config.MapPatterns,
 					DetecterArg{Filepath: h.Entity, ShouldRun: h.EntityType == heartbeat.FileType},
 					DetecterArg{Filepath: h.ProjectPathOverride, ShouldRun: true},
 				)
@@ -161,6 +164,7 @@ func WithDetection(config Config) heartbeat.HandleOption {
 				// across all IDEs instead of sometimes using alternate project when file is unsaved
 				if result.Project == "" || result.Branch == "" || result.Folder == "" {
 					revControlResult := DetectWithRevControl(
+						ctx,
 						config.Submodule.DisabledPatterns,
 						config.Submodule.MapPatterns,
 						config.ProjectFromGitRemote,
@@ -197,12 +201,12 @@ func WithDetection(config Config) heartbeat.HandleOption {
 				}
 
 				// finally, obfuscate project name if necessary
-				if heartbeat.ShouldSanitize(result.Folder, config.HideProjectNames) &&
+				if heartbeat.ShouldSanitize(ctx, result.Folder, config.HideProjectNames) &&
 					result.Project != "" && detector != FileDetector {
-					result.Project = obfuscateProjectName(result.Folder)
+					result.Project = obfuscateProjectName(ctx, result.Folder)
 				}
 
-				result.Folder = FormatProjectFolder(result.Folder)
+				result.Folder = FormatProjectFolder(ctx, result.Folder)
 
 				// count total subfolders in project's path
 				if result.Folder != "" && strings.HasPrefix(h.Entity, result.Folder) {
@@ -217,13 +221,15 @@ func WithDetection(config Config) heartbeat.HandleOption {
 				hh[n].ProjectPath = result.Folder
 			}
 
-			return next(hh)
+			return next(ctx, hh)
 		}
 	}
 }
 
 // Detect finds the current project and branch from config plugins.
-func Detect(patterns []MapPattern, args ...DetecterArg) (Result, DetectorID) {
+func Detect(ctx context.Context, patterns []MapPattern, args ...DetecterArg) (Result, DetectorID) {
+	logger := log.Extract(ctx)
+
 	for _, arg := range args {
 		if !arg.ShouldRun || arg.Filepath == "" {
 			continue
@@ -240,11 +246,11 @@ func Detect(patterns []MapPattern, args ...DetecterArg) (Result, DetectorID) {
 		}
 
 		for _, p := range configPlugins {
-			log.Debugln("execute", p.ID().String())
+			logger.Debugf("execute %s", p.ID().String())
 
-			result, detected, err := p.Detect()
+			result, detected, err := p.Detect(ctx)
 			if err != nil {
-				log.Errorf("unexpected error occurred at %q: %s", p.ID().String(), err)
+				logger.Errorf("unexpected error occurred at %q: %s", p.ID().String(), err)
 				continue
 			}
 
@@ -259,10 +265,13 @@ func Detect(patterns []MapPattern, args ...DetecterArg) (Result, DetectorID) {
 
 // DetectWithRevControl finds the current project and branch from rev control.
 func DetectWithRevControl(
+	ctx context.Context,
 	submoduleDisabledPatterns []regex.Regex,
 	submoduleProjectMapPatterns []MapPattern,
 	projectFromGitRemote bool,
 	args ...DetecterArg) Result {
+	logger := log.Extract(ctx)
+
 	for _, arg := range args {
 		if !arg.ShouldRun || arg.Filepath == "" {
 			continue
@@ -287,11 +296,11 @@ func DetectWithRevControl(
 		}
 
 		for _, p := range revControlPlugins {
-			log.Debugln("execute", p.ID().String())
+			logger.Debugf("execute %s", p.ID().String())
 
-			result, detected, err := p.Detect()
+			result, detected, err := p.Detect(ctx)
 			if err != nil {
-				log.Errorf("unexpected error occurred at %q: %s", p.ID().String(), err)
+				logger.Errorf("unexpected error occurred at %q: %s", p.ID().String(), err)
 				continue
 			}
 
@@ -308,17 +317,18 @@ func DetectWithRevControl(
 	return Result{}
 }
 
-func obfuscateProjectName(folder string) string {
+func obfuscateProjectName(ctx context.Context, folder string) string {
 	// prevent overwriting existing project files, use Unknown Project instead
 	if fileOrDirExists(filepath.Join(folder, WakaTimeProjectFile)) {
 		return ""
 	}
 
+	logger := log.Extract(ctx)
 	project := generateProjectName()
 
 	err := Write(folder, project)
 	if err != nil {
-		log.Warnf("failed to write: %s", err)
+		logger.Warnf("failed to write: %s", err)
 	}
 
 	return project
@@ -628,7 +638,7 @@ func CountSlashesInProjectFolder(directory string) int {
 // FindFileOrDirectory searches current and all parent folders for a file or directory named `filename`.
 // Starts in `directory` and traverses through all parent directories.
 // `directory` may also be a file, and in that case will start from the file's directory.
-func FindFileOrDirectory(directory, filename string) (string, bool) {
+func FindFileOrDirectory(ctx context.Context, directory, filename string) (string, bool) {
 	i := 0
 	for i < maxRecursiveIteration {
 		if isRootPath(directory) {
@@ -644,7 +654,8 @@ func FindFileOrDirectory(directory, filename string) (string, bool) {
 		i++
 	}
 
-	log.Warnf("max %d iterations reached without finding %s", maxRecursiveIteration, filename)
+	logger := log.Extract(ctx)
+	logger.Warnf("max %d iterations reached without finding %s", maxRecursiveIteration, filename)
 
 	return "", false
 }
@@ -671,7 +682,7 @@ func firstNonEmptyString(values ...string) string {
 }
 
 // FormatProjectFolder returns the abs and real path for the given directory path.
-func FormatProjectFolder(fp string) string {
+func FormatProjectFolder(ctx context.Context, fp string) string {
 	if fp == "" {
 		return ""
 	}
@@ -680,16 +691,18 @@ func FormatProjectFolder(fp string) string {
 		return windows.FormatFilePath(fp)
 	}
 
+	logger := log.Extract(ctx)
+
 	formatted, err := filepath.Abs(fp)
 	if err != nil {
-		log.Debugf("failed to resolve absolute path for %q: %s", fp, err)
+		logger.Debugf("failed to resolve absolute path for %q: %s", fp, err)
 		return formatted
 	}
 
 	// evaluate any symlinks
 	formatted, err = realpath.Realpath(formatted)
 	if err != nil {
-		log.Debugf("failed to resolve real path for %q: %s", formatted, err)
+		logger.Debugf("failed to resolve real path for %q: %s", formatted, err)
 	}
 
 	return formatted

@@ -1,6 +1,7 @@
 package project_test
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -24,7 +25,7 @@ func TestTfvc_Detect(t *testing.T) {
 		Filepath: filepath.Join(fp, "wakatime-cli", "src", "pkg", "file.go"),
 	}
 
-	result, detected, err := s.Detect()
+	result, detected, err := s.Detect(context.Background())
 	require.NoError(t, err)
 
 	assert.True(t, detected)
@@ -46,7 +47,7 @@ func TestTfvc_Detect_Windows(t *testing.T) {
 		Filepath: filepath.Join(fp, "wakatime-cli", "src", "pkg", "file.go"),
 	}
 
-	result, detected, err := s.Detect()
+	result, detected, err := s.Detect(context.Background())
 	require.NoError(t, err)
 
 	assert.True(t, detected)

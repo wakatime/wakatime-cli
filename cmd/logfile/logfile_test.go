@@ -1,6 +1,7 @@
 package logfile_test
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -27,6 +28,8 @@ func TestLoadParams(t *testing.T) {
 
 	home, err := os.UserHomeDir()
 	require.NoError(t, err)
+
+	ctx := context.Background()
 
 	tests := map[string]struct {
 		EnvVar             string
@@ -134,7 +137,7 @@ func TestLoadParams(t *testing.T) {
 
 			defer os.Unsetenv("WAKATIME_HOME")
 
-			params, err := logfile.LoadParams(v)
+			params, err := logfile.LoadParams(ctx, v)
 			require.NoError(t, err)
 
 			assert.Equal(t, test.Expected, params)

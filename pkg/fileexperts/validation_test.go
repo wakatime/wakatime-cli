@@ -1,6 +1,7 @@
 package fileexperts_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/wakatime/wakatime-cli/pkg/fileexperts"
@@ -12,7 +13,7 @@ import (
 
 func TestWithValidation(t *testing.T) {
 	opt := fileexperts.WithValidation()
-	h := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+	h := opt(func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		assert.Equal(t, []heartbeat.Heartbeat{
 			{
 				Entity:           "/path/to/file",
@@ -28,7 +29,7 @@ func TestWithValidation(t *testing.T) {
 		}, nil
 	})
 
-	result, err := h([]heartbeat.Heartbeat{
+	result, err := h(context.Background(), []heartbeat.Heartbeat{
 		{
 			Entity:           "/path/to/file",
 			Project:          heartbeat.PointerTo("wakatime"),

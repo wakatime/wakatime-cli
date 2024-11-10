@@ -1,6 +1,7 @@
 package deps
 
 import (
+	"context"
 	"path/filepath"
 	"strings"
 )
@@ -21,7 +22,7 @@ type ParserUnknown struct {
 }
 
 // Parse parses dependencies from any file content via ReadCloser using the chroma golang lexer.
-func (p *ParserUnknown) Parse(fp string) ([]string, error) {
+func (p *ParserUnknown) Parse(_ context.Context, fp string) ([]string, error) {
 	p.init()
 	defer p.init()
 

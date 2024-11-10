@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -14,7 +15,7 @@ import (
 // ErrRequest is returned upon request failure with no received response from api.
 // ErrAuth is returned upon receiving a 401 Unauthorized api response.
 // Err is returned on any other api response related error.
-func (c *Client) Goal(id string) (*goal.Goal, error) {
+func (c *Client) Goal(ctx context.Context, id string) (*goal.Goal, error) {
 	url := c.baseURL + "/users/current/goals/" + id
 
 	req, err := http.NewRequest(http.MethodGet, url, nil)
@@ -24,7 +25,7 @@ func (c *Client) Goal(id string) (*goal.Goal, error) {
 
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := c.Do(req)
+	resp, err := c.Do(ctx, req)
 	if err != nil {
 		return nil, Err{Err: fmt.Errorf("failed to make request to %q: %s", url, err)}
 	}

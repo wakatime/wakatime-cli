@@ -1,6 +1,7 @@
 package today_test
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -59,7 +60,7 @@ func TestToday(t *testing.T) {
 	v.Set("api-url", testServerURL)
 	v.Set("plugin", plugin)
 
-	output, err := today.Today(v)
+	output, err := today.Today(context.Background(), v)
 	require.NoError(t, err)
 
 	assert.Equal(t, "10 secs", output)
@@ -83,7 +84,7 @@ func TestToday_ErrApi(t *testing.T) {
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("api-url", testServerURL)
 
-	_, err := today.Today(v)
+	_, err := today.Today(context.Background(), v)
 	require.Error(t, err)
 
 	var errapi api.Err
@@ -116,7 +117,7 @@ func TestToday_ErrAuth(t *testing.T) {
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("api-url", testServerURL)
 
-	_, err := today.Today(v)
+	_, err := today.Today(context.Background(), v)
 	require.Error(t, err)
 
 	var errauth api.ErrAuth
@@ -150,7 +151,7 @@ func TestToday_ErrBadRequest(t *testing.T) {
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("api-url", testServerURL)
 
-	_, err := today.Today(v)
+	_, err := today.Today(context.Background(), v)
 	require.Error(t, err)
 
 	var errbadRequest api.ErrBadRequest
@@ -168,7 +169,7 @@ func TestToday_ErrBadRequest(t *testing.T) {
 
 func TestToday_ErrAuth_UnsetAPIKey(t *testing.T) {
 	v := viper.New()
-	_, err := today.Today(v)
+	_, err := today.Today(context.Background(), v)
 	require.Error(t, err)
 
 	var errauth api.ErrAuth

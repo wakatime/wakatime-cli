@@ -2,6 +2,7 @@ package offlinecount_test
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -41,7 +42,7 @@ func TestOfflineCount_Empty(t *testing.T) {
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 
-	code, err := offlinecount.Run(v)
+	code, err := offlinecount.Run(context.Background(), v)
 	assert.Equal(t, exitcode.Success, code)
 	require.NoError(t, err)
 
@@ -103,7 +104,7 @@ func TestOfflineCount(t *testing.T) {
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 
-	code, err := offlinecount.Run(v)
+	code, err := offlinecount.Run(context.Background(), v)
 
 	outC := make(chan string)
 	// copy the output in a separate goroutine so printing can't block indefinitely

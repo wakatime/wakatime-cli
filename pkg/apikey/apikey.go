@@ -1,6 +1,8 @@
 package apikey
 
 import (
+	"context"
+
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/regex"
@@ -27,11 +29,12 @@ type MapPattern struct {
 // for a heartbeat following the provided configurations.
 func WithReplacing(config Config) heartbeat.HandleOption {
 	return func(next heartbeat.Handle) heartbeat.Handle {
-		return func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
-			log.Debugln("execute api key replacing")
+		return func(ctx context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+			logger := log.Extract(ctx)
+			logger.Debugln("execute api key replacing")
 
 			for n, h := range hh {
-				result, ok := MatchPattern(h.Entity, config.MapPatterns)
+				result, ok := MatchPattern(ctx, h.Entity, config.MapPatterns)
 				if ok {
 					hh[n].APIKey = result
 
@@ -41,20 +44,22 @@ func WithReplacing(config Config) heartbeat.HandleOption {
 				hh[n].APIKey = config.DefaultAPIKey
 			}
 
-			return next(hh)
+			return next(ctx, hh)
 		}
 	}
 }
 
 // MatchPattern matches regex against entity's path to find alternate api key.
-func MatchPattern(fp string, patterns []MapPattern) (string, bool) {
+func MatchPattern(ctx context.Context, fp string, patterns []MapPattern) (string, bool) {
+	logger := log.Extract(ctx)
+
 	for _, pattern := range patterns {
-		if pattern.Regex.MatchString(fp) {
-			log.Debugf("api key pattern %q matched path %q", pattern.Regex.String(), fp)
+		if pattern.Regex.MatchString(ctx, fp) {
+			logger.Debugf("api key pattern %q matched path %q", pattern.Regex.String(), fp)
 			return pattern.APIKey, true
 		}
 
-		log.Debugf("api key pattern %q did not match path %q", pattern.Regex.String(), fp)
+		logger.Debugf("api key pattern %q did not match path %q", pattern.Regex.String(), fp)
 	}
 
 	return "", false

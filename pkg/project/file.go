@@ -2,6 +2,7 @@ package project
 
 import (
 	"bufio"
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -19,15 +20,16 @@ type File struct {
 // Detect get information from a .wakatime-project file about the project for
 // a given file. First line of .wakatime-project sets the project
 // name. Second line sets the current branch name.
-func (f File) Detect() (Result, bool, error) {
-	fp, found := FindFileOrDirectory(f.Filepath, WakaTimeProjectFile)
+func (f File) Detect(ctx context.Context) (Result, bool, error) {
+	fp, found := FindFileOrDirectory(ctx, f.Filepath, WakaTimeProjectFile)
 	if !found {
 		return Result{}, false, nil
 	}
 
-	log.Debugf("wakatime project file found at: %s", fp)
+	logger := log.Extract(ctx)
+	logger.Debugf("wakatime project file found at: %s", fp)
 
-	lines, err := ReadFile(fp, 2)
+	lines, err := ReadFile(ctx, fp, 2)
 	if err != nil {
 		return Result{}, false, fmt.Errorf("error reading file: %s", err)
 	}
@@ -49,7 +51,7 @@ func (f File) Detect() (Result, bool, error) {
 }
 
 // ReadFile reads a file until max number of lines and return an array of lines.
-func ReadFile(fp string, max int) ([]string, error) {
+func ReadFile(ctx context.Context, fp string, max int) ([]string, error) {
 	if fp == "" {
 		return nil, errors.New("filepath cannot be empty")
 	}
@@ -59,9 +61,11 @@ func ReadFile(fp string, max int) ([]string, error) {
 		return nil, fmt.Errorf("failed while opening file %q: %s", fp, err)
 	}
 
+	logger := log.Extract(ctx)
+
 	defer func() {
 		if err := file.Close(); err != nil {
-			log.Debugf("failed to close file '%s': %s", file.Name(), err)
+			logger.Debugf("failed to close file '%s': %s", file.Name(), err)
 		}
 	}()
 

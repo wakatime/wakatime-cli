@@ -1,6 +1,7 @@
 package deps_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/wakatime/wakatime-cli/pkg/deps"
@@ -10,6 +11,8 @@ import (
 )
 
 func TestParserJSON_Parse(t *testing.T) {
+	ctx := context.Background()
+
 	tests := map[string]struct {
 		Filepath string
 		Expected []string
@@ -49,7 +52,7 @@ func TestParserJSON_Parse(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			parser := deps.ParserJSON{}
 
-			dependencies, err := parser.Parse(test.Filepath)
+			dependencies, err := parser.Parse(ctx, test.Filepath)
 			require.NoError(t, err)
 
 			assert.Equal(t, test.Expected, dependencies)

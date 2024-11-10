@@ -1,6 +1,7 @@
 package backoff
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"math"
@@ -39,10 +40,11 @@ type Config struct {
 // a heartbeat when the api is unresponsive.
 func WithBackoff(config Config) heartbeat.HandleOption {
 	return func(next heartbeat.Handle) heartbeat.Handle {
-		return func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
-			log.Debugln("execute heartbeat backoff algorithm")
+		return func(ctx context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+			logger := log.Extract(ctx)
+			logger.Debugln("execute heartbeat backoff algorithm")
 
-			if shouldBackoff(config.Retries, config.At) {
+			if shouldBackoff(ctx, config.Retries, config.At) {
 				if config.HasProxy {
 					return nil, api.ErrBackoff{Err: errors.New("won't send heartbeat due to backoff with proxy")}
 				}
@@ -50,11 +52,11 @@ func WithBackoff(config Config) heartbeat.HandleOption {
 				return nil, api.ErrBackoff{Err: errors.New("won't send heartbeat due to backoff without proxy")}
 			}
 
-			results, err := next(hh)
+			results, err := next(ctx, hh)
 			if err != nil {
 				// error response, increment backoff
-				if updateErr := updateBackoffSettings(config.V, config.Retries+1, time.Now()); updateErr != nil {
-					log.Warnf("failed to update backoff settings: %s", updateErr)
+				if updateErr := updateBackoffSettings(ctx, config.V, config.Retries+1, time.Now()); updateErr != nil {
+					logger.Warnf("failed to update backoff settings: %s", updateErr)
 				}
 
 				return nil, err
@@ -62,8 +64,8 @@ func WithBackoff(config Config) heartbeat.HandleOption {
 
 			// success response, reset backoff
 			if config.Retries > 0 || !config.At.IsZero() {
-				if resetErr := updateBackoffSettings(config.V, 0, time.Time{}); resetErr != nil {
-					log.Warnf("failed to reset backoff settings: %s", resetErr)
+				if resetErr := updateBackoffSettings(ctx, config.V, 0, time.Time{}); resetErr != nil {
+					logger.Warnf("failed to reset backoff settings: %s", resetErr)
 				}
 			}
 
@@ -75,17 +77,19 @@ func WithBackoff(config Config) heartbeat.HandleOption {
 // shouldBackoff returns true if we should save heartbeats directly to offline
 // database and skip sending to API due to rate limiting from too many recent
 // networking errors.
-func shouldBackoff(retries int, at time.Time) bool {
+func shouldBackoff(ctx context.Context, retries int, at time.Time) bool {
 	if retries < 1 || at.IsZero() {
 		return false
 	}
+
+	logger := log.Extract(ctx)
 
 	backoffSeconds := float64(factor) * math.Pow(2, float64(retries))
 
 	duration := time.Duration(backoffSeconds) * time.Second
 
 	if backoffSeconds > maxBackoffSecs {
-		log.Debugf(
+		logger.Debugf(
 			"exponential backoff tried %d times since %s, will reset because reached %s max backoff",
 			retries,
 			at.Format(ini.DateFormat),
@@ -99,7 +103,7 @@ func shouldBackoff(retries int, at time.Time) bool {
 		return false
 	}
 
-	log.Debugf(
+	logger.Debugf(
 		"exponential backoff tried %d times since %s, will retry again after %s",
 		retries,
 		at.Format(ini.DateFormat),
@@ -109,8 +113,8 @@ func shouldBackoff(retries int, at time.Time) bool {
 	return true
 }
 
-func updateBackoffSettings(v *viper.Viper, retries int, at time.Time) error {
-	w, err := ini.NewWriter(v, ini.InternalFilePath)
+func updateBackoffSettings(ctx context.Context, v *viper.Viper, retries int, at time.Time) error {
+	w, err := ini.NewWriter(ctx, v, ini.InternalFilePath)
 	if err != nil {
 		return fmt.Errorf("failed to parse config file: %s", err)
 	}
@@ -126,7 +130,7 @@ func updateBackoffSettings(v *viper.Viper, retries int, at time.Time) error {
 		keyValue["backoff_at"] = ""
 	}
 
-	if err := w.Write("internal", keyValue); err != nil {
+	if err := w.Write(ctx, "internal", keyValue); err != nil {
 		return fmt.Errorf("failed to write to internal config file: %s", err)
 	}
 

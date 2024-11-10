@@ -1,6 +1,7 @@
 package heartbeat
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -30,13 +31,15 @@ import (
 )
 
 // Run executes the heartbeat command.
-func Run(v *viper.Viper) (int, error) {
-	queueFilepath, err := offline.QueueFilepath(v)
+func Run(ctx context.Context, v *viper.Viper) (int, error) {
+	logger := log.Extract(ctx)
+
+	queueFilepath, err := offline.QueueFilepath(ctx, v)
 	if err != nil {
-		log.Warnf("failed to load offline queue filepath: %s", err)
+		logger.Warnf("failed to load offline queue filepath: %s", err)
 	}
 
-	err = SendHeartbeats(v, queueFilepath)
+	err = SendHeartbeats(ctx, v, queueFilepath)
 	if err != nil {
 		var errauth api.ErrAuth
 
@@ -44,8 +47,8 @@ func Run(v *viper.Viper) (int, error) {
 		// Save heartbeats to offline db even when api key invalid.
 		// It avoids losing heartbeats when api key is invalid.
 		if errors.As(err, &errauth) {
-			if err := offlinecmd.SaveHeartbeats(v, nil, queueFilepath); err != nil {
-				log.Errorf("failed to save heartbeats to offline queue: %s", err)
+			if err := offlinecmd.SaveHeartbeats(ctx, v, nil, queueFilepath); err != nil {
+				logger.Errorf("failed to save heartbeats to offline queue: %s", err)
 			}
 
 			return errauth.ExitCode(), fmt.Errorf("sending heartbeat(s) failed: %w", errauth)
@@ -61,7 +64,7 @@ func Run(v *viper.Viper) (int, error) {
 		)
 	}
 
-	log.Debugln("successfully sent heartbeat(s)")
+	logger.Debugln("successfully sent heartbeat(s)")
 
 	return exitcode.Success, nil
 }
@@ -69,29 +72,31 @@ func Run(v *viper.Viper) (int, error) {
 // SendHeartbeats sends a heartbeat to the wakatime api and includes additional
 // heartbeats from the offline queue, if available and offline sync is not
 // explicitly disabled.
-func SendHeartbeats(v *viper.Viper, queueFilepath string) error {
-	params, err := LoadParams(v)
+func SendHeartbeats(ctx context.Context, v *viper.Viper, queueFilepath string) error {
+	params, err := LoadParams(ctx, v)
 	if err != nil {
 		return fmt.Errorf("failed to load command parameters: %w", err)
 	}
 
-	setLogFields(params)
-	log.Debugf("params: %s", params)
+	logger := log.Extract(ctx)
+
+	setLogFields(ctx, params)
+	logger.Debugf("params: %s", params)
 
 	if RateLimited(RateLimitParams{
 		Disabled:   params.Offline.Disabled,
 		LastSentAt: params.Offline.LastSentAt,
 		Timeout:    params.Offline.RateLimit,
 	}) {
-		if err = offlinecmd.SaveHeartbeats(v, nil, queueFilepath); err == nil {
+		if err = offlinecmd.SaveHeartbeats(ctx, v, nil, queueFilepath); err == nil {
 			return nil
 		}
 
 		// log offline db error then try to send heartbeats to API so they're not lost
-		log.Errorf("failed to save rate limited heartbeats: %s", err)
+		logger.Errorf("failed to save rate limited heartbeats: %s", err)
 	}
 
-	heartbeats := buildHeartbeats(params)
+	heartbeats := buildHeartbeats(ctx, params)
 
 	var chOfflineSave = make(chan bool)
 
@@ -99,11 +104,11 @@ func SendHeartbeats(v *viper.Viper, queueFilepath string) error {
 	if len(heartbeats) > offline.SendLimit {
 		extraHeartbeats := heartbeats[offline.SendLimit:]
 
-		log.Debugf("save %d extra heartbeat(s) to offline queue", len(extraHeartbeats))
+		logger.Debugf("save %d extra heartbeat(s) to offline queue", len(extraHeartbeats))
 
 		go func(done chan<- bool) {
-			if err := offlinecmd.SaveHeartbeats(v, extraHeartbeats, queueFilepath); err != nil {
-				log.Errorf("failed to save extra heartbeats to offline queue: %s", err)
+			if err := offlinecmd.SaveHeartbeats(ctx, v, extraHeartbeats, queueFilepath); err != nil {
+				logger.Errorf("failed to save extra heartbeats to offline queue: %s", err)
 			}
 
 			done <- true
@@ -125,11 +130,11 @@ func SendHeartbeats(v *viper.Viper, queueFilepath string) error {
 		HasProxy: params.API.ProxyURL != "",
 	}))
 
-	apiClient, err := apicmd.NewClientWithoutAuth(params.API)
+	apiClient, err := apicmd.NewClientWithoutAuth(ctx, params.API)
 	if err != nil {
 		if !params.Offline.Disabled {
-			if err := offlinecmd.SaveHeartbeats(v, heartbeats, queueFilepath); err != nil {
-				log.Errorf("failed to save heartbeats to offline queue: %s", err)
+			if err := offlinecmd.SaveHeartbeats(ctx, v, heartbeats, queueFilepath); err != nil {
+				logger.Errorf("failed to save heartbeats to offline queue: %s", err)
 			}
 		}
 
@@ -137,7 +142,7 @@ func SendHeartbeats(v *viper.Viper, queueFilepath string) error {
 	}
 
 	handle := heartbeat.NewHandle(apiClient, handleOpts...)
-	results, err := handle(heartbeats)
+	results, err := handle(ctx, heartbeats)
 
 	// wait for offline queue save to finish
 	if len(heartbeats) > offline.SendLimit {
@@ -150,12 +155,12 @@ func SendHeartbeats(v *viper.Viper, queueFilepath string) error {
 
 	for _, result := range results {
 		if len(result.Errors) > 0 {
-			log.Warnln(strings.Join(result.Errors, " "))
+			logger.Warnln(strings.Join(result.Errors, " "))
 		}
 	}
 
-	if err := ResetRateLimit(v); err != nil {
-		log.Errorf("failed to reset rate limit: %s", err)
+	if err := ResetRateLimit(ctx, v); err != nil {
+		logger.Errorf("failed to reset rate limit: %s", err)
 	}
 
 	return nil
@@ -163,17 +168,17 @@ func SendHeartbeats(v *viper.Viper, queueFilepath string) error {
 
 // LoadParams loads params from viper.Viper instance. Returns ErrAuth
 // if failed to retrieve api key.
-func LoadParams(v *viper.Viper) (paramscmd.Params, error) {
+func LoadParams(ctx context.Context, v *viper.Viper) (paramscmd.Params, error) {
 	if v == nil {
 		return paramscmd.Params{}, errors.New("viper instance unset")
 	}
 
-	apiParams, err := paramscmd.LoadAPIParams(v)
+	apiParams, err := paramscmd.LoadAPIParams(ctx, v)
 	if err != nil {
 		return paramscmd.Params{}, fmt.Errorf("failed to load API parameters: %w", err)
 	}
 
-	heartbeatParams, err := paramscmd.LoadHeartbeatParams(v)
+	heartbeatParams, err := paramscmd.LoadHeartbeatParams(ctx, v)
 	if err != nil {
 		return paramscmd.Params{}, fmt.Errorf("failed to load heartbeat params: %s", err)
 	}
@@ -181,7 +186,7 @@ func LoadParams(v *viper.Viper) (paramscmd.Params, error) {
 	return paramscmd.Params{
 		API:       apiParams,
 		Heartbeat: heartbeatParams,
-		Offline:   paramscmd.LoadOfflineParams(v),
+		Offline:   paramscmd.LoadOfflineParams(ctx, v),
 	}, nil
 }
 
@@ -210,8 +215,8 @@ func RateLimited(params RateLimitParams) bool {
 }
 
 // ResetRateLimit updates the internal.heartbeats_last_sent_at timestamp.
-func ResetRateLimit(v *viper.Viper) error {
-	w, err := ini.NewWriter(v, ini.InternalFilePath)
+func ResetRateLimit(ctx context.Context, v *viper.Viper) error {
+	w, err := ini.NewWriter(ctx, v, ini.InternalFilePath)
 	if err != nil {
 		return fmt.Errorf("failed to parse config file: %s", err)
 	}
@@ -220,17 +225,17 @@ func ResetRateLimit(v *viper.Viper) error {
 		"heartbeats_last_sent_at": time.Now().Format(ini.DateFormat),
 	}
 
-	if err := w.Write("internal", keyValue); err != nil {
+	if err := w.Write(ctx, "internal", keyValue); err != nil {
 		return fmt.Errorf("failed to write to internal config file: %s", err)
 	}
 
 	return nil
 }
 
-func buildHeartbeats(params paramscmd.Params) []heartbeat.Heartbeat {
+func buildHeartbeats(ctx context.Context, params paramscmd.Params) []heartbeat.Heartbeat {
 	heartbeats := []heartbeat.Heartbeat{}
 
-	userAgent := heartbeat.UserAgent(params.API.Plugin)
+	userAgent := heartbeat.UserAgent(ctx, params.API.Plugin)
 
 	heartbeats = append(heartbeats, heartbeat.New(
 		params.Heartbeat.Project.BranchAlternate,
@@ -256,7 +261,8 @@ func buildHeartbeats(params paramscmd.Params) []heartbeat.Heartbeat {
 	))
 
 	if len(params.Heartbeat.ExtraHeartbeats) > 0 {
-		log.Debugf("include %d extra heartbeat(s) from stdin", len(params.Heartbeat.ExtraHeartbeats))
+		logger := log.Extract(ctx)
+		logger.Debugf("include %d extra heartbeat(s) from stdin", len(params.Heartbeat.ExtraHeartbeats))
 
 		for _, h := range params.Heartbeat.ExtraHeartbeats {
 			heartbeats = append(heartbeats, heartbeat.New(
@@ -331,19 +337,19 @@ func initHandleOptions(params paramscmd.Params) []heartbeat.HandleOption {
 	}
 }
 
-func setLogFields(params paramscmd.Params) {
-	log.WithField("file", params.Heartbeat.Entity)
-	log.WithField("time", params.Heartbeat.Time)
+func setLogFields(ctx context.Context, params paramscmd.Params) {
+	log.AddField(ctx, "file", params.Heartbeat.Entity)
+	log.AddField(ctx, "time", params.Heartbeat.Time)
 
 	if params.API.Plugin != "" {
-		log.WithField("plugin", params.API.Plugin)
+		log.AddField(ctx, "plugin", params.API.Plugin)
 	}
 
 	if params.Heartbeat.LineNumber != nil {
-		log.WithField("lineno", params.Heartbeat.LineNumber)
+		log.AddField(ctx, "lineno", params.Heartbeat.LineNumber)
 	}
 
 	if params.Heartbeat.IsWrite != nil {
-		log.WithField("is_write", params.Heartbeat.IsWrite)
+		log.AddField(ctx, "is_write", params.Heartbeat.IsWrite)
 	}
 }

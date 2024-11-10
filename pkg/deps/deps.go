@@ -1,6 +1,7 @@
 package deps
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
@@ -25,7 +26,7 @@ type Config struct {
 
 // DependencyParser is a dependency parser for a programming language.
 type DependencyParser interface {
-	Parse(filepath string) ([]string, error)
+	Parse(ctx context.Context, filepath string) ([]string, error)
 }
 
 // WithDetection initializes and returns a heartbeat handle option, which
@@ -34,8 +35,9 @@ type DependencyParser interface {
 // local file if available.
 func WithDetection(c Config) heartbeat.HandleOption {
 	return func(next heartbeat.Handle) heartbeat.Handle {
-		return func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
-			log.Debugln("execute dependency detection")
+		return func(ctx context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+			logger := log.Extract(ctx)
+			logger.Debugln("execute dependency detection")
 
 			for n, h := range hh {
 				if h.EntityType != heartbeat.FileType {
@@ -50,7 +52,7 @@ func WithDetection(c Config) heartbeat.HandleOption {
 					continue
 				}
 
-				if heartbeat.ShouldSanitize(h.Entity, c.FilePatterns) {
+				if heartbeat.ShouldSanitize(ctx, h.Entity, c.FilePatterns) {
 					continue
 				}
 
@@ -62,25 +64,25 @@ func WithDetection(c Config) heartbeat.HandleOption {
 
 				language, ok := heartbeat.ParseLanguage(*h.Language)
 				if !ok {
-					log.Debugf("error parsing language of string %q", *h.Language)
+					logger.Debugf("error parsing language of string %q", *h.Language)
 				}
 
-				dependencies, err := Detect(filepath, language)
+				dependencies, err := Detect(ctx, filepath, language)
 				if err != nil {
-					log.Debugf("error detecting dependencies: %s", err)
+					logger.Debugf("error detecting dependencies: %s", err)
 					continue
 				}
 
 				hh[n].Dependencies = dependencies
 			}
 
-			return next(hh)
+			return next(ctx, hh)
 		}
 	}
 }
 
 // Detect parses the dependencies from a heartbeat file of a specific language.
-func Detect(filepath string, language heartbeat.Language) ([]string, error) {
+func Detect(ctx context.Context, filepath string, language heartbeat.Language) ([]string, error) {
 	var parser DependencyParser
 
 	switch language {
@@ -126,24 +128,26 @@ func Detect(filepath string, language heartbeat.Language) ([]string, error) {
 		parser = &ParserUnknown{}
 	}
 
-	deps, err := parser.Parse(filepath)
+	deps, err := parser.Parse(ctx, filepath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse dependencies: %s", err)
 	}
 
-	return filterDependencies(deps), nil
+	return filterDependencies(ctx, deps), nil
 }
 
-func filterDependencies(deps []string) []string {
+func filterDependencies(ctx context.Context, deps []string) []string {
 	var (
 		results []string
 		unique  = make(map[string]struct{})
 	)
 
+	logger := log.Extract(ctx)
+
 	for _, d := range deps {
 		// filter max size
 		if len(results) >= maxDependenciesCount {
-			log.Debugf("max size of %d dependencies reached", maxDependenciesCount)
+			logger.Debugf("max size of %d dependencies reached", maxDependenciesCount)
 			break
 		}
 
@@ -154,7 +158,7 @@ func filterDependencies(deps []string) []string {
 
 		// filter dependencies off size
 		if d == "" || len(d) > maxDependencyLength {
-			log.Debugf(
+			logger.Debugf(
 				"dependency won't be sent because it's either empty or greater than %d characters: %s",
 				maxDependencyLength,
 				d,

@@ -34,7 +34,7 @@ jobs:
         run: make test
       -
         name: Linter
-        uses: golangci/golangci-lint-action@v3
+        uses: golangci/golangci-lint-action@v6
         with:
           version: latest
           skip-cache: true
@@ -94,7 +94,7 @@ jobs:
         run: make test
       -
         name: Linter
-        uses: golangci/golangci-lint-action@v3
+        uses: golangci/golangci-lint-action@v6
         with:
           version: latest
           skip-cache: true
@@ -145,7 +145,7 @@ jobs:
         run: make test
       -
         name: Linter
-        uses: golangci/golangci-lint-action@v3
+        uses: golangci/golangci-lint-action@v6
         with:
           version: latest
           skip-cache: true
@@ -574,7 +574,7 @@ jobs:
           path: build/
       -
         name: Import Code-Signing Certificates
-        uses: Apple-Actions/import-codesign-certs@v1
+        uses: Apple-Actions/import-codesign-certs@v3
         with:
           # The certificates in a PKCS12 file encoded as a base64 string
           p12-file-base64: ${{ secrets.APPLE_DEVELOPER_CERTIFICATE_P12_BASE64 }}
@@ -644,7 +644,7 @@ jobs:
         # Run only for develop branch
         if: ${{ github.ref == 'refs/heads/develop' }}
         name: Changelog for develop
-        uses: gandarez/changelog-action@v1.2.0
+        uses: gandarez/changelog-action@v1.4.0
         id: changelog-develop
         with:
           current_tag: ${{ github.sha }}
@@ -655,7 +655,7 @@ jobs:
         # Run only for release branch
         if: ${{ github.ref == 'refs/heads/release' }}
         name: Get related pull request
-        uses: 8BitJonny/gh-get-current-pr@v2.2.0
+        uses: 8BitJonny/gh-get-current-pr@3.0.0
         id: changelog-release
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -681,7 +681,7 @@ jobs:
         run: ./bin/prepare_assets.sh
       -
         name: "Create release"
-        uses: softprops/action-gh-release@master
+        uses: softprops/action-gh-release@v2
         with:
           name: ${{ needs.version.outputs.semver_tag }}
           tag_name: ${{ needs.version.outputs.semver_tag }}

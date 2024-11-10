@@ -2,8 +2,10 @@ package cmd
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
+	stdlog "log"
 	"os"
 	"path/filepath"
 	"runtime/debug"
@@ -47,113 +49,119 @@ type diagnostics struct {
 
 // RunE executes commands parsed from a command line.
 func RunE(cmd *cobra.Command, v *viper.Viper) error {
+	ctx := context.Background()
+
 	// force setup logging otherwise log goes to std out
-	_, err := SetupLogging(v)
+	logger, err := SetupLogging(ctx, v)
 	if err != nil {
-		log.Fatalf("failed to setup logging: %s", err)
+		// log to std out as logger is not setup yet
+		stdlog.Fatalf("failed to setup logging: %s", err)
 	}
 
-	err = parseConfigFiles(v)
+	// save logger to context
+	ctx = log.ToContext(ctx, logger)
+
+	err = parseConfigFiles(ctx, v)
 	if err != nil {
-		log.Errorf("failed to parse config files: %s", err)
+		logger.Errorf("failed to parse config files: %s", err)
 
 		if v.IsSet("entity") {
-			_ = saveHeartbeats(v)
+			_ = saveHeartbeats(ctx, v)
 
 			return exitcode.Err{Code: exitcode.ErrConfigFileParse}
 		}
 	}
 
-	// setup logging again to use config file settings
-	logFileParams, err := SetupLogging(v)
+	// setup logging again to use config file settings if available
+	logger, err = SetupLogging(ctx, v)
 	if err != nil {
-		log.Fatalf("failed to setup logging: %s", err)
+		logger.Fatalf("failed to setup logging: %s", err)
 	}
 
 	// register all custom lexers
 	if err := lexer.RegisterAll(); err != nil {
-		log.Fatalf("failed to register custom lexers: %s", err)
+		logger.Fatalf("failed to register custom lexers: %s", err)
 	}
 
 	// start profiling if enabled
-	if logFileParams.Metrics {
-		shutdown, err := metrics.StartProfiling()
+	if logger.IsMetricsEnabled() {
+		shutdown, err := metrics.StartProfiling(ctx)
 		if err != nil {
-			log.Errorf("failed to start profiling: %s", err)
+			logger.Errorf("failed to start profiling: %s", err)
+		} else {
+			defer shutdown()
 		}
-
-		defer shutdown()
 	}
 
 	if v.GetBool("user-agent") {
-		log.Debugln("command: user-agent")
+		logger.Debugln("command: user-agent")
 
-		fmt.Println(heartbeat.UserAgent(vipertools.GetString(v, "plugin")))
+		fmt.Println(heartbeat.UserAgent(ctx, vipertools.GetString(v, "plugin")))
 
 		return nil
 	}
 
 	if v.GetBool("version") {
-		log.Debugln("command: version")
+		logger.Debugln("command: version")
 
-		return RunCmd(v, logFileParams.Verbose, logFileParams.SendDiagsOnErrors, runVersion)
+		return RunCmd(ctx, v, logger.IsVerboseEnabled(), logger.SendDiagsOnErrors(), runVersion)
 	}
 
 	if v.IsSet("config-read") {
-		log.Debugln("command: config-read")
+		logger.Debugln("command: config-read")
 
-		return RunCmd(v, logFileParams.Verbose, logFileParams.SendDiagsOnErrors, configread.Run)
+		return RunCmd(ctx, v, logger.IsVerboseEnabled(), logger.SendDiagsOnErrors(), configread.Run)
 	}
 
 	if v.IsSet("config-write") {
-		log.Debugln("command: config-write")
+		logger.Debugln("command: config-write")
 
-		return RunCmd(v, logFileParams.Verbose, logFileParams.SendDiagsOnErrors, configwrite.Run)
+		return RunCmd(ctx, v, logger.IsVerboseEnabled(), logger.SendDiagsOnErrors(), configwrite.Run)
 	}
 
 	if v.GetBool("today") {
-		log.Debugln("command: today")
+		logger.Debugln("command: today")
 
-		return RunCmd(v, logFileParams.Verbose, logFileParams.SendDiagsOnErrors, today.Run)
+		return RunCmd(ctx, v, logger.IsVerboseEnabled(), logger.SendDiagsOnErrors(), today.Run)
 	}
 
 	if v.IsSet("today-goal") {
-		log.Debugln("command: today-goal")
+		logger.Debugln("command: today-goal")
 
-		return RunCmd(v, logFileParams.Verbose, logFileParams.SendDiagsOnErrors, todaygoal.Run)
+		return RunCmd(ctx, v, logger.IsVerboseEnabled(), logger.SendDiagsOnErrors(), todaygoal.Run)
 	}
 
 	if v.GetBool("file-experts") {
-		log.Debugln("command: file-experts")
+		logger.Debugln("command: file-experts")
 
-		return RunCmd(v, logFileParams.Verbose, logFileParams.SendDiagsOnErrors, fileexperts.Run)
+		return RunCmd(ctx, v, logger.IsVerboseEnabled(), logger.SendDiagsOnErrors(), fileexperts.Run)
 	}
 
 	if v.IsSet("entity") {
-		log.Debugln("command: heartbeat")
+		logger.Debugln("command: heartbeat")
 
-		return RunCmdWithOfflineSync(v, logFileParams.Verbose, logFileParams.SendDiagsOnErrors, cmdheartbeat.Run)
+		return RunCmdWithOfflineSync(ctx, v, logger.IsVerboseEnabled(), logger.SendDiagsOnErrors(), cmdheartbeat.Run)
 	}
 
 	if v.IsSet("sync-offline-activity") {
-		log.Debugln("command: sync-offline-activity")
+		logger.Debugln("command: sync-offline-activity")
 
-		return RunCmd(v, logFileParams.Verbose, logFileParams.SendDiagsOnErrors, offlinesync.RunWithoutRateLimiting)
+		return RunCmd(ctx, v, logger.IsVerboseEnabled(), logger.SendDiagsOnErrors(), offlinesync.RunWithoutRateLimiting)
 	}
 
 	if v.GetBool("offline-count") {
-		log.Debugln("command: offline-count")
+		logger.Debugln("command: offline-count")
 
-		return RunCmd(v, logFileParams.Verbose, logFileParams.SendDiagsOnErrors, offlinecount.Run)
+		return RunCmd(ctx, v, logger.IsVerboseEnabled(), logger.SendDiagsOnErrors(), offlinecount.Run)
 	}
 
 	if v.IsSet("print-offline-heartbeats") {
-		log.Debugln("command: print-offline-heartbeats")
+		logger.Debugln("command: print-offline-heartbeats")
 
-		return RunCmd(v, logFileParams.Verbose, logFileParams.SendDiagsOnErrors, offlineprint.Run)
+		return RunCmd(ctx, v, logger.IsVerboseEnabled(), logger.SendDiagsOnErrors(), offlineprint.Run)
 	}
 
-	log.Warnf("one of the following parameters has to be provided: %s", strings.Join([]string{
+	logger.Warnf("one of the following parameters has to be provided: %s", strings.Join([]string{
 		"--config-read",
 		"--config-write",
 		"--entity",
@@ -172,9 +180,9 @@ func RunE(cmd *cobra.Command, v *viper.Viper) error {
 	return exitcode.Err{Code: exitcode.ErrGeneric}
 }
 
-func parseConfigFiles(v *viper.Viper) error {
+func parseConfigFiles(ctx context.Context, v *viper.Viper) error {
 	var configFiles = []struct {
-		fn    func(v *viper.Viper) (string, error)
+		fn    func(context.Context, *viper.Viper) (string, error)
 		vp    *viper.Viper
 		merge bool
 	}{
@@ -193,8 +201,10 @@ func parseConfigFiles(v *viper.Viper) error {
 		},
 	}
 
+	logger := log.Extract(ctx)
+
 	for _, c := range configFiles {
-		configFile, err := c.fn(v)
+		configFile, err := c.fn(ctx, v)
 		if err != nil {
 			return fmt.Errorf("error getting config file path: %s", err)
 		}
@@ -205,7 +215,7 @@ func parseConfigFiles(v *viper.Viper) error {
 
 		// check if file exists
 		if _, err := os.Stat(configFile); os.IsNotExist(err) {
-			log.Debugf("config file %q not present or not accessible", configFile)
+			logger.Debugf("config file %q not present or not accessible", configFile)
 			continue
 		}
 
@@ -216,7 +226,7 @@ func parseConfigFiles(v *viper.Viper) error {
 		if c.merge {
 			err = v.MergeConfigMap(c.vp.AllSettings())
 			if err != nil {
-				log.Warnf("failed to merge configuration file: %s", err)
+				logger.Warnf("failed to merge configuration file: %s", err)
 			}
 		}
 	}
@@ -225,16 +235,17 @@ func parseConfigFiles(v *viper.Viper) error {
 }
 
 // SetupLogging uses the --log-file param to configure logging to file or stdout.
-func SetupLogging(v *viper.Viper) (*logfile.Params, error) {
-	logfileParams, err := logfile.LoadParams(v)
+// It returns a logger with the configured settings or the default settings if it's not set.
+func SetupLogging(ctx context.Context, v *viper.Viper) (*log.Logger, error) {
+	params, err := logfile.LoadParams(ctx, v)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load log params: %s", err)
 	}
 
-	logFile := os.Stdout
+	destOutput := os.Stdout
 
-	if !logfileParams.ToStdout {
-		dir := filepath.Dir(logfileParams.File)
+	if !params.ToStdout {
+		dir := filepath.Dir(params.File)
 		if _, err := os.Stat(dir); os.IsNotExist(err) {
 			err := os.MkdirAll(dir, 0750)
 			if err != nil {
@@ -242,52 +253,58 @@ func SetupLogging(v *viper.Viper) (*logfile.Params, error) {
 			}
 		}
 
-		logFile, err = os.OpenFile(logfileParams.File, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644) // nolint:gosec
+		destOutput, err = os.OpenFile(params.File, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644) // nolint:gosec
 		if err != nil {
 			return nil, fmt.Errorf("error opening log file: %s", err)
 		}
-
-		log.SetOutput(logFile)
 	}
 
-	log.SetVerbose(logfileParams.Verbose)
-	log.SetJww(logfileParams.Verbose, logFile)
+	logger := log.New(
+		destOutput,
+		log.WithVerbose(params.Verbose),
+		log.WithSendDiagsOnErrors(params.SendDiagsOnErrors),
+		log.WithMetrics(params.Metrics),
+	)
 
-	return &logfileParams, nil
+	log.SetJww(params.Verbose, destOutput)
+
+	return logger, nil
 }
 
 // cmdFn represents a command function.
-type cmdFn func(v *viper.Viper) (int, error)
+type cmdFn func(ctx context.Context, v *viper.Viper) (int, error)
 
 // RunCmd runs a command function and exits with the exit code returned by
 // the command function. Will send diagnostic on any errors or panics.
-func RunCmd(v *viper.Viper, verbose bool, sendDiagsOnErrors bool, cmd cmdFn) error {
-	return runCmd(v, verbose, sendDiagsOnErrors, cmd)
+func RunCmd(ctx context.Context, v *viper.Viper, verbose bool, sendDiagsOnErrors bool, cmd cmdFn) error {
+	return runCmd(ctx, v, verbose, sendDiagsOnErrors, cmd)
 }
 
 // RunCmdWithOfflineSync runs a command function and exits with the exit code
 // returned by the command function. If command run was successful, it will execute
 // offline sync command afterwards. Will send diagnostic on any errors or panics.
-func RunCmdWithOfflineSync(v *viper.Viper, verbose bool, sendDiagsOnErrors bool, cmd cmdFn) error {
-	if err := runCmd(v, verbose, sendDiagsOnErrors, cmd); err != nil {
+func RunCmdWithOfflineSync(ctx context.Context, v *viper.Viper, verbose bool, sendDiagsOnErrors bool, cmd cmdFn) error {
+	if err := runCmd(ctx, v, verbose, sendDiagsOnErrors, cmd); err != nil {
 		return err
 	}
 
-	return runCmd(v, verbose, sendDiagsOnErrors, offlinesync.RunWithRateLimiting)
+	return runCmd(ctx, v, verbose, sendDiagsOnErrors, offlinesync.RunWithRateLimiting)
 }
 
 // runCmd contains the main logic of RunCmd.
 // It will send diagnostic on any errors or panics.
 // On panic, it will send diagnostic and exit with ErrGeneric exit code.
 // On error, it will only send diagnostic if sendDiagsOnErrors and verbose is true.
-func runCmd(v *viper.Viper, verbose bool, sendDiagsOnErrors bool, cmd cmdFn) (errresponse error) {
+func runCmd(ctx context.Context, v *viper.Viper, verbose bool, sendDiagsOnErrors bool, cmd cmdFn) (errresponse error) {
 	logs := bytes.NewBuffer(nil)
-	resetLogs := captureLogs(logs)
+	resetLogs := captureLogs(ctx, logs)
+
+	logger := log.Extract(ctx)
 
 	// catch panics
 	defer func() {
 		if err := recover(); err != nil {
-			log.Errorf("panicked: %v. Stack: %s", err, string(debug.Stack()))
+			logger.Errorf("panicked: %v. Stack: %s", err, string(debug.Stack()))
 
 			resetLogs()
 
@@ -301,8 +318,8 @@ func runCmd(v *viper.Viper, verbose bool, sendDiagsOnErrors bool, cmd cmdFn) (er
 				diags.Logs = logs.String()
 			}
 
-			if err := sendDiagnostics(v, diags); err != nil {
-				log.Warnf("failed to send diagnostics: %s", err)
+			if err := sendDiagnostics(ctx, v, diags); err != nil {
+				logger.Warnf("failed to send diagnostics: %s", err)
 			}
 
 			errresponse = exitcode.Err{Code: exitcode.ErrGeneric}
@@ -312,7 +329,7 @@ func runCmd(v *viper.Viper, verbose bool, sendDiagsOnErrors bool, cmd cmdFn) (er
 	var err error
 
 	// run command
-	exitCode, err := cmd(v)
+	exitCode, err := cmd(ctx, v)
 	// nolint:nestif
 	if err != nil {
 		if errwaka, ok := err.(wakaerror.Error); ok {
@@ -322,25 +339,25 @@ func runCmd(v *viper.Viper, verbose bool, sendDiagsOnErrors bool, cmd cmdFn) (er
 		}
 
 		if verbose {
-			log.Errorf("failed to run command: %s", err)
+			logger.Errorf("failed to run command: %s", err)
 		}
 
 		resetLogs()
 
 		if verbose && sendDiagsOnErrors {
-			if err := sendDiagnostics(v,
+			if err := sendDiagnostics(ctx, v,
 				diagnostics{
 					Logs:          logs.String(),
 					OriginalError: err.Error(),
 					Stack:         string(debug.Stack()),
 				}); err != nil {
-				log.Warnf("failed to send diagnostics: %s", err)
+				logger.Warnf("failed to send diagnostics: %s", err)
 			}
 		}
 	}
 
 	if exitCode != exitcode.Success {
-		log.Debugf("command failed with exit code %d", exitCode)
+		logger.Debugf("command failed with exit code %d", exitCode)
 
 		errresponse = exitcode.Err{Code: exitCode}
 	}
@@ -348,14 +365,16 @@ func runCmd(v *viper.Viper, verbose bool, sendDiagsOnErrors bool, cmd cmdFn) (er
 	return errresponse
 }
 
-func saveHeartbeats(v *viper.Viper) int {
-	queueFilepath, err := offline.QueueFilepath(v)
+func saveHeartbeats(ctx context.Context, v *viper.Viper) int {
+	logger := log.Extract(ctx)
+
+	queueFilepath, err := offline.QueueFilepath(ctx, v)
 	if err != nil {
-		log.Warnf("failed to load offline queue filepath: %s", err)
+		logger.Warnf("failed to load offline queue filepath: %s", err)
 	}
 
-	if err := cmdoffline.SaveHeartbeats(v, nil, queueFilepath); err != nil {
-		log.Errorf("failed to save heartbeats to offline queue: %s", err)
+	if err := cmdoffline.SaveHeartbeats(ctx, v, nil, queueFilepath); err != nil {
+		logger.Errorf("failed to save heartbeats to offline queue: %s", err)
 
 		return exitcode.ErrGeneric
 	}
@@ -363,13 +382,13 @@ func saveHeartbeats(v *viper.Viper) int {
 	return exitcode.Success
 }
 
-func sendDiagnostics(v *viper.Viper, d diagnostics) error {
-	paramAPI, err := params.LoadAPIParams(v)
+func sendDiagnostics(ctx context.Context, v *viper.Viper, d diagnostics) error {
+	paramAPI, err := params.LoadAPIParams(ctx, v)
 	if err != nil {
 		return fmt.Errorf("failed to load API parameters: %s", err)
 	}
 
-	c, err := cmdapi.NewClient(paramAPI)
+	c, err := cmdapi.NewClient(ctx, paramAPI)
 	if err != nil {
 		return fmt.Errorf("failed to initialize api client: %s", err)
 	}
@@ -380,25 +399,28 @@ func sendDiagnostics(v *viper.Viper, d diagnostics) error {
 		diagnostic.Stack(d.Stack),
 	}
 
-	err = c.SendDiagnostics(paramAPI.Plugin, d.Panicked, diagnostics...)
+	err = c.SendDiagnostics(ctx, paramAPI.Plugin, d.Panicked, diagnostics...)
 	if err != nil {
 		return fmt.Errorf("failed to send diagnostics to the API: %s", err)
 	}
 
-	log.Debugln("successfully sent diagnostics")
+	logger := log.Extract(ctx)
+	logger.Debugln("successfully sent diagnostics")
 
 	return nil
 }
 
-func captureLogs(dest io.Writer) func() {
-	logOutput := log.Output()
+func captureLogs(ctx context.Context, dest io.Writer) func() {
+	logger := log.Extract(ctx)
+
+	logOutput := logger.Output()
 
 	// will write to log output and dest
 	mw := io.MultiWriter(logOutput, dest)
 
-	log.SetOutput(mw)
+	logger.SetOutput(mw)
 
 	return func() {
-		log.SetOutput(logOutput)
+		logger.SetOutput(logOutput)
 	}
 }

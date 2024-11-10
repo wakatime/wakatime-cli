@@ -1,6 +1,7 @@
 package heartbeat
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -10,6 +11,8 @@ import (
 )
 
 func TestIsXCodePlayground(t *testing.T) {
+	ctx := context.Background()
+
 	tests := map[string]struct {
 		Dir      string
 		Expected bool
@@ -34,7 +37,7 @@ func TestIsXCodePlayground(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			ret := isXCodePlayground(test.Dir)
+			ret := isXCodePlayground(ctx, test.Dir)
 
 			assert.Equal(t, test.Expected, ret)
 		})
@@ -42,6 +45,8 @@ func TestIsXCodePlayground(t *testing.T) {
 }
 
 func TestIsXCodeProject(t *testing.T) {
+	ctx := context.Background()
+
 	tests := map[string]struct {
 		Dir      string
 		Expected bool
@@ -58,7 +63,7 @@ func TestIsXCodeProject(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			ret := isXCodeProject(test.Dir)
+			ret := isXCodeProject(ctx, test.Dir)
 
 			assert.Equal(t, test.Expected, ret)
 		})

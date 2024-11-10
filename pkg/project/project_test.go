@@ -1,6 +1,7 @@
 package project_test
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -18,6 +19,8 @@ import (
 )
 
 func TestWithDetection_EntityNotFile(t *testing.T) {
+	ctx := context.Background()
+
 	tests := map[string]struct {
 		Heartbeats  []heartbeat.Heartbeat
 		Override    string
@@ -72,7 +75,7 @@ func TestWithDetection_EntityNotFile(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			opt := project.WithDetection(project.Config{})
 
-			handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+			handle := opt(func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 				assert.Equal(t, []heartbeat.Heartbeat{
 					test.Expected,
 				}, hh)
@@ -80,7 +83,7 @@ func TestWithDetection_EntityNotFile(t *testing.T) {
 				return nil, nil
 			})
 
-			_, err := handle(test.Heartbeats)
+			_, err := handle(ctx, test.Heartbeats)
 			require.NoError(t, err)
 		})
 	}
@@ -89,9 +92,11 @@ func TestWithDetection_EntityNotFile(t *testing.T) {
 func TestWithDetection_WakatimeProjectTakesPrecedence(t *testing.T) {
 	fp := setupTestGitBasic(t)
 
+	ctx := context.Background()
+
 	entity := filepath.Join(fp, "wakatime-cli/src/pkg/file.go")
 	projectPath := filepath.Join(fp, "wakatime-cli")
-	projectPath = project.FormatProjectFolder(projectPath)
+	projectPath = project.FormatProjectFolder(ctx, projectPath)
 
 	if runtime.GOOS == "windows" {
 		entity = windows.FormatFilePath(entity)
@@ -111,7 +116,7 @@ func TestWithDetection_WakatimeProjectTakesPrecedence(t *testing.T) {
 	}
 
 	sender := mockSender{
-		SendHeartbeatsFn: func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		SendHeartbeatsFn: func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 			assert.NotEmpty(t, hh[0].Project)
 			assert.Equal(t, []heartbeat.Heartbeat{
 				{
@@ -131,7 +136,7 @@ func TestWithDetection_WakatimeProjectTakesPrecedence(t *testing.T) {
 
 	handle := heartbeat.NewHandle(&sender, opts...)
 
-	_, err := handle([]heartbeat.Heartbeat{
+	_, err := handle(ctx, []heartbeat.Heartbeat{
 		{
 			EntityType:       heartbeat.FileType,
 			Entity:           entity,
@@ -146,7 +151,7 @@ func TestWithDetection_OverrideTakesPrecedence(t *testing.T) {
 
 	entity := filepath.Join(fp, "wakatime-cli/src/pkg/file.go")
 	projectPath := filepath.Join(fp, "wakatime-cli")
-	projectPath = project.FormatProjectFolder(projectPath)
+	projectPath = project.FormatProjectFolder(context.Background(), projectPath)
 
 	if runtime.GOOS == "windows" {
 		entity = windows.FormatFilePath(entity)
@@ -154,7 +159,7 @@ func TestWithDetection_OverrideTakesPrecedence(t *testing.T) {
 
 	opt := project.WithDetection(project.Config{})
 
-	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+	handle := opt(func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		assert.Equal(t, []heartbeat.Heartbeat{
 			{
 				Branch:           heartbeat.PointerTo("master"),
@@ -170,7 +175,7 @@ func TestWithDetection_OverrideTakesPrecedence(t *testing.T) {
 		return nil, nil
 	})
 
-	_, err := handle([]heartbeat.Heartbeat{
+	_, err := handle(context.Background(), []heartbeat.Heartbeat{
 		{
 			EntityType:      heartbeat.FileType,
 			Entity:          entity,
@@ -191,7 +196,7 @@ func TestWithDetection_OverrideTakesPrecedence_WithProjectPathOverride(t *testin
 
 	opt := project.WithDetection(project.Config{})
 
-	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+	handle := opt(func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		assert.Equal(t, []heartbeat.Heartbeat{
 			{
 				Branch:              heartbeat.PointerTo("master"),
@@ -208,7 +213,7 @@ func TestWithDetection_OverrideTakesPrecedence_WithProjectPathOverride(t *testin
 		return nil, nil
 	})
 
-	_, err := handle([]heartbeat.Heartbeat{
+	_, err := handle(context.Background(), []heartbeat.Heartbeat{
 		{
 			EntityType:          heartbeat.FileType,
 			Entity:              entity,
@@ -225,10 +230,12 @@ func TestWithDetection_NoneDetected(t *testing.T) {
 
 	defer tmpFile.Close()
 
+	ctx := context.Background()
+
 	entity := tmpFile.Name()
 
 	projectPath := filepath.Dir(tmpFile.Name())
-	projectPath = project.FormatProjectFolder(projectPath)
+	projectPath = project.FormatProjectFolder(ctx, projectPath)
 
 	if runtime.GOOS == "windows" {
 		entity = windows.FormatFilePath(entity)
@@ -243,7 +250,7 @@ func TestWithDetection_NoneDetected(t *testing.T) {
 	}
 
 	sender := mockSender{
-		SendHeartbeatsFn: func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		SendHeartbeatsFn: func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 			assert.Equal(t, []heartbeat.Heartbeat{
 				{
 					Branch:           heartbeat.PointerTo(""),
@@ -261,7 +268,7 @@ func TestWithDetection_NoneDetected(t *testing.T) {
 
 	handle := heartbeat.NewHandle(&sender, opts...)
 
-	_, err = handle([]heartbeat.Heartbeat{
+	_, err = handle(ctx, []heartbeat.Heartbeat{
 		{
 			EntityType: heartbeat.FileType,
 			Entity:     tmpFile.Name(),
@@ -276,10 +283,12 @@ func TestWithDetection_NoneDetected_AlternateTakesPrecedence(t *testing.T) {
 
 	defer tmpFile.Close()
 
+	ctx := context.Background()
+
 	entity := tmpFile.Name()
 
 	projectPath := filepath.Dir(tmpFile.Name())
-	projectPath = project.FormatProjectFolder(projectPath)
+	projectPath = project.FormatProjectFolder(ctx, projectPath)
 
 	if runtime.GOOS == "windows" {
 		entity = windows.FormatFilePath(entity)
@@ -294,7 +303,7 @@ func TestWithDetection_NoneDetected_AlternateTakesPrecedence(t *testing.T) {
 	}
 
 	sender := mockSender{
-		SendHeartbeatsFn: func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		SendHeartbeatsFn: func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 			assert.Equal(t, []heartbeat.Heartbeat{
 				{
 					Branch:           heartbeat.PointerTo("alternate-branch"),
@@ -314,7 +323,7 @@ func TestWithDetection_NoneDetected_AlternateTakesPrecedence(t *testing.T) {
 
 	handle := heartbeat.NewHandle(&sender, opts...)
 
-	_, err = handle([]heartbeat.Heartbeat{
+	_, err = handle(ctx, []heartbeat.Heartbeat{
 		{
 			BranchAlternate:  "alternate-branch",
 			EntityType:       heartbeat.FileType,
@@ -331,6 +340,8 @@ func TestWithDetection_NoneDetected_OverrideTakesPrecedence(t *testing.T) {
 
 	defer tmpFile.Close()
 
+	ctx := context.Background()
+
 	entity := tmpFile.Name()
 
 	if runtime.GOOS == "windows" {
@@ -341,7 +352,7 @@ func TestWithDetection_NoneDetected_OverrideTakesPrecedence(t *testing.T) {
 	}
 
 	projectPath := filepath.Dir(tmpFile.Name())
-	projectPath = project.FormatProjectFolder(projectPath)
+	projectPath = project.FormatProjectFolder(ctx, projectPath)
 
 	opts := []heartbeat.HandleOption{
 		heartbeat.WithFormatting(),
@@ -349,7 +360,7 @@ func TestWithDetection_NoneDetected_OverrideTakesPrecedence(t *testing.T) {
 	}
 
 	sender := mockSender{
-		SendHeartbeatsFn: func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		SendHeartbeatsFn: func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 			assert.Equal(t, []heartbeat.Heartbeat{
 				{
 					Branch:           heartbeat.PointerTo(""),
@@ -368,7 +379,7 @@ func TestWithDetection_NoneDetected_OverrideTakesPrecedence(t *testing.T) {
 
 	handle := heartbeat.NewHandle(&sender, opts...)
 
-	_, err = handle([]heartbeat.Heartbeat{
+	_, err = handle(ctx, []heartbeat.Heartbeat{
 		{
 			EntityType:      heartbeat.FileType,
 			Entity:          tmpFile.Name(),
@@ -385,6 +396,8 @@ func TestWithDetection_NoneDetected_WithProjectPathOverride(t *testing.T) {
 
 	defer tmpFile.Close()
 
+	ctx := context.Background()
+
 	opts := []heartbeat.HandleOption{
 		heartbeat.WithFormatting(),
 		project.WithDetection(project.Config{}),
@@ -399,10 +412,10 @@ func TestWithDetection_NoneDetected_WithProjectPathOverride(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	projectFolder := project.FormatProjectFolder(tmpDir)
+	projectFolder := project.FormatProjectFolder(ctx, tmpDir)
 
 	sender := mockSender{
-		SendHeartbeatsFn: func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		SendHeartbeatsFn: func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 			assert.Equal(t, []heartbeat.Heartbeat{
 				{
 					Branch:              heartbeat.PointerTo(""),
@@ -422,7 +435,7 @@ func TestWithDetection_NoneDetected_WithProjectPathOverride(t *testing.T) {
 
 	handle := heartbeat.NewHandle(&sender, opts...)
 
-	_, err = handle([]heartbeat.Heartbeat{
+	_, err = handle(ctx, []heartbeat.Heartbeat{
 		{
 			EntityType:          heartbeat.FileType,
 			Entity:              tmpFile.Name(),
@@ -436,9 +449,11 @@ func TestWithDetection_NoneDetected_WithProjectPathOverride(t *testing.T) {
 func TestWithDetection_ObfuscateProject(t *testing.T) {
 	fp := setupTestGitBasic(t)
 
+	ctx := context.Background()
+
 	entity := filepath.Join(fp, "wakatime-cli/src/pkg/file.go")
 	projectPath := filepath.Join(fp, "wakatime-cli")
-	projectPath = project.FormatProjectFolder(projectPath)
+	projectPath = project.FormatProjectFolder(ctx, projectPath)
 
 	if runtime.GOOS == "windows" {
 		entity = windows.FormatFilePath(entity)
@@ -448,7 +463,7 @@ func TestWithDetection_ObfuscateProject(t *testing.T) {
 		HideProjectNames: []regex.Regex{regex.MustCompile(".*")},
 	})
 
-	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+	handle := opt(func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		assert.NotEmpty(t, hh[0].Project)
 		assert.Equal(t, []heartbeat.Heartbeat{
 			{
@@ -464,7 +479,7 @@ func TestWithDetection_ObfuscateProject(t *testing.T) {
 		return nil, nil
 	})
 
-	_, err := handle([]heartbeat.Heartbeat{
+	_, err := handle(ctx, []heartbeat.Heartbeat{
 		{
 			EntityType: heartbeat.FileType,
 			Entity:     entity,
@@ -491,7 +506,7 @@ func TestDetect_FileDetected(t *testing.T) {
 		filepath.Join(tmpDir, "entity.any"),
 	)
 
-	result, detector := project.Detect([]project.MapPattern{}, project.DetecterArg{
+	result, detector := project.Detect(context.Background(), []project.MapPattern{}, project.DetecterArg{
 		Filepath:  filepath.Join(tmpDir, "entity.any"),
 		ShouldRun: true,
 	})
@@ -520,7 +535,7 @@ func TestDetect_EmptyFileDetected(t *testing.T) {
 		filepath.Join(tmpDir, "wakatime-cli", "entity.any"),
 	)
 
-	result, detector := project.Detect([]project.MapPattern{}, project.DetecterArg{
+	result, detector := project.Detect(context.Background(), []project.MapPattern{}, project.DetecterArg{
 		Filepath:  filepath.Join(tmpDir, "wakatime-cli", "entity.any"),
 		ShouldRun: true,
 	})
@@ -550,7 +565,7 @@ func TestDetect_MapDetected(t *testing.T) {
 		},
 	}
 
-	result, detector := project.Detect(patterns, project.DetecterArg{
+	result, detector := project.Detect(context.Background(), patterns, project.DetecterArg{
 		Filepath:  tmpFile.Name(),
 		ShouldRun: true,
 	})
@@ -565,6 +580,7 @@ func TestDetectWithRevControl_GitDetected(t *testing.T) {
 	fp := setupTestGitBasic(t)
 
 	result := project.DetectWithRevControl(
+		context.Background(),
 		[]regex.Regex{},
 		[]project.MapPattern{},
 		false,
@@ -586,6 +602,7 @@ func TestDetectWithRevControl_GitRemoteDetected(t *testing.T) {
 	fp := setupTestGitBasic(t)
 
 	result := project.DetectWithRevControl(
+		context.Background(),
 		[]regex.Regex{},
 		[]project.MapPattern{},
 		true,
@@ -609,7 +626,7 @@ func TestDetect_NoProjectDetected(t *testing.T) {
 
 	defer tmpFile.Close()
 
-	result, detector := project.Detect([]project.MapPattern{}, project.DetecterArg{
+	result, detector := project.Detect(context.Background(), []project.MapPattern{}, project.DetecterArg{
 		Filepath:  tmpFile.Name(),
 		ShouldRun: true,
 	})
@@ -705,11 +722,11 @@ func formatRegex(fp string) string {
 }
 
 type mockSender struct {
-	SendHeartbeatsFn        func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error)
+	SendHeartbeatsFn        func(context.Context, []heartbeat.Heartbeat) ([]heartbeat.Result, error)
 	SendHeartbeatsFnInvoked bool
 }
 
-func (m *mockSender) SendHeartbeats(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+func (m *mockSender) SendHeartbeats(ctx context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 	m.SendHeartbeatsFnInvoked = true
-	return m.SendHeartbeatsFn(hh)
+	return m.SendHeartbeatsFn(ctx, hh)
 }

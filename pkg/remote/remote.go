@@ -49,8 +49,9 @@ type Client struct {
 // download to a temporary directory.
 func WithDetection() heartbeat.HandleOption {
 	return func(next heartbeat.Handle) heartbeat.Handle {
-		return func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
-			log.Debugln("execute remote file detection")
+		return func(ctx context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+			logger := log.Extract(ctx)
+			logger.Debugln("execute remote file detection")
 
 			var filtered []heartbeat.Heartbeat
 
@@ -62,29 +63,29 @@ func WithDetection() heartbeat.HandleOption {
 
 				tmpFile, err := os.CreateTemp("", fmt.Sprintf("*_%s", filepath.Base(h.Entity)))
 				if err != nil {
-					log.Errorf("failed to create temporary file: %s", err)
+					logger.Errorf("failed to create temporary file: %s", err)
 					continue
 				}
 
-				c, err := NewClient(h.Entity)
+				c, err := NewClient(ctx, h.Entity)
 				if err != nil {
-					log.Errorf("failed to create new remote client: %s", err)
+					logger.Errorf("failed to create new remote client: %s", err)
 
-					deleteLocalFile(tmpFile.Name())
+					deleteLocalFile(ctx, tmpFile.Name())
 
 					continue
 				}
 
-				err = c.DownloadFile(tmpFile.Name())
+				err = c.DownloadFile(ctx, tmpFile.Name())
 				if err != nil {
-					log.Errorf("failed to download file to temporary folder: %s", err)
+					logger.Errorf("failed to download file to temporary folder: %s", err)
 
-					err = c.DownloadFileFallback(tmpFile.Name())
+					err = c.DownloadFileFallback(ctx, tmpFile.Name())
 					if err != nil {
-						log.Errorf("failed to download remote file using fallback option: %s", err)
+						logger.Errorf("failed to download remote file using fallback option: %s", err)
 					}
 
-					deleteLocalFile(tmpFile.Name())
+					deleteLocalFile(ctx, tmpFile.Name())
 
 					continue
 				}
@@ -95,7 +96,7 @@ func WithDetection() heartbeat.HandleOption {
 				filtered = append(filtered, h)
 			}
 
-			return next(filtered)
+			return next(ctx, filtered)
 		}
 	}
 }
@@ -104,31 +105,34 @@ func WithDetection() heartbeat.HandleOption {
 // deletes a local temporary file if downloaded from a remote file.
 func WithCleanup() heartbeat.HandleOption {
 	return func(next heartbeat.Handle) heartbeat.Handle {
-		return func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
-			log.Debugln("execute remote cleanup")
+		return func(ctx context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+			logger := log.Extract(ctx)
+			logger.Debugln("execute remote cleanup")
 
 			for _, h := range hh {
 				if h.LocalFileNeedsCleanup {
-					log.Debugln("deleting temporary file:", h.LocalFile)
+					logger.Debugf("deleting temporary file: %s", h.LocalFile)
 
-					deleteLocalFile(h.LocalFile)
+					deleteLocalFile(ctx, h.LocalFile)
 				}
 			}
 
-			return next(hh)
+			return next(ctx, hh)
 		}
 	}
 }
 
-func deleteLocalFile(fp string) {
+func deleteLocalFile(ctx context.Context, fp string) {
+	logger := log.Extract(ctx)
+
 	err := os.Remove(fp)
 	if err != nil {
-		log.Warnf("unable to delete tmp file: %s", err)
+		logger.Warnf("unable to delete tmp file: %s", err)
 	}
 }
 
 // NewClient initializes a new remote client.
-func NewClient(address string) (Client, error) {
+func NewClient(ctx context.Context, address string) (Client, error) {
 	parsedURL, err := url.Parse(address)
 	if err != nil {
 		return Client{}, fmt.Errorf("failed to parse remote file url: %s", err)
@@ -150,14 +154,16 @@ func NewClient(address string) (Client, error) {
 		derivedHost = host
 	}
 
+	logger := log.Extract(ctx)
+
 	if port == 0 {
 		port, err = strconv.Atoi(ssh_config.Get(host, "Port"))
-		log.Warnf("failed to parse port from host: %s", err)
+		logger.Warnf("failed to parse port from host: %s", err)
 	}
 
 	if port == 0 {
 		port, err = strconv.Atoi(ssh_config.Get(derivedHost, "Port"))
-		log.Warnf("failed to parse port from derived host: %s", err)
+		logger.Warnf("failed to parse port from derived host: %s", err)
 	}
 
 	if port == 0 {
@@ -167,7 +173,7 @@ func NewClient(address string) (Client, error) {
 	return Client{
 		User:         parsedURL.User.Username(),
 		Pass:         pass,
-		HostKeyAlias: hostKeyAlias(host, derivedHost),
+		HostKeyAlias: hostKeyAlias(ctx, host, derivedHost),
 		OriginalHost: host,
 		Host:         derivedHost,
 		Port:         port,
@@ -176,19 +182,21 @@ func NewClient(address string) (Client, error) {
 }
 
 // DownloadFile downloads a remote file and copy to a local file.
-func (c Client) DownloadFile(localFile string) error {
-	conn, sc, err := c.Connect()
+func (c Client) DownloadFile(ctx context.Context, localFile string) error {
+	conn, sc, err := c.Connect(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to connect to sftp host: %s", err)
 	}
 
+	logger := log.Extract(ctx)
+
 	defer func() {
 		if err := conn.Close(); err != nil {
-			log.Debugf("failed to close connection to ssh server: %s", err)
+			logger.Debugf("failed to close connection to ssh server: %s", err)
 		}
 
 		if err := sc.Close(); err != nil {
-			log.Debugf("failed to close connection to ftp server: %s", err)
+			logger.Debugf("failed to close connection to ftp server: %s", err)
 		}
 	}()
 
@@ -199,7 +207,7 @@ func (c Client) DownloadFile(localFile string) error {
 
 	defer func() {
 		if err := srcFile.Close(); err != nil {
-			log.Debugf("failed to close remote ftp file: %s", err)
+			logger.Debugf("failed to close remote ftp file: %s", err)
 		}
 	}()
 
@@ -210,7 +218,7 @@ func (c Client) DownloadFile(localFile string) error {
 
 	defer func() {
 		if err := dstFile.Close(); err != nil {
-			log.Warnf("failed to close local file: %s", err)
+			logger.Warnf("failed to close local file: %s", err)
 		}
 	}()
 
@@ -223,11 +231,13 @@ func (c Client) DownloadFile(localFile string) error {
 }
 
 // DownloadFileFallback downloads a remote file and copy to a local file using machine's ssh.
-func (c Client) DownloadFileFallback(localFile string) error {
+func (c Client) DownloadFileFallback(ctx context.Context, localFile string) error {
+	logger := log.Extract(ctx)
+
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeoutSecs*time.Second)
 	defer cancel()
 
-	log.Debugln("downloading remote file using fallback option")
+	logger.Debugln("downloading remote file using fallback option")
 
 	cmd := exec.CommandContext(ctx, "scp", "-B", fmt.Sprintf("%s:%s", c.OriginalHost, c.Path), localFile) // nolint:gosec
 
@@ -242,9 +252,9 @@ func (c Client) DownloadFileFallback(localFile string) error {
 }
 
 // Connect connects to sftp host.
-func (c Client) Connect() (*ssh.Client, *sftp.Client, error) {
+func (c Client) Connect(ctx context.Context) (*ssh.Client, *sftp.Client, error) {
 	// Initialize client configuration
-	sshClient, err := c.sshClient()
+	sshClient, err := c.sshClient(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -259,7 +269,8 @@ func (c Client) Connect() (*ssh.Client, *sftp.Client, error) {
 }
 
 // knownHostKeys gets all host keys from local known hosts for given hosts.
-func (c Client) knownHostKeys() []ssh.PublicKey {
+func (c Client) knownHostKeys(ctx context.Context) []ssh.PublicKey {
+	logger := log.Extract(ctx)
 	hostKeys := []ssh.PublicKey{}
 
 	filenames := c.knownHostsFiles()
@@ -273,7 +284,7 @@ func (c Client) knownHostKeys() []ssh.PublicKey {
 
 			defer func() {
 				if err := file.Close(); err != nil {
-					log.Debugf("failed to close file '%s': %s", file.Name(), err)
+					logger.Debugf("failed to close file '%s': %s", file.Name(), err)
 				}
 			}()
 
@@ -290,7 +301,7 @@ func (c Client) knownHostKeys() []ssh.PublicKey {
 				if contains(hostnames, c.HostKeyAlias, c.OriginalHost, c.Host) {
 					hostKey, _, _, _, err := ssh.ParseAuthorizedKey(scanner.Bytes())
 					if err != nil {
-						log.Warnf("failed to parse %q: %s", fields[2], err)
+						logger.Warnf("failed to parse %q: %s", fields[2], err)
 					} else {
 						hostKeys = append(hostKeys, hostKey)
 					}
@@ -299,7 +310,7 @@ func (c Client) knownHostKeys() []ssh.PublicKey {
 
 			return nil
 		}(filename); err != nil {
-			log.Debugln(err)
+			logger.Debugln(err.Error())
 		}
 	}
 
@@ -394,29 +405,33 @@ func (c Client) signerForIdentity() (ssh.Signer, error) {
 	return signer, nil
 }
 
-func (c Client) warnIfUsingRevokedHostKeys() {
+func (c Client) warnIfUsingRevokedHostKeys(ctx context.Context) {
+	logger := log.Extract(ctx)
+
 	revokedKeysFile := ssh_config.Get(c.OriginalHost, "RevokedHostKeys")
 	if revokedKeysFile != "" {
-		log.Warnln("Using ssh config RevokedHostKeys is not supported")
+		logger.Warnln("using ssh config RevokedHostKeys is not supported")
 		return
 	}
 
 	if c.OriginalHost != c.Host {
 		revokedKeysFile = ssh_config.Get(c.Host, "RevokedHostKeys")
 		if revokedKeysFile != "" {
-			log.Warnln("Using ssh config RevokedHostKeys is not supported")
+			logger.Warnln("using ssh config RevokedHostKeys is not supported")
 		}
 	}
 }
 
-func (c Client) sshClient() (*ssh.Client, error) {
+func (c Client) sshClient(ctx context.Context) (*ssh.Client, error) {
+	logger := log.Extract(ctx)
+
 	var auths []ssh.AuthMethod
 
 	addr := fmt.Sprintf("%s:%d", c.Host, c.Port)
 
 	signer, err := c.signerForIdentity()
 	if err != nil {
-		log.Warnf("%s", err)
+		logger.Warnf("%s", err)
 	}
 
 	if signer != nil {
@@ -441,10 +456,10 @@ func (c Client) sshClient() (*ssh.Client, error) {
 	}
 
 	strict := c.strictHostKeyChecking()
-	log.Debugf("StrictHostKeyChecking for %s set to %s", c.OriginalHost, strict)
+	logger.Debugf("StrictHostKeyChecking for %s set to %s", c.OriginalHost, strict)
 
 	if strict == "no" {
-		log.Debugf("host key checking disabled for %s", c.OriginalHost)
+		logger.Debugf("host key checking disabled for %s", c.OriginalHost)
 
 		config.HostKeyCallback = ssh.InsecureIgnoreHostKey() // nolint:gosec
 
@@ -457,13 +472,13 @@ func (c Client) sshClient() (*ssh.Client, error) {
 		return client, nil
 	}
 
-	knownHostKeys := c.knownHostKeys()
+	knownHostKeys := c.knownHostKeys(ctx)
 	if len(knownHostKeys) == 0 && strict == "yes" {
 		return nil, fmt.Errorf("known host key not found for %s, will not connect", c.OriginalHost)
 	}
 
 	if len(knownHostKeys) == 0 {
-		log.Debugf("no known host key found for %s, will connect anyway", c.OriginalHost)
+		logger.Debugf("no known host key found for %s, will connect anyway", c.OriginalHost)
 
 		config.HostKeyCallback = ssh.InsecureIgnoreHostKey() // nolint:gosec
 
@@ -476,9 +491,9 @@ func (c Client) sshClient() (*ssh.Client, error) {
 		return client, nil
 	}
 
-	log.Debugf("found %d known host ssh keys for %s", len(knownHostKeys), c.OriginalHost)
+	logger.Debugf("found %d known host ssh keys for %s", len(knownHostKeys), c.OriginalHost)
 
-	c.warnIfUsingRevokedHostKeys()
+	c.warnIfUsingRevokedHostKeys(ctx)
 
 	for _, hostKey := range knownHostKeys {
 		config.HostKeyCallback = ssh.FixedHostKey(hostKey)
@@ -486,7 +501,7 @@ func (c Client) sshClient() (*ssh.Client, error) {
 		// Connect to server
 		client, err := dial(addr, &config)
 		if err != nil {
-			log.Warnf("failed to connect to '%s': %s", addr, err)
+			logger.Warnf("failed to connect to '%s': %s", addr, err)
 
 			continue
 		}
@@ -519,7 +534,7 @@ func (c Client) user() string {
 	return ""
 }
 
-func hostKeyAlias(hostOriginal string, hostDerived string) string {
+func hostKeyAlias(ctx context.Context, hostOriginal, hostDerived string) string {
 	alias := ssh_config.Get(hostOriginal, "HostKeyAlias")
 	if alias == "" && hostOriginal != hostDerived {
 		alias = ssh_config.Get(hostDerived, "HostKeyAlias")
@@ -529,9 +544,11 @@ func hostKeyAlias(hostOriginal string, hostDerived string) string {
 		return ""
 	}
 
+	logger := log.Extract(ctx)
+
 	alias, err := homedir.Expand(alias)
 	if err != nil {
-		log.Debugf("Unable to expand home directory for HostKeyAlias %q: %w", alias, err)
+		logger.Debugf("Unable to expand home directory for HostKeyAlias %q: %s", alias, err)
 	}
 
 	return alias

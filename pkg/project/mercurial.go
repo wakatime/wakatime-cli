@@ -1,6 +1,7 @@
 package project
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -15,7 +16,7 @@ type Mercurial struct {
 }
 
 // Detect gets information about the mercurial project for a given file.
-func (m Mercurial) Detect() (Result, bool, error) {
+func (m Mercurial) Detect(ctx context.Context) (Result, bool, error) {
 	var fp string
 
 	// Take only the directory
@@ -24,16 +25,17 @@ func (m Mercurial) Detect() (Result, bool, error) {
 	}
 
 	// Find for .hg folder
-	hgDirectory, found := FindFileOrDirectory(fp, ".hg")
+	hgDirectory, found := FindFileOrDirectory(ctx, fp, ".hg")
 	if !found {
 		return Result{}, false, nil
 	}
 
+	logger := log.Extract(ctx)
 	project := filepath.Base(filepath.Dir(hgDirectory))
 
-	branch, err := findHgBranch(hgDirectory)
+	branch, err := findHgBranch(ctx, hgDirectory)
 	if err != nil {
-		log.Errorf(
+		logger.Errorf(
 			"error finding for branch name from %q: %s",
 			hgDirectory,
 			err,
@@ -47,13 +49,13 @@ func (m Mercurial) Detect() (Result, bool, error) {
 	}, true, nil
 }
 
-func findHgBranch(fp string) (string, error) {
+func findHgBranch(ctx context.Context, fp string) (string, error) {
 	p := filepath.Join(fp, "branch")
 	if !fileOrDirExists(p) {
 		return "default", nil
 	}
 
-	lines, err := ReadFile(p, 1)
+	lines, err := ReadFile(ctx, p, 1)
 	if err != nil {
 		return "", fmt.Errorf("failed while opening file %q: %s", fp, err)
 	}

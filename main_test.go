@@ -4,6 +4,7 @@ package main_test
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -59,6 +60,8 @@ func testSendHeartbeats(t *testing.T, projectFolder, entity, p string) {
 	apiURL, router, close := setupTestServer()
 	defer close()
 
+	ctx := context.Background()
+
 	var numCalls int
 
 	subfolders := project.CountSlashesInProjectFolder(projectFolder)
@@ -71,7 +74,7 @@ func testSendHeartbeats(t *testing.T, projectFolder, entity, p string) {
 		assert.Equal(t, []string{"application/json"}, req.Header["Accept"])
 		assert.Equal(t, []string{"application/json"}, req.Header["Content-Type"])
 		assert.Equal(t, []string{"Basic MDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAw"}, req.Header["Authorization"])
-		assert.Equal(t, []string{heartbeat.UserAgent("")}, req.Header["User-Agent"])
+		assert.Equal(t, []string{heartbeat.UserAgent(ctx, "")}, req.Header["User-Agent"])
 
 		// check body
 		expectedBodyTpl, err := os.ReadFile("testdata/api_heartbeats_request_template.json")
@@ -86,7 +89,7 @@ func testSendHeartbeats(t *testing.T, projectFolder, entity, p string) {
 			entityPath,
 			p,
 			subfolders,
-			heartbeat.UserAgent(""),
+			heartbeat.UserAgent(ctx, ""),
 		)
 
 		body, err := io.ReadAll(req.Body)
@@ -113,7 +116,8 @@ func testSendHeartbeats(t *testing.T, projectFolder, entity, p string) {
 	offlineQueueFileLegacy, err := os.CreateTemp(tmpDir, "")
 	require.NoError(t, err)
 
-	defer offlineQueueFileLegacy.Close()
+	// close the file to avoid "The process cannot access the file because it is being used by another process" error
+	offlineQueueFileLegacy.Close()
 
 	tmpConfigFile, err := os.CreateTemp(tmpDir, "wakatime.cfg")
 	require.NoError(t, err)
@@ -155,6 +159,8 @@ func TestSendHeartbeats_SecondaryApiKey(t *testing.T) {
 	apiURL, router, close := setupTestServer()
 	defer close()
 
+	ctx := context.Background()
+
 	var numCalls int
 
 	rootPath, _ := filepath.Abs(".")
@@ -168,7 +174,7 @@ func TestSendHeartbeats_SecondaryApiKey(t *testing.T) {
 		assert.Equal(t, []string{"application/json"}, req.Header["Accept"])
 		assert.Equal(t, []string{"application/json"}, req.Header["Content-Type"])
 		assert.Equal(t, []string{"Basic MDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAx"}, req.Header["Authorization"])
-		assert.Equal(t, []string{heartbeat.UserAgent("")}, req.Header["User-Agent"])
+		assert.Equal(t, []string{heartbeat.UserAgent(ctx, "")}, req.Header["User-Agent"])
 
 		// check body
 		expectedBodyTpl, err := os.ReadFile("testdata/api_heartbeats_request_template.json")
@@ -183,7 +189,7 @@ func TestSendHeartbeats_SecondaryApiKey(t *testing.T) {
 			entityPath,
 			"wakatime-cli",
 			subfolders,
-			heartbeat.UserAgent(""),
+			heartbeat.UserAgent(ctx, ""),
 		)
 
 		body, err := io.ReadAll(req.Body)
@@ -210,7 +216,8 @@ func TestSendHeartbeats_SecondaryApiKey(t *testing.T) {
 	offlineQueueFileLegacy, err := os.CreateTemp(tmpDir, "")
 	require.NoError(t, err)
 
-	defer offlineQueueFileLegacy.Close()
+	// close the file to avoid "The process cannot access the file because it is being used by another process" error
+	offlineQueueFileLegacy.Close()
 
 	tmpInternalConfigFile, err := os.CreateTemp(tmpDir, "wakatime-internal.cfg")
 	require.NoError(t, err)
@@ -246,6 +253,8 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 	apiURL, router, close := setupTestServer()
 	defer close()
 
+	ctx := context.Background()
+
 	var numCalls int
 
 	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
@@ -256,7 +265,7 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 		assert.Equal(t, []string{"application/json"}, req.Header["Accept"])
 		assert.Equal(t, []string{"application/json"}, req.Header["Content-Type"])
 		assert.Equal(t, []string{"Basic MDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAw"}, req.Header["Authorization"])
-		assert.Equal(t, []string{heartbeat.UserAgent("")}, req.Header["User-Agent"])
+		assert.Equal(t, []string{heartbeat.UserAgent(ctx, "")}, req.Header["User-Agent"])
 
 		var filename string
 
@@ -286,7 +295,8 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 	offlineQueueFileLegacy, err := os.CreateTemp(tmpDir, "")
 	require.NoError(t, err)
 
-	defer offlineQueueFileLegacy.Close()
+	// close to avoid "The process cannot access the file because it is being used by another process" error on Windows
+	offlineQueueFileLegacy.Close()
 
 	tmpConfigFile, err := os.CreateTemp(tmpDir, "wakatime.cfg")
 	require.NoError(t, err)
@@ -324,7 +334,7 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 		"--verbose",
 	)
 
-	offlineCount, err := offline.CountHeartbeats(offlineQueueFile.Name())
+	offlineCount, err := offline.CountHeartbeats(ctx, offlineQueueFile.Name())
 	require.NoError(t, err)
 
 	assert.Equal(t, 1, offlineCount)
@@ -336,6 +346,8 @@ func TestSendHeartbeats_ExtraHeartbeats_SyncLegacyOfflineActivity(t *testing.T) 
 	apiURL, router, close := setupTestServer()
 	defer close()
 
+	ctx := context.Background()
+
 	var numCalls int
 
 	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
@@ -346,7 +358,7 @@ func TestSendHeartbeats_ExtraHeartbeats_SyncLegacyOfflineActivity(t *testing.T) 
 		assert.Equal(t, []string{"application/json"}, req.Header["Accept"])
 		assert.Equal(t, []string{"application/json"}, req.Header["Content-Type"])
 		assert.Equal(t, []string{"Basic MDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAw"}, req.Header["Authorization"])
-		assert.Equal(t, []string{heartbeat.UserAgent("")}, req.Header["User-Agent"])
+		assert.Equal(t, []string{heartbeat.UserAgent(ctx, "")}, req.Header["User-Agent"])
 
 		var filename string
 
@@ -376,7 +388,7 @@ func TestSendHeartbeats_ExtraHeartbeats_SyncLegacyOfflineActivity(t *testing.T) 
 	offlineQueueFileLegacy, err := os.CreateTemp(tmpDir, "legacy-offline-file")
 	require.NoError(t, err)
 
-	// early close to avoid file locking in Windows
+	// close to avoid "The process cannot access the file because it is being used by another process" error on Windows
 	offlineQueueFileLegacy.Close()
 
 	db, err := bolt.Open(offlineQueueFileLegacy.Name(), 0600, nil)
@@ -429,8 +441,6 @@ func TestSendHeartbeats_ExtraHeartbeats_SyncLegacyOfflineActivity(t *testing.T) 
 
 	buffer := bytes.NewBuffer(data)
 
-	assert.FileExists(t, offlineQueueFileLegacy.Name())
-
 	runWakatimeCli(
 		t,
 		buffer,
@@ -454,7 +464,7 @@ func TestSendHeartbeats_ExtraHeartbeats_SyncLegacyOfflineActivity(t *testing.T) 
 
 	assert.NoFileExists(t, offlineQueueFileLegacy.Name())
 
-	offlineCount, err := offline.CountHeartbeats(offlineQueueFile.Name())
+	offlineCount, err := offline.CountHeartbeats(ctx, offlineQueueFile.Name())
 	require.NoError(t, err)
 
 	assert.Zero(t, offlineCount)
@@ -465,6 +475,8 @@ func TestSendHeartbeats_ExtraHeartbeats_SyncLegacyOfflineActivity(t *testing.T) 
 func TestSendHeartbeats_Err(t *testing.T) {
 	apiURL, router, close := setupTestServer()
 	defer close()
+
+	ctx := context.Background()
 
 	var numCalls int
 
@@ -481,7 +493,7 @@ func TestSendHeartbeats_Err(t *testing.T) {
 		assert.Equal(t, []string{"application/json"}, req.Header["Accept"])
 		assert.Equal(t, []string{"application/json"}, req.Header["Content-Type"])
 		assert.Equal(t, []string{"Basic MDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAw"}, req.Header["Authorization"])
-		assert.Equal(t, []string{heartbeat.UserAgent("")}, req.Header["User-Agent"])
+		assert.Equal(t, []string{heartbeat.UserAgent(ctx, "")}, req.Header["User-Agent"])
 
 		// check body
 		expectedBodyTpl, err := os.ReadFile("testdata/api_heartbeats_request_template.json")
@@ -496,7 +508,7 @@ func TestSendHeartbeats_Err(t *testing.T) {
 			entityPath,
 			"wakatime-cli",
 			subfolders,
-			heartbeat.UserAgent(""),
+			heartbeat.UserAgent(ctx, ""),
 		)
 
 		body, err := io.ReadAll(req.Body)
@@ -518,7 +530,8 @@ func TestSendHeartbeats_Err(t *testing.T) {
 	offlineQueueFileLegacy, err := os.CreateTemp(tmpDir, "")
 	require.NoError(t, err)
 
-	defer offlineQueueFileLegacy.Close()
+	// close to avoid "The process cannot access the file because it is being used by another process" error on Windows
+	offlineQueueFileLegacy.Close()
 
 	tmpConfigFile, err := os.CreateTemp(tmpDir, "wakatime.cfg")
 	require.NoError(t, err)
@@ -561,6 +574,8 @@ func TestSendHeartbeats_ErrAuth_InvalidAPIKEY(t *testing.T) {
 	apiURL, router, close := setupTestServer()
 	defer close()
 
+	ctx := context.Background()
+
 	var numCalls int
 
 	router.HandleFunc("/users/current/heartbeats.bulk", func(_ http.ResponseWriter, _ *http.Request) {
@@ -577,7 +592,8 @@ func TestSendHeartbeats_ErrAuth_InvalidAPIKEY(t *testing.T) {
 	offlineQueueFileLegacy, err := os.CreateTemp(tmpDir, "")
 	require.NoError(t, err)
 
-	defer offlineQueueFileLegacy.Close()
+	// close to avoid "The process cannot access the file because it is being used by another process" error on Windows
+	offlineQueueFileLegacy.Close()
 
 	tmpConfigFile, err := os.CreateTemp(tmpDir, "wakatime.cfg")
 	require.NoError(t, err)
@@ -611,7 +627,7 @@ func TestSendHeartbeats_ErrAuth_InvalidAPIKEY(t *testing.T) {
 
 	assert.Empty(t, out)
 
-	count, err := offline.CountHeartbeats(offlineQueueFile.Name())
+	count, err := offline.CountHeartbeats(ctx, offlineQueueFile.Name())
 	require.NoError(t, err)
 
 	assert.Equal(t, 1, count)
@@ -620,6 +636,8 @@ func TestSendHeartbeats_ErrAuth_InvalidAPIKEY(t *testing.T) {
 }
 
 func TestSendHeartbeats_MalformedConfig(t *testing.T) {
+	ctx := context.Background()
+
 	tmpDir := t.TempDir()
 
 	tmpInternalConfigFile, err := os.CreateTemp(tmpDir, "wakatime-internal.cfg")
@@ -635,7 +653,8 @@ func TestSendHeartbeats_MalformedConfig(t *testing.T) {
 	offlineQueueFileLegacy, err := os.CreateTemp(tmpDir, "")
 	require.NoError(t, err)
 
-	defer offlineQueueFileLegacy.Close()
+	// close to avoid "The process cannot access the file because it is being used by another process" error on Windows
+	offlineQueueFileLegacy.Close()
 
 	out := runWakatimeCliExpectErr(
 		t,
@@ -650,13 +669,15 @@ func TestSendHeartbeats_MalformedConfig(t *testing.T) {
 
 	assert.Empty(t, out)
 
-	count, err := offline.CountHeartbeats(offlineQueueFile.Name())
+	count, err := offline.CountHeartbeats(ctx, offlineQueueFile.Name())
 	require.NoError(t, err)
 
 	assert.Equal(t, 1, count)
 }
 
 func TestSendHeartbeats_MalformedInternalConfig(t *testing.T) {
+	ctx := context.Background()
+
 	tmpDir := t.TempDir()
 
 	offlineQueueFile, err := os.CreateTemp(tmpDir, "")
@@ -667,7 +688,8 @@ func TestSendHeartbeats_MalformedInternalConfig(t *testing.T) {
 	offlineQueueFileLegacy, err := os.CreateTemp(tmpDir, "")
 	require.NoError(t, err)
 
-	defer offlineQueueFileLegacy.Close()
+	// close to avoid "The process cannot access the file because it is being used by another process" error on Windows
+	offlineQueueFileLegacy.Close()
 
 	tmpConfigFile, err := os.CreateTemp(tmpDir, "wakatime.cfg")
 	require.NoError(t, err)
@@ -687,7 +709,7 @@ func TestSendHeartbeats_MalformedInternalConfig(t *testing.T) {
 
 	assert.Empty(t, out)
 
-	count, err := offline.CountHeartbeats(offlineQueueFile.Name())
+	count, err := offline.CountHeartbeats(ctx, offlineQueueFile.Name())
 	require.NoError(t, err)
 
 	assert.Equal(t, 1, count)
@@ -702,6 +724,8 @@ func TestFileExperts(t *testing.T) {
 
 	subfolders := project.CountSlashesInProjectFolder(projectFolder)
 
+	ctx := context.Background()
+
 	var numCalls int
 
 	router.HandleFunc("/users/current/file_experts",
@@ -713,7 +737,7 @@ func TestFileExperts(t *testing.T) {
 			assert.Equal(t, []string{"application/json"}, req.Header["Accept"])
 			assert.Equal(t, []string{"application/json"}, req.Header["Content-Type"])
 			assert.Equal(t, []string{"Basic MDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAw"}, req.Header["Authorization"])
-			assert.Equal(t, []string{heartbeat.UserAgent("")}, req.Header["User-Agent"])
+			assert.Equal(t, []string{heartbeat.UserAgent(ctx, "")}, req.Header["User-Agent"])
 
 			// check body
 			expectedBodyTpl, err := os.ReadFile("testdata/api_file_experts_request_template.json")
@@ -777,6 +801,8 @@ func TestTodayGoal(t *testing.T) {
 	apiURL, router, close := setupTestServer()
 	defer close()
 
+	ctx := context.Background()
+
 	var numCalls int
 
 	tmpDir := t.TempDir()
@@ -799,7 +825,7 @@ func TestTodayGoal(t *testing.T) {
 			assert.Equal(t, http.MethodGet, req.Method)
 			assert.Equal(t, []string{"application/json"}, req.Header["Accept"])
 			assert.Equal(t, []string{"Basic MDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAw"}, req.Header["Authorization"])
-			assert.Equal(t, []string{heartbeat.UserAgent("")}, req.Header["User-Agent"])
+			assert.Equal(t, []string{heartbeat.UserAgent(ctx, "")}, req.Header["User-Agent"])
 
 			// write response
 			f, err := os.Open("testdata/api_goals_id_response.json")
@@ -830,6 +856,8 @@ func TestTodaySummary(t *testing.T) {
 	apiURL, router, close := setupTestServer()
 	defer close()
 
+	ctx := context.Background()
+
 	var numCalls int
 
 	tmpDir := t.TempDir()
@@ -851,7 +879,7 @@ func TestTodaySummary(t *testing.T) {
 		assert.Equal(t, http.MethodGet, req.Method)
 		assert.Equal(t, []string{"application/json"}, req.Header["Accept"])
 		assert.Equal(t, []string{"Basic MDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAw"}, req.Header["Authorization"])
-		assert.Equal(t, []string{heartbeat.UserAgent("")}, req.Header["User-Agent"])
+		assert.Equal(t, []string{heartbeat.UserAgent(ctx, "")}, req.Header["User-Agent"])
 
 		// write response
 		f, err := os.Open("testdata/api_statusbar_today_response.json")
@@ -976,6 +1004,8 @@ func TestPrintOfflineHeartbeats(t *testing.T) {
 	apiURL, router, close := setupTestServer()
 	defer close()
 
+	ctx := context.Background()
+
 	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		_, err := io.Copy(w, strings.NewReader("500 error test"))
@@ -992,7 +1022,8 @@ func TestPrintOfflineHeartbeats(t *testing.T) {
 	offlineQueueFileLegacy, err := os.CreateTemp(tmpDir, "")
 	require.NoError(t, err)
 
-	defer offlineQueueFileLegacy.Close()
+	// close to avoid "The process cannot access the file because it is being used by another process" error on Windows
+	offlineQueueFileLegacy.Close()
 
 	tmpConfigFile, err := os.CreateTemp(tmpDir, "wakatime.cfg")
 	require.NoError(t, err)
@@ -1054,7 +1085,7 @@ func TestPrintOfflineHeartbeats(t *testing.T) {
 	offlineHeartbeatStr := fmt.Sprintf(
 		string(offlineHeartbeat),
 		entity, subfolders,
-		heartbeat.UserAgent(""),
+		heartbeat.UserAgent(ctx, ""),
 	)
 
 	assert.Equal(t, offlineHeartbeatStr+"\n", out)
@@ -1062,13 +1093,13 @@ func TestPrintOfflineHeartbeats(t *testing.T) {
 
 func TestUserAgent(t *testing.T) {
 	out := runWakatimeCli(t, &bytes.Buffer{}, "--user-agent")
-	assert.Equal(t, fmt.Sprintf("%s\n", heartbeat.UserAgent("")), out)
+	assert.Equal(t, fmt.Sprintf("%s\n", heartbeat.UserAgent(context.Background(), "")), out)
 }
 
 func TestUserAgentWithPlugin(t *testing.T) {
 	out := runWakatimeCli(t, &bytes.Buffer{}, "--user-agent", "--plugin", "Wakatime/1.0.4")
 
-	assert.Equal(t, fmt.Sprintf("%s\n", heartbeat.UserAgent("Wakatime/1.0.4")), out)
+	assert.Equal(t, fmt.Sprintf("%s\n", heartbeat.UserAgent(context.Background(), "Wakatime/1.0.4")), out)
 }
 
 func TestVersion(t *testing.T) {

@@ -1,6 +1,7 @@
 package configread
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -18,7 +19,7 @@ type Params struct {
 }
 
 // Run prints the value for the given config key.
-func Run(v *viper.Viper) (int, error) {
+func Run(_ context.Context, v *viper.Viper) (int, error) {
 	output, err := Read(v)
 	if err != nil {
 		return exitcode.ErrConfigFileRead, fmt.Errorf(

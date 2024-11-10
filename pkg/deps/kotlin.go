@@ -1,6 +1,7 @@
 package deps
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"regexp"
@@ -34,7 +35,9 @@ type ParserKotlin struct {
 }
 
 // Parse parses dependencies from Kotlin file content using the chroma Kotlin lexer.
-func (p *ParserKotlin) Parse(filepath string) ([]string, error) {
+func (p *ParserKotlin) Parse(ctx context.Context, filepath string) ([]string, error) {
+	logger := log.Extract(ctx)
+
 	reader, err := file.OpenNoLock(filepath) // nolint:gosec
 	if err != nil {
 		return nil, fmt.Errorf("failed to open file %q: %s", filepath, err)
@@ -42,7 +45,7 @@ func (p *ParserKotlin) Parse(filepath string) ([]string, error) {
 
 	defer func() {
 		if err := reader.Close(); err != nil {
-			log.Debugf("failed to close file: %s", err)
+			logger.Debugf("failed to close file: %s", err)
 		}
 	}()
 

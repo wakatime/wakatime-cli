@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net"
@@ -62,7 +63,7 @@ func NewClient(baseURL string, opts ...Option) *Client {
 
 // Do executes c.doFunc(), which in turn allows wrapping c.client.Do() and manipulating
 // the request behavior of the api client.
-func (c *Client) Do(req *http.Request) (*http.Response, error) {
+func (c *Client) Do(ctx context.Context, req *http.Request) (*http.Response, error) {
 	resp, err := c.doFunc(c, req)
 	if err != nil {
 		// don't set alternate host if there's a custom api url
@@ -76,15 +77,16 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 		}
 
 		c.client = &http.Client{
-			Transport: NewTransportWithHostVerificationDisabled(),
+			Transport: NewTransportWithHostVerificationDisabled(ctx),
 		}
 
 		req.URL.Host = BaseIPAddrv4
-		if isLocalIPv6() {
+		if isLocalIPv6(ctx) {
 			req.URL.Host = BaseIPAddrv6
 		}
 
-		log.Debugf("dns error, will retry with host ip '%s': %s", req.URL.Host, err)
+		logger := log.Extract(ctx)
+		logger.Debugf("dns error, will retry with host ip '%s': %s", req.URL.Host, err)
 
 		resp, errRetry := c.doFunc(c, req)
 		if errRetry != nil {
@@ -97,16 +99,18 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 	return resp, nil
 }
 
-func isLocalIPv6() bool {
+func isLocalIPv6(ctx context.Context) bool {
+	logger := log.Extract(ctx)
+
 	conn, err := net.Dial("udp", fmt.Sprintf("%s:80", BaseIPAddrv4))
 	if err != nil {
-		log.Warnf("failed dialing to detect default local ip address: %s", err)
+		logger.Warnf("failed dialing to detect default local ip address: %s", err)
 		return true
 	}
 
 	defer func() {
 		if err := conn.Close(); err != nil {
-			log.Debugf("failed to close connection to api wakatime: %s", err)
+			logger.Debugf("failed to close connection to api wakatime: %s", err)
 		}
 	}()
 

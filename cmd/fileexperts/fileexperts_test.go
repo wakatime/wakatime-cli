@@ -1,6 +1,7 @@
 package fileexperts_test
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -86,9 +87,8 @@ func TestFileExperts(t *testing.T) {
 	v.Set("plugin", plugin)
 	v.Set("project", "wakatime-cli")
 	v.Set("entity", "testdata/main.go")
-	v.Set("file-experts", true)
 
-	output, err := fileexperts.FileExperts(v)
+	output, err := fileexperts.FileExperts(context.Background(), v)
 	require.NoError(t, err)
 
 	assert.Equal(t, "You: 40 mins | Karl: 21 mins", output)
@@ -97,33 +97,28 @@ func TestFileExperts(t *testing.T) {
 }
 
 func TestFileExperts_NonExistingEntity(t *testing.T) {
-	tmpDir := t.TempDir()
+	ctx := context.Background()
 
-	logFile, err := os.CreateTemp(tmpDir, "")
+	logFile, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)
 
 	defer logFile.Close()
 
 	v := viper.New()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("api-url", "https://example.org")
 	v.Set("entity", "nonexisting")
-	v.Set("file-experts", true)
-	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("log-file", logFile.Name())
 	v.Set("verbose", true)
 
-	cmd.SetupLogging(v)
+	logger, err := cmd.SetupLogging(ctx, v)
+	require.NoError(t, err)
 
-	defer func() {
-		if file, ok := log.Output().(*os.File); ok {
-			_ = file.Sync()
-			file.Close()
-		} else if handler, ok := log.Output().(io.Closer); ok {
-			handler.Close()
-		}
-	}()
+	defer logger.Flush()
 
-	_, err = fileexperts.FileExperts(v)
+	ctx = log.ToContext(ctx, logger)
+
+	_, err = fileexperts.FileExperts(ctx, v)
 	require.NoError(t, err)
 
 	output, err := io.ReadAll(logFile)
@@ -148,9 +143,8 @@ func TestFileExperts_ErrApi(t *testing.T) {
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("api-url", testServerURL)
 	v.Set("entity", "testdata/main.go")
-	v.Set("file-experts", true)
 
-	_, err := fileexperts.FileExperts(v)
+	_, err := fileexperts.FileExperts(context.Background(), v)
 	require.Error(t, err)
 
 	var errapi api.Err
@@ -183,9 +177,8 @@ func TestFileExperts_ErrAuth(t *testing.T) {
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("api-url", testServerURL)
 	v.Set("entity", "testdata/main.go")
-	v.Set("file-experts", true)
 
-	_, err := fileexperts.FileExperts(v)
+	_, err := fileexperts.FileExperts(context.Background(), v)
 	require.Error(t, err)
 
 	var errauth api.ErrAuth
@@ -217,9 +210,8 @@ func TestFileExperts_ErrBadRequest(t *testing.T) {
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("api-url", testServerURL)
 	v.Set("entity", "testdata/main.go")
-	v.Set("file-experts", true)
 
-	_, err := fileexperts.FileExperts(v)
+	_, err := fileexperts.FileExperts(context.Background(), v)
 	require.Error(t, err)
 
 	var errbadRequest api.ErrBadRequest

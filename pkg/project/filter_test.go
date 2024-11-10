@@ -1,6 +1,7 @@
 package project_test
 
 import (
+	"context"
 	"os"
 	"testing"
 
@@ -26,7 +27,7 @@ func TestWithFiltering(t *testing.T) {
 	opt := project.WithFiltering(project.FilterConfig{
 		ExcludeUnknownProject: true,
 	})
-	h := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+	h := opt(func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		assert.Equal(t, []heartbeat.Heartbeat{
 			{
 				Branch:         heartbeat.PointerTo("heartbeat"),
@@ -52,7 +53,7 @@ func TestWithFiltering(t *testing.T) {
 		}, nil
 	})
 
-	result, err := h([]heartbeat.Heartbeat{first, second})
+	result, err := h(context.Background(), []heartbeat.Heartbeat{first, second})
 	require.NoError(t, err)
 
 	assert.Equal(t, []heartbeat.Result{

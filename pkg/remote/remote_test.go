@@ -1,7 +1,7 @@
 package remote_test
 
 import (
-	"bytes"
+	"context"
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -14,21 +14,27 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/wakatime/wakatime-cli/cmd"
 	"github.com/wakatime/wakatime-cli/pkg/filter"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/regex"
 	"github.com/wakatime/wakatime-cli/pkg/remote"
+	"github.com/wakatime/wakatime-cli/pkg/windows"
 
 	"github.com/kevinburke/ssh_config"
 	"github.com/pkg/sftp"
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/crypto/ssh"
 )
 
 func TestNewClient(t *testing.T) {
-	client, err := remote.NewClient("ssh://wakatime:1234@192.168.1.2:222/home/pi/unicorn-hat/examples/ascii_pic.py")
+	client, err := remote.NewClient(
+		context.Background(),
+		"ssh://wakatime:1234@192.168.1.2:222/home/pi/unicorn-hat/examples/ascii_pic.py",
+	)
 	require.NoError(t, err)
 
 	assert.Equal(t, remote.Client{
@@ -42,7 +48,7 @@ func TestNewClient(t *testing.T) {
 }
 
 func TestNewClient_Sftp(t *testing.T) {
-	client, err := remote.NewClient("sftp://127.0.0.1")
+	client, err := remote.NewClient(context.Background(), "sftp://127.0.0.1")
 	require.NoError(t, err)
 
 	assert.Equal(t, remote.Client{
@@ -56,7 +62,7 @@ func TestNewClient_Sftp(t *testing.T) {
 }
 
 func TestNewClient_Err(t *testing.T) {
-	_, err := remote.NewClient("ssh://wakatime:1234@192.168.1.2:port")
+	_, err := remote.NewClient(context.Background(), "ssh://wakatime:1234@192.168.1.2:port")
 	require.Error(t, err)
 
 	assert.EqualError(t, err,
@@ -64,10 +70,6 @@ func TestNewClient_Err(t *testing.T) {
 }
 
 func TestWithDetection_SshConfig_Hostname(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("Skipping because OS is Windows.")
-	}
-
 	shutdown, host, port := testServer(t, false)
 	defer shutdown()
 
@@ -90,14 +92,24 @@ func TestWithDetection_SshConfig_Hostname(t *testing.T) {
 	err = os.WriteFile(tmpFile.Name(), []byte(fmt.Sprintf(string(template), host)), 0600)
 	require.NoError(t, err)
 
-	entity, _ := filepath.Abs("./testdata/main.go")
+	entityFilepath, err := filepath.Abs("./testdata/main.go")
+	require.NoError(t, err)
+
+	entity := "ssh://user:pass@example.com:" + strconv.Itoa(port)
+
+	if runtime.GOOS == "windows" {
+		entityFilepath = windows.FormatFilePath(entityFilepath)
+		entity += "/" + entityFilepath
+	} else {
+		entity += entityFilepath
+	}
 
 	sender := mockSender{
-		SendHeartbeatsFn: func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		SendHeartbeatsFn: func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 			assert.Equal(t, []heartbeat.Heartbeat{
 				{
 					Category:              heartbeat.CodingCategory,
-					Entity:                "ssh://user:pass@example.com:" + strconv.Itoa(port) + entity,
+					Entity:                entity,
 					EntityType:            heartbeat.FileType,
 					LocalFile:             hh[0].LocalFile,
 					LocalFileNeedsCleanup: true,
@@ -120,10 +132,10 @@ func TestWithDetection_SshConfig_Hostname(t *testing.T) {
 	}
 
 	handle := heartbeat.NewHandle(&sender, opts...)
-	_, err = handle([]heartbeat.Heartbeat{
+	_, err = handle(context.Background(), []heartbeat.Heartbeat{
 		{
 			Category:   heartbeat.CodingCategory,
-			Entity:     "ssh://user:pass@example.com:" + strconv.Itoa(port) + entity,
+			Entity:     entity,
 			EntityType: heartbeat.FileType,
 			Time:       1585598060,
 			UserAgent:  "wakatime/13.0.7",
@@ -133,22 +145,33 @@ func TestWithDetection_SshConfig_Hostname(t *testing.T) {
 }
 
 func TestWithDetection_SshConfig_UserKnownHostsFile_Mismatch(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("Skipping because OS is Windows.")
-	}
-
-	logs := bytes.NewBuffer(nil)
-
-	teardownLogCapture := captureLogs(logs)
-	defer teardownLogCapture()
+	tmpDir := t.TempDir()
 
 	shutdown, host, port := testServer(t, true)
 	defer shutdown()
 
-	tmpFile, err := os.CreateTemp(t.TempDir(), "")
+	tmpFile, err := os.CreateTemp(tmpDir, "")
 	require.NoError(t, err)
 
 	defer tmpFile.Close()
+
+	logFile, err := os.CreateTemp(tmpDir, "")
+	require.NoError(t, err)
+
+	defer logFile.Close()
+
+	ctx := context.Background()
+
+	v := viper.New()
+	v.Set("log-file", logFile.Name())
+	v.Set("verbose", true)
+
+	logger, err := cmd.SetupLogging(ctx, v)
+	require.NoError(t, err)
+
+	defer logger.Flush()
+
+	ctx = log.ToContext(ctx, logger)
 
 	ssh_config.DefaultUserSettings = &ssh_config.UserSettings{
 		IgnoreErrors: false,
@@ -167,10 +190,20 @@ func TestWithDetection_SshConfig_UserKnownHostsFile_Mismatch(t *testing.T) {
 	err = os.WriteFile(tmpFile.Name(), []byte(fmt.Sprintf(string(template), host, knownHostsFile)), 0600)
 	require.NoError(t, err)
 
-	entity, _ := filepath.Abs("./testdata/main.go")
+	entityFilepath, err := filepath.Abs("./testdata/main.go")
+	require.NoError(t, err)
+
+	entity := "ssh://user:pass@github.com:" + strconv.Itoa(port)
+
+	if runtime.GOOS == "windows" {
+		entityFilepath = windows.FormatFilePath(entityFilepath)
+		entity += "/" + entityFilepath
+	} else {
+		entity += entityFilepath
+	}
 
 	sender := mockSender{
-		SendHeartbeatsFn: func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		SendHeartbeatsFn: func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 			assert.Empty(t, hh)
 			return []heartbeat.Result{}, nil
 		},
@@ -184,34 +217,32 @@ func TestWithDetection_SshConfig_UserKnownHostsFile_Mismatch(t *testing.T) {
 	}
 
 	handle := heartbeat.NewHandle(&sender, opts...)
-	results, err := handle([]heartbeat.Heartbeat{
+	results, err := handle(ctx, []heartbeat.Heartbeat{
 		{
 			Category:   heartbeat.CodingCategory,
-			Entity:     "ssh://user:pass@github.com:" + strconv.Itoa(port) + entity,
+			Entity:     entity,
 			EntityType: heartbeat.FileType,
 			Time:       1585598060,
 			UserAgent:  "wakatime/13.0.7",
 		},
 	})
 	require.NoError(t, err)
+
 	assert.Empty(t, results)
-	assert.Contains(t, logs.String(), "ssh: handshake failed: ssh: host key mismatch")
+
+	output, err := io.ReadAll(logFile)
+	require.NoError(t, err)
+
+	assert.Contains(t, string(output), "ssh: handshake failed: ssh: host key mismatch")
 }
 
 func TestWithDetection_SshConfig_UserKnownHostsFile_Match(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("Skipping because OS is Windows.")
-	}
-
-	logs := bytes.NewBuffer(nil)
-
-	teardownLogCapture := captureLogs(logs)
-	defer teardownLogCapture()
+	tmpDir := t.TempDir()
 
 	shutdown, host, port := testServer(t, true)
 	defer shutdown()
 
-	tmpFile, err := os.CreateTemp(t.TempDir(), "")
+	tmpFile, err := os.CreateTemp(tmpDir, "")
 	require.NoError(t, err)
 
 	defer tmpFile.Close()
@@ -233,14 +264,24 @@ func TestWithDetection_SshConfig_UserKnownHostsFile_Match(t *testing.T) {
 	err = os.WriteFile(tmpFile.Name(), []byte(fmt.Sprintf(string(template), host, knownHostsFile)), 0600)
 	require.NoError(t, err)
 
-	entity, _ := filepath.Abs("./testdata/main.go")
+	entityFilepath, err := filepath.Abs("./testdata/main.go")
+	require.NoError(t, err)
+
+	entity := "ssh://user:pass@example.com:" + strconv.Itoa(port)
+
+	if runtime.GOOS == "windows" {
+		entityFilepath = windows.FormatFilePath(entityFilepath)
+		entity += "/" + entityFilepath
+	} else {
+		entity += entityFilepath
+	}
 
 	sender := mockSender{
-		SendHeartbeatsFn: func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		SendHeartbeatsFn: func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 			assert.Equal(t, []heartbeat.Heartbeat{
 				{
 					Category:              heartbeat.CodingCategory,
-					Entity:                "ssh://user:pass@example.com:" + strconv.Itoa(port) + entity,
+					Entity:                entity,
 					EntityType:            heartbeat.FileType,
 					LocalFile:             hh[0].LocalFile,
 					LocalFileNeedsCleanup: true,
@@ -268,29 +309,21 @@ func TestWithDetection_SshConfig_UserKnownHostsFile_Match(t *testing.T) {
 	}
 
 	handle := heartbeat.NewHandle(&sender, opts...)
-	results, err := handle([]heartbeat.Heartbeat{
+	results, err := handle(context.Background(), []heartbeat.Heartbeat{
 		{
 			Category:   heartbeat.CodingCategory,
-			Entity:     "ssh://user:pass@example.com:" + strconv.Itoa(port) + entity,
+			Entity:     entity,
 			EntityType: heartbeat.FileType,
 			Time:       1585598060,
 			UserAgent:  "wakatime/13.0.7",
 		},
 	})
 	require.NoError(t, err)
+
 	assert.Len(t, results, 1)
 }
 
 func TestWithDetection_Filtered(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("Skipping because OS is Windows.")
-	}
-
-	logs := bytes.NewBuffer(nil)
-
-	teardownLogCapture := captureLogs(logs)
-	defer teardownLogCapture()
-
 	shutdown, host, port := testServer(t, true)
 	defer shutdown()
 
@@ -319,7 +352,7 @@ func TestWithDetection_Filtered(t *testing.T) {
 	entity, _ := filepath.Abs("./testdata/main.go")
 
 	sender := mockSender{
-		SendHeartbeatsFn: func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		SendHeartbeatsFn: func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 			assert.Empty(t, hh)
 			return []heartbeat.Result{}, nil
 		},
@@ -327,7 +360,7 @@ func TestWithDetection_Filtered(t *testing.T) {
 
 	opts := []heartbeat.HandleOption{
 		filter.WithFiltering(filter.Config{
-			Exclude:                    []regex.Regex{regexp.MustCompile(".*")},
+			Exclude:                    []regex.Regex{regex.NewRegexpWrap(regexp.MustCompile(".*"))},
 			Include:                    nil,
 			IncludeOnlyWithProjectFile: true,
 		}),
@@ -335,7 +368,7 @@ func TestWithDetection_Filtered(t *testing.T) {
 	}
 
 	handle := heartbeat.NewHandle(&sender, opts...)
-	results, err := handle([]heartbeat.Heartbeat{
+	results, err := handle(context.Background(), []heartbeat.Heartbeat{
 		{
 			Category:   heartbeat.CodingCategory,
 			Entity:     "ssh://user:pass@example.com:" + strconv.Itoa(port) + entity,
@@ -345,6 +378,7 @@ func TestWithDetection_Filtered(t *testing.T) {
 		},
 	})
 	require.NoError(t, err)
+
 	assert.Empty(t, results)
 }
 
@@ -354,14 +388,12 @@ func TestWithCleanup_NotTemporary(t *testing.T) {
 
 	tmpFile.Close()
 
-	defer os.Remove(tmpFile.Name())
-
 	opts := []heartbeat.HandleOption{
 		remote.WithCleanup(),
 	}
 
 	sender := mockSender{
-		SendHeartbeatsFn: func(_ []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		SendHeartbeatsFn: func(_ context.Context, _ []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 			return []heartbeat.Result{
 				{
 					Status:    201,
@@ -375,7 +407,7 @@ func TestWithCleanup_NotTemporary(t *testing.T) {
 
 	assert.FileExists(t, tmpFile.Name())
 
-	_, err = handle([]heartbeat.Heartbeat{
+	_, err = handle(context.Background(), []heartbeat.Heartbeat{
 		{
 			LocalFile: tmpFile.Name(),
 		},
@@ -397,7 +429,7 @@ func TestWithCleanup(t *testing.T) {
 	}
 
 	sender := mockSender{
-		SendHeartbeatsFn: func(_ []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		SendHeartbeatsFn: func(_ context.Context, _ []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 			return []heartbeat.Result{
 				{
 					Status:    201,
@@ -411,7 +443,7 @@ func TestWithCleanup(t *testing.T) {
 
 	assert.FileExists(t, tmpFile.Name())
 
-	_, err = handle([]heartbeat.Heartbeat{
+	_, err = handle(context.Background(), []heartbeat.Heartbeat{
 		{
 			LocalFile:             tmpFile.Name(),
 			LocalFileNeedsCleanup: true,
@@ -433,7 +465,7 @@ func TestWithCleanup_NotRemoteFile(t *testing.T) {
 	}
 
 	sender := mockSender{
-		SendHeartbeatsFn: func(_ []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		SendHeartbeatsFn: func(_ context.Context, _ []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 			return []heartbeat.Result{
 				{
 					Status:    201,
@@ -445,7 +477,7 @@ func TestWithCleanup_NotRemoteFile(t *testing.T) {
 
 	handle := heartbeat.NewHandle(&sender, opts...)
 
-	_, err = handle([]heartbeat.Heartbeat{
+	_, err = handle(context.Background(), []heartbeat.Heartbeat{
 		{
 			LocalFile: tmpFile.Name(),
 		},
@@ -456,13 +488,13 @@ func TestWithCleanup_NotRemoteFile(t *testing.T) {
 }
 
 type mockSender struct {
-	SendHeartbeatsFn        func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error)
+	SendHeartbeatsFn        func(context.Context, []heartbeat.Heartbeat) ([]heartbeat.Result, error)
 	SendHeartbeatsFnInvoked bool
 }
 
-func (m *mockSender) SendHeartbeats(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+func (m *mockSender) SendHeartbeats(ctx context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 	m.SendHeartbeatsFnInvoked = true
-	return m.SendHeartbeatsFn(hh)
+	return m.SendHeartbeatsFn(ctx, hh)
 }
 
 func keyAuth(_ ssh.ConnMetadata, _ ssh.PublicKey) (*ssh.Permissions, error) {
@@ -781,17 +813,4 @@ func testServer(t *testing.T, expectError bool) (func(), string, int) {
 	}()
 
 	return func() { close(shutdown); listener.Close() }, host, port
-}
-
-func captureLogs(dest io.Writer) func() {
-	logOutput := log.Output()
-
-	// will write to log output and dest
-	mw := io.MultiWriter(logOutput, dest)
-
-	log.SetOutput(mw)
-
-	return func() {
-		log.SetOutput(logOutput)
-	}
 }

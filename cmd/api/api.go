@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -13,7 +14,7 @@ import (
 
 // NewClient initializes a new api client with all options following the
 // passed in parameters.
-func NewClient(params paramscmd.API) (*api.Client, error) {
+func NewClient(ctx context.Context, params paramscmd.API) (*api.Client, error) {
 	withAuth, err := api.WithAuth(api.BasicAuth{
 		Secret: params.Key,
 	})
@@ -21,23 +22,25 @@ func NewClient(params paramscmd.API) (*api.Client, error) {
 		return nil, fmt.Errorf("failed to set up auth option on api client: %w", err)
 	}
 
-	return newClient(params, withAuth)
+	return newClient(ctx, params, withAuth)
 }
 
 // NewClientWithoutAuth initializes a new api client with all options following the
 // passed in parameters and disabled authentication.
-func NewClientWithoutAuth(params paramscmd.API) (*api.Client, error) {
-	return newClient(params)
+func NewClientWithoutAuth(ctx context.Context, params paramscmd.API) (*api.Client, error) {
+	return newClient(ctx, params)
 }
 
 // newClient contains the logic of client initialization, except auth initialization.
-func newClient(params paramscmd.API, opts ...api.Option) (*api.Client, error) {
+func newClient(ctx context.Context, params paramscmd.API, opts ...api.Option) (*api.Client, error) {
 	opts = append(opts, api.WithTimeout(params.Timeout))
 	opts = append(opts, api.WithHostname(strings.TrimSpace(params.Hostname)))
 
+	logger := log.Extract(ctx)
+
 	tz, err := timezone()
 	if err != nil {
-		log.Debugf("failed to detect local timezone: %s", err)
+		logger.Debugf("failed to detect local timezone: %s", err)
 	} else {
 		opts = append(opts, api.WithTimezone(strings.TrimSpace(tz)))
 	}
@@ -54,7 +57,7 @@ func newClient(params paramscmd.API, opts ...api.Option) (*api.Client, error) {
 
 		opts = append(opts, withSSLCert)
 	} else if !params.DisableSSLVerify {
-		opts = append(opts, api.WithSSLCertPool(api.CACerts()))
+		opts = append(opts, api.WithSSLCertPool(api.CACerts(ctx)))
 	}
 
 	if params.ProxyURL != "" {
@@ -66,7 +69,7 @@ func newClient(params paramscmd.API, opts ...api.Option) (*api.Client, error) {
 		opts = append(opts, withProxy)
 
 		if strings.Contains(params.ProxyURL, `\\`) {
-			withNTLMRetry, err := api.WithNTLMRequestRetry(params.ProxyURL)
+			withNTLMRetry, err := api.WithNTLMRequestRetry(ctx, params.ProxyURL)
 			if err != nil {
 				return nil, fmt.Errorf("failed to set up ntlm request retry option on api client: %w", err)
 			}
@@ -75,7 +78,7 @@ func newClient(params paramscmd.API, opts ...api.Option) (*api.Client, error) {
 		}
 	}
 
-	opts = append(opts, api.WithUserAgent(params.Plugin))
+	opts = append(opts, api.WithUserAgent(ctx, params.Plugin))
 
 	return api.NewClient(params.URL, opts...), nil
 }

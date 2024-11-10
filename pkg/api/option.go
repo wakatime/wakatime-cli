@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"crypto/x509"
 	"fmt"
 	"net/http"
@@ -78,23 +79,25 @@ func WithNTLM(creds string) (Option, error) {
 }
 
 // WithNTLMRequestRetry will, upon request failure, retry with ntlm authentication.
-func WithNTLMRequestRetry(creds string) (Option, error) {
+func WithNTLMRequestRetry(ctx context.Context, creds string) (Option, error) {
 	withNTLM, err := WithNTLM(creds)
 	if err != nil {
 		return Option(func(*Client) {}), err
 	}
 
 	return func(c *Client) {
+		logger := log.Extract(ctx)
+
 		next := c.doFunc
 		c.doFunc = func(cl *Client, req *http.Request) (*http.Response, error) {
 			resp, err := next(c, req)
 			if err != nil {
-				log.Errorf("request to api failed with error %q. Will retry with ntlm auth", err)
+				logger.Errorf("request to api failed with error %q. Will retry with ntlm auth", err)
 
 				clCopy := cl
 				withNTLM(clCopy)
 
-				return clCopy.Do(req)
+				return clCopy.Do(ctx, req)
 			}
 
 			return resp, nil
@@ -177,8 +180,8 @@ func WithTimezone(timezone string) Option {
 
 // WithUserAgent sets the User-Agent header on all requests, including the passed
 // in value for plugin.
-func WithUserAgent(plugin string) Option {
-	userAgent := heartbeat.UserAgent(plugin)
+func WithUserAgent(ctx context.Context, plugin string) Option {
+	userAgent := heartbeat.UserAgent(ctx, plugin)
 
 	return func(c *Client) {
 		next := c.doFunc

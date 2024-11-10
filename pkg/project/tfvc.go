@@ -1,6 +1,7 @@
 package project
 
 import (
+	"context"
 	"path/filepath"
 	"runtime"
 )
@@ -12,7 +13,7 @@ type Tfvc struct {
 }
 
 // Detect gets information about the tfvc project for a given file.
-func (t Tfvc) Detect() (Result, bool, error) {
+func (t Tfvc) Detect(ctx context.Context) (Result, bool, error) {
 	var fp string
 
 	// Take only the directory
@@ -26,7 +27,7 @@ func (t Tfvc) Detect() (Result, bool, error) {
 	}
 
 	// Find for tf/properties.tf1 file
-	tfDirectory, found := FindFileOrDirectory(fp, filepath.Join(tfFolderName, "properties.tf1"))
+	tfDirectory, found := FindFileOrDirectory(ctx, fp, filepath.Join(tfFolderName, "properties.tf1"))
 	if !found {
 		return Result{}, false, nil
 	}

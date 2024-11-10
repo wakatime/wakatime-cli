@@ -1,6 +1,7 @@
 package heartbeat
 
 import (
+	"context"
 	"path/filepath"
 	"strings"
 
@@ -26,27 +27,28 @@ type SanitizeConfig struct {
 // can be used in a heartbeat processing pipeline to hide sensitive data.
 func WithSanitization(config SanitizeConfig) HandleOption {
 	return func(next Handle) Handle {
-		return func(hh []Heartbeat) ([]Result, error) {
-			log.Debugln("execute heartbeat sanitization")
+		return func(ctx context.Context, hh []Heartbeat) ([]Result, error) {
+			logger := log.Extract(ctx)
+			logger.Debugln("execute heartbeat sanitization")
 
 			for n, h := range hh {
-				hh[n] = Sanitize(h, config)
+				hh[n] = Sanitize(ctx, h, config)
 			}
 
-			return next(hh)
+			return next(ctx, hh)
 		}
 	}
 }
 
 // Sanitize accepts a heartbeat sanitizes it's sensitive data following passed
 // in configuration and returns the sanitized version. On empty config will do nothing.
-func Sanitize(h Heartbeat, config SanitizeConfig) Heartbeat {
+func Sanitize(ctx context.Context, h Heartbeat, config SanitizeConfig) Heartbeat {
 	if len(h.Dependencies) == 0 {
 		h.Dependencies = nil
 	}
 
 	switch {
-	case ShouldSanitize(h.Entity, config.FilePatterns):
+	case ShouldSanitize(ctx, h.Entity, config.FilePatterns):
 		if h.EntityType == FileType {
 			h.Entity = "HIDDEN" + filepath.Ext(h.Entity)
 		} else {
@@ -55,15 +57,15 @@ func Sanitize(h Heartbeat, config SanitizeConfig) Heartbeat {
 
 		h = sanitizeMetaData(h)
 
-		if h.Branch != nil && (len(config.BranchPatterns) == 0 || ShouldSanitize(*h.Branch, config.BranchPatterns)) {
+		if h.Branch != nil && (len(config.BranchPatterns) == 0 || ShouldSanitize(ctx, *h.Branch, config.BranchPatterns)) {
 			h.Branch = nil
 		}
-	case h.Project != nil && ShouldSanitize(*h.Project, config.ProjectPatterns):
+	case h.Project != nil && ShouldSanitize(ctx, *h.Project, config.ProjectPatterns):
 		h = sanitizeMetaData(h)
-		if h.Branch != nil && (len(config.BranchPatterns) == 0 || ShouldSanitize(*h.Branch, config.BranchPatterns)) {
+		if h.Branch != nil && (len(config.BranchPatterns) == 0 || ShouldSanitize(ctx, *h.Branch, config.BranchPatterns)) {
 			h.Branch = nil
 		}
-	case h.Branch != nil && ShouldSanitize(*h.Branch, config.BranchPatterns):
+	case h.Branch != nil && ShouldSanitize(ctx, *h.Branch, config.BranchPatterns):
 		h.Branch = nil
 	}
 
@@ -142,9 +144,9 @@ func sanitizeMetaData(h Heartbeat) Heartbeat {
 // ShouldSanitize checks a subject (entity, project, branch) of a heartbeat and
 // checks it against the passed in regex patterns to determine, if this heartbeat
 // should be sanitized.
-func ShouldSanitize(subject string, patterns []regex.Regex) bool {
+func ShouldSanitize(ctx context.Context, subject string, patterns []regex.Regex) bool {
 	for _, p := range patterns {
-		if p.MatchString(subject) {
+		if p.MatchString(ctx, subject) {
 			return true
 		}
 	}

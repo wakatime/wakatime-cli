@@ -1,6 +1,7 @@
 package logfile
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 
@@ -23,7 +24,7 @@ type Params struct {
 }
 
 // LoadParams loads needed data from the configuration file.
-func LoadParams(v *viper.Viper) (Params, error) {
+func LoadParams(ctx context.Context, v *viper.Viper) (Params, error) {
 	params := Params{
 		Metrics: vipertools.FirstNonEmptyBool(
 			v,
@@ -55,7 +56,7 @@ func LoadParams(v *viper.Viper) (Params, error) {
 		return params, nil
 	}
 
-	folder, err := ini.WakaResourcesDir()
+	folder, err := ini.WakaResourcesDir(ctx)
 	if err != nil {
 		return Params{}, fmt.Errorf("failed getting resource directory: %s", err)
 	}

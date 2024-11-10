@@ -1,6 +1,7 @@
 package api_test
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -40,7 +41,7 @@ func TestClient_Goal(t *testing.T) {
 		})
 
 	c := api.NewClient(u)
-	goal, err := c.Goal("00000000-0000-4000-8000-000000000000")
+	goal, err := c.Goal(context.Background(), "00000000-0000-4000-8000-000000000000")
 
 	require.NoError(t, err)
 
@@ -65,8 +66,10 @@ func TestClient_GoalWithTimeout(t *testing.T) {
 		})
 
 	opts := []api.Option{api.WithTimeout(20 * time.Millisecond)}
+
 	c := api.NewClient(u, opts...)
-	_, err := c.Goal("00000000-0000-4000-8000-000000000000")
+
+	_, err := c.Goal(context.Background(), "00000000-0000-4000-8000-000000000000")
 	require.Error(t, err)
 
 	errMsg := fmt.Sprintf("error %q does not contain string 'Timeout'", err)
@@ -95,7 +98,8 @@ func TestClient_Goal_Err(t *testing.T) {
 		})
 
 	c := api.NewClient(u)
-	_, err := c.Goal("00000000-0000-4000-8000-000000000000")
+
+	_, err := c.Goal(context.Background(), "00000000-0000-4000-8000-000000000000")
 
 	var apierr api.Err
 
@@ -117,7 +121,8 @@ func TestClient_Goal_ErrAuth(t *testing.T) {
 		})
 
 	c := api.NewClient(u)
-	_, err := c.Goal("00000000-0000-4000-8000-000000000000")
+
+	_, err := c.Goal(context.Background(), "00000000-0000-4000-8000-000000000000")
 
 	var errauth api.ErrAuth
 
@@ -140,7 +145,8 @@ func TestClient_Goal_ErrBadRequest(t *testing.T) {
 		})
 
 	c := api.NewClient(u)
-	_, err := c.Goal("00000000-0000-4000-8000-000000000000")
+
+	_, err := c.Goal(context.Background(), "00000000-0000-4000-8000-000000000000")
 
 	var errbadRequest api.ErrBadRequest
 
@@ -150,7 +156,8 @@ func TestClient_Goal_ErrBadRequest(t *testing.T) {
 
 func TestClient_Goal_ErrInvalidUrl(t *testing.T) {
 	c := api.NewClient("invalid-url")
-	_, err := c.Goal("00000000-0000-4000-8000-000000000000")
+
+	_, err := c.Goal(context.Background(), "00000000-0000-4000-8000-000000000000")
 
 	var apierr api.Err
 

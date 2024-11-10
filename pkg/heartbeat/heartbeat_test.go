@@ -1,6 +1,7 @@
 package heartbeat_test
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -146,7 +147,7 @@ func TestHeartbeat_JSON_NilFields(t *testing.T) {
 
 func TestNewHandle(t *testing.T) {
 	sender := mockSender{
-		SendHeartbeatsFn: func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		SendHeartbeatsFn: func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 			assert.Equal(t, []heartbeat.Heartbeat{
 				{
 					Branch:     heartbeat.PointerTo("test"),
@@ -168,18 +169,18 @@ func TestNewHandle(t *testing.T) {
 
 	opts := []heartbeat.HandleOption{
 		func(next heartbeat.Handle) heartbeat.Handle {
-			return func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+			return func(ctx context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 				for i := range hh {
 					hh[i].Branch = heartbeat.PointerTo("test")
 				}
 
-				return next(hh)
+				return next(ctx, hh)
 			}
 		},
 	}
 
 	handle := heartbeat.NewHandle(&sender, opts...)
-	_, err := handle([]heartbeat.Heartbeat{
+	_, err := handle(context.Background(), []heartbeat.Heartbeat{
 		{
 			Category:   heartbeat.CodingCategory,
 			Entity:     "/tmp/main.go",
@@ -204,7 +205,7 @@ func TestUserAgentUnknownPlugin(t *testing.T) {
 		runtime.Version(),
 	)
 
-	assert.Equal(t, expected, heartbeat.UserAgent(""))
+	assert.Equal(t, expected, heartbeat.UserAgent(context.Background(), ""))
 }
 
 func TestUserAgent(t *testing.T) {
@@ -220,7 +221,7 @@ func TestUserAgent(t *testing.T) {
 		runtime.Version(),
 	)
 
-	assert.Equal(t, expected, heartbeat.UserAgent("testplugin"))
+	assert.Equal(t, expected, heartbeat.UserAgent(context.Background(), "testplugin"))
 }
 
 func TestRemoteAddressRegex(t *testing.T) {
@@ -260,11 +261,11 @@ func TestRemoteAddressRegex(t *testing.T) {
 }
 
 type mockSender struct {
-	SendHeartbeatsFn        func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error)
+	SendHeartbeatsFn        func(context.Context, []heartbeat.Heartbeat) ([]heartbeat.Result, error)
 	SendHeartbeatsFnInvoked bool
 }
 
-func (m *mockSender) SendHeartbeats(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+func (m *mockSender) SendHeartbeats(ctx context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 	m.SendHeartbeatsFnInvoked = true
-	return m.SendHeartbeatsFn(hh)
+	return m.SendHeartbeatsFn(ctx, hh)
 }

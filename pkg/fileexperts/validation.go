@@ -1,6 +1,8 @@
 package fileexperts
 
 import (
+	"context"
+
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/log"
 )
@@ -10,21 +12,22 @@ import (
 // before sending it to the API.
 func WithValidation() heartbeat.HandleOption {
 	return func(next heartbeat.Handle) heartbeat.Handle {
-		return func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
-			log.Debugln("execute fileexperts validation")
+		return func(ctx context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+			logger := log.Extract(ctx)
+			logger.Debugln("execute fileexperts validation")
 
 			var filtered []heartbeat.Heartbeat
 
 			for _, h := range hh {
 				if !Validate(h) {
-					log.Debugf("missing required fields for fileexperts")
+					logger.Debugf("missing required fields for fileexperts")
 					continue
 				}
 
 				filtered = append(filtered, h)
 			}
 
-			return next(filtered)
+			return next(ctx, filtered)
 		}
 	}
 }

@@ -1,6 +1,7 @@
 package deps_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/wakatime/wakatime-cli/pkg/deps"
@@ -12,7 +13,7 @@ import (
 func TestParserRust_Parse(t *testing.T) {
 	parser := deps.ParserRust{}
 
-	dependencies, err := parser.Parse("testdata/rust.rs")
+	dependencies, err := parser.Parse(context.Background(), "testdata/rust.rs")
 	require.NoError(t, err)
 
 	assert.Equal(t, []string{

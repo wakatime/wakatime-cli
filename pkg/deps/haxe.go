@@ -1,6 +1,7 @@
 package deps
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"regexp"
@@ -33,7 +34,9 @@ type ParserHaxe struct {
 }
 
 // Parse parses dependencies from Haxe file content using the chroma Haxe lexer.
-func (p *ParserHaxe) Parse(filepath string) ([]string, error) {
+func (p *ParserHaxe) Parse(ctx context.Context, filepath string) ([]string, error) {
+	logger := log.Extract(ctx)
+
 	reader, err := file.OpenNoLock(filepath) // nolint:gosec
 	if err != nil {
 		return nil, fmt.Errorf("failed to open file %q: %s", filepath, err)
@@ -41,7 +44,7 @@ func (p *ParserHaxe) Parse(filepath string) ([]string, error) {
 
 	defer func() {
 		if err := reader.Close(); err != nil {
-			log.Debugf("failed to close file: %s", err)
+			logger.Debugf("failed to close file: %s", err)
 		}
 	}()
 

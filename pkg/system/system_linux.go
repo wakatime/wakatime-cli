@@ -3,6 +3,7 @@
 package system
 
 import (
+	"context"
 	"fmt"
 	"runtime"
 	"strings"
@@ -12,14 +13,16 @@ import (
 )
 
 // OSName returns the runtime machine's operating system name.
-func OSName() string {
+func OSName(ctx context.Context) string {
 	os := runtime.GOOS
 
 	var buf syscall.Utsname
 
+	logger := log.Extract(ctx)
+
 	err := syscall.Uname(&buf)
 	if err != nil {
-		log.Debugf("Uname error: %s", err)
+		logger.Debugf("Uname error: %s", err)
 
 		return os
 	}

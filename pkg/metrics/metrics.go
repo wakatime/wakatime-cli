@@ -1,6 +1,7 @@
 package metrics
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -14,8 +15,8 @@ import (
 
 // StartProfiling starts profiling cpu and memory. It returns a function that
 // should be called to stop profiling and close the files.
-func StartProfiling() (func(), error) {
-	folder, err := ini.WakaResourcesDir()
+func StartProfiling(ctx context.Context) (func(), error) {
+	folder, err := ini.WakaResourcesDir(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed getting user's home directory: %s", err)
 	}
@@ -32,8 +33,10 @@ func StartProfiling() (func(), error) {
 		return nil, fmt.Errorf("failed to create cpu profile file: %s", err)
 	}
 
+	logger := log.Extract(ctx)
+
 	if err := pprof.StartCPUProfile(cpuf); err != nil {
-		log.Errorf("failed to start cpu profile: %s", err)
+		logger.Errorf("failed to start cpu profile: %s", err)
 	}
 
 	memf, err := os.Create(filepath.Join(metricsFolder, fmt.Sprintf("mem_%s.profile", now))) // nolint:gosec
@@ -42,18 +45,18 @@ func StartProfiling() (func(), error) {
 	}
 
 	if err := pprof.WriteHeapProfile(memf); err != nil {
-		log.Errorf("failed to write heap profile: %s", err)
+		logger.Errorf("failed to write heap profile: %s", err)
 	}
 
 	return func() {
 		pprof.StopCPUProfile()
 
 		if err := cpuf.Close(); err != nil {
-			log.Errorf("failed to close cpu profile file: %s", err)
+			logger.Errorf("failed to close cpu profile file: %s", err)
 		}
 
 		if err := memf.Close(); err != nil {
-			log.Errorf("failed to close mem profile file: %s", err)
+			logger.Errorf("failed to close mem profile file: %s", err)
 		}
 	}, nil
 }

@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
@@ -9,7 +10,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-func runVersion(v *viper.Viper) (int, error) {
+func runVersion(_ context.Context, v *viper.Viper) (int, error) {
 	if v.GetBool("verbose") {
 		fmt.Printf(
 			"wakatime-cli\n  Version: %s\n  Commit: %s\n  Built: %s\n  OS/Arch: %s/%s\n",

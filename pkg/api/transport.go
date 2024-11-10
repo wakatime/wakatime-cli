@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"net/http"
@@ -99,12 +100,12 @@ func NewTransport() *http.Transport {
 }
 
 // NewTransportWithHostVerificationDisabled initializes a new http.Transport with disabled host verification.
-func NewTransportWithHostVerificationDisabled() *http.Transport {
+func NewTransportWithHostVerificationDisabled(ctx context.Context) *http.Transport {
 	t := NewTransport()
 
 	t.TLSClientConfig = &tls.Config{
 		MinVersion: tls.VersionTLS12,
-		RootCAs:    CACerts(),
+		RootCAs:    CACerts(ctx),
 		ServerName: serverName,
 	}
 
@@ -121,14 +122,16 @@ func LazyCreateNewTransport(c *Client) *http.Transport {
 }
 
 // CACerts returns a root cert pool with the system's cacerts and LetsEncrypt's root certs.
-func CACerts() *x509.CertPool {
-	certs, err := loadSystemRoots()
+func CACerts(ctx context.Context) *x509.CertPool {
+	logger := log.Extract(ctx)
+
+	certs, err := loadSystemRoots(ctx)
 	if err != nil {
-		log.Warnf("unable to use system cert pool: %s", err)
+		logger.Warnf("unable to use system cert pool: %s", err)
 	}
 
 	if certs == nil {
-		log.Warnf("system cert pool empty")
+		logger.Warnf("system cert pool empty")
 
 		certs = x509.NewCertPool()
 	}

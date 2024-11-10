@@ -1,6 +1,7 @@
 package configwrite
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -19,8 +20,8 @@ type Params struct {
 }
 
 // Run loads wakatime config file and call Write().
-func Run(v *viper.Viper) (int, error) {
-	w, err := ini.NewWriter(v, ini.FilePath)
+func Run(ctx context.Context, v *viper.Viper) (int, error) {
+	w, err := ini.NewWriter(ctx, v, ini.FilePath)
 	if err != nil {
 		return exitcode.ErrConfigFileParse, fmt.Errorf(
 			"failed to parse config file: %s",
@@ -28,7 +29,7 @@ func Run(v *viper.Viper) (int, error) {
 		)
 	}
 
-	if err := Write(v, w); err != nil {
+	if err := Write(ctx, v, w); err != nil {
 		return exitcode.ErrGeneric, fmt.Errorf(
 			"failed to write to config file: %s",
 			err,
@@ -39,13 +40,13 @@ func Run(v *viper.Viper) (int, error) {
 }
 
 // Write writes value(s) to given config key(s) and persist on disk.
-func Write(v *viper.Viper, w ini.Writer) error {
+func Write(ctx context.Context, v *viper.Viper, w ini.Writer) error {
 	params, err := LoadParams(v)
 	if err != nil {
 		return fmt.Errorf("failed to load command parameters: %w", err)
 	}
 
-	return w.Write(params.Section, params.KeyValue)
+	return w.Write(ctx, params.Section, params.KeyValue)
 }
 
 // LoadParams loads needed data from the configuration file.

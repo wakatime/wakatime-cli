@@ -2,6 +2,7 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -17,7 +18,9 @@ import (
 // ErrRequest is returned upon request failure with no received response from api.
 // ErrAuth is returned upon receiving a 401 Unauthorized api response.
 // Err is returned on any other api response related error.
-func (c *Client) FileExperts(heartbeats []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+func (c *Client) FileExperts(ctx context.Context, heartbeats []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+	logger := log.Extract(ctx)
+
 	url := c.baseURL + "/users/current/file_experts"
 
 	// change from heartbeat.Heartbeat to fileexpert.Entity
@@ -33,7 +36,7 @@ func (c *Client) FileExperts(heartbeats []heartbeat.Heartbeat) ([]heartbeat.Resu
 		return nil, fmt.Errorf("failed to json encode body: %s", err)
 	}
 
-	log.Debugf("file-experts: %s", string(data))
+	logger.Debugf("file-experts: %s", string(data))
 
 	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(data))
 	if err != nil {
@@ -45,7 +48,7 @@ func (c *Client) FileExperts(heartbeats []heartbeat.Heartbeat) ([]heartbeat.Resu
 	// set auth header here for every request due to multiple api key support
 	setAuthHeader(req, heartbeats[0].APIKey)
 
-	resp, err := c.Do(req)
+	resp, err := c.Do(ctx, req)
 	if err != nil {
 		return nil, Err{Err: fmt.Errorf("failed making request to %q: %s", url, err)}
 	}

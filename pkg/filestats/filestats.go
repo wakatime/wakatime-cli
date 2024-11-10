@@ -2,6 +2,7 @@ package filestats
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -20,8 +21,9 @@ const maxFileSizeSupported = 2097152
 // moment only the total number of lines in a file is detected.
 func WithDetection() heartbeat.HandleOption {
 	return func(next heartbeat.Handle) heartbeat.Handle {
-		return func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
-			log.Debugln("execute filestats detection")
+		return func(ctx context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+			logger := log.Extract(ctx)
+			logger.Debugln("execute filestats detection")
 
 			for n, h := range hh {
 				if h.EntityType != heartbeat.FileType {
@@ -47,12 +49,12 @@ func WithDetection() heartbeat.HandleOption {
 
 				fileInfo, err := os.Stat(filepath)
 				if err != nil {
-					log.Warnf("failed to retrieve file stats of file %q: %s", filepath, err)
+					logger.Warnf("failed to retrieve file stats of file %q: %s", filepath, err)
 					continue
 				}
 
 				if fileInfo.Size() > maxFileSizeSupported {
-					log.Debugf(
+					logger.Debugf(
 						"file %q exceeds max file size of %d bytes. Lines won't be counted",
 						h.Entity,
 						maxFileSizeSupported,
@@ -61,21 +63,23 @@ func WithDetection() heartbeat.HandleOption {
 					continue
 				}
 
-				lines, err := countLineNumbers(filepath)
+				lines, err := countLineNumbers(ctx, filepath)
 				if err != nil {
-					log.Warnf("failed to detect the total number of lines in file %q: %s", filepath, err)
+					logger.Warnf("failed to detect the total number of lines in file %q: %s", filepath, err)
 					continue
 				}
 
 				hh[n].Lines = heartbeat.PointerTo(lines)
 			}
 
-			return next(hh)
+			return next(ctx, hh)
 		}
 	}
 }
 
-func countLineNumbers(filepath string) (int, error) {
+func countLineNumbers(ctx context.Context, filepath string) (int, error) {
+	logger := log.Extract(ctx)
+
 	f, err := file.OpenNoLock(filepath) // nolint:gosec
 	if err != nil {
 		return 0, fmt.Errorf("failed to open file: %s", err)
@@ -83,7 +87,7 @@ func countLineNumbers(filepath string) (int, error) {
 
 	defer func() {
 		if err := f.Close(); err != nil {
-			log.Debugf("failed to close file: %s", err)
+			logger.Debugf("failed to close file: %s", err)
 		}
 	}()
 

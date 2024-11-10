@@ -2,6 +2,7 @@ package filestats_test
 
 import (
 	"bytes"
+	"context"
 	"os"
 	"testing"
 
@@ -14,7 +15,7 @@ import (
 
 func TestWithDetection(t *testing.T) {
 	opt := filestats.WithDetection()
-	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+	handle := opt(func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		assert.Len(t, hh, 2)
 		assert.Contains(t, hh, heartbeat.Heartbeat{
 			EntityType: heartbeat.FileType,
@@ -34,7 +35,7 @@ func TestWithDetection(t *testing.T) {
 		}, nil
 	})
 
-	result, err := handle([]heartbeat.Heartbeat{
+	result, err := handle(context.Background(), []heartbeat.Heartbeat{
 		{
 			EntityType: heartbeat.FileType,
 			Entity:     "testdata/first.txt",
@@ -55,7 +56,7 @@ func TestWithDetection(t *testing.T) {
 
 func TestWithDetection_RemoteFile(t *testing.T) {
 	opt := filestats.WithDetection()
-	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+	handle := opt(func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		assert.Len(t, hh, 1)
 		assert.Contains(t, hh, heartbeat.Heartbeat{
 			EntityType: heartbeat.FileType,
@@ -69,7 +70,7 @@ func TestWithDetection_RemoteFile(t *testing.T) {
 		}, nil
 	})
 
-	result, err := handle([]heartbeat.Heartbeat{
+	result, err := handle(context.Background(), []heartbeat.Heartbeat{
 		{
 			EntityType: heartbeat.FileType,
 			Entity:     "ssh://192.168.1.1/path/to/remote/main.go",
@@ -95,7 +96,7 @@ func TestWithDetection_MaxFileSizeExceeded(t *testing.T) {
 	require.NoError(t, err)
 
 	opt := filestats.WithDetection()
-	handle := opt(func(hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+	handle := opt(func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		assert.Equal(t, hh, []heartbeat.Heartbeat{
 			{
 				EntityType: heartbeat.FileType,
@@ -107,7 +108,7 @@ func TestWithDetection_MaxFileSizeExceeded(t *testing.T) {
 		return []heartbeat.Result{}, nil
 	})
 
-	_, err = handle([]heartbeat.Heartbeat{
+	_, err = handle(context.Background(), []heartbeat.Heartbeat{
 		{
 			EntityType: heartbeat.FileType,
 			Entity:     f.Name(),
