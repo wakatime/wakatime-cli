@@ -5,6 +5,7 @@ import (
 
 	"github.com/alecthomas/assert"
 	"github.com/stretchr/testify/require"
+
 	"github.com/wakatime/wakatime-cli/pkg/shebang"
 )
 

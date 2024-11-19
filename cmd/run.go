@@ -38,6 +38,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	iniv1 "gopkg.in/ini.v1"
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 type diagnostics struct {
@@ -242,7 +243,7 @@ func SetupLogging(ctx context.Context, v *viper.Viper) (*log.Logger, error) {
 		return nil, fmt.Errorf("failed to load log params: %s", err)
 	}
 
-	destOutput := os.Stdout
+	var destOutput io.Writer = os.Stdout
 
 	if !params.ToStdout {
 		dir := filepath.Dir(params.File)
@@ -253,9 +254,10 @@ func SetupLogging(ctx context.Context, v *viper.Viper) (*log.Logger, error) {
 			}
 		}
 
-		destOutput, err = os.OpenFile(params.File, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644) // nolint:gosec
-		if err != nil {
-			return nil, fmt.Errorf("error opening log file: %s", err)
+		destOutput = &lumberjack.Logger{
+			Filename:   params.File,
+			MaxSize:    log.MaxLogFileSize,
+			MaxBackups: log.MaxNumberOfBackups,
 		}
 	}
 

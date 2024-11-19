@@ -4,11 +4,18 @@ import (
 	"fmt"
 	"io"
 
+	jww "github.com/spf13/jwalterweatherman"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
-	jww "github.com/spf13/jwalterweatherman"
 	"github.com/wakatime/wakatime-cli/pkg/version"
+)
+
+const (
+	// MaxLogFileSize is the maximum size of the log file.
+	MaxLogFileSize = 25 // 25MB
+	// MaxNumberOfBackups is the maximum number of log file backups.
+	MaxNumberOfBackups = 4
 )
 
 // Logger is the log entry.
