@@ -234,6 +234,44 @@ func TestSendHeartbeats_WithFiltering_Exclude(t *testing.T) {
 	assert.Equal(t, 0, numCalls)
 }
 
+func TestSendHeartbeats_WithFiltering_Exclude_All(t *testing.T) {
+	resetSingleton(t)
+
+	testServerURL, router, tearDown := setupTestServer()
+	defer tearDown()
+
+	var numCalls int
+
+	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+
+		numCalls++
+	})
+
+	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
+	v.Set("api-url", testServerURL)
+	v.Set("category", "debugging")
+	v.Set("entity", `\tmp\main.go`)
+	v.Set("exclude", `true`)
+	v.Set("entity-type", "file")
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("plugin", "plugin")
+	v.Set("time", 1585598059.1)
+	v.Set("timeout", 5)
+	v.Set("write", true)
+
+	offlineQueueFile, err := os.CreateTemp(t.TempDir(), "")
+	require.NoError(t, err)
+
+	defer offlineQueueFile.Close()
+
+	err = cmdheartbeat.SendHeartbeats(context.Background(), v, offlineQueueFile.Name())
+	require.NoError(t, err)
+
+	assert.Equal(t, 0, numCalls)
+}
+
 func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 	resetSingleton(t)
 

@@ -1,6 +1,7 @@
 package params
 
 import (
+	"context"
 	"regexp"
 	"testing"
 	"time"
@@ -13,6 +14,8 @@ import (
 )
 
 func TestParseBoolOrRegexList(t *testing.T) {
+	ctx := context.Background()
+
 	tests := map[string]struct {
 		Input    string
 		Expected []regex.Regex
@@ -32,29 +35,29 @@ func TestParseBoolOrRegexList(t *testing.T) {
 		"valid regex": {
 			Input: "\t.?\n\t\n \n\t\twakatime.? \t\n",
 			Expected: []regex.Regex{
-				regex.NewRegexpWrap(regexp.MustCompile(".?")),
-				regex.NewRegexpWrap(regexp.MustCompile("wakatime.?")),
+				regex.NewRegexpWrap(regexp.MustCompile("(?i).?")),
+				regex.NewRegexpWrap(regexp.MustCompile("(?i)wakatime.?")),
 			},
 		},
 		"valid regex with windows style": {
 			Input: "\t.?\r\n\t\t\twakatime.? \t\r\n",
 			Expected: []regex.Regex{
-				regex.NewRegexpWrap(regexp.MustCompile(".?")),
-				regex.NewRegexpWrap(regexp.MustCompile("wakatime.?")),
+				regex.NewRegexpWrap(regexp.MustCompile("(?i).?")),
+				regex.NewRegexpWrap(regexp.MustCompile("(?i)wakatime.?")),
 			},
 		},
 		"valid regex with old mac style": {
 			Input: "\t.?\r\t\t\twakatime.? \t\r",
 			Expected: []regex.Regex{
-				regex.NewRegexpWrap(regexp.MustCompile(".?")),
-				regex.NewRegexpWrap(regexp.MustCompile("wakatime.?")),
+				regex.NewRegexpWrap(regexp.MustCompile("(?i).?")),
+				regex.NewRegexpWrap(regexp.MustCompile("(?i)wakatime.?")),
 			},
 		},
 	}
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			regex, err := parseBoolOrRegexList(test.Input)
+			regex, err := parseBoolOrRegexList(ctx, test.Input)
 			require.NoError(t, err)
 
 			assert.Equal(t, test.Expected, regex)

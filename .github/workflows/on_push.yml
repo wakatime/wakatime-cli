@@ -644,7 +644,7 @@ jobs:
         # Run only for develop branch
         if: ${{ github.ref == 'refs/heads/develop' }}
         name: Changelog for develop
-        uses: gandarez/changelog-action@v1.4.0
+        uses: gandarez/changelog-action@v1.5.0
         id: changelog-develop
         with:
           current_tag: ${{ github.sha }}

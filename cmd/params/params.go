@@ -437,12 +437,17 @@ func LoadHeartbeatParams(ctx context.Context, v *viper.Viper) (Heartbeat, error)
 		timeSecs = float64(time.Now().UnixNano()) / 1000000000
 	}
 
+	filterParams, err := loadFilterParams(ctx, v)
+	if err != nil {
+		return Heartbeat{}, fmt.Errorf("failed to load filter params: %s", err)
+	}
+
 	projectParams, err := loadProjectParams(ctx, v)
 	if err != nil {
 		return Heartbeat{}, fmt.Errorf("failed to parse project params: %s", err)
 	}
 
-	sanitizeParams, err := loadSanitizeParams(v)
+	sanitizeParams, err := loadSanitizeParams(ctx, v)
 	if err != nil {
 		return Heartbeat{}, fmt.Errorf("failed to load sanitize params: %s", err)
 	}
@@ -469,34 +474,30 @@ func LoadHeartbeatParams(ctx context.Context, v *viper.Viper) (Heartbeat, error)
 		LinesInFile:       linesInFile,
 		LocalFile:         vipertools.GetString(v, "local-file"),
 		Time:              timeSecs,
-		Filter:            loadFilterParams(ctx, v),
+		Filter:            filterParams,
 		Project:           projectParams,
 		Sanitize:          sanitizeParams,
 	}, nil
 }
 
-func loadFilterParams(ctx context.Context, v *viper.Viper) FilterParams {
+func loadFilterParams(ctx context.Context, v *viper.Viper) (FilterParams, error) {
 	exclude := v.GetStringSlice("exclude")
 	exclude = append(exclude, v.GetStringSlice("settings.exclude")...)
 	exclude = append(exclude, v.GetStringSlice("settings.ignore")...)
 
-	logger := log.Extract(ctx)
-
 	var excludePatterns []regex.Regex
 
 	for _, s := range exclude {
-		// make all regex case insensitive
-		if !strings.HasPrefix(s, "(?i)") {
-			s = "(?i)" + s
-		}
-
-		compiled, err := regex.Compile(s)
+		patterns, err := parseBoolOrRegexList(ctx, s)
 		if err != nil {
-			logger.Warnf("failed to compile exclude regex pattern %q", s)
-			continue
+			return FilterParams{}, fmt.Errorf(
+				"failed to parse regex exclude param %q: %s",
+				s,
+				err,
+			)
 		}
 
-		excludePatterns = append(excludePatterns, compiled)
+		excludePatterns = append(excludePatterns, patterns...)
 	}
 
 	include := v.GetStringSlice("include")
@@ -505,18 +506,16 @@ func loadFilterParams(ctx context.Context, v *viper.Viper) FilterParams {
 	var includePatterns []regex.Regex
 
 	for _, s := range include {
-		// make all regex case insensitive
-		if !strings.HasPrefix(s, "(?i)") {
-			s = "(?i)" + s
-		}
-
-		compiled, err := regex.Compile(s)
+		patterns, err := parseBoolOrRegexList(ctx, s)
 		if err != nil {
-			logger.Warnf("failed to compile include regex pattern %q", s)
-			continue
+			return FilterParams{}, fmt.Errorf(
+				"failed to parse regex include param %q: %s",
+				s,
+				err,
+			)
 		}
 
-		includePatterns = append(includePatterns, compiled)
+		includePatterns = append(includePatterns, patterns...)
 	}
 
 	return FilterParams{
@@ -532,10 +531,10 @@ func loadFilterParams(ctx context.Context, v *viper.Viper) FilterParams {
 			"include-only-with-project-file",
 			"settings.include_only_with_project_file",
 		),
-	}
+	}, nil
 }
 
-func loadSanitizeParams(v *viper.Viper) (SanitizeParams, error) {
+func loadSanitizeParams(ctx context.Context, v *viper.Viper) (SanitizeParams, error) {
 	// hide branch names
 	hideBranchNamesStr := vipertools.FirstNonEmptyString(
 		v,
@@ -545,7 +544,7 @@ func loadSanitizeParams(v *viper.Viper) (SanitizeParams, error) {
 		"settings.hidebranchnames",
 	)
 
-	hideBranchNamesPatterns, err := parseBoolOrRegexList(hideBranchNamesStr)
+	hideBranchNamesPatterns, err := parseBoolOrRegexList(ctx, hideBranchNamesStr)
 	if err != nil {
 		return SanitizeParams{}, fmt.Errorf(
 			"failed to parse regex hide branch names param %q: %s",
@@ -563,7 +562,7 @@ func loadSanitizeParams(v *viper.Viper) (SanitizeParams, error) {
 		"settings.hideprojectnames",
 	)
 
-	hideProjectNamesPatterns, err := parseBoolOrRegexList(hideProjectNamesStr)
+	hideProjectNamesPatterns, err := parseBoolOrRegexList(ctx, hideProjectNamesStr)
 	if err != nil {
 		return SanitizeParams{}, fmt.Errorf(
 			"failed to parse regex hide project names param %q: %s",
@@ -583,7 +582,7 @@ func loadSanitizeParams(v *viper.Viper) (SanitizeParams, error) {
 		"settings.hidefilenames",
 	)
 
-	hideFileNamesPatterns, err := parseBoolOrRegexList(hideFileNamesStr)
+	hideFileNamesPatterns, err := parseBoolOrRegexList(ctx, hideFileNamesStr)
 	if err != nil {
 		return SanitizeParams{}, fmt.Errorf(
 			"failed to parse regex hide file names param %q: %s",
@@ -602,7 +601,7 @@ func loadSanitizeParams(v *viper.Viper) (SanitizeParams, error) {
 }
 
 func loadProjectParams(ctx context.Context, v *viper.Viper) (ProjectParams, error) {
-	submodulesDisabled, err := parseBoolOrRegexList(vipertools.GetString(v, "git.submodules_disabled"))
+	submodulesDisabled, err := parseBoolOrRegexList(ctx, vipertools.GetString(v, "git.submodules_disabled"))
 	if err != nil {
 		return ProjectParams{}, fmt.Errorf(
 			"failed to parse regex submodules disabled param: %s",
@@ -1154,8 +1153,10 @@ func (p StatusBar) String() string {
 	)
 }
 
-func parseBoolOrRegexList(s string) ([]regex.Regex, error) {
+func parseBoolOrRegexList(ctx context.Context, s string) ([]regex.Regex, error) {
 	var patterns []regex.Regex
+
+	logger := log.Extract(ctx)
 
 	s = strings.ReplaceAll(s, "\r", "\n")
 	s = strings.Trim(s, "\n\t ")
@@ -1174,9 +1175,15 @@ func parseBoolOrRegexList(s string) ([]regex.Regex, error) {
 				continue
 			}
 
+			// make all regex case insensitive
+			if !strings.HasPrefix(s, "(?i)") {
+				s = "(?i)" + s
+			}
+
 			compiled, err := regex.Compile(s)
 			if err != nil {
-				return nil, fmt.Errorf("failed to compile regex %q: %s", s, err)
+				logger.Warnf("failed to compile regex pattern %q, it will be ignored", s)
+				continue
 			}
 
 			patterns = append(patterns, compiled)

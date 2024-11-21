@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
-	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -844,6 +843,18 @@ func TestLoadHeartbeatParams_Filter_Exclude(t *testing.T) {
 	assert.Equal(t, "(?i)wakatime.?", params.Filter.Exclude[5].String())
 }
 
+func TestLoadHeartbeatParams_Filter_Exclude_All(t *testing.T) {
+	v := viper.New()
+	v.Set("entity", "/path/to/file")
+	v.Set("exclude", []string{"true"})
+
+	params, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
+	require.NoError(t, err)
+
+	require.Len(t, params.Filter.Exclude, 1)
+	assert.Equal(t, ".*", params.Filter.Exclude[0].String())
+}
+
 func TestLoadHeartbeatParams_Filter_Exclude_Multiline(t *testing.T) {
 	v := viper.New()
 	v.Set("entity", "/path/to/file")
@@ -927,6 +938,18 @@ func TestLoadHeartbeatParams_Filter_Include(t *testing.T) {
 	assert.Equal(t, "(?i)wakatime.*", params.Filter.Include[1].String())
 	assert.Equal(t, "(?i).+", params.Filter.Include[2].String())
 	assert.Equal(t, "(?i)wakatime.+", params.Filter.Include[3].String())
+}
+
+func TestLoadHeartbeatParams_Filter_Include_All(t *testing.T) {
+	v := viper.New()
+	v.Set("entity", "/path/to/file")
+	v.Set("include", []string{"true"})
+
+	params, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
+	require.NoError(t, err)
+
+	require.Len(t, params.Filter.Include, 1)
+	assert.Equal(t, ".*", params.Filter.Include[0].String())
 }
 
 func TestLoadHeartbeatParams_Filter_Include_IgnoresInvalidRegex(t *testing.T) {
@@ -1047,14 +1070,14 @@ func TestLoadHeartbeatParams_SanitizeParams_HideBranchNames_List(t *testing.T) {
 		"regex": {
 			ViperValue: "fix.*",
 			Expected: []regex.Regex{
-				regex.NewRegexpWrap(regexp.MustCompile("fix.*")),
+				regex.NewRegexpWrap(regexp.MustCompile("(?i)fix.*")),
 			},
 		},
 		"regex list": {
 			ViperValue: ".*secret.*\nfix.*",
 			Expected: []regex.Regex{
-				regex.NewRegexpWrap(regexp.MustCompile(".*secret.*")),
-				regex.NewRegexpWrap(regexp.MustCompile("fix.*")),
+				regex.NewRegexpWrap(regexp.MustCompile("(?i).*secret.*")),
+				regex.NewRegexpWrap(regexp.MustCompile("(?i)fix.*")),
 			},
 		},
 	}
@@ -1134,19 +1157,32 @@ func TestLoadHeartbeatParams_SanitizeParams_HideBranchNames_ConfigDeprecatedTwo(
 }
 
 func TestLoadHeartbeatParams_SanitizeParams_HideBranchNames_InvalidRegex(t *testing.T) {
+	logFile, err := os.CreateTemp(t.TempDir(), "")
+	require.NoError(t, err)
+
+	defer logFile.Close()
+
+	ctx := context.Background()
+
 	v := viper.New()
 	v.Set("entity", "/path/to/file")
 	v.Set("hide-branch-names", ".*secret.*\n[0-9+")
+	v.Set("log-file", logFile.Name())
 
-	_, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
-	require.Error(t, err)
+	logger, err := cmd.SetupLogging(ctx, v)
+	require.NoError(t, err)
 
-	assert.True(t, strings.HasPrefix(
-		err.Error(),
-		"failed to load sanitize params:"+
-			" failed to parse regex hide branch names param \".*secret.*\\n[0-9+\":"+
-			" failed to compile regex \"[0-9+\":",
-	))
+	defer logger.Flush()
+
+	ctx = log.ToContext(ctx, logger)
+
+	_, err = cmdparams.LoadHeartbeatParams(ctx, v)
+	require.NoError(t, err)
+
+	output, err := io.ReadAll(logFile)
+	require.NoError(t, err)
+
+	assert.Contains(t, string(output), "failed to compile regex pattern \\\"(?i)[0-9+\\\", it will be ignored")
 }
 
 func TestLoadHeartbeatParams_SanitizeParams_HideProjectNames_True(t *testing.T) {
@@ -1209,14 +1245,14 @@ func TestLoadHeartbeatParams_SanitizeParams_HideProjecthNames_List(t *testing.T)
 		"regex": {
 			ViperValue: "fix.*",
 			Expected: []regex.Regex{
-				regex.NewRegexpWrap(regexp.MustCompile("fix.*")),
+				regex.NewRegexpWrap(regexp.MustCompile("(?i)fix.*")),
 			},
 		},
 		"regex list": {
 			ViperValue: ".*secret.*\nfix.*",
 			Expected: []regex.Regex{
-				regex.NewRegexpWrap(regexp.MustCompile(".*secret.*")),
-				regex.NewRegexpWrap(regexp.MustCompile("fix.*")),
+				regex.NewRegexpWrap(regexp.MustCompile("(?i).*secret.*")),
+				regex.NewRegexpWrap(regexp.MustCompile("(?i)fix.*")),
 			},
 		},
 	}
@@ -1296,19 +1332,32 @@ func TestLoadHeartbeatParams_SanitizeParams_HideProjectNames_ConfigDeprecatedTwo
 }
 
 func TestLoadHeartbeatParams_SanitizeParams_HideProjectNames_InvalidRegex(t *testing.T) {
+	logFile, err := os.CreateTemp(t.TempDir(), "")
+	require.NoError(t, err)
+
+	defer logFile.Close()
+
+	ctx := context.Background()
+
 	v := viper.New()
 	v.Set("entity", "/path/to/file")
 	v.Set("hide-project-names", ".*secret.*\n[0-9+")
+	v.Set("log-file", logFile.Name())
 
-	_, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
-	require.Error(t, err)
+	logger, err := cmd.SetupLogging(ctx, v)
+	require.NoError(t, err)
 
-	assert.True(t, strings.HasPrefix(
-		err.Error(),
-		"failed to load sanitize params:"+
-			" failed to parse regex hide project names param \".*secret.*\\n[0-9+\":"+
-			" failed to compile regex \"[0-9+\":",
-	))
+	defer logger.Flush()
+
+	ctx = log.ToContext(ctx, logger)
+
+	_, err = cmdparams.LoadHeartbeatParams(ctx, v)
+	require.NoError(t, err)
+
+	output, err := io.ReadAll(logFile)
+	require.NoError(t, err)
+
+	assert.Contains(t, string(output), "failed to compile regex pattern \\\"(?i)[0-9+\\\", it will be ignored")
 }
 
 func TestLoadHeartbeatParams_SanitizeParams_HideFileNames_True(t *testing.T) {
@@ -1371,14 +1420,14 @@ func TestLoadHeartbeatParams_SanitizeParams_HideFileNames_List(t *testing.T) {
 		"regex": {
 			ViperValue: "fix.*",
 			Expected: []regex.Regex{
-				regex.NewRegexpWrap(regexp.MustCompile("fix.*")),
+				regex.NewRegexpWrap(regexp.MustCompile("(?i)fix.*")),
 			},
 		},
 		"regex list": {
 			ViperValue: ".*secret.*\nfix.*",
 			Expected: []regex.Regex{
-				regex.NewRegexpWrap(regexp.MustCompile(".*secret.*")),
-				regex.NewRegexpWrap(regexp.MustCompile("fix.*")),
+				regex.NewRegexpWrap(regexp.MustCompile("(?i).*secret.*")),
+				regex.NewRegexpWrap(regexp.MustCompile("(?i)fix.*")),
 			},
 		},
 	}
@@ -1493,19 +1542,32 @@ func TestLoadHeartbeatParams_SanitizeParams_HideFileNames_ConfigDeprecatedTwo(t 
 }
 
 func TestLoadHeartbeatParams_SanitizeParams_HideFileNames_InvalidRegex(t *testing.T) {
+	logFile, err := os.CreateTemp(t.TempDir(), "")
+	require.NoError(t, err)
+
+	defer logFile.Close()
+
+	ctx := context.Background()
+
 	v := viper.New()
 	v.Set("entity", "/path/to/file")
 	v.Set("hide-file-names", ".*secret.*\n[0-9+")
+	v.Set("log-file", logFile.Name())
 
-	_, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
-	require.Error(t, err)
+	logger, err := cmd.SetupLogging(ctx, v)
+	require.NoError(t, err)
 
-	assert.True(t, strings.HasPrefix(
-		err.Error(),
-		"failed to load sanitize params:"+
-			" failed to parse regex hide file names param \".*secret.*\\n[0-9+\":"+
-			" failed to compile regex \"[0-9+\":",
-	))
+	defer logger.Flush()
+
+	ctx = log.ToContext(ctx, logger)
+
+	_, err = cmdparams.LoadHeartbeatParams(ctx, v)
+	require.NoError(t, err)
+
+	output, err := io.ReadAll(logFile)
+	require.NoError(t, err)
+
+	assert.Contains(t, string(output), "failed to compile regex pattern \\\"(?i)[0-9+\\\", it will be ignored")
 }
 
 func TestLoadHeartbeatParams_SanitizeParams_HideProjectFolder(t *testing.T) {
@@ -1601,14 +1663,14 @@ func TestLoadHeartbeatsParams_SubmodulesDisabled_List(t *testing.T) {
 		"regex": {
 			ViperValue: "fix.*",
 			Expected: []regex.Regex{
-				regex.NewRegexpWrap(regexp.MustCompile("fix.*")),
+				regex.NewRegexpWrap(regexp.MustCompile("(?i)fix.*")),
 			},
 		},
 		"regex_list": {
 			ViperValue: "\n.*secret.*\nfix.*",
 			Expected: []regex.Regex{
-				regex.NewRegexpWrap(regexp.MustCompile(".*secret.*")),
-				regex.NewRegexpWrap(regexp.MustCompile("fix.*")),
+				regex.NewRegexpWrap(regexp.MustCompile("(?i).*secret.*")),
+				regex.NewRegexpWrap(regexp.MustCompile("(?i)fix.*")),
 			},
 		},
 	}
