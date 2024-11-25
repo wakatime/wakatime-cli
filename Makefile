@@ -112,13 +112,22 @@ build-openbsd-arm:
 build-openbsd-arm64:
 	GOOS=openbsd GOARCH=arm64 $(MAKE) build
 
+# except windows 7
 build-all-windows: build-windows-386 build-windows-amd64 build-windows-arm64
+
+build-all-windows-7: build-windows-386-win7 build-windows-amd64-win7
 
 build-windows-386:
 	GOOS=windows GOARCH=386 $(MAKE) build-windows
 
+build-windows-386-win7:
+	GOOS=windows GOARCH=386 $(MAKE) build-windows-7
+
 build-windows-amd64:
 	GOOS=windows GOARCH=amd64 $(MAKE) build-windows
+
+build-windows-amd64-win7:
+	GOOS=windows GOARCH=amd64 $(MAKE) build-windows-7
 
 build-windows-arm64:
 	GOOS=windows GOARCH=arm64 $(MAKE) build-windows
@@ -134,6 +143,12 @@ build-windows:
 	CGO_ENABLED=$(CGO_ENABLED) GOOS=$(GOOS) GOARCH=$(GOARCH) $(GOBUILD) -v \
 		-ldflags "${LD_FLAGS} -X ${REPO}/pkg/version.OS=$(GOOS) -X ${REPO}/pkg/version.Arch=$(GOARCH)" \
 		-o ${BUILD_DIR}/$(BINARY_NAME)-$(GOOS)-$(GOARCH).exe
+
+.PHONY: build-windows-7
+build-windows-7:
+	CGO_ENABLED=$(CGO_ENABLED) GOOS=$(GOOS) GOARCH=$(GOARCH) $(GOBUILD) -v \
+		-ldflags "${LD_FLAGS} -X ${REPO}/pkg/version.OS=$(GOOS) -X ${REPO}/pkg/version.Arch=$(GOARCH)" \
+		-o ${BUILD_DIR}/$(BINARY_NAME)-$(GOOS)-$(GOARCH)-win7.exe
 
 install: install-go-modules install-linter
 

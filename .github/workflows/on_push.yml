@@ -219,6 +219,60 @@ jobs:
         name: IP Check
         run: make test-ip
 
+  build-windows-7:
+    name: Build Windows 7 with GO 1.20
+    runs-on: ubuntu-latest
+    # needs: [version]
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v4
+      -
+        name: Setup go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.20.14'
+          check-latest: false
+          cache: false
+      -
+        run: go version
+      - 
+        name: Replace go version in go.mod
+        uses: jacobtomlinson/gha-find-replace@v3
+        with:
+          find: "(?m)^go\\s[0-9\\.]+$"
+          replace: "go 1.20"
+          include: "go.mod"
+      - 
+        run: cat go.mod
+      - 
+        run: go mod tidy
+      -
+        name: Build binaries
+        env:
+          VERSION: 1.2.3
+        shell: bash
+        # 2 is the number of virtual cpus for Linux. macOS is 3.
+        run: make -j2 build-all-windows-7
+      -
+        name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: binaries-windows
+          path: build/
+      # -
+      #   name: Remove tag if failure
+      #   if: ${{ failure() }}
+      #   uses: actions/github-script@v7
+      #   with:
+      #     github-token: ${{ github.token }}
+      #     script: |
+      #       github.rest.git.deleteRef({
+      #         owner: context.repo.owner,
+      #         repo: context.repo.repo,
+      #         ref: "tags/${{ needs.version.outputs.semver_tag }}"
+      #       })
+
   version:
     name: Version
     concurrency: tagging
