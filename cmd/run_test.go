@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/wakatime/wakatime-cli/cmd"
+	"github.com/wakatime/wakatime-cli/pkg/api"
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
 	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/offline"
@@ -77,6 +78,73 @@ func TestRunCmd_Err(t *testing.T) {
 	assert.Eventually(t, func() bool { return numCalls == 0 }, time.Second, 50*time.Millisecond)
 }
 
+func TestRunCmd_ErrBackoff(t *testing.T) {
+	testServerURL, router, tearDown := setupTestServer()
+	defer tearDown()
+
+	ctx := context.Background()
+
+	var numCalls int
+
+	router.HandleFunc("/plugins/errors", func(_ http.ResponseWriter, _ *http.Request) {
+		numCalls++
+	})
+
+	version.OS = "some os"
+	version.Arch = "some architecture"
+	version.Version = "some version"
+
+	tmpDir := t.TempDir()
+
+	offlineQueueFile, err := os.CreateTemp(tmpDir, "")
+	require.NoError(t, err)
+
+	defer offlineQueueFile.Close()
+
+	logFile, err := os.CreateTemp(tmpDir, "")
+	require.NoError(t, err)
+
+	defer logFile.Close()
+
+	v := viper.New()
+	v.Set("api-url", testServerURL)
+	v.Set("entity", "/path/to/file")
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("log-file", logFile.Name())
+	v.Set("offline-queue-file", offlineQueueFile.Name())
+	v.Set("plugin", "vim")
+
+	logger, err := cmd.SetupLogging(ctx, v)
+	require.NoError(t, err)
+
+	defer logger.Flush()
+
+	ctx = log.ToContext(ctx, logger)
+
+	var cmdNumCalls int
+
+	cmdFn := func(_ context.Context, _ *viper.Viper) (int, error) {
+		cmdNumCalls++
+		return 42, api.ErrBackoff{Err: errors.New("fail")}
+	}
+
+	err = cmd.RunCmd(ctx, v, false, false, cmdFn)
+	require.Error(t, err)
+
+	var errexitcode exitcode.Err
+
+	require.ErrorAs(t, err, &errexitcode)
+
+	assert.Equal(t, 42, err.(exitcode.Err).Code)
+	assert.Equal(t, 1, cmdNumCalls)
+	assert.Eventually(t, func() bool { return numCalls == 0 }, time.Second, 50*time.Millisecond)
+
+	output, err := io.ReadAll(logFile)
+	require.NoError(t, err)
+
+	assert.Empty(t, string(output))
+}
+
 func TestRunCmd_Verbose_Err(t *testing.T) {
 	testServerURL, router, tearDown := setupTestServer()
 	defer tearDown()
@@ -104,6 +172,7 @@ func TestRunCmd_Verbose_Err(t *testing.T) {
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("offline-queue-file", offlineQueueFile.Name())
 	v.Set("plugin", "vim")
+	v.Set("verbose", true)
 
 	var cmdNumCalls int
 
@@ -121,6 +190,73 @@ func TestRunCmd_Verbose_Err(t *testing.T) {
 	assert.Equal(t, 42, err.(exitcode.Err).Code)
 	assert.Equal(t, 1, cmdNumCalls)
 	assert.Eventually(t, func() bool { return numCalls == 0 }, time.Second, 50*time.Millisecond)
+}
+
+func TestRunCmd_Verbose_ErrBackoff(t *testing.T) {
+	testServerURL, router, tearDown := setupTestServer()
+	defer tearDown()
+
+	ctx := context.Background()
+
+	var numCalls int
+
+	router.HandleFunc("/plugins/errors", func(_ http.ResponseWriter, _ *http.Request) {
+		numCalls++
+	})
+
+	version.OS = "some os"
+	version.Arch = "some architecture"
+	version.Version = "some version"
+
+	tmpDir := t.TempDir()
+
+	offlineQueueFile, err := os.CreateTemp(tmpDir, "")
+	require.NoError(t, err)
+
+	defer offlineQueueFile.Close()
+
+	logFile, err := os.CreateTemp(tmpDir, "")
+	require.NoError(t, err)
+
+	defer logFile.Close()
+
+	v := viper.New()
+	v.Set("api-url", testServerURL)
+	v.Set("entity", "/path/to/file")
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("offline-queue-file", offlineQueueFile.Name())
+	v.Set("plugin", "vim")
+	v.Set("log-file", logFile.Name())
+	v.Set("verbose", true)
+
+	logger, err := cmd.SetupLogging(ctx, v)
+	require.NoError(t, err)
+
+	defer logger.Flush()
+
+	ctx = log.ToContext(ctx, logger)
+
+	var cmdNumCalls int
+
+	cmdFn := func(_ context.Context, _ *viper.Viper) (int, error) {
+		cmdNumCalls++
+		return 42, api.ErrBackoff{Err: errors.New("fail")}
+	}
+
+	err = cmd.RunCmd(ctx, v, true, false, cmdFn)
+
+	var errexitcode exitcode.Err
+
+	require.ErrorAs(t, err, &errexitcode)
+
+	assert.Equal(t, 42, err.(exitcode.Err).Code)
+	assert.Equal(t, 1, cmdNumCalls)
+	assert.Eventually(t, func() bool { return numCalls == 0 }, time.Second, 50*time.Millisecond)
+
+	output, err := io.ReadAll(logFile)
+	require.NoError(t, err)
+
+	assert.Contains(t, string(output), "failed to run command: fail")
 }
 
 func TestRunCmd_SendDiagnostics_Err(t *testing.T) {

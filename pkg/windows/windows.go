@@ -115,7 +115,7 @@ func toUncPath(fp string) (string, error) {
 
 	out, err := cmd.Command("net use").Output()
 	if err != nil {
-		return "", fmt.Errorf("failed to execute ls command: %s", err)
+		return "", fmt.Errorf("failed to execute net use command: %s", err)
 	}
 
 	drives, err := parseNetUseOutput(string(out))

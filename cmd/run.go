@@ -37,6 +37,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"go.uber.org/zap/zapcore"
 	iniv1 "gopkg.in/ini.v1"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
@@ -340,7 +341,9 @@ func runCmd(ctx context.Context, v *viper.Viper, verbose bool, sendDiagsOnErrors
 			verbose = verbose || errwaka.ShouldLogError()
 		}
 
-		if verbose {
+		if errloglevel, ok := err.(wakaerror.LogLevel); ok {
+			logger.Logf(zapcore.Level(errloglevel.LogLevel()), "failed to run command: %s", err)
+		} else if verbose {
 			logger.Errorf("failed to run command: %s", err)
 		}
 

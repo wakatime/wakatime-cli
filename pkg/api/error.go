@@ -5,6 +5,8 @@ import (
 
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
 	"github.com/wakatime/wakatime-cli/pkg/wakaerror"
+
+	"go.uber.org/zap/zapcore"
 )
 
 // Err represents a general api error.
@@ -118,6 +120,11 @@ func (e ErrBackoff) Error() string {
 // ExitCode method to implement wakaerror.Error interface.
 func (ErrBackoff) ExitCode() int {
 	return exitcode.ErrBackoff
+}
+
+// LogLevel method to implement wakaerror.LogLevel interface.
+func (ErrBackoff) LogLevel() int8 {
+	return int8(zapcore.DebugLevel)
 }
 
 // Message method to implement wakaerror.Error interface.

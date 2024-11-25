@@ -130,6 +130,16 @@ func SetJww(verbose bool, w io.Writer) {
 	}
 }
 
+// Log logs a message at the given level.
+func (l Logger) Log(level zapcore.Level, msg string) {
+	l.entry.Log(level, msg)
+}
+
+// Logf logs a message at the given level.
+func (l Logger) Logf(level zapcore.Level, format string, args ...any) {
+	l.entry.Log(level, fmt.Sprintf(format, args...))
+}
+
 // Debugf logs a message at level Debug.
 func (l *Logger) Debugf(format string, args ...any) {
 	l.entry.Log(zapcore.DebugLevel, fmt.Sprintf(format, args...))
