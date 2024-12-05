@@ -179,20 +179,35 @@ func NewHandle(sender Sender, opts ...HandleOption) Handle {
 
 // UserAgent generates a user agent from various system infos, including a
 // a passed in value for plugin.
-func UserAgent(ctx context.Context, plugin string) string {
+func UserAgent(ctx context.Context, plugin string) (userAgent string) {
 	logger := log.Extract(ctx)
+	template := "wakatime/%s (%s-%s-%s) %s %s"
+
+	defer func() {
+		if r := recover(); r != nil {
+			userAgent = fmt.Sprintf(
+				template,
+				version.Version,
+				strings.TrimSpace(system.OSName(ctx)),
+				"unknown",
+				"unknown",
+				strings.TrimSpace(runtime.Version()),
+				strings.TrimSpace(plugin),
+			)
+		}
+	}()
+
+	if plugin == "" {
+		plugin = "Unknown/0"
+	}
 
 	info, err := goInfo.GetInfo()
 	if err != nil {
 		logger.Debugf("goInfo.GetInfo error: %s", err)
 	}
 
-	if plugin == "" {
-		plugin = "Unknown/0"
-	}
-
-	return fmt.Sprintf(
-		"wakatime/%s (%s-%s-%s) %s %s",
+	userAgent = fmt.Sprintf(
+		template,
 		version.Version,
 		strings.TrimSpace(system.OSName(ctx)),
 		strings.TrimSpace(info.Core),
@@ -200,6 +215,8 @@ func UserAgent(ctx context.Context, plugin string) string {
 		strings.TrimSpace(runtime.Version()),
 		strings.TrimSpace(plugin),
 	)
+
+	return userAgent
 }
 
 // PointerTo returns a pointer to the value passed in.

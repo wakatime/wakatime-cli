@@ -15,7 +15,6 @@ require (
 	github.com/matishsiao/goInfo v0.0.0-20240924010139-10388a85396f
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/pkg/sftp v1.13.7
-	github.com/sirupsen/logrus v1.9.3
 	github.com/slongfield/pyfmt v0.0.0-20220222012616-ea85ff4c361f
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/jwalterweatherman v1.1.0
@@ -62,3 +61,5 @@ require (
 	golang.org/x/sys v0.27.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace github.com/matishsiao/goInfo => github.com/wakatime/goInfo v0.1.0-wakatime.11

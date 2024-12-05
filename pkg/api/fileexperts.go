@@ -88,7 +88,7 @@ func ParseFileExpertsResponse(data []byte) ([]heartbeat.Result, error) {
 	var body fileexperts.FileExperts
 
 	if err := json.Unmarshal(data, &body); err != nil {
-		return nil, fmt.Errorf("failed to parse json response body: %s. body: %q", err, data)
+		return nil, fmt.Errorf("failed to parse json response body: %s. body: %q", err, string(data))
 	}
 
 	return []heartbeat.Result{{FileExpert: &body}}, nil
