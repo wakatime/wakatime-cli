@@ -1,6 +1,6 @@
 module github.com/wakatime/wakatime-cli
 
-go 1.23.3
+go 1.23.4
 
 require (
 	github.com/Azure/go-ntlmssp v0.0.0-20221128193559-754e69321358
@@ -12,7 +12,7 @@ require (
 	github.com/gandarez/go-realpath v1.0.0
 	github.com/juju/mutex v0.0.0-20180619145857-d21b13acf4bf
 	github.com/kevinburke/ssh_config v1.2.1-0.20220605204831-a56e914e7283
-	github.com/matishsiao/goInfo v0.0.0-20240924010139-10388a85396f
+	github.com/matishsiao/goInfo v0.0.0-20241216093258-66a9250504d6
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/pkg/sftp v1.13.7
 	github.com/slongfield/pyfmt v0.0.0-20220222012616-ea85ff4c361f
@@ -22,9 +22,9 @@ require (
 	github.com/stretchr/testify v1.9.0
 	go.etcd.io/bbolt v1.3.11
 	go.uber.org/zap v1.27.0
-	golang.org/x/crypto v0.29.0
-	golang.org/x/net v0.31.0
-	golang.org/x/text v0.20.0
+	golang.org/x/crypto v0.31.0
+	golang.org/x/net v0.32.0
+	golang.org/x/text v0.21.0
 	gopkg.in/ini.v1 v1.67.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 )
@@ -42,7 +42,7 @@ require (
 	github.com/juju/testing v0.0.0-20211215003918-77eb13d6cad2 // indirect
 	github.com/juju/version v0.0.0-20210303051006-2015802527a8 // indirect
 	github.com/kr/fs v0.1.0 // indirect
-	github.com/magiconair/properties v1.8.7 // indirect
+	github.com/magiconair/properties v1.8.9 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.3 // indirect
@@ -57,9 +57,7 @@ require (
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/yookoala/realpath v1.0.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/exp v0.0.0-20241108190413-2d47ceb2692f // indirect
-	golang.org/x/sys v0.27.0 // indirect
+	golang.org/x/exp v0.0.0-20241217172543-b2144cdd0a67 // indirect
+	golang.org/x/sys v0.28.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-replace github.com/matishsiao/goInfo => github.com/wakatime/goInfo v0.1.0-wakatime.11

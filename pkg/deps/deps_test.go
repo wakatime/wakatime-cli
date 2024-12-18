@@ -124,7 +124,7 @@ func TestWithDetection_NonFileType(t *testing.T) {
 	h := opt(func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		assert.Equal(t, []heartbeat.Heartbeat{
 			{
-				Entity:     "testdata/codefiles/golang.go",
+				Entity:     "testdata/golang.go",
 				EntityType: heartbeat.AppType,
 			},
 		}, hh)
@@ -137,7 +137,7 @@ func TestWithDetection_NonFileType(t *testing.T) {
 	})
 
 	result, err := h(context.Background(), []heartbeat.Heartbeat{{
-		Entity:     "testdata/codefiles/golang.go",
+		Entity:     "testdata/golang.go",
 		EntityType: heartbeat.AppType,
 	}})
 	require.NoError(t, err)
