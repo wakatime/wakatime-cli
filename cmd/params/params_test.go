@@ -20,14 +20,15 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	inipkg "github.com/wakatime/wakatime-cli/pkg/ini"
 	"github.com/wakatime/wakatime-cli/pkg/log"
+	"github.com/wakatime/wakatime-cli/pkg/offline"
 	"github.com/wakatime/wakatime-cli/pkg/output"
 	"github.com/wakatime/wakatime-cli/pkg/project"
 	"github.com/wakatime/wakatime-cli/pkg/regex"
-	"gopkg.in/ini.v1"
 
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gopkg.in/ini.v1"
 )
 
 func TestLoadHeartbeatParams_AlternateProject(t *testing.T) {
@@ -1832,7 +1833,7 @@ func TestLoadOfflineParams_RateLimit_FromConfig(t *testing.T) {
 
 func TestLoadOfflineParams_RateLimit_Zero(t *testing.T) {
 	v := viper.New()
-	v.Set("heartbeat-rate-limit-seconds", "0")
+	v.Set("heartbeat-rate-limit-seconds", 0)
 
 	params := cmdparams.LoadOfflineParams(context.Background(), v)
 
@@ -1841,11 +1842,11 @@ func TestLoadOfflineParams_RateLimit_Zero(t *testing.T) {
 
 func TestLoadOfflineParams_RateLimit_Default(t *testing.T) {
 	v := viper.New()
-	v.SetDefault("heartbeat-rate-limit-seconds", 20)
+	v.SetDefault("heartbeat-rate-limit-seconds", offline.RateLimitDefaultSeconds)
 
 	params := cmdparams.LoadOfflineParams(context.Background(), v)
 
-	assert.Equal(t, time.Duration(20)*time.Second, params.RateLimit)
+	assert.Equal(t, time.Duration(offline.RateLimitDefaultSeconds)*time.Second, params.RateLimit)
 }
 
 func TestLoadOfflineParams_RateLimit_NegativeNumber(t *testing.T) {
@@ -1863,7 +1864,7 @@ func TestLoadOfflineParams_RateLimit_NonIntegerValue(t *testing.T) {
 
 	params := cmdparams.LoadOfflineParams(context.Background(), v)
 
-	assert.Zero(t, params.RateLimit)
+	assert.Equal(t, time.Duration(offline.RateLimitDefaultSeconds)*time.Second, params.RateLimit)
 }
 
 func TestLoadOfflineParams_LastSentAt(t *testing.T) {
@@ -1889,7 +1890,7 @@ func TestLoadOfflineParams_LastSentAt_Err(t *testing.T) {
 
 func TestLoadOfflineParams_LastSentAtFuture(t *testing.T) {
 	v := viper.New()
-	lastSentAt := time.Now().Add(time.Duration(2) * time.Hour)
+	lastSentAt := time.Now().Add(2 * time.Hour)
 	v.Set("internal.heartbeats_last_sent_at", lastSentAt.Format(inipkg.DateFormat))
 
 	params := cmdparams.LoadOfflineParams(context.Background(), v)
@@ -2658,14 +2659,14 @@ func TestOffline_String(t *testing.T) {
 		Disabled:   true,
 		LastSentAt: lastSentAt,
 		PrintMax:   6,
-		RateLimit:  15,
+		RateLimit:  time.Duration(15) * time.Second,
 		SyncMax:    12,
 	}
 
 	assert.Equal(
 		t,
 		"disabled: true, last sent at: '2021-08-30T18:50:42-03:00', print max: 6,"+
-			" num rate limit: 15, num sync max: 12",
+			" rate limit: 15s, num sync max: 12",
 		offline.String(),
 	)
 }

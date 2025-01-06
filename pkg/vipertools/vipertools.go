@@ -3,6 +3,7 @@ package vipertools
 import (
 	"strings"
 
+	"github.com/spf13/cast"
 	"github.com/spf13/viper"
 )
 
@@ -31,9 +32,20 @@ func FirstNonEmptyInt(v *viper.Viper, keys ...string) (int, bool) {
 	}
 
 	for _, key := range keys {
-		if value := v.GetInt(key); value != 0 {
-			return value, true
+		if !v.IsSet(key) {
+			continue
 		}
+
+		// Zero means a valid value when set, so it needs to use generic function and later cast it to int
+		value := v.Get(key)
+
+		// If the value is not an int, it will continue to find the next non-empty key
+		parsed, err := cast.ToIntE(value)
+		if err != nil {
+			continue
+		}
+
+		return parsed, true
 	}
 
 	return 0, false

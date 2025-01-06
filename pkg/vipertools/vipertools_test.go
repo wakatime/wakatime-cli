@@ -66,7 +66,7 @@ func TestFirstNonEmptyInt_EmptyInt(t *testing.T) {
 	v := viper.New()
 	v.Set("first", 0)
 	_, ok := vipertools.FirstNonEmptyInt(v, "first")
-	assert.False(t, ok)
+	assert.True(t, ok)
 }
 
 func TestFirstNonEmptyInt_StringValue(t *testing.T) {

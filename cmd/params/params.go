@@ -22,6 +22,7 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/ini"
 	"github.com/wakatime/wakatime-cli/pkg/log"
+	"github.com/wakatime/wakatime-cli/pkg/offline"
 	"github.com/wakatime/wakatime-cli/pkg/output"
 	"github.com/wakatime/wakatime-cli/pkg/project"
 	"github.com/wakatime/wakatime-cli/pkg/regex"
@@ -658,17 +659,26 @@ func LoadOfflineParams(ctx context.Context, v *viper.Viper) Offline {
 
 	logger := log.Extract(ctx)
 
-	rateLimit, _ := vipertools.FirstNonEmptyInt(v, "heartbeat-rate-limit-seconds", "settings.heartbeat_rate_limit_seconds")
-	if rateLimit < 0 {
-		logger.Warnf("argument --heartbeat-rate-limit-seconds must be zero or a positive integer number, got %d", rateLimit)
+	rateLimit := offline.RateLimitDefaultSeconds
 
-		rateLimit = 0
+	if rateLimitSecs, ok := vipertools.FirstNonEmptyInt(v,
+		"heartbeat-rate-limit-seconds",
+		"settings.heartbeat_rate_limit_seconds"); ok {
+		rateLimit = rateLimitSecs
+
+		if rateLimit < 0 {
+			logger.Warnf(
+				"argument --heartbeat-rate-limit-seconds must be zero or a positive integer number, got %d",
+				rateLimit,
+			)
+
+			rateLimit = 0
+		}
 	}
 
 	syncMax := v.GetInt("sync-offline-activity")
 	if syncMax < 0 {
 		logger.Warnf("argument --sync-offline-activity must be zero or a positive integer number, got %d", syncMax)
-
 		syncMax = 0
 	}
 
@@ -1100,7 +1110,7 @@ func (p Offline) String() string {
 	}
 
 	return fmt.Sprintf(
-		"disabled: %t, last sent at: '%s', print max: %d, num rate limit: %d, num sync max: %d",
+		"disabled: %t, last sent at: '%s', print max: %d, rate limit: %s, num sync max: %d",
 		p.Disabled,
 		lastSentAt,
 		p.PrintMax,

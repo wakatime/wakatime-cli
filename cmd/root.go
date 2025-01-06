@@ -128,7 +128,7 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 		"heartbeat-rate-limit-seconds",
 		offline.RateLimitDefaultSeconds,
 		fmt.Sprintf("Only sync heartbeats to the API once per these seconds, instead"+
-			" saving to the offline db. Defaults to %d. Use zero to disable.",
+			" saving to the offline db. Defaults to %d. Use 0 to disable.",
 			offline.RateLimitDefaultSeconds),
 	)
 	flags.String("hide-branch-names", "", "Obfuscate branch names. Will not send revision control branch names to api.")

@@ -455,7 +455,6 @@ func TestSendHeartbeats_ExtraHeartbeats_SyncLegacyOfflineActivity(t *testing.T) 
 		"--offline-queue-file-legacy", offlineQueueFileLegacy.Name(),
 		"--lineno", "42",
 		"--lines-in-file", "100",
-		"--heartbeat-rate-limit-seconds", "0",
 		"--time", "1585598059",
 		"--hide-branch-names", ".*",
 		"--write",
