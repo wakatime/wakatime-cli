@@ -39,10 +39,7 @@ func TestQueueFilepath(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			err := os.Setenv("WAKATIME_HOME", test.EnvVar)
-			require.NoError(t, err)
-
-			defer os.Unsetenv("WAKATIME_HOME")
+			t.Setenv("WAKATIME_HOME", test.EnvVar)
 
 			folder, err := ini.WakaResourcesDir(ctx)
 			require.NoError(t, err)

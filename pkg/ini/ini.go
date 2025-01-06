@@ -139,7 +139,7 @@ func ReadInConfig(v *viper.Viper, configFilePath string) error {
 	v.SetConfigFile(configFilePath)
 
 	if err := v.MergeInConfig(); err != nil {
-		return fmt.Errorf("error parsing config file: %s", err)
+		return fmt.Errorf("failed to merge config file: %s", err)
 	}
 
 	return nil
@@ -151,7 +151,7 @@ func FilePath(ctx context.Context, v *viper.Viper) (string, error) {
 	if configFilepath != "" {
 		p, err := homedir.Expand(configFilepath)
 		if err != nil {
-			return "", fmt.Errorf("failed expanding config param: %s", err)
+			return "", fmt.Errorf("failed to expand config param: %s", err)
 		}
 
 		return p, nil
@@ -159,19 +159,21 @@ func FilePath(ctx context.Context, v *viper.Viper) (string, error) {
 
 	home, _, err := WakaHomeDir(ctx)
 	if err != nil {
-		return "", fmt.Errorf("failed getting user's home directory: %s", err)
+		return "", fmt.Errorf("failed to get user's home directory: %s", err)
 	}
 
 	return filepath.Join(home, defaultFile), nil
 }
 
-// ImportFilePath returns the path for import wakatime config file.
+// ImportFilePath returns the path for custom wakatime config file.
+// It's used to keep the api key out ofthe home folder, and usually it's to avoid backing up sensitive wakatime config file.
+// https://github.com/wakatime/wakatime-cli/issues/464
 func ImportFilePath(_ context.Context, v *viper.Viper) (string, error) {
 	configFilepath := vipertools.GetString(v, "settings.import_cfg")
 	if configFilepath != "" {
 		p, err := homedir.Expand(configFilepath)
 		if err != nil {
-			return "", fmt.Errorf("failed expanding settings.import_cfg param: %s", err)
+			return "", fmt.Errorf("failed to expand settings.import_cfg param: %s", err)
 		}
 
 		return p, nil
@@ -180,13 +182,14 @@ func ImportFilePath(_ context.Context, v *viper.Viper) (string, error) {
 	return "", nil
 }
 
-// InternalFilePath returns the path for the wakatime internal config file.
+// InternalFilePath returns the path for the wakatime internal config file which contains
+// last heartbeat timestamp and backoff time.
 func InternalFilePath(ctx context.Context, v *viper.Viper) (string, error) {
 	configFilepath := vipertools.GetString(v, "internal-config")
 	if configFilepath != "" {
 		p, err := homedir.Expand(configFilepath)
 		if err != nil {
-			return "", fmt.Errorf("failed expanding internal-config param: %s", err)
+			return "", fmt.Errorf("failed to expand internal-config param: %s", err)
 		}
 
 		return p, nil
@@ -194,7 +197,7 @@ func InternalFilePath(ctx context.Context, v *viper.Viper) (string, error) {
 
 	folder, err := WakaResourcesDir(ctx)
 	if err != nil {
-		return "", fmt.Errorf("failed getting user's home directory: %s", err)
+		return "", fmt.Errorf("failed to get user's home directory: %s", err)
 	}
 
 	return filepath.Join(folder, defaultInternalFile), nil
@@ -211,7 +214,7 @@ func WakaHomeDir(ctx context.Context) (string, WakaHomeType, error) {
 			return home, WakaHomeTypeEnvVar, nil
 		}
 
-		logger.Warnf("failed to expand WAKATIME_HOME filepath: %s", err)
+		logger.Warnf("failed to expand WAKATIME_HOME filepath: %s. It will try to get user home dir.", err)
 	}
 
 	home, err := os.UserHomeDir()
@@ -239,7 +242,7 @@ func WakaHomeDir(ctx context.Context) (string, WakaHomeType, error) {
 func WakaResourcesDir(ctx context.Context) (string, error) {
 	home, hometype, err := WakaHomeDir(ctx)
 	if err != nil {
-		return "", fmt.Errorf("failed getting user's home directory: %s", err)
+		return "", fmt.Errorf("failed to get user's home directory: %s", err)
 	}
 
 	switch hometype {

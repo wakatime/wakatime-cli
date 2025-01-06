@@ -2093,10 +2093,7 @@ func TestLoadParams_ApiKey_FromVault_Err_Darwin(t *testing.T) {
 func TestLoadAPIParams_APIKeyFromEnv(t *testing.T) {
 	v := viper.New()
 
-	err := os.Setenv("WAKATIME_API_KEY", "00000000-0000-4000-8000-000000000000")
-	require.NoError(t, err)
-
-	defer os.Unsetenv("WAKATIME_API_KEY")
+	t.Setenv("WAKATIME_API_KEY", "00000000-0000-4000-8000-000000000000")
 
 	params, err := cmdparams.LoadAPIParams(context.Background(), v)
 	require.NoError(t, err)
@@ -2107,12 +2104,9 @@ func TestLoadAPIParams_APIKeyFromEnv(t *testing.T) {
 func TestLoadAPIParams_APIKeyFromEnvInvalid(t *testing.T) {
 	v := viper.New()
 
-	err := os.Setenv("WAKATIME_API_KEY", "00000000-0000-4000-0000-000000000000")
-	require.NoError(t, err)
+	t.Setenv("WAKATIME_API_KEY", "00000000-0000-4000-0000-000000000000")
 
-	defer os.Unsetenv("WAKATIME_API_KEY")
-
-	_, err = cmdparams.LoadAPIParams(context.Background(), v)
+	_, err := cmdparams.LoadAPIParams(context.Background(), v)
 	require.Error(t, err)
 
 	var errauth api.ErrAuth
@@ -2125,10 +2119,7 @@ func TestLoadAPIParams_APIKeyFromEnv_ConfigTakesPrecedence(t *testing.T) {
 	v := viper.New()
 	v.Set("settings.api_key", "00000000-0000-4000-8000-000000000000")
 
-	err := os.Setenv("WAKATIME_API_KEY", "10000000-0000-4000-8000-000000000000")
-	require.NoError(t, err)
-
-	defer os.Unsetenv("WAKATIME_API_KEY")
+	t.Setenv("WAKATIME_API_KEY", "10000000-0000-4000-8000-000000000000")
 
 	params, err := cmdparams.LoadAPIParams(context.Background(), v)
 	require.NoError(t, err)
@@ -2370,10 +2361,7 @@ func TestLoadAPIParams_ProxyURL_UserDefinedTakesPrecedenceOverEnvironment(t *tes
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("proxy", "https://john:secret@example.org:8888")
 
-	err := os.Setenv("HTTPS_PROXY", "https://papa:secret@company.org:9000")
-	require.NoError(t, err)
-
-	defer os.Unsetenv("HTTPS_PROXY")
+	t.Setenv("HTTPS_PROXY", "https://papa:secret@company.org:9000")
 
 	params, err := cmdparams.LoadAPIParams(context.Background(), v)
 	require.NoError(t, err)
@@ -2396,10 +2384,7 @@ func TestLoadAPIParams_ProxyURL_FromEnvironment(t *testing.T) {
 	v := viper.New()
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 
-	err := os.Setenv("HTTPS_PROXY", "https://john:secret@example.org:8888")
-	require.NoError(t, err)
-
-	defer os.Unsetenv("HTTPS_PROXY")
+	t.Setenv("HTTPS_PROXY", "https://john:secret@example.org:8888")
 
 	params, err := cmdparams.LoadAPIParams(context.Background(), v)
 	require.NoError(t, err)
@@ -2411,10 +2396,7 @@ func TestLoadAPIParams_ProxyURL_NoProxyFromEnvironment(t *testing.T) {
 	v := viper.New()
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 
-	err := os.Setenv("NO_PROXY", "https://some.org,https://api.wakatime.com")
-	require.NoError(t, err)
-
-	defer os.Unsetenv("NO_PROXY")
+	t.Setenv("NO_PROXY", "https://some.org,https://api.wakatime.com")
 
 	params, err := cmdparams.LoadAPIParams(context.Background(), v)
 	require.NoError(t, err)
@@ -2470,10 +2452,7 @@ func TestLoadAPIParams_Hostname_FlagTakesPrecedence(t *testing.T) {
 	v.Set("hostname", "my-machine")
 	v.Set("settings.hostname", "ignored")
 
-	err := os.Setenv("GITPOD_WORKSPACE_ID", "gitpod")
-	require.NoError(t, err)
-
-	defer os.Unsetenv("GITPOD_WORKSPACE_ID")
+	t.Setenv("GITPOD_WORKSPACE_ID", "gitpod")
 
 	params, err := cmdparams.LoadAPIParams(context.Background(), v)
 	require.NoError(t, err)
@@ -2497,10 +2476,7 @@ func TestLoadAPIParams_Hostname_ConfigTakesPrecedence(t *testing.T) {
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("settings.hostname", "my-machine")
 
-	err := os.Setenv("GITPOD_WORKSPACE_ID", "gitpod")
-	require.NoError(t, err)
-
-	defer os.Unsetenv("GITPOD_WORKSPACE_ID")
+	t.Setenv("GITPOD_WORKSPACE_ID", "gitpod")
 
 	params, err := cmdparams.LoadAPIParams(context.Background(), v)
 	require.NoError(t, err)
@@ -2512,10 +2488,7 @@ func TestLoadAPIParams_Hostname_FromGitpodEnv(t *testing.T) {
 	v := viper.New()
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 
-	err := os.Setenv("GITPOD_WORKSPACE_ID", "gitpod")
-	require.NoError(t, err)
-
-	defer os.Unsetenv("GITPOD_WORKSPACE_ID")
+	t.Setenv("GITPOD_WORKSPACE_ID", "gitpod")
 
 	params, err := cmdparams.LoadAPIParams(context.Background(), v)
 	require.NoError(t, err)

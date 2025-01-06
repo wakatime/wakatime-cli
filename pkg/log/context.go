@@ -20,8 +20,7 @@ var ctxMarkerKey = &ctxMarker{}
 func Extract(ctx context.Context) *Logger {
 	l, ok := ctx.Value(ctxMarkerKey).(*ctxLogger)
 	if !ok || l == nil {
-		// TODO: It should never happen but if it does,
-		// we should find a way to create a new logger using passed params during initialization
+		// If there's no logger already initialized, then create a new default one
 		return New(os.Stdout)
 	}
 
@@ -31,11 +30,9 @@ func Extract(ctx context.Context) *Logger {
 // ToContext adds the log.Logger to the context for extraction later.
 // Returning the new context that has been created.
 func ToContext(ctx context.Context, logger *Logger) context.Context {
-	l := &ctxLogger{
+	return context.WithValue(ctx, ctxMarkerKey, &ctxLogger{
 		logger: logger,
-	}
-
-	return context.WithValue(ctx, ctxMarkerKey, l)
+	})
 }
 
 // AddField adds a field to the context logger.

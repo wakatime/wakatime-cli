@@ -417,6 +417,31 @@ func TestParseConfigFiles(t *testing.T) {
 		v.GetString("internal.backoff_at"))
 }
 
+func TestParseConfigFiles_MissingAPIKey(t *testing.T) {
+	v := viper.New()
+	v.Set("config", "testdata/.wakatime-empty.cfg")
+	v.Set("internal-config", "testdata/.wakatime-internal.cfg")
+
+	err := parseConfigFiles(context.Background(), v)
+
+	assert.NoError(t, err)
+}
+
+func TestParseConfigFiles_APIKey_FlagTakesPrecedence(t *testing.T) {
+	v := viper.New()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("config", "testdata/.wakatime-empty.cfg")
+	v.Set("settings.import_cfg", "")
+	v.Set("internal-config", "testdata/.wakatime-internal.cfg")
+
+	err := parseConfigFiles(context.Background(), v)
+	require.NoError(t, err)
+
+	assert.Equal(t,
+		"00000000-0000-4000-8000-000000000000",
+		v.GetString("key"))
+}
+
 func jsonEscape(t *testing.T, i string) string {
 	b, err := json.Marshal(i)
 	require.NoError(t, err)

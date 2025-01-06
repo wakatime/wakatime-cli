@@ -667,7 +667,7 @@ func TestSendHeartbeats_MalformedConfig(t *testing.T) {
 		"--verbose",
 	)
 
-	assert.Empty(t, out)
+	assert.Contains(t, out, "failed to parse config files")
 
 	count, err := offline.CountHeartbeats(ctx, offlineQueueFile.Name())
 	require.NoError(t, err)
@@ -707,7 +707,7 @@ func TestSendHeartbeats_MalformedInternalConfig(t *testing.T) {
 		"--verbose",
 	)
 
-	assert.Empty(t, out)
+	assert.Contains(t, out, "failed to parse config files")
 
 	count, err := offline.CountHeartbeats(ctx, offlineQueueFile.Name())
 	require.NoError(t, err)

@@ -25,7 +25,7 @@ func openFile(name string, flag int, perm os.FileMode) (*os.File, error) {
 }
 
 // openFileNolog is the Windows implementation of OpenFile.
-func openFileNolog(name string, flag int, perm os.FileMode) (*os.File, error) {
+func openFileNolog(name string, flag int, _ os.FileMode) (*os.File, error) {
 	if name == "" {
 		return nil, &os.PathError{Op: "open", Path: name, Err: syscall.ENOENT}
 	}

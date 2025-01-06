@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"fmt"
+	"runtime/debug"
 	"strings"
 
 	paramscmd "github.com/wakatime/wakatime-cli/cmd/params"
@@ -85,8 +86,8 @@ func newClient(ctx context.Context, params paramscmd.API, opts ...api.Option) (*
 
 func timezone() (name string, err error) {
 	defer func() {
-		if e := recover(); e != nil {
-			err = fmt.Errorf("panicked when detecting timezone: %s", e)
+		if r := recover(); r != nil {
+			err = fmt.Errorf("panicked: failed to get timezone: %v. Stack: %s", r, string(debug.Stack()))
 		}
 	}()
 

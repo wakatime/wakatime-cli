@@ -38,7 +38,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"go.uber.org/zap/zapcore"
-	iniv1 "gopkg.in/ini.v1"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
@@ -53,17 +52,10 @@ type diagnostics struct {
 func RunE(cmd *cobra.Command, v *viper.Viper) error {
 	ctx := context.Background()
 
-	// force setup logging otherwise log goes to std out
-	logger, err := SetupLogging(ctx, v)
-	if err != nil {
-		// log to std out as logger is not setup yet
-		stdlog.Fatalf("failed to setup logging: %s", err)
-	}
+	// extract logger from context despite it's not fully initialized yet
+	logger := log.Extract(ctx)
 
-	// save logger to context
-	ctx = log.ToContext(ctx, logger)
-
-	err = parseConfigFiles(ctx, v)
+	err := parseConfigFiles(ctx, v)
 	if err != nil {
 		logger.Errorf("failed to parse config files: %s", err)
 
@@ -74,11 +66,14 @@ func RunE(cmd *cobra.Command, v *viper.Viper) error {
 		}
 	}
 
-	// setup logging again to use config file settings if available
 	logger, err = SetupLogging(ctx, v)
 	if err != nil {
-		logger.Fatalf("failed to setup logging: %s", err)
+		// log to std out and exit, as logger instance failed to setup
+		stdlog.Fatalf("failed to setup logging: %s", err)
 	}
+
+	// save logger to context
+	ctx = log.ToContext(ctx, logger)
 
 	// register all custom lexers
 	if err := lexer.RegisterAll(); err != nil {
@@ -183,30 +178,24 @@ func RunE(cmd *cobra.Command, v *viper.Viper) error {
 }
 
 func parseConfigFiles(ctx context.Context, v *viper.Viper) error {
+	logger := log.Extract(ctx)
+
 	var configFiles = []struct {
-		fn    func(context.Context, *viper.Viper) (string, error)
-		vp    *viper.Viper
-		merge bool
+		filePathFn func(context.Context, *viper.Viper) (string, error)
 	}{
 		{
-			fn: ini.FilePath,
-			vp: v,
+			filePathFn: ini.FilePath,
 		},
 		{
-			fn: ini.ImportFilePath,
-			vp: v,
+			filePathFn: ini.ImportFilePath,
 		},
 		{
-			fn:    ini.InternalFilePath,
-			vp:    viper.NewWithOptions(viper.IniLoadOptions(iniv1.LoadOptions{SkipUnrecognizableLines: true})),
-			merge: true,
+			filePathFn: ini.InternalFilePath,
 		},
 	}
 
-	logger := log.Extract(ctx)
-
 	for _, c := range configFiles {
-		configFile, err := c.fn(ctx, v)
+		configFile, err := c.filePathFn(ctx, v)
 		if err != nil {
 			return fmt.Errorf("error getting config file path: %s", err)
 		}
@@ -221,15 +210,8 @@ func parseConfigFiles(ctx context.Context, v *viper.Viper) error {
 			continue
 		}
 
-		if err := ini.ReadInConfig(c.vp, configFile); err != nil {
+		if err := ini.ReadInConfig(v, configFile); err != nil {
 			return fmt.Errorf("failed to load configuration file: %s", err)
-		}
-
-		if c.merge {
-			err = v.MergeConfigMap(c.vp.AllSettings())
-			if err != nil {
-				logger.Warnf("failed to merge configuration file: %s", err)
-			}
 		}
 	}
 
@@ -251,10 +233,11 @@ func SetupLogging(ctx context.Context, v *viper.Viper) (*log.Logger, error) {
 		if _, err := os.Stat(dir); os.IsNotExist(err) {
 			err := os.MkdirAll(dir, 0750)
 			if err != nil {
-				return nil, fmt.Errorf("error creating log file directory: %s", err)
+				return nil, fmt.Errorf("failed to create log file directory %q: %s", dir, err)
 			}
 		}
 
+		// rotate log files
 		destOutput = &lumberjack.Logger{
 			Filename:   params.File,
 			MaxSize:    log.MaxLogFileSize,
@@ -268,8 +251,6 @@ func SetupLogging(ctx context.Context, v *viper.Viper) (*log.Logger, error) {
 		log.WithSendDiagsOnErrors(params.SendDiagsOnErrors),
 		log.WithMetrics(params.Metrics),
 	)
-
-	log.SetJww(params.Verbose, destOutput)
 
 	return logger, nil
 }
@@ -306,13 +287,13 @@ func runCmd(ctx context.Context, v *viper.Viper, verbose bool, sendDiagsOnErrors
 
 	// catch panics
 	defer func() {
-		if err := recover(); err != nil {
-			logger.Errorf("panicked: %v. Stack: %s", err, string(debug.Stack()))
+		if r := recover(); r != nil {
+			logger.Errorf("panicked: %v. Stack: %s", r, string(debug.Stack()))
 
 			resetLogs()
 
 			diags := diagnostics{
-				OriginalError: err,
+				OriginalError: r,
 				Panicked:      true,
 				Stack:         string(debug.Stack()),
 			}

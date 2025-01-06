@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 
-	jww "github.com/spf13/jwalterweatherman"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
@@ -116,17 +115,6 @@ func (l *Logger) Flush() {
 		if err := closer.Close(); err != nil {
 			l.Debugf("failed to close log file: %s", err)
 		}
-	}
-}
-
-// SetJww sets jww log when debug enabled.
-func SetJww(verbose bool, w io.Writer) {
-	if verbose {
-		jww.SetLogThreshold(jww.LevelDebug)
-		jww.SetStdoutThreshold(jww.LevelDebug)
-
-		jww.SetLogOutput(w)
-		jww.SetStdoutOutput(w)
 	}
 }
 

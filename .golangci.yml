@@ -18,6 +18,7 @@ linters:
     - revive
     - testpackage
     - unconvert
+    - usetesting
     - usestdlibvars
     - whitespace
     - wsl
@@ -54,6 +55,9 @@ linters-settings:
       - name: unused-receiver
       - name: var-declaration
       - name: var-naming
+  usetesting:
+    os-setenv: true
+    os-temp-dir: true
 issues:
   exclude-use-default: false
   exclude-dirs:

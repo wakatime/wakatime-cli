@@ -13,11 +13,11 @@ import (
 )
 
 func loadSystemRoots(ctx context.Context) (*x509.CertPool, error) {
-	defer func() {
-		logger := log.Extract(ctx)
+	logger := log.Extract(ctx)
 
-		if err := recover(); err != nil {
-			logger.Errorf("failed to load system roots on Windows. panicked: %v. Stack: %s", err, string(debug.Stack()))
+	defer func() {
+		if r := recover(); r != nil {
+			logger.Errorf("panicked: failed to load system roots on Windows: %v. Stack: %s", r, string(debug.Stack()))
 		}
 	}()
 
@@ -34,7 +34,9 @@ func loadSystemRoots(ctx context.Context) (*x509.CertPool, error) {
 	}
 
 	defer func() {
-		_ = syscall.CertCloseStore(store, 0)
+		if err := syscall.CertCloseStore(store, 0); err != nil {
+			logger.Debugf("failed to close system store: %s", err)
+		}
 	}()
 
 	roots := x509.NewCertPool()
@@ -56,6 +58,7 @@ func loadSystemRoots(ctx context.Context) (*x509.CertPool, error) {
 		if cert == nil {
 			break
 		}
+
 		// Copy the buf, since ParseCertificate does not create its own copy.
 		buf := (*[1 << 20]byte)(unsafe.Pointer(cert.EncodedCert))[:cert.Length:cert.Length] // nolint:gosec
 		buf2 := make([]byte, cert.Length)

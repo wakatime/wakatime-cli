@@ -48,7 +48,7 @@ func LoadParams(ctx context.Context, v *viper.Viper) (Params, error) {
 	if logFile != "" {
 		p, err := homedir.Expand(logFile)
 		if err != nil {
-			return Params{}, fmt.Errorf("failed expanding log file: %s", err)
+			return Params{}, fmt.Errorf("failed to expand log file: %s", err)
 		}
 
 		params.File = p
@@ -58,7 +58,7 @@ func LoadParams(ctx context.Context, v *viper.Viper) (Params, error) {
 
 	folder, err := ini.WakaResourcesDir(ctx)
 	if err != nil {
-		return Params{}, fmt.Errorf("failed getting resource directory: %s", err)
+		return Params{}, fmt.Errorf("failed to get resource directory: %s", err)
 	}
 
 	params.File = filepath.Join(folder, defaultFile)

@@ -132,10 +132,7 @@ func TestLoadParams(t *testing.T) {
 			v.Set("settings.debug", test.ViperDebug)
 			v.Set("verbose", test.ViperDebugConfig)
 
-			err := os.Setenv("WAKATIME_HOME", test.EnvVar)
-			require.NoError(t, err)
-
-			defer os.Unsetenv("WAKATIME_HOME")
+			t.Setenv("WAKATIME_HOME", test.EnvVar)
 
 			params, err := logfile.LoadParams(ctx, v)
 			require.NoError(t, err)

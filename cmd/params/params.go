@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"sync"
@@ -732,7 +733,7 @@ func LoadStatusBarParams(v *viper.Viper) (StatusBar, error) {
 func safeTimeParse(format string, s string) (parsed time.Time, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("time.Parse panic: %v", r)
+			err = fmt.Errorf("panicked: failed to time.Parse: %v. Stack: %s", r, string(debug.Stack()))
 		}
 	}()
 
