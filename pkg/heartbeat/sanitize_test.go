@@ -149,6 +149,7 @@ func TestSanitize_ObfuscateFile_SkipBranchIfNotMatching(t *testing.T) {
 func TestSanitize_ObfuscateFile_NilFields(t *testing.T) {
 	h := testHeartbeat()
 	h.Branch = nil
+	h.Dependencies = nil
 
 	r := heartbeat.Sanitize(context.Background(), h, heartbeat.SanitizeConfig{
 		FilePatterns:   []regex.Regex{regex.NewRegexpWrap(regexp.MustCompile(".*"))},
@@ -173,14 +174,16 @@ func TestSanitize_ObfuscateProject(t *testing.T) {
 	})
 
 	assert.Equal(t, heartbeat.Heartbeat{
-		Category:   heartbeat.CodingCategory,
-		Entity:     "/tmp/main.go",
-		EntityType: heartbeat.FileType,
-		IsWrite:    heartbeat.PointerTo(true),
-		Language:   heartbeat.PointerTo("Go"),
-		Project:    heartbeat.PointerTo("wakatime"),
-		Time:       1585598060,
-		UserAgent:  "wakatime/13.0.7",
+		Branch:       heartbeat.PointerTo("heartbeat"),
+		Category:     heartbeat.CodingCategory,
+		Dependencies: []string{"dep1", "dep2"},
+		Entity:       "/tmp/main.go",
+		EntityType:   heartbeat.FileType,
+		IsWrite:      heartbeat.PointerTo(true),
+		Language:     heartbeat.PointerTo("Go"),
+		Project:      heartbeat.PointerTo("wakatime"),
+		Time:         1585598060,
+		UserAgent:    "wakatime/13.0.7",
 	}, r)
 }
 
@@ -191,21 +194,23 @@ func TestSanitize_ObfuscateProject_SkipBranchIfNotMatching(t *testing.T) {
 	})
 
 	assert.Equal(t, heartbeat.Heartbeat{
-		Branch:     heartbeat.PointerTo("heartbeat"),
-		Category:   heartbeat.CodingCategory,
-		Entity:     "/tmp/main.go",
-		EntityType: heartbeat.FileType,
-		IsWrite:    heartbeat.PointerTo(true),
-		Language:   heartbeat.PointerTo("Go"),
-		Project:    heartbeat.PointerTo("wakatime"),
-		Time:       1585598060,
-		UserAgent:  "wakatime/13.0.7",
+		Branch:       heartbeat.PointerTo("heartbeat"),
+		Category:     heartbeat.CodingCategory,
+		Dependencies: []string{"dep1", "dep2"},
+		Entity:       "/tmp/main.go",
+		EntityType:   heartbeat.FileType,
+		IsWrite:      heartbeat.PointerTo(true),
+		Language:     heartbeat.PointerTo("Go"),
+		Project:      heartbeat.PointerTo("wakatime"),
+		Time:         1585598060,
+		UserAgent:    "wakatime/13.0.7",
 	}, r)
 }
 
 func TestSanitize_ObfuscateProject_NilFields(t *testing.T) {
 	h := testHeartbeat()
 	h.Branch = nil
+	h.Dependencies = nil
 
 	r := heartbeat.Sanitize(context.Background(), h, heartbeat.SanitizeConfig{
 		ProjectPatterns: []regex.Regex{regex.NewRegexpWrap(regexp.MustCompile(".*"))},
@@ -264,6 +269,27 @@ func TestSanitize_ObfuscateBranch_NilFields(t *testing.T) {
 		Language:       heartbeat.PointerTo("Go"),
 		LineNumber:     heartbeat.PointerTo(42),
 		Lines:          heartbeat.PointerTo(100),
+		Time:           1585598060,
+		UserAgent:      "wakatime/13.0.7",
+	}, r)
+}
+
+func TestSanitize_ObfuscateDependency(t *testing.T) {
+	r := heartbeat.Sanitize(context.Background(), testHeartbeat(), heartbeat.SanitizeConfig{
+		DependencyPatterns: []regex.Regex{regex.NewRegexpWrap(regexp.MustCompile(".*"))},
+	})
+
+	assert.Equal(t, heartbeat.Heartbeat{
+		Branch:         heartbeat.PointerTo("heartbeat"),
+		Category:       heartbeat.CodingCategory,
+		CursorPosition: heartbeat.PointerTo(12),
+		Entity:         "/tmp/main.go",
+		EntityType:     heartbeat.FileType,
+		IsWrite:        heartbeat.PointerTo(true),
+		Language:       heartbeat.PointerTo("Go"),
+		LineNumber:     heartbeat.PointerTo(42),
+		Lines:          heartbeat.PointerTo(100),
+		Project:        heartbeat.PointerTo("wakatime"),
 		Time:           1585598060,
 		UserAgent:      "wakatime/13.0.7",
 	}, r)
@@ -425,7 +451,10 @@ func TestShouldSanitize(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			shouldSanitize := heartbeat.ShouldSanitize(ctx, test.Subject, test.Regex)
+			shouldSanitize := heartbeat.ShouldSanitize(ctx, heartbeat.SanitizeCheck{
+				Entity:   test.Subject,
+				Patterns: test.Regex,
+			})
 
 			assert.Equal(t, test.Expected, shouldSanitize)
 		})

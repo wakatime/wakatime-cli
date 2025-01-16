@@ -43,9 +43,8 @@ func Run(ctx context.Context, v *viper.Viper) (int, error) {
 	if err != nil {
 		var errauth api.ErrAuth
 
-		// api.ErrAuth represents an error when parsing api key.
-		// Save heartbeats to offline db even when api key invalid.
-		// It avoids losing heartbeats when api key is invalid.
+		// api.ErrAuth represents an error when parsing api key or timeout.
+		// Save heartbeats to offline db when api.ErrAuth as it avoids losing heartbeats.
 		if errors.As(err, &errauth) {
 			if err := offlinecmd.SaveHeartbeats(ctx, v, nil, queueFilepath); err != nil {
 				logger.Errorf("failed to save heartbeats to offline queue: %s", err)
@@ -327,10 +326,11 @@ func initHandleOptions(params paramscmd.Params) []heartbeat.HandleOption {
 			ExcludeUnknownProject: params.Heartbeat.Filter.ExcludeUnknownProject,
 		}),
 		heartbeat.WithSanitization(heartbeat.SanitizeConfig{
-			BranchPatterns:    params.Heartbeat.Sanitize.HideBranchNames,
-			FilePatterns:      params.Heartbeat.Sanitize.HideFileNames,
-			HideProjectFolder: params.Heartbeat.Sanitize.HideProjectFolder,
-			ProjectPatterns:   params.Heartbeat.Sanitize.HideProjectNames,
+			BranchPatterns:     params.Heartbeat.Sanitize.HideBranchNames,
+			DependencyPatterns: params.Heartbeat.Sanitize.HideDependencies,
+			FilePatterns:       params.Heartbeat.Sanitize.HideFileNames,
+			HideProjectFolder:  params.Heartbeat.Sanitize.HideProjectFolder,
+			ProjectPatterns:    params.Heartbeat.Sanitize.HideProjectNames,
 		}),
 		remote.WithCleanup(),
 		filter.WithLengthValidator(),

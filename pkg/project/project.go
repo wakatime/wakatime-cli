@@ -201,8 +201,12 @@ func WithDetection(config Config) heartbeat.HandleOption {
 				}
 
 				// finally, obfuscate project name if necessary
-				if heartbeat.ShouldSanitize(ctx, result.Folder, config.HideProjectNames) &&
-					result.Project != "" && detector != FileDetector {
+				if heartbeat.ShouldSanitize(ctx, heartbeat.SanitizeCheck{
+					Entity:              h.Entity,
+					ProjectPath:         result.Folder,
+					Patterns:            config.HideProjectNames,
+					ProjectPathOverride: h.ProjectPathOverride,
+				}) && result.Project != "" && detector != FileDetector {
 					result.Project = obfuscateProjectName(ctx, result.Folder)
 				}
 

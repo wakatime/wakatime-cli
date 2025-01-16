@@ -141,3 +141,40 @@ func (ErrBackoff) SendDiagsOnErrors() bool {
 func (ErrBackoff) ShouldLogError() bool {
 	return false
 }
+
+// ErrTimeout represents a timeout error.
+type ErrTimeout struct {
+	Err error
+}
+
+var _ wakaerror.Error = ErrTimeout{}
+
+// Error method to implement error interface.
+func (e ErrTimeout) Error() string {
+	return e.Err.Error()
+}
+
+// ExitCode method to implement wakaerror.Error interface.
+func (ErrTimeout) ExitCode() int {
+	return exitcode.ErrGeneric
+}
+
+// LogLevel method to implement wakaerror.LogLevel interface.
+func (ErrTimeout) LogLevel() int8 {
+	return int8(zapcore.DebugLevel)
+}
+
+// Message method to implement wakaerror.Error interface.
+func (e ErrTimeout) Message() string {
+	return fmt.Sprintf("timeout: %s", e.Err)
+}
+
+// SendDiagsOnErrors method to implement wakaerror.SendDiagsOnErrors interface.
+func (ErrTimeout) SendDiagsOnErrors() bool {
+	return false
+}
+
+// ShouldLogError method to implement wakaerror.ShouldLogError interface.
+func (ErrTimeout) ShouldLogError() bool {
+	return false
+}

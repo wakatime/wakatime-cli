@@ -3,27 +3,37 @@ package vipertools
 import (
 	"strings"
 
+	"github.com/spf13/cast"
 	"github.com/spf13/viper"
 )
 
 // FirstNonEmptyBool accepts multiple keys and returns the first non-empty bool value
-// from viper.Viper via these keys. Non-empty meaning false value will not be accepted.
+// from viper.Viper via these keys. Non-empty meaning key not set will not be accepted.
 func FirstNonEmptyBool(v *viper.Viper, keys ...string) bool {
 	if v == nil {
 		return false
 	}
 
 	for _, key := range keys {
-		if value := v.GetBool(key); value {
-			return value
+		if !v.IsSet(key) {
+			continue
 		}
+
+		value := v.Get(key)
+
+		parsed, err := cast.ToBoolE(value)
+		if err != nil {
+			continue
+		}
+
+		return parsed
 	}
 
 	return false
 }
 
 // FirstNonEmptyInt accepts multiple keys and returns the first non-empty int value
-// from viper.Viper via these keys. Non-empty meaning 0 value will not be accepted.
+// from viper.Viper via these keys. Non-empty meaning key not set will not be accepted.
 // Will return false as second parameter, if non-empty int value could not be retrieved.
 func FirstNonEmptyInt(v *viper.Viper, keys ...string) (int, bool) {
 	if v == nil {
@@ -31,9 +41,20 @@ func FirstNonEmptyInt(v *viper.Viper, keys ...string) (int, bool) {
 	}
 
 	for _, key := range keys {
-		if value := v.GetInt(key); value != 0 {
-			return value, true
+		if !v.IsSet(key) {
+			continue
 		}
+
+		// Zero means a valid value when set, so it needs to use generic function and later cast it to int
+		value := v.Get(key)
+
+		// If the value is not an int, it will continue to find the next non-empty key
+		parsed, err := cast.ToIntE(value)
+		if err != nil {
+			continue
+		}
+
+		return parsed, true
 	}
 
 	return 0, false
@@ -47,9 +68,21 @@ func FirstNonEmptyString(v *viper.Viper, keys ...string) string {
 	}
 
 	for _, key := range keys {
-		if value := GetString(v, key); value != "" {
-			return value
+		if !v.IsSet(key) {
+			continue
 		}
+
+		value := v.Get(key)
+
+		parsed, err := cast.ToStringE(value)
+		if err != nil {
+			continue
+		}
+
+		return strings.Trim(parsed, `"'`)
+		//	if value := GetString(v, key); value != "" {
+		//		return value
+		//	}
 	}
 
 	return ""

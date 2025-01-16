@@ -19,125 +19,143 @@ func TestLoadParams(t *testing.T) {
 
 	defer tmpFile.Close()
 
-	dir, _ := filepath.Split(tmpFile.Name())
+	ctx := context.Background()
 
-	logFile, err := os.Create(filepath.Join(dir, "wakatime.log"))
+	v := viper.New()
+	v.Set("log-file", tmpFile.Name())
+	v.Set("log-to-stdout", true)
+	v.Set("metrics", true)
+	v.Set("verbose", true)
+	v.Set("send-diagnostics-on-errors", true)
+
+	params, err := logfile.LoadParams(ctx, v)
 	require.NoError(t, err)
 
-	defer logFile.Close()
+	assert.True(t, params.Verbose)
+	assert.True(t, params.Metrics)
+	assert.True(t, params.ToStdout)
+	assert.True(t, params.SendDiagsOnErrors)
+	assert.Equal(t, tmpFile.Name(), params.File)
+}
 
-	home, err := os.UserHomeDir()
+func TestLoadParams_LogFile_FlagDeprecated(t *testing.T) {
+	tmpFile, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)
+
+	defer tmpFile.Close()
 
 	ctx := context.Background()
 
-	tests := map[string]struct {
-		EnvVar             string
-		ViperDebug         bool
-		ViperDebugConfig   bool
-		ViperLogFile       string
-		ViperLogFileConfig string
-		ViperLogFileOld    string
-		ViperMetrics       bool
-		ViperMetricsConfig bool
-		ViperToStdout      bool
-		Expected           logfile.Params
-	}{
-		"verbose set": {
-			ViperDebug: true,
-			Expected: logfile.Params{
-				File:    filepath.Join(home, ".wakatime", "wakatime.log"),
-				Verbose: true,
-			},
-		},
-		"verbose from config": {
-			ViperDebugConfig: true,
-			Expected: logfile.Params{
-				File:    filepath.Join(home, ".wakatime", "wakatime.log"),
-				Verbose: true,
-			},
-		},
-		"log file flag takes precedence": {
-			ViperLogFile:       tmpFile.Name(),
-			ViperLogFileConfig: "otherfolder/wakatime.config.log",
-			ViperLogFileOld:    "otherfolder/wakatime.old.log",
-			Expected: logfile.Params{
-				File: tmpFile.Name(),
-			},
-		},
-		"log file deprecated flag takes precedence": {
-			ViperLogFileConfig: "otherfolder/wakatime.config.log",
-			ViperLogFileOld:    tmpFile.Name(),
-			Expected: logfile.Params{
-				File: tmpFile.Name(),
-			},
-		},
-		"log file from config": {
-			ViperLogFileConfig: tmpFile.Name(),
-			Expected: logfile.Params{
-				File: tmpFile.Name(),
-			},
-		},
-		"log file from WAKATIME_HOME": {
-			EnvVar: dir,
-			Expected: logfile.Params{
-				File: filepath.Join(dir, "wakatime.log"),
-			},
-		},
-		"log file from home dir": {
-			Expected: logfile.Params{
-				File: filepath.Join(home, ".wakatime", "wakatime.log"),
-			},
-		},
-		"metrics set": {
-			ViperMetrics: true,
-			Expected: logfile.Params{
-				File:    filepath.Join(home, ".wakatime", "wakatime.log"),
-				Metrics: true,
-			},
-		},
-		"metrics from config": {
-			ViperMetricsConfig: true,
-			Expected: logfile.Params{
-				File:    filepath.Join(home, ".wakatime", "wakatime.log"),
-				Metrics: true,
-			},
-		},
-		"metrics flag takes precedence": {
-			ViperMetrics:       true,
-			ViperMetricsConfig: false,
-			Expected: logfile.Params{
-				File:    filepath.Join(home, ".wakatime", "wakatime.log"),
-				Metrics: true,
-			},
-		},
-		"log to stdout": {
-			ViperToStdout: true,
-			Expected: logfile.Params{
-				File:     filepath.Join(home, ".wakatime", "wakatime.log"),
-				ToStdout: true,
-			},
-		},
-	}
+	v := viper.New()
+	v.Set("logfile", tmpFile.Name())
 
-	for name, test := range tests {
-		t.Run(name, func(t *testing.T) {
-			v := viper.New()
-			v.Set("log-file", test.ViperLogFile)
-			v.Set("logfile", test.ViperLogFileOld)
-			v.Set("log-to-stdout", test.ViperToStdout)
-			v.Set("metrics", test.ViperMetrics)
-			v.Set("settings.metrics", test.ViperMetricsConfig)
-			v.Set("settings.log_file", test.ViperLogFileConfig)
-			v.Set("settings.debug", test.ViperDebug)
-			v.Set("verbose", test.ViperDebugConfig)
+	params, err := logfile.LoadParams(ctx, v)
+	require.NoError(t, err)
 
-			t.Setenv("WAKATIME_HOME", test.EnvVar)
+	assert.Equal(t, tmpFile.Name(), params.File)
+}
 
-			params, err := logfile.LoadParams(ctx, v)
-			require.NoError(t, err)
+func TestLoadParams_LogFile_FromConfig(t *testing.T) {
+	tmpFile, err := os.CreateTemp(t.TempDir(), "")
+	require.NoError(t, err)
 
-			assert.Equal(t, test.Expected, params)
-		})
-	}
+	defer tmpFile.Close()
+
+	ctx := context.Background()
+
+	v := viper.New()
+	v.Set("settings.log_file", tmpFile.Name())
+
+	params, err := logfile.LoadParams(ctx, v)
+	require.NoError(t, err)
+
+	assert.Equal(t, tmpFile.Name(), params.File)
+}
+
+func TestLoadParams_LogFile_FromEnvVar(t *testing.T) {
+	tmpFile, err := os.CreateTemp(t.TempDir(), "")
+	require.NoError(t, err)
+
+	defer tmpFile.Close()
+
+	dir, _ := filepath.Split(tmpFile.Name())
+
+	ctx := context.Background()
+
+	v := viper.New()
+
+	t.Setenv("WAKATIME_HOME", dir)
+
+	params, err := logfile.LoadParams(ctx, v)
+	require.NoError(t, err)
+
+	assert.Equal(t, filepath.Join(dir, "wakatime.log"), params.File)
+}
+
+func TestLoadParams_LogFile_FlagTakesPrecedence(t *testing.T) {
+	tmpFile, err := os.CreateTemp(t.TempDir(), "")
+	require.NoError(t, err)
+
+	defer tmpFile.Close()
+
+	ctx := context.Background()
+
+	v := viper.New()
+	v.Set("log-file", tmpFile.Name())
+	v.Set("settings.log_file", "otherfolder/wakatime.config.log")
+
+	params, err := logfile.LoadParams(ctx, v)
+	require.NoError(t, err)
+
+	assert.Equal(t, tmpFile.Name(), params.File)
+}
+
+func TestLoadParams_Metrics_FromConfig(t *testing.T) {
+	ctx := context.Background()
+
+	v := viper.New()
+	v.Set("settings.metrics", true)
+
+	params, err := logfile.LoadParams(ctx, v)
+	require.NoError(t, err)
+
+	assert.True(t, params.Metrics)
+}
+
+func TestLoadParams_Metrics_FlagTakesPrecedence(t *testing.T) {
+	ctx := context.Background()
+
+	v := viper.New()
+	v.Set("metrics", false)
+	v.Set("settings.metrics", true)
+
+	params, err := logfile.LoadParams(ctx, v)
+	require.NoError(t, err)
+
+	assert.False(t, params.Metrics)
+}
+
+func TestLoadParams_Verbose_FromConfig(t *testing.T) {
+	ctx := context.Background()
+
+	v := viper.New()
+	v.Set("settings.debug", true)
+
+	params, err := logfile.LoadParams(ctx, v)
+	require.NoError(t, err)
+
+	assert.True(t, params.Verbose)
+}
+
+func TestLoadParams_Verbose_FlagTakesPrecedence(t *testing.T) {
+	ctx := context.Background()
+
+	v := viper.New()
+	v.Set("verbose", false)
+	v.Set("settings.debug", true)
+
+	params, err := logfile.LoadParams(ctx, v)
+	require.NoError(t, err)
+
+	assert.False(t, params.Verbose)
 }

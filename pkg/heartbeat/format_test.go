@@ -54,6 +54,43 @@ func TestWithFormatting(t *testing.T) {
 	}, result)
 }
 
+func TestFormat_NotFileType(t *testing.T) {
+	tests := map[string]heartbeat.EntityType{
+		"app":    heartbeat.AppType,
+		"domain": heartbeat.DomainType,
+		"event":  heartbeat.EventType,
+		"url":    heartbeat.URLType,
+	}
+
+	for name, entityType := range tests {
+		t.Run(name, func(t *testing.T) {
+			h := heartbeat.Heartbeat{
+				Entity:     "/unmodified",
+				EntityType: entityType,
+			}
+
+			formatted := heartbeat.Format(context.Background(), h)
+
+			assert.Equal(t, "/unmodified", formatted.Entity)
+		})
+	}
+}
+
+func TestFormat_WindowsPath(t *testing.T) {
+	if runtime.GOOS != "windows" {
+		t.Skip("Skipping because OS is not windows.")
+	}
+
+	h := heartbeat.Heartbeat{
+		Entity:     `C:\Users\project\main.go`,
+		EntityType: heartbeat.FileType,
+	}
+
+	formatted := heartbeat.Format(context.Background(), h)
+
+	assert.Equal(t, "C:/Users/project/main.go", formatted.Entity)
+}
+
 func TestFormat_NetworkMount(t *testing.T) {
 	if runtime.GOOS != "windows" {
 		t.Skip("Skipping because OS is not windows.")

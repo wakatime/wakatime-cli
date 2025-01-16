@@ -249,6 +249,98 @@ func TestSendHeartbeats_SecondaryApiKey(t *testing.T) {
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
 
+func TestSendHeartbeats_Timeout(t *testing.T) {
+	apiURL, router, close := setupTestServer()
+	defer close()
+
+	ctx := context.Background()
+
+	// to avoid race condition
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+
+	var numCalls int
+
+	go func() {
+		router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, _ *http.Request) {
+			defer wg.Done()
+
+			numCalls++
+
+			time.Sleep(1010 * time.Millisecond) // simulate a slow server to force a timeout
+
+			// write response
+			f, err := os.Open("testdata/api_heartbeats_response.json")
+			require.NoError(t, err)
+
+			w.WriteHeader(http.StatusCreated)
+			_, err = io.Copy(w, f)
+			require.NoError(t, err)
+		})
+	}()
+
+	tmpDir := t.TempDir()
+
+	offlineQueueFile, err := os.CreateTemp(tmpDir, "")
+	require.NoError(t, err)
+
+	defer offlineQueueFile.Close()
+
+	offlineQueueFileLegacy, err := os.CreateTemp(tmpDir, "")
+	require.NoError(t, err)
+
+	// close the file to avoid "The process cannot access the file because it is being used by another process" error
+	offlineQueueFileLegacy.Close()
+
+	tmpConfigFile, err := os.CreateTemp(tmpDir, "wakatime.cfg")
+	require.NoError(t, err)
+
+	defer tmpConfigFile.Close()
+
+	tmpInternalConfigFile, err := os.CreateTemp(tmpDir, "wakatime-internal.cfg")
+	require.NoError(t, err)
+
+	defer tmpInternalConfigFile.Close()
+
+	projectFolder, err := filepath.Abs(".")
+	require.NoError(t, err)
+
+	out := runWakatimeCliExpectErr(
+		t,
+		exitcode.ErrGeneric,
+		"--api-url", apiURL,
+		"--key", "00000000-0000-4000-8000-000000000000",
+		"--config", tmpConfigFile.Name(),
+		"--internal-config", tmpInternalConfigFile.Name(),
+		"--entity", "testdata/main.go",
+		"--cursorpos", "12",
+		"--offline-queue-file", offlineQueueFile.Name(),
+		"--offline-queue-file-legacy", offlineQueueFileLegacy.Name(),
+		"--line-additions", "123",
+		"--line-deletions", "456",
+		"--lineno", "42",
+		"--lines-in-file", "100",
+		"--time", "1585598059",
+		"--hide-branch-names", ".*",
+		"--project", "wakatime-cli",
+		"--project-folder", projectFolder,
+		"--timeout", "1", // very short timeout to force a timeout error
+		"--write",
+		"--verbose",
+	)
+
+	assert.Empty(t, out)
+
+	offlineCount, err := offline.CountHeartbeats(ctx, offlineQueueFile.Name())
+	require.NoError(t, err)
+
+	assert.Equal(t, 1, offlineCount)
+
+	wg.Wait()
+
+	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+}
+
 func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 	apiURL, router, close := setupTestServer()
 	defer close()
@@ -455,7 +547,6 @@ func TestSendHeartbeats_ExtraHeartbeats_SyncLegacyOfflineActivity(t *testing.T) 
 		"--offline-queue-file-legacy", offlineQueueFileLegacy.Name(),
 		"--lineno", "42",
 		"--lines-in-file", "100",
-		"--heartbeat-rate-limit-seconds", "0",
 		"--time", "1585598059",
 		"--hide-branch-names", ".*",
 		"--write",

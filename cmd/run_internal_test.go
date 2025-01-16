@@ -415,6 +415,10 @@ func TestParseConfigFiles(t *testing.T) {
 	assert.Equal(t,
 		"2006-01-02T15:04:05Z07:00",
 		v.GetString("internal.backoff_at"))
+	assert.Equal(t,
+		"2025-01-05T22:21:51Z03:00",
+		v.GetString("internal.heartbeats_last_sent_at"),
+	)
 }
 
 func TestParseConfigFiles_MissingAPIKey(t *testing.T) {

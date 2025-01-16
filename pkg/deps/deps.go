@@ -52,7 +52,12 @@ func WithDetection(c Config) heartbeat.HandleOption {
 					continue
 				}
 
-				if heartbeat.ShouldSanitize(ctx, h.Entity, c.FilePatterns) {
+				if heartbeat.ShouldSanitize(ctx, heartbeat.SanitizeCheck{
+					Entity:              h.Entity,
+					ProjectPath:         h.ProjectPath,
+					ProjectPathOverride: h.ProjectPathOverride,
+					Patterns:            c.FilePatterns,
+				}) {
 					continue
 				}
 

@@ -3,9 +3,11 @@ package api_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
+	"sync"
 	"testing"
 	"time"
 
@@ -132,6 +134,49 @@ func TestClient_SendHeartbeats_MultipleApiKey(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Eventually(t, func() bool { return numCalls == 2 }, time.Second, 50*time.Millisecond)
+}
+
+func TestClient_SendHeartbeats_Timeout(t *testing.T) {
+	url, router, close := setupTestServer()
+	defer close()
+
+	// to avoid race condition
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+
+	var numCalls int
+
+	go func() {
+		router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, _ *http.Request) {
+			defer wg.Done()
+
+			numCalls++
+
+			time.Sleep(1010 * time.Millisecond) // simulate a slow server to force a timeout
+
+			// write response
+			f, err := os.Open("testdata/api_heartbeats_response.json")
+			require.NoError(t, err)
+
+			w.WriteHeader(http.StatusCreated)
+			_, err = io.Copy(w, f)
+			require.NoError(t, err)
+		})
+	}()
+
+	c := api.NewClient(url, api.WithTimeout(time.Second)) // very short timeout to force a timeout error
+	results, err := c.SendHeartbeats(context.Background(), testHeartbeats())
+
+	var errtimeout api.ErrTimeout
+
+	assert.ErrorAs(t, err, &errtimeout)
+
+	assert.EqualError(t, err, fmt.Sprintf("request to \"%s/users/current/heartbeats.bulk\" timed out", url))
+	assert.Empty(t, results)
+
+	wg.Wait()
+
+	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
 
 func TestClient_SendHeartbeats_Err(t *testing.T) {

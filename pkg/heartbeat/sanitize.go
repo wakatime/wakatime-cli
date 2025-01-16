@@ -11,14 +11,16 @@ import (
 
 // SanitizeConfig defines how a heartbeat should be sanitized.
 type SanitizeConfig struct {
-	// BranchPatterns will be matched against the branch and if matching, will obfuscate it.
+	// BranchPatterns will be matched against the entity file path and if matching, will obfuscate it.
 	BranchPatterns []regex.Regex
+	// DependencyPatterns will be matched against the entity file path and if matching, will omit all dependencies.
+	DependencyPatterns []regex.Regex
 	// FilePatterns will be matched against a file entity's name and if matching will obfuscate
 	// the file name and common heartbeat meta data (cursor position, dependencies, line number and lines).
 	FilePatterns []regex.Regex
 	// HideProjectFolder determines if project folder should be obfuscated.
 	HideProjectFolder bool
-	// ProjectPatterns will be matched against the project name and if matching will obfuscate
+	// ProjectPatterns will be matched against the entity file path and if matching will obfuscate
 	// common heartbeat meta data (cursor position, dependencies, line number and lines).
 	ProjectPatterns []regex.Regex
 }
@@ -47,30 +49,57 @@ func Sanitize(ctx context.Context, h Heartbeat, config SanitizeConfig) Heartbeat
 		h.Dependencies = nil
 	}
 
-	switch {
-	case ShouldSanitize(ctx, h.Entity, config.FilePatterns):
+	check := SanitizeCheck{
+		Entity:              h.Entity,
+		ProjectPath:         h.ProjectPath,
+		ProjectPathOverride: h.ProjectPathOverride,
+	}
+
+	// project patterns
+	if h.Project != nil {
+		check.Patterns = config.ProjectPatterns
+		if ShouldSanitize(ctx, check) {
+			h = sanitizeMetaData(h)
+		}
+	}
+
+	// file patterns
+	check.Patterns = config.FilePatterns
+	if ShouldSanitize(ctx, check) {
 		if h.EntityType == FileType {
 			h.Entity = "HIDDEN" + filepath.Ext(h.Entity)
 		} else {
 			h.Entity = "HIDDEN"
 		}
 
-		h = sanitizeMetaData(h)
+		if len(config.BranchPatterns) == 0 {
+			h.Branch = nil
+		}
 
-		if h.Branch != nil && (len(config.BranchPatterns) == 0 || ShouldSanitize(ctx, *h.Branch, config.BranchPatterns)) {
-			h.Branch = nil
+		if len(config.DependencyPatterns) == 0 {
+			h.Dependencies = nil
 		}
-	case h.Project != nil && ShouldSanitize(ctx, *h.Project, config.ProjectPatterns):
+
 		h = sanitizeMetaData(h)
-		if h.Branch != nil && (len(config.BranchPatterns) == 0 || ShouldSanitize(ctx, *h.Branch, config.BranchPatterns)) {
+	}
+
+	// branch patterns
+	if h.Branch != nil {
+		check.Patterns = config.BranchPatterns
+		if ShouldSanitize(ctx, check) {
 			h.Branch = nil
 		}
-	case h.Branch != nil && ShouldSanitize(ctx, *h.Branch, config.BranchPatterns):
-		h.Branch = nil
+	}
+
+	// dependency patterns
+	if h.Dependencies != nil {
+		check.Patterns = config.DependencyPatterns
+		if ShouldSanitize(ctx, check) {
+			h.Dependencies = nil
+		}
 	}
 
 	h = hideProjectFolder(h, config.HideProjectFolder)
-
 	h = hideCredentials(h)
 
 	return h
@@ -130,10 +159,9 @@ func hideCredentials(h Heartbeat) Heartbeat {
 	return h
 }
 
-// sanitizeMetaData sanitizes metadata (cursor position, dependencies, line number and lines).
+// sanitizeMetaData sanitizes metadata (cursor position, line number, lines and project root count).
 func sanitizeMetaData(h Heartbeat) Heartbeat {
 	h.CursorPosition = nil
-	h.Dependencies = nil
 	h.LineNumber = nil
 	h.Lines = nil
 	h.ProjectRootCount = nil
@@ -141,12 +169,28 @@ func sanitizeMetaData(h Heartbeat) Heartbeat {
 	return h
 }
 
-// ShouldSanitize checks a subject (entity, project, branch) of a heartbeat and
-// checks it against the passed in regex patterns to determine, if this heartbeat
+// SanitizeCheck defines a configuration for checking if a heartbeat should be sanitized.
+type SanitizeCheck struct {
+	Entity              string
+	Patterns            []regex.Regex
+	ProjectPath         string
+	ProjectPathOverride string
+}
+
+// ShouldSanitize checks the entity filepath or project path of a heartbeat
+// against the passed in regex patterns to determine, if this heartbeat
 // should be sanitized.
-func ShouldSanitize(ctx context.Context, subject string, patterns []regex.Regex) bool {
-	for _, p := range patterns {
-		if p.MatchString(ctx, subject) {
+func ShouldSanitize(ctx context.Context, check SanitizeCheck) bool {
+	for _, p := range check.Patterns {
+		if p.MatchString(ctx, check.Entity) {
+			return true
+		}
+
+		if p.MatchString(ctx, check.ProjectPath) {
+			return true
+		}
+
+		if p.MatchString(ctx, check.ProjectPathOverride) {
 			return true
 		}
 	}

@@ -36,14 +36,19 @@ func WithFormatting() HandleOption {
 	}
 }
 
-// Format accepts a heartbeat formats it's filepath and returns the formatted version.
+// Format accepts a heartbeat to format its filepath and returns the formatted version.
 func Format(ctx context.Context, h Heartbeat) Heartbeat {
-	if !h.IsUnsavedEntity && (runtime.GOOS != "windows" || !windows.IsWindowsNetworkMount(h.Entity)) {
-		formatLinuxFilePath(ctx, &h)
+	if h.EntityType != FileType {
+		return h
 	}
 
 	if runtime.GOOS == "windows" {
 		formatWindowsFilePath(ctx, &h)
+		return h
+	}
+
+	if !windows.IsWindowsNetworkMount(h.Entity) {
+		formatLinuxFilePath(ctx, &h)
 	}
 
 	return h
@@ -92,9 +97,15 @@ func formatLinuxFilePath(ctx context.Context, h *Heartbeat) {
 func formatWindowsFilePath(ctx context.Context, h *Heartbeat) {
 	logger := log.Extract(ctx)
 
-	h.Entity = windows.FormatFilePath(h.Entity)
+	formatted, err := filepath.Abs(h.Entity)
+	if err != nil {
+		logger.Debugf("failed to resolve absolute path for %q: %s", h.Entity, err)
+		return
+	}
 
-	if !h.IsUnsavedEntity && !windows.IsWindowsNetworkMount(h.Entity) {
+	h.Entity = windows.FormatFilePath(formatted)
+
+	if !windows.IsWindowsNetworkMount(h.Entity) {
 		var err error
 
 		h.LocalFile, err = windows.FormatLocalFilePath(h.LocalFile, h.Entity)

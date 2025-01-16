@@ -12,11 +12,19 @@ import (
 
 func TestFirstNonEmptyBool(t *testing.T) {
 	v := viper.New()
-	v.Set("second", true)
-	v.Set("third", false)
+	v.Set("second", false)
+	v.Set("third", true)
 
 	value := vipertools.FirstNonEmptyBool(v, "first", "second", "third")
-	assert.True(t, value)
+	assert.False(t, value)
+}
+
+func TestFirstNonEmptyBool_NonBool(t *testing.T) {
+	v := viper.New()
+	v.Set("first", "stringvalue")
+
+	value := vipertools.FirstNonEmptyBool(v, "first")
+	assert.False(t, value)
 }
 
 func TestFirstNonEmptyBool_NilPointer(t *testing.T) {
@@ -53,27 +61,37 @@ func TestFirstNonEmptyInt_NilPointer(t *testing.T) {
 
 func TestFirstNonEmptyInt_EmptyKeys(t *testing.T) {
 	v := viper.New()
-	_, ok := vipertools.FirstNonEmptyInt(v)
-	assert.False(t, ok)
+	value, ok := vipertools.FirstNonEmptyInt(v)
+	require.False(t, ok)
+
+	assert.Zero(t, value)
 }
 
 func TestFirstNonEmptyInt_NotFound(t *testing.T) {
-	_, ok := vipertools.FirstNonEmptyInt(viper.New(), "key")
-	assert.False(t, ok)
+	value, ok := vipertools.FirstNonEmptyInt(viper.New(), "key")
+	require.False(t, ok)
+
+	assert.Zero(t, value)
 }
 
 func TestFirstNonEmptyInt_EmptyInt(t *testing.T) {
 	v := viper.New()
 	v.Set("first", 0)
-	_, ok := vipertools.FirstNonEmptyInt(v, "first")
-	assert.False(t, ok)
+
+	value, ok := vipertools.FirstNonEmptyInt(v, "first")
+	assert.True(t, ok)
+
+	assert.Zero(t, value)
 }
 
 func TestFirstNonEmptyInt_StringValue(t *testing.T) {
 	v := viper.New()
 	v.Set("first", "stringvalue")
-	_, ok := vipertools.FirstNonEmptyInt(v, "first")
-	assert.False(t, ok)
+
+	value, ok := vipertools.FirstNonEmptyInt(v, "first")
+	require.False(t, ok)
+
+	assert.Zero(t, value)
 }
 
 func TestFirstNonEmptyString(t *testing.T) {
@@ -83,6 +101,15 @@ func TestFirstNonEmptyString(t *testing.T) {
 
 	value := vipertools.FirstNonEmptyString(v, "first", "second", "third")
 	assert.Equal(t, "secret", value)
+}
+
+func TestFirstNonEmptyString_Empty(t *testing.T) {
+	v := viper.New()
+	v.Set("second", "")
+	v.Set("third", "secret")
+
+	value := vipertools.FirstNonEmptyString(v, "first", "second", "third")
+	assert.Empty(t, value)
 }
 
 func TestFirstNonEmptyString_NilPointer(t *testing.T) {

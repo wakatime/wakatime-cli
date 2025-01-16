@@ -68,6 +68,10 @@ func (c *Client) sendHeartbeats(ctx context.Context, url string, hh []heartbeat.
 
 	resp, err := c.Do(ctx, req)
 	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			return nil, ErrTimeout{Err: fmt.Errorf("request to %q timed out", url)}
+		}
+
 		return nil, Err{Err: fmt.Errorf("failed making request to %q: %s", url, err)}
 	}
 	defer resp.Body.Close() // nolint:errcheck,gosec,gosec
