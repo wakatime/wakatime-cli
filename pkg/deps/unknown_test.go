@@ -1,7 +1,6 @@
 package deps_test
 
 import (
-	"context"
 	"testing"
 
 	"github.com/wakatime/wakatime-cli/pkg/deps"
@@ -11,7 +10,7 @@ import (
 )
 
 func TestParserUnknown_Parse(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	tests := map[string]struct {
 		Filepath string

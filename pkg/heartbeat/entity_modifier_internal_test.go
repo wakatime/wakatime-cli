@@ -1,7 +1,6 @@
 package heartbeat
 
 import (
-	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -11,7 +10,7 @@ import (
 )
 
 func TestIsXCodePlayground(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	tests := map[string]struct {
 		Dir      string
@@ -45,7 +44,7 @@ func TestIsXCodePlayground(t *testing.T) {
 }
 
 func TestIsXCodeProject(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	tests := map[string]struct {
 		Dir      string

@@ -1,7 +1,6 @@
 package todaygoal_test
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -62,7 +61,7 @@ func TestGoal(t *testing.T) {
 	v.Set("plugin", plugin)
 	v.Set("today-goal", "00000000-0000-4000-8000-000000000000")
 
-	output, err := todaygoal.Goal(context.Background(), v)
+	output, err := todaygoal.Goal(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Equal(t, "3 hrs 23 mins", output)
@@ -89,7 +88,7 @@ func TestGoal_ErrApi(t *testing.T) {
 	v.Set("api-url", testServerURL)
 	v.Set("today-goal", "00000000-0000-4000-8000-000000000000")
 
-	_, err := todaygoal.Goal(context.Background(), v)
+	_, err := todaygoal.Goal(t.Context(), v)
 	require.Error(t, err)
 
 	var errapi api.Err
@@ -125,7 +124,7 @@ func TestGoal_ErrAuth(t *testing.T) {
 	v.Set("api-url", testServerURL)
 	v.Set("today-goal", "00000000-0000-4000-8000-000000000000")
 
-	_, err := todaygoal.Goal(context.Background(), v)
+	_, err := todaygoal.Goal(t.Context(), v)
 	require.Error(t, err)
 
 	var errauth api.ErrAuth
@@ -161,7 +160,7 @@ func TestGoal_ErrBadRequest(t *testing.T) {
 	v.Set("api-url", testServerURL)
 	v.Set("today-goal", "00000000-0000-4000-8000-000000000000")
 
-	_, err := todaygoal.Goal(context.Background(), v)
+	_, err := todaygoal.Goal(t.Context(), v)
 	require.Error(t, err)
 
 	var errbadRequest api.ErrBadRequest
@@ -179,7 +178,7 @@ func TestGoal_ErrBadRequest(t *testing.T) {
 
 func TestGoal_ErrAuth_UnsetAPIKey(t *testing.T) {
 	v := viper.New()
-	_, err := todaygoal.Goal(context.Background(), v)
+	_, err := todaygoal.Goal(t.Context(), v)
 	require.Error(t, err)
 
 	var errauth api.ErrAuth
@@ -199,7 +198,7 @@ func TestLoadParams_GoalID(t *testing.T) {
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("today-goal", "00000000-0000-4000-8000-000000000001")
 
-	params, err := todaygoal.LoadParams(context.Background(), v)
+	params, err := todaygoal.LoadParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Equal(t, "00000000-0000-4000-8000-000000000001", params.GoalID)

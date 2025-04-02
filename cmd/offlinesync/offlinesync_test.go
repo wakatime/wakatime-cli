@@ -1,7 +1,6 @@
 package offlinesync_test
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -109,7 +108,7 @@ func TestRunWithRateLimiting(t *testing.T) {
 	v.Set("sync-offline-activity", 100)
 	v.Set("plugin", plugin)
 
-	code, err := offlinesync.RunWithRateLimiting(context.Background(), v)
+	code, err := offlinesync.RunWithRateLimiting(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Equal(t, exitcode.Success, code)
@@ -201,7 +200,7 @@ func TestRunWithoutRateLimiting(t *testing.T) {
 	v.Set("sync-offline-activity", 100)
 	v.Set("plugin", plugin)
 
-	code, err := offlinesync.RunWithoutRateLimiting(context.Background(), v)
+	code, err := offlinesync.RunWithoutRateLimiting(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Equal(t, exitcode.Success, code)
@@ -216,7 +215,7 @@ func TestRunWithRateLimiting_RateLimited(t *testing.T) {
 	v.Set("heartbeat-rate-limit-seconds", 500)
 	v.Set("internal.heartbeats_last_sent_at", time.Now().Add(-time.Minute).Format(time.RFC3339))
 
-	code, err := offlinesync.RunWithRateLimiting(context.Background(), v)
+	code, err := offlinesync.RunWithRateLimiting(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Equal(t, exitcode.Success, code)
@@ -306,7 +305,7 @@ func TestSyncOfflineActivity(t *testing.T) {
 	v.Set("sync-offline-activity", 100)
 	v.Set("plugin", plugin)
 
-	err = offlinesync.SyncOfflineActivity(context.Background(), v, f.Name())
+	err = offlinesync.SyncOfflineActivity(t.Context(), v, f.Name())
 	require.NoError(t, err)
 
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
@@ -397,7 +396,7 @@ func TestSyncOfflineActivity_MultipleApiKey(t *testing.T) {
 	v.Set("sync-offline-activity", 100)
 	v.Set("plugin", plugin)
 
-	err = offlinesync.SyncOfflineActivity(context.Background(), v, f.Name())
+	err = offlinesync.SyncOfflineActivity(t.Context(), v, f.Name())
 	require.NoError(t, err)
 
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)

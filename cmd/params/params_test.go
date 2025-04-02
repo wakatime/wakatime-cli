@@ -2,7 +2,6 @@ package params_test
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"io"
 	"os"
@@ -25,35 +24,36 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/project"
 	"github.com/wakatime/wakatime-cli/pkg/regex"
 
+	viperini "github.com/go-viper/encoding/ini"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gopkg.in/ini.v1"
+	iniv1 "gopkg.in/ini.v1"
 )
 
 func TestLoadHeartbeatParams_AlternateProject(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("entity", "/path/to/file")
 	v.Set("alternate-project", "web")
 
-	params, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
+	params, err := cmdparams.LoadHeartbeatParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Equal(t, "web", params.Project.Alternate)
 }
 
 func TestLoadHeartbeatParams_AlternateProject_Unset(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("entity", "/path/to/file")
 
-	params, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
+	params, err := cmdparams.LoadHeartbeatParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Empty(t, params.Project.Alternate)
 }
 
 func TestLoadHeartbeatParams_Category(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	tests := map[string]heartbeat.Category{
 		"advising":       heartbeat.AdvisingCategory,
@@ -78,7 +78,7 @@ func TestLoadHeartbeatParams_Category(t *testing.T) {
 
 	for name, category := range tests {
 		t.Run(name, func(t *testing.T) {
-			v := viper.New()
+			v := setupViper(t)
 			v.Set("entity", "/path/to/file")
 			v.Set("category", name)
 
@@ -91,94 +91,94 @@ func TestLoadHeartbeatParams_Category(t *testing.T) {
 }
 
 func TestLoadHeartbeatParams_Category_Default(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("entity", "/path/to/file")
 
-	params, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
+	params, err := cmdparams.LoadHeartbeatParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Equal(t, heartbeat.CodingCategory, params.Category)
 }
 
 func TestLoadHeartbeatParams_Category_Invalid(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("category", "invalid")
 
-	_, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
+	_, err := cmdparams.LoadHeartbeatParams(t.Context(), v)
 	require.Error(t, err)
 
 	assert.Equal(t, "failed to parse category: invalid category \"invalid\"", err.Error())
 }
 
 func TestLoadHeartbeatParams_CursorPosition(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("entity", "/path/to/file")
 	v.Set("cursorpos", 42)
 
-	params, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
+	params, err := cmdparams.LoadHeartbeatParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Equal(t, 42, *params.CursorPosition)
 }
 
 func TestLoadHeartbeatParams_CursorPosition_Zero(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("entity", "/path/to/file")
 	v.Set("cursorpos", 0)
 
-	params, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
+	params, err := cmdparams.LoadHeartbeatParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Zero(t, *params.CursorPosition)
 }
 
 func TestLoadHeartbeatParams_CursorPosition_Unset(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("entity", "/path/to/file")
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 
-	params, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
+	params, err := cmdparams.LoadHeartbeatParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Nil(t, params.CursorPosition)
 }
 
 func TestLoadHeartbeatParams_Entity_FlagTakesPrecedence(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("entity", "/path/to/file")
 	v.Set("file", "ignored")
 
-	params, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
+	params, err := cmdparams.LoadHeartbeatParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Equal(t, "/path/to/file", params.Entity)
 }
 
 func TestLoadHeartbeatParams_Entity_FileFlag(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("file", "~/path/to/file")
 
 	home, err := os.UserHomeDir()
 	require.NoError(t, err)
 
-	params, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
+	params, err := cmdparams.LoadHeartbeatParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Equal(t, filepath.Join(home, "/path/to/file"), params.Entity)
 }
 
 func TestLoadHeartbeatParams_Entity_Unset(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 
-	_, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
+	_, err := cmdparams.LoadHeartbeatParams(t.Context(), v)
 	require.Error(t, err)
 
 	assert.Equal(t, "failed to retrieve entity", err.Error())
 }
 
 func TestLoadHeartbeatParams_EntityType(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	tests := map[string]heartbeat.EntityType{
 		"file":   heartbeat.FileType,
@@ -188,7 +188,7 @@ func TestLoadHeartbeatParams_EntityType(t *testing.T) {
 
 	for name, entityType := range tests {
 		t.Run(name, func(t *testing.T) {
-			v := viper.New()
+			v := setupViper(t)
 			v.Set("entity", "/path/to/file")
 			v.Set("entity-type", name)
 
@@ -201,21 +201,21 @@ func TestLoadHeartbeatParams_EntityType(t *testing.T) {
 }
 
 func TestLoadHeartbeatParams_EntityType_Default(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("entity", "/path/to/file")
 
-	params, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
+	params, err := cmdparams.LoadHeartbeatParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Equal(t, heartbeat.FileType, params.EntityType)
 }
 
 func TestLoadHeartbeatParams_EntityType_Invalid(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("entity", "/path/to/file")
 	v.Set("entity-type", "invalid")
 
-	_, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
+	_, err := cmdparams.LoadHeartbeatParams(t.Context(), v)
 	require.Error(t, err)
 
 	assert.Equal(
@@ -251,11 +251,11 @@ func TestLoadHeartbeatParams_ExtraHeartbeats(t *testing.T) {
 		w.Close()
 	}()
 
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("entity", "/path/to/file")
 	v.Set("extra-heartbeats", true)
 
-	params, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
+	params, err := cmdparams.LoadHeartbeatParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Len(t, params.ExtraHeartbeats, 2)
@@ -325,11 +325,11 @@ func TestLoadHeartbeatParams_ExtraHeartbeats_WithStringValues(t *testing.T) {
 		w.Close()
 	}()
 
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("entity", "/path/to/file")
 	v.Set("extra-heartbeats", true)
 
-	params, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
+	params, err := cmdparams.LoadHeartbeatParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Len(t, params.ExtraHeartbeats, 2)
@@ -395,11 +395,11 @@ func TestLoadHeartbeatParams_ExtraHeartbeats_WithEOF(t *testing.T) {
 		w.Close()
 	}()
 
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("entity", "/path/to/file")
 	v.Set("extra-heartbeats", true)
 
-	params, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
+	params, err := cmdparams.LoadHeartbeatParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Len(t, params.ExtraHeartbeats, 2)
@@ -451,7 +451,7 @@ func TestLoadHeartbeatParams_ExtraHeartbeats_NoData(t *testing.T) {
 		w.Close()
 	}()
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	origStdin := os.Stdin
 
@@ -473,7 +473,7 @@ func TestLoadHeartbeatParams_ExtraHeartbeats_NoData(t *testing.T) {
 
 	defer logFile.Close()
 
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("entity", "/path/to/file")
 	v.Set("extra-heartbeats", true)
 	v.Set("log-file", logFile.Name())
@@ -499,51 +499,51 @@ func TestLoadHeartbeatParams_ExtraHeartbeats_NoData(t *testing.T) {
 }
 
 func TestLoadHeartbeat_GuessLanguage_FlagTakesPrecedence(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("entity", "/path/to/file")
 	v.Set("guess-language", false)
 	v.Set("settings.guess_language", true)
 
-	params, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
+	params, err := cmdparams.LoadHeartbeatParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.False(t, params.GuessLanguage)
 }
 
 func TestLoadHeartbeat_GuessLanguage_FromConfig(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("entity", "/path/to/file")
 	v.Set("settings.guess_language", true)
 
-	params, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
+	params, err := cmdparams.LoadHeartbeatParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.True(t, params.GuessLanguage)
 }
 
 func TestLoadHeartbeat_GuessLanguage_Default(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("entity", "/path/to/file")
 
-	params, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
+	params, err := cmdparams.LoadHeartbeatParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.False(t, params.GuessLanguage)
 }
 
 func TestLoadHeartbeatParams_IsUnsavedEntity(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("entity", "/path/to/file")
 	v.Set("is-unsaved-entity", true)
 
-	params, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
+	params, err := cmdparams.LoadHeartbeatParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.True(t, params.IsUnsavedEntity)
 }
 
 func TestLoadHeartbeatParams_IsWrite(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	tests := map[string]bool{
 		"is write":    true,
@@ -552,7 +552,7 @@ func TestLoadHeartbeatParams_IsWrite(t *testing.T) {
 
 	for name, isWrite := range tests {
 		t.Run(name, func(t *testing.T) {
-			v := viper.New()
+			v := setupViper(t)
 			v.Set("entity", "/path/to/file")
 			v.Set("write", isWrite)
 
@@ -565,32 +565,32 @@ func TestLoadHeartbeatParams_IsWrite(t *testing.T) {
 }
 
 func TestLoadHeartbeatParams_IsWrite_Unset(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("entity", "/path/to/file")
 
-	params, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
+	params, err := cmdparams.LoadHeartbeatParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Nil(t, params.IsWrite)
 }
 
 func TestLoadHeartbeatParams_Language(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("entity", "/path/to/file")
 	v.Set("language", "Go")
 
-	params, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
+	params, err := cmdparams.LoadHeartbeatParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Equal(t, heartbeat.LanguageGo.String(), *params.Language)
 }
 
 func TestLoadHeartbeatParams_LanguageAlternate(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("entity", "/path/to/file")
 	v.Set("alternate-language", "Go")
 
-	params, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
+	params, err := cmdparams.LoadHeartbeatParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Equal(t, heartbeat.LanguageGo.String(), params.LanguageAlternate)
@@ -598,71 +598,71 @@ func TestLoadHeartbeatParams_LanguageAlternate(t *testing.T) {
 }
 
 func TestLoadHeartbeatParams_LineNumber(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("entity", "/path/to/file")
 	v.Set("lineno", 42)
 
-	params, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
+	params, err := cmdparams.LoadHeartbeatParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Equal(t, 42, *params.LineNumber)
 }
 
 func TestLoadHeartbeatParams_LineNumber_Zero(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("entity", "/path/to/file")
 	v.Set("lineno", 0)
 
-	params, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
+	params, err := cmdparams.LoadHeartbeatParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Zero(t, *params.LineNumber)
 }
 
 func TestLoadHeartbeatParams_LineNumber_Unset(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("entity", "/path/to/file")
 
-	params, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
+	params, err := cmdparams.LoadHeartbeatParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Nil(t, params.LineNumber)
 }
 
 func TestLoadHeartbeatParams_LocalFile(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("entity", "/path/to/file")
 	v.Set("local-file", "/path/to/file")
 
-	params, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
+	params, err := cmdparams.LoadHeartbeatParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Equal(t, "/path/to/file", params.LocalFile)
 }
 
 func TestLoadHeartbeatParams_Project(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("entity", "/path/to/file")
 	v.Set("project", "billing")
 
-	params, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
+	params, err := cmdparams.LoadHeartbeatParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Equal(t, "billing", params.Project.Override)
 }
 
 func TestLoadHeartbeatParams_Project_Unset(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("entity", "/path/to/file")
 
-	params, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
+	params, err := cmdparams.LoadHeartbeatParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Empty(t, params.Project.Override)
 }
 
 func TestLoadHeartbeatParams_ProjectMap(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	tests := map[string]struct {
 		Entity   string
@@ -696,7 +696,7 @@ func TestLoadHeartbeatParams_ProjectMap(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			v := viper.New()
+			v := setupViper(t)
 			v.Set("entity", test.Entity)
 			v.Set(fmt.Sprintf("projectmap.%s", test.Regex.String()), test.Project)
 
@@ -709,7 +709,7 @@ func TestLoadHeartbeatParams_ProjectMap(t *testing.T) {
 }
 
 func TestLoadAPIParams_ProjectApiKey(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	tests := map[string]struct {
 		Entity   string
@@ -756,7 +756,7 @@ func TestLoadAPIParams_ProjectApiKey(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			v := viper.New()
+			v := setupViper(t)
 			v.Set("key", "00000000-0000-4000-8000-000000000000")
 			v.Set(fmt.Sprintf("project_api_key.%s", test.Regex.String()), test.APIKey)
 
@@ -769,9 +769,9 @@ func TestLoadAPIParams_ProjectApiKey(t *testing.T) {
 }
 
 func TestLoadAPIParams_ProjectApiKey_ParseConfig(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("config", "testdata/.wakatime.cfg")
 	v.Set("entity", "testdata/heartbeat_go.json")
 
@@ -795,29 +795,29 @@ func TestLoadAPIParams_ProjectApiKey_ParseConfig(t *testing.T) {
 }
 
 func TestLoadAPIParams_APIKeyPrefixSupported(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("key", "waka_00000000-0000-4000-8000-000000000000")
 
-	_, err := cmdparams.LoadAPIParams(context.Background(), v)
+	_, err := cmdparams.LoadAPIParams(t.Context(), v)
 	require.NoError(t, err)
 }
 
 func TestLoadHeartbeatParams_Time(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("entity", "/path/to/file")
 	v.Set("time", 1590609206.1)
 
-	params, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
+	params, err := cmdparams.LoadHeartbeatParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Equal(t, 1590609206.1, params.Time)
 }
 
 func TestLoadHeartbeatParams_Time_Default(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("entity", "/path/to/file")
 
-	params, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
+	params, err := cmdparams.LoadHeartbeatParams(t.Context(), v)
 	require.NoError(t, err)
 
 	now := float64(time.Now().UnixNano()) / 1000000000
@@ -826,13 +826,13 @@ func TestLoadHeartbeatParams_Time_Default(t *testing.T) {
 }
 
 func TestLoadHeartbeatParams_Filter_Exclude(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("entity", "/path/to/file")
 	v.Set("exclude", []string{".*", "wakatime.*"})
 	v.Set("settings.exclude", []string{".+", "wakatime.+"})
 	v.Set("settings.ignore", []string{".?", "wakatime.?"})
 
-	params, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
+	params, err := cmdparams.LoadHeartbeatParams(t.Context(), v)
 	require.NoError(t, err)
 
 	require.Len(t, params.Filter.Exclude, 6)
@@ -845,11 +845,11 @@ func TestLoadHeartbeatParams_Filter_Exclude(t *testing.T) {
 }
 
 func TestLoadHeartbeatParams_Filter_Exclude_All(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("entity", "/path/to/file")
 	v.Set("exclude", []string{"true"})
 
-	params, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
+	params, err := cmdparams.LoadHeartbeatParams(t.Context(), v)
 	require.NoError(t, err)
 
 	require.Len(t, params.Filter.Exclude, 1)
@@ -857,11 +857,11 @@ func TestLoadHeartbeatParams_Filter_Exclude_All(t *testing.T) {
 }
 
 func TestLoadHeartbeatParams_Filter_Exclude_Multiline(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("entity", "/path/to/file")
 	v.Set("settings.ignore", "\t.?\n\twakatime.? \t\n")
 
-	params, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
+	params, err := cmdparams.LoadHeartbeatParams(t.Context(), v)
 	require.NoError(t, err)
 
 	require.Len(t, params.Filter.Exclude, 2)
@@ -870,11 +870,11 @@ func TestLoadHeartbeatParams_Filter_Exclude_Multiline(t *testing.T) {
 }
 
 func TestLoadHeartbeatParams_Filter_Exclude_IgnoresInvalidRegex(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("entity", "/path/to/file")
 	v.Set("exclude", []string{".*", "["})
 
-	params, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
+	params, err := cmdparams.LoadHeartbeatParams(t.Context(), v)
 	require.NoError(t, err)
 
 	require.Len(t, params.Filter.Exclude, 1)
@@ -889,11 +889,11 @@ func TestLoadHeartbeatParams_Filter_Exclude_PerlRegexPatterns(t *testing.T) {
 
 	for name, pattern := range tests {
 		t.Run(name, func(t *testing.T) {
-			v := viper.New()
+			v := setupViper(t)
 			v.Set("entity", "/path/to/file")
 			v.Set("exclude", []string{pattern})
 
-			params, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
+			params, err := cmdparams.LoadHeartbeatParams(t.Context(), v)
 			require.NoError(t, err)
 
 			require.Len(t, params.Filter.Exclude, 1)
@@ -903,46 +903,46 @@ func TestLoadHeartbeatParams_Filter_Exclude_PerlRegexPatterns(t *testing.T) {
 }
 
 func TestLoadHeartbeatParams_Filter_ExcludeUnknownProject(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("entity", "/path/to/file")
 	v.Set("exclude-unknown-project", true)
 
-	params, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
+	params, err := cmdparams.LoadHeartbeatParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.True(t, params.Filter.ExcludeUnknownProject)
 }
 
 func TestLoadHeartbeatParams_Filter_ExcludeUnknownProject_FromConfig(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("entity", "/path/to/file")
 	v.Set("settings.exclude_unknown_project", true)
 
-	params, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
+	params, err := cmdparams.LoadHeartbeatParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.True(t, params.Filter.ExcludeUnknownProject)
 }
 
 func TestLoadHeartbeatParams_Filter_ExcludeUnknownProject_FlagTakesPrecedence(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("entity", "/path/to/file")
 	v.Set("exclude-unknown-project", false)
 	v.Set("settings.exclude_unknown_project", true)
 
-	params, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
+	params, err := cmdparams.LoadHeartbeatParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.False(t, params.Filter.ExcludeUnknownProject)
 }
 
 func TestLoadHeartbeatParams_Filter_Include(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("entity", "/path/to/file")
 	v.Set("include", []string{".*", "wakatime.*"})
 	v.Set("settings.include", []string{".+", "wakatime.+"})
 
-	params, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
+	params, err := cmdparams.LoadHeartbeatParams(t.Context(), v)
 	require.NoError(t, err)
 
 	require.Len(t, params.Filter.Include, 4)
@@ -953,11 +953,11 @@ func TestLoadHeartbeatParams_Filter_Include(t *testing.T) {
 }
 
 func TestLoadHeartbeatParams_Filter_Include_All(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("entity", "/path/to/file")
 	v.Set("include", []string{"true"})
 
-	params, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
+	params, err := cmdparams.LoadHeartbeatParams(t.Context(), v)
 	require.NoError(t, err)
 
 	require.Len(t, params.Filter.Include, 1)
@@ -965,11 +965,11 @@ func TestLoadHeartbeatParams_Filter_Include_All(t *testing.T) {
 }
 
 func TestLoadHeartbeatParams_Filter_Include_IgnoresInvalidRegex(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("entity", "/path/to/file")
 	v.Set("include", []string{".*", "["})
 
-	params, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
+	params, err := cmdparams.LoadHeartbeatParams(t.Context(), v)
 	require.NoError(t, err)
 
 	require.Len(t, params.Filter.Include, 1)
@@ -977,7 +977,7 @@ func TestLoadHeartbeatParams_Filter_Include_IgnoresInvalidRegex(t *testing.T) {
 }
 
 func TestLoadHeartbeatParams_Filter_Include_PerlRegexPatterns(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	tests := map[string]string{
 		"negative lookahead": `^/var/(?!www/).*`,
@@ -986,7 +986,7 @@ func TestLoadHeartbeatParams_Filter_Include_PerlRegexPatterns(t *testing.T) {
 
 	for name, pattern := range tests {
 		t.Run(name, func(t *testing.T) {
-			v := viper.New()
+			v := setupViper(t)
 			v.Set("entity", "/path/to/file")
 			v.Set("include", []string{pattern})
 
@@ -1000,29 +1000,29 @@ func TestLoadHeartbeatParams_Filter_Include_PerlRegexPatterns(t *testing.T) {
 }
 
 func TestLoadHeartbeatParams_Filter_IncludeOnlyWithProjectFile(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("entity", "/path/to/file")
 	v.Set("include-only-with-project-file", true)
 
-	params, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
+	params, err := cmdparams.LoadHeartbeatParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.True(t, params.Filter.IncludeOnlyWithProjectFile)
 }
 
 func TestLoadHeartbeatParams_Filter_IncludeOnlyWithProjectFile_FromConfig(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("entity", "/path/to/file")
 	v.Set("settings.include_only_with_project_file", true)
 
-	params, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
+	params, err := cmdparams.LoadHeartbeatParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.True(t, params.Filter.IncludeOnlyWithProjectFile)
 }
 
 func TestLoadHeartbeatParams_SanitizeParams_HideBranchNames_True(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	tests := map[string]string{
 		"lowercase":       "true",
@@ -1032,7 +1032,7 @@ func TestLoadHeartbeatParams_SanitizeParams_HideBranchNames_True(t *testing.T) {
 
 	for name, viperValue := range tests {
 		t.Run(name, func(t *testing.T) {
-			v := viper.New()
+			v := setupViper(t)
 			v.Set("entity", "/path/to/file")
 			v.Set("hide-branch-names", viperValue)
 
@@ -1047,7 +1047,7 @@ func TestLoadHeartbeatParams_SanitizeParams_HideBranchNames_True(t *testing.T) {
 }
 
 func TestLoadHeartbeatParams_SanitizeParams_HideBranchNames_False(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	tests := map[string]string{
 		"lowercase":       "false",
@@ -1057,7 +1057,7 @@ func TestLoadHeartbeatParams_SanitizeParams_HideBranchNames_False(t *testing.T) 
 
 	for name, viperValue := range tests {
 		t.Run(name, func(t *testing.T) {
-			v := viper.New()
+			v := setupViper(t)
 			v.Set("entity", "/path/to/file")
 			v.Set("hide-branch-names", viperValue)
 
@@ -1072,7 +1072,7 @@ func TestLoadHeartbeatParams_SanitizeParams_HideBranchNames_False(t *testing.T) 
 }
 
 func TestLoadHeartbeatParams_SanitizeParams_HideBranchNames_List(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	tests := map[string]struct {
 		ViperValue string
@@ -1095,7 +1095,7 @@ func TestLoadHeartbeatParams_SanitizeParams_HideBranchNames_List(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			v := viper.New()
+			v := setupViper(t)
 			v.Set("entity", "/path/to/file")
 			v.Set("hide-branch-names", test.ViperValue)
 
@@ -1110,14 +1110,14 @@ func TestLoadHeartbeatParams_SanitizeParams_HideBranchNames_List(t *testing.T) {
 }
 
 func TestLoadHeartbeatParams_SanitizeParams_HideBranchNames_FlagTakesPrecedence(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("entity", "/path/to/file")
 	v.Set("hide-branch-names", true)
 	v.Set("settings.hide_branch_names", "ignored")
 	v.Set("settings.hide_branchnames", "ignored")
 	v.Set("settings.hidebranchnames", "ignored")
 
-	params, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
+	params, err := cmdparams.LoadHeartbeatParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Equal(t, cmdparams.SanitizeParams{
@@ -1126,13 +1126,13 @@ func TestLoadHeartbeatParams_SanitizeParams_HideBranchNames_FlagTakesPrecedence(
 }
 
 func TestLoadHeartbeatParams_SanitizeParams_HideBranchNames_ConfigTakesPrecedence(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("entity", "/path/to/file")
 	v.Set("settings.hide_branch_names", true)
 	v.Set("settings.hide_branchnames", "ignored")
 	v.Set("settings.hidebranchnames", "ignored")
 
-	params, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
+	params, err := cmdparams.LoadHeartbeatParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Equal(t, cmdparams.SanitizeParams{
@@ -1141,12 +1141,12 @@ func TestLoadHeartbeatParams_SanitizeParams_HideBranchNames_ConfigTakesPrecedenc
 }
 
 func TestLoadHeartbeatParams_SanitizeParams_HideBranchNames_ConfigDeprecatedOneTakesPrecedence(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("entity", "/path/to/file")
 	v.Set("settings.hide_branchnames", true)
 	v.Set("settings.hidebranchnames", "ignored")
 
-	params, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
+	params, err := cmdparams.LoadHeartbeatParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Equal(t, cmdparams.SanitizeParams{
@@ -1155,11 +1155,11 @@ func TestLoadHeartbeatParams_SanitizeParams_HideBranchNames_ConfigDeprecatedOneT
 }
 
 func TestLoadHeartbeatParams_SanitizeParams_HideBranchNames_ConfigDeprecatedTwo(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("entity", "/path/to/file")
 	v.Set("settings.hidebranchnames", true)
 
-	params, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
+	params, err := cmdparams.LoadHeartbeatParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Equal(t, cmdparams.SanitizeParams{
@@ -1173,9 +1173,9 @@ func TestLoadHeartbeatParams_SanitizeParams_HideBranchNames_InvalidRegex(t *test
 
 	defer logFile.Close()
 
-	ctx := context.Background()
+	ctx := t.Context()
 
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("entity", "/path/to/file")
 	v.Set("hide-branch-names", ".*secret.*\n[0-9+")
 	v.Set("log-file", logFile.Name())
@@ -1197,11 +1197,11 @@ func TestLoadHeartbeatParams_SanitizeParams_HideBranchNames_InvalidRegex(t *test
 }
 
 func TestLoadHeartbeatParams_SanitizeParams_HideDependencies_Flag(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("entity", "/path/to/file")
 	v.Set("settings.hide_dependencies", true)
 
-	params, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
+	params, err := cmdparams.LoadHeartbeatParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Equal(t, cmdparams.SanitizeParams{
@@ -1210,7 +1210,7 @@ func TestLoadHeartbeatParams_SanitizeParams_HideDependencies_Flag(t *testing.T) 
 }
 
 func TestLoadHeartbeatParams_SanitizeParams_HideDependencies_True(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	tests := map[string]string{
 		"lowercase":       "true",
@@ -1220,7 +1220,7 @@ func TestLoadHeartbeatParams_SanitizeParams_HideDependencies_True(t *testing.T) 
 
 	for name, viperValue := range tests {
 		t.Run(name, func(t *testing.T) {
-			v := viper.New()
+			v := setupViper(t)
 			v.Set("entity", "/path/to/file")
 			v.Set("hide-dependencies", viperValue)
 
@@ -1235,7 +1235,7 @@ func TestLoadHeartbeatParams_SanitizeParams_HideDependencies_True(t *testing.T) 
 }
 
 func TestLoadHeartbeatParams_SanitizeParams_HideDependencies_False(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	tests := map[string]string{
 		"lowercase":       "false",
@@ -1245,7 +1245,7 @@ func TestLoadHeartbeatParams_SanitizeParams_HideDependencies_False(t *testing.T)
 
 	for name, viperValue := range tests {
 		t.Run(name, func(t *testing.T) {
-			v := viper.New()
+			v := setupViper(t)
 			v.Set("entity", "/path/to/file")
 			v.Set("hide-dependencies", viperValue)
 
@@ -1260,7 +1260,7 @@ func TestLoadHeartbeatParams_SanitizeParams_HideDependencies_False(t *testing.T)
 }
 
 func TestLoadHeartbeatParams_SanitizeParams_HideDependencies_List(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	tests := map[string]struct {
 		ViperValue string
@@ -1283,7 +1283,7 @@ func TestLoadHeartbeatParams_SanitizeParams_HideDependencies_List(t *testing.T) 
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			v := viper.New()
+			v := setupViper(t)
 			v.Set("entity", "/path/to/file")
 			v.Set("hide-dependencies", test.ViperValue)
 
@@ -1298,12 +1298,12 @@ func TestLoadHeartbeatParams_SanitizeParams_HideDependencies_List(t *testing.T) 
 }
 
 func TestLoadHeartbeatParams_SanitizeParams_HideDependencies_FlagTakesPrecedence(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("entity", "/path/to/file")
 	v.Set("hide-dependencies", true)
 	v.Set("settings.hide_dependencies", "ignored")
 
-	params, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
+	params, err := cmdparams.LoadHeartbeatParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Equal(t, cmdparams.SanitizeParams{
@@ -1312,11 +1312,11 @@ func TestLoadHeartbeatParams_SanitizeParams_HideDependencies_FlagTakesPrecedence
 }
 
 func TestLoadHeartbeatParams_SanitizeParams_HideDependencies_FromConfig(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("entity", "/path/to/file")
 	v.Set("settings.hide_dependencies", true)
 
-	params, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
+	params, err := cmdparams.LoadHeartbeatParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Equal(t, cmdparams.SanitizeParams{
@@ -1330,9 +1330,9 @@ func TestLoadHeartbeatParams_SanitizeParams_HideDependencies_InvalidRegex(t *tes
 
 	defer logFile.Close()
 
-	ctx := context.Background()
+	ctx := t.Context()
 
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("entity", "/path/to/file")
 	v.Set("hide-dependencies", ".*secret.*\n[0-9+")
 	v.Set("log-file", logFile.Name())
@@ -1354,7 +1354,7 @@ func TestLoadHeartbeatParams_SanitizeParams_HideDependencies_InvalidRegex(t *tes
 }
 
 func TestLoadHeartbeatParams_SanitizeParams_HideProjectNames_True(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	tests := map[string]string{
 		"lowercase":       "true",
@@ -1364,7 +1364,7 @@ func TestLoadHeartbeatParams_SanitizeParams_HideProjectNames_True(t *testing.T) 
 
 	for name, viperValue := range tests {
 		t.Run(name, func(t *testing.T) {
-			v := viper.New()
+			v := setupViper(t)
 			v.Set("entity", "/path/to/file")
 			v.Set("hide-project-names", viperValue)
 
@@ -1379,7 +1379,7 @@ func TestLoadHeartbeatParams_SanitizeParams_HideProjectNames_True(t *testing.T) 
 }
 
 func TestLoadHeartbeatParams_SanitizeParams_HideProjectNames_False(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	tests := map[string]string{
 		"lowercase":       "false",
@@ -1389,7 +1389,7 @@ func TestLoadHeartbeatParams_SanitizeParams_HideProjectNames_False(t *testing.T)
 
 	for name, viperValue := range tests {
 		t.Run(name, func(t *testing.T) {
-			v := viper.New()
+			v := setupViper(t)
 			v.Set("entity", "/path/to/file")
 			v.Set("hide-project-names", viperValue)
 
@@ -1404,7 +1404,7 @@ func TestLoadHeartbeatParams_SanitizeParams_HideProjectNames_False(t *testing.T)
 }
 
 func TestLoadHeartbeatParams_SanitizeParams_HideProjecthNames_List(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	tests := map[string]struct {
 		ViperValue string
@@ -1427,7 +1427,7 @@ func TestLoadHeartbeatParams_SanitizeParams_HideProjecthNames_List(t *testing.T)
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			v := viper.New()
+			v := setupViper(t)
 			v.Set("entity", "/path/to/file")
 			v.Set("hide-project-names", test.ViperValue)
 
@@ -1442,14 +1442,14 @@ func TestLoadHeartbeatParams_SanitizeParams_HideProjecthNames_List(t *testing.T)
 }
 
 func TestLoadHeartbeatParams_SanitizeParams_HideProjectNames_FlagTakesPrecedence(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("entity", "/path/to/file")
 	v.Set("hide-project-names", true)
 	v.Set("settings.hide_project_names", "ignored")
 	v.Set("settings.hide_projectnames", "ignored")
 	v.Set("settings.hideprojectnames", "ignored")
 
-	params, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
+	params, err := cmdparams.LoadHeartbeatParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Equal(t, cmdparams.SanitizeParams{
@@ -1458,13 +1458,13 @@ func TestLoadHeartbeatParams_SanitizeParams_HideProjectNames_FlagTakesPrecedence
 }
 
 func TestLoadHeartbeatParams_SanitizeParams_HideProjectNames_ConfigTakesPrecedence(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("entity", "/path/to/file")
 	v.Set("settings.hide_project_names", true)
 	v.Set("settings.hide_projectnames", "ignored")
 	v.Set("settings.hideprojectnames", "ignored")
 
-	params, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
+	params, err := cmdparams.LoadHeartbeatParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Equal(t, cmdparams.SanitizeParams{
@@ -1473,12 +1473,12 @@ func TestLoadHeartbeatParams_SanitizeParams_HideProjectNames_ConfigTakesPreceden
 }
 
 func TestLoadHeartbeatParams_SanitizeParams_HideProjectNames_ConfigDeprecatedOneTakesPrecedence(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("entity", "/path/to/file")
 	v.Set("settings.hide_projectnames", true)
 	v.Set("settings.hideprojectnames", "ignored")
 
-	params, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
+	params, err := cmdparams.LoadHeartbeatParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Equal(t, cmdparams.SanitizeParams{
@@ -1487,11 +1487,11 @@ func TestLoadHeartbeatParams_SanitizeParams_HideProjectNames_ConfigDeprecatedOne
 }
 
 func TestLoadHeartbeatParams_SanitizeParams_HideProjectNames_ConfigDeprecatedTwo(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("entity", "/path/to/file")
 	v.Set("settings.hideprojectnames", "true")
 
-	params, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
+	params, err := cmdparams.LoadHeartbeatParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Equal(t, cmdparams.SanitizeParams{
@@ -1505,9 +1505,9 @@ func TestLoadHeartbeatParams_SanitizeParams_HideProjectNames_InvalidRegex(t *tes
 
 	defer logFile.Close()
 
-	ctx := context.Background()
+	ctx := t.Context()
 
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("entity", "/path/to/file")
 	v.Set("hide-project-names", ".*secret.*\n[0-9+")
 	v.Set("log-file", logFile.Name())
@@ -1529,7 +1529,7 @@ func TestLoadHeartbeatParams_SanitizeParams_HideProjectNames_InvalidRegex(t *tes
 }
 
 func TestLoadHeartbeatParams_SanitizeParams_HideFileNames_True(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	tests := map[string]string{
 		"lowercase":       "true",
@@ -1539,7 +1539,7 @@ func TestLoadHeartbeatParams_SanitizeParams_HideFileNames_True(t *testing.T) {
 
 	for name, viperValue := range tests {
 		t.Run(name, func(t *testing.T) {
-			v := viper.New()
+			v := setupViper(t)
 			v.Set("entity", "/path/to/file")
 			v.Set("hide-file-names", viperValue)
 
@@ -1554,7 +1554,7 @@ func TestLoadHeartbeatParams_SanitizeParams_HideFileNames_True(t *testing.T) {
 }
 
 func TestLoadHeartbeatParams_SanitizeParams_HideFileNames_False(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	tests := map[string]string{
 		"lowercase":       "false",
@@ -1564,7 +1564,7 @@ func TestLoadHeartbeatParams_SanitizeParams_HideFileNames_False(t *testing.T) {
 
 	for name, viperValue := range tests {
 		t.Run(name, func(t *testing.T) {
-			v := viper.New()
+			v := setupViper(t)
 			v.Set("entity", "/path/to/file")
 			v.Set("hide-file-names", viperValue)
 
@@ -1579,7 +1579,7 @@ func TestLoadHeartbeatParams_SanitizeParams_HideFileNames_False(t *testing.T) {
 }
 
 func TestLoadHeartbeatParams_SanitizeParams_HideFileNames_List(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	tests := map[string]struct {
 		ViperValue string
@@ -1602,7 +1602,7 @@ func TestLoadHeartbeatParams_SanitizeParams_HideFileNames_List(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			v := viper.New()
+			v := setupViper(t)
 			v.Set("entity", "/path/to/file")
 			v.Set("hide-file-names", test.ViperValue)
 
@@ -1617,7 +1617,7 @@ func TestLoadHeartbeatParams_SanitizeParams_HideFileNames_List(t *testing.T) {
 }
 
 func TestLoadheartbeatParams_SanitizeParams_HideFileNames_FlagTakesPrecedence(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("entity", "/path/to/file")
 	v.Set("hide-file-names", true)
 	v.Set("hide-filenames", "ignored")
@@ -1626,7 +1626,7 @@ func TestLoadheartbeatParams_SanitizeParams_HideFileNames_FlagTakesPrecedence(t 
 	v.Set("settings.hide_filenames", "ignored")
 	v.Set("settings.hidefilenames", "ignored")
 
-	params, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
+	params, err := cmdparams.LoadHeartbeatParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Equal(t, cmdparams.SanitizeParams{
@@ -1635,7 +1635,7 @@ func TestLoadheartbeatParams_SanitizeParams_HideFileNames_FlagTakesPrecedence(t 
 }
 
 func TestLoadHeartbeatParams_SanitizeParams_HideFileNames_FlagDeprecatedOneTakesPrecedence(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("entity", "/path/to/file")
 	v.Set("hide-filenames", true)
 	v.Set("hidefilenames", "ignored")
@@ -1643,7 +1643,7 @@ func TestLoadHeartbeatParams_SanitizeParams_HideFileNames_FlagDeprecatedOneTakes
 	v.Set("settings.hide_filenames", "ignored")
 	v.Set("settings.hidefilenames", "ignored")
 
-	params, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
+	params, err := cmdparams.LoadHeartbeatParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Equal(t, cmdparams.SanitizeParams{
@@ -1652,14 +1652,14 @@ func TestLoadHeartbeatParams_SanitizeParams_HideFileNames_FlagDeprecatedOneTakes
 }
 
 func TestLoadHeartbeatParams_SanitizeParams_HideFileNames_FlagDeprecatedTwoTakesPrecedence(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("entity", "/path/to/file")
 	v.Set("hidefilenames", true)
 	v.Set("settings.hide_file_names", "ignored")
 	v.Set("settings.hide_filenames", "ignored")
 	v.Set("settings.hidefilenames", "ignored")
 
-	params, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
+	params, err := cmdparams.LoadHeartbeatParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Equal(t, cmdparams.SanitizeParams{
@@ -1668,13 +1668,13 @@ func TestLoadHeartbeatParams_SanitizeParams_HideFileNames_FlagDeprecatedTwoTakes
 }
 
 func TestLoadHeartbeatParams_SanitizeParams_HideFileNames_ConfigTakesPrecedence(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("entity", "/path/to/file")
 	v.Set("settings.hide_file_names", true)
 	v.Set("settings.hide_filenames", "ignored")
 	v.Set("settings.hidefilenames", "ignored")
 
-	params, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
+	params, err := cmdparams.LoadHeartbeatParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Equal(t, cmdparams.SanitizeParams{
@@ -1683,12 +1683,12 @@ func TestLoadHeartbeatParams_SanitizeParams_HideFileNames_ConfigTakesPrecedence(
 }
 
 func TestLoadHeartbeatParams_SanitizeParams_HideFileNames_ConfigDeprecatedOneTakesPrecedence(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("entity", "/path/to/file")
 	v.Set("settings.hide_filenames", true)
 	v.Set("settings.hidefilenames", "ignored")
 
-	params, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
+	params, err := cmdparams.LoadHeartbeatParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Equal(t, cmdparams.SanitizeParams{
@@ -1697,11 +1697,11 @@ func TestLoadHeartbeatParams_SanitizeParams_HideFileNames_ConfigDeprecatedOneTak
 }
 
 func TestLoadHeartbeatParams_SanitizeParams_HideFileNames_ConfigDeprecatedTwo(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("entity", "/path/to/file")
 	v.Set("settings.hidefilenames", "true")
 
-	params, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
+	params, err := cmdparams.LoadHeartbeatParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Equal(t, cmdparams.SanitizeParams{
@@ -1715,9 +1715,9 @@ func TestLoadHeartbeatParams_SanitizeParams_HideFileNames_InvalidRegex(t *testin
 
 	defer logFile.Close()
 
-	ctx := context.Background()
+	ctx := t.Context()
 
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("entity", "/path/to/file")
 	v.Set("hide-file-names", ".*secret.*\n[0-9+")
 	v.Set("log-file", logFile.Name())
@@ -1739,11 +1739,11 @@ func TestLoadHeartbeatParams_SanitizeParams_HideFileNames_InvalidRegex(t *testin
 }
 
 func TestLoadHeartbeatParams_SanitizeParams_HideProjectFolder(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("entity", "/path/to/file")
 	v.Set("hide-project-folder", true)
 
-	params, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
+	params, err := cmdparams.LoadHeartbeatParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Equal(t, cmdparams.SanitizeParams{
@@ -1752,11 +1752,11 @@ func TestLoadHeartbeatParams_SanitizeParams_HideProjectFolder(t *testing.T) {
 }
 
 func TestLoadHeartbeatParams_SanitizeParams_HideProjectFolder_ConfigTakesPrecedence(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("entity", "/path/to/file")
 	v.Set("settings.hide_project_folder", true)
 
-	params, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
+	params, err := cmdparams.LoadHeartbeatParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Equal(t, cmdparams.SanitizeParams{
@@ -1765,11 +1765,11 @@ func TestLoadHeartbeatParams_SanitizeParams_HideProjectFolder_ConfigTakesPrecede
 }
 
 func TestLoadHeartbeatParams_SanitizeParams_OverrideProjectPath(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("entity", "/path/to/file")
 	v.Set("project-folder", "/custom-path")
 
-	params, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
+	params, err := cmdparams.LoadHeartbeatParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Equal(t, cmdparams.SanitizeParams{
@@ -1786,11 +1786,11 @@ func TestLoadHeartbeatParams_SubmodulesDisabled_True(t *testing.T) {
 
 	for name, viperValue := range tests {
 		t.Run(name, func(t *testing.T) {
-			v := viper.New()
+			v := setupViper(t)
 			v.Set("entity", "/path/to/file")
 			v.Set("git.submodules_disabled", viperValue)
 
-			params, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
+			params, err := cmdparams.LoadHeartbeatParams(t.Context(), v)
 			require.NoError(t, err)
 
 			assert.Equal(t, []regex.Regex{regex.NewRegexpWrap(regexp.MustCompile(".*"))}, params.Project.SubmodulesDisabled)
@@ -1799,7 +1799,7 @@ func TestLoadHeartbeatParams_SubmodulesDisabled_True(t *testing.T) {
 }
 
 func TestLoadHeartbeatParams_SubmodulesDisabled_False(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	tests := map[string]string{
 		"lowercase":       "false",
@@ -1809,7 +1809,7 @@ func TestLoadHeartbeatParams_SubmodulesDisabled_False(t *testing.T) {
 
 	for name, viperValue := range tests {
 		t.Run(name, func(t *testing.T) {
-			v := viper.New()
+			v := setupViper(t)
 			v.Set("entity", "/path/to/file")
 			v.Set("git.submodules_disabled", viperValue)
 
@@ -1822,7 +1822,7 @@ func TestLoadHeartbeatParams_SubmodulesDisabled_False(t *testing.T) {
 }
 
 func TestLoadHeartbeatsParams_SubmodulesDisabled_List(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	tests := map[string]struct {
 		ViperValue string
@@ -1845,8 +1845,14 @@ func TestLoadHeartbeatsParams_SubmodulesDisabled_List(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			multilineOption := viper.IniLoadOptions(ini.LoadOptions{AllowPythonMultilineValues: true})
-			v := viper.NewWithOptions(multilineOption)
+			multilineOption := iniv1.LoadOptions{AllowPythonMultilineValues: true}
+			iniCodec := viperini.Codec{LoadOptions: multilineOption}
+
+			codecRegistry := viper.NewCodecRegistry()
+			err := codecRegistry.RegisterCodec("ini", iniCodec)
+			require.NoError(t, err)
+
+			v := viper.NewWithOptions(viper.WithCodecRegistry(codecRegistry))
 			v.Set("entity", "/path/to/file")
 			v.Set("git.submodules_disabled", test.ViperValue)
 
@@ -1859,7 +1865,7 @@ func TestLoadHeartbeatsParams_SubmodulesDisabled_List(t *testing.T) {
 }
 
 func TestLoadHeartbeatsParams_SubmoduleProjectMap(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	tests := map[string]struct {
 		Entity   string
@@ -1893,7 +1899,7 @@ func TestLoadHeartbeatsParams_SubmoduleProjectMap(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			v := viper.New()
+			v := setupViper(t)
 			v.Set("entity", test.Entity)
 			v.Set(fmt.Sprintf("git_submodule_projectmap.%s", test.Regex.String()), test.Project)
 
@@ -1906,194 +1912,194 @@ func TestLoadHeartbeatsParams_SubmoduleProjectMap(t *testing.T) {
 }
 
 func TestLoadAPIParams_Plugin(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("plugin", "plugin/10.0.0")
 
-	params, err := cmdparams.LoadAPIParams(context.Background(), v)
+	params, err := cmdparams.LoadAPIParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Equal(t, "plugin/10.0.0", params.Plugin)
 }
 
 func TestLoadAPIParams_Plugin_Unset(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 
-	params, err := cmdparams.LoadAPIParams(context.Background(), v)
+	params, err := cmdparams.LoadAPIParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Empty(t, params.Plugin)
 }
 
 func TestLoadAPIParams_Timeout_FlagTakesPrecedence(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("timeout", 5)
 	v.Set("settings.timeout", 10)
 
-	params, err := cmdparams.LoadAPIParams(context.Background(), v)
+	params, err := cmdparams.LoadAPIParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Equal(t, 5*time.Second, params.Timeout)
 }
 
 func TestLoadAPIParams_Timeout_ConfigTakesPrecedence(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("settings.timeout", 10)
 
-	params, err := cmdparams.LoadAPIParams(context.Background(), v)
+	params, err := cmdparams.LoadAPIParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Equal(t, 10*time.Second, params.Timeout)
 }
 
 func TestLoadAPIParams_Timeout_FromConfig(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("settings.timeout", 10)
 
-	params, err := cmdparams.LoadAPIParams(context.Background(), v)
+	params, err := cmdparams.LoadAPIParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Equal(t, 10*time.Second, params.Timeout)
 }
 
 func TestLoadAPIParams_Timeout_Zero(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("timeout", 0)
 
-	params, err := cmdparams.LoadAPIParams(context.Background(), v)
+	params, err := cmdparams.LoadAPIParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Zero(t, params.Timeout)
 }
 
 func TestLoadAPIParams_Timeout_Default(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.SetDefault("timeout", api.DefaultTimeoutSecs)
 
-	params, err := cmdparams.LoadAPIParams(context.Background(), v)
+	params, err := cmdparams.LoadAPIParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Equal(t, time.Duration(api.DefaultTimeoutSecs)*time.Second, params.Timeout)
 }
 
 func TestLoadAPIParams_Timeout_NegativeNumber(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("timeout", 0)
 
-	params, err := cmdparams.LoadAPIParams(context.Background(), v)
+	params, err := cmdparams.LoadAPIParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Zero(t, params.Timeout)
 }
 
 func TestLoadAPIParams_Timeout_NonIntegerValue(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("timeout", "invalid")
 
-	params, err := cmdparams.LoadAPIParams(context.Background(), v)
+	params, err := cmdparams.LoadAPIParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Equal(t, time.Duration(api.DefaultTimeoutSecs)*time.Second, params.Timeout)
 }
 
 func TestLoadOfflineParams_Disabled_ConfigTakesPrecedence(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("disable-offline", false)
 	v.Set("disableoffline", false)
 	v.Set("settings.offline", false)
 
-	params := cmdparams.LoadOfflineParams(context.Background(), v)
+	params := cmdparams.LoadOfflineParams(t.Context(), v)
 
 	assert.True(t, params.Disabled)
 }
 
 func TestLoadOfflineParams_Disabled_FlagDeprecatedTakesPrecedence(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("disable-offline", false)
 	v.Set("disableoffline", true)
 
-	params := cmdparams.LoadOfflineParams(context.Background(), v)
+	params := cmdparams.LoadOfflineParams(t.Context(), v)
 
 	assert.False(t, params.Disabled)
 }
 
 func TestLoadOfflineParams_Disabled_FromFlag(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("disable-offline", true)
 
-	params := cmdparams.LoadOfflineParams(context.Background(), v)
+	params := cmdparams.LoadOfflineParams(t.Context(), v)
 
 	assert.True(t, params.Disabled)
 }
 
 func TestLoadOfflineParams_RateLimit_FlagTakesPrecedence(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("heartbeat-rate-limit-seconds", 5)
 	v.Set("settings.heartbeat_rate_limit_seconds", 10)
 
-	params := cmdparams.LoadOfflineParams(context.Background(), v)
+	params := cmdparams.LoadOfflineParams(t.Context(), v)
 
 	assert.Equal(t, time.Duration(5)*time.Second, params.RateLimit)
 }
 
 func TestLoadOfflineParams_RateLimit_FromConfig(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("settings.heartbeat_rate_limit_seconds", 10)
 
-	params := cmdparams.LoadOfflineParams(context.Background(), v)
+	params := cmdparams.LoadOfflineParams(t.Context(), v)
 
 	assert.Equal(t, time.Duration(10)*time.Second, params.RateLimit)
 }
 
 func TestLoadOfflineParams_RateLimit_Zero(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("heartbeat-rate-limit-seconds", 0)
 
-	params := cmdparams.LoadOfflineParams(context.Background(), v)
+	params := cmdparams.LoadOfflineParams(t.Context(), v)
 
 	assert.Zero(t, params.RateLimit)
 }
 
 func TestLoadOfflineParams_RateLimit_Default(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.SetDefault("heartbeat-rate-limit-seconds", offline.RateLimitDefaultSeconds)
 
-	params := cmdparams.LoadOfflineParams(context.Background(), v)
+	params := cmdparams.LoadOfflineParams(t.Context(), v)
 
 	assert.Equal(t, time.Duration(offline.RateLimitDefaultSeconds)*time.Second, params.RateLimit)
 }
 
 func TestLoadOfflineParams_RateLimit_NegativeNumber(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("heartbeat-rate-limit-seconds", -1)
 
-	params := cmdparams.LoadOfflineParams(context.Background(), v)
+	params := cmdparams.LoadOfflineParams(t.Context(), v)
 
 	assert.Zero(t, params.RateLimit)
 }
 
 func TestLoadOfflineParams_RateLimit_NonIntegerValue(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("heartbeat-rate-limit-seconds", "invalid")
 
-	params := cmdparams.LoadOfflineParams(context.Background(), v)
+	params := cmdparams.LoadOfflineParams(t.Context(), v)
 
 	assert.Equal(t, time.Duration(offline.RateLimitDefaultSeconds)*time.Second, params.RateLimit)
 }
 
 func TestLoadOfflineParams_LastSentAt(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("internal.heartbeats_last_sent_at", "2021-08-30T18:50:42-03:00")
 
-	params := cmdparams.LoadOfflineParams(context.Background(), v)
+	params := cmdparams.LoadOfflineParams(t.Context(), v)
 
 	lastSentAt, err := time.Parse(inipkg.DateFormat, "2021-08-30T18:50:42-03:00")
 	require.NoError(t, err)
@@ -2102,73 +2108,73 @@ func TestLoadOfflineParams_LastSentAt(t *testing.T) {
 }
 
 func TestLoadOfflineParams_LastSentAt_Err(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("internal.heartbeats_last_sent_at", "2021-08-30")
 
-	params := cmdparams.LoadOfflineParams(context.Background(), v)
+	params := cmdparams.LoadOfflineParams(t.Context(), v)
 
 	assert.Zero(t, params.LastSentAt)
 }
 
 func TestLoadOfflineParams_LastSentAtFuture(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	lastSentAt := time.Now().Add(2 * time.Hour)
 	v.Set("internal.heartbeats_last_sent_at", lastSentAt.Format(inipkg.DateFormat))
 
-	params := cmdparams.LoadOfflineParams(context.Background(), v)
+	params := cmdparams.LoadOfflineParams(t.Context(), v)
 
 	assert.LessOrEqual(t, params.LastSentAt, time.Now())
 }
 
 func TestLoadOfflineParams_SyncMax(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("sync-offline-activity", 42)
 
-	params := cmdparams.LoadOfflineParams(context.Background(), v)
+	params := cmdparams.LoadOfflineParams(t.Context(), v)
 
 	assert.Equal(t, 42, params.SyncMax)
 }
 
 func TestLoadOfflineParams_SyncMax_Zero(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("sync-offline-activity", "0")
 
-	params := cmdparams.LoadOfflineParams(context.Background(), v)
+	params := cmdparams.LoadOfflineParams(t.Context(), v)
 
 	assert.Zero(t, params.SyncMax)
 }
 
 func TestLoadOfflineParams_SyncMax_Default(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.SetDefault("sync-offline-activity", 1000)
 
-	params := cmdparams.LoadOfflineParams(context.Background(), v)
+	params := cmdparams.LoadOfflineParams(t.Context(), v)
 
 	assert.Equal(t, 1000, params.SyncMax)
 }
 
 func TestLoadOfflineParams_SyncMax_NegativeNumber(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("sync-offline-activity", -1)
 
-	params := cmdparams.LoadOfflineParams(context.Background(), v)
+	params := cmdparams.LoadOfflineParams(t.Context(), v)
 
 	assert.Zero(t, params.SyncMax)
 }
 
 func TestLoadOfflineParams_SyncMax_NonIntegerValue(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("sync-offline-activity", "invalid")
 
-	params := cmdparams.LoadOfflineParams(context.Background(), v)
+	params := cmdparams.LoadOfflineParams(t.Context(), v)
 
 	assert.Zero(t, params.SyncMax)
 }
 
 func TestLoadAPIParams_APIKey(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 
 	params, err := cmdparams.LoadAPIParams(ctx, v)
@@ -2178,9 +2184,9 @@ func TestLoadAPIParams_APIKey(t *testing.T) {
 }
 
 func TestLoadAPIParams_APIKey_FlagTakesPrecedence(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("settings.api_key", "10000000-0000-4000-8000-000000000000")
 
@@ -2191,9 +2197,9 @@ func TestLoadAPIParams_APIKey_FlagTakesPrecedence(t *testing.T) {
 }
 
 func TestLoadAPIParams_APIKey_FromConfig(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("settings.api_key", "10000000-0000-4000-8000-000000000000")
 
 	params, err := cmdparams.LoadAPIParams(ctx, v)
@@ -2203,9 +2209,9 @@ func TestLoadAPIParams_APIKey_FromConfig(t *testing.T) {
 }
 
 func TestLoadAPIParams_APIKey_ConfigDeprecatedTakesPrecedence(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("settings.apikey", "20000000-0000-4000-8000-000000000000")
 
 	params, err := cmdparams.LoadAPIParams(ctx, v)
@@ -2215,10 +2221,10 @@ func TestLoadAPIParams_APIKey_ConfigDeprecatedTakesPrecedence(t *testing.T) {
 }
 
 func TestLoadAPIParams_APIKeyUnset(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("key", "")
 
-	_, err := cmdparams.LoadAPIParams(context.Background(), v)
+	_, err := cmdparams.LoadAPIParams(t.Context(), v)
 	require.Error(t, err)
 
 	var errauth api.ErrAuth
@@ -2228,7 +2234,7 @@ func TestLoadAPIParams_APIKeyUnset(t *testing.T) {
 }
 
 func TestLoadAPIParams_APIKeyInvalid(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	tests := map[string]string{
 		"invalid format 1": "not-uuid",
@@ -2238,7 +2244,7 @@ func TestLoadAPIParams_APIKeyInvalid(t *testing.T) {
 
 	for name, value := range tests {
 		t.Run(name, func(t *testing.T) {
-			v := viper.New()
+			v := setupViper(t)
 			v.Set("key", value)
 
 			_, err := cmdparams.LoadAPIParams(ctx, v)
@@ -2253,34 +2259,34 @@ func TestLoadAPIParams_APIKeyInvalid(t *testing.T) {
 }
 
 func TestLoadAPIParams_APIKey_ConfigFileTakesPrecedence(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("config", "testdata/.wakatime.cfg")
 	v.Set("entity", "testdata/heartbeat_go.json")
 
-	configFile, err := inipkg.FilePath(context.Background(), v)
+	configFile, err := inipkg.FilePath(t.Context(), v)
 	require.NoError(t, err)
 
 	err = inipkg.ReadInConfig(v, configFile)
 	require.NoError(t, err)
 
-	params, err := cmdparams.LoadAPIParams(context.Background(), v)
+	params, err := cmdparams.LoadAPIParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Equal(t, "00000000-0000-4000-8000-000000000000", params.Key)
 }
 
 func TestLoadAPIParams_APIKey_FromVault(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("config", "testdata/.wakatime-vault.cfg")
 	v.Set("entity", "testdata/heartbeat_go.json")
 
-	configFile, err := inipkg.FilePath(context.Background(), v)
+	configFile, err := inipkg.FilePath(t.Context(), v)
 	require.NoError(t, err)
 
 	err = inipkg.ReadInConfig(v, configFile)
 	require.NoError(t, err)
 
-	params, err := cmdparams.LoadAPIParams(context.Background(), v)
+	params, err := cmdparams.LoadAPIParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Equal(t, "00000000-0000-4000-8000-000000000000", params.Key)
@@ -2291,9 +2297,9 @@ func TestLoadParams_APIKey_FromVault_Err_Darwin(t *testing.T) {
 		t.Skip("Skipping because OS is not darwin.")
 	}
 
-	ctx := context.Background()
+	ctx := t.Context()
 
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("config", "testdata/.wakatime-vault-error.cfg")
 	v.Set("entity", "testdata/heartbeat_go.json")
 
@@ -2309,22 +2315,22 @@ func TestLoadParams_APIKey_FromVault_Err_Darwin(t *testing.T) {
 }
 
 func TestLoadAPIParams_APIKeyFromEnv(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 
 	t.Setenv("WAKATIME_API_KEY", "00000000-0000-4000-8000-000000000000")
 
-	params, err := cmdparams.LoadAPIParams(context.Background(), v)
+	params, err := cmdparams.LoadAPIParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Equal(t, "00000000-0000-4000-8000-000000000000", params.Key)
 }
 
 func TestLoadAPIParams_APIKeyFromEnv_Invalid(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 
 	t.Setenv("WAKATIME_API_KEY", "00000000-0000-4000-0000-000000000000")
 
-	_, err := cmdparams.LoadAPIParams(context.Background(), v)
+	_, err := cmdparams.LoadAPIParams(t.Context(), v)
 	require.Error(t, err)
 
 	var errauth api.ErrAuth
@@ -2334,19 +2340,19 @@ func TestLoadAPIParams_APIKeyFromEnv_Invalid(t *testing.T) {
 }
 
 func TestLoadAPIParams_APIKeyFromEnv_ConfigTakesPrecedence(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("settings.api_key", "00000000-0000-4000-8000-000000000000")
 
 	t.Setenv("WAKATIME_API_KEY", "10000000-0000-4000-8000-000000000000")
 
-	params, err := cmdparams.LoadAPIParams(context.Background(), v)
+	params, err := cmdparams.LoadAPIParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Equal(t, "00000000-0000-4000-8000-000000000000", params.Key)
 }
 
 func TestLoadAPIParams_APIUrl_Sanitize(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	tests := map[string]struct {
 		URL      string
@@ -2372,7 +2378,7 @@ func TestLoadAPIParams_APIUrl_Sanitize(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			v := viper.New()
+			v := setupViper(t)
 			v.Set("key", "00000000-0000-4000-8000-000000000000")
 			v.Set("api-url", test.URL)
 
@@ -2385,9 +2391,9 @@ func TestLoadAPIParams_APIUrl_Sanitize(t *testing.T) {
 }
 
 func TestLoadAPIParams_Url(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
-	v := viper.New()
+	v := setupViper(t)
 
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("api-url", "http://localhost:8080")
@@ -2399,9 +2405,9 @@ func TestLoadAPIParams_Url(t *testing.T) {
 }
 
 func TestLoadAPIParams_Url_FlagTakesPrecedence(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
-	v := viper.New()
+	v := setupViper(t)
 
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("api-url", "http://localhost:8080")
@@ -2414,9 +2420,9 @@ func TestLoadAPIParams_Url_FlagTakesPrecedence(t *testing.T) {
 }
 
 func TestLoadAPIParams_Url_FlagDeprecatedTakesPrecedence(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
-	v := viper.New()
+	v := setupViper(t)
 
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("apiurl", "http://localhost:8080")
@@ -2429,9 +2435,9 @@ func TestLoadAPIParams_Url_FlagDeprecatedTakesPrecedence(t *testing.T) {
 }
 
 func TestLoadAPIParams_Url_FromConfig(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
-	v := viper.New()
+	v := setupViper(t)
 
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("settings.api_url", "http://localhost:8081")
@@ -2443,21 +2449,21 @@ func TestLoadAPIParams_Url_FromConfig(t *testing.T) {
 }
 
 func TestLoadAPIParams_Url_Default(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 
-	params, err := cmdparams.LoadAPIParams(context.Background(), v)
+	params, err := cmdparams.LoadAPIParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Equal(t, api.BaseURL, params.URL)
 }
 
 func TestLoadAPIParams_Url_InvalidFormat(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("api-url", "http://in valid")
 
-	_, err := cmdparams.LoadAPIParams(context.Background(), v)
+	_, err := cmdparams.LoadAPIParams(t.Context(), v)
 
 	var errauth api.ErrAuth
 
@@ -2466,14 +2472,14 @@ func TestLoadAPIParams_Url_InvalidFormat(t *testing.T) {
 }
 
 func TestLoadAPIParams_BackoffAt(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("hostname", "my-computer")
 	v.Set("timeout", 0)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("internal.backoff_at", "2021-08-30T18:50:42-03:00")
 	v.Set("internal.backoff_retries", "3")
 
-	params, err := cmdparams.LoadAPIParams(context.Background(), v)
+	params, err := cmdparams.LoadAPIParams(t.Context(), v)
 	require.NoError(t, err)
 
 	backoffAt, err := time.Parse(inipkg.DateFormat, "2021-08-30T18:50:42-03:00")
@@ -2489,14 +2495,14 @@ func TestLoadAPIParams_BackoffAt(t *testing.T) {
 }
 
 func TestLoadAPIParams_BackoffAtErr(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("hostname", "my-computer")
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("timeout", 0)
 	v.Set("internal.backoff_at", "2021-08-30")
 	v.Set("internal.backoff_retries", "2")
 
-	params, err := cmdparams.LoadAPIParams(context.Background(), v)
+	params, err := cmdparams.LoadAPIParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Equal(t, 2, params.BackoffRetries)
@@ -2504,7 +2510,7 @@ func TestLoadAPIParams_BackoffAtErr(t *testing.T) {
 }
 
 func TestLoadAPIParams_BackoffAtFuture(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	backoff := time.Now().Add(time.Duration(2) * time.Hour)
 
 	v.Set("hostname", "my-computer")
@@ -2512,7 +2518,7 @@ func TestLoadAPIParams_BackoffAtFuture(t *testing.T) {
 	v.Set("internal.backoff_at", backoff.Format(inipkg.DateFormat))
 	v.Set("internal.backoff_retries", "3")
 
-	params, err := cmdparams.LoadAPIParams(context.Background(), v)
+	params, err := cmdparams.LoadAPIParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Equal(t, 3, params.BackoffRetries)
@@ -2520,40 +2526,40 @@ func TestLoadAPIParams_BackoffAtFuture(t *testing.T) {
 }
 
 func TestLoadAPIParams_DisableSSLVerify_FlagTakesPrecedence(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("no-ssl-verify", false)
 	v.Set("settings.no_ssl_verify", true)
 
-	params, err := cmdparams.LoadAPIParams(context.Background(), v)
+	params, err := cmdparams.LoadAPIParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.False(t, params.DisableSSLVerify)
 }
 
 func TestLoadAPIParams_DisableSSLVerify_FromConfig(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("settings.no_ssl_verify", true)
 
-	params, err := cmdparams.LoadAPIParams(context.Background(), v)
+	params, err := cmdparams.LoadAPIParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.True(t, params.DisableSSLVerify)
 }
 
 func TestLoadAPIParams_DisableSSLVerify_Default(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 
-	params, err := cmdparams.LoadAPIParams(context.Background(), v)
+	params, err := cmdparams.LoadAPIParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.False(t, params.DisableSSLVerify)
 }
 
 func TestLoadAPIParams_ProxyURL(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	tests := map[string]string{
 		"https":  "https://john:secret@example.org:8888",
@@ -2565,7 +2571,7 @@ func TestLoadAPIParams_ProxyURL(t *testing.T) {
 
 	for name, proxyURL := range tests {
 		t.Run(name, func(t *testing.T) {
-			v := viper.New()
+			v := setupViper(t)
 			v.Set("key", "00000000-0000-4000-8000-000000000000")
 			v.Set("proxy", proxyURL)
 
@@ -2578,71 +2584,71 @@ func TestLoadAPIParams_ProxyURL(t *testing.T) {
 }
 
 func TestLoadAPIParams_ProxyURL_FlagTakesPrecedence(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("proxy", "https://john:secret@example.org:8888")
 	v.Set("settings.proxy", "ignored")
 
-	params, err := cmdparams.LoadAPIParams(context.Background(), v)
+	params, err := cmdparams.LoadAPIParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Equal(t, "https://john:secret@example.org:8888", params.ProxyURL)
 }
 
 func TestLoadAPIParams_ProxyURL_FlagTakesPrecedenceOverEnvironment(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("proxy", "https://john:secret@example.org:8888")
 
 	t.Setenv("HTTPS_PROXY", "https://papa:secret@company.org:9000")
 
-	params, err := cmdparams.LoadAPIParams(context.Background(), v)
+	params, err := cmdparams.LoadAPIParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Equal(t, "https://john:secret@example.org:8888", params.ProxyURL)
 }
 
 func TestLoadAPIParams_ProxyURL_FromConfig(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("settings.proxy", "https://john:secret@example.org:8888")
 
-	params, err := cmdparams.LoadAPIParams(context.Background(), v)
+	params, err := cmdparams.LoadAPIParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Equal(t, "https://john:secret@example.org:8888", params.ProxyURL)
 }
 
 func TestLoadAPIParams_ProxyURL_FromEnvironment(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 
 	t.Setenv("HTTPS_PROXY", "https://john:secret@example.org:8888")
 
-	params, err := cmdparams.LoadAPIParams(context.Background(), v)
+	params, err := cmdparams.LoadAPIParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Equal(t, "https://john:secret@example.org:8888", params.ProxyURL)
 }
 
 func TestLoadAPIParams_ProxyURL_NoProxyFromEnvironment(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 
 	t.Setenv("NO_PROXY", "https://some.org,https://api.wakatime.com")
 
-	params, err := cmdparams.LoadAPIParams(context.Background(), v)
+	params, err := cmdparams.LoadAPIParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Empty(t, params.ProxyURL)
 }
 
 func TestLoadAPIParams_ProxyURL_InvalidFormat(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("proxy", "ftp://john:secret@example.org:8888")
 
-	_, err := cmdparams.LoadAPIParams(context.Background(), v)
+	_, err := cmdparams.LoadAPIParams(t.Context(), v)
 
 	var errauth api.ErrAuth
 
@@ -2655,83 +2661,83 @@ func TestLoadAPIParams_ProxyURL_InvalidFormat(t *testing.T) {
 }
 
 func TestLoadAPIParams_SSLCertFilepath_FlagTakesPrecedence(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("ssl-certs-file", "~/path/to/cert.pem")
 
 	home, err := os.UserHomeDir()
 	require.NoError(t, err)
 
-	params, err := cmdparams.LoadAPIParams(context.Background(), v)
+	params, err := cmdparams.LoadAPIParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Equal(t, filepath.Join(home, "/path/to/cert.pem"), params.SSLCertFilepath)
 }
 
 func TestLoadAPIParams_SSLCertFilepath_FromConfig(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("settings.ssl_certs_file", "/path/to/cert.pem")
 
-	params, err := cmdparams.LoadAPIParams(context.Background(), v)
+	params, err := cmdparams.LoadAPIParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Equal(t, "/path/to/cert.pem", params.SSLCertFilepath)
 }
 
 func TestLoadAPIParams_Hostname_FlagTakesPrecedence(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("hostname", "my-machine")
 	v.Set("settings.hostname", "ignored")
 
-	params, err := cmdparams.LoadAPIParams(context.Background(), v)
+	params, err := cmdparams.LoadAPIParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Equal(t, "my-machine", params.Hostname)
 }
 
 func TestLoadAPIParams_Hostname_FromConfig(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("settings.hostname", "my-machine")
 
-	params, err := cmdparams.LoadAPIParams(context.Background(), v)
+	params, err := cmdparams.LoadAPIParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Equal(t, "my-machine", params.Hostname)
 }
 
 func TestLoadAPIParams_Hostname_ConfigTakesPrecedence(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("settings.hostname", "my-machine")
 
 	t.Setenv("GITPOD_WORKSPACE_ID", "gitpod")
 
-	params, err := cmdparams.LoadAPIParams(context.Background(), v)
+	params, err := cmdparams.LoadAPIParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Equal(t, "my-machine", params.Hostname)
 }
 
 func TestLoadAPIParams_Hostname_FromGitpodEnv(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 
 	t.Setenv("GITPOD_WORKSPACE_ID", "gitpod")
 
-	params, err := cmdparams.LoadAPIParams(context.Background(), v)
+	params, err := cmdparams.LoadAPIParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Equal(t, "Gitpod", params.Hostname)
 }
 
 func TestLoadAPIParams_Hostname_DefaultFromSystem(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 
-	params, err := cmdparams.LoadAPIParams(context.Background(), v)
+	params, err := cmdparams.LoadAPIParams(t.Context(), v)
 	require.NoError(t, err)
 
 	expected, err := os.Hostname()
@@ -2741,7 +2747,7 @@ func TestLoadAPIParams_Hostname_DefaultFromSystem(t *testing.T) {
 }
 
 func TestLoadStatusBarParams_HideCategories_FlagTakesPrecedence(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("today-hide-categories", false)
 	v.Set("settings.status_bar_hide_categories", true)
 
@@ -2752,7 +2758,7 @@ func TestLoadStatusBarParams_HideCategories_FlagTakesPrecedence(t *testing.T) {
 }
 
 func TestLoadStatusBarParams_HideCategories_ConfigTakesPrecedence(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("settings.status_bar_hide_categories", true)
 
 	params, err := cmdparams.LoadStatusBarParams(v)
@@ -2769,7 +2775,7 @@ func TestLoadStatusBarParams_Output(t *testing.T) {
 
 	for name, out := range tests {
 		t.Run(name, func(t *testing.T) {
-			v := viper.New()
+			v := setupViper(t)
 			v.Set("output", name)
 
 			params, err := cmdparams.LoadStatusBarParams(v)
@@ -2781,7 +2787,7 @@ func TestLoadStatusBarParams_Output(t *testing.T) {
 }
 
 func TestLoadStatusBarParams_Output_Default(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 
 	params, err := cmdparams.LoadStatusBarParams(v)
 	require.NoError(t, err)
@@ -2790,7 +2796,7 @@ func TestLoadStatusBarParams_Output_Default(t *testing.T) {
 }
 
 func TestLoadStatusBarParams_Output_Invalid(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("output", "invalid")
 
 	_, err := cmdparams.LoadStatusBarParams(v)
@@ -2927,11 +2933,11 @@ func TestProjectParams_String(t *testing.T) {
 }
 
 func TestLoadHeartbeatParams_ProjectFromGitRemote(t *testing.T) {
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("git.project_from_git_remote", true)
 	v.Set("entity", "/path/to/file")
 
-	params, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
+	params, err := cmdparams.LoadHeartbeatParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.True(t, params.Project.ProjectFromGitRemote)
@@ -2993,11 +2999,11 @@ func TestLoadHeartbeatParams_ExtraHeartbeats_StdinReadOnlyOnce(t *testing.T) {
 
 	w.Close()
 
-	v := viper.New()
+	v := setupViper(t)
 	v.Set("entity", "/path/to/file")
 	v.Set("extra-heartbeats", true)
 
-	params, err := cmdparams.LoadHeartbeatParams(context.Background(), v)
+	params, err := cmdparams.LoadHeartbeatParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Len(t, params.ExtraHeartbeats, 2)
@@ -3024,7 +3030,7 @@ func TestLoadHeartbeatParams_ExtraHeartbeats_StdinReadOnlyOnce(t *testing.T) {
 	v.Set("entity", "/path/to/file")
 	v.Set("extra-heartbeats", true)
 
-	params, err = cmdparams.LoadHeartbeatParams(context.Background(), v)
+	params, err = cmdparams.LoadHeartbeatParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Len(t, params.ExtraHeartbeats, 2)
@@ -3036,9 +3042,22 @@ func TestLoadHeartbeatParams_ExtraHeartbeats_StdinReadOnlyOnce(t *testing.T) {
 
 	cmdparams.Once = sync.Once{}
 
-	params, err = cmdparams.LoadHeartbeatParams(context.Background(), v)
+	params, err = cmdparams.LoadHeartbeatParams(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Len(t, params.ExtraHeartbeats, 2)
 	assert.Empty(t, params.ExtraHeartbeats[0].LanguageAlternate)
+}
+
+func setupViper(t *testing.T) *viper.Viper {
+	multilineOption := iniv1.LoadOptions{AllowPythonMultilineValues: true}
+	iniCodec := viperini.Codec{LoadOptions: multilineOption}
+
+	codecRegistry := viper.NewCodecRegistry()
+	err := codecRegistry.RegisterCodec("ini", iniCodec)
+	require.NoError(t, err)
+
+	v := viper.NewWithOptions(viper.WithCodecRegistry(codecRegistry))
+
+	return v
 }

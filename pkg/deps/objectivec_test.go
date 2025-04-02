@@ -1,7 +1,6 @@
 package deps_test
 
 import (
-	"context"
 	"testing"
 
 	"github.com/wakatime/wakatime-cli/pkg/deps"
@@ -13,7 +12,7 @@ import (
 func TestParserObjectiveC_Parse(t *testing.T) {
 	parser := deps.ParserObjectiveC{}
 
-	dependencies, err := parser.Parse(context.Background(), "testdata/objective_c.m")
+	dependencies, err := parser.Parse(t.Context(), "testdata/objective_c.m")
 	require.NoError(t, err)
 
 	assert.Equal(t, []string{

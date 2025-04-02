@@ -2,7 +2,6 @@ package offlineprint_test
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"io"
 	"os"
@@ -56,7 +55,7 @@ func TestPrintOfflineHeartbeats(t *testing.T) {
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 
-	code, err := offlineprint.Run(context.Background(), v)
+	code, err := offlineprint.Run(t.Context(), v)
 	require.NoError(t, err)
 
 	outC := make(chan string)
@@ -96,7 +95,7 @@ func TestPrintOfflineHeartbeats_Empty(t *testing.T) {
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 
-	code, err := offlineprint.Run(context.Background(), v)
+	code, err := offlineprint.Run(t.Context(), v)
 	require.NoError(t, err)
 
 	outC := make(chan string)

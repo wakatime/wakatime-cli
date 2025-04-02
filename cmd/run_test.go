@@ -67,7 +67,7 @@ func TestRunCmd_Err(t *testing.T) {
 		return 42, errors.New("fail")
 	}
 
-	err = cmd.RunCmd(context.Background(), v, false, false, cmdFn)
+	err = cmd.RunCmd(t.Context(), v, false, false, cmdFn)
 	require.Error(t, err)
 
 	var errexitcode exitcode.Err
@@ -82,7 +82,7 @@ func TestRunCmd_ErrBackoff(t *testing.T) {
 	testServerURL, router, tearDown := setupTestServer()
 	defer tearDown()
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	var numCalls int
 
@@ -181,7 +181,7 @@ func TestRunCmd_Verbose_Err(t *testing.T) {
 		return 42, errors.New("fail")
 	}
 
-	err = cmd.RunCmd(context.Background(), v, true, false, cmdFn)
+	err = cmd.RunCmd(t.Context(), v, true, false, cmdFn)
 
 	var errexitcode exitcode.Err
 
@@ -196,7 +196,7 @@ func TestRunCmd_Verbose_ErrBackoff(t *testing.T) {
 	testServerURL, router, tearDown := setupTestServer()
 	defer tearDown()
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	var numCalls int
 
@@ -263,7 +263,7 @@ func TestRunCmd_SendDiagnostics_Err(t *testing.T) {
 	testServerURL, router, tearDown := setupTestServer()
 	defer tearDown()
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	var numCalls int
 
@@ -352,7 +352,7 @@ func TestRunCmd_SendDiagnostics_Panic(t *testing.T) {
 	testServerURL, router, tearDown := setupTestServer()
 	defer tearDown()
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	var numCalls int
 
@@ -443,7 +443,7 @@ func TestRunCmd_SendDiagnostics_NoLogs_Panic(t *testing.T) {
 	testServerURL, router, tearDown := setupTestServer()
 	defer tearDown()
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	var numCalls int
 
@@ -532,7 +532,7 @@ func TestRunCmd_SendDiagnostics_WakaError(t *testing.T) {
 	testServerURL, router, tearDown := setupTestServer()
 	defer tearDown()
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	var numCalls int
 
@@ -698,7 +698,7 @@ func TestRunCmdWithOfflineSync(t *testing.T) {
 		return exitcode.Success, nil
 	}
 
-	err = cmd.RunCmdWithOfflineSync(context.Background(), v, false, false, cmdFn)
+	err = cmd.RunCmdWithOfflineSync(t.Context(), v, false, false, cmdFn)
 	require.NoError(t, err)
 
 	assert.Equal(t, 1, cmdNumCalls)

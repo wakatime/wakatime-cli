@@ -1,7 +1,6 @@
 package fileexperts_test
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -88,7 +87,7 @@ func TestFileExperts(t *testing.T) {
 	v.Set("project", "wakatime-cli")
 	v.Set("entity", "testdata/main.go")
 
-	output, err := fileexperts.FileExperts(context.Background(), v)
+	output, err := fileexperts.FileExperts(t.Context(), v)
 	require.NoError(t, err)
 
 	assert.Equal(t, "You: 40 mins | Karl: 21 mins", output)
@@ -97,7 +96,7 @@ func TestFileExperts(t *testing.T) {
 }
 
 func TestFileExperts_NonExistingEntity(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	logFile, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)
@@ -144,7 +143,7 @@ func TestFileExperts_ErrApi(t *testing.T) {
 	v.Set("api-url", testServerURL)
 	v.Set("entity", "testdata/main.go")
 
-	_, err := fileexperts.FileExperts(context.Background(), v)
+	_, err := fileexperts.FileExperts(t.Context(), v)
 	require.Error(t, err)
 
 	var errapi api.Err
@@ -178,7 +177,7 @@ func TestFileExperts_ErrAuth(t *testing.T) {
 	v.Set("api-url", testServerURL)
 	v.Set("entity", "testdata/main.go")
 
-	_, err := fileexperts.FileExperts(context.Background(), v)
+	_, err := fileexperts.FileExperts(t.Context(), v)
 	require.Error(t, err)
 
 	var errauth api.ErrAuth
@@ -211,7 +210,7 @@ func TestFileExperts_ErrBadRequest(t *testing.T) {
 	v.Set("api-url", testServerURL)
 	v.Set("entity", "testdata/main.go")
 
-	_, err := fileexperts.FileExperts(context.Background(), v)
+	_, err := fileexperts.FileExperts(t.Context(), v)
 	require.Error(t, err)
 
 	var errbadRequest api.ErrBadRequest

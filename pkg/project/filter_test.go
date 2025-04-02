@@ -53,7 +53,7 @@ func TestWithFiltering(t *testing.T) {
 		}, nil
 	})
 
-	result, err := h(context.Background(), []heartbeat.Heartbeat{first, second})
+	result, err := h(t.Context(), []heartbeat.Heartbeat{first, second})
 	require.NoError(t, err)
 
 	assert.Equal(t, []heartbeat.Result{

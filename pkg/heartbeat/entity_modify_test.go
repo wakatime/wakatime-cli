@@ -35,7 +35,7 @@ func TestWithEntityModifier_XCodePlayground(t *testing.T) {
 		}, nil
 	})
 
-	result, err := handle(context.Background(), []heartbeat.Heartbeat{
+	result, err := handle(t.Context(), []heartbeat.Heartbeat{
 		{
 			Entity:     filepath.Join(tmpDir, "wakatime.playground"),
 			EntityType: heartbeat.FileType,

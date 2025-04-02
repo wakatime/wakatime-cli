@@ -1,7 +1,6 @@
 package deps_test
 
 import (
-	"context"
 	"testing"
 
 	"github.com/wakatime/wakatime-cli/pkg/deps"
@@ -13,7 +12,7 @@ import (
 func TestParserGo_Parse(t *testing.T) {
 	parser := deps.ParserGo{}
 
-	dependencies, err := parser.Parse(context.Background(), "testdata/golang.go")
+	dependencies, err := parser.Parse(t.Context(), "testdata/golang.go")
 	require.NoError(t, err)
 
 	assert.Equal(t, []string{

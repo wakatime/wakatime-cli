@@ -446,7 +446,7 @@ func languageTests() map[string]heartbeat.Language {
 		"Matlab session":                   heartbeat.LanguageMatlabSession,
 		"Max":                              heartbeat.LanguageMax,
 		"Max/MSP":                          heartbeat.LanguageMaxMSP,
-		"mcfunction":                       heartbeat.LanguageMcfunction,
+		"MCFunction":                       heartbeat.LanguageMCFunction,
 		"Meson":                            heartbeat.LanguageMeson,
 		"Metafont":                         heartbeat.LanguageMetafont,
 		"Metal":                            heartbeat.LanguageMetal,

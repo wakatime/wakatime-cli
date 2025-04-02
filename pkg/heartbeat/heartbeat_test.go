@@ -180,7 +180,7 @@ func TestNewHandle(t *testing.T) {
 	}
 
 	handle := heartbeat.NewHandle(&sender, opts...)
-	_, err := handle(context.Background(), []heartbeat.Heartbeat{
+	_, err := handle(t.Context(), []heartbeat.Heartbeat{
 		{
 			Category:   heartbeat.CodingCategory,
 			Entity:     "/tmp/main.go",
@@ -205,7 +205,7 @@ func TestUserAgentUnknownPlugin(t *testing.T) {
 		runtime.Version(),
 	)
 
-	assert.Equal(t, expected, heartbeat.UserAgent(context.Background(), ""))
+	assert.Equal(t, expected, heartbeat.UserAgent(t.Context(), ""))
 }
 
 func TestUserAgent(t *testing.T) {
@@ -221,7 +221,7 @@ func TestUserAgent(t *testing.T) {
 		runtime.Version(),
 	)
 
-	assert.Equal(t, expected, heartbeat.UserAgent(context.Background(), "testplugin"))
+	assert.Equal(t, expected, heartbeat.UserAgent(t.Context(), "testplugin"))
 }
 
 func TestRemoteAddressRegex(t *testing.T) {

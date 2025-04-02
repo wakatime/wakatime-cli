@@ -1,7 +1,6 @@
 package deps_test
 
 import (
-	"context"
 	"testing"
 
 	"github.com/wakatime/wakatime-cli/pkg/deps"
@@ -13,7 +12,7 @@ import (
 func TestParserHaxe_Parse(t *testing.T) {
 	parser := deps.ParserHaxe{}
 
-	dependencies, err := parser.Parse(context.Background(), "testdata/haxe.hx")
+	dependencies, err := parser.Parse(t.Context(), "testdata/haxe.hx")
 	require.NoError(t, err)
 
 	assert.Equal(t, []string{

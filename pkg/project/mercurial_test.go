@@ -1,7 +1,6 @@
 package project_test
 
 import (
-	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -19,7 +18,7 @@ func TestMercurial_Detect(t *testing.T) {
 		Filepath: filepath.Join(fp, "wakatime-cli/src/pkg/file.go"),
 	}
 
-	result, detected, err := m.Detect(context.Background())
+	result, detected, err := m.Detect(t.Context())
 	require.NoError(t, err)
 
 	assert.True(t, detected)
@@ -38,7 +37,7 @@ func TestMercurial_Detect_BranchWithSlash(t *testing.T) {
 		Filepath: filepath.Join(fp, "wakatime-cli/src/pkg/file.go"),
 	}
 
-	result, detected, err := m.Detect(context.Background())
+	result, detected, err := m.Detect(t.Context())
 	require.NoError(t, err)
 
 	assert.True(t, detected)
@@ -57,7 +56,7 @@ func TestMercurial_Detect_NoBranch(t *testing.T) {
 		Filepath: filepath.Join(fp, "wakatime-cli/src/pkg/file.go"),
 	}
 
-	result, detected, err := m.Detect(context.Background())
+	result, detected, err := m.Detect(t.Context())
 	require.NoError(t, err)
 
 	assert.True(t, detected)

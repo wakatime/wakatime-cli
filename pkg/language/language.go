@@ -133,6 +133,10 @@ func detectSpecialCases(ctx context.Context, fp string) (heartbeat.Language, boo
 
 // folderContainsCFiles returns true, if filder contains c files.
 func folderContainsCFiles(ctx context.Context, dir string) bool {
+	if dir == "" {
+		return false
+	}
+
 	logger := log.Extract(ctx)
 
 	extensions, err := loadFolderExtensions(dir)
@@ -152,6 +156,10 @@ func folderContainsCFiles(ctx context.Context, dir string) bool {
 
 // folderContainsCFiles returns true, if filder contains c++ files.
 func folderContainsCPPFiles(ctx context.Context, dir string) bool {
+	if dir == "" {
+		return false
+	}
+
 	logger := log.Extract(ctx)
 
 	extensions, err := loadFolderExtensions(dir)

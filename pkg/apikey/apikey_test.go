@@ -57,7 +57,7 @@ func TestWithReplacing(t *testing.T) {
 		}, nil
 	})
 
-	result, err := h(context.Background(), []heartbeat.Heartbeat{first, second})
+	result, err := h(t.Context(), []heartbeat.Heartbeat{first, second})
 	require.NoError(t, err)
 
 	assert.Equal(t, []heartbeat.Result{
@@ -85,7 +85,7 @@ func TestApiKey_MatchPattern(t *testing.T) {
 		},
 	}
 
-	result, ok := apikey.MatchPattern(context.Background(), rp, patterns)
+	result, ok := apikey.MatchPattern(t.Context(), rp, patterns)
 
 	assert.True(t, ok)
 	assert.Equal(t, "00000000-0000-4000-8000-000000000001", result)
@@ -109,13 +109,13 @@ func TestApiKey_MatchPattern_NoMatch(t *testing.T) {
 		},
 	}
 
-	_, ok := apikey.MatchPattern(context.Background(), rp, patterns)
+	_, ok := apikey.MatchPattern(t.Context(), rp, patterns)
 
 	assert.False(t, ok)
 }
 
 func TestApiKey_MatchPattern_ZeroPatterns(t *testing.T) {
-	_, ok := apikey.MatchPattern(context.Background(), "", []apikey.MapPattern{})
+	_, ok := apikey.MatchPattern(t.Context(), "", []apikey.MapPattern{})
 
 	assert.False(t, ok)
 }

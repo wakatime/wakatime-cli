@@ -23,7 +23,7 @@ import (
 )
 
 func TestQueueFilepath(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	tests := map[string]struct {
 		EnvVar string
@@ -98,7 +98,7 @@ func TestWithQueue(t *testing.T) {
 	})
 
 	// run
-	results, err := handle(context.Background(), []heartbeat.Heartbeat{
+	results, err := handle(t.Context(), []heartbeat.Heartbeat{
 		testHeartbeats()[0],
 		testHeartbeats()[1],
 	})
@@ -160,7 +160,7 @@ func TestWithQueue_NoHeartbeats(t *testing.T) {
 	})
 
 	// run
-	results, err := handle(context.Background(), []heartbeat.Heartbeat{})
+	results, err := handle(t.Context(), []heartbeat.Heartbeat{})
 	require.NoError(t, err)
 
 	// check
@@ -186,7 +186,7 @@ func TestWithQueue_ApiError(t *testing.T) {
 	})
 
 	// run
-	_, err = handle(context.Background(), []heartbeat.Heartbeat{
+	_, err = handle(t.Context(), []heartbeat.Heartbeat{
 		testHeartbeats()[0],
 		testHeartbeats()[1],
 	})
@@ -259,7 +259,7 @@ func TestWithQueue_InvalidResults(t *testing.T) {
 	})
 
 	// run
-	results, err := handle(context.Background(), testHeartbeats())
+	results, err := handle(t.Context(), testHeartbeats())
 	require.NoError(t, err)
 
 	// check
@@ -337,7 +337,7 @@ func TestWithQueue_HandleLeftovers(t *testing.T) {
 	})
 
 	// run
-	results, err := handle(context.Background(), testHeartbeats())
+	results, err := handle(t.Context(), testHeartbeats())
 	require.NoError(t, err)
 
 	// check
@@ -431,7 +431,7 @@ func TestWithSync(t *testing.T) {
 	})
 
 	// run
-	results, err := handle(context.Background(), nil)
+	results, err := handle(t.Context(), nil)
 	require.NoError(t, err)
 
 	// check
@@ -486,7 +486,7 @@ func TestSync_MultipleRequests(t *testing.T) {
 	err = db.Close()
 	require.NoError(t, err)
 
-	syncFn := offline.Sync(context.Background(), f.Name(), 1000)
+	syncFn := offline.Sync(t.Context(), f.Name(), 1000)
 
 	var numCalls int
 
@@ -585,7 +585,7 @@ func TestSync_APIError(t *testing.T) {
 	err = db.Close()
 	require.NoError(t, err)
 
-	syncFn := offline.Sync(context.Background(), f.Name(), 10)
+	syncFn := offline.Sync(t.Context(), f.Name(), 10)
 
 	var numCalls int
 
@@ -673,7 +673,7 @@ func TestSync_InvalidResults(t *testing.T) {
 	err = db.Close()
 	require.NoError(t, err)
 
-	syncFn := offline.Sync(context.Background(), f.Name(), 1000)
+	syncFn := offline.Sync(t.Context(), f.Name(), 1000)
 
 	var numCalls int
 
@@ -782,7 +782,7 @@ func TestSync_SyncLimit(t *testing.T) {
 	err = db.Close()
 	require.NoError(t, err)
 
-	syncFn := offline.Sync(context.Background(), f.Name(), 1)
+	syncFn := offline.Sync(t.Context(), f.Name(), 1)
 
 	var numCalls int
 
@@ -862,7 +862,7 @@ func TestSync_SyncUnlimited(t *testing.T) {
 	err = db.Close()
 	require.NoError(t, err)
 
-	syncFn := offline.Sync(context.Background(), f.Name(), 0)
+	syncFn := offline.Sync(t.Context(), f.Name(), 0)
 
 	var numCalls int
 
@@ -941,7 +941,7 @@ func TestCountHeartbeats(t *testing.T) {
 	err = db.Close()
 	require.NoError(t, err)
 
-	count, err := offline.CountHeartbeats(context.Background(), f.Name())
+	count, err := offline.CountHeartbeats(t.Context(), f.Name())
 	require.NoError(t, err)
 
 	assert.Equal(t, count, 3)
@@ -954,7 +954,7 @@ func TestCountHeartbeats_Empty(t *testing.T) {
 
 	defer f.Close()
 
-	count, err := offline.CountHeartbeats(context.Background(), f.Name())
+	count, err := offline.CountHeartbeats(t.Context(), f.Name())
 	require.NoError(t, err)
 
 	assert.Equal(t, count, 0)
@@ -990,7 +990,7 @@ func TestReadHeartbeats(t *testing.T) {
 	err = db.Close()
 	require.NoError(t, err)
 
-	hh, err := offline.ReadHeartbeats(context.Background(), f.Name(), offline.PrintMaxDefault)
+	hh, err := offline.ReadHeartbeats(t.Context(), f.Name(), offline.PrintMaxDefault)
 	require.NoError(t, err)
 
 	assert.Len(t, hh, 2)
@@ -1026,7 +1026,7 @@ func TestReadHeartbeats_WithLimit(t *testing.T) {
 	err = db.Close()
 	require.NoError(t, err)
 
-	hh, err := offline.ReadHeartbeats(context.Background(), f.Name(), 1)
+	hh, err := offline.ReadHeartbeats(t.Context(), f.Name(), 1)
 	require.NoError(t, err)
 
 	assert.Len(t, hh, 1)
@@ -1039,7 +1039,7 @@ func TestReadHeartbeats_Empty(t *testing.T) {
 
 	defer f.Close()
 
-	hh, err := offline.ReadHeartbeats(context.Background(), f.Name(), offline.PrintMaxDefault)
+	hh, err := offline.ReadHeartbeats(t.Context(), f.Name(), offline.PrintMaxDefault)
 	require.NoError(t, err)
 
 	assert.Len(t, hh, 0)

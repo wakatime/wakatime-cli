@@ -16,7 +16,7 @@ import (
 func TestShouldBackoff(t *testing.T) {
 	at := time.Now().Add(time.Second * -1)
 
-	should := shouldBackoff(context.Background(), 1, at)
+	should := shouldBackoff(t.Context(), 1, at)
 
 	assert.True(t, should)
 }
@@ -24,7 +24,7 @@ func TestShouldBackoff(t *testing.T) {
 func TestShouldBackoff_AfterResetTime(t *testing.T) {
 	at := time.Now().Add(time.Second * -1)
 
-	should := shouldBackoff(context.Background(), 8, at)
+	should := shouldBackoff(t.Context(), 8, at)
 
 	assert.False(t, should)
 }
@@ -32,13 +32,13 @@ func TestShouldBackoff_AfterResetTime(t *testing.T) {
 func TestShouldBackoff_AfterResetTime_ZeroRetries(t *testing.T) {
 	at := time.Now().Add(maxBackoffSecs + 1*time.Second)
 
-	should := shouldBackoff(context.Background(), 0, at)
+	should := shouldBackoff(t.Context(), 0, at)
 
 	assert.False(t, should)
 }
 
 func TestShouldBackoff_NegateBackoff(t *testing.T) {
-	should := shouldBackoff(context.Background(), 0, time.Time{})
+	should := shouldBackoff(t.Context(), 0, time.Time{})
 
 	assert.False(t, should)
 }
@@ -49,7 +49,7 @@ func TestUpdateBackoffSettings(t *testing.T) {
 
 	defer tmpFile.Close()
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	v := viper.New()
 	v.Set("config", tmpFile.Name())
@@ -78,7 +78,7 @@ func TestUpdateBackoffSettings_NotInBackoff(t *testing.T) {
 
 	defer tmpFile.Close()
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	v := viper.New()
 	v.Set("config", tmpFile.Name())

@@ -34,9 +34,9 @@ func WithEntityModifier() HandleOption {
 }
 
 func isXCodePlayground(ctx context.Context, fp string) bool {
-	if !(strings.HasSuffix(fp, ".playground") ||
-		strings.HasSuffix(fp, ".xcplayground") ||
-		strings.HasSuffix(fp, ".xcplaygroundpage")) {
+	if !strings.HasSuffix(fp, ".playground") &&
+		!strings.HasSuffix(fp, ".xcplayground") &&
+		!strings.HasSuffix(fp, ".xcplaygroundpage") {
 		return false
 	}
 

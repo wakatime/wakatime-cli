@@ -1,7 +1,6 @@
 package project_test
 
 import (
-	"context"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -22,7 +21,7 @@ func TestSubversion_Detect(t *testing.T) {
 		Filepath: filepath.Join(fp, "wakatime-cli", "src", "pkg", "file.go"),
 	}
 
-	result, detected, err := s.Detect(context.Background())
+	result, detected, err := s.Detect(t.Context())
 	require.NoError(t, err)
 
 	assert.True(t, detected)
@@ -42,7 +41,7 @@ func TestSubversion_Detect_Branch(t *testing.T) {
 		Filepath: filepath.Join(fp, "wakatime-cli/src/pkg/file.go"),
 	}
 
-	result, detected, err := s.Detect(context.Background())
+	result, detected, err := s.Detect(t.Context())
 	require.NoError(t, err)
 
 	assert.True(t, detected)

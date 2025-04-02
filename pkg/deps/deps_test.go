@@ -36,7 +36,7 @@ func TestWithDetection(t *testing.T) {
 		}, nil
 	})
 
-	result, err := h(context.Background(), []heartbeat.Heartbeat{{
+	result, err := h(t.Context(), []heartbeat.Heartbeat{{
 		Entity:     "testdata/golang_minimal.go",
 		EntityType: heartbeat.FileType,
 		Language:   heartbeat.PointerTo("Go"),
@@ -65,7 +65,7 @@ func TestWithDetection_SkipSanitized(t *testing.T) {
 		}, nil
 	})
 
-	result, err := h(context.Background(), []heartbeat.Heartbeat{{
+	result, err := h(t.Context(), []heartbeat.Heartbeat{{
 		Entity:     "testdata/golang.go",
 		EntityType: heartbeat.FileType,
 		Language:   heartbeat.PointerTo("Go"),
@@ -103,7 +103,7 @@ func TestWithDetection_LocalFile(t *testing.T) {
 		}, nil
 	})
 
-	result, err := h(context.Background(), []heartbeat.Heartbeat{{
+	result, err := h(t.Context(), []heartbeat.Heartbeat{{
 		Entity:     "testdata/golang.go",
 		EntityType: heartbeat.FileType,
 		Language:   heartbeat.PointerTo("Go"),
@@ -136,7 +136,7 @@ func TestWithDetection_NonFileType(t *testing.T) {
 		}, nil
 	})
 
-	result, err := h(context.Background(), []heartbeat.Heartbeat{{
+	result, err := h(t.Context(), []heartbeat.Heartbeat{{
 		Entity:     "testdata/golang.go",
 		EntityType: heartbeat.AppType,
 	}})
@@ -150,7 +150,7 @@ func TestWithDetection_NonFileType(t *testing.T) {
 }
 
 func TestDetect(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	tests := map[string]struct {
 		Filepath     string
@@ -279,7 +279,7 @@ func TestDetect(t *testing.T) {
 
 func TestDetect_DuplicatesRemoved(t *testing.T) {
 	deps, err := deps.Detect(
-		context.Background(),
+		t.Context(),
 		"testdata/golang_duplicate.go",
 		heartbeat.LanguageGo,
 	)
@@ -292,7 +292,7 @@ func TestDetect_DuplicatesRemoved(t *testing.T) {
 
 func TestDetect_LongDependenciesRemoved(t *testing.T) {
 	deps, err := deps.Detect(
-		context.Background(),
+		t.Context(),
 		"testdata/python_with_long_import.py",
 		heartbeat.LanguagePython,
 	)
@@ -308,7 +308,7 @@ func TestDetect_LongDependenciesRemoved(t *testing.T) {
 
 func TestDetect_MaxDependenciesCountReached(t *testing.T) {
 	deps, err := deps.Detect(
-		context.Background(),
+		t.Context(),
 		"testdata/python_with_many_imports.py",
 		heartbeat.LanguagePython,
 	)
@@ -319,7 +319,7 @@ func TestDetect_MaxDependenciesCountReached(t *testing.T) {
 
 func TestDetect_EmptyDependenciesRemoved(t *testing.T) {
 	deps, err := deps.Detect(
-		context.Background(),
+		t.Context(),
 		"testdata/bower_empty_dependency.json",
 		heartbeat.LanguageJSON,
 	)

@@ -1,7 +1,6 @@
 package offline_test
 
 import (
-	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -17,7 +16,7 @@ func TestQueueFilepathLegacy(t *testing.T) {
 	home, err := os.UserHomeDir()
 	require.NoError(t, err)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	tests := map[string]struct {
 		ViperValue string

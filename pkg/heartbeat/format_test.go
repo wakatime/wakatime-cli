@@ -41,7 +41,7 @@ func TestWithFormatting(t *testing.T) {
 		}, nil
 	})
 
-	result, err := handle(context.Background(), []heartbeat.Heartbeat{{
+	result, err := handle(t.Context(), []heartbeat.Heartbeat{{
 		Entity:     "testdata/main.go",
 		EntityType: heartbeat.FileType,
 	}})
@@ -69,7 +69,7 @@ func TestFormat_NotFileType(t *testing.T) {
 				EntityType: entityType,
 			}
 
-			formatted := heartbeat.Format(context.Background(), h)
+			formatted := heartbeat.Format(t.Context(), h)
 
 			assert.Equal(t, "/unmodified", formatted.Entity)
 		})
@@ -86,7 +86,7 @@ func TestFormat_WindowsPath(t *testing.T) {
 		EntityType: heartbeat.FileType,
 	}
 
-	formatted := heartbeat.Format(context.Background(), h)
+	formatted := heartbeat.Format(t.Context(), h)
 
 	assert.Equal(t, "C:/Users/project/main.go", formatted.Entity)
 }
@@ -101,7 +101,7 @@ func TestFormat_NetworkMount(t *testing.T) {
 		EntityType: heartbeat.FileType,
 	}
 
-	r := heartbeat.Format(context.Background(), h)
+	r := heartbeat.Format(t.Context(), h)
 
 	assert.Equal(t, heartbeat.Heartbeat{
 		Entity:     `\\192.168.1.1/apilibrary.sl`,

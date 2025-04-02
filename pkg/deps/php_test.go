@@ -1,7 +1,6 @@
 package deps_test
 
 import (
-	"context"
 	"testing"
 
 	"github.com/wakatime/wakatime-cli/pkg/deps"
@@ -13,7 +12,7 @@ import (
 func TestParserPHP_Parse(t *testing.T) {
 	parser := deps.ParserPHP{}
 
-	dependencies, err := parser.Parse(context.Background(), "testdata/php.php")
+	dependencies, err := parser.Parse(t.Context(), "testdata/php.php")
 	require.NoError(t, err)
 
 	assert.Equal(t, []string{

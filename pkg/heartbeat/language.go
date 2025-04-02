@@ -101,6 +101,8 @@ const (
 	LanguageAstro
 	// LanguageAsymptote represents the Asymptote programming language.
 	LanguageAsymptote
+	// LanguageATL represents the ATL programming language.
+	LanguageATL
 	// LanguageATS represents the ATS programming language.
 	LanguageATS
 	// LanguageAugeas represents the Augeas programming language.
@@ -741,6 +743,8 @@ const (
 	LanguageJSON
 	// LanguageJSON5 represents the JSON5 programming language.
 	LanguageJSON5
+	// LanguageJSONata represents the JSONata programming language.
+	LanguageJSONata
 	// LanguageJSONiq represents the JSONiq programming language.
 	LanguageJSONiq
 	// LanguageJSONLD represents the JSON-LD programming language.
@@ -881,8 +885,8 @@ const (
 	LanguageMax
 	// LanguageMaxMSP represents the MaxMSP programming language.
 	LanguageMaxMSP
-	// LanguageMcfunction represents the mcfunction programming language.
-	LanguageMcfunction
+	// LanguageMCFunction represents the MCFunction programming language.
+	LanguageMCFunction
 	// LanguageMeson represents the Meson programming language.
 	LanguageMeson
 	// LanguageMetafont represents the Metafont programming language.
@@ -1287,6 +1291,8 @@ const (
 	LanguageSmPL
 	// LanguageSMT represents the LanguageSMT programming language.
 	LanguageSMT
+	// LanguageSNBT represents the SNBT programming language.
+	LanguageSNBT
 	// LanguageSnobol represents the Snobol programming language.
 	LanguageSnobol
 	// LanguageSnowball represents the Snowball programming language.
@@ -1419,6 +1425,8 @@ const (
 	LanguageTwig
 	// LanguageTXL represent the TXL programming language.
 	LanguageTXL
+	// LanguageTypst represents the Typst programming language.
+	LanguageTypst
 	// LanguageTypeLanguage represent the TypeLanguage programming language.
 	LanguageTypeLanguage
 	// LanguageTypeScript represents the TypeScript programming language.
@@ -1638,6 +1646,7 @@ const (
 	languageAssemblyStr                    = "Assembly"
 	languageAstroStr                       = "Astro"
 	languageAsymptoteStr                   = "Asymptote"
+	languageATLStr                         = "ATL"
 	languageATSStr                         = "ATS"
 	languageAugeasStr                      = "Augeas"
 	languageAutoconfStr                    = "Autoconf"
@@ -1960,6 +1969,7 @@ const (
 	languageJSGFStr                        = "JSGF"
 	languageJSONStr                        = "JSON"
 	languageJSON5Str                       = "JSON5"
+	languageJSONataStr                     = "JSONata"
 	languageJSONiqStr                      = "JSONiq"
 	languageJSONLDStr                      = "JSONLD"
 	languageJsonnetStr                     = "Jsonnet"
@@ -2031,7 +2041,7 @@ const (
 	languageMatlabSessionStr               = "Matlab session"
 	languageMaxStr                         = "Max"
 	languageMaxMSPStr                      = "Max/MSP"
-	languageMcfunctionStr                  = "mcfunction"
+	languageMCFunctionStr                  = "MCFunction"
 	languageMesonStr                       = "Meson"
 	languageMetafontStr                    = "Metafont"
 	languageMetalStr                       = "Metal"
@@ -2236,6 +2246,7 @@ const (
 	languageSMLStr                         = "Standard ML"
 	languageSmPLStr                        = "SmPL"
 	languageSMTStr                         = "SMT"
+	languageSNBTStr                        = "SNBT"
 	languageSnobolStr                      = "Snobol"
 	languageSnowballStr                    = "Snowball"
 	languageSolidityStr                    = "Solidity"
@@ -2303,6 +2314,7 @@ const (
 	languageTurtleStr                      = "Turtle"
 	languageTwigStr                        = "Twig"
 	languageTXLStr                         = "TXL"
+	languageTypstStr                       = "Typst"
 	languageTypeLanguageStr                = "Type Language"
 	languageTypeScriptStr                  = "TypeScript"
 	languageTypoScriptStr                  = "TypoScript"
@@ -2537,6 +2549,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageAstro, true
 	case normalizeString(languageAsymptoteStr):
 		return LanguageAsymptote, true
+	case normalizeString(languageATLStr):
+		return LanguageATL, true
 	case normalizeString(languageATSStr):
 		return LanguageATS, true
 	case normalizeString(languageAugeasStr):
@@ -3179,6 +3193,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageJSON, true
 	case normalizeString(languageJSON5Str):
 		return LanguageJSON5, true
+	case normalizeString(languageJSONataStr):
+		return LanguageJSONata, true
 	case normalizeString(languageJSONiqStr):
 		return LanguageJSONiq, true
 	case normalizeString(languageJSONLDStr):
@@ -3321,8 +3337,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageMax, true
 	case normalizeString(languageMaxMSPStr):
 		return LanguageMaxMSP, true
-	case normalizeString(languageMcfunctionStr):
-		return LanguageMcfunction, true
+	case normalizeString(languageMCFunctionStr):
+		return LanguageMCFunction, true
 	case normalizeString(languageMesonStr):
 		return LanguageMeson, true
 	case normalizeString(languageMetafontStr):
@@ -3729,6 +3745,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageSmPL, true
 	case normalizeString(languageSMTStr):
 		return LanguageSMT, true
+	case normalizeString(languageSNBTStr):
+		return LanguageSNBT, true
 	case normalizeString(languageSnobolStr):
 		return LanguageSnobol, true
 	case normalizeString(languageSnowballStr):
@@ -3863,6 +3881,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageTwig, true
 	case normalizeString(languageTXLStr):
 		return LanguageTXL, true
+	case normalizeString(languageTypstStr):
+		return LanguageTypst, true
 	case normalizeString(languageTypeLanguageStr):
 		return LanguageTypeLanguage, true
 	case normalizeString(languageTypeScriptStr):
@@ -4251,6 +4271,8 @@ func (l Language) String() string {
 		return languageAstroStr
 	case LanguageAsymptote:
 		return languageAsymptoteStr
+	case LanguageATL:
+		return languageATLStr
 	case LanguageATS:
 		return languageATSStr
 	case LanguageAugeas:
@@ -4885,6 +4907,8 @@ func (l Language) String() string {
 		return languageJSONStr
 	case LanguageJSON5:
 		return languageJSON5Str
+	case LanguageJSONata:
+		return languageJSONataStr
 	case LanguageJSONiq:
 		return languageJSONiqStr
 	case LanguageJSONLD:
@@ -5025,8 +5049,8 @@ func (l Language) String() string {
 		return languageMaxStr
 	case LanguageMaxMSP:
 		return languageMaxMSPStr
-	case LanguageMcfunction:
-		return languageMcfunctionStr
+	case LanguageMCFunction:
+		return languageMCFunctionStr
 	case LanguageMeson:
 		return languageMesonStr
 	case LanguageMetafont:
@@ -5431,6 +5455,8 @@ func (l Language) String() string {
 		return languageSmPLStr
 	case LanguageSMT:
 		return languageSMTStr
+	case LanguageSNBT:
+		return languageSNBTStr
 	case LanguageSnobol:
 		return languageSnobolStr
 	case LanguageSnowball:
@@ -5563,6 +5589,8 @@ func (l Language) String() string {
 		return languageTwigStr
 	case LanguageTXL:
 		return languageTXLStr
+	case LanguageTypst:
+		return languageTypstStr
 	case LanguageTypeLanguage:
 		return languageTypeLanguageStr
 	case LanguageTypeScript:

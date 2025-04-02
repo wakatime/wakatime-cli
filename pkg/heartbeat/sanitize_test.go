@@ -38,7 +38,7 @@ func TestWithSanitization_ObfuscateFile(t *testing.T) {
 		}, nil
 	})
 
-	result, err := handle(context.Background(), []heartbeat.Heartbeat{testHeartbeat()})
+	result, err := handle(t.Context(), []heartbeat.Heartbeat{testHeartbeat()})
 	require.NoError(t, err)
 
 	assert.Equal(t, []heartbeat.Result{
@@ -49,7 +49,7 @@ func TestWithSanitization_ObfuscateFile(t *testing.T) {
 }
 
 func TestSanitize_Obfuscate(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	tests := map[string]struct {
 		Heartbeat heartbeat.Heartbeat
@@ -128,7 +128,7 @@ func TestSanitize_Obfuscate(t *testing.T) {
 }
 
 func TestSanitize_ObfuscateFile_SkipBranchIfNotMatching(t *testing.T) {
-	r := heartbeat.Sanitize(context.Background(), testHeartbeat(), heartbeat.SanitizeConfig{
+	r := heartbeat.Sanitize(t.Context(), testHeartbeat(), heartbeat.SanitizeConfig{
 		FilePatterns:   []regex.Regex{regex.NewRegexpWrap(regexp.MustCompile(".*"))},
 		BranchPatterns: []regex.Regex{regex.NewRegexpWrap(regexp.MustCompile("not_matching"))},
 	})
@@ -151,7 +151,7 @@ func TestSanitize_ObfuscateFile_NilFields(t *testing.T) {
 	h.Branch = nil
 	h.Dependencies = nil
 
-	r := heartbeat.Sanitize(context.Background(), h, heartbeat.SanitizeConfig{
+	r := heartbeat.Sanitize(t.Context(), h, heartbeat.SanitizeConfig{
 		FilePatterns:   []regex.Regex{regex.NewRegexpWrap(regexp.MustCompile(".*"))},
 		BranchPatterns: []regex.Regex{regex.NewRegexpWrap(regexp.MustCompile(".*"))},
 	})
@@ -169,7 +169,7 @@ func TestSanitize_ObfuscateFile_NilFields(t *testing.T) {
 }
 
 func TestSanitize_ObfuscateProject(t *testing.T) {
-	r := heartbeat.Sanitize(context.Background(), testHeartbeat(), heartbeat.SanitizeConfig{
+	r := heartbeat.Sanitize(t.Context(), testHeartbeat(), heartbeat.SanitizeConfig{
 		ProjectPatterns: []regex.Regex{regex.NewRegexpWrap(regexp.MustCompile(".*"))},
 	})
 
@@ -188,7 +188,7 @@ func TestSanitize_ObfuscateProject(t *testing.T) {
 }
 
 func TestSanitize_ObfuscateProject_SkipBranchIfNotMatching(t *testing.T) {
-	r := heartbeat.Sanitize(context.Background(), testHeartbeat(), heartbeat.SanitizeConfig{
+	r := heartbeat.Sanitize(t.Context(), testHeartbeat(), heartbeat.SanitizeConfig{
 		ProjectPatterns: []regex.Regex{regex.NewRegexpWrap(regexp.MustCompile(".*"))},
 		BranchPatterns:  []regex.Regex{regex.NewRegexpWrap(regexp.MustCompile("not_matching"))},
 	})
@@ -212,7 +212,7 @@ func TestSanitize_ObfuscateProject_NilFields(t *testing.T) {
 	h.Branch = nil
 	h.Dependencies = nil
 
-	r := heartbeat.Sanitize(context.Background(), h, heartbeat.SanitizeConfig{
+	r := heartbeat.Sanitize(t.Context(), h, heartbeat.SanitizeConfig{
 		ProjectPatterns: []regex.Regex{regex.NewRegexpWrap(regexp.MustCompile(".*"))},
 		BranchPatterns:  []regex.Regex{regex.NewRegexpWrap(regexp.MustCompile(".*"))},
 	})
@@ -230,7 +230,7 @@ func TestSanitize_ObfuscateProject_NilFields(t *testing.T) {
 }
 
 func TestSanitize_ObfuscateBranch(t *testing.T) {
-	r := heartbeat.Sanitize(context.Background(), testHeartbeat(), heartbeat.SanitizeConfig{
+	r := heartbeat.Sanitize(t.Context(), testHeartbeat(), heartbeat.SanitizeConfig{
 		BranchPatterns: []regex.Regex{regex.NewRegexpWrap(regexp.MustCompile(".*"))},
 	})
 
@@ -255,7 +255,7 @@ func TestSanitize_ObfuscateBranch_NilFields(t *testing.T) {
 	h.Branch = nil
 	h.Project = nil
 
-	r := heartbeat.Sanitize(context.Background(), h, heartbeat.SanitizeConfig{
+	r := heartbeat.Sanitize(t.Context(), h, heartbeat.SanitizeConfig{
 		BranchPatterns: []regex.Regex{regex.NewRegexpWrap(regexp.MustCompile(".*"))},
 	})
 
@@ -275,7 +275,7 @@ func TestSanitize_ObfuscateBranch_NilFields(t *testing.T) {
 }
 
 func TestSanitize_ObfuscateDependency(t *testing.T) {
-	r := heartbeat.Sanitize(context.Background(), testHeartbeat(), heartbeat.SanitizeConfig{
+	r := heartbeat.Sanitize(t.Context(), testHeartbeat(), heartbeat.SanitizeConfig{
 		DependencyPatterns: []regex.Regex{regex.NewRegexpWrap(regexp.MustCompile(".*"))},
 	})
 
@@ -296,7 +296,7 @@ func TestSanitize_ObfuscateDependency(t *testing.T) {
 }
 
 func TestSanitize_EmptyConfigDoNothing(t *testing.T) {
-	r := heartbeat.Sanitize(context.Background(), testHeartbeat(), heartbeat.SanitizeConfig{})
+	r := heartbeat.Sanitize(t.Context(), testHeartbeat(), heartbeat.SanitizeConfig{})
 
 	assert.Equal(t, heartbeat.Heartbeat{
 		Branch:         heartbeat.PointerTo("heartbeat"),
@@ -319,7 +319,7 @@ func TestSanitize_EmptyConfigDoNothing_EmptyDependencies(t *testing.T) {
 	h := testHeartbeat()
 	h.Dependencies = []string{}
 
-	r := heartbeat.Sanitize(context.Background(), h, heartbeat.SanitizeConfig{})
+	r := heartbeat.Sanitize(t.Context(), h, heartbeat.SanitizeConfig{})
 
 	assert.Equal(t, heartbeat.Heartbeat{
 		Branch:         heartbeat.PointerTo("heartbeat"),
@@ -342,7 +342,7 @@ func TestSanitize_ObfuscateProjectFolder(t *testing.T) {
 	h.Entity = "/path/to/project/main.go"
 	h.ProjectPath = "/path/to"
 
-	r := heartbeat.Sanitize(context.Background(), h, heartbeat.SanitizeConfig{
+	r := heartbeat.Sanitize(t.Context(), h, heartbeat.SanitizeConfig{
 		HideProjectFolder: true,
 	})
 
@@ -370,7 +370,7 @@ func TestSanitize_ObfuscateProjectFolder_Override(t *testing.T) {
 	h.ProjectPath = "/original/folder"
 	h.ProjectPathOverride = "/path/to"
 
-	r := heartbeat.Sanitize(context.Background(), h, heartbeat.SanitizeConfig{
+	r := heartbeat.Sanitize(t.Context(), h, heartbeat.SanitizeConfig{
 		HideProjectFolder: true,
 	})
 
@@ -397,7 +397,7 @@ func TestSanitize_ObfuscateCredentials_RemoteFile(t *testing.T) {
 	h := testHeartbeat()
 	h.Entity = "ssh://wakatime:1234@192.168.1.1/path/to/remote/main.go"
 
-	r := heartbeat.Sanitize(context.Background(), h, heartbeat.SanitizeConfig{})
+	r := heartbeat.Sanitize(t.Context(), h, heartbeat.SanitizeConfig{})
 
 	assert.Equal(t, heartbeat.Heartbeat{
 		Branch:         heartbeat.PointerTo("heartbeat"),
@@ -417,7 +417,7 @@ func TestSanitize_ObfuscateCredentials_RemoteFile(t *testing.T) {
 }
 
 func TestShouldSanitize(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	tests := map[string]struct {
 		Subject  string

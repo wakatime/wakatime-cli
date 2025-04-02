@@ -1,74 +1,87 @@
+version: "2"
 run:
-  timeout: 5m
   build-tags:
     - integration
 linters:
   enable:
     - bodyclose
-    - gochecknoinits
     - gochecknoglobals
+    - gochecknoinits
     - gocritic
     - gocyclo
     - godot
-    - gofmt
-    - goimports
     - gosec
     - misspell
     - nestif
     - revive
     - testpackage
     - unconvert
-    - usetesting
     - usestdlibvars
+    - usetesting
     - whitespace
     - wsl
-linters-settings:
-  revive:
+  settings:
+    revive:
+      rules:
+        - name: bare-return
+        - name: blank-imports
+        - name: duplicated-imports
+        - name: defer
+        - name: dot-imports
+        - name: early-return
+        - name: errorf
+        - name: error-naming
+        - name: error-return
+        - name: error-strings
+        - name: exported
+        - name: function-result-limit
+          arguments:
+            - 3
+        - name: if-return
+        - name: increment-decrement
+        - name: indent-error-flow
+        - name: line-length-limit
+          arguments:
+            - 125
+        - name: superfluous-else
+        - name: range
+        - name: receiver-naming
+        - name: struct-tag
+        - name: time-naming
+        - name: unexported-naming
+        - name: unexported-return
+        - name: unnecessary-stmt
+        - name: unused-parameter
+        - name: unused-receiver
+        - name: var-declaration
+        - name: var-naming
+    usetesting:
+      os-setenv: true
+      os-temp-dir: true
+  exclusions:
+    generated: lax
     rules:
-      - name: bare-return
-      - name: blank-imports
-      - name: duplicated-imports
-      - name: defer
-      - name: dot-imports
-      - name: early-return
-      - name: errorf
-      - name: error-naming
-      - name: error-return
-      - name: error-strings
-      - name: exported
-      - name: function-result-limit
-        arguments: [3]
-      - name: if-return
-      - name: increment-decrement
-      - name: indent-error-flow
-      - name: line-length-limit
-        arguments: [125]
-      - name: superfluous-else
-      - name: range
-      - name: receiver-naming
-      - name: struct-tag
-      - name: time-naming
-      - name: unexported-naming
-      - name: unexported-return
-      - name: unnecessary-stmt
-      - name: unused-parameter
-      - name: unused-receiver
-      - name: var-declaration
-      - name: var-naming
-  usetesting:
-    os-setenv: true
-    os-temp-dir: true
+      - linters:
+          - errcheck
+          - gosec
+        path: _test\.go
+    paths:
+      - pkg/file/file_windows.go
+      - testdata
+      - third_party$
+      - builtin$
+      - examples$
 issues:
-  exclude-use-default: false
-  exclude-dirs:
-    - testdata
-  exclude-files:
-    - pkg/file/file_windows.go
-  exclude-rules:
-    - path: _test\.go
-      linters:
-        - errcheck
-        - gosec
-  include:
-    - EXC0002
   fix: true
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  exclusions:
+    generated: lax
+    paths:
+      - pkg/file/file_windows.go
+      - testdata
+      - third_party$
+      - builtin$
+      - examples$

@@ -35,7 +35,7 @@ func TestWithDetection(t *testing.T) {
 		}, nil
 	})
 
-	result, err := handle(context.Background(), []heartbeat.Heartbeat{
+	result, err := handle(t.Context(), []heartbeat.Heartbeat{
 		{
 			EntityType: heartbeat.FileType,
 			Entity:     "testdata/first.txt",
@@ -70,7 +70,7 @@ func TestWithDetection_RemoteFile(t *testing.T) {
 		}, nil
 	})
 
-	result, err := handle(context.Background(), []heartbeat.Heartbeat{
+	result, err := handle(t.Context(), []heartbeat.Heartbeat{
 		{
 			EntityType: heartbeat.FileType,
 			Entity:     "ssh://192.168.1.1/path/to/remote/main.go",
@@ -108,7 +108,7 @@ func TestWithDetection_MaxFileSizeExceeded(t *testing.T) {
 		return []heartbeat.Result{}, nil
 	})
 
-	_, err = handle(context.Background(), []heartbeat.Heartbeat{
+	_, err = handle(t.Context(), []heartbeat.Heartbeat{
 		{
 			EntityType: heartbeat.FileType,
 			Entity:     f.Name(),

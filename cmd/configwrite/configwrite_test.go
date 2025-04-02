@@ -73,7 +73,7 @@ func TestWrite(t *testing.T) {
 
 	defer tmpFile.Close()
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	v := viper.New()
 	ini, err := ini.NewWriter(ctx, v, func(_ context.Context, vp *viper.Viper) (string, error) {
@@ -120,7 +120,7 @@ func TestWriteErr(t *testing.T) {
 			v.Set("config-section", test.Section)
 			v.Set("config-write", test.Value)
 
-			err := configwrite.Write(context.Background(), v, w)
+			err := configwrite.Write(t.Context(), v, w)
 			require.Error(t, err)
 
 			assert.Equal(
@@ -147,7 +147,7 @@ func TestWriteSaveErr(t *testing.T) {
 	v.Set("config-section", "settings")
 	v.Set("config-write", map[string]string{"debug": "false"})
 
-	err := configwrite.Write(context.Background(), v, w)
+	err := configwrite.Write(t.Context(), v, w)
 	assert.Error(t, err)
 }
 

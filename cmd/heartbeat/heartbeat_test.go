@@ -87,7 +87,7 @@ func TestSendHeartbeats(t *testing.T) {
 			string(expectedBody),
 			entity.Entity,
 			subfolders,
-			heartbeat.UserAgent(context.Background(), plugin),
+			heartbeat.UserAgent(t.Context(), plugin),
 		)
 
 		assert.True(t, strings.HasSuffix(entity.Entity, "testdata/main.go"))
@@ -129,7 +129,7 @@ func TestSendHeartbeats(t *testing.T) {
 
 	defer offlineQueueFile.Close()
 
-	err = cmdheartbeat.SendHeartbeats(context.Background(), v, offlineQueueFile.Name())
+	err = cmdheartbeat.SendHeartbeats(t.Context(), v, offlineQueueFile.Name())
 	require.NoError(t, err)
 
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
@@ -190,7 +190,7 @@ func TestSendHeartbeats_RateLimited(t *testing.T) {
 	v.Set("offline-queue-file", offlineQueueFile.Name())
 	v.Set("internal.heartbeats_last_sent_at", time.Now().Add(-time.Minute).Format(time.RFC3339))
 
-	err = cmdheartbeat.SendHeartbeats(context.Background(), v, offlineQueueFile.Name())
+	err = cmdheartbeat.SendHeartbeats(t.Context(), v, offlineQueueFile.Name())
 	require.NoError(t, err)
 
 	assert.Zero(t, numCalls)
@@ -228,7 +228,7 @@ func TestSendHeartbeats_WithFiltering_Exclude(t *testing.T) {
 
 	defer offlineQueueFile.Close()
 
-	err = cmdheartbeat.SendHeartbeats(context.Background(), v, offlineQueueFile.Name())
+	err = cmdheartbeat.SendHeartbeats(t.Context(), v, offlineQueueFile.Name())
 	require.NoError(t, err)
 
 	assert.Equal(t, 0, numCalls)
@@ -266,7 +266,7 @@ func TestSendHeartbeats_WithFiltering_Exclude_All(t *testing.T) {
 
 	defer offlineQueueFile.Close()
 
-	err = cmdheartbeat.SendHeartbeats(context.Background(), v, offlineQueueFile.Name())
+	err = cmdheartbeat.SendHeartbeats(t.Context(), v, offlineQueueFile.Name())
 	require.NoError(t, err)
 
 	assert.Equal(t, 0, numCalls)
@@ -283,7 +283,7 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 		numCalls int
 	)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	projectFolder, err := filepath.Abs("../..")
 	require.NoError(t, err)
@@ -429,7 +429,7 @@ func TestSendHeartbeats_ExtraHeartbeats_Sanitize(t *testing.T) {
 		numCalls int
 	)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, _ *http.Request) {
 		// send response
@@ -566,7 +566,7 @@ func TestSendHeartbeats_NonExistingEntity(t *testing.T) {
 
 	defer logFile.Close()
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	v := viper.New()
 	v.SetDefault("sync-offline-activity", 1000)
@@ -609,7 +609,7 @@ func TestSendHeartbeats_ExtraHeartbeatsIsUnsavedEntity(t *testing.T) {
 		numCalls int
 	)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	projectFolder, err := filepath.Abs("../..")
 	require.NoError(t, err)
@@ -743,7 +743,7 @@ func TestSendHeartbeats_NonExistingExtraHeartbeatsEntity(t *testing.T) {
 		numCalls int
 	)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	projectFolder, err := filepath.Abs("../..")
 	require.NoError(t, err)
@@ -878,7 +878,7 @@ func TestSendHeartbeats_ErrAuth_UnsetAPIKey(t *testing.T) {
 
 	defer offlineQueueFile.Close()
 
-	err = cmdheartbeat.SendHeartbeats(context.Background(), v, offlineQueueFile.Name())
+	err = cmdheartbeat.SendHeartbeats(t.Context(), v, offlineQueueFile.Name())
 	require.Error(t, err)
 
 	var errauth api.ErrAuth
@@ -908,7 +908,7 @@ func TestSendHeartbeats_ErrBackoff(t *testing.T) {
 		w.WriteHeader(http.StatusInternalServerError)
 	})
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	tmpDir := t.TempDir()
 
@@ -969,7 +969,7 @@ func TestSendHeartbeats_ErrBackoff_Verbose(t *testing.T) {
 		w.WriteHeader(http.StatusInternalServerError)
 	})
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	tmpDir := t.TempDir()
 
@@ -1029,7 +1029,7 @@ func TestSendHeartbeats_ObfuscateProject(t *testing.T) {
 		numCalls int
 	)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	fp := setupTestGitBasic(t)
 
@@ -1124,7 +1124,7 @@ func TestSendHeartbeats_ObfuscateProjectNotBranch(t *testing.T) {
 		numCalls int
 	)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	fp := setupTestGitBasic(t)
 
@@ -1269,7 +1269,7 @@ func TestResetRateLimit(t *testing.T) {
 
 	defer tmpFileInternal.Close()
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	v := viper.New()
 	v.Set("config", tmpFileInternal.Name())

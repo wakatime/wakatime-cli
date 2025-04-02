@@ -322,6 +322,11 @@ func DetectWithRevControl(
 }
 
 func obfuscateProjectName(ctx context.Context, folder string) string {
+	// when folder unknown, use Unknown Project (https://github.com/wakatime/wakatime-cli/issues/1164)
+	if folder == "" {
+		return ""
+	}
+
 	// prevent overwriting existing project files, use Unknown Project instead
 	if fileOrDirExists(filepath.Join(folder, WakaTimeProjectFile)) {
 		return ""

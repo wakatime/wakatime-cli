@@ -4,7 +4,6 @@ package main_test
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -60,7 +59,7 @@ func testSendHeartbeats(t *testing.T, projectFolder, entity, p string) {
 	apiURL, router, close := setupTestServer()
 	defer close()
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	var numCalls int
 
@@ -159,7 +158,7 @@ func TestSendHeartbeats_SecondaryApiKey(t *testing.T) {
 	apiURL, router, close := setupTestServer()
 	defer close()
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	var numCalls int
 
@@ -253,7 +252,7 @@ func TestSendHeartbeats_Timeout(t *testing.T) {
 	apiURL, router, close := setupTestServer()
 	defer close()
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// to avoid race condition
 	wg := sync.WaitGroup{}
@@ -345,7 +344,7 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 	apiURL, router, close := setupTestServer()
 	defer close()
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	var numCalls int
 
@@ -438,7 +437,7 @@ func TestSendHeartbeats_ExtraHeartbeats_SyncLegacyOfflineActivity(t *testing.T) 
 	apiURL, router, close := setupTestServer()
 	defer close()
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	var numCalls int
 
@@ -567,7 +566,7 @@ func TestSendHeartbeats_Err(t *testing.T) {
 	apiURL, router, close := setupTestServer()
 	defer close()
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	var numCalls int
 
@@ -665,7 +664,7 @@ func TestSendHeartbeats_ErrAuth_InvalidAPIKEY(t *testing.T) {
 	apiURL, router, close := setupTestServer()
 	defer close()
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	var numCalls int
 
@@ -727,7 +726,7 @@ func TestSendHeartbeats_ErrAuth_InvalidAPIKEY(t *testing.T) {
 }
 
 func TestSendHeartbeats_MalformedConfig(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	tmpDir := t.TempDir()
 
@@ -767,7 +766,7 @@ func TestSendHeartbeats_MalformedConfig(t *testing.T) {
 }
 
 func TestSendHeartbeats_MalformedInternalConfig(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	tmpDir := t.TempDir()
 
@@ -815,7 +814,7 @@ func TestFileExperts(t *testing.T) {
 
 	subfolders := project.CountSlashesInProjectFolder(projectFolder)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	var numCalls int
 
@@ -892,7 +891,7 @@ func TestTodayGoal(t *testing.T) {
 	apiURL, router, close := setupTestServer()
 	defer close()
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	var numCalls int
 
@@ -947,7 +946,7 @@ func TestTodaySummary(t *testing.T) {
 	apiURL, router, close := setupTestServer()
 	defer close()
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	var numCalls int
 
@@ -1095,7 +1094,7 @@ func TestPrintOfflineHeartbeats(t *testing.T) {
 	apiURL, router, close := setupTestServer()
 	defer close()
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -1184,13 +1183,13 @@ func TestPrintOfflineHeartbeats(t *testing.T) {
 
 func TestUserAgent(t *testing.T) {
 	out := runWakatimeCli(t, &bytes.Buffer{}, "--user-agent")
-	assert.Equal(t, fmt.Sprintf("%s\n", heartbeat.UserAgent(context.Background(), "")), out)
+	assert.Equal(t, fmt.Sprintf("%s\n", heartbeat.UserAgent(t.Context(), "")), out)
 }
 
 func TestUserAgentWithPlugin(t *testing.T) {
 	out := runWakatimeCli(t, &bytes.Buffer{}, "--user-agent", "--plugin", "Wakatime/1.0.4")
 
-	assert.Equal(t, fmt.Sprintf("%s\n", heartbeat.UserAgent(context.Background(), "Wakatime/1.0.4")), out)
+	assert.Equal(t, fmt.Sprintf("%s\n", heartbeat.UserAgent(t.Context(), "Wakatime/1.0.4")), out)
 }
 
 func TestVersion(t *testing.T) {

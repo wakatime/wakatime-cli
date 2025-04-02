@@ -32,7 +32,7 @@ import (
 
 func TestNewClient(t *testing.T) {
 	client, err := remote.NewClient(
-		context.Background(),
+		t.Context(),
 		"ssh://wakatime:1234@192.168.1.2:222/home/pi/unicorn-hat/examples/ascii_pic.py",
 	)
 	require.NoError(t, err)
@@ -48,7 +48,7 @@ func TestNewClient(t *testing.T) {
 }
 
 func TestNewClient_Sftp(t *testing.T) {
-	client, err := remote.NewClient(context.Background(), "sftp://127.0.0.1")
+	client, err := remote.NewClient(t.Context(), "sftp://127.0.0.1")
 	require.NoError(t, err)
 
 	assert.Equal(t, remote.Client{
@@ -62,7 +62,7 @@ func TestNewClient_Sftp(t *testing.T) {
 }
 
 func TestNewClient_Err(t *testing.T) {
-	_, err := remote.NewClient(context.Background(), "ssh://wakatime:1234@192.168.1.2:port")
+	_, err := remote.NewClient(t.Context(), "ssh://wakatime:1234@192.168.1.2:port")
 	require.Error(t, err)
 
 	assert.EqualError(t, err,
@@ -132,7 +132,7 @@ func TestWithDetection_SshConfig_Hostname(t *testing.T) {
 	}
 
 	handle := heartbeat.NewHandle(&sender, opts...)
-	_, err = handle(context.Background(), []heartbeat.Heartbeat{
+	_, err = handle(t.Context(), []heartbeat.Heartbeat{
 		{
 			Category:   heartbeat.CodingCategory,
 			Entity:     entity,
@@ -160,7 +160,7 @@ func TestWithDetection_SshConfig_UserKnownHostsFile_Mismatch(t *testing.T) {
 
 	defer logFile.Close()
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	v := viper.New()
 	v.Set("log-file", logFile.Name())
@@ -309,7 +309,7 @@ func TestWithDetection_SshConfig_UserKnownHostsFile_Match(t *testing.T) {
 	}
 
 	handle := heartbeat.NewHandle(&sender, opts...)
-	results, err := handle(context.Background(), []heartbeat.Heartbeat{
+	results, err := handle(t.Context(), []heartbeat.Heartbeat{
 		{
 			Category:   heartbeat.CodingCategory,
 			Entity:     entity,
@@ -368,7 +368,7 @@ func TestWithDetection_Filtered(t *testing.T) {
 	}
 
 	handle := heartbeat.NewHandle(&sender, opts...)
-	results, err := handle(context.Background(), []heartbeat.Heartbeat{
+	results, err := handle(t.Context(), []heartbeat.Heartbeat{
 		{
 			Category:   heartbeat.CodingCategory,
 			Entity:     "ssh://user:pass@example.com:" + strconv.Itoa(port) + entity,
@@ -407,7 +407,7 @@ func TestWithCleanup_NotTemporary(t *testing.T) {
 
 	assert.FileExists(t, tmpFile.Name())
 
-	_, err = handle(context.Background(), []heartbeat.Heartbeat{
+	_, err = handle(t.Context(), []heartbeat.Heartbeat{
 		{
 			LocalFile: tmpFile.Name(),
 		},
@@ -443,7 +443,7 @@ func TestWithCleanup(t *testing.T) {
 
 	assert.FileExists(t, tmpFile.Name())
 
-	_, err = handle(context.Background(), []heartbeat.Heartbeat{
+	_, err = handle(t.Context(), []heartbeat.Heartbeat{
 		{
 			LocalFile:             tmpFile.Name(),
 			LocalFileNeedsCleanup: true,
@@ -477,7 +477,7 @@ func TestWithCleanup_NotRemoteFile(t *testing.T) {
 
 	handle := heartbeat.NewHandle(&sender, opts...)
 
-	_, err = handle(context.Background(), []heartbeat.Heartbeat{
+	_, err = handle(t.Context(), []heartbeat.Heartbeat{
 		{
 			LocalFile: tmpFile.Name(),
 		},

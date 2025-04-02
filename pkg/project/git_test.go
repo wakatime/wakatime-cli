@@ -1,7 +1,6 @@
 package project_test
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -25,7 +24,7 @@ func TestGit_Detect(t *testing.T) {
 		Filepath: filepath.Join(fp, "wakatime-cli/src/pkg/file.go"),
 	}
 
-	result, detected, err := g.Detect(context.Background())
+	result, detected, err := g.Detect(t.Context())
 	require.NoError(t, err)
 
 	assert.True(t, detected)
@@ -44,7 +43,7 @@ func TestGit_Detect_BranchWithSlash(t *testing.T) {
 		Filepath: filepath.Join(fp, "wakatime-cli/src/pkg/file.go"),
 	}
 
-	result, detected, err := g.Detect(context.Background())
+	result, detected, err := g.Detect(t.Context())
 	require.NoError(t, err)
 
 	assert.True(t, detected)
@@ -63,7 +62,7 @@ func TestGit_Detect_DetachedHead(t *testing.T) {
 		Filepath: filepath.Join(fp, "wakatime-cli/src/pkg/file.go"),
 	}
 
-	result, detected, err := g.Detect(context.Background())
+	result, detected, err := g.Detect(t.Context())
 	require.NoError(t, err)
 
 	assert.True(t, detected)
@@ -102,7 +101,7 @@ func TestGit_Detect_GitConfigFile_File(t *testing.T) {
 				Filepath: test.Filepath,
 			}
 
-			result, detected, err := g.Detect(context.Background())
+			result, detected, err := g.Detect(t.Context())
 			require.NoError(t, err)
 
 			assert.True(t, detected)
@@ -127,7 +126,7 @@ func TestGit_Detect_GitConfigFile_File_MalformedHEAD(t *testing.T) {
 		Filepath: filepath.Join(fp, "wakatime-cli/src/pkg/file.go"),
 	}
 
-	result, detected, err := g.Detect(context.Background())
+	result, detected, err := g.Detect(t.Context())
 	require.NoError(t, err)
 
 	assert.True(t, detected)
@@ -146,7 +145,7 @@ func TestGit_Detect_Worktree(t *testing.T) {
 		Filepath: filepath.Join(fp, "api/src/pkg/file.go"),
 	}
 
-	result, detected, err := g.Detect(context.Background())
+	result, detected, err := g.Detect(t.Context())
 	require.NoError(t, err)
 
 	assert.True(t, detected)
@@ -166,7 +165,7 @@ func TestGit_Detect_WorktreeGitRemote(t *testing.T) {
 		ProjectFromGitRemote: true,
 	}
 
-	result, detected, err := g.Detect(context.Background())
+	result, detected, err := g.Detect(t.Context())
 	require.NoError(t, err)
 
 	assert.True(t, detected)
@@ -185,7 +184,7 @@ func TestGit_Detect_Worktree_BareRepo(t *testing.T) {
 		Filepath: filepath.Join(fp, "wakatime-cli/master/src/pkg/file.go"),
 	}
 
-	result, detected, err := g.Detect(context.Background())
+	result, detected, err := g.Detect(t.Context())
 	require.NoError(t, err)
 
 	assert.True(t, detected)
@@ -205,7 +204,7 @@ func TestGit_Detect_WorktreeGitRemote_BareRepo(t *testing.T) {
 		ProjectFromGitRemote: true,
 	}
 
-	result, detected, err := g.Detect(context.Background())
+	result, detected, err := g.Detect(t.Context())
 	require.NoError(t, err)
 
 	assert.True(t, detected)
@@ -225,7 +224,7 @@ func TestGit_Detect_Submodule(t *testing.T) {
 		SubmoduleDisabledPatterns: []regex.Regex{regex.NewRegexpWrap(regexp.MustCompile("not_matching"))},
 	}
 
-	result, detected, err := g.Detect(context.Background())
+	result, detected, err := g.Detect(t.Context())
 	require.NoError(t, err)
 
 	assert.True(t, detected)
@@ -245,7 +244,7 @@ func TestGit_Detect_SubmoduleDisabled(t *testing.T) {
 		SubmoduleDisabledPatterns: []regex.Regex{regex.NewRegexpWrap(regexp.MustCompile(".*billing.*"))},
 	}
 
-	result, detected, err := g.Detect(context.Background())
+	result, detected, err := g.Detect(t.Context())
 	require.NoError(t, err)
 
 	assert.True(t, detected)
@@ -270,7 +269,7 @@ func TestGit_Detect_SubmoduleProjectMap_NotMatch(t *testing.T) {
 		},
 	}
 
-	result, detected, err := g.Detect(context.Background())
+	result, detected, err := g.Detect(t.Context())
 	require.NoError(t, err)
 
 	assert.True(t, detected)
@@ -295,7 +294,7 @@ func TestGit_Detect_SubmoduleProjectMap(t *testing.T) {
 		},
 	}
 
-	result, detected, err := g.Detect(context.Background())
+	result, detected, err := g.Detect(t.Context())
 	require.NoError(t, err)
 
 	assert.True(t, detected)
@@ -316,7 +315,7 @@ func TestGit_Detect_SubmoduleGitRemote(t *testing.T) {
 		SubmoduleDisabledPatterns: []regex.Regex{regex.NewRegexpWrap(regexp.MustCompile("not_matching"))},
 	}
 
-	result, detected, err := g.Detect(context.Background())
+	result, detected, err := g.Detect(t.Context())
 	require.NoError(t, err)
 
 	assert.True(t, detected)
@@ -463,7 +462,7 @@ func setupTestGitFile(t *testing.T) (fp string) {
 
 	gitdir := filepath.Join(tmpDir, "wakatime-cli", ".git")
 
-	_, err = tmpFile.WriteString(fmt.Sprintf("gitdir: %s", gitdir))
+	_, err = fmt.Fprintf(tmpFile, "gitdir: %s", gitdir)
 	require.NoError(t, err)
 
 	return tmpDir
@@ -513,7 +512,7 @@ func setupTestGitWorktree(t *testing.T) (fp string) {
 
 	defer tmpFile.Close()
 
-	_, err = tmpFile.WriteString(fmt.Sprintf("gitdir: %s/wakatime-cli/.git/worktrees/api", tmpDir))
+	_, err = fmt.Fprintf(tmpFile, "gitdir: %s/wakatime-cli/.git/worktrees/api", tmpDir)
 	require.NoError(t, err)
 
 	return tmpDir
@@ -555,7 +554,7 @@ func setupTestGitWorktreeBareRepo(t *testing.T) (fp string) {
 
 	defer tmpFile.Close()
 
-	_, err = tmpFile.WriteString(fmt.Sprintf("gitdir: %s/wakatime-cli/worktrees/master", tmpDir))
+	_, err = fmt.Fprintf(tmpFile, "gitdir: %s/wakatime-cli/worktrees/master", tmpDir)
 	require.NoError(t, err)
 
 	return tmpDir
