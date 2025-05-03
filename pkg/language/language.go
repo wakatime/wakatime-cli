@@ -3,10 +3,12 @@ package language
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/wakatime/wakatime-cli/pkg/file"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/log"
 )
@@ -72,11 +74,7 @@ func Detect(ctx context.Context, fp string, guessLanguage bool) (heartbeat.Langu
 		language = languageChroma
 	}
 
-	languageVim, weightVim, okVim := detectVimModeline(fp)
-	if okVim && weightVim > weight {
-		// use language from vim modeline, if weight is higher
-		language = languageVim
-	}
+	language = detectOverrideCases(ctx, fp, language, weight)
 
 	if language == heartbeat.LanguageUnknown {
 		return heartbeat.LanguageUnknown, fmt.Errorf("could not detect the language of file %q", fp)
@@ -129,6 +127,54 @@ func detectSpecialCases(ctx context.Context, fp string) (heartbeat.Language, boo
 	}
 
 	return heartbeat.LanguageUnknown, false
+}
+
+// detectOverrideCases overwrides the Chroma detected language based on file contents.
+func detectOverrideCases(ctx context.Context, fp string, language heartbeat.Language, weight float32) heartbeat.Language {
+	logger := log.Extract(ctx)
+
+	f, err := file.OpenNoLock(fp) // nolint:gosec
+	if err != nil {
+		logger.Debugf("failed to open file: %s", err)
+		return language
+	}
+
+	defer func() {
+		if err := f.Close(); err != nil {
+			logger.Debugf("failed to close file: %s", err)
+		}
+	}()
+
+	buf := make([]byte, 4096)
+	c, err := f.Read(buf)
+	if err != nil && err != io.EOF {
+		logger.Debugf("failed to open file: %s", err)
+		return language
+	}
+
+	text := string(buf[:c])
+
+	languageVim, weightVim, okVim := detectVimModeline(text)
+	if okVim && weightVim > weight {
+		language = languageVim
+	}
+
+	_, file := filepath.Split(fp)
+	ext := strings.ToLower(filepath.Ext(file))
+
+	if ext == ".fs" {
+		languageForth, weightForth, okForth := detectForthFromContents(text)
+		if okForth && weightForth >= weight {
+			language = languageForth
+		}
+
+		languageFSharp, weightFSharp, okFSharp := detectFSharpFromContents(text)
+		if okFSharp && weightFSharp >= weight {
+			language = languageFSharp
+		}
+	}
+
+	return language
 }
 
 // folderContainsCFiles returns true, if filder contains c files.

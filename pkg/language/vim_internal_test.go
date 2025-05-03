@@ -29,7 +29,7 @@ func TestDetectVimModeline(t *testing.T) {
 			Language: heartbeat.LanguagePython,
 		},
 		"syntax": {
-			Text:     "/* vim: syntax=python tw=60 ts=2: */",
+			Text:     "/* vim: syntax=python tw=60 ts=2: */\n\nprint('hello world)",
 			Language: heartbeat.LanguagePython,
 		},
 		"different order": {
