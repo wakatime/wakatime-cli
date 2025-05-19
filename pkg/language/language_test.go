@@ -250,11 +250,11 @@ func TestDetect_Perl_Over_Prolog(t *testing.T) {
 	assert.Equal(t, heartbeat.LanguagePerl, lang)
 }
 
-func TestDetect_FSharp_Over_Forth(t *testing.T) {
+func TestDetect_Forth_Over_FSharp(t *testing.T) {
 	lang, err := language.Detect(t.Context(), "testdata/codefiles/fsharp.fs", false)
 	require.NoError(t, err)
 
-	assert.Equal(t, heartbeat.LanguageFSharp, lang)
+	assert.Equal(t, heartbeat.LanguageForth, lang)
 }
 
 func TestDetect_ChromaTopLanguagesRetrofit(t *testing.T) {
