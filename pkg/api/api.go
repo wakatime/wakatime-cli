@@ -104,7 +104,7 @@ func isLocalIPv6(ctx context.Context) bool {
 
 	conn, err := net.Dial("udp", fmt.Sprintf("%s:80", BaseIPAddrv4))
 	if err != nil {
-		logger.Warnf("failed dialing to detect default local ip address: %s", err)
+		logger.Debugf("failed dialing to detect default local ip address: %s", err)
 		return true
 	}
 
