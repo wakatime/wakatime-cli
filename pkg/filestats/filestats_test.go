@@ -91,7 +91,7 @@ func TestWithDetection_MaxFileSizeExceeded(t *testing.T) {
 
 	defer f.Close()
 
-	b := bytes.NewBuffer(make([]byte, 2*1024*1024+1))
+	b := bytes.NewBuffer(make([]byte, 5*1024*1024+1))
 	_, err = f.Write(b.Bytes())
 	require.NoError(t, err)
 

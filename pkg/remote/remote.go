@@ -277,18 +277,20 @@ func (c Client) knownHostKeys(ctx context.Context) []ssh.PublicKey {
 
 	for _, filename := range filenames {
 		if err := func(fn string) error {
-			file, err := file.OpenNoLock(fn) // nolint:gosec
+			fp, err := file.OpenNoLock(fn) // nolint:gosec
 			if err != nil {
 				return fmt.Errorf("failed to open known_hosts file: %s", err)
 			}
 
 			defer func() {
-				if err := file.Close(); err != nil {
-					logger.Debugf("failed to close file '%s': %s", file.Name(), err)
+				if err := fp.Close(); err != nil {
+					logger.Debugf("failed to close file '%s': %s", fp.Name(), err)
 				}
 			}()
 
-			scanner := bufio.NewScanner(file)
+			reader := io.LimitReader(fp, file.MaxFileSizeSupported)
+
+			scanner := bufio.NewScanner(reader)
 
 			for scanner.Scan() {
 				fields := strings.Split(scanner.Text(), " ")
@@ -386,13 +388,13 @@ func (c Client) identityFile() string {
 	return ""
 }
 
-func (c Client) signerForIdentity() (ssh.Signer, error) {
+func (c Client) signerForIdentity(ctx context.Context) (ssh.Signer, error) {
 	identityFile := c.identityFile()
 	if identityFile == "" {
 		return nil, nil
 	}
 
-	key, err := os.ReadFile(identityFile) // nolint:gosec
+	key, err := file.ReadHeadAsBytes(ctx, identityFile, 0) // nolint:gosec
 	if err != nil {
 		return nil, fmt.Errorf("failed to read private key %s: %v", identityFile, err)
 	}
@@ -429,7 +431,7 @@ func (c Client) sshClient(ctx context.Context) (*ssh.Client, error) {
 
 	addr := fmt.Sprintf("%s:%d", c.Host, c.Port)
 
-	signer, err := c.signerForIdentity()
+	signer, err := c.signerForIdentity(ctx)
 	if err != nil {
 		logger.Warnf("%s", err)
 	}

@@ -19,6 +19,7 @@ import (
 	cmdheartbeat "github.com/wakatime/wakatime-cli/cmd/heartbeat"
 	cmdparams "github.com/wakatime/wakatime-cli/cmd/params"
 	"github.com/wakatime/wakatime-cli/pkg/api"
+	"github.com/wakatime/wakatime-cli/pkg/file"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/ini"
 	"github.com/wakatime/wakatime-cli/pkg/log"
@@ -1058,7 +1059,7 @@ func TestSendHeartbeats_ObfuscateProject(t *testing.T) {
 		err = json.Unmarshal(body, &[]any{&entity})
 		require.NoError(t, err)
 
-		lines, err := project.ReadFile(ctx, filepath.Join(fp, "wakatime-cli", ".wakatime-project"), 1)
+		lines, err := file.ReadLines(ctx, filepath.Join(fp, "wakatime-cli", ".wakatime-project"), 1)
 		require.NoError(t, err)
 
 		expectedBodyStr := fmt.Sprintf(
@@ -1153,7 +1154,7 @@ func TestSendHeartbeats_ObfuscateProjectNotBranch(t *testing.T) {
 		err = json.Unmarshal(body, &[]any{&entity})
 		require.NoError(t, err)
 
-		lines, err := project.ReadFile(ctx, filepath.Join(fp, "wakatime-cli", ".wakatime-project"), 1)
+		lines, err := file.ReadLines(ctx, filepath.Join(fp, "wakatime-cli", ".wakatime-project"), 1)
 		require.NoError(t, err)
 
 		expectedBodyStr := fmt.Sprintf(string(expectedBody), entity.Entity, lines[0], heartbeat.UserAgent(ctx, plugin))

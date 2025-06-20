@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 	"time"
 
+	"github.com/wakatime/wakatime-cli/pkg/file"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/log"
 
@@ -120,8 +120,8 @@ func WithProxy(proxyURL string) (Option, error) {
 }
 
 // WithSSLCertFile overrides the default CA certs file to trust specified cert file.
-func WithSSLCertFile(filepath string) (Option, error) {
-	caCert, err := os.ReadFile(filepath) // nolint:gosec
+func WithSSLCertFile(ctx context.Context, filepath string) (Option, error) {
+	caCert, err := file.ReadHeadAsBytes(ctx, filepath, 0) // nolint:gosec
 	if err != nil {
 		return nil, err
 	}

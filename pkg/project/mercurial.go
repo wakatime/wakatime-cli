@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/wakatime/wakatime-cli/pkg/file"
 	"github.com/wakatime/wakatime-cli/pkg/log"
 )
 
@@ -55,7 +56,7 @@ func findHgBranch(ctx context.Context, fp string) (string, error) {
 		return "default", nil
 	}
 
-	lines, err := ReadFile(ctx, p, 1)
+	lines, err := file.ReadLines(ctx, p, 1)
 	if err != nil {
 		return "", fmt.Errorf("failed while opening file %q: %s", fp, err)
 	}

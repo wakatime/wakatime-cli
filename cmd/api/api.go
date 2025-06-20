@@ -51,7 +51,7 @@ func newClient(ctx context.Context, params paramscmd.API, opts ...api.Option) (*
 	}
 
 	if !params.DisableSSLVerify && params.SSLCertFilepath != "" {
-		withSSLCert, err := api.WithSSLCertFile(params.SSLCertFilepath)
+		withSSLCert, err := api.WithSSLCertFile(ctx, params.SSLCertFilepath)
 		if err != nil {
 			return nil, fmt.Errorf("failed to set up ssl cert file option on api client: %s", err)
 		}

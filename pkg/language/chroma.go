@@ -2,8 +2,6 @@ package language
 
 import (
 	"context"
-	"fmt"
-	"io"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -17,9 +15,6 @@ import (
 	"github.com/danwakefield/fnmatch"
 )
 
-// Max file size supporting reading from file. Default is 512Kb.
-const maxFileSize = 512000
-
 // detectChromaCustomized returns the best by filename matching lexer. Best lexer is determined
 // by customized priority.
 // If guessLanguage is true, the file content will be used to detect the language.
@@ -27,8 +22,8 @@ const maxFileSize = 512000
 func detectChromaCustomized(ctx context.Context, fp string, guessLanguage bool) (heartbeat.Language, float32, bool) {
 	logger := log.Extract(ctx)
 
-	_, file := filepath.Split(fp)
-	filename := filepath.Base(file)
+	_, filepart := filepath.Split(fp)
+	filename := filepath.Base(filepart)
 	matched := chroma.PrioritisedLexers{}
 
 	// First, try primary filename matches.
@@ -80,7 +75,7 @@ func detectChromaCustomized(ctx context.Context, fp string, guessLanguage bool) 
 	}
 
 	// Finally, try matching by file content.
-	head, err := fileHead(ctx, fp)
+	head, err := file.ReadHead(ctx, fp, 0)
 	if err != nil {
 		logger.Warnf("failed to load head from file %q: %s", fp, err)
 		return heartbeat.LanguageUnknown, 0, false
@@ -90,7 +85,7 @@ func detectChromaCustomized(ctx context.Context, fp string, guessLanguage bool) 
 		return heartbeat.LanguageUnknown, 0, false
 	}
 
-	if lexer := lexers.Analyse(string(head)); lexer != nil {
+	if lexer := lexers.Analyse(head); lexer != nil {
 		language, ok := heartbeat.ParseLanguageFromChroma(lexer.Config().Name)
 		if !ok {
 			logger.Warnf("failed to parse language from chroma lexer name %q", lexer.Config().Name)
@@ -133,7 +128,7 @@ func selectByCustomizedPriority(ctx context.Context, fp string, lexers chroma.Pr
 		logger.Warnf("failed to load folder files extensions: %s", err)
 	}
 
-	head, err := fileHead(ctx, fp)
+	head, err := file.ReadHead(ctx, fp, 0)
 	if err != nil {
 		logger.Warnf("failed to load head from file %q: %s", fp, err)
 	}
@@ -144,7 +139,7 @@ func selectByCustomizedPriority(ctx context.Context, fp string, lexers chroma.Pr
 		var weight float32
 
 		if analyser, ok := lexer.(chroma.Analyser); ok {
-			weight = analyser.AnalyseText(string(head))
+			weight = analyser.AnalyseText(head)
 		}
 
 		cfg := lexer.Config()
@@ -202,29 +197,6 @@ func selectByCustomizedPriority(ctx context.Context, fp string, lexers chroma.Pr
 	})
 
 	return weighted[0].Lexer, weighted[0].Weight
-}
-
-// fileHead returns the first `maxFileSize` bytes of the file's content.
-func fileHead(ctx context.Context, filepath string) ([]byte, error) {
-	logger := log.Extract(ctx)
-
-	f, err := file.OpenNoLock(filepath) // nolint:gosec
-	if err != nil {
-		return nil, fmt.Errorf("failed to open file: %s", err)
-	}
-
-	defer func() {
-		if err := f.Close(); err != nil {
-			logger.Debugf("failed to close file '%s': %s", filepath, err)
-		}
-	}()
-
-	data, err := io.ReadAll(io.LimitReader(f, maxFileSize))
-	if err != nil && err != io.EOF {
-		return nil, fmt.Errorf("failed to read bytes from file: %s", err)
-	}
-
-	return data, nil
 }
 
 // objectiveCWeight determines the weight of objective-c by the provided same folder file extensions.

@@ -3,7 +3,6 @@ package language
 import (
 	"context"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -133,26 +132,11 @@ func detectSpecialCases(ctx context.Context, fp string) (heartbeat.Language, boo
 func detectOverrideCases(ctx context.Context, fp string, language heartbeat.Language, weight float32) heartbeat.Language {
 	logger := log.Extract(ctx)
 
-	f, err := file.OpenNoLock(fp) // nolint:gosec
+	text, err := file.ReadHead(ctx, fp, 0)
 	if err != nil {
 		logger.Debugf("failed to open file: %s", err)
 		return language
 	}
-
-	defer func() {
-		if err := f.Close(); err != nil {
-			logger.Debugf("failed to close file: %s", err)
-		}
-	}()
-
-	buf := make([]byte, 4096)
-	c, err := f.Read(buf)
-	if err != nil && err != io.EOF {
-		logger.Debugf("failed to open file: %s", err)
-		return language
-	}
-
-	text := string(buf[:c])
 
 	languageVim, weightVim, okVim := detectVimModeline(text)
 	if okVim && weightVim > weight {

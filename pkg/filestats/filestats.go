@@ -1,20 +1,13 @@
 package filestats
 
 import (
-	"bytes"
 	"context"
-	"fmt"
-	"io"
 	"os"
 
 	"github.com/wakatime/wakatime-cli/pkg/file"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/log"
 )
-
-// Max file size supporting line number count stats. Files larger than this in
-// bytes will not have a line count stat for performance. Default is 2MB (2*1024*1024).
-const maxFileSizeSupported = 2097152
 
 // WithDetection initializes and returns a heartbeat handle option, which
 // can be used in a heartbeat processing pipeline to detect filestats. At the
@@ -53,17 +46,17 @@ func WithDetection() heartbeat.HandleOption {
 					continue
 				}
 
-				if fileInfo.Size() > maxFileSizeSupported {
+				if fileInfo.Size() > file.MaxFileSizeSupported {
 					logger.Debugf(
 						"file %q exceeds max file size of %d bytes. Lines won't be counted",
 						h.Entity,
-						maxFileSizeSupported,
+						file.MaxFileSizeSupported,
 					)
 
 					continue
 				}
 
-				lines, err := countLineNumbers(ctx, filepath)
+				lines, err := file.CountLines(ctx, filepath)
 				if err != nil {
 					logger.Warnf("failed to detect the total number of lines in file %q: %s", filepath, err)
 					continue
@@ -73,38 +66,6 @@ func WithDetection() heartbeat.HandleOption {
 			}
 
 			return next(ctx, hh)
-		}
-	}
-}
-
-func countLineNumbers(ctx context.Context, filepath string) (int, error) {
-	logger := log.Extract(ctx)
-
-	f, err := file.OpenNoLock(filepath) // nolint:gosec
-	if err != nil {
-		return 0, fmt.Errorf("failed to open file: %s", err)
-	}
-
-	defer func() {
-		if err := f.Close(); err != nil {
-			logger.Debugf("failed to close file: %s", err)
-		}
-	}()
-
-	buf := make([]byte, 32*1024)
-	count := 0
-	lineSep := []byte{'\n'}
-
-	for {
-		c, err := f.Read(buf)
-		count += bytes.Count(buf[:c], lineSep)
-
-		switch {
-		case err == io.EOF:
-			return count, nil
-
-		case err != nil:
-			return count, err
 		}
 	}
 }

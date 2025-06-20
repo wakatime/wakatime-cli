@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/wakatime/wakatime-cli/pkg/file"
 	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/regex"
 )
@@ -197,7 +198,7 @@ func shouldTakeSubmodule(ctx context.Context, fp string, patterns []regex.Regex)
 }
 
 func findGitdir(ctx context.Context, fp string) (string, error) {
-	lines, err := ReadFile(ctx, fp, 1)
+	lines, err := file.ReadLines(ctx, fp, 1)
 	if err != nil {
 		return "", fmt.Errorf("failed while opening file %q: %s", fp, err)
 	}
@@ -241,7 +242,7 @@ func findCommondir(ctx context.Context, fp string) (string, bool, error) {
 }
 
 func resolveCommondir(ctx context.Context, fp string) (string, bool, error) {
-	lines, err := ReadFile(ctx, filepath.Join(fp, "commondir"), 1)
+	lines, err := file.ReadLines(ctx, filepath.Join(fp, "commondir"), 1)
 	if err != nil {
 		return "", false,
 			fmt.Errorf("failed while opening file %q: %s", fp, err)
@@ -287,7 +288,7 @@ func findGitBranch(ctx context.Context, fp string) (string, error) {
 		return "master", nil
 	}
 
-	lines, err := ReadFile(ctx, fp, 1)
+	lines, err := file.ReadLines(ctx, fp, 1)
 	if err != nil {
 		return "", fmt.Errorf("failed while opening file %q: %s", fp, err)
 	}
@@ -313,7 +314,7 @@ func findGitRemote(ctx context.Context, fp string) (string, error) {
 		return "", nil
 	}
 
-	lines, err := ReadFile(ctx, fp, 1000)
+	lines, err := file.ReadLines(ctx, fp, 1000)
 	if err != nil {
 		return "", fmt.Errorf("failed while opening file %q: %s", fp, err)
 	}
