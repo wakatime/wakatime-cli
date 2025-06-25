@@ -32,7 +32,7 @@ var (
 		ipv6seg, ipv6seg, ipv6seg, ipv6seg, ipv6seg, ipv6seg, ipv6seg, ipv6seg,
 		ipv6seg, ipv6seg, ipv6seg, ipv6seg, ipv6seg, ipv6seg, ipv6seg, ipv6seg, ipv6seg, ipv4Address,
 		ipv6seg, ipv4Address)
-	windowsDriveRegex        = regexp.MustCompile("^[a-z]:/")
+	windowsDriveRegex        = regexp.MustCompile("^[/\\]?[a-z]:/")
 	windowsNetworkMountRegex = regexp.MustCompile(fmt.Sprintf(`(?i)^\\\\([a-z]|%s|%s)+`, ipv4Address, ipv6Address))
 )
 

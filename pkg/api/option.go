@@ -121,7 +121,7 @@ func WithProxy(proxyURL string) (Option, error) {
 
 // WithSSLCertFile overrides the default CA certs file to trust specified cert file.
 func WithSSLCertFile(ctx context.Context, filepath string) (Option, error) {
-	caCert, err := file.ReadHeadAsBytes(ctx, filepath, 0) // nolint:gosec
+	caCert, err := file.ReadHead(ctx, filepath, 0) // nolint:gosec
 	if err != nil {
 		return nil, err
 	}

@@ -394,7 +394,7 @@ func (c Client) signerForIdentity(ctx context.Context) (ssh.Signer, error) {
 		return nil, nil
 	}
 
-	key, err := file.ReadHeadAsBytes(ctx, identityFile, 0) // nolint:gosec
+	key, err := file.ReadHead(ctx, identityFile, 0) // nolint:gosec
 	if err != nil {
 		return nil, fmt.Errorf("failed to read private key %s: %v", identityFile, err)
 	}

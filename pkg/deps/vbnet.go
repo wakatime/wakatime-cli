@@ -35,7 +35,7 @@ type ParserVbNet struct {
 
 // Parse parses dependencies from VB.Net file content using the chroma VB.Net lexer.
 func (p *ParserVbNet) Parse(ctx context.Context, filepath string) ([]string, error) {
-	text, err := file.ReadHead(ctx, filepath, 0)
+	head, err := file.ReadHead(ctx, filepath, 0)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read: %s", err)
 	}
@@ -48,7 +48,7 @@ func (p *ParserVbNet) Parse(ctx context.Context, filepath string) ([]string, err
 		return nil, fmt.Errorf("failed to get lexer for %s", heartbeat.LanguageVBNet.String())
 	}
 
-	iter, err := l.Tokenise(nil, text)
+	iter, err := l.Tokenise(nil, string(head))
 	if err != nil {
 		return nil, fmt.Errorf("failed to tokenize file content: %s", err)
 	}

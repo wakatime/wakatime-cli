@@ -132,11 +132,13 @@ func detectSpecialCases(ctx context.Context, fp string) (heartbeat.Language, boo
 func detectOverrideCases(ctx context.Context, fp string, language heartbeat.Language, weight float32) heartbeat.Language {
 	logger := log.Extract(ctx)
 
-	text, err := file.ReadHead(ctx, fp, 0)
+	head, err := file.ReadHead(ctx, fp, 0)
 	if err != nil {
 		logger.Debugf("failed to open file: %s", err)
 		return language
 	}
+
+	text := string(head)
 
 	languageVim, weightVim, okVim := detectVimModeline(text)
 	if okVim && weightVim > weight {

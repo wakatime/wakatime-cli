@@ -40,7 +40,7 @@ func (p *ParserJava) Parse(ctx context.Context, filepath string) ([]string, erro
 	p.init()
 	defer p.init()
 
-	text, err := file.ReadHead(ctx, filepath, 0)
+	head, err := file.ReadHead(ctx, filepath, 0)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read: %s", err)
 	}
@@ -50,7 +50,7 @@ func (p *ParserJava) Parse(ctx context.Context, filepath string) ([]string, erro
 		return nil, fmt.Errorf("failed to get lexer for %s", heartbeat.LanguageJava.String())
 	}
 
-	iter, err := l.Tokenise(nil, text)
+	iter, err := l.Tokenise(nil, string(head))
 	if err != nil {
 		return nil, fmt.Errorf("failed to tokenize file content: %s", err)
 	}
