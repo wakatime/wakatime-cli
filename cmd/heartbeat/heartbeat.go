@@ -172,12 +172,14 @@ func LoadParams(ctx context.Context, v *viper.Viper) (paramscmd.Params, error) {
 		return paramscmd.Params{}, errors.New("viper instance unset")
 	}
 
-	apiParams, err := paramscmd.LoadAPIParams(ctx, v)
+	// Load API params with project config support
+	apiParams, err := paramscmd.LoadAPIParamsWithProjectConfig(ctx, v)
 	if err != nil {
 		return paramscmd.Params{}, fmt.Errorf("failed to load API parameters: %w", err)
 	}
 
-	heartbeatParams, err := paramscmd.LoadHeartbeatParams(ctx, v)
+	// Load heartbeat params with project config support
+	heartbeatParams, err := paramscmd.LoadHeartbeatParamsWithProjectConfig(ctx, v)
 	if err != nil {
 		return paramscmd.Params{}, fmt.Errorf("failed to load heartbeat params: %s", err)
 	}
