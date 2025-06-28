@@ -168,6 +168,21 @@ type (
 	}
 )
 
+// LoadAPIParamsWithProjectConfig loads API params from viper.Viper instance
+// with project-level configuration merged in. Returns ErrAuth if failed to retrieve api key.
+func LoadAPIParamsWithProjectConfig(ctx context.Context, v *viper.Viper) (API, error) {
+	// Get the entity first to determine the project config
+	entity := vipertools.FirstNonEmptyString(v, "entity", "file")
+	if entity != "" {
+		// Load project-specific configuration if available
+		mergedViper := project.LoadProjectConfig(ctx, v, entity)
+		return LoadAPIParams(ctx, mergedViper)
+	}
+
+	// Fall back to regular loading if no entity is provided
+	return LoadAPIParams(ctx, v)
+}
+
 // LoadAPIParams loads API params from viper.Viper instance. Returns ErrAuth
 // if failed to retrieve api key.
 func LoadAPIParams(ctx context.Context, v *viper.Viper) (API, error) {
@@ -363,6 +378,22 @@ func LoadAPIKey(ctx context.Context, v *viper.Viper) (string, error) {
 	}
 
 	return apiKey, nil
+}
+
+// LoadHeartbeatParamsWithProjectConfig loads heartbeats params from viper.Viper instance
+// with project-level configuration merged in.
+func LoadHeartbeatParamsWithProjectConfig(ctx context.Context, v *viper.Viper) (Heartbeat, error) {
+	// Get the entity first to determine the project config
+	entity := vipertools.FirstNonEmptyString(v, "entity", "file")
+	if entity == "" {
+		return Heartbeat{}, errors.New("failed to retrieve entity")
+	}
+
+	// Load project-specific configuration if available
+	mergedViper := project.LoadProjectConfig(ctx, v, entity)
+
+	// Use the merged configuration for loading params
+	return LoadHeartbeatParams(ctx, mergedViper)
 }
 
 // LoadHeartbeatParams loads heartbeats params from viper.Viper instance.
