@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 
 	"github.com/wakatime/wakatime-cli/pkg/log"
@@ -14,19 +15,17 @@ import (
 // language, dependencies, and their line count will be nil. Default is 5 MB.
 const MaxFileSizeSupported = 5 * 1024 * 1024
 
-// ReadHead returns the first max bytes of a file as a string.
-func ReadHead(ctx context.Context, filepath string, max int) (string, error) {
+// ReadHead returns the first max bytes of a file as a byte array.
+func ReadHead(ctx context.Context, filepath string, max int) ([]byte, error) {
 	logger := log.Extract(ctx)
 
-	if max < 1 {
-		max = MaxFileSizeSupported
-	} else if max > MaxFileSizeSupported {
+	if max < 1 || max > MaxFileSizeSupported {
 		max = MaxFileSizeSupported
 	}
 
 	f, err := OpenNoLock(filepath) // nolint:gosec
 	if err != nil {
-		return "", err
+		return nil, fmt.Errorf("failed to open file %q: %s", filepath, err)
 	}
 
 	defer func() {
@@ -39,34 +38,32 @@ func ReadHead(ctx context.Context, filepath string, max int) (string, error) {
 
 	c, err := f.Read(buf)
 	if err != nil && err != io.EOF {
-		return "", err
+		return nil, err
 	}
 
-	return string(buf[:c]), nil
+	return buf[:c], nil
 }
 
 // ReadLines reads a file until max number of lines and return an array of lines.
-func ReadLines(ctx context.Context, filepath string, max int) ([]string, error) {
-	if filepath == "" {
+func ReadLines(ctx context.Context, fp string, max int) ([]string, error) {
+	if fp == "" {
 		return nil, errors.New("filepath cannot be empty")
-	}
-
-	f, err := OpenNoLock(filepath) // nolint:gosec
-	if err != nil {
-		return nil, err
 	}
 
 	logger := log.Extract(ctx)
 
+	file, err := OpenNoLock(fp) // nolint:gosec
+	if err != nil {
+		return nil, fmt.Errorf("failed to open file %q: %s", fp, err)
+	}
+
 	defer func() {
-		if err := f.Close(); err != nil {
-			logger.Debugf("failed to close file '%s': %s", f.Name(), err)
+		if err := file.Close(); err != nil {
+			logger.Debugf("failed to close file '%s': %s", file.Name(), err)
 		}
 	}()
 
-	reader := io.LimitReader(f, MaxFileSizeSupported)
-
-	scanner := bufio.NewScanner(reader)
+	scanner := bufio.NewScanner(file)
 	scanner.Split(bufio.ScanLines)
 
 	var (
@@ -88,14 +85,14 @@ func ReadLines(ctx context.Context, filepath string, max int) ([]string, error) 
 }
 
 // CountLines counts the number of lines in a file.
-func CountLines(ctx context.Context, filepath string) (int, error) {
-	if filepath == "" {
+func CountLines(ctx context.Context, fp string) (int, error) {
+	if fp == "" {
 		return 0, errors.New("filepath cannot be empty")
 	}
 
-	f, err := OpenNoLock(filepath) // nolint:gosec
+	f, err := OpenNoLock(fp) // nolint:gosec
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("failed to open file %q: %s", fp, err)
 	}
 
 	logger := log.Extract(ctx)
@@ -111,41 +108,14 @@ func CountLines(ctx context.Context, filepath string) (int, error) {
 	scanner := bufio.NewScanner(reader)
 	scanner.Split(bufio.ScanLines)
 
-	var count = 0
+	var count int
 	for scanner.Scan() {
 		count++
 	}
 
+	if err := scanner.Err(); err != nil {
+		return count, fmt.Errorf("failed to read file %q: %w", fp, err)
+	}
+
 	return count, nil
-}
-
-// ReadHeadAsBytes returns the first max bytes of a file as a string.
-func ReadHeadAsBytes(ctx context.Context, filepath string, max int) ([]byte, error) {
-	if max < 1 {
-		max = MaxFileSizeSupported
-	} else if max > MaxFileSizeSupported {
-		max = MaxFileSizeSupported
-	}
-
-	f, err := OpenNoLock(filepath) // nolint:gosec
-	if err != nil {
-		return nil, err
-	}
-
-	logger := log.Extract(ctx)
-
-	defer func() {
-		if err := f.Close(); err != nil {
-			logger.Debugf("failed to close file '%s': %s", f.Name(), err)
-		}
-	}()
-
-	buf := make([]byte, max)
-
-	c, err := f.Read(buf)
-	if err != nil && err != io.EOF {
-		return nil, err
-	}
-
-	return buf[:c], nil
 }

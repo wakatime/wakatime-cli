@@ -33,7 +33,7 @@ type ParserHaxe struct {
 
 // Parse parses dependencies from Haxe file content using the chroma Haxe lexer.
 func (p *ParserHaxe) Parse(ctx context.Context, filepath string) ([]string, error) {
-	text, err := file.ReadHead(ctx, filepath, 0)
+	head, err := file.ReadHead(ctx, filepath, 0)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read: %s", err)
 	}
@@ -41,7 +41,7 @@ func (p *ParserHaxe) Parse(ctx context.Context, filepath string) ([]string, erro
 	p.init()
 	defer p.init()
 
-	iter, err := lexers.Haxe.Tokenise(nil, text)
+	iter, err := lexers.Haxe.Tokenise(nil, string(head))
 	if err != nil {
 		return nil, fmt.Errorf("failed to tokenize file content: %s", err)
 	}

@@ -40,7 +40,7 @@ type ParserPHP struct {
 
 // Parse parses dependencies from PHP file content using the chroma PHP lexer.
 func (p *ParserPHP) Parse(ctx context.Context, filepath string) ([]string, error) {
-	text, err := file.ReadHead(ctx, filepath, 0)
+	head, err := file.ReadHead(ctx, filepath, 0)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read: %s", err)
 	}
@@ -53,7 +53,7 @@ func (p *ParserPHP) Parse(ctx context.Context, filepath string) ([]string, error
 		return nil, fmt.Errorf("failed to get lexer for %s", heartbeat.LanguagePHP.String())
 	}
 
-	iter, err := l.Tokenise(nil, text)
+	iter, err := l.Tokenise(nil, string(head))
 	if err != nil {
 		return nil, fmt.Errorf("failed to tokenize file content: %s", err)
 	}

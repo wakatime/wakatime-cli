@@ -85,7 +85,7 @@ func detectChromaCustomized(ctx context.Context, fp string, guessLanguage bool) 
 		return heartbeat.LanguageUnknown, 0, false
 	}
 
-	if lexer := lexers.Analyse(head); lexer != nil {
+	if lexer := lexers.Analyse(string(head)); lexer != nil {
 		language, ok := heartbeat.ParseLanguageFromChroma(lexer.Config().Name)
 		if !ok {
 			logger.Warnf("failed to parse language from chroma lexer name %q", lexer.Config().Name)
@@ -139,7 +139,7 @@ func selectByCustomizedPriority(ctx context.Context, fp string, lexers chroma.Pr
 		var weight float32
 
 		if analyser, ok := lexer.(chroma.Analyser); ok {
-			weight = analyser.AnalyseText(head)
+			weight = analyser.AnalyseText(string(head))
 		}
 
 		cfg := lexer.Config()

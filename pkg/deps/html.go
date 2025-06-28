@@ -35,7 +35,7 @@ type ParserHTML struct {
 
 // Parse parses dependencies from HTML file content via ReadCloser using the chroma HTML lexer.
 func (p *ParserHTML) Parse(ctx context.Context, filepath string) ([]string, error) {
-	text, err := file.ReadHead(ctx, filepath, 0)
+	head, err := file.ReadHead(ctx, filepath, 0)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read: %s", err)
 	}
@@ -43,7 +43,7 @@ func (p *ParserHTML) Parse(ctx context.Context, filepath string) ([]string, erro
 	p.init()
 	defer p.init()
 
-	iter, err := lexers.HTML.Tokenise(nil, text)
+	iter, err := lexers.HTML.Tokenise(nil, string(head))
 	if err != nil {
 		return nil, fmt.Errorf("failed to tokenize file content: %s", err)
 	}

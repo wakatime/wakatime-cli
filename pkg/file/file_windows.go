@@ -30,6 +30,7 @@ func openFileNolog(name string, flag int, _ os.FileMode) (*os.File, error) {
 		return nil, &os.PathError{Op: "open", Path: name, Err: syscall.ENOENT}
 	}
 	path := fixLongPath(name)
+
 	r, e := syscallOpen(path, flag)
 	if e != nil {
 		// We should return EISDIR when we are trying to open a directory with write access.
@@ -37,18 +38,22 @@ func openFileNolog(name string, flag int, _ os.FileMode) (*os.File, error) {
 			pathp, e1 := syscall.UTF16PtrFromString(path)
 			if e1 == nil {
 				var fa syscall.Win32FileAttributeData
+
 				e1 = syscall.GetFileAttributesEx(pathp, syscall.GetFileExInfoStandard, (*byte)(unsafe.Pointer(&fa)))
 				if e1 == nil && fa.FileAttributes&syscall.FILE_ATTRIBUTE_DIRECTORY != 0 {
 					e = syscall.EISDIR
 				}
 			}
 		}
+
 		return nil, &os.PathError{Op: "open", Path: name, Err: e}
 	}
-	f, e := os.NewFile(uintptr(r), name), nil
-	if e != nil {
-		return nil, &os.PathError{Op: "open", Path: name, Err: e}
+
+	f := os.NewFile(uintptr(r), name)
+	if f == nil {
+		return nil, &os.PathError{Op: "new file", Path: name, Err: e}
 	}
+
 	return f, nil
 }
 
@@ -56,11 +61,14 @@ func syscallOpen(path string, mode int) (fd syscall.Handle, err error) {
 	if len(path) == 0 {
 		return syscall.InvalidHandle, syscall.ERROR_FILE_NOT_FOUND
 	}
+
 	pathp, err := syscall.UTF16PtrFromString(path)
 	if err != nil {
 		return syscall.InvalidHandle, err
 	}
+
 	var access uint32
+
 	switch mode & (syscall.O_RDONLY | syscall.O_WRONLY | syscall.O_RDWR) {
 	case syscall.O_RDONLY:
 		access = syscall.GENERIC_READ
@@ -76,12 +84,16 @@ func syscallOpen(path string, mode int) (fd syscall.Handle, err error) {
 		access &^= syscall.GENERIC_WRITE
 		access |= syscall.FILE_APPEND_DATA
 	}
+
 	sharemode := uint32(syscall.FILE_SHARE_READ | syscall.FILE_SHARE_WRITE | syscall.FILE_SHARE_DELETE)
+
 	var sa *syscall.SecurityAttributes
 	if mode&syscall.O_CLOEXEC == 0 {
 		sa = makeInheritSa()
 	}
+
 	var createmode uint32
+
 	switch {
 	case mode&(syscall.O_CREAT|syscall.O_EXCL) == (syscall.O_CREAT | syscall.O_EXCL):
 		createmode = syscall.CREATE_NEW
@@ -94,22 +106,28 @@ func syscallOpen(path string, mode int) (fd syscall.Handle, err error) {
 	default:
 		createmode = syscall.OPEN_EXISTING
 	}
+
 	var attrs uint32 = syscall.FILE_ATTRIBUTE_NORMAL
+
 	if createmode == syscall.OPEN_EXISTING && access == syscall.GENERIC_READ {
 		// Necessary for opening directory handles.
 		attrs |= syscall.FILE_FLAG_BACKUP_SEMANTICS
 	}
+
 	if mode&syscall.O_SYNC != 0 {
 		const _FILE_FLAG_WRITE_THROUGH = 0x80000000
 		attrs |= _FILE_FLAG_WRITE_THROUGH
 	}
+
 	return syscall.CreateFile(pathp, access, sharemode, sa, createmode, attrs, 0)
 }
 
 func makeInheritSa() *syscall.SecurityAttributes {
 	var sa syscall.SecurityAttributes
+
 	sa.Length = uint32(unsafe.Sizeof(sa))
 	sa.InheritHandle = 1
+
 	return &sa
 }
 
@@ -118,10 +136,12 @@ func isAbs(path string) (b bool) {
 	if v == "" {
 		return false
 	}
+
 	path = path[len(v):]
 	if path == "" {
 		return false
 	}
+
 	return os.IsPathSeparator(path[0])
 }
 
@@ -129,6 +149,7 @@ func volumeName(path string) (v string) {
 	if len(path) < 2 {
 		return ""
 	}
+
 	// with drive letter
 	c := path[0]
 	if path[1] == ':' &&
@@ -136,6 +157,7 @@ func volumeName(path string) (v string) {
 			'A' <= c && c <= 'Z') {
 		return path[:2]
 	}
+
 	// is it UNC
 	if l := len(path); l >= 5 && os.IsPathSeparator(path[0]) && os.IsPathSeparator(path[1]) &&
 		!os.IsPathSeparator(path[2]) && path[2] != '.' {
@@ -144,22 +166,27 @@ func volumeName(path string) (v string) {
 			// second, next '\' shouldn't be repeated.
 			if os.IsPathSeparator(path[n]) {
 				n++
+
 				// third, following something characters. its share name.
 				if !os.IsPathSeparator(path[n]) {
 					if path[n] == '.' {
 						break
 					}
+
 					for ; n < l; n++ {
 						if os.IsPathSeparator(path[n]) {
 							break
 						}
 					}
+
 					return path[:n]
 				}
+
 				break
 			}
 		}
 	}
+
 	return ""
 }
 
@@ -204,6 +231,7 @@ func fixLongPath(path string) string {
 		// Don't canonicalize UNC paths.
 		return path
 	}
+
 	if !isAbs(path) {
 		// Relative path
 		return path
@@ -213,7 +241,9 @@ func fixLongPath(path string) string {
 
 	pathbuf := make([]byte, len(prefix)+len(path)+len(`\`))
 	copy(pathbuf, prefix)
+
 	n := len(path)
+
 	r, w := 0, len(prefix)
 	for r < n {
 		switch {
@@ -229,16 +259,19 @@ func fixLongPath(path string) string {
 		default:
 			pathbuf[w] = '\\'
 			w++
+
 			for ; r < n && !os.IsPathSeparator(path[r]); r++ {
 				pathbuf[w] = path[r]
 				w++
 			}
 		}
 	}
+
 	// A drive's root directory needs a trailing \
 	if w == len(`\\?\c:`) {
 		pathbuf[w] = '\\'
 		w++
 	}
+
 	return string(pathbuf[:w])
 }
