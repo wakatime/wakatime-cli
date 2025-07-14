@@ -57,6 +57,7 @@ func TestLoadHeartbeatParams_Category(t *testing.T) {
 
 	tests := map[string]heartbeat.Category{
 		"advising":       heartbeat.AdvisingCategory,
+		"ai coding":      heartbeat.AICodingCategory,
 		"browsing":       heartbeat.BrowsingCategory,
 		"building":       heartbeat.BuildingCategory,
 		"coding":         heartbeat.CodingCategory,
