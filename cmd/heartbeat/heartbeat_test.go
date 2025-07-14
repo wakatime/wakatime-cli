@@ -1,7 +1,6 @@
 package heartbeat_test
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -17,13 +16,13 @@ import (
 
 	"github.com/wakatime/wakatime-cli/cmd"
 	cmdheartbeat "github.com/wakatime/wakatime-cli/cmd/heartbeat"
-	cmdparams "github.com/wakatime/wakatime-cli/cmd/params"
 	"github.com/wakatime/wakatime-cli/pkg/api"
 	"github.com/wakatime/wakatime-cli/pkg/file"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/ini"
 	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/offline"
+	paramspkg "github.com/wakatime/wakatime-cli/pkg/params"
 	"github.com/wakatime/wakatime-cli/pkg/project"
 	"github.com/wakatime/wakatime-cli/pkg/version"
 	"github.com/wakatime/wakatime-cli/pkg/windows"
@@ -1205,94 +1204,6 @@ func TestSendHeartbeats_ObfuscateProjectNotBranch(t *testing.T) {
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
 
-func TestRateLimited(t *testing.T) {
-	resetSingleton(t)
-
-	p := cmdheartbeat.RateLimitParams{
-		Timeout:    time.Duration(offline.RateLimitDefaultSeconds) * time.Second,
-		LastSentAt: time.Now(),
-	}
-
-	assert.True(t, cmdheartbeat.RateLimited(p))
-}
-
-func TestRateLimited_NotLimited(t *testing.T) {
-	resetSingleton(t)
-
-	p := cmdheartbeat.RateLimitParams{
-		LastSentAt: time.Now().Add(time.Duration(-offline.RateLimitDefaultSeconds*2) * time.Second),
-		Timeout:    time.Duration(offline.RateLimitDefaultSeconds) * time.Second,
-	}
-
-	assert.False(t, cmdheartbeat.RateLimited(p))
-}
-
-func TestRateLimited_Disabled(t *testing.T) {
-	resetSingleton(t)
-
-	p := cmdheartbeat.RateLimitParams{
-		Disabled: true,
-	}
-
-	assert.False(t, cmdheartbeat.RateLimited(p))
-}
-
-func TestRateLimited_TimeoutZero(t *testing.T) {
-	resetSingleton(t)
-
-	p := cmdheartbeat.RateLimitParams{
-		Timeout: 0,
-	}
-
-	assert.False(t, cmdheartbeat.RateLimited(p))
-}
-
-func TestRateLimited_LastSentAtZero(t *testing.T) {
-	resetSingleton(t)
-
-	p := cmdheartbeat.RateLimitParams{
-		LastSentAt: time.Time{},
-	}
-
-	assert.False(t, cmdheartbeat.RateLimited(p))
-}
-
-func TestResetRateLimit(t *testing.T) {
-	resetSingleton(t)
-
-	tmpFile, err := os.CreateTemp(t.TempDir(), "wakatime")
-	require.NoError(t, err)
-
-	defer tmpFile.Close()
-
-	tmpFileInternal, err := os.CreateTemp(t.TempDir(), "wakatime-internal")
-	require.NoError(t, err)
-
-	defer tmpFileInternal.Close()
-
-	ctx := t.Context()
-
-	v := viper.New()
-	v.Set("config", tmpFileInternal.Name())
-	v.Set("internal-config", tmpFileInternal.Name())
-
-	writer, err := ini.NewWriter(ctx, v, func(_ context.Context, vp *viper.Viper) (string, error) {
-		assert.Equal(t, v, vp)
-		return tmpFileInternal.Name(), nil
-	})
-	require.NoError(t, err)
-
-	err = cmdheartbeat.ResetRateLimit(ctx, v)
-	require.NoError(t, err)
-
-	err = writer.File.Reload()
-	require.NoError(t, err)
-
-	lastSentAt := writer.File.Section("internal").Key("heartbeats_last_sent_at").MustTimeFormat(ini.DateFormat)
-
-	assert.WithinDuration(t, time.Now(), lastSentAt, 1*time.Second)
-}
-
 func setupTestServer() (string, *http.ServeMux, func()) {
 	router := http.NewServeMux()
 	srv := httptest.NewServer(router)
@@ -1338,5 +1249,5 @@ func copyFile(t *testing.T, source, destination string) {
 func resetSingleton(t *testing.T) {
 	t.Helper()
 
-	cmdparams.Once = sync.Once{}
+	paramspkg.Once = sync.Once{}
 }

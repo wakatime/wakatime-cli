@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 
-	paramscmd "github.com/wakatime/wakatime-cli/cmd/params"
 	"github.com/wakatime/wakatime-cli/pkg/deps"
 	"github.com/wakatime/wakatime-cli/pkg/filestats"
 	"github.com/wakatime/wakatime-cli/pkg/filter"
@@ -13,6 +12,7 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/language"
 	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/offline"
+	paramspkg "github.com/wakatime/wakatime-cli/pkg/params"
 	"github.com/wakatime/wakatime-cli/pkg/project"
 	"github.com/wakatime/wakatime-cli/pkg/remote"
 
@@ -55,27 +55,27 @@ func SaveHeartbeats(ctx context.Context, v *viper.Viper, heartbeats []heartbeat.
 	return nil
 }
 
-func loadParams(ctx context.Context, v *viper.Viper) (paramscmd.Params, error) {
+func loadParams(ctx context.Context, v *viper.Viper) (paramspkg.Params, error) {
 	logger := log.Extract(ctx)
 
-	paramAPI, err := paramscmd.LoadAPIParams(ctx, v)
+	paramAPI, err := paramspkg.LoadAPIParams(ctx, v)
 	if err != nil {
 		logger.Warnf("failed to load API parameters: %s", err)
 	}
 
-	paramHeartbeat, err := paramscmd.LoadHeartbeatParams(ctx, v)
+	paramHeartbeat, err := paramspkg.LoadHeartbeatParams(ctx, v)
 	if err != nil {
-		return paramscmd.Params{}, fmt.Errorf("failed to load heartbeat parameters: %s", err)
+		return paramspkg.Params{}, fmt.Errorf("failed to load heartbeat parameters: %s", err)
 	}
 
-	return paramscmd.Params{
+	return paramspkg.Params{
 		API:       paramAPI,
 		Heartbeat: paramHeartbeat,
-		Offline:   paramscmd.LoadOfflineParams(ctx, v),
+		Offline:   paramspkg.LoadOfflineParams(ctx, v),
 	}, nil
 }
 
-func buildHeartbeats(ctx context.Context, params paramscmd.Params) []heartbeat.Heartbeat {
+func buildHeartbeats(ctx context.Context, params paramspkg.Params) []heartbeat.Heartbeat {
 	heartbeats := []heartbeat.Heartbeat{}
 
 	userAgent := heartbeat.UserAgent(ctx, params.API.Plugin)
@@ -136,7 +136,7 @@ func buildHeartbeats(ctx context.Context, params paramscmd.Params) []heartbeat.H
 	return heartbeats
 }
 
-func initHandleOptions(params paramscmd.Params) []heartbeat.HandleOption {
+func initHandleOptions(params paramspkg.Params) []heartbeat.HandleOption {
 	return []heartbeat.HandleOption{
 		heartbeat.WithFormatting(),
 		heartbeat.WithEntityModifier(),
@@ -177,7 +177,7 @@ func initHandleOptions(params paramscmd.Params) []heartbeat.HandleOption {
 	}
 }
 
-func setLogFields(ctx context.Context, params paramscmd.Params) {
+func setLogFields(ctx context.Context, params paramspkg.Params) {
 	log.AddField(ctx, "file", params.Heartbeat.Entity)
 	log.AddField(ctx, "time", params.Heartbeat.Time)
 

@@ -5,11 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"time"
 
 	apicmd "github.com/wakatime/wakatime-cli/cmd/api"
 	offlinecmd "github.com/wakatime/wakatime-cli/cmd/offline"
-	paramscmd "github.com/wakatime/wakatime-cli/cmd/params"
 	"github.com/wakatime/wakatime-cli/pkg/api"
 	"github.com/wakatime/wakatime-cli/pkg/apikey"
 	"github.com/wakatime/wakatime-cli/pkg/backoff"
@@ -18,12 +16,13 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/filestats"
 	"github.com/wakatime/wakatime-cli/pkg/filter"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
-	"github.com/wakatime/wakatime-cli/pkg/ini"
 	"github.com/wakatime/wakatime-cli/pkg/language"
 	_ "github.com/wakatime/wakatime-cli/pkg/lexer" // force to load all lexers
 	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/offline"
+	paramspkg "github.com/wakatime/wakatime-cli/pkg/params"
 	"github.com/wakatime/wakatime-cli/pkg/project"
+	"github.com/wakatime/wakatime-cli/pkg/ratelimit"
 	"github.com/wakatime/wakatime-cli/pkg/remote"
 	"github.com/wakatime/wakatime-cli/pkg/wakaerror"
 
@@ -82,7 +81,7 @@ func SendHeartbeats(ctx context.Context, v *viper.Viper, queueFilepath string) e
 	setLogFields(ctx, params)
 	logger.Debugf("params: %s", params)
 
-	if RateLimited(RateLimitParams{
+	if ratelimit.IsRateLimited(ratelimit.Params{
 		Disabled:   params.Offline.Disabled,
 		LastSentAt: params.Offline.LastSentAt,
 		Timeout:    params.Offline.RateLimit,
@@ -158,7 +157,7 @@ func SendHeartbeats(ctx context.Context, v *viper.Viper, queueFilepath string) e
 		}
 	}
 
-	if err := ResetRateLimit(ctx, v); err != nil {
+	if err := ratelimit.Reset(ctx, v); err != nil {
 		logger.Errorf("failed to reset rate limit: %s", err)
 	}
 
@@ -167,71 +166,29 @@ func SendHeartbeats(ctx context.Context, v *viper.Viper, queueFilepath string) e
 
 // LoadParams loads params from viper.Viper instance. Returns ErrAuth
 // if failed to retrieve api key.
-func LoadParams(ctx context.Context, v *viper.Viper) (paramscmd.Params, error) {
+func LoadParams(ctx context.Context, v *viper.Viper) (paramspkg.Params, error) {
 	if v == nil {
-		return paramscmd.Params{}, errors.New("viper instance unset")
+		return paramspkg.Params{}, errors.New("viper instance unset")
 	}
 
-	apiParams, err := paramscmd.LoadAPIParams(ctx, v)
+	apiParams, err := paramspkg.LoadAPIParams(ctx, v)
 	if err != nil {
-		return paramscmd.Params{}, fmt.Errorf("failed to load API parameters: %w", err)
+		return paramspkg.Params{}, fmt.Errorf("failed to load API parameters: %w", err)
 	}
 
-	heartbeatParams, err := paramscmd.LoadHeartbeatParams(ctx, v)
+	heartbeatParams, err := paramspkg.LoadHeartbeatParams(ctx, v)
 	if err != nil {
-		return paramscmd.Params{}, fmt.Errorf("failed to load heartbeat params: %s", err)
+		return paramspkg.Params{}, fmt.Errorf("failed to load heartbeat params: %s", err)
 	}
 
-	return paramscmd.Params{
+	return paramspkg.Params{
 		API:       apiParams,
 		Heartbeat: heartbeatParams,
-		Offline:   paramscmd.LoadOfflineParams(ctx, v),
+		Offline:   paramspkg.LoadOfflineParams(ctx, v),
 	}, nil
 }
 
-// RateLimitParams contains params for the RateLimited function.
-type RateLimitParams struct {
-	Disabled   bool
-	LastSentAt time.Time
-	Timeout    time.Duration
-}
-
-// RateLimited determines if we should send heartbeats to the API or save to the offline db.
-func RateLimited(params RateLimitParams) bool {
-	if params.Disabled {
-		return false
-	}
-
-	if params.Timeout == 0 {
-		return false
-	}
-
-	if params.LastSentAt.IsZero() {
-		return false
-	}
-
-	return time.Since(params.LastSentAt) < params.Timeout
-}
-
-// ResetRateLimit updates the internal.heartbeats_last_sent_at timestamp.
-func ResetRateLimit(ctx context.Context, v *viper.Viper) error {
-	w, err := ini.NewWriter(ctx, v, ini.InternalFilePath)
-	if err != nil {
-		return fmt.Errorf("failed to parse config file: %s", err)
-	}
-
-	keyValue := map[string]string{
-		"heartbeats_last_sent_at": time.Now().Format(ini.DateFormat),
-	}
-
-	if err := w.Write(ctx, "internal", keyValue); err != nil {
-		return fmt.Errorf("failed to write to internal config file: %s", err)
-	}
-
-	return nil
-}
-
-func buildHeartbeats(ctx context.Context, params paramscmd.Params) []heartbeat.Heartbeat {
+func buildHeartbeats(ctx context.Context, params paramspkg.Params) []heartbeat.Heartbeat {
 	heartbeats := []heartbeat.Heartbeat{}
 
 	userAgent := heartbeat.UserAgent(ctx, params.API.Plugin)
@@ -292,7 +249,7 @@ func buildHeartbeats(ctx context.Context, params paramscmd.Params) []heartbeat.H
 	return heartbeats
 }
 
-func initHandleOptions(params paramscmd.Params) []heartbeat.HandleOption {
+func initHandleOptions(params paramspkg.Params) []heartbeat.HandleOption {
 	return []heartbeat.HandleOption{
 		heartbeat.WithFormatting(),
 		heartbeat.WithEntityModifier(),
@@ -337,7 +294,7 @@ func initHandleOptions(params paramscmd.Params) []heartbeat.HandleOption {
 	}
 }
 
-func setLogFields(ctx context.Context, params paramscmd.Params) {
+func setLogFields(ctx context.Context, params paramspkg.Params) {
 	log.AddField(ctx, "file", params.Heartbeat.Entity)
 	log.AddField(ctx, "time", params.Heartbeat.Time)
 

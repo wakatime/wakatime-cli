@@ -758,14 +758,16 @@ func LoadStatusBarParams(v *viper.Viper) (StatusBar, error) {
 	}, nil
 }
 
-func safeTimeParse(format string, s string) (parsed time.Time, err error) {
+func safeTimeParse(format, s string) (parsed time.Time, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("panicked: failed to time.Parse: %v. Stack: %s", r, string(debug.Stack()))
 		}
 	}()
 
-	return time.Parse(format, s)
+	parsed, err = time.Parse(format, s)
+
+	return parsed, err
 }
 
 func readAPIKeyFromCommand(cmdStr string) (string, error) {
@@ -1048,6 +1050,7 @@ func (p API) String() string {
 	)
 }
 
+// String implements fmt.Stringer interface.
 func (p FilterParams) String() string {
 	return fmt.Sprintf(
 		"exclude: '%s', exclude unknown project: %t, include: '%s', include only with project file: %t",
@@ -1058,6 +1061,7 @@ func (p FilterParams) String() string {
 	)
 }
 
+// String implements fmt.Stringer interface.
 func (p Heartbeat) String() string {
 	var cursorPosition string
 	if p.CursorPosition != nil {
@@ -1148,6 +1152,7 @@ func (p Params) String() string {
 	)
 }
 
+// String implements fmt.Stringer interface.
 func (p ProjectParams) String() string {
 	return fmt.Sprintf(
 		"alternate: '%s', branch alternate: '%s', map patterns: '%s', override: '%s',"+
@@ -1161,6 +1166,7 @@ func (p ProjectParams) String() string {
 	)
 }
 
+// String implements fmt.Stringer interface.
 func (p SanitizeParams) String() string {
 	return fmt.Sprintf(
 		"hide branch names: '%s', hide project folder: %t, hide file names: '%s',"+

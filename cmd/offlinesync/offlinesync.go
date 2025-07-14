@@ -6,13 +6,13 @@ import (
 	"os"
 
 	cmdapi "github.com/wakatime/wakatime-cli/cmd/api"
-	cmdheartbeat "github.com/wakatime/wakatime-cli/cmd/heartbeat"
-	"github.com/wakatime/wakatime-cli/cmd/params"
 	"github.com/wakatime/wakatime-cli/pkg/apikey"
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/offline"
+	"github.com/wakatime/wakatime-cli/pkg/params"
+	"github.com/wakatime/wakatime-cli/pkg/ratelimit"
 	"github.com/wakatime/wakatime-cli/pkg/wakaerror"
 
 	"github.com/spf13/viper"
@@ -29,7 +29,7 @@ func RunWithRateLimiting(ctx context.Context, v *viper.Viper) (int, error) {
 
 	logger := log.Extract(ctx)
 
-	if cmdheartbeat.RateLimited(cmdheartbeat.RateLimitParams{
+	if ratelimit.IsRateLimited(ratelimit.Params{
 		Disabled:   paramOffline.Disabled,
 		LastSentAt: paramOffline.LastSentAt,
 		Timeout:    paramOffline.RateLimit,
@@ -157,7 +157,7 @@ func SyncOfflineActivity(ctx context.Context, v *viper.Viper, queueFilepath stri
 
 	logger := log.Extract(ctx)
 
-	if err := cmdheartbeat.ResetRateLimit(ctx, v); err != nil {
+	if err := ratelimit.Reset(ctx, v); err != nil {
 		logger.Errorf("failed to reset rate limit: %s", err)
 	}
 
