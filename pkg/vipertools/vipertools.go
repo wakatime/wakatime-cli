@@ -1,11 +1,67 @@
 package vipertools
 
 import (
+	"fmt"
+	"slices"
 	"strings"
 
+	viperini "github.com/go-viper/encoding/ini"
 	"github.com/spf13/cast"
 	"github.com/spf13/viper"
+	iniv1 "gopkg.in/ini.v1"
 )
+
+// New creates a new viper instance with the ini codec registered.
+func New() (*viper.Viper, error) {
+	multilineOption := iniv1.LoadOptions{AllowPythonMultilineValues: true}
+	iniCodec := viperini.Codec{LoadOptions: multilineOption}
+
+	codecRegistry := viper.NewCodecRegistry()
+	if err := codecRegistry.RegisterCodec("ini", iniCodec); err != nil {
+		return nil, fmt.Errorf("failed to register ini codec: %w", err)
+	}
+
+	return viper.NewWithOptions(viper.WithCodecRegistry(codecRegistry)), nil
+}
+
+// CopyOnlySettings copies only the settings from one viper.Viper instance to another.
+// It skips all settings that are loaded from command line arguments.
+func CopyOnlySettings(vsrc, vdest *viper.Viper) {
+	skip := []string{
+		"key",
+		"api-url",
+		"apiurl",
+		"hostname",
+		"proxy",
+		"ssl-certs-file",
+		"timeout",
+		"no-ssl-verify",
+		"guess-language",
+		"exclude",
+		"include",
+		"exclude-unknown-project",
+		"include-only-with-project-file",
+		"hide-branch-names",
+		"hide-dependencies",
+		"hide-project-names",
+		"hide-file-names",
+		"hide-filenames",
+		"hidefilenames",
+		"hide-project-folder",
+		"disable-offline",
+		"disableoffline",
+		"heartbeat-rate-limit-seconds",
+		"today-hide-categories",
+	}
+
+	for _, key := range vsrc.AllKeys() {
+		if slices.Contains(skip, key) {
+			continue
+		}
+
+		vdest.Set(key, vsrc.Get(key))
+	}
+}
 
 // FirstNonEmptyBool accepts multiple keys and returns the first non-empty bool value
 // from viper.Viper via these keys. Non-empty meaning key not set will not be accepted.
