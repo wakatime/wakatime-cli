@@ -1,0 +1,29 @@
+{
+    "responses": [
+        [
+            {
+                "data": {
+                    "branch": "heartbeat",
+                    "category": "coding",
+                    "created_at": "2020-04-14T21:27:15Z",
+                    "cursorpos": 12,
+                    "dependencies": ["dep1", "dep2"],
+                    "entity": "/tmp/main.go",
+                    "id": "845a922e-9e65-4775-bd68-bb3196d2e06a",
+                    "is_write": true,
+                    "language": "Go",
+                    "lineno": 42,
+                    "lines": 100,
+                    "machine_name_id": null,
+                    "project": "wakatime-cli",
+                    "type": "file",
+                    "time": 1585598059.0,
+                    "user_agent_id": null,
+                    "user_agent": "wakatime/13.0.6",
+                    "user_id": "9c4a41c0-eb11-4cf5-84b8-d5b7f5e91bea"
+                }
+            },
+            201
+        ]
+    ]
+}

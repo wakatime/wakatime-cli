@@ -7,23 +7,17 @@ import (
 	"strings"
 
 	apicmd "github.com/wakatime/wakatime-cli/cmd/api"
+	"github.com/wakatime/wakatime-cli/cmd/handler"
 	offlinecmd "github.com/wakatime/wakatime-cli/cmd/offline"
 	"github.com/wakatime/wakatime-cli/pkg/api"
-	"github.com/wakatime/wakatime-cli/pkg/apikey"
 	"github.com/wakatime/wakatime-cli/pkg/backoff"
-	"github.com/wakatime/wakatime-cli/pkg/deps"
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
-	"github.com/wakatime/wakatime-cli/pkg/filestats"
-	"github.com/wakatime/wakatime-cli/pkg/filter"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
-	"github.com/wakatime/wakatime-cli/pkg/language"
 	_ "github.com/wakatime/wakatime-cli/pkg/lexer" // force to load all lexers
 	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/offline"
-	paramspkg "github.com/wakatime/wakatime-cli/pkg/params"
-	"github.com/wakatime/wakatime-cli/pkg/project"
+	"github.com/wakatime/wakatime-cli/pkg/params"
 	"github.com/wakatime/wakatime-cli/pkg/ratelimit"
-	"github.com/wakatime/wakatime-cli/pkg/remote"
 	"github.com/wakatime/wakatime-cli/pkg/wakaerror"
 
 	"github.com/spf13/viper"
@@ -115,31 +109,24 @@ func SendHeartbeats(ctx context.Context, v *viper.Viper, queueFilepath string) e
 		heartbeats = heartbeats[:offline.SendLimit]
 	}
 
-	handleOpts := initHandleOptions(params)
+	handleOpts := initHandleOptions()
 
-	if !params.Offline.Disabled {
-		handleOpts = append(handleOpts, offline.WithQueue(queueFilepath))
-	}
-
-	handleOpts = append(handleOpts, backoff.WithBackoff(backoff.Config{
-		V:        v,
-		At:       params.API.BackoffAt,
-		Retries:  params.API.BackoffRetries,
-		HasProxy: params.API.ProxyURL != "",
-	}))
-
-	apiClient, err := apicmd.NewClientWithoutAuth(ctx, params.API)
+	sender, err := buildHandle(ctx, v, params, queueFilepath)
 	if err != nil {
 		if !params.Offline.Disabled {
 			if err := offlinecmd.SaveHeartbeats(ctx, v, heartbeats, queueFilepath); err != nil {
-				logger.Errorf("failed to save heartbeats to offline queue: %s", err)
+				log.Extract(ctx).Errorf("failed to save heartbeats to offline queue: %s", err)
 			}
 		}
 
 		return fmt.Errorf("failed to initialize api client: %w", err)
 	}
 
-	handle := heartbeat.NewHandle(apiClient, handleOpts...)
+	handle := handler.New(v, handler.Config{
+		Params:       params,
+		ParamsLoader: LoadParams,
+		Opts:         handleOpts,
+	})(sender)
 	results, err := handle(ctx, heartbeats)
 
 	// wait for offline queue save to finish
@@ -164,34 +151,56 @@ func SendHeartbeats(ctx context.Context, v *viper.Viper, queueFilepath string) e
 	return nil
 }
 
+func buildHandle(ctx context.Context, v *viper.Viper, params params.Params, queueFilepath string) (heartbeat.Handle, error) {
+	apiClient, err := apicmd.NewClientWithoutAuth(ctx, params.API)
+	if err != nil {
+		return nil, err
+	}
+
+	var handleOpts []heartbeat.HandleOption
+
+	if !params.Offline.Disabled {
+		handleOpts = append(handleOpts, offline.WithQueue(queueFilepath))
+	}
+
+	handleOpts = append(handleOpts, backoff.WithBackoff(backoff.Config{
+		V:        v,
+		At:       params.API.BackoffAt,
+		Retries:  params.API.BackoffRetries,
+		HasProxy: params.API.ProxyURL != "",
+	}))
+
+	return heartbeat.NewHandle(apiClient, handleOpts...), nil
+}
+
 // LoadParams loads params from viper.Viper instance. Returns ErrAuth
 // if failed to retrieve api key.
-func LoadParams(ctx context.Context, v *viper.Viper) (paramspkg.Params, error) {
+func LoadParams(ctx context.Context, v *viper.Viper) (params.Params, error) {
 	if v == nil {
-		return paramspkg.Params{}, errors.New("viper instance unset")
+		return params.Params{}, errors.New("viper instance unset")
 	}
 
-	apiParams, err := paramspkg.LoadAPIParams(ctx, v)
+	apiParams, err := params.LoadAPIParams(ctx, v)
 	if err != nil {
-		return paramspkg.Params{}, fmt.Errorf("failed to load API parameters: %w", err)
+		return params.Params{}, fmt.Errorf("failed to load API parameters: %w", err)
 	}
 
-	heartbeatParams, err := paramspkg.LoadHeartbeatParams(ctx, v)
+	heartbeatParams, err := params.LoadHeartbeatParams(ctx, v)
 	if err != nil {
-		return paramspkg.Params{}, fmt.Errorf("failed to load heartbeat params: %s", err)
+		return params.Params{}, fmt.Errorf("failed to load heartbeat params: %s", err)
 	}
 
-	return paramspkg.Params{
+	return params.Params{
 		API:       apiParams,
 		Heartbeat: heartbeatParams,
-		Offline:   paramspkg.LoadOfflineParams(ctx, v),
+		Offline:   params.LoadOfflineParams(ctx, v),
 	}, nil
 }
 
-func buildHeartbeats(ctx context.Context, params paramspkg.Params) []heartbeat.Heartbeat {
-	heartbeats := []heartbeat.Heartbeat{}
-
+func buildHeartbeats(ctx context.Context, params params.Params) []heartbeat.Heartbeat {
 	userAgent := heartbeat.UserAgent(ctx, params.API.Plugin)
+
+	var heartbeats = make([]heartbeat.Heartbeat, 0, 1+len(params.Heartbeat.ExtraHeartbeats))
 
 	heartbeats = append(heartbeats, heartbeat.New(
 		params.Heartbeat.Project.BranchAlternate,
@@ -221,80 +230,34 @@ func buildHeartbeats(ctx context.Context, params paramspkg.Params) []heartbeat.H
 		logger.Debugf("include %d extra heartbeat(s) from stdin", len(params.Heartbeat.ExtraHeartbeats))
 
 		for _, h := range params.Heartbeat.ExtraHeartbeats {
-			heartbeats = append(heartbeats, heartbeat.New(
-				h.BranchAlternate,
-				h.Category,
-				h.CursorPosition,
-				h.Entity,
-				h.EntityType,
-				h.IsUnsavedEntity,
-				h.IsWrite,
-				h.Language,
-				h.LanguageAlternate,
-				h.LineAdditions,
-				h.LineDeletions,
-				h.LineNumber,
-				h.Lines,
-				h.LocalFile,
-				h.ProjectAlternate,
-				h.ProjectFromGitRemote,
-				h.ProjectOverride,
-				h.ProjectPathOverride,
-				h.Time,
-				userAgent,
-			))
+			h.UserAgent = userAgent
+
+			heartbeats = append(heartbeats, h)
 		}
 	}
 
 	return heartbeats
 }
 
-func initHandleOptions(params paramspkg.Params) []heartbeat.HandleOption {
-	return []heartbeat.HandleOption{
-		heartbeat.WithFormatting(),
-		heartbeat.WithEntityModifier(),
-		filter.WithFiltering(filter.Config{
-			Exclude:                    params.Heartbeat.Filter.Exclude,
-			Include:                    params.Heartbeat.Filter.Include,
-			IncludeOnlyWithProjectFile: params.Heartbeat.Filter.IncludeOnlyWithProjectFile,
-		}),
-		remote.WithDetection(),
-		apikey.WithReplacing(apikey.Config{
-			DefaultAPIKey: params.API.Key,
-			MapPatterns:   params.API.KeyPatterns,
-		}),
-		filestats.WithDetection(),
-		language.WithDetection(language.Config{
-			GuessLanguage: params.Heartbeat.GuessLanguage,
-		}),
-		deps.WithDetection(deps.Config{
-			FilePatterns: params.Heartbeat.Sanitize.HideFileNames,
-		}),
-		project.WithDetection(project.Config{
-			HideProjectNames:     params.Heartbeat.Sanitize.HideProjectNames,
-			MapPatterns:          params.Heartbeat.Project.MapPatterns,
-			ProjectFromGitRemote: params.Heartbeat.Project.ProjectFromGitRemote,
-			Submodule: project.Submodule{
-				DisabledPatterns: params.Heartbeat.Project.SubmodulesDisabled,
-				MapPatterns:      params.Heartbeat.Project.SubmoduleMapPatterns,
-			},
-		}),
-		project.WithFiltering(project.FilterConfig{
-			ExcludeUnknownProject: params.Heartbeat.Filter.ExcludeUnknownProject,
-		}),
-		heartbeat.WithSanitization(heartbeat.SanitizeConfig{
-			BranchPatterns:     params.Heartbeat.Sanitize.HideBranchNames,
-			DependencyPatterns: params.Heartbeat.Sanitize.HideDependencies,
-			FilePatterns:       params.Heartbeat.Sanitize.HideFileNames,
-			HideProjectFolder:  params.Heartbeat.Sanitize.HideProjectFolder,
-			ProjectPatterns:    params.Heartbeat.Sanitize.HideProjectNames,
-		}),
-		remote.WithCleanup(),
-		filter.WithLengthValidator(),
+func initHandleOptions() []handler.Preprocessor {
+	return []handler.Preprocessor{
+		handler.WithFormatting(),
+		handler.WithEntityModifier(),
+		handler.WithHeartbeatFiltering(),
+		handler.WithRemoteDetection(),
+		handler.WithAPIKeyReplacing(),
+		handler.WithFileStatsDetection(),
+		handler.WithLanguageDetection(),
+		handler.WithDependencyDetection(),
+		handler.WithProjectDetection(),
+		handler.WithProjectFiltering(),
+		handler.WithHeartbeatSanitization(),
+		handler.WithRemoteCleanup(),
+		handler.WithLengthValidator(),
 	}
 }
 
-func setLogFields(ctx context.Context, params paramspkg.Params) {
+func setLogFields(ctx context.Context, params params.Params) {
 	log.AddField(ctx, "file", params.Heartbeat.Entity)
 	log.AddField(ctx, "time", params.Heartbeat.Time)
 

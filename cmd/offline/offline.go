@@ -5,16 +5,12 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/wakatime/wakatime-cli/pkg/deps"
-	"github.com/wakatime/wakatime-cli/pkg/filestats"
-	"github.com/wakatime/wakatime-cli/pkg/filter"
+	"github.com/wakatime/wakatime-cli/cmd/handler"
+	"github.com/wakatime/wakatime-cli/pkg/api"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
-	"github.com/wakatime/wakatime-cli/pkg/language"
 	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/offline"
-	paramspkg "github.com/wakatime/wakatime-cli/pkg/params"
-	"github.com/wakatime/wakatime-cli/pkg/project"
-	"github.com/wakatime/wakatime-cli/pkg/remote"
+	"github.com/wakatime/wakatime-cli/pkg/params"
 
 	"github.com/spf13/viper"
 )
@@ -23,7 +19,7 @@ import (
 // Used when we have more heartbeats than `offline.SendLimit`, when we couldn't send
 // heartbeats to the API, or the API returned an auth error.
 func SaveHeartbeats(ctx context.Context, v *viper.Viper, heartbeats []heartbeat.Heartbeat, queueFilepath string) error {
-	params, err := loadParams(ctx, v)
+	params, err := LoadParams(ctx, v)
 	if err != nil {
 		return fmt.Errorf("failed to load command parameters: %w", err)
 	}
@@ -43,39 +39,42 @@ func SaveHeartbeats(ctx context.Context, v *viper.Viper, heartbeats []heartbeat.
 		heartbeats = buildHeartbeats(ctx, params)
 	}
 
-	handleOpts := initHandleOptions(params)
-
-	handleOpts = append(handleOpts, offline.WithQueue(queueFilepath))
-
-	sender := offline.Noop{}
-	handle := heartbeat.NewHandle(sender, handleOpts...)
+	handleOpts := initHandleOptions()
+	sender := heartbeat.NewHandle(Noop{}, offline.WithQueue(queueFilepath))
+	handle := handler.New(v, handler.Config{
+		Params:       params,
+		ParamsLoader: LoadParams,
+		Opts:         handleOpts,
+	})(sender)
 
 	_, _ = handle(ctx, heartbeats)
 
 	return nil
 }
 
-func loadParams(ctx context.Context, v *viper.Viper) (paramspkg.Params, error) {
+// LoadParams loads params from viper.Viper instance. Returns ErrAuth
+// if failed to retrieve api key.
+func LoadParams(ctx context.Context, v *viper.Viper) (params.Params, error) {
 	logger := log.Extract(ctx)
 
-	paramAPI, err := paramspkg.LoadAPIParams(ctx, v)
+	paramAPI, err := params.LoadAPIParams(ctx, v)
 	if err != nil {
 		logger.Warnf("failed to load API parameters: %s", err)
 	}
 
-	paramHeartbeat, err := paramspkg.LoadHeartbeatParams(ctx, v)
+	paramHeartbeat, err := params.LoadHeartbeatParams(ctx, v)
 	if err != nil {
-		return paramspkg.Params{}, fmt.Errorf("failed to load heartbeat parameters: %s", err)
+		return params.Params{}, fmt.Errorf("failed to load heartbeat parameters: %s", err)
 	}
 
-	return paramspkg.Params{
+	return params.Params{
 		API:       paramAPI,
 		Heartbeat: paramHeartbeat,
-		Offline:   paramspkg.LoadOfflineParams(ctx, v),
+		Offline:   params.LoadOfflineParams(ctx, v),
 	}, nil
 }
 
-func buildHeartbeats(ctx context.Context, params paramspkg.Params) []heartbeat.Heartbeat {
+func buildHeartbeats(ctx context.Context, params params.Params) []heartbeat.Heartbeat {
 	heartbeats := []heartbeat.Heartbeat{}
 
 	userAgent := heartbeat.UserAgent(ctx, params.API.Plugin)
@@ -108,76 +107,33 @@ func buildHeartbeats(ctx context.Context, params paramspkg.Params) []heartbeat.H
 		logger.Debugf("include %d extra heartbeat(s) from stdin", len(params.Heartbeat.ExtraHeartbeats))
 
 		for _, h := range params.Heartbeat.ExtraHeartbeats {
-			heartbeats = append(heartbeats, heartbeat.New(
-				h.BranchAlternate,
-				h.Category,
-				h.CursorPosition,
-				h.Entity,
-				h.EntityType,
-				h.IsUnsavedEntity,
-				h.IsWrite,
-				h.Language,
-				h.LanguageAlternate,
-				h.LineAdditions,
-				h.LineDeletions,
-				h.LineNumber,
-				h.Lines,
-				h.LocalFile,
-				h.ProjectAlternate,
-				h.ProjectFromGitRemote,
-				h.ProjectOverride,
-				h.ProjectPathOverride,
-				h.Time,
-				userAgent,
-			))
+			h.UserAgent = userAgent
+
+			heartbeats = append(heartbeats, h)
 		}
 	}
 
 	return heartbeats
 }
 
-func initHandleOptions(params paramspkg.Params) []heartbeat.HandleOption {
-	return []heartbeat.HandleOption{
-		heartbeat.WithFormatting(),
-		heartbeat.WithEntityModifier(),
-		filter.WithFiltering(filter.Config{
-			Exclude:                    params.Heartbeat.Filter.Exclude,
-			Include:                    params.Heartbeat.Filter.Include,
-			IncludeOnlyWithProjectFile: params.Heartbeat.Filter.IncludeOnlyWithProjectFile,
-		}),
-		remote.WithDetection(),
-		filestats.WithDetection(),
-		language.WithDetection(language.Config{
-			GuessLanguage: params.Heartbeat.GuessLanguage,
-		}),
-		deps.WithDetection(deps.Config{
-			FilePatterns: params.Heartbeat.Sanitize.HideFileNames,
-		}),
-		project.WithDetection(project.Config{
-			HideProjectNames:     params.Heartbeat.Sanitize.HideProjectNames,
-			MapPatterns:          params.Heartbeat.Project.MapPatterns,
-			ProjectFromGitRemote: params.Heartbeat.Project.ProjectFromGitRemote,
-			Submodule: project.Submodule{
-				DisabledPatterns: params.Heartbeat.Project.SubmodulesDisabled,
-				MapPatterns:      params.Heartbeat.Project.SubmoduleMapPatterns,
-			},
-		}),
-		project.WithFiltering(project.FilterConfig{
-			ExcludeUnknownProject: params.Heartbeat.Filter.ExcludeUnknownProject,
-		}),
-		heartbeat.WithSanitization(heartbeat.SanitizeConfig{
-			BranchPatterns:     params.Heartbeat.Sanitize.HideBranchNames,
-			DependencyPatterns: params.Heartbeat.Sanitize.HideDependencies,
-			FilePatterns:       params.Heartbeat.Sanitize.HideFileNames,
-			HideProjectFolder:  params.Heartbeat.Sanitize.HideProjectFolder,
-			ProjectPatterns:    params.Heartbeat.Sanitize.HideProjectNames,
-		}),
-		remote.WithCleanup(),
-		filter.WithLengthValidator(),
+func initHandleOptions() []handler.Preprocessor {
+	return []handler.Preprocessor{
+		handler.WithFormatting(),
+		handler.WithEntityModifier(),
+		handler.WithHeartbeatFiltering(),
+		handler.WithRemoteDetection(),
+		handler.WithFileStatsDetection(),
+		handler.WithLanguageDetection(),
+		handler.WithDependencyDetection(),
+		handler.WithProjectDetection(),
+		handler.WithProjectFiltering(),
+		handler.WithHeartbeatSanitization(),
+		handler.WithRemoteCleanup(),
+		handler.WithLengthValidator(),
 	}
 }
 
-func setLogFields(ctx context.Context, params paramspkg.Params) {
+func setLogFields(ctx context.Context, params params.Params) {
 	log.AddField(ctx, "file", params.Heartbeat.Entity)
 	log.AddField(ctx, "time", params.Heartbeat.Time)
 
@@ -191,5 +147,15 @@ func setLogFields(ctx context.Context, params paramspkg.Params) {
 
 	if params.Heartbeat.IsWrite != nil {
 		log.AddField(ctx, "is_write", params.Heartbeat.IsWrite)
+	}
+}
+
+// Noop is a noop api client, used by offline.SaveHeartbeats.
+type Noop struct{}
+
+// SendHeartbeats always returns an error.
+func (Noop) SendHeartbeats(_ context.Context, _ []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+	return nil, api.Err{
+		Err: errors.New("skip sending heartbeats and only save to offline db"),
 	}
 }

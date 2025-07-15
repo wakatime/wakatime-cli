@@ -25,10 +25,16 @@ func TestHandlerNew(t *testing.T) {
 	err := os.MkdirAll(dir, os.FileMode(int(0700)))
 	require.NoError(t, err)
 
-	_, err = os.OpenFile(filepath.Join(dir, "some-entity.go"), os.O_RDONLY|os.O_CREATE, 0700)
+	tmpEntity, err := os.OpenFile(filepath.Join(dir, "some-entity.go"), os.O_RDONLY|os.O_CREATE, 0700)
 	require.NoError(t, err)
 
-	_, err = os.OpenFile(filepath.Join(tmpDir, "src", ".wakatime"), os.O_RDONLY|os.O_CREATE, 0700)
+	err = tmpEntity.Close()
+	require.NoError(t, err)
+
+	wakatimeProjectFile, err := os.OpenFile(filepath.Join(tmpDir, "src", ".wakatime"), os.O_RDONLY|os.O_CREATE, 0700)
+	require.NoError(t, err)
+
+	err = wakatimeProjectFile.Close()
 	require.NoError(t, err)
 
 	v := setupViper(t)
