@@ -433,6 +433,118 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 	assert.Eventually(t, func() bool { return numCalls == 2 }, time.Second, 50*time.Millisecond)
 }
 
+func TestSendHeartbeats_ExtraHeartbeats_ProjectConfigFile(t *testing.T) {
+	apiURL, router, close := setupTestServer()
+	defer close()
+
+	ctx := t.Context()
+
+	var numCalls int
+
+	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
+		numCalls++
+
+		// check headers
+		assert.Equal(t, http.MethodPost, req.Method)
+		assert.Equal(t, []string{"application/json"}, req.Header["Accept"])
+		assert.Equal(t, []string{"application/json"}, req.Header["Content-Type"])
+		assert.Equal(t, []string{heartbeat.UserAgent(ctx, "")}, req.Header["User-Agent"])
+
+		var filename string
+
+		switch numCalls {
+		case 1:
+			filename = "testdata/api_heartbeats_response_extra_heartbeats_project_config_file.json"
+			assert.Equal(
+				t,
+				[]string{"Basic MDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAw"},
+				req.Header["Authorization"],
+			)
+		case 2:
+			filename = "testdata/api_heartbeats_response_extra_heartbeats_project_config_file_extra.json"
+			assert.Equal(
+				t,
+				[]string{"Basic MDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAy"},
+				req.Header["Authorization"],
+			)
+		}
+
+		// write response
+		f, err := os.Open(filename)
+		require.NoError(t, err)
+
+		w.WriteHeader(http.StatusCreated)
+		_, err = io.Copy(w, f)
+		require.NoError(t, err)
+	})
+
+	tmpDir := t.TempDir()
+
+	offlineQueueFile, err := os.CreateTemp(tmpDir, "")
+	require.NoError(t, err)
+
+	defer offlineQueueFile.Close()
+
+	tmpConfigFile, err := os.CreateTemp(tmpDir, "wakatime.cfg")
+	require.NoError(t, err)
+
+	defer tmpConfigFile.Close()
+
+	tmpInternalConfigFile, err := os.CreateTemp(tmpDir, "wakatime-internal.cfg")
+	require.NoError(t, err)
+
+	defer tmpInternalConfigFile.Close()
+
+	projectDir := filepath.Join(tmpDir, "project", "internal", "billing")
+
+	err = os.MkdirAll(projectDir, os.FileMode(int(0700)))
+	require.NoError(t, err)
+
+	copyFile(t, "testdata/main.go", filepath.Join(projectDir, "billing.go"))
+	copyFile(t, "testdata/wakatime_project_file.cfg", filepath.Join(tmpDir, "project", ".wakatime"))
+
+	extra, err := os.ReadFile("testdata/extra_heartbeat_template.json")
+	require.NoError(t, err)
+
+	entityPath, err := realpath.Realpath(filepath.Join(projectDir, "billing.go"))
+	require.NoError(t, err)
+
+	entityPath = strings.ReplaceAll(entityPath, `\`, `/`)
+
+	data := fmt.Sprintf(
+		string(extra),
+		entityPath,
+	)
+
+	buffer := bytes.NewBuffer([]byte(data))
+
+	runWakatimeCli(
+		t,
+		buffer,
+		"--api-url", apiURL,
+		"--key", "00000000-0000-4000-8000-000000000000",
+		"--config", tmpConfigFile.Name(),
+		"--internal-config", tmpInternalConfigFile.Name(),
+		"--entity", "testdata/main.go",
+		"--extra-heartbeats", "true",
+		"--cursorpos", "12",
+		"--offline-queue-file", offlineQueueFile.Name(),
+		"--lineno", "42",
+		"--lines-in-file", "100",
+		"--time", "1585598058",
+		"--hide-branch-names", ".*",
+		"--write",
+		"--verbose",
+	)
+
+	offlineCount, err := offline.CountHeartbeats(ctx, offlineQueueFile.Name())
+	require.NoError(t, err)
+
+	assert.Zero(t, offlineCount)
+
+	assert.Eventually(t, func() bool { return numCalls == 2 }, time.Second, 50*time.Millisecond)
+}
+
 func TestSendHeartbeats_ExtraHeartbeats_SyncLegacyOfflineActivity(t *testing.T) {
 	apiURL, router, close := setupTestServer()
 	defer close()
@@ -1216,7 +1328,7 @@ func TestMultipleRunners(t *testing.T) {
 
 	defer tmpFile.Close()
 
-	for i := 0; i < 20; i++ {
+	for range 20 {
 		wg.Add(1)
 
 		go func(filepath string) {
@@ -1349,6 +1461,14 @@ func setupTestServer() (string, *http.ServeMux, func()) {
 	})
 
 	return srv.URL, router, func() { srv.Close() }
+}
+
+func copyFile(t *testing.T, source, destination string) {
+	input, err := os.ReadFile(source)
+	require.NoError(t, err)
+
+	err = os.WriteFile(destination, input, 0600)
+	require.NoError(t, err)
 }
 
 type heartbeatRecord struct {
