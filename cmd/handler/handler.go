@@ -9,8 +9,7 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/ini"
 	"github.com/wakatime/wakatime-cli/pkg/log"
-	paramspkg "github.com/wakatime/wakatime-cli/pkg/params"
-	"github.com/wakatime/wakatime-cli/pkg/vipertools"
+	"github.com/wakatime/wakatime-cli/pkg/params"
 
 	"github.com/spf13/viper"
 )
@@ -19,8 +18,8 @@ const projectConfigFileName = ".wakatime"
 
 // Config contains the configuration for the heartbeat handler.
 type Config struct {
-	Params       paramspkg.Params
-	ParamsLoader func(context.Context, *viper.Viper) (paramspkg.Params, error)
+	Params       params.Params
+	ParamsLoader func(context.Context, *viper.Viper, params.FlagReadOrder) (params.Params, error)
 	Opts         []Preprocessor
 }
 
@@ -83,37 +82,29 @@ func findProjectConfigFile(
 	entity string,
 	entityType heartbeat.EntityType,
 	isUnsavedEntity bool,
-	paramsLoader func(context.Context, *viper.Viper) (paramspkg.Params, error),
-) (paramspkg.Params, bool, error) {
+	paramsLoader func(context.Context, *viper.Viper, params.FlagReadOrder) (params.Params, error),
+) (params.Params, bool, error) {
 	if entityType != heartbeat.FileType || isUnsavedEntity {
-		return paramspkg.Params{}, false, nil
+		return params.Params{}, false, nil
 	}
 
 	fp, ok := file.Find(ctx, filepath.Dir(entity), projectConfigFileName)
 	if !ok {
-		return paramspkg.Params{}, false, nil
+		return params.Params{}, false, nil
 	}
-
-	vproj, err := vipertools.New()
-	if err != nil {
-		return paramspkg.Params{}, false, fmt.Errorf("failed to create viper instance: %w", err)
-	}
-
-	// copy only settings from the main viper instance to the project-level viper instance
-	vipertools.CopyOnlySettings(v, vproj)
 
 	// load project-level configuration file into viper instance
-	if err := ini.ReadInConfig(vproj, fp); err != nil {
-		return paramspkg.Params{}, false, fmt.Errorf("failed to load project-level configuration file: %s", err)
+	if err := ini.ReadInConfig(v, fp); err != nil {
+		return params.Params{}, false, fmt.Errorf("failed to load project-level configuration file: %s", err)
 	}
 
 	// load parameters from viper instance
-	params, err := paramsLoader(ctx, vproj)
+	p, err := paramsLoader(ctx, v, params.FlagReadOrderProjectConfigPrecedence)
 	if err != nil {
-		return paramspkg.Params{}, false, fmt.Errorf("failed to load project-level parameters: %w", err)
+		return params.Params{}, false, fmt.Errorf("failed to load project-level parameters: %w", err)
 	}
 
-	return params, true, nil
+	return p, true, nil
 }
 
 // noop is a noop api client, used to format heartbeats without sending them.

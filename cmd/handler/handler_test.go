@@ -9,12 +9,11 @@ import (
 	"github.com/wakatime/wakatime-cli/cmd/handler"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/params"
+	"github.com/wakatime/wakatime-cli/pkg/vipertools"
 
-	viperini "github.com/go-viper/encoding/ini"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	iniv1 "gopkg.in/ini.v1"
 )
 
 func TestHandlerNew(t *testing.T) {
@@ -37,12 +36,12 @@ func TestHandlerNew(t *testing.T) {
 	err = wakatimeProjectFile.Close()
 	require.NoError(t, err)
 
-	v := setupViper(t)
+	v := vipertools.MustNew()
 
 	sender := newHandle(noopMock{})
 	hdl := handler.New(v, handler.Config{
 		Params: params.Params{},
-		ParamsLoader: func(_ context.Context, _ *viper.Viper) (params.Params, error) {
+		ParamsLoader: func(_ context.Context, _ *viper.Viper, _ params.FlagReadOrder) (params.Params, error) {
 			return params.Params{
 				// this simulates the project-level parameters loaded from the .wakatime file.
 				API: params.API{Key: "00000000-0000-4000-8000-000000000002"},
@@ -66,19 +65,6 @@ func TestHandlerNew(t *testing.T) {
 
 	assert.Len(t, res, 1)
 	assert.Equal(t, res[0].Heartbeat.APIKey, "00000000-0000-4000-8000-000000000002")
-}
-
-func setupViper(t *testing.T) *viper.Viper {
-	multilineOption := iniv1.LoadOptions{AllowPythonMultilineValues: true}
-	iniCodec := viperini.Codec{LoadOptions: multilineOption}
-
-	codecRegistry := viper.NewCodecRegistry()
-	err := codecRegistry.RegisterCodec("ini", iniCodec)
-	require.NoError(t, err)
-
-	v := viper.NewWithOptions(viper.WithCodecRegistry(codecRegistry))
-
-	return v
 }
 
 func newHandle(sender heartbeat.Sender) heartbeat.Handle {

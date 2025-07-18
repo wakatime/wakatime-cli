@@ -10,50 +10,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestCopyOnlySettings(t *testing.T) {
-	v := viper.New()
-	v.Set("key", "00000000-0000-4000-8000-000000000000")
-	v.Set("api-url", "http://localhost:8080/api/v1")
-	v.Set("apiurl", "http://localhost:8080/api/v2")
-	v.Set("hostname", "localhost")
-	v.Set("proxy", "http://localhost:8080")
-	v.Set("ssl-certs-file", "/path/to/cert.pem")
-	v.Set("timeout", 30)
-	v.Set("no-ssl-verify", true)
-	v.Set("guess-language", true)
-	v.Set("exclude", []string{"node_modules", "vendor"})
-	v.Set("include", []string{"src", "lib"})
-	v.Set("exclude-unknown-project", true)
-	v.Set("include-only-with-project-file", true)
-	v.Set("hide-branch-names", true)
-	v.Set("hide-dependencies", true)
-	v.Set("hide-project-names", true)
-	v.Set("hide-file-names", true)
-	v.Set("hide-filenames", true)
-	v.Set("hidefilenames", true)
-	v.Set("hide-project-folder", true)
-	v.Set("disable-offline", false)
-	v.Set("disableoffline", false)
-	v.Set("heartbeat-rate-limit-seconds", 60)
-	v.Set("today-hide-categories", []string{"coding", "debugging"})
-
-	vdest := viper.New()
-	vipertools.CopyOnlySettings(v, vdest)
-
-	assert.Zero(t, len(vdest.AllKeys()))
-}
-
-func TestCopyOnlySettings_KeepSettings(t *testing.T) {
-	v := viper.New()
-	v.Set("key", "00000000-0000-4000-8000-000000000000")
-	v.Set("settings.api_key", "00000000-0000-4000-8000-000000000002")
-
-	vdest := viper.New()
-	vipertools.CopyOnlySettings(v, vdest)
-
-	assert.Equal(t, 1, len(vdest.AllKeys()))
-}
-
 func TestFirstNonEmptyBool(t *testing.T) {
 	v := viper.New()
 	v.Set("second", false)

@@ -25,7 +25,7 @@ func RunWithoutRateLimiting(ctx context.Context, v *viper.Viper) (int, error) {
 
 // RunWithRateLimiting executes sync-offline-activity command with rate limiting enabled.
 func RunWithRateLimiting(ctx context.Context, v *viper.Viper) (int, error) {
-	offlineParams := params.LoadOfflineParams(ctx, v)
+	offlineParams := params.LoadOfflineParams(ctx, v, params.FlagReadOrderFlagPrecedence)
 
 	logger := log.Extract(ctx)
 
@@ -43,7 +43,7 @@ func RunWithRateLimiting(ctx context.Context, v *viper.Viper) (int, error) {
 }
 
 func run(ctx context.Context, v *viper.Viper) (int, error) {
-	offlineParams := params.LoadOfflineParams(ctx, v)
+	offlineParams := params.LoadOfflineParams(ctx, v, params.FlagReadOrderFlagPrecedence)
 	if offlineParams.Disabled {
 		return exitcode.Success, nil
 	}
@@ -101,9 +101,9 @@ func syncOfflineActivityLegacy(ctx context.Context, v *viper.Viper, queueFilepat
 		}
 	}()
 
-	offlineParams := params.LoadOfflineParams(ctx, v)
+	offlineParams := params.LoadOfflineParams(ctx, v, params.FlagReadOrderFlagPrecedence)
 
-	apiParams, err := params.LoadAPIParams(ctx, v)
+	apiParams, err := params.LoadAPIParams(ctx, v, params.FlagReadOrderFlagPrecedence)
 	if err != nil {
 		return fmt.Errorf("failed to load API parameters: %w", err)
 	}
@@ -138,9 +138,9 @@ func syncOfflineActivityLegacy(ctx context.Context, v *viper.Viper, queueFilepat
 // SyncOfflineActivity syncs offline activity by sending heartbeats
 // from the offline queue to the WakaTime API.
 func SyncOfflineActivity(ctx context.Context, v *viper.Viper, queueFilepath string) error {
-	offlineParams := params.LoadOfflineParams(ctx, v)
+	offlineParams := params.LoadOfflineParams(ctx, v, params.FlagReadOrderFlagPrecedence)
 
-	apiParams, err := params.LoadAPIParams(ctx, v)
+	apiParams, err := params.LoadAPIParams(ctx, v, params.FlagReadOrderFlagPrecedence)
 	if err != nil {
 		return fmt.Errorf("failed to load API parameters: %w", err)
 	}

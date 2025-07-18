@@ -54,6 +54,103 @@ var (
 	proxyRegex = regexp.MustCompile(`^((https?|socks5)://)?([^:@]+(:([^:@])+)?@)?([^:]+|(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])))(:\d+)?$`)
 )
 
+// FlagReadOrder defines the order in which flags are read when loading parameters.
+type FlagReadOrder uint8
+
+const (
+	// FlagReadOrderFlagPrecedence defines the order where command line flags take precedence.
+	FlagReadOrderFlagPrecedence FlagReadOrder = iota
+	// FlagReadOrderProjectConfigPrecedence defines the order where project config takes precedence over command line flags.
+	FlagReadOrderProjectConfigPrecedence
+)
+
+// These variables are used to define the order in which parameters are read from the viper instance.
+// It's needed when a project config file is used, so we can read the parameters in the correct order.
+// nolint:gochecknoglobals
+var (
+	apiKeyOrder = map[FlagReadOrder][]string{
+		FlagReadOrderFlagPrecedence:          {"key", "settings.api_key", "settings.apikey"},
+		FlagReadOrderProjectConfigPrecedence: {"settings.api_key", "key", "settings.apikey"},
+	}
+	guessLanguageOrder = map[FlagReadOrder][]string{
+		FlagReadOrderFlagPrecedence:          {"guess-language", "settings.guess_language"},
+		FlagReadOrderProjectConfigPrecedence: {"settings.guess_language", "guess-language"},
+	}
+	excludeUnknownProjectOrder = map[FlagReadOrder][]string{
+		FlagReadOrderFlagPrecedence:          {"exclude-unknown-project", "settings.exclude_unknown_project"},
+		FlagReadOrderProjectConfigPrecedence: {"settings.exclude_unknown_project", "exclude-unknown-project"},
+	}
+	includeOnlyWithProjectFileOrder = map[FlagReadOrder][]string{
+		FlagReadOrderFlagPrecedence:          {"include-only-with-project-file", "settings.include_only_with_project_file"},
+		FlagReadOrderProjectConfigPrecedence: {"settings.include_only_with_project_file", "include-only-with-project-file"},
+	}
+	hideBranchNamesOrder = map[FlagReadOrder][]string{
+		FlagReadOrderFlagPrecedence: {
+			"hide-branch-names",
+			"settings.hide_branch_names",
+			"settings.hide_branchnames",
+			"settings.hidebranchnames",
+		},
+		FlagReadOrderProjectConfigPrecedence: {
+			"settings.hide_branch_names",
+			"settings.hide_branchnames",
+			"settings.hidebranchnames",
+			"hide-branch-names",
+		},
+	}
+	hideDependenciesOrder = map[FlagReadOrder][]string{
+		FlagReadOrderFlagPrecedence:          {"hide-dependencies", "settings.hide_dependencies"},
+		FlagReadOrderProjectConfigPrecedence: {"settings.hide_dependencies", "hide-dependencies"},
+	}
+	hideProjectNamesOrder = map[FlagReadOrder][]string{
+		FlagReadOrderFlagPrecedence: {
+			"hide-project-names",
+			"settings.hide_project_names",
+			"settings.hide_projectnames",
+			"settings.hideprojectnames"},
+		FlagReadOrderProjectConfigPrecedence: {
+			"settings.hide_project_names",
+			"settings.hide_projectnames",
+			"settings.hideprojectnames",
+			"hide-project-names",
+		},
+	}
+	hideFileNamesOrder = map[FlagReadOrder][]string{
+		FlagReadOrderFlagPrecedence: {
+			"hide-file-names",
+			"hide-filenames",
+			"hidefilenames",
+			"settings.hide_file_names",
+			"settings.hide_filenames",
+			"settings.hidefilenames",
+		},
+		FlagReadOrderProjectConfigPrecedence: {
+			"settings.hide_file_names",
+			"settings.hide_filenames",
+			"settings.hidefilenames",
+			"hide-file-names",
+			"hide-filenames",
+			"hidefilenames",
+		},
+	}
+	hideProjectFolderOrder = map[FlagReadOrder][]string{
+		FlagReadOrderFlagPrecedence:          {"hide-project-folder", "settings.hide_project_folder"},
+		FlagReadOrderProjectConfigPrecedence: {"settings.hide_project_folder", "hide-project-folder"},
+	}
+	disableOfflineOrder = map[FlagReadOrder][]string{
+		FlagReadOrderFlagPrecedence:          {"disable-offline", "disableoffline", "settings.offline"},
+		FlagReadOrderProjectConfigPrecedence: {"settings.offline", "disable-offline", "disableoffline"},
+	}
+	heartbeatRateLimitOrder = map[FlagReadOrder][]string{
+		FlagReadOrderFlagPrecedence:          {"heartbeat-rate-limit-seconds", "settings.heartbeat_rate_limit_seconds"},
+		FlagReadOrderProjectConfigPrecedence: {"settings.heartbeat_rate_limit_seconds", "heartbeat-rate-limit-seconds"},
+	}
+	todayHideCategoriesOrder = map[FlagReadOrder][]string{
+		FlagReadOrderFlagPrecedence:          {"today-hide-categories", "settings.status_bar_hide_categories"},
+		FlagReadOrderProjectConfigPrecedence: {"settings.status_bar_hide_categories", "today-hide-categories"},
+	}
+)
+
 type (
 	// Params contains params.
 	Params struct {
@@ -170,8 +267,8 @@ type (
 
 // LoadAPIParams loads API params from viper.Viper instance. Returns ErrAuth
 // if failed to retrieve api key.
-func LoadAPIParams(ctx context.Context, v *viper.Viper) (API, error) {
-	apiKey, err := LoadAPIKey(ctx, v)
+func LoadAPIParams(ctx context.Context, v *viper.Viper, order FlagReadOrder) (API, error) {
+	apiKey, err := loadAPIKey(ctx, v, order)
 	if err != nil {
 		return API{}, err
 	}
@@ -319,9 +416,9 @@ func LoadAPIParams(ctx context.Context, v *viper.Viper) (API, error) {
 	}, nil
 }
 
-// LoadAPIKey loads a valid default WakaTime API Key or returns an error.
-func LoadAPIKey(ctx context.Context, v *viper.Viper) (string, error) {
-	apiKey := vipertools.FirstNonEmptyString(v, "key", "settings.api_key", "settings.apikey")
+// loadAPIKey loads a valid default WakaTime API Key or returns an error.
+func loadAPIKey(ctx context.Context, v *viper.Viper, order FlagReadOrder) (string, error) {
+	apiKey := vipertools.FirstNonEmptyString(v, apiKeyOrder[order]...)
 	if apiKey != "" {
 		if !apiKeyRegex.MatchString(apiKey) {
 			return "", api.ErrAuth{Err: errors.New("invalid api key format")}
@@ -366,7 +463,7 @@ func LoadAPIKey(ctx context.Context, v *viper.Viper) (string, error) {
 }
 
 // LoadHeartbeatParams loads heartbeats params from viper.Viper instance.
-func LoadHeartbeatParams(ctx context.Context, v *viper.Viper) (Heartbeat, error) {
+func LoadHeartbeatParams(ctx context.Context, v *viper.Viper, order FlagReadOrder) (Heartbeat, error) {
 	var category heartbeat.Category
 
 	if categoryStr := vipertools.GetString(v, "category"); categoryStr != "" {
@@ -440,7 +537,7 @@ func LoadHeartbeatParams(ctx context.Context, v *viper.Viper) (Heartbeat, error)
 		timeSecs = float64(time.Now().UnixNano()) / 1000000000
 	}
 
-	filterParams, err := loadFilterParams(ctx, v)
+	filterParams, err := loadFilterParams(ctx, v, order)
 	if err != nil {
 		return Heartbeat{}, fmt.Errorf("failed to load filter params: %s", err)
 	}
@@ -450,7 +547,7 @@ func LoadHeartbeatParams(ctx context.Context, v *viper.Viper) (Heartbeat, error)
 		return Heartbeat{}, fmt.Errorf("failed to parse project params: %s", err)
 	}
 
-	sanitizeParams, err := loadSanitizeParams(ctx, v)
+	sanitizeParams, err := loadSanitizeParams(ctx, v, order)
 	if err != nil {
 		return Heartbeat{}, fmt.Errorf("failed to load sanitize params: %s", err)
 	}
@@ -466,7 +563,7 @@ func LoadHeartbeatParams(ctx context.Context, v *viper.Viper) (Heartbeat, error)
 		Entity:            entity,
 		ExtraHeartbeats:   extraHeartbeats,
 		EntityType:        entityType,
-		GuessLanguage:     vipertools.FirstNonEmptyBool(v, "guess-language", "settings.guess_language"),
+		GuessLanguage:     vipertools.FirstNonEmptyBool(v, guessLanguageOrder[order]...),
 		IsUnsavedEntity:   v.GetBool("is-unsaved-entity"),
 		IsWrite:           isWrite,
 		Language:          language,
@@ -483,7 +580,7 @@ func LoadHeartbeatParams(ctx context.Context, v *viper.Viper) (Heartbeat, error)
 	}, nil
 }
 
-func loadFilterParams(ctx context.Context, v *viper.Viper) (FilterParams, error) {
+func loadFilterParams(ctx context.Context, v *viper.Viper, order FlagReadOrder) (FilterParams, error) {
 	exclude := v.GetStringSlice("exclude")
 	exclude = append(exclude, v.GetStringSlice("settings.exclude")...)
 	exclude = append(exclude, v.GetStringSlice("settings.ignore")...)
@@ -522,30 +619,16 @@ func loadFilterParams(ctx context.Context, v *viper.Viper) (FilterParams, error)
 	}
 
 	return FilterParams{
-		Exclude: excludePatterns,
-		ExcludeUnknownProject: vipertools.FirstNonEmptyBool(
-			v,
-			"exclude-unknown-project",
-			"settings.exclude_unknown_project",
-		),
-		Include: includePatterns,
-		IncludeOnlyWithProjectFile: vipertools.FirstNonEmptyBool(
-			v,
-			"include-only-with-project-file",
-			"settings.include_only_with_project_file",
-		),
+		Exclude:                    excludePatterns,
+		ExcludeUnknownProject:      vipertools.FirstNonEmptyBool(v, excludeUnknownProjectOrder[order]...),
+		Include:                    includePatterns,
+		IncludeOnlyWithProjectFile: vipertools.FirstNonEmptyBool(v, includeOnlyWithProjectFileOrder[order]...),
 	}, nil
 }
 
-func loadSanitizeParams(ctx context.Context, v *viper.Viper) (SanitizeParams, error) {
+func loadSanitizeParams(ctx context.Context, v *viper.Viper, order FlagReadOrder) (SanitizeParams, error) {
 	// hide branch names
-	hideBranchNamesStr := vipertools.FirstNonEmptyString(
-		v,
-		"hide-branch-names",
-		"settings.hide_branch_names",
-		"settings.hide_branchnames",
-		"settings.hidebranchnames",
-	)
+	hideBranchNamesStr := vipertools.FirstNonEmptyString(v, hideBranchNamesOrder[order]...)
 
 	hideBranchNamesPatterns, err := parseBoolOrRegexList(ctx, hideBranchNamesStr)
 	if err != nil {
@@ -557,11 +640,7 @@ func loadSanitizeParams(ctx context.Context, v *viper.Viper) (SanitizeParams, er
 	}
 
 	// hide dependencies
-	hideDependenciesStr := vipertools.FirstNonEmptyString(
-		v,
-		"hide-dependencies",
-		"settings.hide_dependencies",
-	)
+	hideDependenciesStr := vipertools.FirstNonEmptyString(v, hideDependenciesOrder[order]...)
 
 	hideDependenciesPatterns, err := parseBoolOrRegexList(ctx, hideDependenciesStr)
 	if err != nil {
@@ -573,13 +652,7 @@ func loadSanitizeParams(ctx context.Context, v *viper.Viper) (SanitizeParams, er
 	}
 
 	// hide project names
-	hideProjectNamesStr := vipertools.FirstNonEmptyString(
-		v,
-		"hide-project-names",
-		"settings.hide_project_names",
-		"settings.hide_projectnames",
-		"settings.hideprojectnames",
-	)
+	hideProjectNamesStr := vipertools.FirstNonEmptyString(v, hideProjectNamesOrder[order]...)
 
 	hideProjectNamesPatterns, err := parseBoolOrRegexList(ctx, hideProjectNamesStr)
 	if err != nil {
@@ -591,15 +664,7 @@ func loadSanitizeParams(ctx context.Context, v *viper.Viper) (SanitizeParams, er
 	}
 
 	// hide file names
-	hideFileNamesStr := vipertools.FirstNonEmptyString(
-		v,
-		"hide-file-names",
-		"hide-filenames",
-		"hidefilenames",
-		"settings.hide_file_names",
-		"settings.hide_filenames",
-		"settings.hidefilenames",
-	)
+	hideFileNamesStr := vipertools.FirstNonEmptyString(v, hideFileNamesOrder[order]...)
 
 	hideFileNamesPatterns, err := parseBoolOrRegexList(ctx, hideFileNamesStr)
 	if err != nil {
@@ -614,7 +679,7 @@ func loadSanitizeParams(ctx context.Context, v *viper.Viper) (SanitizeParams, er
 		HideBranchNames:     hideBranchNamesPatterns,
 		HideDependencies:    hideDependenciesPatterns,
 		HideFileNames:       hideFileNamesPatterns,
-		HideProjectFolder:   vipertools.FirstNonEmptyBool(v, "hide-project-folder", "settings.hide_project_folder"),
+		HideProjectFolder:   vipertools.FirstNonEmptyBool(v, hideProjectFolderOrder[order]...),
 		HideProjectNames:    hideProjectNamesPatterns,
 		ProjectPathOverride: vipertools.GetString(v, "project-folder"),
 	}, nil
@@ -669,19 +734,18 @@ func loadProjectMapPatterns(ctx context.Context, v *viper.Viper, prefix string) 
 }
 
 // LoadOfflineParams loads offline params from viper.Viper instance.
-func LoadOfflineParams(ctx context.Context, v *viper.Viper) Offline {
-	disabled := vipertools.FirstNonEmptyBool(v, "disable-offline", "disableoffline")
-	if b := v.GetBool("settings.offline"); v.IsSet("settings.offline") {
-		disabled = !b
+func LoadOfflineParams(ctx context.Context, v *viper.Viper, order FlagReadOrder) Offline {
+	disabled := vipertools.FirstNonEmptyBool(v, disableOfflineOrder[order]...)
+	// if disable-offline or disableoffline is not set, negate settings.offline if set
+	if v.IsSet("settings.offline") && !v.IsSet("disable-offline") && !v.IsSet("disableoffline") {
+		disabled = !v.GetBool("settings.offline")
 	}
 
 	logger := log.Extract(ctx)
 
 	rateLimit := offline.RateLimitDefaultSeconds
 
-	if rateLimitSecs, ok := vipertools.FirstNonEmptyInt(v,
-		"heartbeat-rate-limit-seconds",
-		"settings.heartbeat_rate_limit_seconds"); ok {
+	if rateLimitSecs, ok := vipertools.FirstNonEmptyInt(v, heartbeatRateLimitOrder[order]...); ok {
 		rateLimit = rateLimitSecs
 
 		if rateLimit < 0 {
@@ -725,14 +789,10 @@ func LoadOfflineParams(ctx context.Context, v *viper.Viper) Offline {
 }
 
 // LoadStatusBarParams loads status bar params from viper.Viper instance.
-func LoadStatusBarParams(v *viper.Viper) (StatusBar, error) {
+func LoadStatusBarParams(v *viper.Viper, order FlagReadOrder) (StatusBar, error) {
 	var hideCategories bool
 
-	if hideCategoriesStr := vipertools.FirstNonEmptyString(
-		v,
-		"today-hide-categories",
-		"settings.status_bar_hide_categories",
-	); hideCategoriesStr != "" {
+	if hideCategoriesStr := vipertools.FirstNonEmptyString(v, todayHideCategoriesOrder[order]...); hideCategoriesStr != "" {
 		val, err := strconv.ParseBool(hideCategoriesStr)
 		if err != nil {
 			return StatusBar{}, fmt.Errorf("failed to parse today-hide-categories: %s", err)
@@ -1187,6 +1247,18 @@ func (p StatusBar) String() string {
 		p.HideCategories,
 		p.Output,
 	)
+}
+
+// String implements fmt.Stringer interface.
+func (order FlagReadOrder) String() string {
+	switch order {
+	case FlagReadOrderFlagPrecedence:
+		return "flag-precedence"
+	case FlagReadOrderProjectConfigPrecedence:
+		return "project-config-precedence"
+	default:
+		return "unknown"
+	}
 }
 
 func parseBoolOrRegexList(ctx context.Context, s string) ([]regex.Regex, error) {
