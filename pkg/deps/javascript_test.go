@@ -60,7 +60,7 @@ func TestParserJavaScript_Parse(t *testing.T) {
 			Expected: []string{
 				"head",
 				"react",
-				"contants",
+				"constants",
 				"Footer",
 				"Nav",
 			},

@@ -65,7 +65,10 @@ func TestFind_EmptyInput(t *testing.T) {
 }
 
 func TestExists(t *testing.T) {
-	tmpFile, err := os.CreateTemp("", "test-file-*.go")
+	tmpFile, err := os.CreateTemp(t.TempDir(), "test-file-*.go")
+	require.NoError(t, err)
+
+	err = tmpFile.Close()
 	require.NoError(t, err)
 
 	found := file.Exists(tmpFile.Name())

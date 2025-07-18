@@ -1,6 +1,6 @@
 import Head from 'next/head';
 import { type ReactNode } from 'react';
-import { BASE_URL } from '~/utils/contants';
+import { BASE_URL } from '~/utils/constants';
 import Footer from './Footer';
 import Nav from './Nav';
 
