@@ -22,7 +22,7 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/ini"
 	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/offline"
-	paramspkg "github.com/wakatime/wakatime-cli/pkg/params"
+	"github.com/wakatime/wakatime-cli/pkg/params"
 	"github.com/wakatime/wakatime-cli/pkg/project"
 	"github.com/wakatime/wakatime-cli/pkg/version"
 	"github.com/wakatime/wakatime-cli/pkg/windows"
@@ -98,6 +98,7 @@ func TestSendHeartbeats(t *testing.T) {
 
 		f, err := os.Open("testdata/api_heartbeats_response.json")
 		require.NoError(t, err)
+
 		defer f.Close()
 
 		_, err = io.Copy(w, f)
@@ -351,6 +352,7 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 
 		f, err := os.Open("testdata/api_heartbeats_response_extra_heartbeats.json")
 		require.NoError(t, err)
+
 		defer f.Close()
 
 		_, err = io.Copy(w, f)
@@ -437,6 +439,7 @@ func TestSendHeartbeats_ExtraHeartbeats_Sanitize(t *testing.T) {
 
 		f, err := os.Open("testdata/api_heartbeats_response_extra_heartbeats.json")
 		require.NoError(t, err)
+
 		defer f.Close()
 
 		_, err = io.Copy(w, f)
@@ -651,6 +654,7 @@ func TestSendHeartbeats_ExtraHeartbeatsIsUnsavedEntity(t *testing.T) {
 
 		f, err := os.Open("testdata/api_heartbeats_response_is_unsaved_entity.json")
 		require.NoError(t, err)
+
 		defer f.Close()
 
 		_, err = io.Copy(w, f)
@@ -783,6 +787,7 @@ func TestSendHeartbeats_NonExistingExtraHeartbeatsEntity(t *testing.T) {
 
 		f, err := os.Open("testdata/api_heartbeats_response_extra_heartbeats_filtered.json")
 		require.NoError(t, err)
+
 		defer f.Close()
 
 		_, err = io.Copy(w, f)
@@ -1076,6 +1081,7 @@ func TestSendHeartbeats_ObfuscateProject(t *testing.T) {
 
 		f, err := os.Open("testdata/api_heartbeats_response.json")
 		require.NoError(t, err)
+
 		defer f.Close()
 
 		_, err = io.Copy(w, f)
@@ -1166,6 +1172,7 @@ func TestSendHeartbeats_ObfuscateProjectNotBranch(t *testing.T) {
 
 		f, err := os.Open("testdata/api_heartbeats_response.json")
 		require.NoError(t, err)
+
 		defer f.Close()
 
 		_, err = io.Copy(w, f)
@@ -1249,5 +1256,5 @@ func copyFile(t *testing.T, source, destination string) {
 func resetSingleton(t *testing.T) {
 	t.Helper()
 
-	paramspkg.Once = sync.Once{}
+	params.Once = sync.Once{}
 }

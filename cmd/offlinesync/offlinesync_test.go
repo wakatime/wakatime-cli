@@ -15,7 +15,7 @@ import (
 	"github.com/wakatime/wakatime-cli/cmd/offlinesync"
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
-	paramspkg "github.com/wakatime/wakatime-cli/pkg/params"
+	"github.com/wakatime/wakatime-cli/pkg/params"
 
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
@@ -442,5 +442,5 @@ func insertHeartbeatRecord(t *testing.T, db *bolt.DB, bucket string, h heartbeat
 func resetSingleton(t *testing.T) {
 	t.Helper()
 
-	paramspkg.Once = sync.Once{}
+	params.Once = sync.Once{}
 }

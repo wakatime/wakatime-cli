@@ -19,7 +19,7 @@ import (
 // Used when we have more heartbeats than `offline.SendLimit`, when we couldn't send
 // heartbeats to the API, or the API returned an auth error.
 func SaveHeartbeats(ctx context.Context, v *viper.Viper, heartbeats []heartbeat.Heartbeat, queueFilepath string) error {
-	params, err := LoadParams(ctx, v)
+	params, err := LoadParams(ctx, v, params.FlagReadOrderFlagPrecedence)
 	if err != nil {
 		return fmt.Errorf("failed to load command parameters: %w", err)
 	}
@@ -54,15 +54,15 @@ func SaveHeartbeats(ctx context.Context, v *viper.Viper, heartbeats []heartbeat.
 
 // LoadParams loads params from viper.Viper instance. Returns ErrAuth
 // if failed to retrieve api key.
-func LoadParams(ctx context.Context, v *viper.Viper) (params.Params, error) {
+func LoadParams(ctx context.Context, v *viper.Viper, order params.FlagReadOrder) (params.Params, error) {
 	logger := log.Extract(ctx)
 
-	paramAPI, err := params.LoadAPIParams(ctx, v)
+	paramAPI, err := params.LoadAPIParams(ctx, v, order)
 	if err != nil {
 		logger.Warnf("failed to load API parameters: %s", err)
 	}
 
-	paramHeartbeat, err := params.LoadHeartbeatParams(ctx, v)
+	paramHeartbeat, err := params.LoadHeartbeatParams(ctx, v, order)
 	if err != nil {
 		return params.Params{}, fmt.Errorf("failed to load heartbeat parameters: %s", err)
 	}
@@ -70,7 +70,7 @@ func LoadParams(ctx context.Context, v *viper.Viper) (params.Params, error) {
 	return params.Params{
 		API:       paramAPI,
 		Heartbeat: paramHeartbeat,
-		Offline:   params.LoadOfflineParams(ctx, v),
+		Offline:   params.LoadOfflineParams(ctx, v, order),
 	}, nil
 }
 

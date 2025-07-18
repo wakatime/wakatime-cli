@@ -2,7 +2,6 @@ package vipertools
 
 import (
 	"fmt"
-	"slices"
 	"strings"
 
 	viperini "github.com/go-viper/encoding/ini"
@@ -24,47 +23,20 @@ func New() (*viper.Viper, error) {
 	return viper.NewWithOptions(viper.WithCodecRegistry(codecRegistry)), nil
 }
 
-// CopyOnlySettings copies only the settings from one viper.Viper instance to another.
-// It skips all settings that are loaded from command line arguments.
-func CopyOnlySettings(vsrc, vdest *viper.Viper) {
-	skip := []string{
-		"key",
-		"api-url",
-		"apiurl",
-		"hostname",
-		"proxy",
-		"ssl-certs-file",
-		"timeout",
-		"no-ssl-verify",
-		"guess-language",
-		"exclude",
-		"include",
-		"exclude-unknown-project",
-		"include-only-with-project-file",
-		"hide-branch-names",
-		"hide-dependencies",
-		"hide-project-names",
-		"hide-file-names",
-		"hide-filenames",
-		"hidefilenames",
-		"hide-project-folder",
-		"disable-offline",
-		"disableoffline",
-		"heartbeat-rate-limit-seconds",
-		"today-hide-categories",
+// MustNew creates a new viper instance with the ini codec registered and panics if it fails.
+// This is useful for testing.
+func MustNew() *viper.Viper {
+	v, err := New()
+	if err != nil {
+		panic(fmt.Sprintf("failed to create viper instance: %s", err))
 	}
 
-	for _, key := range vsrc.AllKeys() {
-		if slices.Contains(skip, key) {
-			continue
-		}
-
-		vdest.Set(key, vsrc.Get(key))
-	}
+	return v
 }
 
 // FirstNonEmptyBool accepts multiple keys and returns the first non-empty bool value
 // from viper.Viper via these keys. Non-empty meaning key not set will not be accepted.
+// Will return false as second parameter, if non-empty bool value could not be retrieved.
 func FirstNonEmptyBool(v *viper.Viper, keys ...string) bool {
 	if v == nil {
 		return false
@@ -136,9 +108,6 @@ func FirstNonEmptyString(v *viper.Viper, keys ...string) string {
 		}
 
 		return strings.Trim(parsed, `"'`)
-		//	if value := GetString(v, key); value != "" {
-		//		return value
-		//	}
 	}
 
 	return ""

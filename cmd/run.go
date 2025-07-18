@@ -369,7 +369,7 @@ func saveHeartbeats(ctx context.Context, v *viper.Viper) int {
 }
 
 func sendDiagnostics(ctx context.Context, v *viper.Viper, d diagnostics) error {
-	paramAPI, err := params.LoadAPIParams(ctx, v)
+	paramAPI, err := params.LoadAPIParams(ctx, v, params.FlagReadOrderFlagPrecedence)
 	if err != nil {
 		return fmt.Errorf("failed to load API parameters: %s", err)
 	}

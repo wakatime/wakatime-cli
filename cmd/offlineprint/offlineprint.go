@@ -24,7 +24,7 @@ func Run(ctx context.Context, v *viper.Viper) (int, error) {
 		)
 	}
 
-	p := params.LoadOfflineParams(ctx, v)
+	p := params.LoadOfflineParams(ctx, v, params.FlagReadOrderFlagPrecedence)
 
 	hh, err := offline.ReadHeartbeats(ctx, queueFilepath, p.PrintMax)
 	if err != nil {

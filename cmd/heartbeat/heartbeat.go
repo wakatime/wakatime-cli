@@ -65,7 +65,7 @@ func Run(ctx context.Context, v *viper.Viper) (int, error) {
 // heartbeats from the offline queue, if available and offline sync is not
 // explicitly disabled.
 func SendHeartbeats(ctx context.Context, v *viper.Viper, queueFilepath string) error {
-	params, err := LoadParams(ctx, v)
+	params, err := LoadParams(ctx, v, params.FlagReadOrderFlagPrecedence)
 	if err != nil {
 		return fmt.Errorf("failed to load command parameters: %w", err)
 	}
@@ -175,17 +175,17 @@ func buildHandle(ctx context.Context, v *viper.Viper, params params.Params, queu
 
 // LoadParams loads params from viper.Viper instance. Returns ErrAuth
 // if failed to retrieve api key.
-func LoadParams(ctx context.Context, v *viper.Viper) (params.Params, error) {
+func LoadParams(ctx context.Context, v *viper.Viper, order params.FlagReadOrder) (params.Params, error) {
 	if v == nil {
 		return params.Params{}, errors.New("viper instance unset")
 	}
 
-	apiParams, err := params.LoadAPIParams(ctx, v)
+	apiParams, err := params.LoadAPIParams(ctx, v, order)
 	if err != nil {
 		return params.Params{}, fmt.Errorf("failed to load API parameters: %w", err)
 	}
 
-	heartbeatParams, err := params.LoadHeartbeatParams(ctx, v)
+	heartbeatParams, err := params.LoadHeartbeatParams(ctx, v, order)
 	if err != nil {
 		return params.Params{}, fmt.Errorf("failed to load heartbeat params: %s", err)
 	}
@@ -193,7 +193,7 @@ func LoadParams(ctx context.Context, v *viper.Viper) (params.Params, error) {
 	return params.Params{
 		API:       apiParams,
 		Heartbeat: heartbeatParams,
-		Offline:   params.LoadOfflineParams(ctx, v),
+		Offline:   params.LoadOfflineParams(ctx, v, order),
 	}, nil
 }
 

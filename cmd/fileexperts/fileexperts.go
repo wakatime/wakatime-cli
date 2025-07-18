@@ -40,7 +40,7 @@ func Run(ctx context.Context, v *viper.Viper) (int, error) {
 
 // FileExperts returns a rendered file experts of todays coding activity.
 func FileExperts(ctx context.Context, v *viper.Viper) (string, error) {
-	params, err := LoadParams(ctx, v)
+	params, err := LoadParams(ctx, v, params.FlagReadOrderFlagPrecedence)
 	if err != nil {
 		return "", fmt.Errorf("failed to load command parameters: %w", err)
 	}
@@ -86,22 +86,22 @@ func FileExperts(ctx context.Context, v *viper.Viper) (string, error) {
 
 // LoadParams loads file-expert config params from viper.Viper instance. Returns ErrAuth
 // if failed to retrieve api key.
-func LoadParams(ctx context.Context, v *viper.Viper) (params.Params, error) {
+func LoadParams(ctx context.Context, v *viper.Viper, order params.FlagReadOrder) (params.Params, error) {
 	if v == nil {
 		return params.Params{}, fmt.Errorf("viper instance unset")
 	}
 
-	heartbeatParams, err := params.LoadHeartbeatParams(ctx, v)
+	heartbeatParams, err := params.LoadHeartbeatParams(ctx, v, order)
 	if err != nil {
 		return params.Params{}, fmt.Errorf("failed to load heartbeat params: %s", err)
 	}
 
-	apiParams, err := params.LoadAPIParams(ctx, v)
+	apiParams, err := params.LoadAPIParams(ctx, v, order)
 	if err != nil {
 		return params.Params{}, fmt.Errorf("failed to load API parameters: %w", err)
 	}
 
-	statusBarParams, err := params.LoadStatusBarParams(v)
+	statusBarParams, err := params.LoadStatusBarParams(v, order)
 	if err != nil {
 		return params.Params{}, fmt.Errorf("failed to load status bar params: %w", err)
 	}

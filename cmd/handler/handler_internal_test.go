@@ -9,12 +9,11 @@ import (
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	paramspkg "github.com/wakatime/wakatime-cli/pkg/params"
+	"github.com/wakatime/wakatime-cli/pkg/vipertools"
 
-	viperini "github.com/go-viper/encoding/ini"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	iniv1 "gopkg.in/ini.v1"
 )
 
 func TestNoopSendHeartbeats(t *testing.T) {
@@ -68,11 +67,11 @@ func TestFindProjectConfigFile(t *testing.T) {
 		tmpProjectFile.Close()
 	}()
 
-	v := setupViper(t)
+	v := vipertools.MustNew()
 
 	params, ok, err := findProjectConfigFile(
 		t.Context(), v, dir, heartbeat.FileType, false,
-		func(_ context.Context, _ *viper.Viper) (paramspkg.Params, error) {
+		func(_ context.Context, _ *viper.Viper, _ paramspkg.FlagReadOrder) (paramspkg.Params, error) {
 			return paramspkg.Params{}, nil
 		},
 	)
@@ -95,11 +94,11 @@ func TestFindProjectConfigFile_NotFound(t *testing.T) {
 
 	defer tmpFile.Close()
 
-	v := setupViper(t)
+	v := vipertools.MustNew()
 
 	params, ok, err := findProjectConfigFile(
 		t.Context(), v, dir, heartbeat.FileType, false,
-		func(_ context.Context, _ *viper.Viper) (paramspkg.Params, error) {
+		func(_ context.Context, _ *viper.Viper, _ paramspkg.FlagReadOrder) (paramspkg.Params, error) {
 			return paramspkg.Params{}, nil
 		},
 	)
@@ -144,11 +143,11 @@ func TestFindProjectConfigFile_ParamsLoader_Err(t *testing.T) {
 		tmpProjectFile.Close()
 	}()
 
-	v := setupViper(t)
+	v := vipertools.MustNew()
 
 	params, ok, err := findProjectConfigFile(
 		t.Context(), v, dir, heartbeat.FileType, false,
-		func(_ context.Context, _ *viper.Viper) (paramspkg.Params, error) {
+		func(_ context.Context, _ *viper.Viper, _ paramspkg.FlagReadOrder) (paramspkg.Params, error) {
 			return paramspkg.Params{}, errors.New("fail")
 		},
 	)
@@ -156,17 +155,4 @@ func TestFindProjectConfigFile_ParamsLoader_Err(t *testing.T) {
 
 	assert.False(t, ok)
 	assert.Equal(t, paramspkg.Params{}, params)
-}
-
-func setupViper(t *testing.T) *viper.Viper {
-	multilineOption := iniv1.LoadOptions{AllowPythonMultilineValues: true}
-	iniCodec := viperini.Codec{LoadOptions: multilineOption}
-
-	codecRegistry := viper.NewCodecRegistry()
-	err := codecRegistry.RegisterCodec("ini", iniCodec)
-	require.NoError(t, err)
-
-	v := viper.NewWithOptions(viper.WithCodecRegistry(codecRegistry))
-
-	return v
 }
