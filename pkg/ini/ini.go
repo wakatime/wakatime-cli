@@ -24,6 +24,7 @@ import (
 type WakaHomeType int
 
 const (
+	// defaultFolder is the name of the default wakatime resources folder.
 	defaultFolder = ".wakatime"
 	// defaultFile is the name of the default wakatime config file.
 	defaultFile = ".wakatime.cfg"
@@ -33,7 +34,9 @@ const (
 	DateFormat = time.RFC3339
 	// defaultTimeout is the default timeout for acquiring a lock.
 	defaultTimeout = time.Second * 5
+)
 
+const (
 	// WakaHomeTypeUnknown is unknown WakaTime home type.
 	WakaHomeTypeUnknown WakaHomeType = iota
 	// WakaHomeTypeEnvVar is WakaTime home type from environment variable.

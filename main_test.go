@@ -455,6 +455,7 @@ func TestSendHeartbeats_ExtraHeartbeats_ProjectConfigFile(t *testing.T) {
 		switch numCalls {
 		case 1:
 			filename = "testdata/api_heartbeats_response_extra_heartbeats_project_config_file.json"
+
 			assert.Equal(
 				t,
 				[]string{"Basic MDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAw"},
@@ -462,6 +463,7 @@ func TestSendHeartbeats_ExtraHeartbeats_ProjectConfigFile(t *testing.T) {
 			)
 		case 2:
 			filename = "testdata/api_heartbeats_response_extra_heartbeats_project_config_file_extra.json"
+
 			assert.Equal(
 				t,
 				[]string{"Basic MDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAy"},

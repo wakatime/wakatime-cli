@@ -82,11 +82,11 @@ func RunE(cmd *cobra.Command, v *viper.Viper) error {
 
 	// start profiling if enabled
 	if logger.IsMetricsEnabled() {
-		shutdown, err := metrics.StartProfiling(ctx)
+		stopProfiling, err := metrics.StartProfiling(ctx)
 		if err != nil {
 			logger.Errorf("failed to start profiling: %s", err)
 		} else {
-			defer shutdown()
+			defer stopProfiling()
 		}
 	}
 

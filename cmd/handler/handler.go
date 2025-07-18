@@ -32,6 +32,7 @@ func New(
 	return func(next heartbeat.Handle) heartbeat.Handle {
 		return func(ctx context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 			var heartbeats []heartbeat.Heartbeat
+
 			logger := *log.Extract(ctx) // make it a shallow copy to avoid modifying the original logger
 
 			for _, h := range hh {
