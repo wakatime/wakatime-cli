@@ -11,7 +11,6 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/ini"
 	"github.com/wakatime/wakatime-cli/pkg/vipertools"
 
-	viperini "github.com/go-viper/encoding/ini"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -19,7 +18,7 @@ import (
 )
 
 func TestReadInConfig(t *testing.T) {
-	v := setupViper(t)
+	v := vipertools.MustNew()
 	v.Set("config", "testdata/wakatime.cfg")
 
 	filePath, err := ini.FilePath(t.Context(), v)
@@ -37,7 +36,7 @@ func TestReadInConfig(t *testing.T) {
 }
 
 func TestReadInConfig_Multiline(t *testing.T) {
-	v := setupViper(t)
+	v := vipertools.MustNew()
 	v.Set("config", "testdata/wakatime-multiline.cfg")
 
 	filePath, err := ini.FilePath(t.Context(), v)
@@ -54,7 +53,7 @@ func TestReadInConfig_Multiline(t *testing.T) {
 }
 
 func TestReadInConfig_Multiple(t *testing.T) {
-	v := setupViper(t)
+	v := vipertools.MustNew()
 	v.Set("config", "testdata/wakatime.cfg")
 	v.Set("internal-config", "testdata/wakatime-internal.cfg")
 
@@ -80,7 +79,7 @@ func TestReadInConfig_Multiple(t *testing.T) {
 }
 
 func TestReadInConfig_Corrupted(t *testing.T) {
-	v := setupViper(t)
+	v := vipertools.MustNew()
 	v.Set("config", "testdata/corrupted.cfg")
 
 	filePath, err := ini.FilePath(t.Context(), v)
@@ -96,7 +95,7 @@ func TestReadInConfig_Corrupted(t *testing.T) {
 }
 
 func TestReadInConfig_Missing(t *testing.T) {
-	v := setupViper(t)
+	v := vipertools.MustNew()
 
 	err := ini.ReadInConfig(v, "not-exists")
 
@@ -104,7 +103,7 @@ func TestReadInConfig_Missing(t *testing.T) {
 }
 
 func TestReadInConfig_Malformed(t *testing.T) {
-	v := setupViper(t)
+	v := vipertools.MustNew()
 	v.Set("config", "testdata/malformed.cfg")
 
 	filePath, err := ini.FilePath(t.Context(), v)
@@ -148,7 +147,7 @@ func TestFilePath(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			v := setupViper(t)
+			v := vipertools.MustNew()
 			v.Set("config", test.ViperValue)
 
 			t.Setenv("WAKATIME_HOME", test.EnvVar)
@@ -187,7 +186,7 @@ func TestInternalFilePath(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			v := setupViper(t)
+			v := vipertools.MustNew()
 			v.Set("internal-config", test.ViperValue)
 
 			t.Setenv("WAKATIME_HOME", test.EnvVar)
@@ -201,7 +200,7 @@ func TestInternalFilePath(t *testing.T) {
 }
 
 func TestNewWriter(t *testing.T) {
-	v := setupViper(t)
+	v := vipertools.MustNew()
 
 	w, err := ini.NewWriter(t.Context(), v, func(_ context.Context, vp *viper.Viper) (string, error) {
 		assert.Equal(t, v, vp)
@@ -214,7 +213,7 @@ func TestNewWriter(t *testing.T) {
 }
 
 func TestNewWriterErr(t *testing.T) {
-	v := setupViper(t)
+	v := vipertools.MustNew()
 
 	_, err := ini.NewWriter(t.Context(), v, func(_ context.Context, vp *viper.Viper) (string, error) {
 		assert.Equal(t, v, vp)
@@ -226,7 +225,7 @@ func TestNewWriterErr(t *testing.T) {
 }
 
 func TestNewWriter_MissingFile(t *testing.T) {
-	v := setupViper(t)
+	v := vipertools.MustNew()
 
 	tmpDir := t.TempDir()
 
@@ -243,7 +242,7 @@ func TestNewWriter_MissingFile(t *testing.T) {
 }
 
 func TestNewWriter_CorruptedFile(t *testing.T) {
-	v := setupViper(t)
+	v := vipertools.MustNew()
 
 	w, err := ini.NewWriter(t.Context(), v, func(_ context.Context, vp *viper.Viper) (string, error) {
 		assert.Equal(t, v, vp)
@@ -304,7 +303,7 @@ func TestWrite_NoMultilineSideEffects(t *testing.T) {
 
 	ctx := t.Context()
 
-	v := setupViper(t)
+	v := vipertools.MustNew()
 	v.Set("config", tmpFile.Name())
 
 	copyFile(t, "testdata/wakatime-multiline.cfg", tmpFile.Name())
@@ -337,7 +336,7 @@ func TestWrite_NullsRemoved(t *testing.T) {
 
 	ctx := t.Context()
 
-	v := setupViper(t)
+	v := vipertools.MustNew()
 	v.Set("config", tmpFile.Name())
 
 	copyFile(t, "testdata/wakatime-nulls.cfg", tmpFile.Name())
@@ -377,17 +376,4 @@ func copyFile(t *testing.T, source, destination string) {
 
 	err = os.WriteFile(destination, input, 0600)
 	require.NoError(t, err)
-}
-
-func setupViper(t *testing.T) *viper.Viper {
-	multilineOption := iniv1.LoadOptions{AllowPythonMultilineValues: true}
-	iniCodec := viperini.Codec{LoadOptions: multilineOption}
-
-	codecRegistry := viper.NewCodecRegistry()
-	err := codecRegistry.RegisterCodec("ini", iniCodec)
-	require.NoError(t, err)
-
-	v := viper.NewWithOptions(viper.WithCodecRegistry(codecRegistry))
-
-	return v
 }

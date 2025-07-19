@@ -12,22 +12,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestOpen(t *testing.T) {
-	tmpFile, err := os.CreateTemp(t.TempDir(), "")
-	require.NoError(t, err)
-
-	err = tmpFile.Close()
-	require.NoError(t, err)
-
-	f, err := os.Open(tmpFile.Name())
-	require.NoError(t, err)
-
-	defer f.Close()
-
-	err = os.Remove(tmpFile.Name())
-	assert.NoError(t, err)
-}
-
 func TestOpenNoLock(t *testing.T) {
 	tmpFile, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)

@@ -1,14 +1,42 @@
 package vipertools
 
 import (
+	"fmt"
 	"strings"
 
+	viperini "github.com/go-viper/encoding/ini"
 	"github.com/spf13/cast"
 	"github.com/spf13/viper"
+	iniv1 "gopkg.in/ini.v1"
 )
+
+// New creates a new viper instance with the ini codec registered.
+func New() (*viper.Viper, error) {
+	multilineOption := iniv1.LoadOptions{AllowPythonMultilineValues: true}
+	iniCodec := viperini.Codec{LoadOptions: multilineOption}
+
+	codecRegistry := viper.NewCodecRegistry()
+	if err := codecRegistry.RegisterCodec("ini", iniCodec); err != nil {
+		return nil, fmt.Errorf("failed to register ini codec: %w", err)
+	}
+
+	return viper.NewWithOptions(viper.WithCodecRegistry(codecRegistry)), nil
+}
+
+// MustNew creates a new viper instance with the ini codec registered and panics if it fails.
+// This is useful for testing.
+func MustNew() *viper.Viper {
+	v, err := New()
+	if err != nil {
+		panic(fmt.Sprintf("failed to create viper instance: %s", err))
+	}
+
+	return v
+}
 
 // FirstNonEmptyBool accepts multiple keys and returns the first non-empty bool value
 // from viper.Viper via these keys. Non-empty meaning key not set will not be accepted.
+// Will return false as second parameter, if non-empty bool value could not be retrieved.
 func FirstNonEmptyBool(v *viper.Viper, keys ...string) bool {
 	if v == nil {
 		return false
@@ -80,9 +108,6 @@ func FirstNonEmptyString(v *viper.Viper, keys ...string) string {
 		}
 
 		return strings.Trim(parsed, `"'`)
-		//	if value := GetString(v, key); value != "" {
-		//		return value
-		//	}
 	}
 
 	return ""

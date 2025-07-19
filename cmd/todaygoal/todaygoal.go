@@ -76,12 +76,12 @@ func Goal(ctx context.Context, v *viper.Viper) (string, error) {
 // LoadParams loads todaygoal config params from viper.Viper instance. Returns ErrAuth
 // if failed to retrieve api key.
 func LoadParams(ctx context.Context, v *viper.Viper) (Params, error) {
-	paramAPI, err := params.LoadAPIParams(ctx, v)
+	paramAPI, err := params.LoadAPIParams(ctx, v, params.FlagReadOrderFlagPrecedence)
 	if err != nil {
 		return Params{}, fmt.Errorf("failed to load API parameters: %w", err)
 	}
 
-	paramStatusBar, err := params.LoadStatusBarParams(v)
+	paramStatusBar, err := params.LoadStatusBarParams(v, params.FlagReadOrderFlagPrecedence)
 	if err != nil {
 		return Params{}, fmt.Errorf("failed to load status bar parameters: %w", err)
 	}

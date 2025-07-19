@@ -3,7 +3,6 @@ package offline
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"math"
 	"net/http"
@@ -12,7 +11,6 @@ import (
 
 	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/viper"
-	"github.com/wakatime/wakatime-cli/pkg/api"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/ini"
 	"github.com/wakatime/wakatime-cli/pkg/log"
@@ -41,14 +39,6 @@ const (
 	// offline queue, which will be synced upon sending heartbeats to the API.
 	SyncMaxDefault = 1000
 )
-
-// Noop is a noop api client, used by offline.SaveHeartbeats.
-type Noop struct{}
-
-// SendHeartbeats always returns an error.
-func (Noop) SendHeartbeats(_ context.Context, _ []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
-	return nil, api.Err{Err: errors.New("skip sending heartbeats and only save to offline db")}
-}
 
 // WithQueue initializes and returns a heartbeat handle option, which can be
 // used in a heartbeat processing pipeline for automatic handling of failures
@@ -207,6 +197,7 @@ func handleResults(ctx context.Context, filepath string, results []heartbeat.Res
 	for n, result := range results {
 		if n >= len(hh) {
 			logger.Warnln("results from api not matching heartbeats sent")
+
 			break
 		}
 

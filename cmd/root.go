@@ -9,11 +9,10 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/api"
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
 	"github.com/wakatime/wakatime-cli/pkg/offline"
+	"github.com/wakatime/wakatime-cli/pkg/vipertools"
 
-	viperini "github.com/go-viper/encoding/ini"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	iniv1 "gopkg.in/ini.v1"
 )
 
 // defaultConfigSection is the default section in the wakatime ini config file.
@@ -21,15 +20,10 @@ const defaultConfigSection = "settings"
 
 // NewRootCMD creates a rootCmd, which represents the base command when called without any subcommands.
 func NewRootCMD() *cobra.Command {
-	multilineOption := iniv1.LoadOptions{AllowPythonMultilineValues: true}
-	iniCodec := viperini.Codec{LoadOptions: multilineOption}
-
-	codecRegistry := viper.NewCodecRegistry()
-	if err := codecRegistry.RegisterCodec("ini", iniCodec); err != nil {
-		log.Fatalf("failed to register ini codec: %s", err)
+	v, err := vipertools.New()
+	if err != nil {
+		log.Fatalf("failed to create viper instance: %s", err)
 	}
-
-	v := viper.NewWithOptions(viper.WithCodecRegistry(codecRegistry))
 
 	cmd := &cobra.Command{
 		Use:   "wakatime-cli",

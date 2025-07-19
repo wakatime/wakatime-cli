@@ -38,12 +38,12 @@ func Run(ctx context.Context, v *viper.Viper) (int, error) {
 
 // Today returns a rendered summary of today's coding activity.
 func Today(ctx context.Context, v *viper.Viper) (string, error) {
-	paramAPI, err := params.LoadAPIParams(ctx, v)
+	paramAPI, err := params.LoadAPIParams(ctx, v, params.FlagReadOrderFlagPrecedence)
 	if err != nil {
 		return "", fmt.Errorf("failed to load API parameters: %w", err)
 	}
 
-	paramStatusBar, err := params.LoadStatusBarParams(v)
+	paramStatusBar, err := params.LoadStatusBarParams(v, params.FlagReadOrderFlagPrecedence)
 	if err != nil {
 		return "", fmt.Errorf("failed to load status bar parameters: %w", err)
 	}

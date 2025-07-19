@@ -25,16 +25,17 @@ func RunWithoutRateLimiting(ctx context.Context, v *viper.Viper) (int, error) {
 
 // RunWithRateLimiting executes sync-offline-activity command with rate limiting enabled.
 func RunWithRateLimiting(ctx context.Context, v *viper.Viper) (int, error) {
-	paramOffline := params.LoadOfflineParams(ctx, v)
+	offlineParams := params.LoadOfflineParams(ctx, v, params.FlagReadOrderFlagPrecedence)
 
 	logger := log.Extract(ctx)
 
 	if ratelimit.IsRateLimited(ratelimit.Params{
-		Disabled:   paramOffline.Disabled,
-		LastSentAt: paramOffline.LastSentAt,
-		Timeout:    paramOffline.RateLimit,
+		Disabled:   offlineParams.Disabled,
+		LastSentAt: offlineParams.LastSentAt,
+		Timeout:    offlineParams.RateLimit,
 	}) {
 		logger.Debugln("skip syncing offline activity to respect rate limit")
+
 		return exitcode.Success, nil
 	}
 
@@ -42,8 +43,8 @@ func RunWithRateLimiting(ctx context.Context, v *viper.Viper) (int, error) {
 }
 
 func run(ctx context.Context, v *viper.Viper) (int, error) {
-	paramOffline := params.LoadOfflineParams(ctx, v)
-	if paramOffline.Disabled {
+	offlineParams := params.LoadOfflineParams(ctx, v, params.FlagReadOrderFlagPrecedence)
+	if offlineParams.Disabled {
 		return exitcode.Success, nil
 	}
 
@@ -93,23 +94,30 @@ func syncOfflineActivityLegacy(ctx context.Context, v *viper.Viper, queueFilepat
 		return nil
 	}
 
-	paramOffline := params.LoadOfflineParams(ctx, v)
+	defer func() {
+		if err := os.Remove(queueFilepath); err != nil {
+			logger := log.Extract(ctx)
+			logger.Warnf("failed to delete legacy offline file: %s", err)
+		}
+	}()
 
-	paramAPI, err := params.LoadAPIParams(ctx, v)
+	offlineParams := params.LoadOfflineParams(ctx, v, params.FlagReadOrderFlagPrecedence)
+
+	apiParams, err := params.LoadAPIParams(ctx, v, params.FlagReadOrderFlagPrecedence)
 	if err != nil {
 		return fmt.Errorf("failed to load API parameters: %w", err)
 	}
 
-	apiClient, err := cmdapi.NewClientWithoutAuth(ctx, paramAPI)
+	apiClient, err := cmdapi.NewClientWithoutAuth(ctx, apiParams)
 	if err != nil {
 		return fmt.Errorf("failed to initialize api client: %w", err)
 	}
 
 	handle := heartbeat.NewHandle(apiClient,
-		offline.WithSync(queueFilepath, paramOffline.SyncMax),
+		offline.WithSync(queueFilepath, offlineParams.SyncMax),
 		apikey.WithReplacing(apikey.Config{
-			DefaultAPIKey: paramAPI.Key,
-			MapPatterns:   paramAPI.KeyPatterns,
+			DefaultAPIKey: apiParams.Key,
+			MapPatterns:   apiParams.KeyPatterns,
 		}),
 	)
 
@@ -130,23 +138,23 @@ func syncOfflineActivityLegacy(ctx context.Context, v *viper.Viper, queueFilepat
 // SyncOfflineActivity syncs offline activity by sending heartbeats
 // from the offline queue to the WakaTime API.
 func SyncOfflineActivity(ctx context.Context, v *viper.Viper, queueFilepath string) error {
-	paramAPI, err := params.LoadAPIParams(ctx, v)
+	offlineParams := params.LoadOfflineParams(ctx, v, params.FlagReadOrderFlagPrecedence)
+
+	apiParams, err := params.LoadAPIParams(ctx, v, params.FlagReadOrderFlagPrecedence)
 	if err != nil {
 		return fmt.Errorf("failed to load API parameters: %w", err)
 	}
 
-	apiClient, err := cmdapi.NewClientWithoutAuth(ctx, paramAPI)
+	apiClient, err := cmdapi.NewClientWithoutAuth(ctx, apiParams)
 	if err != nil {
 		return fmt.Errorf("failed to initialize api client: %w", err)
 	}
 
-	paramOffline := params.LoadOfflineParams(ctx, v)
-
 	handle := heartbeat.NewHandle(apiClient,
-		offline.WithSync(queueFilepath, paramOffline.SyncMax),
+		offline.WithSync(queueFilepath, offlineParams.SyncMax),
 		apikey.WithReplacing(apikey.Config{
-			DefaultAPIKey: paramAPI.Key,
-			MapPatterns:   paramAPI.KeyPatterns,
+			DefaultAPIKey: apiParams.Key,
+			MapPatterns:   apiParams.KeyPatterns,
 		}),
 	)
 
@@ -155,9 +163,8 @@ func SyncOfflineActivity(ctx context.Context, v *viper.Viper, queueFilepath stri
 		return err
 	}
 
-	logger := log.Extract(ctx)
-
 	if err := ratelimit.Reset(ctx, v); err != nil {
+		logger := log.Extract(ctx)
 		logger.Errorf("failed to reset rate limit: %s", err)
 	}
 
@@ -167,5 +174,6 @@ func SyncOfflineActivity(ctx context.Context, v *viper.Viper, queueFilepath stri
 // fileExists checks if a file or directory exist.
 func fileExists(fp string) bool {
 	_, err := os.Stat(fp)
+
 	return err == nil || os.IsExist(err)
 }

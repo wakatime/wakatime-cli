@@ -17,16 +17,15 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/ini"
 	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/version"
+	"github.com/wakatime/wakatime-cli/pkg/vipertools"
 
-	viperini "github.com/go-viper/encoding/ini"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	iniv1 "gopkg.in/ini.v1"
 )
 
 func TestRunCmd(t *testing.T) {
-	v := setupViper(t)
+	v := vipertools.MustNew()
 
 	err := runCmd(t.Context(), v, false, false, func(_ context.Context, _ *viper.Viper) (int, error) {
 		return exitcode.Success, nil
@@ -36,7 +35,7 @@ func TestRunCmd(t *testing.T) {
 }
 
 func TestRunCmd_Err(t *testing.T) {
-	v := setupViper(t)
+	v := vipertools.MustNew()
 
 	err := runCmd(t.Context(), v, false, false, func(_ context.Context, _ *viper.Viper) (int, error) {
 		return exitcode.ErrGeneric, errors.New("fail")
@@ -102,7 +101,7 @@ func TestRunCmd_Panic(t *testing.T) {
 
 	ctx := t.Context()
 
-	v := setupViper(t)
+	v := vipertools.MustNew()
 	v.Set("api-url", testServerURL)
 	v.Set("log-file", logFile.Name())
 
@@ -182,7 +181,7 @@ func TestRunCmd_Panic_Verbose(t *testing.T) {
 
 	ctx := t.Context()
 
-	v := setupViper(t)
+	v := vipertools.MustNew()
 	v.Set("api-url", testServerURL)
 	v.Set("log-file", logFile.Name())
 
@@ -255,7 +254,7 @@ func TestRunCmd_ErrOfflineEnqueue(t *testing.T) {
 		w.WriteHeader(http.StatusCreated)
 	})
 
-	v := setupViper(t)
+	v := vipertools.MustNew()
 	v.Set("api-url", testServerURL)
 	v.Set("entity", "/path/to/file")
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
@@ -305,7 +304,7 @@ func TestRunCmd_BackoffLoggedWithVerbose(t *testing.T) {
 
 	defer entity.Close()
 
-	v := setupViper(t)
+	v := vipertools.MustNew()
 	v.Set("api-url", testServerURL)
 	v.Set("entity", entity.Name())
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
@@ -369,7 +368,7 @@ func TestRunCmd_BackoffNotLogged(t *testing.T) {
 
 	defer entity.Close()
 
-	v := setupViper(t)
+	v := vipertools.MustNew()
 	v.Set("api-url", testServerURL)
 	v.Set("entity", entity.Name())
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
@@ -401,7 +400,7 @@ func TestRunCmd_BackoffNotLogged(t *testing.T) {
 }
 
 func TestParseConfigFiles(t *testing.T) {
-	v := setupViper(t)
+	v := vipertools.MustNew()
 	v.Set("config", "testdata/.wakatime.cfg")
 	v.Set("internal-config", "testdata/.wakatime-internal.cfg")
 
@@ -424,7 +423,7 @@ func TestParseConfigFiles(t *testing.T) {
 }
 
 func TestParseConfigFiles_MissingAPIKey(t *testing.T) {
-	v := setupViper(t)
+	v := vipertools.MustNew()
 	v.Set("config", "testdata/.wakatime-empty.cfg")
 	v.Set("internal-config", "testdata/.wakatime-internal.cfg")
 
@@ -434,7 +433,7 @@ func TestParseConfigFiles_MissingAPIKey(t *testing.T) {
 }
 
 func TestParseConfigFiles_APIKey_FlagTakesPrecedence(t *testing.T) {
-	v := setupViper(t)
+	v := vipertools.MustNew()
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("config", "testdata/.wakatime-empty.cfg")
 	v.Set("settings.import_cfg", "")
@@ -462,17 +461,4 @@ func setupTestServer() (string, *http.ServeMux, func()) {
 	srv := httptest.NewServer(router)
 
 	return srv.URL, router, func() { srv.Close() }
-}
-
-func setupViper(t *testing.T) *viper.Viper {
-	multilineOption := iniv1.LoadOptions{AllowPythonMultilineValues: true}
-	iniCodec := viperini.Codec{LoadOptions: multilineOption}
-
-	codecRegistry := viper.NewCodecRegistry()
-	err := codecRegistry.RegisterCodec("ini", iniCodec)
-	require.NoError(t, err)
-
-	v := viper.NewWithOptions(viper.WithCodecRegistry(codecRegistry))
-
-	return v
 }

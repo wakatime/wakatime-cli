@@ -82,11 +82,11 @@ func RunE(cmd *cobra.Command, v *viper.Viper) error {
 
 	// start profiling if enabled
 	if logger.IsMetricsEnabled() {
-		shutdown, err := metrics.StartProfiling(ctx)
+		stopProfiling, err := metrics.StartProfiling(ctx)
 		if err != nil {
 			logger.Errorf("failed to start profiling: %s", err)
 		} else {
-			defer shutdown()
+			defer stopProfiling()
 		}
 	}
 
@@ -369,7 +369,7 @@ func saveHeartbeats(ctx context.Context, v *viper.Viper) int {
 }
 
 func sendDiagnostics(ctx context.Context, v *viper.Viper, d diagnostics) error {
-	paramAPI, err := params.LoadAPIParams(ctx, v)
+	paramAPI, err := params.LoadAPIParams(ctx, v, params.FlagReadOrderFlagPrecedence)
 	if err != nil {
 		return fmt.Errorf("failed to load API parameters: %s", err)
 	}
