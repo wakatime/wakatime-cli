@@ -14,7 +14,7 @@ Go to [http://wakatime.com/editors][editors] to install the plugin for your text
 Normally you don't need to use wakatime-cli directly unless you're building a new WakaTime plugin.
 If you're building a plugin using the [WakaTime API][api], follow the [Creating a Plugin][creating-plugin] guide.
 
-WakaTime plugins and wakatime-cli share a common [INI][ini] config file:
+WakaTime plugins and wakatime-cli share a common [INI][usage] config file:
 
 `$WAKATIME_HOME/.wakatime.cfg`
 
@@ -37,7 +37,6 @@ Made with :heart: by the WakaTime Team.
 [editors]: http://wakatime.com/editors
 [api]: https://wakatime.com/developers/
 [creating-plugin]: https://wakatime.com/help/misc/creating-plugin
-[ini]: http://en.wikipedia.org/wiki/INI_file
 [faq]: https://wakatime.com/faq
 [usage]: USAGE.md
 [contributing]: CONTRIBUTING.md
