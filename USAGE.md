@@ -5,33 +5,10 @@ Options can be passed to wakatime-cli via command line, or set in the `$WAKATIME
 Command line arguments take precedence over config file settings.
 Run `wakatime-cli --help` for available command line options.
 
-## Project Detection
+## Config File
 
-WakaTime auto-detects your projects.
-
-The priority of projects detection is:
-
-1. [.wakatime-project file](#wakatime-project-file)
-
-2. [project map](#project-map-section)
-
-3. Version control (Git)
-
-4. IDE project
-
-See the [source code](https://github.com/wakatime/wakatime-cli/blob/36f6372880d7113382e99453c2b94ff727788ae2/pkg/project/project.go#L145) for specifics.
-
-### WakaTime Project File
-
-To overwrite the auto-detected project, create a `.wakatime-project` file in your project’s root folder.
-The first line of the file contents overwrites the project name, if present.
-The second line, if present, overwrites the current branch name when working inside this folder.
-When the `.wakatime-project` file is empty, the folder’s name is used as the project name.
-Whenever a `.wakatime-project` file is found, it overwrites all other project detection.
-
-## INI Config File
-
-Here's an example `$WAKATIME_HOME/.wakatime.cfg` config file with all available options:
+After [installing WakaTime][plugins], a minimal `$WAKATIME_HOME/.wakatime.cfg` config file will be created for you.
+You can add to that config file with these available options:
 
 ```ini
 [settings]
@@ -83,6 +60,24 @@ project_from_git_remote = false
 some/submodule/name = new project name
 ^/home/user/projects/bar(\d+)/ = project{0}
 ```
+
+### Project Config
+
+Creating a `.wakatime` file in your project will overwrite your main `~/.wakatime.cfg` configs with the ones in your project config.
+For example, if you want to ignore files in a `build` folder for `some-project`, but not in other projects then create a `.wakatime` file in `some-project` folder with these contents:
+
+```ini
+[settings]
+exclude =
+    /build/
+    ^COMMIT_EDITMSG$
+    ^TAG_EDITMSG$
+    ^/var/(?!www/).*
+    ^/etc/
+```
+
+Now any time spent working on files in any `build` folder will be ignored in `some-project` but not in `other-project`.
+Notice how you have to include the exclude patterns from your main `~/.wakatime.cfg` or they'll be overwritten.
 
 ### Settings Section
 
@@ -160,7 +155,33 @@ some/submodule/name = new project name
 
 For commonly used configuration options, see examples in the [FAQ](https://wakatime.com/faq).
 
+## Project Detection
+
+WakaTime auto-detects your projects.
+
+The priority of projects detection is:
+
+1. [.wakatime-project file](#wakatime-project-file)
+
+2. [project map](#project-map-section)
+
+3. Version control (Git)
+
+4. IDE project
+
+See the [source code](https://github.com/wakatime/wakatime-cli/blob/36f6372880d7113382e99453c2b94ff727788ae2/pkg/project/project.go#L145) for specifics.
+
+### WakaTime Project File
+
+To overwrite the auto-detected project, create a `.wakatime-project` file in your project’s root folder.
+The first line of the file contents overwrites the project name, if present.
+The second line, if present, overwrites the current branch name when working inside this folder.
+When the `.wakatime-project` file is empty, the folder’s name is used as the project name.
+Whenever a `.wakatime-project` file is found, it overwrites all other project detection.
+
 ## Internal INI Config File
 
 The plugins and wakatime-cli use a separate internal INI file for things like caching auto-update requests to the GitHub releases API, and exponential backoff to the WakaTime API.
 The default internal INI config file location is `$WAKATIME_HOME/.wakatime/wakatime-internal.cfg`.
+
+[plugins]: https://wakatime.com/plugins
