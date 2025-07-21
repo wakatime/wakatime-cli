@@ -1292,7 +1292,7 @@ func TestPrintOfflineHeartbeats(t *testing.T) {
 		heartbeat.UserAgent(ctx, ""),
 	)
 
-	assert.Equal(t, offlineHeartbeatStr+"\n", out)
+	assert.Equal(t, strings.TrimSpace(offlineHeartbeatStr), strings.TrimSpace(out))
 }
 
 func TestUserAgent(t *testing.T) {

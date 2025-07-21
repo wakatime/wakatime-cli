@@ -34,9 +34,9 @@ func WithEntityModifier() HandleOption {
 }
 
 func isXCodePlayground(ctx context.Context, fp string) bool {
-	if !strings.HasSuffix(fp, ".playground") &&
-		!strings.HasSuffix(fp, ".xcplayground") &&
-		!strings.HasSuffix(fp, ".xcplaygroundpage") {
+	if !strings.HasSuffix(strings.ToLower(fp), ".playground") &&
+		!strings.HasSuffix(strings.ToLower(fp), ".xcplayground") &&
+		!strings.HasSuffix(strings.ToLower(fp), ".xcplaygroundpage") {
 		return false
 	}
 
@@ -44,7 +44,7 @@ func isXCodePlayground(ctx context.Context, fp string) bool {
 }
 
 func isXCodeProject(ctx context.Context, fp string) bool {
-	if !(strings.HasSuffix(fp, ".xcodeproj")) {
+	if !(strings.HasSuffix(strings.ToLower(fp), ".xcodeproj")) {
 		return false
 	}
 

@@ -20,7 +20,7 @@ func TestWithSanitization_ObfuscateFile(t *testing.T) {
 	handle := opt(func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		assert.Equal(t, []heartbeat.Heartbeat{
 			{
-				Category:   heartbeat.CodingCategory,
+				Category:   heartbeat.CodingCategory.Pointer(),
 				Entity:     "HIDDEN.go",
 				EntityType: heartbeat.FileType,
 				IsWrite:    heartbeat.PointerTo(true),
@@ -58,7 +58,7 @@ func TestSanitize_Obfuscate(t *testing.T) {
 		"file": {
 			Heartbeat: heartbeat.Heartbeat{
 				Branch:         heartbeat.PointerTo("heartbeat"),
-				Category:       heartbeat.CodingCategory,
+				Category:       heartbeat.CodingCategory.Pointer(),
 				CursorPosition: heartbeat.PointerTo(12),
 				Dependencies:   []string{"dep1", "dep2"},
 				Entity:         "/tmp/main.go",
@@ -72,7 +72,7 @@ func TestSanitize_Obfuscate(t *testing.T) {
 				UserAgent:      "wakatime/13.0.7",
 			},
 			Expected: heartbeat.Heartbeat{
-				Category:   heartbeat.CodingCategory,
+				Category:   heartbeat.CodingCategory.Pointer(),
 				Entity:     "HIDDEN.go",
 				EntityType: heartbeat.FileType,
 				IsWrite:    heartbeat.PointerTo(true),
@@ -84,14 +84,14 @@ func TestSanitize_Obfuscate(t *testing.T) {
 		},
 		"app": {
 			Heartbeat: heartbeat.Heartbeat{
-				Category:   heartbeat.CodingCategory,
+				Category:   heartbeat.CodingCategory.Pointer(),
 				Entity:     "Slack",
 				EntityType: heartbeat.AppType,
 				Time:       1585598060,
 				UserAgent:  "wakatime/13.0.7",
 			},
 			Expected: heartbeat.Heartbeat{
-				Category:   heartbeat.CodingCategory,
+				Category:   heartbeat.CodingCategory.Pointer(),
 				Entity:     "HIDDEN",
 				EntityType: heartbeat.AppType,
 				Time:       1585598060,
@@ -100,14 +100,14 @@ func TestSanitize_Obfuscate(t *testing.T) {
 		},
 		"domain": {
 			Heartbeat: heartbeat.Heartbeat{
-				Category:   heartbeat.BrowsingCategory,
+				Category:   heartbeat.BrowsingCategory.Pointer(),
 				Entity:     "wakatime.com",
 				EntityType: heartbeat.DomainType,
 				Time:       1585598060,
 				UserAgent:  "wakatime/13.0.7",
 			},
 			Expected: heartbeat.Heartbeat{
-				Category:   heartbeat.BrowsingCategory,
+				Category:   heartbeat.BrowsingCategory.Pointer(),
 				Entity:     "HIDDEN",
 				EntityType: heartbeat.DomainType,
 				Time:       1585598060,
@@ -135,7 +135,7 @@ func TestSanitize_ObfuscateFile_SkipBranchIfNotMatching(t *testing.T) {
 
 	assert.Equal(t, heartbeat.Heartbeat{
 		Branch:     heartbeat.PointerTo("heartbeat"),
-		Category:   heartbeat.CodingCategory,
+		Category:   heartbeat.CodingCategory.Pointer(),
 		Entity:     "HIDDEN.go",
 		EntityType: heartbeat.FileType,
 		IsWrite:    heartbeat.PointerTo(true),
@@ -157,7 +157,7 @@ func TestSanitize_ObfuscateFile_NilFields(t *testing.T) {
 	})
 
 	assert.Equal(t, heartbeat.Heartbeat{
-		Category:   heartbeat.CodingCategory,
+		Category:   heartbeat.CodingCategory.Pointer(),
 		Entity:     "HIDDEN.go",
 		EntityType: heartbeat.FileType,
 		IsWrite:    heartbeat.PointerTo(true),
@@ -175,7 +175,7 @@ func TestSanitize_ObfuscateProject(t *testing.T) {
 
 	assert.Equal(t, heartbeat.Heartbeat{
 		Branch:       heartbeat.PointerTo("heartbeat"),
-		Category:     heartbeat.CodingCategory,
+		Category:     heartbeat.CodingCategory.Pointer(),
 		Dependencies: []string{"dep1", "dep2"},
 		Entity:       "/tmp/main.go",
 		EntityType:   heartbeat.FileType,
@@ -195,7 +195,7 @@ func TestSanitize_ObfuscateProject_SkipBranchIfNotMatching(t *testing.T) {
 
 	assert.Equal(t, heartbeat.Heartbeat{
 		Branch:       heartbeat.PointerTo("heartbeat"),
-		Category:     heartbeat.CodingCategory,
+		Category:     heartbeat.CodingCategory.Pointer(),
 		Dependencies: []string{"dep1", "dep2"},
 		Entity:       "/tmp/main.go",
 		EntityType:   heartbeat.FileType,
@@ -218,7 +218,7 @@ func TestSanitize_ObfuscateProject_NilFields(t *testing.T) {
 	})
 
 	assert.Equal(t, heartbeat.Heartbeat{
-		Category:   heartbeat.CodingCategory,
+		Category:   heartbeat.CodingCategory.Pointer(),
 		Entity:     "/tmp/main.go",
 		EntityType: heartbeat.FileType,
 		IsWrite:    heartbeat.PointerTo(true),
@@ -235,7 +235,7 @@ func TestSanitize_ObfuscateBranch(t *testing.T) {
 	})
 
 	assert.Equal(t, heartbeat.Heartbeat{
-		Category:       heartbeat.CodingCategory,
+		Category:       heartbeat.CodingCategory.Pointer(),
 		CursorPosition: heartbeat.PointerTo(12),
 		Dependencies:   []string{"dep1", "dep2"},
 		Entity:         "/tmp/main.go",
@@ -260,7 +260,7 @@ func TestSanitize_ObfuscateBranch_NilFields(t *testing.T) {
 	})
 
 	assert.Equal(t, heartbeat.Heartbeat{
-		Category:       heartbeat.CodingCategory,
+		Category:       heartbeat.CodingCategory.Pointer(),
 		CursorPosition: heartbeat.PointerTo(12),
 		Dependencies:   []string{"dep1", "dep2"},
 		Entity:         "/tmp/main.go",
@@ -281,7 +281,7 @@ func TestSanitize_ObfuscateDependency(t *testing.T) {
 
 	assert.Equal(t, heartbeat.Heartbeat{
 		Branch:         heartbeat.PointerTo("heartbeat"),
-		Category:       heartbeat.CodingCategory,
+		Category:       heartbeat.CodingCategory.Pointer(),
 		CursorPosition: heartbeat.PointerTo(12),
 		Entity:         "/tmp/main.go",
 		EntityType:     heartbeat.FileType,
@@ -300,7 +300,7 @@ func TestSanitize_EmptyConfigDoNothing(t *testing.T) {
 
 	assert.Equal(t, heartbeat.Heartbeat{
 		Branch:         heartbeat.PointerTo("heartbeat"),
-		Category:       heartbeat.CodingCategory,
+		Category:       heartbeat.CodingCategory.Pointer(),
 		CursorPosition: heartbeat.PointerTo(12),
 		Dependencies:   []string{"dep1", "dep2"},
 		Entity:         "/tmp/main.go",
@@ -323,7 +323,7 @@ func TestSanitize_EmptyConfigDoNothing_EmptyDependencies(t *testing.T) {
 
 	assert.Equal(t, heartbeat.Heartbeat{
 		Branch:         heartbeat.PointerTo("heartbeat"),
-		Category:       heartbeat.CodingCategory,
+		Category:       heartbeat.CodingCategory.Pointer(),
 		CursorPosition: heartbeat.PointerTo(12),
 		Entity:         "/tmp/main.go",
 		EntityType:     heartbeat.FileType,
@@ -348,7 +348,7 @@ func TestSanitize_ObfuscateProjectFolder(t *testing.T) {
 
 	assert.Equal(t, heartbeat.Heartbeat{
 		Branch:         heartbeat.PointerTo("heartbeat"),
-		Category:       heartbeat.CodingCategory,
+		Category:       heartbeat.CodingCategory.Pointer(),
 		CursorPosition: heartbeat.PointerTo(12),
 		Dependencies:   []string{"dep1", "dep2"},
 		Entity:         "project/main.go",
@@ -376,7 +376,7 @@ func TestSanitize_ObfuscateProjectFolder_Override(t *testing.T) {
 
 	assert.Equal(t, heartbeat.Heartbeat{
 		Branch:              heartbeat.PointerTo("heartbeat"),
-		Category:            heartbeat.CodingCategory,
+		Category:            heartbeat.CodingCategory.Pointer(),
 		CursorPosition:      heartbeat.PointerTo(12),
 		Dependencies:        []string{"dep1", "dep2"},
 		Entity:              "project/main.go",
@@ -401,7 +401,7 @@ func TestSanitize_ObfuscateCredentials_RemoteFile(t *testing.T) {
 
 	assert.Equal(t, heartbeat.Heartbeat{
 		Branch:         heartbeat.PointerTo("heartbeat"),
-		Category:       heartbeat.CodingCategory,
+		Category:       heartbeat.CodingCategory.Pointer(),
 		CursorPosition: heartbeat.PointerTo(12),
 		Dependencies:   []string{"dep1", "dep2"},
 		Entity:         "ssh://192.168.1.1/path/to/remote/main.go",
@@ -464,7 +464,7 @@ func TestShouldSanitize(t *testing.T) {
 func testHeartbeat() heartbeat.Heartbeat {
 	return heartbeat.Heartbeat{
 		Branch:         heartbeat.PointerTo("heartbeat"),
-		Category:       heartbeat.CodingCategory,
+		Category:       heartbeat.CodingCategory.Pointer(),
 		CursorPosition: heartbeat.PointerTo(12),
 		Dependencies:   []string{"dep1", "dep2"},
 		Entity:         "/tmp/main.go",

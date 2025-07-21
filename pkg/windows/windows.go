@@ -259,7 +259,7 @@ func parseNetUseColumns(line string) (netUseColumns, error) {
 
 // splitDrive splits a filepath into the drive letter and the path.
 func splitDrive(fp string) (string, string) {
-	if fp[1:2] != ":" || !unicode.IsLetter(rune(fp[0])) {
+	if len(fp) < 2 || fp[1:2] != ":" || !unicode.IsLetter(rune(fp[0])) {
 		return "", fp
 	}
 

@@ -541,7 +541,7 @@ func TestSendHeartbeats_ExtraHeartbeats_Sanitize(t *testing.T) {
 	assert.Equal(t, []heartbeat.Heartbeat{
 		{
 			Branch:           nil,
-			Category:         heartbeat.CodingCategory,
+			Category:         heartbeat.WritingTestsCategory.Pointer(),
 			CursorPosition:   nil,
 			Dependencies:     nil,
 			Entity:           "HIDDEN.go",
