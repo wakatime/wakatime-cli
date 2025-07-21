@@ -1,7 +1,7 @@
 [
 	{
-		"category": "coding",
 		"cursorpos": 12,
+		"category": null,
 		"dependencies": ["os"],
 		"entity": "%s",
 		"is_write": true,

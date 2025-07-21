@@ -81,7 +81,7 @@ func buildHeartbeats(ctx context.Context, params params.Params) []heartbeat.Hear
 
 	heartbeats = append(heartbeats, heartbeat.New(
 		params.Heartbeat.Project.BranchAlternate,
-		params.Heartbeat.Category,
+		&params.Heartbeat.Category,
 		params.Heartbeat.CursorPosition,
 		params.Heartbeat.Entity,
 		params.Heartbeat.EntityType,
@@ -125,6 +125,7 @@ func initHandleOptions() []handler.Preprocessor {
 		handler.WithFileStatsDetection(),
 		handler.WithLanguageDetection(),
 		handler.WithDependencyDetection(),
+		handler.WithCategoryDetection(),
 		handler.WithProjectDetection(),
 		handler.WithProjectFiltering(),
 		handler.WithHeartbeatSanitization(),
