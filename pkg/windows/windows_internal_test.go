@@ -182,6 +182,11 @@ func TestSplitDrive(t *testing.T) {
 			ExpectedDriveLetter: ``,
 			ExpectedPath:        `_:\\remotepc\share`,
 		},
+		"one character drive": {
+			Filepath:            `A`,
+			ExpectedDriveLetter: "",
+			ExpectedPath:        `A`,
+		},
 	}
 
 	for name, test := range tests {
