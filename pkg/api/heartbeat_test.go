@@ -67,7 +67,7 @@ func TestClient_SendHeartbeats(t *testing.T) {
 					Status: http.StatusCreated,
 					Heartbeat: heartbeat.Heartbeat{
 						Branch:         heartbeat.PointerTo("heartbeat"),
-						Category:       heartbeat.CodingCategory,
+						Category:       heartbeat.CodingCategory.Pointer(),
 						CursorPosition: heartbeat.PointerTo(12),
 						Dependencies:   []string{"dep1", "dep2"},
 						Entity:         "/tmp/main.go",
@@ -84,7 +84,7 @@ func TestClient_SendHeartbeats(t *testing.T) {
 				{
 					Status: http.StatusCreated,
 					Heartbeat: heartbeat.Heartbeat{
-						Category:   heartbeat.DebuggingCategory,
+						Category:   heartbeat.DebuggingCategory.Pointer(),
 						Entity:     "HIDDEN.py",
 						EntityType: heartbeat.FileType,
 						Time:       1585598060,
@@ -271,7 +271,7 @@ func TestParseHeartbeatResponses(t *testing.T) {
 			Status: http.StatusCreated,
 			Heartbeat: heartbeat.Heartbeat{
 				Branch:         heartbeat.PointerTo("heartbeat"),
-				Category:       heartbeat.CodingCategory,
+				Category:       heartbeat.CodingCategory.Pointer(),
 				CursorPosition: heartbeat.PointerTo(12),
 				Dependencies:   []string{"dep1", "dep2"},
 				Entity:         "/tmp/main.go",
@@ -289,7 +289,7 @@ func TestParseHeartbeatResponses(t *testing.T) {
 			Status: http.StatusCreated,
 			Heartbeat: heartbeat.Heartbeat{
 				Branch:         nil,
-				Category:       heartbeat.DebuggingCategory,
+				Category:       heartbeat.DebuggingCategory.Pointer(),
 				CursorPosition: nil,
 				Dependencies:   nil,
 				Entity:         "HIDDEN.py",
@@ -352,7 +352,7 @@ func testHeartbeats() []heartbeat.Heartbeat {
 		{
 			APIKey:         "00000000-0000-4000-8000-000000000000",
 			Branch:         heartbeat.PointerTo("heartbeat"),
-			Category:       heartbeat.CodingCategory,
+			Category:       heartbeat.CodingCategory.Pointer(),
 			CursorPosition: heartbeat.PointerTo(12),
 			Dependencies:   []string{"dep1", "dep2"},
 			Entity:         "/tmp/main.go",
@@ -368,7 +368,7 @@ func testHeartbeats() []heartbeat.Heartbeat {
 		{
 			APIKey:         "00000000-0000-4000-8000-000000000000",
 			Branch:         nil,
-			Category:       heartbeat.DebuggingCategory,
+			Category:       heartbeat.DebuggingCategory.Pointer(),
 			CursorPosition: nil,
 			Dependencies:   nil,
 			Entity:         "HIDDEN.py",

@@ -1,16 +1,21 @@
 package heartbeat
 
 import (
+	"context"
 	"fmt"
 	"strings"
+
+	"github.com/wakatime/wakatime-cli/pkg/log"
 )
 
 // Category represents a heartbeat category.
 type Category int
 
 const (
-	// CodingCategory means user is currently coding. This is the default value.
-	CodingCategory Category = iota
+	// UndefinedCategory will default to Coding on the API server if no category is detected client side.
+	UndefinedCategory Category = iota
+	// CodingCategory means user is currently coding.
+	CodingCategory
 	// AdvisingCategory means user is currently adivising.
 	AdvisingCategory
 	// AICodingCategory means user is currently coding using an AI code gen tool.
@@ -70,9 +75,54 @@ const (
 	runningTestsCategoryString  = "running tests"
 	supportingCategoryString    = "supporting"
 	translatingCategoryString   = "translating"
+	undefinedCategoryString     = "null"
 	writingDocsCategoryString   = "writing docs"
 	writingTestsCategoryString  = "writing tests"
 )
+
+// WithCategory initializes and returns a heartbeat handle option, which
+// can be used in a heartbeat processing pipeline to detect an entity's category.
+func WithCategory() HandleOption {
+	return func(next Handle) Handle {
+		return func(ctx context.Context, hh []Heartbeat) ([]Result, error) {
+			logger := log.Extract(ctx)
+			logger.Debugln("execute heartbeat category detection")
+
+			for n, h := range hh {
+				hh[n].Category = DetectCategory(ctx, h)
+			}
+
+			return next(ctx, hh)
+		}
+	}
+}
+
+// DetectCategory accepts a heartbeat and detects it's category.
+func DetectCategory(_ context.Context, h Heartbeat) *Category {
+	if h.EntityType != FileType {
+		return h.Category
+	}
+
+	if h.Category != nil {
+		return h.Category
+	}
+
+	file := strings.ToLower(h.Entity)
+
+	if strings.HasSuffix(file, "_test.go") {
+		return WritingTestsCategory.Pointer()
+	}
+
+	if contains(file, []string{"/tests/", "/test/", "/testdata/", "/spec/", "/specs/"}) {
+		return WritingTestsCategory.Pointer()
+	}
+
+	if strings.HasSuffix(file, ".md") {
+		return WritingDocsCategory.Pointer()
+	}
+
+	return h.Category
+}
 
 // ParseCategory parses a category from a string.
 func ParseCategory(s string) (Category, error) {
@@ -113,6 +163,8 @@ func ParseCategory(s string) (Category, error) {
 		return SupportingCategory, nil
 	case translatingCategoryString:
 		return TranslatingCategory, nil
+	case undefinedCategoryString:
+		return UndefinedCategory, nil
 	case writingDocsCategoryString:
 		return WritingDocsCategory, nil
 	case writingTestsCategoryString:
@@ -131,6 +183,10 @@ func (c *Category) UnmarshalJSON(v []byte) error {
 		return err
 	}
 
+	if category == UndefinedCategory {
+		return nil
+	}
+
 	*c = category
 
 	return nil
@@ -141,6 +197,10 @@ func (c Category) MarshalJSON() ([]byte, error) {
 	s := c.String()
 	if s == "" {
 		return nil, fmt.Errorf("invalid category %v", c)
+	}
+
+	if s == undefinedCategoryString {
+		return []byte(s), nil
 	}
 
 	return []byte(`"` + s + `"`), nil
@@ -185,6 +245,8 @@ func (c Category) String() string {
 		return supportingCategoryString
 	case TranslatingCategory:
 		return translatingCategoryString
+	case UndefinedCategory:
+		return undefinedCategoryString
 	case WritingDocsCategory:
 		return writingDocsCategoryString
 	case WritingTestsCategory:
@@ -192,4 +254,19 @@ func (c Category) String() string {
 	default:
 		return ""
 	}
+}
+
+// Pointer returns a pointer to the Category.
+func (c Category) Pointer() *Category {
+	return &c
+}
+
+func contains(file string, substrings []string) bool {
+	for _, substring := range substrings {
+		if strings.Contains(file, substring) {
+			return true
+		}
+	}
+
+	return false
 }

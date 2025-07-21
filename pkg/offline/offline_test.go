@@ -1388,7 +1388,7 @@ func testHeartbeats() []heartbeat.Heartbeat {
 	return []heartbeat.Heartbeat{
 		{
 			Branch:         heartbeat.PointerTo("heartbeat"),
-			Category:       heartbeat.CodingCategory,
+			Category:       heartbeat.CodingCategory.Pointer(),
 			CursorPosition: heartbeat.PointerTo(12),
 			Dependencies:   []string{"dep1", "dep2"},
 			Entity:         "/tmp/main.go",
@@ -1403,7 +1403,7 @@ func testHeartbeats() []heartbeat.Heartbeat {
 		},
 		{
 			Branch:         heartbeat.PointerTo("summary"),
-			Category:       heartbeat.DebuggingCategory,
+			Category:       heartbeat.DebuggingCategory.Pointer(),
 			CursorPosition: heartbeat.PointerTo(13),
 			Dependencies:   []string{"dep3", "dep4"},
 			Entity:         "/tmp/main.py",
@@ -1418,7 +1418,7 @@ func testHeartbeats() []heartbeat.Heartbeat {
 		},
 		{
 			Branch:         heartbeat.PointerTo("todaygoal"),
-			Category:       heartbeat.BuildingCategory,
+			Category:       heartbeat.BuildingCategory.Pointer(),
 			CursorPosition: heartbeat.PointerTo(14),
 			Dependencies:   []string{"dep5", "dep6"},
 			Entity:         "/tmp/main.js",

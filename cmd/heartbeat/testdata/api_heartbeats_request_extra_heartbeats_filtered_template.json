@@ -1,7 +1,9 @@
 [
     {
-        "category": "coding",
-        "dependencies": ["os"],
+        "category": null,
+        "dependencies": [
+            "os"
+        ],
         "entity": "%s",
         "language": "Go",
         "lines": 11,
@@ -13,7 +15,10 @@
     },
     {
         "category": "debugging",
-        "dependencies": ["flask","simplejson"],
+        "dependencies": [
+            "flask",
+            "simplejson"
+        ],
         "entity": "%s",
         "language": "Python",
         "lines": 20,

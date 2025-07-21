@@ -23,7 +23,7 @@ type Heartbeat struct {
 	APIKey                string     `json:"-"`
 	Branch                *string    `json:"branch,omitempty"`
 	BranchAlternate       string     `json:"-"`
-	Category              Category   `json:"category"`
+	Category              *Category  `json:"category,omitempty"`
 	CursorPosition        *int       `json:"cursorpos,omitempty"`
 	Dependencies          []string   `json:"dependencies,omitempty"`
 	Entity                string     `json:"entity"`
@@ -53,7 +53,7 @@ type Heartbeat struct {
 // and local file paths for file type heartbeats.
 func New(
 	branchAlternate string,
-	category Category,
+	category *Category,
 	cursorPosition *int,
 	entity string,
 	entityType EntityType,

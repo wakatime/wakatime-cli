@@ -108,7 +108,7 @@ func TestWithDetection_SshConfig_Hostname(t *testing.T) {
 		SendHeartbeatsFn: func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 			assert.Equal(t, []heartbeat.Heartbeat{
 				{
-					Category:              heartbeat.CodingCategory,
+					Category:              heartbeat.CodingCategory.Pointer(),
 					Entity:                entity,
 					EntityType:            heartbeat.FileType,
 					LocalFile:             hh[0].LocalFile,
@@ -134,7 +134,7 @@ func TestWithDetection_SshConfig_Hostname(t *testing.T) {
 	handle := heartbeat.NewHandle(&sender, opts...)
 	_, err = handle(t.Context(), []heartbeat.Heartbeat{
 		{
-			Category:   heartbeat.CodingCategory,
+			Category:   heartbeat.CodingCategory.Pointer(),
 			Entity:     entity,
 			EntityType: heartbeat.FileType,
 			Time:       1585598060,
@@ -219,7 +219,7 @@ func TestWithDetection_SshConfig_UserKnownHostsFile_Mismatch(t *testing.T) {
 	handle := heartbeat.NewHandle(&sender, opts...)
 	results, err := handle(ctx, []heartbeat.Heartbeat{
 		{
-			Category:   heartbeat.CodingCategory,
+			Category:   heartbeat.CodingCategory.Pointer(),
 			Entity:     entity,
 			EntityType: heartbeat.FileType,
 			Time:       1585598060,
@@ -280,7 +280,7 @@ func TestWithDetection_SshConfig_UserKnownHostsFile_Match(t *testing.T) {
 		SendHeartbeatsFn: func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 			assert.Equal(t, []heartbeat.Heartbeat{
 				{
-					Category:              heartbeat.CodingCategory,
+					Category:              heartbeat.CodingCategory.Pointer(),
 					Entity:                entity,
 					EntityType:            heartbeat.FileType,
 					LocalFile:             hh[0].LocalFile,
@@ -311,7 +311,7 @@ func TestWithDetection_SshConfig_UserKnownHostsFile_Match(t *testing.T) {
 	handle := heartbeat.NewHandle(&sender, opts...)
 	results, err := handle(t.Context(), []heartbeat.Heartbeat{
 		{
-			Category:   heartbeat.CodingCategory,
+			Category:   heartbeat.CodingCategory.Pointer(),
 			Entity:     entity,
 			EntityType: heartbeat.FileType,
 			Time:       1585598060,
@@ -370,7 +370,7 @@ func TestWithDetection_Filtered(t *testing.T) {
 	handle := heartbeat.NewHandle(&sender, opts...)
 	results, err := handle(t.Context(), []heartbeat.Heartbeat{
 		{
-			Category:   heartbeat.CodingCategory,
+			Category:   heartbeat.CodingCategory.Pointer(),
 			Entity:     "ssh://user:pass@example.com:" + strconv.Itoa(port) + entity,
 			EntityType: heartbeat.FileType,
 			Time:       1585598060,
