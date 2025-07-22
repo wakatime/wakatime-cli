@@ -177,24 +177,24 @@ type (
 
 	// ExtraHeartbeat contains extra heartbeat.
 	ExtraHeartbeat struct {
-		BranchAlternate   string              `json:"alternate_branch"`
-		Category          *heartbeat.Category `json:"category,omitempty"`
-		CursorPosition    any                 `json:"cursorpos"`
-		Entity            string              `json:"entity"`
-		EntityType        string              `json:"entity_type"`
-		Type              string              `json:"type"`
-		IsUnsavedEntity   any                 `json:"is_unsaved_entity"`
-		IsWrite           any                 `json:"is_write"`
-		Language          *string             `json:"language"`
-		LanguageAlternate string              `json:"alternate_language"`
-		LineAdditions     any                 `json:"line_additions"`
-		LineDeletions     any                 `json:"line_deletions"`
-		LineNumber        any                 `json:"lineno"`
-		Lines             any                 `json:"lines"`
-		Project           string              `json:"project"`
-		ProjectAlternate  string              `json:"alternate_project"`
-		Time              any                 `json:"time"`
-		Timestamp         any                 `json:"timestamp"`
+		BranchAlternate   string  `json:"alternate_branch"`
+		Category          string  `json:"category"`
+		CursorPosition    any     `json:"cursorpos"`
+		Entity            string  `json:"entity"`
+		EntityType        string  `json:"entity_type"`
+		Type              string  `json:"type"`
+		IsUnsavedEntity   any     `json:"is_unsaved_entity"`
+		IsWrite           any     `json:"is_write"`
+		Language          *string `json:"language"`
+		LanguageAlternate string  `json:"alternate_language"`
+		LineAdditions     any     `json:"line_additions"`
+		LineDeletions     any     `json:"line_deletions"`
+		LineNumber        any     `json:"lineno"`
+		Lines             any     `json:"lines"`
+		Project           string  `json:"project"`
+		ProjectAlternate  string  `json:"alternate_project"`
+		Time              any     `json:"time"`
+		Timestamp         any     `json:"timestamp"`
 	}
 
 	// Heartbeat contains heartbeat command parameters.
@@ -920,7 +920,17 @@ func parseExtraHeartbeats(ctx context.Context, data string) ([]heartbeat.Heartbe
 }
 
 func parseExtraHeartbeat(h ExtraHeartbeat) (*heartbeat.Heartbeat, error) {
-	var err error
+	var (
+		err      error
+		category string
+	)
+
+	cat, err := heartbeat.ParseCategory(h.Category)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse category: %s", err)
+	}
+
+	category = cat.String()
 
 	h.Entity, err = homedir.Expand(h.Entity)
 	if err != nil {
@@ -1049,7 +1059,7 @@ func parseExtraHeartbeat(h ExtraHeartbeat) (*heartbeat.Heartbeat, error) {
 
 	return &heartbeat.Heartbeat{
 		BranchAlternate:   h.BranchAlternate,
-		Category:          h.Category,
+		Category:          category,
 		CursorPosition:    cursorPosition,
 		Entity:            h.Entity,
 		EntityType:        entityType,

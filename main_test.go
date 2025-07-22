@@ -44,18 +44,17 @@ func TestSendHeartbeats(t *testing.T) {
 }
 
 func TestSendHeartbeats_EntityFileInTempDir(t *testing.T) {
-	tmpDir, err := filepath.Abs(t.TempDir())
+	tmpDir := t.TempDir()
+
+	err := os.MkdirAll(filepath.Join(tmpDir, "testdata"), os.FileMode(int(0700)))
 	require.NoError(t, err)
 
-	tmpDir, err = realpath.Realpath(tmpDir)
-	require.NoError(t, err)
+	copyFile(t, "testdata/main.go", filepath.Join(tmpDir, "testdata", "main.go"))
 
-	runCmd(exec.Command("cp", "./testdata/main.go", tmpDir), &bytes.Buffer{})
-
-	testSendHeartbeats(t, tmpDir, filepath.Join(tmpDir, "main.go"), "")
+	testSendHeartbeats(t, tmpDir, filepath.Join(tmpDir, "testdata", "main.go"), "")
 }
 
-func testSendHeartbeats(t *testing.T, projectFolder, entity, p string) {
+func testSendHeartbeats(t *testing.T, projectFolder, entity, prj string) {
 	apiURL, router, close := setupTestServer()
 	defer close()
 
@@ -86,7 +85,7 @@ func testSendHeartbeats(t *testing.T, projectFolder, entity, p string) {
 		expectedBody := fmt.Sprintf(
 			string(expectedBodyTpl),
 			entityPath,
-			p,
+			prj,
 			subfolders,
 			heartbeat.UserAgent(ctx, ""),
 		)
@@ -145,7 +144,7 @@ func testSendHeartbeats(t *testing.T, projectFolder, entity, p string) {
 		"--lines-in-file", "100",
 		"--time", "1585598059",
 		"--hide-branch-names", ".*",
-		"--project", p,
+		"--project", prj,
 		"--project-folder", projectFolder,
 		"--write",
 		"--verbose",
@@ -917,6 +916,84 @@ func TestSendHeartbeats_MalformedInternalConfig(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, 1, count)
+}
+
+func TestSendHeartbeats_OmitEmptyCategory(t *testing.T) {
+	apiURL, router, close := setupTestServer()
+	defer close()
+
+	ctx := t.Context()
+
+	var numCalls int
+
+	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
+		numCalls++
+
+		body, err := io.ReadAll(req.Body)
+		require.NoError(t, err)
+
+		assert.NotContains(t, string(body), "category")
+
+		// write response
+		f, err := os.Open("testdata/api_heartbeats_response.json")
+		require.NoError(t, err)
+
+		w.WriteHeader(http.StatusCreated)
+		_, err = io.Copy(w, f)
+		require.NoError(t, err)
+	})
+
+	tmpDir := t.TempDir()
+
+	offlineQueueFile, err := os.CreateTemp(tmpDir, "")
+	require.NoError(t, err)
+
+	defer offlineQueueFile.Close()
+
+	offlineQueueFileLegacy, err := os.CreateTemp(tmpDir, "")
+	require.NoError(t, err)
+
+	// close to avoid "The process cannot access the file because it is being used by another process" error on Windows
+	offlineQueueFileLegacy.Close()
+
+	tmpConfigFile, err := os.CreateTemp(tmpDir, "wakatime.cfg")
+	require.NoError(t, err)
+
+	defer tmpConfigFile.Close()
+
+	tmpInternalConfigFile, err := os.CreateTemp(tmpDir, "wakatime-internal.cfg")
+	require.NoError(t, err)
+
+	defer tmpInternalConfigFile.Close()
+
+	copyFile(t, "testdata/main.go", filepath.Join(tmpDir, "main.go"))
+
+	runWakatimeCli(
+		t,
+		&bytes.Buffer{},
+		"--api-url", apiURL,
+		"--key", "00000000-0000-4000-8000-000000000000",
+		"--config", tmpConfigFile.Name(),
+		"--internal-config", tmpInternalConfigFile.Name(),
+		"--entity", filepath.Join(tmpDir, "main.go"),
+		"--cursorpos", "12",
+		"--sync-offline-activity", "2",
+		"--offline-queue-file", offlineQueueFile.Name(),
+		"--offline-queue-file-legacy", offlineQueueFileLegacy.Name(),
+		"--lineno", "42",
+		"--lines-in-file", "100",
+		"--time", "1585598059",
+		"--hide-branch-names", ".*",
+		"--write",
+		"--verbose",
+	)
+
+	offlineCount, err := offline.CountHeartbeats(ctx, offlineQueueFile.Name())
+	require.NoError(t, err)
+
+	assert.Equal(t, 0, offlineCount)
+
+	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
 
 func TestFileExperts(t *testing.T) {

@@ -23,7 +23,7 @@ type Heartbeat struct {
 	APIKey                string     `json:"-"`
 	Branch                *string    `json:"branch,omitempty"`
 	BranchAlternate       string     `json:"-"`
-	Category              *Category  `json:"category,omitempty"`
+	Category              string     `json:"category,omitempty"`
 	CursorPosition        *int       `json:"cursorpos,omitempty"`
 	Dependencies          []string   `json:"dependencies,omitempty"`
 	Entity                string     `json:"entity"`
@@ -53,7 +53,7 @@ type Heartbeat struct {
 // and local file paths for file type heartbeats.
 func New(
 	branchAlternate string,
-	category *Category,
+	category string,
 	cursorPosition *int,
 	entity string,
 	entityType EntityType,
@@ -119,11 +119,16 @@ func (h Heartbeat) ID() string {
 		cursorPos = fmt.Sprint(*h.CursorPosition)
 	}
 
+	category := "undefined"
+	if h.Category != "" {
+		category = h.Category
+	}
+
 	return fmt.Sprintf("%f-%s-%s-%s-%s-%s-%s-%t",
 		h.Time,
 		cursorPos,
 		h.EntityType,
-		h.Category,
+		category,
 		project,
 		branch,
 		h.Entity,
