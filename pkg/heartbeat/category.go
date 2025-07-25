@@ -3,6 +3,7 @@ package heartbeat
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/wakatime/wakatime-cli/pkg/log"
@@ -75,7 +76,6 @@ const (
 	runningTestsCategoryString  = "running tests"
 	supportingCategoryString    = "supporting"
 	translatingCategoryString   = "translating"
-	undefinedCategoryString     = "null"
 	writingDocsCategoryString   = "writing docs"
 	writingTestsCategoryString  = "writing tests"
 )
@@ -89,7 +89,22 @@ func WithCategory() HandleOption {
 			logger.Debugln("execute heartbeat category detection")
 
 			for n, h := range hh {
-				hh[n].Category = DetectCategory(ctx, h)
+				// remove category coding if it was set by the user to avoid sending it to the API
+				if h.Category == codingCategoryString {
+					hh[n].Category = ""
+					continue
+				}
+
+				if h.Category != "" {
+					logger.Debugf("heartbeat %s already has category %s, skipping detection", h.Entity, h.Category)
+					continue
+				}
+
+				if h.EntityType != FileType {
+					continue
+				}
+
+				hh[n].Category = DetectCategory(h).String()
 			}
 
 			return next(ctx, hh)
@@ -98,30 +113,24 @@ func WithCategory() HandleOption {
 }
 
 // DetectCategory accepts a heartbeat and detects it's category.
-func DetectCategory(_ context.Context, h Heartbeat) *Category {
-	if h.EntityType != FileType {
-		return h.Category
-	}
-
-	if h.Category != nil {
-		return h.Category
-	}
-
+func DetectCategory(h Heartbeat) Category {
 	file := strings.ToLower(h.Entity)
 
 	if strings.HasSuffix(file, "_test.go") {
-		return WritingTestsCategory.Pointer()
+		return WritingTestsCategory
 	}
 
-	if contains(file, []string{"/tests/", "/test/", "/testdata/", "/spec/", "/specs/"}) {
-		return WritingTestsCategory.Pointer()
+	if slices.ContainsFunc([]string{"/tests/", "/test/", "/testdata/", "/spec/", "/specs/"}, func(s string) bool {
+		return strings.Contains(file, s)
+	}) {
+		return WritingTestsCategory
 	}
 
 	if strings.HasSuffix(file, ".md") {
-		return WritingDocsCategory.Pointer()
+		return WritingDocsCategory
 	}
 
-	return h.Category
+	return UndefinedCategory
 }
 
 // ParseCategory parses a category from a string.
@@ -163,7 +172,7 @@ func ParseCategory(s string) (Category, error) {
 		return SupportingCategory, nil
 	case translatingCategoryString:
 		return TranslatingCategory, nil
-	case undefinedCategoryString:
+	case "", "null":
 		return UndefinedCategory, nil
 	case writingDocsCategoryString:
 		return WritingDocsCategory, nil
@@ -183,10 +192,6 @@ func (c *Category) UnmarshalJSON(v []byte) error {
 		return err
 	}
 
-	if category == UndefinedCategory {
-		return nil
-	}
-
 	*c = category
 
 	return nil
@@ -194,13 +199,13 @@ func (c *Category) UnmarshalJSON(v []byte) error {
 
 // MarshalJSON implements json.Marshaler interface.
 func (c Category) MarshalJSON() ([]byte, error) {
+	if c == UndefinedCategory {
+		return []byte(`null`), nil
+	}
+
 	s := c.String()
 	if s == "" {
 		return nil, fmt.Errorf("invalid category %v", c)
-	}
-
-	if s == undefinedCategoryString {
-		return []byte(s), nil
 	}
 
 	return []byte(`"` + s + `"`), nil
@@ -245,8 +250,6 @@ func (c Category) String() string {
 		return supportingCategoryString
 	case TranslatingCategory:
 		return translatingCategoryString
-	case UndefinedCategory:
-		return undefinedCategoryString
 	case WritingDocsCategory:
 		return writingDocsCategoryString
 	case WritingTestsCategory:
@@ -254,19 +257,4 @@ func (c Category) String() string {
 	default:
 		return ""
 	}
-}
-
-// Pointer returns a pointer to the Category.
-func (c Category) Pointer() *Category {
-	return &c
-}
-
-func contains(file string, substrings []string) bool {
-	for _, substring := range substrings {
-		if strings.Contains(file, substring) {
-			return true
-		}
-	}
-
-	return false
 }

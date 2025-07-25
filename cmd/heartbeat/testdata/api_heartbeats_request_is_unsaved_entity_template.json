@@ -1,6 +1,5 @@
 [
   {
-    "category": "coding",
     "cursorpos": 41,
     "entity": "%s",
     "language": "Go",
@@ -13,7 +12,6 @@
     "user_agent": "%s"
   },
   {
-    "category": "coding",
     "cursorpos": 12,
     "entity": "%s",
     "is_write": true,
@@ -27,7 +25,6 @@
     "user_agent": "%s"
   },
   {
-    "category": "coding",
     "cursorpos": 13,
     "dependencies": ["os"],
     "entity": "%s",

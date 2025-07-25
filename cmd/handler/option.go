@@ -24,7 +24,7 @@ func WithFormatting() Preprocessor {
 	}
 }
 
-// WithCategoryDetection returns a Preprocessor that applies heartbeat formatting.
+// WithCategoryDetection returns a Preprocessor that applies heartbeat categorization.
 func WithCategoryDetection() Preprocessor {
 	return func(_ params.Params) heartbeat.HandleOption {
 		return heartbeat.WithCategory()

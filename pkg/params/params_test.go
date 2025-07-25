@@ -335,7 +335,7 @@ func TestLoadHeartbeatParams_ExtraHeartbeats(t *testing.T) {
 
 	assert.Equal(t, []heartbeat.Heartbeat{
 		{
-			Category:          heartbeat.CodingCategory.Pointer(),
+			Category:          heartbeat.CodingCategory.String(),
 			CursorPosition:    heartbeat.PointerTo(12),
 			Entity:            "testdata/main.go",
 			EntityType:        heartbeat.FileType,
@@ -351,7 +351,7 @@ func TestLoadHeartbeatParams_ExtraHeartbeats(t *testing.T) {
 			Language: params.ExtraHeartbeats[0].Language,
 		},
 		{
-			Category:          heartbeat.DebuggingCategory.Pointer(),
+			Category:          heartbeat.DebuggingCategory.String(),
 			Entity:            "testdata/main.py",
 			EntityType:        heartbeat.FileType,
 			IsWrite:           nil,
@@ -409,7 +409,7 @@ func TestLoadHeartbeatParams_ExtraHeartbeats_WithStringValues(t *testing.T) {
 
 	assert.Equal(t, []heartbeat.Heartbeat{
 		{
-			Category:        heartbeat.CodingCategory.Pointer(),
+			Category:        heartbeat.CodingCategory.String(),
 			CursorPosition:  heartbeat.PointerTo(12),
 			Entity:          "testdata/main.go",
 			EntityType:      heartbeat.FileType,
@@ -421,7 +421,7 @@ func TestLoadHeartbeatParams_ExtraHeartbeats_WithStringValues(t *testing.T) {
 			Time:            1585598059,
 		},
 		{
-			Category:        heartbeat.CodingCategory.Pointer(),
+			Category:        heartbeat.DebuggingCategory.String(),
 			CursorPosition:  heartbeat.PointerTo(13),
 			Entity:          "testdata/main.go",
 			EntityType:      heartbeat.FileType,
@@ -479,7 +479,7 @@ func TestLoadHeartbeatParams_ExtraHeartbeats_WithEOF(t *testing.T) {
 
 	assert.Equal(t, []heartbeat.Heartbeat{
 		{
-			Category:          heartbeat.CodingCategory.Pointer(),
+			Category:          heartbeat.CodingCategory.String(),
 			CursorPosition:    heartbeat.PointerTo(12),
 			Entity:            "testdata/main.go",
 			EntityType:        heartbeat.FileType,
@@ -495,7 +495,7 @@ func TestLoadHeartbeatParams_ExtraHeartbeats_WithEOF(t *testing.T) {
 			Language: params.ExtraHeartbeats[0].Language,
 		},
 		{
-			Category:          heartbeat.DebuggingCategory.Pointer(),
+			Category:          heartbeat.DebuggingCategory.String(),
 			Entity:            "testdata/main.py",
 			EntityType:        heartbeat.FileType,
 			IsWrite:           nil,

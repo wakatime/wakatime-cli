@@ -1,6 +1,6 @@
 [
     {
-        "category": null,
+        "category": "writing tests",
         "dependencies": [
             "os"
         ],
