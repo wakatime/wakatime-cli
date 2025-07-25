@@ -32,6 +32,7 @@ func (d *DynamicWriteSyncer) Sync() error {
 func (d *DynamicWriteSyncer) SetWriter(newWriter zapcore.WriteSyncer) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
+
 	d.writer = newWriter
 }
 

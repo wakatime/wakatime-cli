@@ -62,8 +62,8 @@ func svnInfo(fp string, binary string) (map[string]string, bool, error) {
 	}
 
 	cmd := exec.Command(binary, "info", fp)
-	out, err := cmd.Output()
 
+	out, err := cmd.Output()
 	if err != nil {
 		return nil, false, fmt.Errorf("error getting svn info: %s", err)
 	}

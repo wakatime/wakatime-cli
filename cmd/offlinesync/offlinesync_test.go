@@ -61,6 +61,7 @@ func TestRunWithRateLimiting(t *testing.T) {
 
 		f, err := os.Open("testdata/api_heartbeats_response.json")
 		require.NoError(t, err)
+
 		defer f.Close()
 
 		_, err = io.Copy(w, f)
@@ -153,6 +154,7 @@ func TestRunWithoutRateLimiting(t *testing.T) {
 
 		f, err := os.Open("testdata/api_heartbeats_response.json")
 		require.NoError(t, err)
+
 		defer f.Close()
 
 		_, err = io.Copy(w, f)
@@ -259,6 +261,7 @@ func TestSyncOfflineActivity(t *testing.T) {
 
 		f, err := os.Open("testdata/api_heartbeats_response.json")
 		require.NoError(t, err)
+
 		defer f.Close()
 
 		_, err = io.Copy(w, f)
@@ -336,6 +339,7 @@ func TestSyncOfflineActivity_MultipleApiKey(t *testing.T) {
 		// send response
 		f, err := os.Open("testdata/api_heartbeats_response.json")
 		require.NoError(t, err)
+
 		defer f.Close()
 
 		w.WriteHeader(http.StatusCreated)

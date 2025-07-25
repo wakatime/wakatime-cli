@@ -49,8 +49,10 @@ func TestOfflineCount_Empty(t *testing.T) {
 	// copy the output in a separate goroutine so printing can't block indefinitely
 	go func() {
 		var buf bytes.Buffer
+
 		_, err = io.Copy(&buf, r)
 		require.NoError(t, err)
+
 		outC <- buf.String()
 	}()
 
@@ -109,8 +111,10 @@ func TestOfflineCount(t *testing.T) {
 	// copy the output in a separate goroutine so printing can't block indefinitely
 	go func() {
 		var buf bytes.Buffer
+
 		_, err = io.Copy(&buf, r)
 		require.NoError(t, err)
+
 		outC <- buf.String()
 	}()
 
