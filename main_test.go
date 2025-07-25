@@ -1412,9 +1412,11 @@ func runCmd(cmd *exec.Cmd, buffer *bytes.Buffer) string {
 	cmd.Stdin = buffer
 
 	var stdout bytes.Buffer
+
 	cmd.Stdout = &stdout
 
 	var stderr bytes.Buffer
+
 	cmd.Stderr = &stderr
 
 	err := cmd.Run()
@@ -1433,9 +1435,11 @@ func runCmdExpectErr(cmd *exec.Cmd) (string, int) {
 	fmt.Println(cmd.String())
 
 	var stdout bytes.Buffer
+
 	cmd.Stdout = &stdout
 
 	var stderr bytes.Buffer
+
 	cmd.Stderr = &stderr
 
 	err := cmd.Run()

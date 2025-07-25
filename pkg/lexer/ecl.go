@@ -30,7 +30,6 @@ func (l ECL) Lexer() chroma.Lexer {
 	lexer.SetAnalyser(func(text string) float32 { // nolint:wsl
 		// This is very difficult to guess relative to other business languages.
 		// -> in conjunction with BEGIN/END seems relatively rare though.
-
 		var result float32
 
 		if strings.Contains(text, "->") {

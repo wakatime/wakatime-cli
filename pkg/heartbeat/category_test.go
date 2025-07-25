@@ -82,6 +82,7 @@ func TestCategory_MarshalJSON(t *testing.T) {
 
 func TestCategory_MarshalJSON_DefaultCategory(t *testing.T) {
 	var c heartbeat.Category
+
 	data, err := json.Marshal(c)
 	require.NoError(t, err)
 	assert.JSONEq(t, `null`, string(data))

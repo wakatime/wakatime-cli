@@ -47,6 +47,7 @@ func TestToday(t *testing.T) {
 
 		f, err := os.Open("testdata/api_statusbar_today_response.json")
 		require.NoError(t, err)
+
 		defer f.Close()
 
 		_, err = io.Copy(w, f)
