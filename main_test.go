@@ -4,6 +4,7 @@ package main_test
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -357,13 +358,28 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 		assert.Equal(t, []string{"Basic MDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAw"}, req.Header["Authorization"])
 		assert.Equal(t, []string{heartbeat.UserAgent(ctx, "")}, req.Header["User-Agent"])
 
+		body, err := io.ReadAll(req.Body)
+		require.NoError(t, err)
+
+		var heartbeats []struct {
+			Project string `json:"project"`
+		}
+
+		err = json.Unmarshal(body, &heartbeats)
+		require.NoError(t, err)
+
 		var filename string
 
 		switch numCalls {
 		case 1:
 			filename = "testdata/api_heartbeats_response_extra_heartbeats.json"
+			assert.Equal(t, 25, len(heartbeats))
+			for i := range 25 {
+				assert.Equal(t, fmt.Sprintf("project-%d", i), heartbeats[i].Project)
+			}
 		case 2:
 			filename = "testdata/api_heartbeats_response_extra_heartbeats_extra.json"
+			// assert.Equal(t, 2, len(heartbeats))
 		}
 
 		// write response
@@ -413,7 +429,7 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 		"--entity", "testdata/main.go",
 		"--extra-heartbeats", "true",
 		"--cursorpos", "12",
-		"--sync-offline-activity", "2",
+		"--project", "project-0",
 		"--offline-queue-file", offlineQueueFile.Name(),
 		"--offline-queue-file-legacy", offlineQueueFileLegacy.Name(),
 		"--lineno", "42",
@@ -427,7 +443,7 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 	offlineCount, err := offline.CountHeartbeats(ctx, offlineQueueFile.Name())
 	require.NoError(t, err)
 
-	assert.Equal(t, 1, offlineCount)
+	assert.Equal(t, 0, offlineCount)
 
 	assert.Eventually(t, func() bool { return numCalls == 2 }, time.Second, 50*time.Millisecond)
 }
