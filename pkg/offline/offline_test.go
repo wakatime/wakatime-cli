@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -862,7 +863,7 @@ func TestSync_SyncUnlimited(t *testing.T) {
 	err = db.Close()
 	require.NoError(t, err)
 
-	syncFn := offline.Sync(t.Context(), f.Name(), 0)
+	syncFn := offline.Sync(t.Context(), f.Name(), math.MaxInt32)
 
 	var numCalls int
 

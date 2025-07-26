@@ -141,10 +141,3 @@ func WithRemoteCleanup() Preprocessor {
 		return remote.WithCleanup()
 	}
 }
-
-// WithLengthValidator returns a Preprocessor that applies length validation to heartbeats.
-func WithLengthValidator() Preprocessor {
-	return func(_ params.Params) heartbeat.HandleOption {
-		return filter.WithLengthValidator()
-	}
-}

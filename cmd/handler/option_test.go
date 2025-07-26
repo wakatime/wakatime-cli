@@ -167,15 +167,3 @@ func TestWithRemoteCleanup(t *testing.T) {
 
 	assert.Len(t, res, 0)
 }
-
-func TestWithLengthValidator(t *testing.T) {
-	opt := handler.WithLengthValidator()
-
-	chain := heartbeat.NewHandle(noopMock{})
-	hdl := opt(params.Params{})(chain)
-
-	res, err := hdl(context.Background(), nil)
-	require.NoError(t, err)
-
-	assert.Len(t, res, 0)
-}

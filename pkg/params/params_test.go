@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -2208,7 +2209,7 @@ func TestLoadOfflineParams_SyncMax_Zero(t *testing.T) {
 
 	params := paramspkg.LoadOfflineParams(t.Context(), v, paramspkg.FlagReadOrderFlagPrecedence)
 
-	assert.Zero(t, params.SyncMax)
+	assert.Equal(t, math.MaxInt32, params.SyncMax)
 }
 
 func TestLoadOfflineParams_SyncMax_Default(t *testing.T) {
@@ -2226,7 +2227,7 @@ func TestLoadOfflineParams_SyncMax_NegativeNumber(t *testing.T) {
 
 	params := paramspkg.LoadOfflineParams(t.Context(), v, paramspkg.FlagReadOrderFlagPrecedence)
 
-	assert.Zero(t, params.SyncMax)
+	assert.Equal(t, math.MaxInt32, params.SyncMax)
 }
 
 func TestLoadOfflineParams_SyncMax_NonIntegerValue(t *testing.T) {
@@ -2235,7 +2236,7 @@ func TestLoadOfflineParams_SyncMax_NonIntegerValue(t *testing.T) {
 
 	params := paramspkg.LoadOfflineParams(t.Context(), v, paramspkg.FlagReadOrderFlagPrecedence)
 
-	assert.Zero(t, params.SyncMax)
+	assert.Equal(t, math.MaxInt32, params.SyncMax)
 }
 
 func TestLoadAPIParams_APIKey(t *testing.T) {

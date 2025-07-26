@@ -347,6 +347,16 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 
 	var numCalls int
 
+	projectFolder, err := filepath.Abs(".")
+	require.NoError(t, err)
+
+	entityPath, err := realpath.Realpath("testdata/main.go")
+	require.NoError(t, err)
+
+	entityPath = strings.ReplaceAll(entityPath, `\`, `/`)
+	subfolders := project.CountSlashesInProjectFolder(projectFolder)
+	userAgent := heartbeat.UserAgent(ctx, "")
+
 	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
 		numCalls++
 
@@ -361,9 +371,64 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 
 		switch numCalls {
 		case 1:
+			// 1st request sends the main heartbeat + 24 extra heartbeats
 			filename = "testdata/api_heartbeats_response_extra_heartbeats.json"
+
+			// check body
+			expectedBodyTpl, err := os.ReadFile("testdata/api_heartbeats_request_extra_heartbeats_template.json")
+			require.NoError(t, err)
+
+			expectedBody := fmt.Sprintf(
+				string(expectedBodyTpl),
+				entityPath, subfolders, userAgent,
+				entityPath, subfolders, userAgent,
+				entityPath, subfolders, userAgent,
+				entityPath, subfolders, userAgent,
+				entityPath, subfolders, userAgent,
+				entityPath, subfolders, userAgent,
+				entityPath, subfolders, userAgent,
+				entityPath, subfolders, userAgent,
+				entityPath, subfolders, userAgent,
+				entityPath, subfolders, userAgent,
+				entityPath, subfolders, userAgent,
+				entityPath, subfolders, userAgent,
+				entityPath, subfolders, userAgent,
+				entityPath, subfolders, userAgent,
+				entityPath, subfolders, userAgent,
+				entityPath, subfolders, userAgent,
+				entityPath, subfolders, userAgent,
+				entityPath, subfolders, userAgent,
+				entityPath, subfolders, userAgent,
+				entityPath, subfolders, userAgent,
+				entityPath, subfolders, userAgent,
+				entityPath, subfolders, userAgent,
+				entityPath, subfolders, userAgent,
+				entityPath, subfolders, userAgent,
+				entityPath, subfolders, userAgent,
+			)
+
+			body, err := io.ReadAll(req.Body)
+			require.NoError(t, err)
+
+			assert.JSONEq(t, expectedBody, string(body))
 		case 2:
+			// 2nd request sends the trimmed 2 extra heartbeats stored to the offline db
 			filename = "testdata/api_heartbeats_response_extra_heartbeats_extra.json"
+
+			// check body
+			expectedBodyTpl, err := os.ReadFile("testdata/api_heartbeats_request_extra_heartbeats_extra_template.json")
+			require.NoError(t, err)
+
+			expectedBody := fmt.Sprintf(
+				string(expectedBodyTpl),
+				entityPath, subfolders, userAgent,
+				entityPath, subfolders, userAgent,
+			)
+
+			body, err := io.ReadAll(req.Body)
+			require.NoError(t, err)
+
+			assert.JSONEq(t, expectedBody, string(body))
 		}
 
 		// write response
@@ -411,15 +476,17 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 		"--config", tmpConfigFile.Name(),
 		"--internal-config", tmpInternalConfigFile.Name(),
 		"--entity", "testdata/main.go",
+		"--category", "coding",
 		"--extra-heartbeats", "true",
 		"--cursorpos", "12",
-		"--sync-offline-activity", "2",
 		"--offline-queue-file", offlineQueueFile.Name(),
 		"--offline-queue-file-legacy", offlineQueueFileLegacy.Name(),
 		"--lineno", "42",
 		"--lines-in-file", "100",
-		"--time", "1585598059",
+		"--time", "1585598200",
 		"--hide-branch-names", ".*",
+		"--project", "wakatime-cli",
+		"--project-folder", projectFolder,
 		"--write",
 		"--verbose",
 	)
@@ -427,7 +494,7 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 	offlineCount, err := offline.CountHeartbeats(ctx, offlineQueueFile.Name())
 	require.NoError(t, err)
 
-	assert.Equal(t, 1, offlineCount)
+	assert.Zero(t, offlineCount)
 
 	assert.Eventually(t, func() bool { return numCalls == 2 }, time.Second, 50*time.Millisecond)
 }
@@ -573,8 +640,6 @@ func TestSendHeartbeats_ExtraHeartbeats_SyncLegacyOfflineActivity(t *testing.T) 
 			filename = "testdata/api_heartbeats_response_extra_heartbeats_legacy_offline.json"
 		case 3:
 			filename = "testdata/api_heartbeats_response_extra_heartbeats_extra.json"
-		case 4:
-			filename = "testdata/api_heartbeats_response_extra_heartbeats_extra.json"
 		}
 
 		// write response
@@ -672,7 +737,111 @@ func TestSendHeartbeats_ExtraHeartbeats_SyncLegacyOfflineActivity(t *testing.T) 
 
 	assert.Zero(t, offlineCount)
 
-	assert.Eventually(t, func() bool { return numCalls == 4 }, time.Second, 50*time.Millisecond)
+	assert.Eventually(t, func() bool { return numCalls == 3 }, time.Second, 50*time.Millisecond)
+}
+
+func TestSendHeartbeats_SyncOfflineActivity(t *testing.T) {
+	apiURL, router, close := setupTestServer()
+	defer close()
+
+	ctx := t.Context()
+
+	var numCalls int
+
+	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
+		numCalls++
+
+		// check headers
+		assert.Equal(t, http.MethodPost, req.Method)
+		assert.Equal(t, []string{"application/json"}, req.Header["Accept"])
+		assert.Equal(t, []string{"application/json"}, req.Header["Content-Type"])
+		assert.Equal(t, []string{"Basic MDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAw"}, req.Header["Authorization"])
+		assert.Equal(t, []string{heartbeat.UserAgent(ctx, "")}, req.Header["User-Agent"])
+
+		// write response
+		f, err := os.Open("testdata/api_heartbeats_response_offline.json")
+		require.NoError(t, err)
+
+		w.WriteHeader(http.StatusCreated)
+		_, err = io.Copy(w, f)
+		require.NoError(t, err)
+	})
+
+	tmpDir := t.TempDir()
+
+	// create legacy offline queue file and add some heartbeats
+	offlineQueueFileLegacy, err := os.CreateTemp(tmpDir, "legacy-offline-file")
+	require.NoError(t, err)
+
+	// close to avoid "The process cannot access the file because it is being used by another process" error on Windows
+	offlineQueueFileLegacy.Close()
+
+	offlineQueueFile, err := os.CreateTemp(tmpDir, "new-offline-file")
+	require.NoError(t, err)
+
+	defer offlineQueueFile.Close()
+
+	db, err := bolt.Open(offlineQueueFile.Name(), 0600, nil)
+	require.NoError(t, err)
+
+	dataGo, err := os.ReadFile("testdata/heartbeat_go.json")
+	require.NoError(t, err)
+
+	dataPy, err := os.ReadFile("testdata/heartbeat_py.json")
+	require.NoError(t, err)
+
+	dataJs, err := os.ReadFile("testdata/heartbeat_js.json")
+	require.NoError(t, err)
+
+	insertHeartbeatRecords(t, db, "heartbeats", []heartbeatRecord{
+		{
+			ID:        "1592868367.219124-file-coding-wakatime-cli-heartbeat-/tmp/main.go-true",
+			Heartbeat: string(dataGo),
+		},
+		{
+			ID:        "1592868386.079084-file-debugging-wakatime-summary-/tmp/main.py-false",
+			Heartbeat: string(dataPy),
+		},
+		{
+			ID:        "1592868394.084354-file-building-wakatime-todaygoal-/tmp/main.js-false",
+			Heartbeat: string(dataJs),
+		},
+	})
+
+	err = db.Close()
+	require.NoError(t, err)
+
+	tmpConfigFile, err := os.CreateTemp(tmpDir, "wakatime.cfg")
+	require.NoError(t, err)
+
+	defer tmpConfigFile.Close()
+
+	tmpInternalConfigFile, err := os.CreateTemp(tmpDir, "wakatime-internal.cfg")
+	require.NoError(t, err)
+
+	defer tmpInternalConfigFile.Close()
+
+	runWakatimeCli(
+		t,
+		&bytes.Buffer{},
+		"--api-url", apiURL,
+		"--key", "00000000-0000-4000-8000-000000000000",
+		"--config", tmpConfigFile.Name(),
+		"--internal-config", tmpInternalConfigFile.Name(),
+		"--sync-offline-activity", "3",
+		"--offline-queue-file", offlineQueueFile.Name(),
+		"--offline-queue-file-legacy", offlineQueueFileLegacy.Name(),
+		"--verbose",
+	)
+
+	assert.NoFileExists(t, offlineQueueFileLegacy.Name())
+
+	offlineCount, err := offline.CountHeartbeats(ctx, offlineQueueFile.Name())
+	require.NoError(t, err)
+
+	assert.Zero(t, offlineCount)
+
+	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
 
 func TestSendHeartbeats_Err(t *testing.T) {
@@ -977,7 +1146,6 @@ func TestSendHeartbeats_OmitEmptyCategory(t *testing.T) {
 		"--internal-config", tmpInternalConfigFile.Name(),
 		"--entity", filepath.Join(tmpDir, "main.go"),
 		"--cursorpos", "12",
-		"--sync-offline-activity", "2",
 		"--offline-queue-file", offlineQueueFile.Name(),
 		"--offline-queue-file-legacy", offlineQueueFileLegacy.Name(),
 		"--lineno", "42",
