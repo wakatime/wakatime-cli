@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"net/url"
 	"os"
 	"os/exec"
@@ -758,10 +759,19 @@ func LoadOfflineParams(ctx context.Context, v *viper.Viper, order FlagReadOrder)
 		}
 	}
 
-	syncMax := v.GetInt("sync-offline-activity")
-	if syncMax < 0 {
-		logger.Warnf("argument --sync-offline-activity must be zero or a positive integer number, got %d", syncMax)
-		syncMax = 0
+	syncMax := math.MaxInt32
+
+	if syncOfflineActivity := v.GetInt("sync-offline-activity"); v.IsSet("sync-offline-activity") {
+		syncMax = syncOfflineActivity
+
+		if syncMax < 0 {
+			logger.Warnf("argument --sync-offline-activity must be zero or a positive integer number, got %d", syncMax)
+			syncMax = math.MaxInt32
+		}
+
+		if syncMax == 0 {
+			syncMax = math.MaxInt32
+		}
 	}
 
 	var lastSentAt time.Time

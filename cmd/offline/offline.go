@@ -7,6 +7,7 @@ import (
 
 	"github.com/wakatime/wakatime-cli/cmd/handler"
 	"github.com/wakatime/wakatime-cli/pkg/api"
+	"github.com/wakatime/wakatime-cli/pkg/filter"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/offline"
@@ -40,7 +41,7 @@ func SaveHeartbeats(ctx context.Context, v *viper.Viper, heartbeats []heartbeat.
 	}
 
 	handleOpts := initHandleOptions()
-	sender := heartbeat.NewHandle(Noop{}, offline.WithQueue(queueFilepath))
+	sender := heartbeat.NewHandle(Noop{}, filter.WithLengthValidator(), offline.WithQueue(queueFilepath))
 	handle := handler.New(v, handler.Config{
 		Params:       params,
 		ParamsLoader: LoadParams,
@@ -130,7 +131,6 @@ func initHandleOptions() []handler.Preprocessor {
 		handler.WithProjectFiltering(),
 		handler.WithHeartbeatSanitization(),
 		handler.WithRemoteCleanup(),
-		handler.WithLengthValidator(),
 	}
 }
 
