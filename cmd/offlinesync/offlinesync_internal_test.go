@@ -52,6 +52,7 @@ func TestSyncOfflineActivityLegacy(t *testing.T) {
 
 		f, err := os.Open("testdata/api_heartbeats_response.json")
 		require.NoError(t, err)
+
 		defer f.Close()
 
 		_, err = io.Copy(w, f)

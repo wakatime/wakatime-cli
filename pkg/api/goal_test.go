@@ -61,6 +61,7 @@ func TestClient_GoalWithTimeout(t *testing.T) {
 	router.HandleFunc(
 		"/users/current/goals/00000000-0000-4000-8000-000000000000", func(_ http.ResponseWriter, _ *http.Request) {
 			<-block
+
 			called <- struct{}{}
 		})
 
@@ -75,6 +76,7 @@ func TestClient_GoalWithTimeout(t *testing.T) {
 	assert.True(t, strings.Contains(err.Error(), "Timeout"), errMsg)
 
 	close(block)
+
 	select {
 	case <-called:
 		break

@@ -1,6 +1,6 @@
 {
   "branch": "heartbeat",
-  "category": "coding",
+  "category": "debugging",
   "cursorpos": 12,
   "dependencies": ["dep1", "dep2"],
   "entity": "/tmp/main.go",

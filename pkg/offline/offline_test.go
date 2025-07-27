@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -223,7 +224,7 @@ func TestWithQueue_ApiError(t *testing.T) {
 
 	require.Len(t, stored, 2)
 
-	assert.Equal(t, "1592868367.219124-12-file-coding-wakatime-cli-heartbeat-/tmp/main.go-true", stored[0].ID)
+	assert.Equal(t, "1592868367.219124-12-file-undefined-wakatime-cli-heartbeat-/tmp/main.go-true", stored[0].ID)
 	assert.JSONEq(t, string(dataGo), stored[0].Heartbeat)
 
 	assert.Equal(t, "1592868386.079084-13-file-debugging-wakatime-summary-/tmp/main.py-false", stored[1].ID)
@@ -573,7 +574,7 @@ func TestSync_APIError(t *testing.T) {
 
 	insertHeartbeatRecords(t, db, "heartbeats", []heartbeatRecord{
 		{
-			ID:        "1592868367.219124-12-file-coding-wakatime-cli-heartbeat-/tmp/main.go-true",
+			ID:        "1592868367.219124-12-file-undefined-wakatime-cli-heartbeat-/tmp/main.go-true",
 			Heartbeat: string(dataGo),
 		},
 		{
@@ -627,7 +628,7 @@ func TestSync_APIError(t *testing.T) {
 
 	require.Len(t, stored, 2)
 
-	assert.Equal(t, "1592868367.219124-12-file-coding-wakatime-cli-heartbeat-/tmp/main.go-true", stored[0].ID)
+	assert.Equal(t, "1592868367.219124-12-file-undefined-wakatime-cli-heartbeat-/tmp/main.go-true", stored[0].ID)
 	assert.JSONEq(t, string(dataGo), stored[0].Heartbeat)
 
 	assert.Equal(t, "1592868386.079084-13-file-debugging-wakatime-summary-/tmp/main.py-false", stored[1].ID)
@@ -862,7 +863,7 @@ func TestSync_SyncUnlimited(t *testing.T) {
 	err = db.Close()
 	require.NoError(t, err)
 
-	syncFn := offline.Sync(t.Context(), f.Name(), 0)
+	syncFn := offline.Sync(t.Context(), f.Name(), math.MaxInt32)
 
 	var numCalls int
 
@@ -1388,7 +1389,7 @@ func testHeartbeats() []heartbeat.Heartbeat {
 	return []heartbeat.Heartbeat{
 		{
 			Branch:         heartbeat.PointerTo("heartbeat"),
-			Category:       heartbeat.CodingCategory.Pointer(),
+			Category:       heartbeat.UndefinedCategory.String(),
 			CursorPosition: heartbeat.PointerTo(12),
 			Dependencies:   []string{"dep1", "dep2"},
 			Entity:         "/tmp/main.go",
@@ -1403,7 +1404,7 @@ func testHeartbeats() []heartbeat.Heartbeat {
 		},
 		{
 			Branch:         heartbeat.PointerTo("summary"),
-			Category:       heartbeat.DebuggingCategory.Pointer(),
+			Category:       heartbeat.DebuggingCategory.String(),
 			CursorPosition: heartbeat.PointerTo(13),
 			Dependencies:   []string{"dep3", "dep4"},
 			Entity:         "/tmp/main.py",
@@ -1418,7 +1419,7 @@ func testHeartbeats() []heartbeat.Heartbeat {
 		},
 		{
 			Branch:         heartbeat.PointerTo("todaygoal"),
-			Category:       heartbeat.BuildingCategory.Pointer(),
+			Category:       heartbeat.BuildingCategory.String(),
 			CursorPosition: heartbeat.PointerTo(14),
 			Dependencies:   []string{"dep5", "dep6"},
 			Entity:         "/tmp/main.js",

@@ -12,6 +12,7 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/api"
 	"github.com/wakatime/wakatime-cli/pkg/backoff"
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
+	"github.com/wakatime/wakatime-cli/pkg/filter"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	_ "github.com/wakatime/wakatime-cli/pkg/lexer" // force to load all lexers
 	"github.com/wakatime/wakatime-cli/pkg/log"
@@ -90,10 +91,15 @@ func SendHeartbeats(ctx context.Context, v *viper.Viper, queueFilepath string) e
 
 	heartbeats := buildHeartbeats(ctx, params)
 
-	var chOfflineSave = make(chan bool)
+	var (
+		chOfflineSave = make(chan bool)
+		savedOffline  bool
+	)
 
 	// only send at once the maximum amount of `offline.SendLimit`.
 	if len(heartbeats) > offline.SendLimit {
+		savedOffline = true
+
 		extraHeartbeats := heartbeats[offline.SendLimit:]
 
 		logger.Debugf("save %d extra heartbeat(s) to offline queue", len(extraHeartbeats))
@@ -130,7 +136,7 @@ func SendHeartbeats(ctx context.Context, v *viper.Viper, queueFilepath string) e
 	results, err := handle(ctx, heartbeats)
 
 	// wait for offline queue save to finish
-	if len(heartbeats) > offline.SendLimit {
+	if savedOffline {
 		<-chOfflineSave
 	}
 
@@ -157,7 +163,9 @@ func buildHandle(ctx context.Context, v *viper.Viper, params params.Params, queu
 		return nil, err
 	}
 
-	var handleOpts []heartbeat.HandleOption
+	handleOpts := []heartbeat.HandleOption{
+		filter.WithLengthValidator(),
+	}
 
 	if !params.Offline.Disabled {
 		handleOpts = append(handleOpts, offline.WithQueue(queueFilepath))
@@ -204,7 +212,7 @@ func buildHeartbeats(ctx context.Context, params params.Params) []heartbeat.Hear
 
 	heartbeats = append(heartbeats, heartbeat.New(
 		params.Heartbeat.Project.BranchAlternate,
-		&params.Heartbeat.Category,
+		params.Heartbeat.Category.String(),
 		params.Heartbeat.CursorPosition,
 		params.Heartbeat.Entity,
 		params.Heartbeat.EntityType,
@@ -254,7 +262,6 @@ func initHandleOptions() []handler.Preprocessor {
 		handler.WithProjectFiltering(),
 		handler.WithHeartbeatSanitization(),
 		handler.WithRemoteCleanup(),
-		handler.WithLengthValidator(),
 	}
 }
 

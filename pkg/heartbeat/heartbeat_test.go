@@ -21,7 +21,7 @@ import (
 func TestNew(t *testing.T) {
 	h := heartbeat.New(
 		"feature/branch",
-		heartbeat.CodingCategory.Pointer(),
+		heartbeat.CodingCategory.String(),
 		heartbeat.PointerTo(12),
 		"testdata/main.go",
 		heartbeat.FileType,
@@ -46,7 +46,7 @@ func TestNew(t *testing.T) {
 
 	assert.Equal(t, heartbeat.Heartbeat{
 		BranchAlternate:     "feature/branch",
-		Category:            heartbeat.CodingCategory.Pointer(),
+		Category:            heartbeat.CodingCategory.String(),
 		CursorPosition:      heartbeat.PointerTo(12),
 		EntityType:          heartbeat.FileType,
 		IsUnsavedEntity:     true,
@@ -69,7 +69,7 @@ func TestNew(t *testing.T) {
 func TestHeartbeat_ID(t *testing.T) {
 	h := heartbeat.Heartbeat{
 		Branch:     heartbeat.PointerTo("heartbeat"),
-		Category:   heartbeat.CodingCategory.Pointer(),
+		Category:   heartbeat.CodingCategory.String(),
 		Entity:     "/tmp/main.go",
 		EntityType: heartbeat.FileType,
 		IsWrite:    heartbeat.PointerTo(true),
@@ -81,18 +81,17 @@ func TestHeartbeat_ID(t *testing.T) {
 
 func TestHeartbeat_ID_NilFields(t *testing.T) {
 	h := heartbeat.Heartbeat{
-		Category:   heartbeat.CodingCategory.Pointer(),
 		Entity:     "/tmp/main.go",
 		EntityType: heartbeat.FileType,
 		Time:       1592868313.541149,
 	}
-	assert.Equal(t, "1592868313.541149-nil-file-coding-unset-unset-/tmp/main.go-false", h.ID())
+	assert.Equal(t, "1592868313.541149-nil-file-undefined-unset-unset-/tmp/main.go-false", h.ID())
 }
 
 func TestHeartbeat_JSON(t *testing.T) {
 	h := heartbeat.Heartbeat{
 		Branch:         heartbeat.PointerTo("heartbeat"),
-		Category:       heartbeat.CodingCategory.Pointer(),
+		Category:       heartbeat.DebuggingCategory.String(),
 		CursorPosition: heartbeat.PointerTo(12),
 		Dependencies:   []string{"dep1", "dep2"},
 		Entity:         "/tmp/main.go",
@@ -111,7 +110,7 @@ func TestHeartbeat_JSON(t *testing.T) {
 	jsonEncoded, err := json.Marshal(h)
 	require.NoError(t, err)
 
-	f, err := os.Open("./testdata/heartbeat.json")
+	f, err := os.Open("testdata/heartbeat.json")
 	require.NoError(t, err)
 
 	defer f.Close()
@@ -124,7 +123,6 @@ func TestHeartbeat_JSON(t *testing.T) {
 
 func TestHeartbeat_JSON_NilFields(t *testing.T) {
 	h := heartbeat.Heartbeat{
-		Category:   heartbeat.CodingCategory.Pointer(),
 		Entity:     "/tmp/main.go",
 		EntityType: heartbeat.FileType,
 		Time:       1585598060,
@@ -134,7 +132,7 @@ func TestHeartbeat_JSON_NilFields(t *testing.T) {
 	jsonEncoded, err := json.Marshal(h)
 	require.NoError(t, err)
 
-	f, err := os.Open("./testdata/heartbeat_null_fields.json")
+	f, err := os.Open("testdata/heartbeat_null_fields.json")
 	require.NoError(t, err)
 
 	defer f.Close()
@@ -151,7 +149,6 @@ func TestNewHandle(t *testing.T) {
 			assert.Equal(t, []heartbeat.Heartbeat{
 				{
 					Branch:     heartbeat.PointerTo("test"),
-					Category:   heartbeat.CodingCategory.Pointer(),
 					Entity:     "/tmp/main.go",
 					EntityType: heartbeat.FileType,
 					Time:       1585598060,
@@ -182,7 +179,6 @@ func TestNewHandle(t *testing.T) {
 	handle := heartbeat.NewHandle(&sender, opts...)
 	_, err := handle(t.Context(), []heartbeat.Heartbeat{
 		{
-			Category:   heartbeat.CodingCategory.Pointer(),
 			Entity:     "/tmp/main.go",
 			EntityType: heartbeat.FileType,
 			Time:       1585598060,

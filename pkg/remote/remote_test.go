@@ -89,7 +89,7 @@ func TestWithDetection_SshConfig_Hostname(t *testing.T) {
 	template, err := os.ReadFile("testdata/ssh_config_hostname")
 	require.NoError(t, err)
 
-	err = os.WriteFile(tmpFile.Name(), []byte(fmt.Sprintf(string(template), host)), 0600)
+	err = os.WriteFile(tmpFile.Name(), fmt.Appendf(nil, string(template), host), 0600)
 	require.NoError(t, err)
 
 	entityFilepath, err := filepath.Abs("./testdata/main.go")
@@ -108,7 +108,6 @@ func TestWithDetection_SshConfig_Hostname(t *testing.T) {
 		SendHeartbeatsFn: func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 			assert.Equal(t, []heartbeat.Heartbeat{
 				{
-					Category:              heartbeat.CodingCategory.Pointer(),
 					Entity:                entity,
 					EntityType:            heartbeat.FileType,
 					LocalFile:             hh[0].LocalFile,
@@ -134,7 +133,6 @@ func TestWithDetection_SshConfig_Hostname(t *testing.T) {
 	handle := heartbeat.NewHandle(&sender, opts...)
 	_, err = handle(t.Context(), []heartbeat.Heartbeat{
 		{
-			Category:   heartbeat.CodingCategory.Pointer(),
 			Entity:     entity,
 			EntityType: heartbeat.FileType,
 			Time:       1585598060,
@@ -187,7 +185,7 @@ func TestWithDetection_SshConfig_UserKnownHostsFile_Mismatch(t *testing.T) {
 	knownHostsFile, err := filepath.Abs("./testdata/known_hosts")
 	require.NoError(t, err)
 
-	err = os.WriteFile(tmpFile.Name(), []byte(fmt.Sprintf(string(template), host, knownHostsFile)), 0600)
+	err = os.WriteFile(tmpFile.Name(), fmt.Appendf(nil, string(template), host, knownHostsFile), 0600)
 	require.NoError(t, err)
 
 	entityFilepath, err := filepath.Abs("./testdata/main.go")
@@ -219,7 +217,6 @@ func TestWithDetection_SshConfig_UserKnownHostsFile_Mismatch(t *testing.T) {
 	handle := heartbeat.NewHandle(&sender, opts...)
 	results, err := handle(ctx, []heartbeat.Heartbeat{
 		{
-			Category:   heartbeat.CodingCategory.Pointer(),
 			Entity:     entity,
 			EntityType: heartbeat.FileType,
 			Time:       1585598060,
@@ -261,7 +258,7 @@ func TestWithDetection_SshConfig_UserKnownHostsFile_Match(t *testing.T) {
 	knownHostsFile, err := filepath.Abs("./testdata/known_hosts")
 	require.NoError(t, err)
 
-	err = os.WriteFile(tmpFile.Name(), []byte(fmt.Sprintf(string(template), host, knownHostsFile)), 0600)
+	err = os.WriteFile(tmpFile.Name(), fmt.Appendf(nil, string(template), host, knownHostsFile), 0600)
 	require.NoError(t, err)
 
 	entityFilepath, err := filepath.Abs("./testdata/main.go")
@@ -280,7 +277,6 @@ func TestWithDetection_SshConfig_UserKnownHostsFile_Match(t *testing.T) {
 		SendHeartbeatsFn: func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 			assert.Equal(t, []heartbeat.Heartbeat{
 				{
-					Category:              heartbeat.CodingCategory.Pointer(),
 					Entity:                entity,
 					EntityType:            heartbeat.FileType,
 					LocalFile:             hh[0].LocalFile,
@@ -311,7 +307,6 @@ func TestWithDetection_SshConfig_UserKnownHostsFile_Match(t *testing.T) {
 	handle := heartbeat.NewHandle(&sender, opts...)
 	results, err := handle(t.Context(), []heartbeat.Heartbeat{
 		{
-			Category:   heartbeat.CodingCategory.Pointer(),
 			Entity:     entity,
 			EntityType: heartbeat.FileType,
 			Time:       1585598060,
@@ -346,7 +341,7 @@ func TestWithDetection_Filtered(t *testing.T) {
 	knownHostsFile, err := filepath.Abs("./testdata/known_hosts")
 	require.NoError(t, err)
 
-	err = os.WriteFile(tmpFile.Name(), []byte(fmt.Sprintf(string(template), host, knownHostsFile)), 0600)
+	err = os.WriteFile(tmpFile.Name(), fmt.Appendf(nil, string(template), host, knownHostsFile), 0600)
 	require.NoError(t, err)
 
 	entity, _ := filepath.Abs("./testdata/main.go")
@@ -370,7 +365,6 @@ func TestWithDetection_Filtered(t *testing.T) {
 	handle := heartbeat.NewHandle(&sender, opts...)
 	results, err := handle(t.Context(), []heartbeat.Heartbeat{
 		{
-			Category:   heartbeat.CodingCategory.Pointer(),
 			Entity:     "ssh://user:pass@example.com:" + strconv.Itoa(port) + entity,
 			EntityType: heartbeat.FileType,
 			Time:       1585598060,

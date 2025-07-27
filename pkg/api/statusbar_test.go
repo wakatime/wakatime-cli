@@ -60,6 +60,7 @@ func TestClient_StatusBarWithTimeout(t *testing.T) {
 
 	router.HandleFunc("/users/current/statusbar/today", func(_ http.ResponseWriter, _ *http.Request) {
 		<-block
+
 		called <- struct{}{}
 	})
 
@@ -73,6 +74,7 @@ func TestClient_StatusBarWithTimeout(t *testing.T) {
 	assert.True(t, strings.Contains(err.Error(), "Timeout"), errMsg)
 
 	close(block)
+
 	select {
 	case <-called:
 		break

@@ -16,7 +16,6 @@
     },
     {
         "cursorpos": 12,
-        "category": "coding",
         "dependencies": ["os"],
         "entity": "%s",
         "is_write": true,
@@ -42,7 +41,6 @@
         "user_agent": "%s"
     },
     {
-        "category": "coding",
         "cursorpos": 12,
         "dependencies": ["os"],
         "entity": "%s",
@@ -57,7 +55,6 @@
         "user_agent": "%s"
     },
     {
-        "category": "coding",
         "cursorpos": 12,
         "dependencies": ["os"],
         "entity": "%s",
@@ -72,7 +69,6 @@
         "user_agent": "%s"
     },
     {
-        "category": "coding",
         "cursorpos": 12,
         "dependencies": ["os"],
         "entity": "%s",
@@ -87,7 +83,6 @@
         "user_agent": "%s"
     },
     {
-        "category": "coding",
         "cursorpos": 12,
         "dependencies": ["os"],
         "entity": "%s",
@@ -102,7 +97,6 @@
         "user_agent": "%s"
     },
     {
-        "category": "coding",
         "cursorpos": 12,
         "dependencies": ["os"],
         "entity": "%s",
@@ -117,7 +111,6 @@
         "user_agent": "%s"
     },
     {
-        "category": "coding",
         "cursorpos": 12,
         "dependencies": ["os"],
         "entity": "%s",
@@ -132,7 +125,6 @@
         "user_agent": "%s"
     },
     {
-        "category": "coding",
         "cursorpos": 12,
         "dependencies": ["os"],
         "entity": "%s",
@@ -147,7 +139,6 @@
         "user_agent": "%s"
     },
     {
-        "category": "coding",
         "cursorpos": 12,
         "dependencies": ["os"],
         "entity": "%s",
@@ -162,7 +153,6 @@
         "user_agent": "%s"
     },
     {
-        "category": "coding",
         "cursorpos": 12,
         "dependencies": ["os"],
         "entity": "%s",
@@ -177,7 +167,6 @@
         "user_agent": "%s"
     },
     {
-        "category": "coding",
         "cursorpos": 12,
         "dependencies": ["os"],
         "entity": "%s",
@@ -192,7 +181,6 @@
         "user_agent": "%s"
     },
     {
-        "category": "coding",
         "cursorpos": 12,
         "dependencies": ["os"],
         "entity": "%s",
@@ -207,7 +195,6 @@
         "user_agent": "%s"
     },
     {
-        "category": "coding",
         "cursorpos": 12,
         "dependencies": ["os"],
         "entity": "%s",
@@ -222,7 +209,6 @@
         "user_agent": "%s"
     },
     {
-        "category": "coding",
         "cursorpos": 12,
         "dependencies": ["os"],
         "entity": "%s",
@@ -237,7 +223,6 @@
         "user_agent": "%s"
     },
     {
-        "category": "coding",
         "cursorpos": 12,
         "dependencies": ["os"],
         "entity": "%s",
@@ -252,7 +237,6 @@
         "user_agent": "%s"
     },
     {
-        "category": "coding",
         "cursorpos": 12,
         "dependencies": ["os"],
         "entity": "%s",
@@ -267,7 +251,6 @@
         "user_agent": "%s"
     },
     {
-        "category": "coding",
         "cursorpos": 12,
         "dependencies": ["os"],
         "entity": "%s",
@@ -282,7 +265,6 @@
         "user_agent": "%s"
     },
     {
-        "category": "coding",
         "cursorpos": 12,
         "dependencies": ["os"],
         "entity": "%s",
@@ -297,7 +279,6 @@
         "user_agent": "%s"
     },
     {
-        "category": "coding",
         "cursorpos": 12,
         "dependencies": ["os"],
         "entity": "%s",
@@ -312,7 +293,6 @@
         "user_agent": "%s"
     },
     {
-        "category": "coding",
         "cursorpos": 12,
         "dependencies": ["os"],
         "entity": "%s",
@@ -327,7 +307,6 @@
         "user_agent": "%s"
     },
     {
-        "category": "coding",
         "cursorpos": 12,
         "dependencies": ["os"],
         "entity": "%s",
@@ -342,7 +321,6 @@
         "user_agent": "%s"
     },
     {
-        "category": "coding",
         "cursorpos": 12,
         "dependencies": ["os"],
         "entity": "%s",
@@ -357,7 +335,6 @@
         "user_agent": "%s"
     },
     {
-        "category": "coding",
         "cursorpos": 12,
         "dependencies": ["os"],
         "entity": "%s",

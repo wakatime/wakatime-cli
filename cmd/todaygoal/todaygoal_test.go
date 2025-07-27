@@ -48,6 +48,7 @@ func TestGoal(t *testing.T) {
 
 			f, err := os.Open("testdata/api_goals_id_response.json")
 			require.NoError(t, err)
+
 			defer f.Close()
 
 			_, err = io.Copy(w, f)

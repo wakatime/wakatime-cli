@@ -242,6 +242,7 @@ func (c Client) DownloadFileFallback(ctx context.Context, localFile string) erro
 	cmd := exec.CommandContext(ctx, "scp", "-B", fmt.Sprintf("%s:%s", c.OriginalHost, c.Path), localFile) // nolint:gosec
 
 	var stderr bytes.Buffer
+
 	cmd.Stderr = &stderr
 
 	if err := cmd.Run(); err != nil {

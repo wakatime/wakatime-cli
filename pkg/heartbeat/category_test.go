@@ -18,7 +18,6 @@ func categoryTests() map[string]heartbeat.Category {
 		"browsing":       heartbeat.BrowsingCategory,
 		"building":       heartbeat.BuildingCategory,
 		"code reviewing": heartbeat.CodeReviewingCategory,
-		"coding":         heartbeat.CodingCategory,
 		"communicating":  heartbeat.CommunicatingCategory,
 		"debugging":      heartbeat.DebuggingCategory,
 		"designing":      heartbeat.DesigningCategory,
@@ -67,7 +66,7 @@ func TestCategory_UnmarshalJSON(t *testing.T) {
 func TestCategory_UnmarshalJSON_Invalid(t *testing.T) {
 	var c heartbeat.Category
 
-	require.Error(t, json.Unmarshal([]byte(`"invalid"`), &c))
+	assert.Error(t, json.Unmarshal([]byte(`"invalid"`), &c))
 }
 
 func TestCategory_MarshalJSON(t *testing.T) {
@@ -80,10 +79,10 @@ func TestCategory_MarshalJSON(t *testing.T) {
 	}
 }
 
-func TestCategory_MarshalJSON_DefaultCategory(t *testing.T) {
-	var c heartbeat.Category
-	data, err := json.Marshal(c)
+func TestCategory_MarshalJSON_UndefinedCategory(t *testing.T) {
+	data, err := json.Marshal(heartbeat.UndefinedCategory)
 	require.NoError(t, err)
+
 	assert.JSONEq(t, `null`, string(data))
 }
 
@@ -100,16 +99,16 @@ func TestWithCategory(t *testing.T) {
 	opt := heartbeat.WithCategory()
 
 	handle := opt(func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
-		assert.Nil(t, hh[0].Category)
-		assert.Equal(t, heartbeat.CodingCategory.String(), hh[1].Category.String())
-		assert.Equal(t, heartbeat.WritingTestsCategory.String(), hh[2].Category.String())
-		assert.Equal(t, heartbeat.WritingTestsCategory.String(), hh[3].Category.String())
-		assert.Equal(t, heartbeat.WritingTestsCategory.String(), hh[4].Category.String())
-		assert.Equal(t, heartbeat.WritingTestsCategory.String(), hh[5].Category.String())
-		assert.Equal(t, heartbeat.WritingTestsCategory.String(), hh[6].Category.String())
-		assert.Equal(t, heartbeat.WritingTestsCategory.String(), hh[7].Category.String())
-		assert.Equal(t, heartbeat.WritingTestsCategory.String(), hh[8].Category.String())
-		assert.Equal(t, heartbeat.WritingDocsCategory.String(), hh[9].Category.String())
+		assert.Equal(t, heartbeat.UndefinedCategory.String(), hh[0].Category)
+		assert.Equal(t, heartbeat.UndefinedCategory.String(), hh[1].Category)
+		assert.Equal(t, heartbeat.WritingTestsCategory.String(), hh[2].Category)
+		assert.Equal(t, heartbeat.WritingTestsCategory.String(), hh[3].Category)
+		assert.Equal(t, heartbeat.WritingTestsCategory.String(), hh[4].Category)
+		assert.Equal(t, heartbeat.WritingTestsCategory.String(), hh[5].Category)
+		assert.Equal(t, heartbeat.WritingTestsCategory.String(), hh[6].Category)
+		assert.Equal(t, heartbeat.WritingTestsCategory.String(), hh[7].Category)
+		assert.Equal(t, heartbeat.WritingTestsCategory.String(), hh[8].Category)
+		assert.Equal(t, heartbeat.WritingDocsCategory.String(), hh[9].Category)
 
 		return []heartbeat.Result{
 			{
@@ -124,7 +123,7 @@ func TestWithCategory(t *testing.T) {
 		},
 		{
 			Entity:   "/foo/file.go",
-			Category: heartbeat.CodingCategory.Pointer(),
+			Category: heartbeat.CodingCategory.String(), // coding category changes to empty string (undefined category)
 		},
 		{
 			Entity: "/foo/foo_test.go",
@@ -149,6 +148,63 @@ func TestWithCategory(t *testing.T) {
 		},
 		{
 			Entity: "/foo/file.md",
+		},
+	})
+	require.NoError(t, err)
+
+	assert.Equal(t, []heartbeat.Result{
+		{
+			Status: 201,
+		},
+	}, result)
+}
+
+func TestWithCategory_NotFileType(t *testing.T) {
+	opt := heartbeat.WithCategory()
+
+	handle := opt(func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		assert.Equal(t, heartbeat.DebuggingCategory.String(), hh[0].Category)
+
+		return []heartbeat.Result{
+			{
+				Status: 201,
+			},
+		}, nil
+	})
+
+	result, err := handle(t.Context(), []heartbeat.Heartbeat{
+		{
+			Entity:     "/foo/file.go",
+			EntityType: heartbeat.AppType,
+			Category:   heartbeat.DebuggingCategory.String(),
+		},
+	})
+	require.NoError(t, err)
+
+	assert.Equal(t, []heartbeat.Result{
+		{
+			Status: 201,
+		},
+	}, result)
+}
+
+func TestWithCategory_CodingCategory(t *testing.T) {
+	opt := heartbeat.WithCategory()
+
+	handle := opt(func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		assert.Empty(t, hh[0].Category)
+
+		return []heartbeat.Result{
+			{
+				Status: 201,
+			},
+		}, nil
+	})
+
+	result, err := handle(t.Context(), []heartbeat.Heartbeat{
+		{
+			Entity:   "/foo/file.go",
+			Category: heartbeat.CodingCategory.String(),
 		},
 	})
 	require.NoError(t, err)

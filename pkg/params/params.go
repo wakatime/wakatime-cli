@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"net/url"
 	"os"
 	"os/exec"
@@ -177,24 +178,24 @@ type (
 
 	// ExtraHeartbeat contains extra heartbeat.
 	ExtraHeartbeat struct {
-		BranchAlternate   string              `json:"alternate_branch"`
-		Category          *heartbeat.Category `json:"category,omitempty"`
-		CursorPosition    any                 `json:"cursorpos"`
-		Entity            string              `json:"entity"`
-		EntityType        string              `json:"entity_type"`
-		Type              string              `json:"type"`
-		IsUnsavedEntity   any                 `json:"is_unsaved_entity"`
-		IsWrite           any                 `json:"is_write"`
-		Language          *string             `json:"language"`
-		LanguageAlternate string              `json:"alternate_language"`
-		LineAdditions     any                 `json:"line_additions"`
-		LineDeletions     any                 `json:"line_deletions"`
-		LineNumber        any                 `json:"lineno"`
-		Lines             any                 `json:"lines"`
-		Project           string              `json:"project"`
-		ProjectAlternate  string              `json:"alternate_project"`
-		Time              any                 `json:"time"`
-		Timestamp         any                 `json:"timestamp"`
+		BranchAlternate   string  `json:"alternate_branch"`
+		Category          string  `json:"category"`
+		CursorPosition    any     `json:"cursorpos"`
+		Entity            string  `json:"entity"`
+		EntityType        string  `json:"entity_type"`
+		Type              string  `json:"type"`
+		IsUnsavedEntity   any     `json:"is_unsaved_entity"`
+		IsWrite           any     `json:"is_write"`
+		Language          *string `json:"language"`
+		LanguageAlternate string  `json:"alternate_language"`
+		LineAdditions     any     `json:"line_additions"`
+		LineDeletions     any     `json:"line_deletions"`
+		LineNumber        any     `json:"lineno"`
+		Lines             any     `json:"lines"`
+		Project           string  `json:"project"`
+		ProjectAlternate  string  `json:"alternate_project"`
+		Time              any     `json:"time"`
+		Timestamp         any     `json:"timestamp"`
 	}
 
 	// Heartbeat contains heartbeat command parameters.
@@ -758,10 +759,19 @@ func LoadOfflineParams(ctx context.Context, v *viper.Viper, order FlagReadOrder)
 		}
 	}
 
-	syncMax := v.GetInt("sync-offline-activity")
-	if syncMax < 0 {
-		logger.Warnf("argument --sync-offline-activity must be zero or a positive integer number, got %d", syncMax)
-		syncMax = 0
+	syncMax := math.MaxInt32
+
+	if syncOfflineActivity := v.GetInt("sync-offline-activity"); v.IsSet("sync-offline-activity") {
+		syncMax = syncOfflineActivity
+
+		if syncMax < 0 {
+			logger.Warnf("argument --sync-offline-activity must be zero or a positive integer number, got %d", syncMax)
+			syncMax = math.MaxInt32
+		}
+
+		if syncMax == 0 {
+			syncMax = math.MaxInt32
+		}
 	}
 
 	var lastSentAt time.Time
@@ -920,7 +930,17 @@ func parseExtraHeartbeats(ctx context.Context, data string) ([]heartbeat.Heartbe
 }
 
 func parseExtraHeartbeat(h ExtraHeartbeat) (*heartbeat.Heartbeat, error) {
-	var err error
+	var (
+		err      error
+		category string
+	)
+
+	cat, err := heartbeat.ParseCategory(h.Category)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse category: %s", err)
+	}
+
+	category = cat.String()
 
 	h.Entity, err = homedir.Expand(h.Entity)
 	if err != nil {
@@ -1049,7 +1069,7 @@ func parseExtraHeartbeat(h ExtraHeartbeat) (*heartbeat.Heartbeat, error) {
 
 	return &heartbeat.Heartbeat{
 		BranchAlternate:   h.BranchAlternate,
-		Category:          h.Category,
+		Category:          category,
 		CursorPosition:    cursorPosition,
 		Entity:            h.Entity,
 		EntityType:        entityType,

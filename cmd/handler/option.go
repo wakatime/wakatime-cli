@@ -24,7 +24,7 @@ func WithFormatting() Preprocessor {
 	}
 }
 
-// WithCategoryDetection returns a Preprocessor that applies heartbeat formatting.
+// WithCategoryDetection returns a Preprocessor that applies heartbeat categorization.
 func WithCategoryDetection() Preprocessor {
 	return func(_ params.Params) heartbeat.HandleOption {
 		return heartbeat.WithCategory()
@@ -139,12 +139,5 @@ func WithFileExpertsValidation() Preprocessor {
 func WithRemoteCleanup() Preprocessor {
 	return func(_ params.Params) heartbeat.HandleOption {
 		return remote.WithCleanup()
-	}
-}
-
-// WithLengthValidator returns a Preprocessor that applies length validation to heartbeats.
-func WithLengthValidator() Preprocessor {
-	return func(_ params.Params) heartbeat.HandleOption {
-		return filter.WithLengthValidator()
 	}
 }

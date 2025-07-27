@@ -8,6 +8,7 @@ import (
 	"github.com/wakatime/wakatime-cli/cmd/handler"
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
 	"github.com/wakatime/wakatime-cli/pkg/fileexperts"
+	"github.com/wakatime/wakatime-cli/pkg/filter"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/params"
@@ -57,7 +58,7 @@ func FileExperts(ctx context.Context, v *viper.Viper) (string, error) {
 		return "", fmt.Errorf("failed to initialize api client: %w", err)
 	}
 
-	sender := fileexperts.NewHandle(apiClient)
+	sender := fileexperts.NewHandle(apiClient, filter.WithLengthValidator())
 	handle := handler.New(v, handler.Config{
 		Params:       params,
 		ParamsLoader: LoadParams,
@@ -125,7 +126,6 @@ func initHandleOptions() []handler.Preprocessor {
 		handler.WithHeartbeatSanitization(),
 		handler.WithFileExpertsValidation(),
 		handler.WithRemoteCleanup(),
-		handler.WithLengthValidator(),
 	}
 }
 

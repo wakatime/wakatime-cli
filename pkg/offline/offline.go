@@ -132,10 +132,6 @@ func Sync(ctx context.Context, filepath string, syncLimit int) func(next heartbe
 			run         int
 		)
 
-		if syncLimit == 0 {
-			syncLimit = math.MaxInt32
-		}
-
 		logger := log.Extract(ctx)
 
 		for {

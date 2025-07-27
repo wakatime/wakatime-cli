@@ -31,7 +31,7 @@ func TestWithFiltering(t *testing.T) {
 		assert.Equal(t, []heartbeat.Heartbeat{
 			{
 				Branch:         heartbeat.PointerTo("heartbeat"),
-				Category:       heartbeat.CodingCategory.Pointer(),
+				Category:       heartbeat.CodingCategory.String(),
 				CursorPosition: heartbeat.PointerTo(12),
 				Dependencies:   []string{"dep1", "dep2"},
 				Entity:         tmpFile.Name(),
@@ -93,7 +93,7 @@ func TestFilter_ErrUnknownProject(t *testing.T) {
 func testHeartbeat() heartbeat.Heartbeat {
 	return heartbeat.Heartbeat{
 		Branch:         heartbeat.PointerTo("heartbeat"),
-		Category:       heartbeat.CodingCategory.Pointer(),
+		Category:       heartbeat.CodingCategory.String(),
 		CursorPosition: heartbeat.PointerTo(12),
 		Dependencies:   []string{"dep1", "dep2"},
 		EntityType:     heartbeat.FileType,

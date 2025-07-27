@@ -1,7 +1,7 @@
 [
 	{
 		"cursorpos": 12,
-		"category": null,
+		"category": "writing tests",
 		"dependencies": ["os"],
 		"entity": "%s",
 		"is_write": true,
