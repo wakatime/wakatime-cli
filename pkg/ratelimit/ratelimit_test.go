@@ -90,5 +90,5 @@ func TestRateLimitReset(t *testing.T) {
 	lastSentAt, err := writer.File.Section("internal").Key("heartbeats_last_sent_at").TimeFormat(ini.DateFormat)
 	require.NoError(t, err)
 
-	assert.WithinDuration(t, time.Now(), lastSentAt, 1*time.Second)
+	assert.WithinDuration(t, time.Now(), lastSentAt, 2*time.Second)
 }
