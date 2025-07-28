@@ -151,8 +151,10 @@ func (h Heartbeat) IsRemote() bool {
 
 // Result represents a response from the wakatime api.
 type Result struct {
-	Errors    []string
-	Status    int
+	Errors []string
+	Status int
+	ID     string
+	// Heartbeat is the original heartbeat that was sent.
 	Heartbeat Heartbeat
 	// it's a temporary solution before we have a better way to handle (avoid import cycle)
 	FileExpert any

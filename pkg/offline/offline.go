@@ -198,12 +198,12 @@ func handleResults(ctx context.Context, filepath string, results []heartbeat.Res
 		}
 
 		if result.Status == http.StatusBadRequest {
-			serialized, jsonErr := json.Marshal(result.Heartbeat)
+			serialized, jsonErr := json.Marshal(hh[n])
 			if jsonErr != nil {
 				logger.Warnf(
 					"failed to json marshal heartbeat: %s. heartbeat: %#v",
 					jsonErr,
-					result.Heartbeat,
+					hh[n],
 				)
 			}
 

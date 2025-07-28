@@ -63,7 +63,7 @@ func TestHandlerNew(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	assert.Len(t, res, 1)
+	require.Len(t, res, 1)
 	assert.Equal(t, res[0].Heartbeat.APIKey, "00000000-0000-4000-8000-000000000002")
 }
 

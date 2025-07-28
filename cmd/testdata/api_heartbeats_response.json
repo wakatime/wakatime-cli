@@ -3,19 +3,7 @@
         [
             {
                 "data": {
-                     "branch": "heartbeat",
-                    "category": "coding",
-                    "cursorpos": 12,
-                    "dependencies": ["dep1", "dep2"],
-                    "entity": "/tmp/main.go",
-                    "is_write": true,
-                    "language": "Go",
-                    "lineno": 42,
-                    "lines": 100,
-                    "project": "wakatime-cli",
-                    "type": "file",
-                    "time": 1592868367.219124,
-                    "user_agent": "wakatime/13.0.6"
+                    "id": "L7G8H9I0-J1K2-3456-7890-BCDEF0123457"
                 }
             },
             201
@@ -23,19 +11,7 @@
         [
             {
                 "data": {
-                    "branch": "summary",
-                    "category": "debugging",
-                    "cursorpos": 13,
-                    "dependencies": ["dep3", "dep4"],
-                    "entity": "/tmp/main.py",
-                    "is_write": false,
-                    "language": "Python",
-                    "lineno": 43,
-                    "lines": 101,
-                    "project": "wakatime",
-                    "type": "file",
-                    "time": 1592868386.079084,
-                    "user_agent": "wakatime/13.0.7"
+                    "id": "M8H9I0J1-K2L3-4567-8901-CDEF01234568"
                 }
             },
             201

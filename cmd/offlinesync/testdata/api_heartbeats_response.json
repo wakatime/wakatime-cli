@@ -3,19 +3,7 @@
         [
             {
                 "data": {
-                    "branch": "heartbeat",
-                    "category": "coding",
-                    "cursorpos": 12,
-                    "dependencies": ["dep1", "dep2"],
-                    "entity": "/tmp/main.go",
-                    "is_write": true,
-                    "language": "Go",
-                    "lineno": 42,
-                    "lines": 100,
-                    "project": "wakatime-cli",
-                    "type": "file",
-                    "time": 1592868367.219124,
-                    "user_agent": "wakatime/13.0.6"
+                    "id": "I4D5E6F7-G8H9-0123-4567-89ABCDEF1234"
                 }
             },
             201
@@ -23,19 +11,7 @@
         [
             {
                 "data": {
-                    "branch": "summary",
-                    "category": "debugging",
-                    "cursorpos": 13,
-                    "dependencies": ["dep3", "dep4"],
-                    "entity": "/tmp/main.py",
-                    "is_write": false,
-                    "language": "Python",
-                    "lineno": 43,
-                    "lines": 101,
-                    "project": "wakatime",
-                    "type": "file",
-                    "time": 1592868386.079084,
-                    "user_agent": "wakatime/13.0.7"
+                    "id": "J5E6F7G8-H9I0-1234-5678-9ABCDEF01235"
                 }
             },
             201
@@ -43,19 +19,7 @@
         [
             {
                 "data": {
-                    "branch": "todaygoal",
-                    "category": "building",
-                    "cursorpos": 14,
-                    "dependencies": ["dep5", "dep6"],
-                    "entity": "/tmp/main.js",
-                    "is_write": false,
-                    "language": "JavaScript",
-                    "lineno": 44,
-                    "lines": 102,
-                    "project": "wakatime",
-                    "type": "file",
-                    "time": 1592868394.084354,
-                    "user_agent": "wakatime/13.0.8"
+                    "id": "K6F7G8H9-I0J1-2345-6789-ABCDEF012356"
                 }
             },
             201

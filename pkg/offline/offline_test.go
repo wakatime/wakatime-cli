@@ -88,12 +88,12 @@ func TestWithQueue(t *testing.T) {
 
 		return []heartbeat.Result{
 			{
-				Status:    http.StatusCreated,
-				Heartbeat: testHeartbeats()[0],
+				Status: http.StatusCreated,
+				ID:     "A1B2C3D4-E5F6-4789-A123-456789ABCDEF",
 			},
 			{
-				Status:    http.StatusCreated,
-				Heartbeat: testHeartbeats()[1],
+				Status: http.StatusCreated,
+				ID:     "B2C3D4E5-F6A7-4890-B234-567890BCDEFG",
 			},
 		}, nil
 	})
@@ -108,12 +108,12 @@ func TestWithQueue(t *testing.T) {
 	// check
 	assert.Equal(t, []heartbeat.Result{
 		{
-			Status:    http.StatusCreated,
-			Heartbeat: testHeartbeats()[0],
+			Status: http.StatusCreated,
+			ID:     "A1B2C3D4-E5F6-4789-A123-456789ABCDEF",
 		},
 		{
-			Status:    http.StatusCreated,
-			Heartbeat: testHeartbeats()[1],
+			Status: http.StatusCreated,
+			ID:     "B2C3D4E5-F6A7-4890-B234-567890BCDEFG",
 		},
 	}, results)
 
@@ -245,12 +245,12 @@ func TestWithQueue_InvalidResults(t *testing.T) {
 
 		return []heartbeat.Result{
 			{
-				Status:    201,
-				Heartbeat: testHeartbeats()[0],
+				Status: 201,
+				ID:     "C3D4E5F6-A7B8-4901-C345-678901CDEFGH",
 			},
 			{
-				Status:    500,
-				Heartbeat: testHeartbeats()[1],
+				Status: 500,
+				ID:     "D4E5F6A7-B8C9-4012-D456-789012DEFGHI",
 			},
 			{
 				Status: 429,
@@ -266,12 +266,12 @@ func TestWithQueue_InvalidResults(t *testing.T) {
 	// check
 	assert.Equal(t, []heartbeat.Result{
 		{
-			Status:    201,
-			Heartbeat: testHeartbeats()[0],
+			Status: 201,
+			ID:     "C3D4E5F6-A7B8-4901-C345-678901CDEFGH",
 		},
 		{
-			Status:    500,
-			Heartbeat: testHeartbeats()[1],
+			Status: 500,
+			ID:     "D4E5F6A7-B8C9-4012-D456-789012DEFGHI",
 		},
 		{
 			Status: 429,
@@ -331,8 +331,8 @@ func TestWithQueue_HandleLeftovers(t *testing.T) {
 
 		return []heartbeat.Result{
 			{
-				Status:    201,
-				Heartbeat: testHeartbeats()[0],
+				Status: 201,
+				ID:     "E5F6A7B8-C9D0-4123-E567-890123EFGHIJ",
 			},
 		}, nil
 	})
@@ -344,8 +344,8 @@ func TestWithQueue_HandleLeftovers(t *testing.T) {
 	// check
 	assert.Equal(t, []heartbeat.Result{
 		{
-			Status:    201,
-			Heartbeat: testHeartbeats()[0],
+			Status: 201,
+			ID:     "E5F6A7B8-C9D0-4123-E567-890123EFGHIJ",
 		},
 	}, results)
 
@@ -421,12 +421,12 @@ func TestWithSync(t *testing.T) {
 	handle := opt(func(_ context.Context, _ []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		return []heartbeat.Result{
 			{
-				Status:    http.StatusCreated,
-				Heartbeat: testHeartbeats()[0],
+				Status: http.StatusCreated,
+				ID:     "F6A7B8C9-D0E1-4234-F678-901234FGHIJK",
 			},
 			{
-				Status:    http.StatusCreated,
-				Heartbeat: testHeartbeats()[1],
+				Status: http.StatusCreated,
+				ID:     "A7B8C9D0-E1F2-4345-A789-012345GHIJKL",
 			},
 		}, nil
 	})
@@ -500,8 +500,8 @@ func TestSync_MultipleRequests(t *testing.T) {
 			assert.Len(t, hh, 25)
 
 			result := heartbeat.Result{
-				Status:    http.StatusCreated,
-				Heartbeat: testHeartbeats()[0],
+				Status: http.StatusCreated,
+				ID:     "B8C9D0E1-F2A3-4456-B890-123456HIJKLM",
 			}
 
 			return []heartbeat.Result{
@@ -519,8 +519,8 @@ func TestSync_MultipleRequests(t *testing.T) {
 
 		results := []heartbeat.Result{
 			{
-				Status:    http.StatusCreated,
-				Heartbeat: testHeartbeats()[0],
+				Status: http.StatusCreated,
+				ID:     "C9D0E1F2-A3B4-4567-C901-234567IJKLMN",
 			},
 		}
 
@@ -693,19 +693,19 @@ func TestSync_InvalidResults(t *testing.T) {
 
 			return []heartbeat.Result{
 				{
-					Status:    201,
-					Heartbeat: testHeartbeats()[0],
+					Status: 201,
+					ID:     "D0E1F2A3-B4C5-4678-D012-345678JKLMNO",
 				},
 				// any non 201/202/400 status results will be retried.
 				{
-					Status:    429,
-					Errors:    []string{"Too many heartbeats"},
-					Heartbeat: testHeartbeats()[1],
+					Status: 429,
+					Errors: []string{"Too many heartbeats"},
+					ID:     "E1F2A3B4-C5D6-4789-E123-456789KLMNOP",
 				},
 				// 400 status results will be discarded
 				{
-					Status:    400,
-					Heartbeat: testHeartbeats()[2],
+					Status: 400,
+					ID:     "F2A3B4C5-D6E7-4890-F234-567890LMNOPQ",
 				},
 			}, nil
 		}
@@ -718,8 +718,8 @@ func TestSync_InvalidResults(t *testing.T) {
 
 		return []heartbeat.Result{
 			{
-				Status:    201,
-				Heartbeat: testHeartbeats()[1],
+				Status: 201,
+				ID:     "A3B4C5D6-E7F8-4901-A345-678901MNOPQR",
 			},
 		}, nil
 	})
@@ -795,8 +795,8 @@ func TestSync_SyncLimit(t *testing.T) {
 
 		return []heartbeat.Result{
 			{
-				Status:    201,
-				Heartbeat: testHeartbeats()[0],
+				Status: 201,
+				ID:     "B4C5D6E7-F8A9-4012-B456-789012NOPQRS",
 			},
 		}, nil
 	})
@@ -875,12 +875,12 @@ func TestSync_SyncUnlimited(t *testing.T) {
 
 		return []heartbeat.Result{
 			{
-				Status:    201,
-				Heartbeat: testHeartbeats()[0],
+				Status: 201,
+				ID:     "84DA67BB-14ED-432F-A141-F667196CEDC2",
 			},
 			{
-				Status:    201,
-				Heartbeat: testHeartbeats()[1],
+				Status: 201,
+				ID:     "96CD6874-F014-40B5-A860-7E53B23DA59E",
 			},
 		}, nil
 	})
