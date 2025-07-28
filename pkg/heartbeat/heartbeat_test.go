@@ -157,8 +157,8 @@ func TestNewHandle(t *testing.T) {
 			}, hh)
 			return []heartbeat.Result{
 				{
-					Status:    201,
-					Heartbeat: heartbeat.Heartbeat{},
+					Status: 201,
+					ID:     "D45A3607-CCC6-450E-AC05-7B73E5CC9023",
 				},
 			}, nil
 		},

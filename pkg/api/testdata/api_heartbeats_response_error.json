@@ -3,23 +3,7 @@
         [
             {
                 "data": {
-                    "branch": "",
-                    "category": "coding",
-                    "created_at": "2021-05-27T22:13:33Z",
-                    "cursorpos": null,
-                    "dependencies": [],
-                    "entity": "HIDDEN.go",
-                    "id": "7b094cd9-d9cc-4fe4-8092-86f0ce8f3fb8",
-                    "is_write": true,
-                    "language": "Go",
-                    "lineno": null,
-                    "lines": null,
-                    "machine_name_id": null,
-                    "project": "wakatime-cli",
-                    "time": 1622153573,
-                    "type": "file",
-                    "user_agent_id": null,
-                    "user_id": "9c4a41c0-eb11-4cf5-84b8-d5b7f5e91bea"
+                    "id": "A958CD22-E06F-4914-9C1F-0353C739E729"
                 }
             },
             201
@@ -27,23 +11,7 @@
         [
             {
                 "data": {
-                    "branch": "",
-                    "category": "coding",
-                    "created_at": "2021-05-27T22:13:33Z",
-                    "cursorpos": null,
-                    "dependencies": [],
-                    "entity": "HIDDEN.go",
-                    "id": "631bf0b2-3596-4d09-af5f-558f84d10cc1",
-                    "is_write": true,
-                    "language": "Go",
-                    "lineno": null,
-                    "lines": null,
-                    "machine_name_id": null,
-                    "project": "wakatime-cli",
-                    "time": 1622153573,
-                    "type": "file",
-                    "user_agent_id": null,
-                    "user_id": "9c4a41c0-eb11-4cf5-84b8-d5b7f5e91bea"
+                    "id": "D32BFD31-B952-4811-9AC5-468D9C32EAE5"
                 }
             },
             201
