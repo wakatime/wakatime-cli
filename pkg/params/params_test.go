@@ -99,6 +99,28 @@ func TestLoadHeartbeatParams_ProjectConfigTakesPrecedence(t *testing.T) {
 	assert.False(t, params.GuessLanguage)
 }
 
+func TestLoadHeartbeatParams_AIAdditions(t *testing.T) {
+	v := vipertools.MustNew()
+	v.Set("entity", "/path/to/file")
+	v.Set("ai-additions", "789")
+
+	params, err := paramspkg.LoadHeartbeatParams(t.Context(), v, paramspkg.FlagReadOrderFlagPrecedence)
+	require.NoError(t, err)
+
+	assert.Equal(t, 789, *params.AIAdditions)
+}
+
+func TestLoadHeartbeatParams_AIDeletions(t *testing.T) {
+	v := vipertools.MustNew()
+	v.Set("entity", "/path/to/file")
+	v.Set("ai-deletions", "123")
+
+	params, err := paramspkg.LoadHeartbeatParams(t.Context(), v, paramspkg.FlagReadOrderFlagPrecedence)
+	require.NoError(t, err)
+
+	assert.Equal(t, 123, *params.AIDeletions)
+}
+
 func TestLoadHeartbeatParams_AlternateProject(t *testing.T) {
 	v := vipertools.MustNew()
 	v.Set("entity", "/path/to/file")
@@ -600,6 +622,28 @@ func TestLoadHeartbeat_GuessLanguage_Default(t *testing.T) {
 	assert.False(t, params.GuessLanguage)
 }
 
+func TestLoadHeartbeatParams_HumanAdditions(t *testing.T) {
+	v := vipertools.MustNew()
+	v.Set("entity", "/path/to/file")
+	v.Set("human-additions", "456")
+
+	params, err := paramspkg.LoadHeartbeatParams(t.Context(), v, paramspkg.FlagReadOrderFlagPrecedence)
+	require.NoError(t, err)
+
+	assert.Equal(t, 456, *params.HumanAdditions)
+}
+
+func TestLoadHeartbeatParams_HumanDeletions(t *testing.T) {
+	v := vipertools.MustNew()
+	v.Set("entity", "/path/to/file")
+	v.Set("human-deletions", "899")
+
+	params, err := paramspkg.LoadHeartbeatParams(t.Context(), v, paramspkg.FlagReadOrderFlagPrecedence)
+	require.NoError(t, err)
+
+	assert.Equal(t, 899, *params.HumanDeletions)
+}
+
 func TestLoadHeartbeatParams_IsUnsavedEntity(t *testing.T) {
 	v := vipertools.MustNew()
 	v.Set("entity", "/path/to/file")
@@ -775,100 +819,6 @@ func TestLoadHeartbeatParams_ProjectMap(t *testing.T) {
 			assert.Equal(t, test.Expected, params.Project.MapPatterns)
 		})
 	}
-}
-
-func TestLoadAPIParams_ProjectApiKey(t *testing.T) {
-	ctx := t.Context()
-
-	tests := map[string]struct {
-		Entity   string
-		Regex    regex.Regex
-		APIKey   string
-		Expected []apikey.MapPattern
-	}{
-		"simple regex": {
-			Regex:  regex.NewRegexpWrap(regexp.MustCompile("projects/foo")),
-			APIKey: "00000000-0000-4000-8000-000000000001",
-			Expected: []apikey.MapPattern{
-				{
-					APIKey: "00000000-0000-4000-8000-000000000001",
-					Regex:  regex.NewRegexpWrap(regexp.MustCompile(`(?i)projects/foo`)),
-				},
-			},
-		},
-		"complex regex": {
-			Regex:  regex.NewRegexpWrap(regexp.MustCompile(`^/home/user/projects/bar(\\d+)/`)),
-			APIKey: "00000000-0000-4000-8000-000000000002",
-			Expected: []apikey.MapPattern{
-				{
-					APIKey: "00000000-0000-4000-8000-000000000002",
-					Regex:  regex.NewRegexpWrap(regexp.MustCompile(`(?i)^/home/user/projects/bar(\\d+)/`)),
-				},
-			},
-		},
-		"case insensitive": {
-			Regex:  regex.NewRegexpWrap(regexp.MustCompile("projects/foo")),
-			APIKey: "00000000-0000-4000-8000-000000000001",
-			Expected: []apikey.MapPattern{
-				{
-					APIKey: "00000000-0000-4000-8000-000000000001",
-					Regex:  regex.NewRegexpWrap(regexp.MustCompile(`(?i)projects/foo`)),
-				},
-			},
-		},
-		"api key equal to default": {
-			Regex:    regex.NewRegexpWrap(regexp.MustCompile(`/some/path`)),
-			APIKey:   "00000000-0000-4000-8000-000000000000",
-			Expected: nil,
-		},
-	}
-
-	for name, test := range tests {
-		t.Run(name, func(t *testing.T) {
-			v := vipertools.MustNew()
-			v.Set("key", "00000000-0000-4000-8000-000000000000")
-			v.Set(fmt.Sprintf("project_api_key.%s", test.Regex.String()), test.APIKey)
-
-			params, err := paramspkg.LoadAPIParams(ctx, v, paramspkg.FlagReadOrderFlagPrecedence)
-			require.NoError(t, err)
-
-			assert.Equal(t, test.Expected, params.KeyPatterns)
-		})
-	}
-}
-
-func TestLoadAPIParams_ProjectApiKey_ParseConfig(t *testing.T) {
-	ctx := t.Context()
-
-	v := vipertools.MustNew()
-	v.Set("config", "testdata/.wakatime.cfg")
-	v.Set("entity", "testdata/heartbeat_go.json")
-
-	configFile, err := inipkg.FilePath(ctx, v)
-	require.NoError(t, err)
-
-	err = inipkg.ReadInConfig(v, configFile)
-	require.NoError(t, err)
-
-	params, err := paramspkg.LoadAPIParams(ctx, v, paramspkg.FlagReadOrderFlagPrecedence)
-	require.NoError(t, err)
-
-	expected := []apikey.MapPattern{
-		{
-			APIKey: "00000000-0000-4000-8000-000000000001",
-			Regex:  regex.NewRegexpWrap(regexp.MustCompile("(?i)/some/path")),
-		},
-	}
-
-	assert.Equal(t, expected, params.KeyPatterns)
-}
-
-func TestLoadAPIParams_APIKeyPrefixSupported(t *testing.T) {
-	v := vipertools.MustNew()
-	v.Set("key", "waka_00000000-0000-4000-8000-000000000000")
-
-	_, err := paramspkg.LoadAPIParams(t.Context(), v, paramspkg.FlagReadOrderFlagPrecedence)
-	require.NoError(t, err)
 }
 
 func TestLoadHeartbeatParams_Time(t *testing.T) {
@@ -1981,6 +1931,100 @@ func TestLoadHeartbeatsParams_SubmoduleProjectMap(t *testing.T) {
 	}
 }
 
+func TestLoadAPIParams_ProjectApiKey(t *testing.T) {
+	ctx := t.Context()
+
+	tests := map[string]struct {
+		Entity   string
+		Regex    regex.Regex
+		APIKey   string
+		Expected []apikey.MapPattern
+	}{
+		"simple regex": {
+			Regex:  regex.NewRegexpWrap(regexp.MustCompile("projects/foo")),
+			APIKey: "00000000-0000-4000-8000-000000000001",
+			Expected: []apikey.MapPattern{
+				{
+					APIKey: "00000000-0000-4000-8000-000000000001",
+					Regex:  regex.NewRegexpWrap(regexp.MustCompile(`(?i)projects/foo`)),
+				},
+			},
+		},
+		"complex regex": {
+			Regex:  regex.NewRegexpWrap(regexp.MustCompile(`^/home/user/projects/bar(\\d+)/`)),
+			APIKey: "00000000-0000-4000-8000-000000000002",
+			Expected: []apikey.MapPattern{
+				{
+					APIKey: "00000000-0000-4000-8000-000000000002",
+					Regex:  regex.NewRegexpWrap(regexp.MustCompile(`(?i)^/home/user/projects/bar(\\d+)/`)),
+				},
+			},
+		},
+		"case insensitive": {
+			Regex:  regex.NewRegexpWrap(regexp.MustCompile("projects/foo")),
+			APIKey: "00000000-0000-4000-8000-000000000001",
+			Expected: []apikey.MapPattern{
+				{
+					APIKey: "00000000-0000-4000-8000-000000000001",
+					Regex:  regex.NewRegexpWrap(regexp.MustCompile(`(?i)projects/foo`)),
+				},
+			},
+		},
+		"api key equal to default": {
+			Regex:    regex.NewRegexpWrap(regexp.MustCompile(`/some/path`)),
+			APIKey:   "00000000-0000-4000-8000-000000000000",
+			Expected: nil,
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			v := vipertools.MustNew()
+			v.Set("key", "00000000-0000-4000-8000-000000000000")
+			v.Set(fmt.Sprintf("project_api_key.%s", test.Regex.String()), test.APIKey)
+
+			params, err := paramspkg.LoadAPIParams(ctx, v, paramspkg.FlagReadOrderFlagPrecedence)
+			require.NoError(t, err)
+
+			assert.Equal(t, test.Expected, params.KeyPatterns)
+		})
+	}
+}
+
+func TestLoadAPIParams_ProjectApiKey_ParseConfig(t *testing.T) {
+	ctx := t.Context()
+
+	v := vipertools.MustNew()
+	v.Set("config", "testdata/.wakatime.cfg")
+	v.Set("entity", "testdata/heartbeat_go.json")
+
+	configFile, err := inipkg.FilePath(ctx, v)
+	require.NoError(t, err)
+
+	err = inipkg.ReadInConfig(v, configFile)
+	require.NoError(t, err)
+
+	params, err := paramspkg.LoadAPIParams(ctx, v, paramspkg.FlagReadOrderFlagPrecedence)
+	require.NoError(t, err)
+
+	expected := []apikey.MapPattern{
+		{
+			APIKey: "00000000-0000-4000-8000-000000000001",
+			Regex:  regex.NewRegexpWrap(regexp.MustCompile("(?i)/some/path")),
+		},
+	}
+
+	assert.Equal(t, expected, params.KeyPatterns)
+}
+
+func TestLoadAPIParams_APIKeyPrefixSupported(t *testing.T) {
+	v := vipertools.MustNew()
+	v.Set("key", "waka_00000000-0000-4000-8000-000000000000")
+
+	_, err := paramspkg.LoadAPIParams(t.Context(), v, paramspkg.FlagReadOrderFlagPrecedence)
+	require.NoError(t, err)
+}
+
 func TestLoadAPIParams_Plugin(t *testing.T) {
 	v := vipertools.MustNew()
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
@@ -2078,165 +2122,6 @@ func TestLoadAPIParams_Timeout_NonIntegerValue(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, time.Duration(api.DefaultTimeoutSecs)*time.Second, params.Timeout)
-}
-
-func TestLoadOfflineParams_Disabled_ConfigTakesPrecedence(t *testing.T) {
-	v := vipertools.MustNew()
-	v.Set("settings.offline", false)
-
-	params := paramspkg.LoadOfflineParams(t.Context(), v, paramspkg.FlagReadOrderFlagPrecedence)
-
-	assert.True(t, params.Disabled)
-}
-
-func TestLoadOfflineParams_Disabled_FlagDeprecatedTakesPrecedence(t *testing.T) {
-	v := vipertools.MustNew()
-	v.Set("disable-offline", false)
-	v.Set("disableoffline", true)
-
-	params := paramspkg.LoadOfflineParams(t.Context(), v, paramspkg.FlagReadOrderFlagPrecedence)
-
-	assert.False(t, params.Disabled)
-}
-
-func TestLoadOfflineParams_Disabled_FromFlag(t *testing.T) {
-	v := vipertools.MustNew()
-	v.Set("disable-offline", true)
-
-	params := paramspkg.LoadOfflineParams(t.Context(), v, paramspkg.FlagReadOrderFlagPrecedence)
-
-	assert.True(t, params.Disabled)
-}
-
-func TestLoadOfflineParams_RateLimit_FlagTakesPrecedence(t *testing.T) {
-	v := vipertools.MustNew()
-	v.Set("heartbeat-rate-limit-seconds", 5)
-	v.Set("settings.heartbeat_rate_limit_seconds", 10)
-
-	params := paramspkg.LoadOfflineParams(t.Context(), v, paramspkg.FlagReadOrderFlagPrecedence)
-
-	assert.Equal(t, time.Duration(5)*time.Second, params.RateLimit)
-}
-
-func TestLoadOfflineParams_RateLimit_FromConfig(t *testing.T) {
-	v := vipertools.MustNew()
-	v.Set("settings.heartbeat_rate_limit_seconds", 10)
-
-	params := paramspkg.LoadOfflineParams(t.Context(), v, paramspkg.FlagReadOrderFlagPrecedence)
-
-	assert.Equal(t, time.Duration(10)*time.Second, params.RateLimit)
-}
-
-func TestLoadOfflineParams_RateLimit_Zero(t *testing.T) {
-	v := vipertools.MustNew()
-	v.Set("heartbeat-rate-limit-seconds", 0)
-
-	params := paramspkg.LoadOfflineParams(t.Context(), v, paramspkg.FlagReadOrderFlagPrecedence)
-
-	assert.Zero(t, params.RateLimit)
-}
-
-func TestLoadOfflineParams_RateLimit_Default(t *testing.T) {
-	v := vipertools.MustNew()
-	v.SetDefault("heartbeat-rate-limit-seconds", offline.RateLimitDefaultSeconds)
-
-	params := paramspkg.LoadOfflineParams(t.Context(), v, paramspkg.FlagReadOrderFlagPrecedence)
-
-	assert.Equal(t, time.Duration(offline.RateLimitDefaultSeconds)*time.Second, params.RateLimit)
-}
-
-func TestLoadOfflineParams_RateLimit_NegativeNumber(t *testing.T) {
-	v := vipertools.MustNew()
-	v.Set("heartbeat-rate-limit-seconds", -1)
-
-	params := paramspkg.LoadOfflineParams(t.Context(), v, paramspkg.FlagReadOrderFlagPrecedence)
-
-	assert.Zero(t, params.RateLimit)
-}
-
-func TestLoadOfflineParams_RateLimit_NonIntegerValue(t *testing.T) {
-	v := vipertools.MustNew()
-	v.Set("heartbeat-rate-limit-seconds", "invalid")
-
-	params := paramspkg.LoadOfflineParams(t.Context(), v, paramspkg.FlagReadOrderFlagPrecedence)
-
-	assert.Equal(t, time.Duration(offline.RateLimitDefaultSeconds)*time.Second, params.RateLimit)
-}
-
-func TestLoadOfflineParams_LastSentAt(t *testing.T) {
-	v := vipertools.MustNew()
-	v.Set("internal.heartbeats_last_sent_at", "2021-08-30T18:50:42-03:00")
-
-	params := paramspkg.LoadOfflineParams(t.Context(), v, paramspkg.FlagReadOrderFlagPrecedence)
-
-	lastSentAt, err := time.Parse(inipkg.DateFormat, "2021-08-30T18:50:42-03:00")
-	require.NoError(t, err)
-
-	assert.Equal(t, lastSentAt, params.LastSentAt)
-}
-
-func TestLoadOfflineParams_LastSentAt_Err(t *testing.T) {
-	v := vipertools.MustNew()
-	v.Set("internal.heartbeats_last_sent_at", "2021-08-30")
-
-	params := paramspkg.LoadOfflineParams(t.Context(), v, paramspkg.FlagReadOrderFlagPrecedence)
-
-	assert.Zero(t, params.LastSentAt)
-}
-
-func TestLoadOfflineParams_LastSentAtFuture(t *testing.T) {
-	v := vipertools.MustNew()
-	lastSentAt := time.Now().Add(2 * time.Hour)
-	v.Set("internal.heartbeats_last_sent_at", lastSentAt.Format(inipkg.DateFormat))
-
-	params := paramspkg.LoadOfflineParams(t.Context(), v, paramspkg.FlagReadOrderFlagPrecedence)
-
-	assert.LessOrEqual(t, params.LastSentAt, time.Now())
-}
-
-func TestLoadOfflineParams_SyncMax(t *testing.T) {
-	v := vipertools.MustNew()
-	v.Set("sync-offline-activity", 42)
-
-	params := paramspkg.LoadOfflineParams(t.Context(), v, paramspkg.FlagReadOrderFlagPrecedence)
-
-	assert.Equal(t, 42, params.SyncMax)
-}
-
-func TestLoadOfflineParams_SyncMax_Zero(t *testing.T) {
-	v := vipertools.MustNew()
-	v.Set("sync-offline-activity", "0")
-
-	params := paramspkg.LoadOfflineParams(t.Context(), v, paramspkg.FlagReadOrderFlagPrecedence)
-
-	assert.Equal(t, math.MaxInt32, params.SyncMax)
-}
-
-func TestLoadOfflineParams_SyncMax_Default(t *testing.T) {
-	v := vipertools.MustNew()
-	v.SetDefault("sync-offline-activity", 1000)
-
-	params := paramspkg.LoadOfflineParams(t.Context(), v, paramspkg.FlagReadOrderFlagPrecedence)
-
-	assert.Equal(t, 1000, params.SyncMax)
-}
-
-func TestLoadOfflineParams_SyncMax_NegativeNumber(t *testing.T) {
-	v := vipertools.MustNew()
-	v.Set("sync-offline-activity", -1)
-
-	params := paramspkg.LoadOfflineParams(t.Context(), v, paramspkg.FlagReadOrderFlagPrecedence)
-
-	assert.Equal(t, math.MaxInt32, params.SyncMax)
-}
-
-func TestLoadOfflineParams_SyncMax_NonIntegerValue(t *testing.T) {
-	v := vipertools.MustNew()
-	v.Set("sync-offline-activity", "invalid")
-
-	params := paramspkg.LoadOfflineParams(t.Context(), v, paramspkg.FlagReadOrderFlagPrecedence)
-
-	assert.Equal(t, math.MaxInt32, params.SyncMax)
 }
 
 func TestLoadAPIParams_APIKey(t *testing.T) {
@@ -2814,6 +2699,165 @@ func TestLoadAPIParams_Hostname_DefaultFromSystem(t *testing.T) {
 	assert.Equal(t, expected, params.Hostname)
 }
 
+func TestLoadOfflineParams_Disabled_ConfigTakesPrecedence(t *testing.T) {
+	v := vipertools.MustNew()
+	v.Set("settings.offline", false)
+
+	params := paramspkg.LoadOfflineParams(t.Context(), v, paramspkg.FlagReadOrderFlagPrecedence)
+
+	assert.True(t, params.Disabled)
+}
+
+func TestLoadOfflineParams_Disabled_FlagDeprecatedTakesPrecedence(t *testing.T) {
+	v := vipertools.MustNew()
+	v.Set("disable-offline", false)
+	v.Set("disableoffline", true)
+
+	params := paramspkg.LoadOfflineParams(t.Context(), v, paramspkg.FlagReadOrderFlagPrecedence)
+
+	assert.False(t, params.Disabled)
+}
+
+func TestLoadOfflineParams_Disabled_FromFlag(t *testing.T) {
+	v := vipertools.MustNew()
+	v.Set("disable-offline", true)
+
+	params := paramspkg.LoadOfflineParams(t.Context(), v, paramspkg.FlagReadOrderFlagPrecedence)
+
+	assert.True(t, params.Disabled)
+}
+
+func TestLoadOfflineParams_RateLimit_FlagTakesPrecedence(t *testing.T) {
+	v := vipertools.MustNew()
+	v.Set("heartbeat-rate-limit-seconds", 5)
+	v.Set("settings.heartbeat_rate_limit_seconds", 10)
+
+	params := paramspkg.LoadOfflineParams(t.Context(), v, paramspkg.FlagReadOrderFlagPrecedence)
+
+	assert.Equal(t, time.Duration(5)*time.Second, params.RateLimit)
+}
+
+func TestLoadOfflineParams_RateLimit_FromConfig(t *testing.T) {
+	v := vipertools.MustNew()
+	v.Set("settings.heartbeat_rate_limit_seconds", 10)
+
+	params := paramspkg.LoadOfflineParams(t.Context(), v, paramspkg.FlagReadOrderFlagPrecedence)
+
+	assert.Equal(t, time.Duration(10)*time.Second, params.RateLimit)
+}
+
+func TestLoadOfflineParams_RateLimit_Zero(t *testing.T) {
+	v := vipertools.MustNew()
+	v.Set("heartbeat-rate-limit-seconds", 0)
+
+	params := paramspkg.LoadOfflineParams(t.Context(), v, paramspkg.FlagReadOrderFlagPrecedence)
+
+	assert.Zero(t, params.RateLimit)
+}
+
+func TestLoadOfflineParams_RateLimit_Default(t *testing.T) {
+	v := vipertools.MustNew()
+	v.SetDefault("heartbeat-rate-limit-seconds", offline.RateLimitDefaultSeconds)
+
+	params := paramspkg.LoadOfflineParams(t.Context(), v, paramspkg.FlagReadOrderFlagPrecedence)
+
+	assert.Equal(t, time.Duration(offline.RateLimitDefaultSeconds)*time.Second, params.RateLimit)
+}
+
+func TestLoadOfflineParams_RateLimit_NegativeNumber(t *testing.T) {
+	v := vipertools.MustNew()
+	v.Set("heartbeat-rate-limit-seconds", -1)
+
+	params := paramspkg.LoadOfflineParams(t.Context(), v, paramspkg.FlagReadOrderFlagPrecedence)
+
+	assert.Zero(t, params.RateLimit)
+}
+
+func TestLoadOfflineParams_RateLimit_NonIntegerValue(t *testing.T) {
+	v := vipertools.MustNew()
+	v.Set("heartbeat-rate-limit-seconds", "invalid")
+
+	params := paramspkg.LoadOfflineParams(t.Context(), v, paramspkg.FlagReadOrderFlagPrecedence)
+
+	assert.Equal(t, time.Duration(offline.RateLimitDefaultSeconds)*time.Second, params.RateLimit)
+}
+
+func TestLoadOfflineParams_LastSentAt(t *testing.T) {
+	v := vipertools.MustNew()
+	v.Set("internal.heartbeats_last_sent_at", "2021-08-30T18:50:42-03:00")
+
+	params := paramspkg.LoadOfflineParams(t.Context(), v, paramspkg.FlagReadOrderFlagPrecedence)
+
+	lastSentAt, err := time.Parse(inipkg.DateFormat, "2021-08-30T18:50:42-03:00")
+	require.NoError(t, err)
+
+	assert.Equal(t, lastSentAt, params.LastSentAt)
+}
+
+func TestLoadOfflineParams_LastSentAt_Err(t *testing.T) {
+	v := vipertools.MustNew()
+	v.Set("internal.heartbeats_last_sent_at", "2021-08-30")
+
+	params := paramspkg.LoadOfflineParams(t.Context(), v, paramspkg.FlagReadOrderFlagPrecedence)
+
+	assert.Zero(t, params.LastSentAt)
+}
+
+func TestLoadOfflineParams_LastSentAtFuture(t *testing.T) {
+	v := vipertools.MustNew()
+	lastSentAt := time.Now().Add(2 * time.Hour)
+	v.Set("internal.heartbeats_last_sent_at", lastSentAt.Format(inipkg.DateFormat))
+
+	params := paramspkg.LoadOfflineParams(t.Context(), v, paramspkg.FlagReadOrderFlagPrecedence)
+
+	assert.LessOrEqual(t, params.LastSentAt, time.Now())
+}
+
+func TestLoadOfflineParams_SyncMax(t *testing.T) {
+	v := vipertools.MustNew()
+	v.Set("sync-offline-activity", 42)
+
+	params := paramspkg.LoadOfflineParams(t.Context(), v, paramspkg.FlagReadOrderFlagPrecedence)
+
+	assert.Equal(t, 42, params.SyncMax)
+}
+
+func TestLoadOfflineParams_SyncMax_Zero(t *testing.T) {
+	v := vipertools.MustNew()
+	v.Set("sync-offline-activity", "0")
+
+	params := paramspkg.LoadOfflineParams(t.Context(), v, paramspkg.FlagReadOrderFlagPrecedence)
+
+	assert.Equal(t, math.MaxInt32, params.SyncMax)
+}
+
+func TestLoadOfflineParams_SyncMax_Default(t *testing.T) {
+	v := vipertools.MustNew()
+	v.SetDefault("sync-offline-activity", 1000)
+
+	params := paramspkg.LoadOfflineParams(t.Context(), v, paramspkg.FlagReadOrderFlagPrecedence)
+
+	assert.Equal(t, 1000, params.SyncMax)
+}
+
+func TestLoadOfflineParams_SyncMax_NegativeNumber(t *testing.T) {
+	v := vipertools.MustNew()
+	v.Set("sync-offline-activity", -1)
+
+	params := paramspkg.LoadOfflineParams(t.Context(), v, paramspkg.FlagReadOrderFlagPrecedence)
+
+	assert.Equal(t, math.MaxInt32, params.SyncMax)
+}
+
+func TestLoadOfflineParams_SyncMax_NonIntegerValue(t *testing.T) {
+	v := vipertools.MustNew()
+	v.Set("sync-offline-activity", "invalid")
+
+	params := paramspkg.LoadOfflineParams(t.Context(), v, paramspkg.FlagReadOrderFlagPrecedence)
+
+	assert.Equal(t, math.MaxInt32, params.SyncMax)
+}
+
 func TestLoadStatusBarParams_HideCategories_FlagTakesPrecedence(t *testing.T) {
 	v := vipertools.MustNew()
 	v.Set("today-hide-categories", false)
@@ -2999,17 +3043,19 @@ func TestFilterParams_String(t *testing.T) {
 
 func TestHeartbeat_String(t *testing.T) {
 	heartbeat := paramspkg.Heartbeat{
+		AIAdditions:     heartbeat.PointerTo(789),
+		AIDeletions:     heartbeat.PointerTo(101112),
 		Category:        heartbeat.CodingCategory,
 		CursorPosition:  heartbeat.PointerTo(15),
 		Entity:          "path/to/entity.go",
 		EntityType:      heartbeat.FileType,
 		ExtraHeartbeats: make([]heartbeat.Heartbeat, 3),
 		GuessLanguage:   true,
+		HumanAdditions:  heartbeat.PointerTo(123),
+		HumanDeletions:  heartbeat.PointerTo(456),
 		IsUnsavedEntity: true,
 		IsWrite:         heartbeat.PointerTo(true),
 		Language:        heartbeat.PointerTo("Golang"),
-		LineAdditions:   heartbeat.PointerTo(123),
-		LineDeletions:   heartbeat.PointerTo(456),
 		LineNumber:      heartbeat.PointerTo(4),
 		LinesInFile:     heartbeat.PointerTo(56),
 		Time:            1585598059,
@@ -3017,9 +3063,10 @@ func TestHeartbeat_String(t *testing.T) {
 
 	assert.Equal(
 		t,
-		"category: 'coding', cursor position: '15', entity: 'path/to/entity.go', entity type: 'file',"+
-			" num extra heartbeats: 3, guess language: true, is unsaved entity: true, is write: true,"+
-			" language: 'Golang', line additions: '123', line deletions: '456', line number: '4',"+
+		"ai additions: '789', ai deletions: '101112', category: 'coding', cursor position: '15',"+
+			" entity: 'path/to/entity.go', entity type: 'file', num extra heartbeats: 3,"+
+			" guess language: true, human additions: '123', human deletions: '456',"+
+			" is unsaved entity: true, is write: true, language: 'Golang', line number: '4',"+
 			" lines in file: '56', time: 1585598059.00000, filter params: (exclude: '[]',"+
 			" exclude unknown project: false, include: '[]', include only with"+
 			" project file: false), project params: (alternate: '', branch alternate: '', map patterns:"+
