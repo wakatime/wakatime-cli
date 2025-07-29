@@ -52,6 +52,8 @@ func NewRootCMD() *cobra.Command {
 
 func setFlags(cmd *cobra.Command, v *viper.Viper) {
 	flags := cmd.Flags()
+	flags.Int("ai-additions", 0, "Optional number of lines added by AI since last heartbeat in the current file.")
+	flags.Int("ai-deletions", 0, "Optional number of lines deleted by AI since last heartbeat in the current file.")
 	flags.String("alternate-branch", "", "Optional alternate branch name. Auto-detected branch takes priority.")
 	flags.String("alternate-language", "", "Optional alternate language name. Auto-detected language takes priority.")
 	flags.String("alternate-project", "", "Optional alternate project name. Auto-detected project takes priority.")
@@ -149,6 +151,8 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 			" created with a random project name.",
 	)
 	flags.String("hostname", "", "Optional name of local machine. Defaults to local machine name read from system.")
+	flags.Int("human-additions", 0, "Optional number of lines added by humans since last heartbeat in the current file.")
+	flags.Int("human-deletions", 0, "Optional number of lines deleted by humans since last heartbeat in the current file.")
 	flags.StringSlice(
 		"include",
 		nil,
@@ -175,8 +179,6 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 		0,
 		"Optional lines in the file. Normally, this is detected automatically but"+
 			" can be provided manually for performance, accuracy, or when using --local-file.")
-	flags.Int("line-additions", 0, "Optional number of lines added since last heartbeat in the current file.")
-	flags.Int("line-deletions", 0, "Optional number of lines deleted since last heartbeat in the current file.")
 	flags.String(
 		"local-file",
 		"",

@@ -178,40 +178,44 @@ type (
 
 	// ExtraHeartbeat contains extra heartbeat.
 	ExtraHeartbeat struct {
+		AIAdditions       any     `json:"ai_additions"`
+		AIDeletions       any     `json:"ai_deletions"`
 		BranchAlternate   string  `json:"alternate_branch"`
 		Category          string  `json:"category"`
 		CursorPosition    any     `json:"cursorpos"`
 		Entity            string  `json:"entity"`
 		EntityType        string  `json:"entity_type"`
-		Type              string  `json:"type"`
+		HumanAdditions    any     `json:"human_additions"`
+		HumanDeletions    any     `json:"human_deletions"`
 		IsUnsavedEntity   any     `json:"is_unsaved_entity"`
 		IsWrite           any     `json:"is_write"`
 		Language          *string `json:"language"`
 		LanguageAlternate string  `json:"alternate_language"`
-		LineAdditions     any     `json:"line_additions"`
-		LineDeletions     any     `json:"line_deletions"`
 		LineNumber        any     `json:"lineno"`
 		Lines             any     `json:"lines"`
 		Project           string  `json:"project"`
 		ProjectAlternate  string  `json:"alternate_project"`
 		Time              any     `json:"time"`
 		Timestamp         any     `json:"timestamp"`
+		Type              string  `json:"type"`
 	}
 
 	// Heartbeat contains heartbeat command parameters.
 	Heartbeat struct {
+		AIAdditions       *int
+		AIDeletions       *int
 		Category          heartbeat.Category
 		CursorPosition    *int
 		Entity            string
 		EntityType        heartbeat.EntityType
 		ExtraHeartbeats   []heartbeat.Heartbeat
 		GuessLanguage     bool
+		HumanAdditions    *int
+		HumanDeletions    *int
 		IsUnsavedEntity   bool
 		IsWrite           *bool
 		Language          *string
 		LanguageAlternate string
-		LineAdditions     *int
-		LineDeletions     *int
 		LineNumber        *int
 		LinesInFile       *int
 		LocalFile         string
@@ -465,6 +469,16 @@ func loadAPIKey(ctx context.Context, v *viper.Viper, order FlagReadOrder) (strin
 
 // LoadHeartbeatParams loads heartbeats params from viper.Viper instance.
 func LoadHeartbeatParams(ctx context.Context, v *viper.Viper, order FlagReadOrder) (Heartbeat, error) {
+	var aiAdditions *int
+	if num := v.GetInt("ai-additions"); v.IsSet("ai-additions") {
+		aiAdditions = heartbeat.PointerTo(num)
+	}
+
+	var aiDeletions *int
+	if num := v.GetInt("ai-deletions"); v.IsSet("ai-deletions") {
+		aiDeletions = heartbeat.PointerTo(num)
+	}
+
 	var category heartbeat.Category
 
 	if categoryStr := vipertools.GetString(v, "category"); categoryStr != "" {
@@ -513,14 +527,14 @@ func LoadHeartbeatParams(ctx context.Context, v *viper.Viper, order FlagReadOrde
 		isWrite = heartbeat.PointerTo(b)
 	}
 
-	var lineAdditions *int
-	if num := v.GetInt("line-additions"); v.IsSet("line-additions") {
-		lineAdditions = heartbeat.PointerTo(num)
+	var humanAdditions *int
+	if num := v.GetInt("human-additions"); v.IsSet("human-additions") {
+		humanAdditions = heartbeat.PointerTo(num)
 	}
 
-	var lineDeletions *int
-	if num := v.GetInt("line-deletions"); v.IsSet("line-deletions") {
-		lineDeletions = heartbeat.PointerTo(num)
+	var humanDeletions *int
+	if num := v.GetInt("human-deletions"); v.IsSet("human-deletions") {
+		humanDeletions = heartbeat.PointerTo(num)
 	}
 
 	var lineNumber *int
@@ -559,18 +573,20 @@ func LoadHeartbeatParams(ctx context.Context, v *viper.Viper, order FlagReadOrde
 	}
 
 	return Heartbeat{
+		AIAdditions:       aiAdditions,
+		AIDeletions:       aiDeletions,
 		Category:          category,
 		CursorPosition:    cursorPosition,
 		Entity:            entity,
 		ExtraHeartbeats:   extraHeartbeats,
 		EntityType:        entityType,
 		GuessLanguage:     vipertools.FirstNonEmptyBool(v, guessLanguageOrder[order]...),
+		HumanAdditions:    humanAdditions,
+		HumanDeletions:    humanDeletions,
 		IsUnsavedEntity:   v.GetBool("is-unsaved-entity"),
 		IsWrite:           isWrite,
 		Language:          language,
 		LanguageAlternate: vipertools.GetString(v, "alternate-language"),
-		LineAdditions:     lineAdditions,
-		LineDeletions:     lineDeletions,
 		LineNumber:        lineNumber,
 		LinesInFile:       linesInFile,
 		LocalFile:         vipertools.GetString(v, "local-file"),
@@ -1143,6 +1159,16 @@ func (p FilterParams) String() string {
 
 // String implements fmt.Stringer interface.
 func (p Heartbeat) String() string {
+	var aiAdditions string
+	if p.AIAdditions != nil {
+		aiAdditions = strconv.Itoa(*p.AIAdditions)
+	}
+
+	var aiDeletions string
+	if p.AIDeletions != nil {
+		aiDeletions = strconv.Itoa(*p.AIDeletions)
+	}
+
 	var cursorPosition string
 	if p.CursorPosition != nil {
 		cursorPosition = strconv.Itoa(*p.CursorPosition)
@@ -1158,14 +1184,14 @@ func (p Heartbeat) String() string {
 		language = *p.Language
 	}
 
-	var lineAdditions string
-	if p.LineAdditions != nil {
-		lineAdditions = strconv.Itoa(*p.LineAdditions)
+	var humanAdditions string
+	if p.HumanAdditions != nil {
+		humanAdditions = strconv.Itoa(*p.HumanAdditions)
 	}
 
-	var lineDeletions string
-	if p.LineDeletions != nil {
-		lineDeletions = strconv.Itoa(*p.LineDeletions)
+	var humanDeletions string
+	if p.HumanDeletions != nil {
+		humanDeletions = strconv.Itoa(*p.HumanDeletions)
 	}
 
 	var lineNumber string
@@ -1179,22 +1205,24 @@ func (p Heartbeat) String() string {
 	}
 
 	return fmt.Sprintf(
-		"category: '%s', cursor position: '%s', entity: '%s', entity type: '%s',"+
-			" num extra heartbeats: %d, guess language: %t, is unsaved entity: %t,"+
-			" is write: %t, language: '%s', line additions: '%s', line deletions: '%s',"+
+		"ai additions: '%s', ai deletions: '%s', category: '%s', cursor position: '%s', entity: '%s',"+
+			" entity type: '%s', num extra heartbeats: %d, guess language: %t, human additions: '%s',"+
+			" human deletions: '%s', is unsaved entity: %t, is write: %t, language: '%s',"+
 			" line number: '%s', lines in file: '%s', time: %.5f, filter params: (%s),"+
 			" project params: (%s), sanitize params: (%s)",
+		aiAdditions,
+		aiDeletions,
 		p.Category,
 		cursorPosition,
 		p.Entity,
 		p.EntityType,
 		len(p.ExtraHeartbeats),
 		p.GuessLanguage,
+		humanAdditions,
+		humanDeletions,
 		p.IsUnsavedEntity,
 		isWrite,
 		language,
-		lineAdditions,
-		lineDeletions,
 		lineNumber,
 		linesInFile,
 		p.Time,

@@ -163,6 +163,7 @@ func parseHeartbeatResponse(ctx context.Context, data []json.RawMessage) (heartb
 	}
 
 	var responseBodyData responseBody
+
 	err = json.Unmarshal(data[0], &responseBodyData)
 	if err != nil {
 		return heartbeat.Result{}, fmt.Errorf("failed to parse json heartbeat: %s", err)
