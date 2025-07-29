@@ -20,19 +20,21 @@ import (
 
 func TestNew(t *testing.T) {
 	h := heartbeat.New(
+		heartbeat.PointerTo(5),
+		heartbeat.PointerTo(3),
 		"feature/branch",
 		heartbeat.CodingCategory.String(),
 		heartbeat.PointerTo(12),
 		"testdata/main.go",
 		heartbeat.FileType,
+		heartbeat.PointerTo(2),
+		heartbeat.PointerTo(3),
 		true,
 		heartbeat.PointerTo(true),
 		heartbeat.PointerTo("Go"),
 		"Golang",
-		heartbeat.PointerTo(2),
-		heartbeat.PointerTo(3),
 		heartbeat.PointerTo(42),
-		nil,
+		heartbeat.PointerTo(100),
 		"/path/to/file",
 		"billing",
 		false,
@@ -45,17 +47,20 @@ func TestNew(t *testing.T) {
 	assert.True(t, strings.HasSuffix(h.Entity, "testdata/main.go"))
 
 	assert.Equal(t, heartbeat.Heartbeat{
+		AIAdditions:         heartbeat.PointerTo(5),
+		AIDeletions:         heartbeat.PointerTo(3),
 		BranchAlternate:     "feature/branch",
 		Category:            heartbeat.CodingCategory.String(),
 		CursorPosition:      heartbeat.PointerTo(12),
 		EntityType:          heartbeat.FileType,
+		HumanAdditions:      heartbeat.PointerTo(2),
+		HumanDeletions:      heartbeat.PointerTo(3),
 		IsUnsavedEntity:     true,
 		IsWrite:             heartbeat.PointerTo(true),
 		Language:            heartbeat.PointerTo("Go"),
 		LanguageAlternate:   "Golang",
-		LineAdditions:       heartbeat.PointerTo(2),
-		LineDeletions:       heartbeat.PointerTo(3),
 		LineNumber:          heartbeat.PointerTo(42),
+		Lines:               heartbeat.PointerTo(100),
 		LocalFile:           "/path/to/file",
 		ProjectAlternate:    "billing",
 		ProjectOverride:     "pci",
@@ -90,16 +95,18 @@ func TestHeartbeat_ID_NilFields(t *testing.T) {
 
 func TestHeartbeat_JSON(t *testing.T) {
 	h := heartbeat.Heartbeat{
+		AIAdditions:    heartbeat.PointerTo(5),
+		AIDeletions:    heartbeat.PointerTo(3),
 		Branch:         heartbeat.PointerTo("heartbeat"),
 		Category:       heartbeat.DebuggingCategory.String(),
 		CursorPosition: heartbeat.PointerTo(12),
 		Dependencies:   []string{"dep1", "dep2"},
 		Entity:         "/tmp/main.go",
 		EntityType:     heartbeat.FileType,
+		HumanAdditions: heartbeat.PointerTo(2),
+		HumanDeletions: heartbeat.PointerTo(3),
 		IsWrite:        heartbeat.PointerTo(true),
 		Language:       heartbeat.PointerTo("Go"),
-		LineAdditions:  heartbeat.PointerTo(123),
-		LineDeletions:  heartbeat.PointerTo(456),
 		LineNumber:     heartbeat.PointerTo(42),
 		Lines:          heartbeat.PointerTo(100),
 		Project:        heartbeat.PointerTo("wakatime"),
@@ -157,8 +164,8 @@ func TestNewHandle(t *testing.T) {
 			}, hh)
 			return []heartbeat.Result{
 				{
-					Status:    201,
-					Heartbeat: heartbeat.Heartbeat{},
+					Status: 201,
+					ID:     "D45A3607-CCC6-450E-AC05-7B73E5CC9023",
 				},
 			}, nil
 		},

@@ -65,31 +65,11 @@ func TestClient_SendHeartbeats(t *testing.T) {
 			assert.Equal(t, []heartbeat.Result{
 				{
 					Status: http.StatusCreated,
-					Heartbeat: heartbeat.Heartbeat{
-						Branch:         heartbeat.PointerTo("heartbeat"),
-						Category:       heartbeat.CodingCategory.String(),
-						CursorPosition: heartbeat.PointerTo(12),
-						Dependencies:   []string{"dep1", "dep2"},
-						Entity:         "/tmp/main.go",
-						EntityType:     heartbeat.FileType,
-						IsWrite:        heartbeat.PointerTo(true),
-						Language:       heartbeat.PointerTo("Go"),
-						LineNumber:     heartbeat.PointerTo(42),
-						Lines:          heartbeat.PointerTo(100),
-						Project:        heartbeat.PointerTo("wakatime-cli"),
-						Time:           1585598059,
-						UserAgent:      "wakatime/13.0.6",
-					},
+					ID:     "3F39FF6A-20A2-413E-8621-54AC80C3B5A2",
 				},
 				{
 					Status: http.StatusCreated,
-					Heartbeat: heartbeat.Heartbeat{
-						Category:   heartbeat.DebuggingCategory.String(),
-						Entity:     "HIDDEN.py",
-						EntityType: heartbeat.FileType,
-						Time:       1585598060,
-						UserAgent:  "wakatime/13.0.7",
-					},
+					ID:     "FD2F9CCA-6AE0-4ECB-A246-4AF8832F614C",
 				},
 			}, results)
 
@@ -269,38 +249,11 @@ func TestParseHeartbeatResponses(t *testing.T) {
 	assert.Equal(t, results, []heartbeat.Result{
 		{
 			Status: http.StatusCreated,
-			Heartbeat: heartbeat.Heartbeat{
-				Branch:         heartbeat.PointerTo("heartbeat"),
-				Category:       heartbeat.CodingCategory.String(),
-				CursorPosition: heartbeat.PointerTo(12),
-				Dependencies:   []string{"dep1", "dep2"},
-				Entity:         "/tmp/main.go",
-				EntityType:     heartbeat.FileType,
-				IsWrite:        heartbeat.PointerTo(true),
-				Language:       heartbeat.PointerTo("Go"),
-				LineNumber:     heartbeat.PointerTo(42),
-				Lines:          heartbeat.PointerTo(100),
-				Project:        heartbeat.PointerTo("wakatime-cli"),
-				Time:           1585598059,
-				UserAgent:      "wakatime/13.0.6",
-			},
+			ID:     "3F39FF6A-20A2-413E-8621-54AC80C3B5A2",
 		},
 		{
 			Status: http.StatusCreated,
-			Heartbeat: heartbeat.Heartbeat{
-				Branch:         nil,
-				Category:       heartbeat.DebuggingCategory.String(),
-				CursorPosition: nil,
-				Dependencies:   nil,
-				Entity:         "HIDDEN.py",
-				EntityType:     heartbeat.FileType,
-				IsWrite:        nil,
-				LineNumber:     nil,
-				Lines:          nil,
-				Project:        nil,
-				Time:           1585598060,
-				UserAgent:      "wakatime/13.0.7",
-			},
+			ID:     "FD2F9CCA-6AE0-4ECB-A246-4AF8832F614C",
 		},
 	})
 }

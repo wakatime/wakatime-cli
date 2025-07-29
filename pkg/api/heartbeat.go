@@ -135,8 +135,12 @@ func ParseHeartbeatResponses(ctx context.Context, data []byte) ([]heartbeat.Resu
 func parseHeartbeatResponse(ctx context.Context, data []json.RawMessage) (heartbeat.Result, error) {
 	var result heartbeat.Result
 
+	type responseData struct {
+		ID string `json:"id"`
+	}
+
 	type responseBody struct {
-		Data *heartbeat.Heartbeat `json:"data"`
+		Data responseData `json:"data"`
 	}
 
 	err := json.Unmarshal(data[1], &result.Status)
@@ -158,10 +162,14 @@ func parseHeartbeatResponse(ctx context.Context, data []json.RawMessage) (heartb
 		}, nil
 	}
 
-	err = json.Unmarshal(data[0], &responseBody{Data: &result.Heartbeat})
+	var responseBodyData responseBody
+
+	err = json.Unmarshal(data[0], &responseBodyData)
 	if err != nil {
 		return heartbeat.Result{}, fmt.Errorf("failed to parse json heartbeat: %s", err)
 	}
+
+	result.ID = responseBodyData.Data.ID
 
 	return result, nil
 }

@@ -211,17 +211,19 @@ func buildHeartbeats(ctx context.Context, params params.Params) []heartbeat.Hear
 	var heartbeats = make([]heartbeat.Heartbeat, 0, 1+len(params.Heartbeat.ExtraHeartbeats))
 
 	heartbeats = append(heartbeats, heartbeat.New(
+		params.Heartbeat.AIAdditions,
+		params.Heartbeat.AIDeletions,
 		params.Heartbeat.Project.BranchAlternate,
 		params.Heartbeat.Category.String(),
 		params.Heartbeat.CursorPosition,
 		params.Heartbeat.Entity,
 		params.Heartbeat.EntityType,
+		params.Heartbeat.HumanAdditions,
+		params.Heartbeat.HumanDeletions,
 		params.Heartbeat.IsUnsavedEntity,
 		params.Heartbeat.IsWrite,
 		params.Heartbeat.Language,
 		params.Heartbeat.LanguageAlternate,
-		params.Heartbeat.LineAdditions,
-		params.Heartbeat.LineDeletions,
 		params.Heartbeat.LineNumber,
 		params.Heartbeat.LinesInFile,
 		params.Heartbeat.LocalFile,

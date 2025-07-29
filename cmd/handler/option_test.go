@@ -24,6 +24,18 @@ func TestWithFormatting(t *testing.T) {
 	assert.Len(t, res, 0)
 }
 
+func TestWithCategoryDetection(t *testing.T) {
+	opt := handler.WithCategoryDetection()
+
+	chain := heartbeat.NewHandle(noopMock{})
+	hdl := opt(params.Params{})(chain)
+
+	res, err := hdl(context.Background(), nil)
+	require.NoError(t, err)
+
+	assert.Len(t, res, 0)
+}
+
 func TestWithEntityModifier(t *testing.T) {
 	opt := handler.WithEntityModifier()
 

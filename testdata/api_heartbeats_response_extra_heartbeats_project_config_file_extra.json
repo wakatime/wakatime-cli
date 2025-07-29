@@ -3,18 +3,7 @@
         [
             {
                 "data": {
-                    "category": "coding",
-                    "cursorpos": 1,
-                    "entity": "%s",
-                    "entity_type": "file",
-                    "is_write": true,
-                    "language": "Go",
-                    "line_additions": 14,
-                    "line_deletions": 23,
-                    "lineno": 90,
-                    "lines": 146,
-                    "project": "wakatime-cli",
-                    "time": 1585598059
+                    "id": "Q2L3M4N5-O6P7-8901-2345-01234567ABC2"
                 }
             },
             201

@@ -20,6 +20,8 @@ var remoteAddressRegex = regexp.MustCompile(`(?i)^((ssh|sftp)://)+(?P<credential
 
 // Heartbeat is a structure representing activity for a user on a some entity.
 type Heartbeat struct {
+	AIAdditions           *int       `json:"ai_additions,omitempty"`
+	AIDeletions           *int       `json:"ai_deletions,omitempty"`
 	APIKey                string     `json:"-"`
 	Branch                *string    `json:"branch,omitempty"`
 	BranchAlternate       string     `json:"-"`
@@ -28,12 +30,12 @@ type Heartbeat struct {
 	Dependencies          []string   `json:"dependencies,omitempty"`
 	Entity                string     `json:"entity"`
 	EntityType            EntityType `json:"type"`
+	HumanAdditions        *int       `json:"human_additions,omitempty"`
+	HumanDeletions        *int       `json:"human_deletions,omitempty"`
 	IsUnsavedEntity       bool       `json:"-"`
 	IsWrite               *bool      `json:"is_write,omitempty"`
 	Language              *string    `json:"language,omitempty"`
 	LanguageAlternate     string     `json:"-"`
-	LineAdditions         *int       `json:"line_additions,omitempty"`
-	LineDeletions         *int       `json:"line_deletions,omitempty"`
 	LineNumber            *int       `json:"lineno,omitempty"`
 	Lines                 *int       `json:"lines,omitempty"`
 	LocalFile             string     `json:"-"`
@@ -52,17 +54,19 @@ type Heartbeat struct {
 // New creates a new instance of Heartbeat with formatted entity
 // and local file paths for file type heartbeats.
 func New(
+	adAdditions *int,
+	aiDeletions *int,
 	branchAlternate string,
 	category string,
 	cursorPosition *int,
 	entity string,
 	entityType EntityType,
+	humanAdditions *int,
+	humanDeletions *int,
 	isUnsavedEntity bool,
 	isWrite *bool,
 	language *string,
 	languageAlternate string,
-	lineAdditions *int,
-	lineDeletions *int,
 	lineNumber *int,
 	lines *int,
 	localFile string,
@@ -74,17 +78,19 @@ func New(
 	userAgent string,
 ) Heartbeat {
 	return Heartbeat{
+		AIAdditions:          adAdditions,
+		AIDeletions:          aiDeletions,
 		BranchAlternate:      branchAlternate,
 		Category:             category,
 		CursorPosition:       cursorPosition,
 		Entity:               entity,
 		EntityType:           entityType,
+		HumanAdditions:       humanAdditions,
+		HumanDeletions:       humanDeletions,
 		IsUnsavedEntity:      isUnsavedEntity,
 		IsWrite:              isWrite,
 		Language:             language,
 		LanguageAlternate:    languageAlternate,
-		LineAdditions:        lineAdditions,
-		LineDeletions:        lineDeletions,
 		LineNumber:           lineNumber,
 		Lines:                lines,
 		LocalFile:            localFile,
@@ -151,8 +157,10 @@ func (h Heartbeat) IsRemote() bool {
 
 // Result represents a response from the wakatime api.
 type Result struct {
-	Errors    []string
-	Status    int
+	Errors []string
+	Status int
+	ID     string
+	// Heartbeat is the original heartbeat that was sent.
 	Heartbeat Heartbeat
 	// it's a temporary solution before we have a better way to handle (avoid import cycle)
 	FileExpert any
