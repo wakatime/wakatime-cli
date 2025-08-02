@@ -72,7 +72,7 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 		"category",
 		"",
 		"Category of this heartbeat activity. Can be \"coding\", \"ai coding\", "+
-			" \"building\", \"indexing\", \"debugging\", \"learning\","+
+			" \"building\", \"indexing\", \"debugging\", \"learning\", \"notes\","+
 			" \"meeting\", \"planning\", \"researching\", \"communicating\", \"supporting\" "+
 			" \"advising\", \"running tests\", \"writing tests\", \"manual testing\","+
 			" \"writing docs\", \"code reviewing\", \"browsing\","+

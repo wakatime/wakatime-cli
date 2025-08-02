@@ -41,6 +41,8 @@ const (
 	ManualTestingCategory
 	// MeetingCategory means user is currently meeting.
 	MeetingCategory
+	// NotesCategory means user is currently taking notes.
+	NotesCategory
 	// PlanningCategory means user is currently planning.
 	PlanningCategory
 	// ResearchingCategory means user is currently researching.
@@ -71,6 +73,7 @@ const (
 	learningCategoryString      = "learning"
 	manualTestingCategoryString = "manual testing"
 	meetingCategoryString       = "meeting"
+	notesCategoryString         = "notes"
 	planningCategoryString      = "planning"
 	researchingCategoryString   = "researching"
 	runningTestsCategoryString  = "running tests"
@@ -162,6 +165,8 @@ func ParseCategory(s string) (Category, error) {
 		return ManualTestingCategory, nil
 	case meetingCategoryString:
 		return MeetingCategory, nil
+	case notesCategoryString:
+		return NotesCategory, nil
 	case planningCategoryString:
 		return PlanningCategory, nil
 	case researchingCategoryString:
@@ -240,6 +245,8 @@ func (c Category) String() string {
 		return manualTestingCategoryString
 	case MeetingCategory:
 		return meetingCategoryString
+	case NotesCategory:
+		return notesCategoryString
 	case PlanningCategory:
 		return planningCategoryString
 	case ResearchingCategory:
