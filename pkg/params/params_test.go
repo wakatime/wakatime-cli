@@ -118,7 +118,7 @@ func TestLoadHeartbeatParams_AILineChangesNegative(t *testing.T) {
 	params, err := paramspkg.LoadHeartbeatParams(t.Context(), v, paramspkg.FlagReadOrderFlagPrecedence)
 	require.NoError(t, err)
 
-	assert.Nil(t, params.AILineChanges)
+	assert.Equal(t, -789, *params.AILineChanges)
 }
 
 func TestLoadHeartbeatParams_AlternateProject(t *testing.T) {
@@ -643,7 +643,7 @@ func TestLoadHeartbeatParams_HumanAdditionsNegative(t *testing.T) {
 	params, err := paramspkg.LoadHeartbeatParams(t.Context(), v, paramspkg.FlagReadOrderFlagPrecedence)
 	require.NoError(t, err)
 
-	assert.Nil(t, params.HumanLineChanges)
+	assert.Equal(t, -456, *params.HumanLineChanges)
 }
 
 func TestLoadHeartbeatParams_IsUnsavedEntity(t *testing.T) {
