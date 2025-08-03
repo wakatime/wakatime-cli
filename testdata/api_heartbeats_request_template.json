@@ -1,13 +1,11 @@
 [
 	{
-		"ai_additions": 123,
-		"ai_deletions": 456,
+		"ai_line_changes": 123,
 		"cursorpos": 12,
 		"category": "writing tests",
 		"dependencies": ["os"],
 		"entity": "%s",
-		"human_additions": 8999,
-		"human_deletions": 145,
+		"human_line_changes": 456,
 		"is_write": true,
 		"language": "Go",
 		"lineno": 42,

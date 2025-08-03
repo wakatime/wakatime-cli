@@ -20,8 +20,7 @@ var remoteAddressRegex = regexp.MustCompile(`(?i)^((ssh|sftp)://)+(?P<credential
 
 // Heartbeat is a structure representing activity for a user on a some entity.
 type Heartbeat struct {
-	AIAdditions           *int       `json:"ai_additions,omitempty"`
-	AIDeletions           *int       `json:"ai_deletions,omitempty"`
+	AILineChanges         *int       `json:"ai_line_changes,omitempty"`
 	APIKey                string     `json:"-"`
 	Branch                *string    `json:"branch,omitempty"`
 	BranchAlternate       string     `json:"-"`
@@ -30,8 +29,7 @@ type Heartbeat struct {
 	Dependencies          []string   `json:"dependencies,omitempty"`
 	Entity                string     `json:"entity"`
 	EntityType            EntityType `json:"type"`
-	HumanAdditions        *int       `json:"human_additions,omitempty"`
-	HumanDeletions        *int       `json:"human_deletions,omitempty"`
+	HumanLineChanges      *int       `json:"human_line_changes,omitempty"`
 	IsUnsavedEntity       bool       `json:"-"`
 	IsWrite               *bool      `json:"is_write,omitempty"`
 	Language              *string    `json:"language,omitempty"`
@@ -54,15 +52,13 @@ type Heartbeat struct {
 // New creates a new instance of Heartbeat with formatted entity
 // and local file paths for file type heartbeats.
 func New(
-	adAdditions *int,
-	aiDeletions *int,
+	aiLineChanges *int,
 	branchAlternate string,
 	category string,
 	cursorPosition *int,
 	entity string,
 	entityType EntityType,
-	humanAdditions *int,
-	humanDeletions *int,
+	humanLineChanges *int,
 	isUnsavedEntity bool,
 	isWrite *bool,
 	language *string,
@@ -78,15 +74,13 @@ func New(
 	userAgent string,
 ) Heartbeat {
 	return Heartbeat{
-		AIAdditions:          adAdditions,
-		AIDeletions:          aiDeletions,
+		AILineChanges:        aiLineChanges,
 		BranchAlternate:      branchAlternate,
 		Category:             category,
 		CursorPosition:       cursorPosition,
 		Entity:               entity,
 		EntityType:           entityType,
-		HumanAdditions:       humanAdditions,
-		HumanDeletions:       humanDeletions,
+		HumanLineChanges:     humanLineChanges,
 		IsUnsavedEntity:      isUnsavedEntity,
 		IsWrite:              isWrite,
 		Language:             language,
