@@ -467,9 +467,7 @@ func loadAPIKey(ctx context.Context, v *viper.Viper, order FlagReadOrder) (strin
 func LoadHeartbeatParams(ctx context.Context, v *viper.Viper, order FlagReadOrder) (Heartbeat, error) {
 	var aiLineChanges *int
 	if num := v.GetInt("ai-line-changes"); v.IsSet("ai-line-changes") {
-		if num > 0 {
-			aiLineChanges = heartbeat.PointerTo(num)
-		}
+		aiLineChanges = heartbeat.PointerTo(num)
 	}
 
 	var category heartbeat.Category
@@ -522,9 +520,7 @@ func LoadHeartbeatParams(ctx context.Context, v *viper.Viper, order FlagReadOrde
 
 	var humanLineChanges *int
 	if num := v.GetInt("human-line-changes"); v.IsSet("human-line-changes") {
-		if num > 0 {
-			humanLineChanges = heartbeat.PointerTo(num)
-		}
+		humanLineChanges = heartbeat.PointerTo(num)
 	}
 
 	var lineNumber *int
@@ -962,18 +958,9 @@ func parseExtraHeartbeat(h ExtraHeartbeat) (*heartbeat.Heartbeat, error) {
 		}
 	}
 
-	var cursorPosition *int
-
-	switch cursorPositionVal := h.CursorPosition.(type) {
-	case float64:
-		cursorPosition = heartbeat.PointerTo(int(cursorPositionVal))
-	case string:
-		val, err := strconv.Atoi(cursorPositionVal)
-		if err != nil {
-			return nil, fmt.Errorf("failed to convert cursor position to int: %s", err)
-		}
-
-		cursorPosition = heartbeat.PointerTo(val)
+	cursorPosition, err := parseIntegerNumber(h.CursorPosition)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert cursorpos to int: %s", err)
 	}
 
 	var isWrite *bool
@@ -990,32 +977,14 @@ func parseExtraHeartbeat(h ExtraHeartbeat) (*heartbeat.Heartbeat, error) {
 		isWrite = heartbeat.PointerTo(val)
 	}
 
-	var lineNumber *int
-
-	switch lineNumberVal := h.LineNumber.(type) {
-	case float64:
-		lineNumber = heartbeat.PointerTo(int(lineNumberVal))
-	case string:
-		val, err := strconv.Atoi(lineNumberVal)
-		if err != nil {
-			return nil, fmt.Errorf("failed to convert line number to int: %s", err)
-		}
-
-		lineNumber = heartbeat.PointerTo(val)
+	lineNumber, err := parseIntegerNumber(h.LineNumber)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert lineno to int: %s", err)
 	}
 
-	var lines *int
-
-	switch linesVal := h.Lines.(type) {
-	case float64:
-		lines = heartbeat.PointerTo(int(linesVal))
-	case string:
-		val, err := strconv.Atoi(linesVal)
-		if err != nil {
-			return nil, fmt.Errorf("failed to convert lines to int: %s", err)
-		}
-
-		lines = heartbeat.PointerTo(val)
+	lines, err := parseIntegerNumber(h.Lines)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert lines to int: %s", err)
 	}
 
 	var time float64
@@ -1071,12 +1040,24 @@ func parseExtraHeartbeat(h ExtraHeartbeat) (*heartbeat.Heartbeat, error) {
 		isUnsavedEntity = val
 	}
 
+	aiLineChanges, err := parseIntegerNumber(h.AILineChanges)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert ai_line_changes to int: %s", err)
+	}
+
+	humanLineChanges, err := parseIntegerNumber(h.HumanLineChanges)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert human_line_changes to int: %s", err)
+	}
+
 	return &heartbeat.Heartbeat{
+		AILineChanges:     aiLineChanges,
 		BranchAlternate:   h.BranchAlternate,
 		Category:          category,
 		CursorPosition:    cursorPosition,
 		Entity:            h.Entity,
 		EntityType:        entityType,
+		HumanLineChanges:  humanLineChanges,
 		IsUnsavedEntity:   isUnsavedEntity,
 		IsWrite:           isWrite,
 		Language:          h.Language,
@@ -1323,6 +1304,24 @@ func parseBoolOrRegexList(ctx context.Context, s string) ([]regex.Regex, error) 
 	}
 
 	return patterns, nil
+}
+
+func parseIntegerNumber(inp any) (*int, error) {
+	var result *int
+
+	switch val := inp.(type) {
+	case float64:
+		result = heartbeat.PointerTo(int(val))
+	case string:
+		v, err := strconv.Atoi(val)
+		if err != nil {
+			return nil, err
+		}
+
+		result = &v
+	}
+
+	return result, nil
 }
 
 // firstNonEmptyString accepts multiple values and return the first non empty string value.

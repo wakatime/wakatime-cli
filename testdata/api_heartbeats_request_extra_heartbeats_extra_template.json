@@ -9,6 +9,8 @@
 		"language": "Go",
 		"lineno": 42,
 		"lines": 45,
+		"ai_line_changes": -123,
+		"human_line_changes": 456,
 		"project": "wakatime-cli",
 		"project_root_count": %d,
 		"type": "file",
