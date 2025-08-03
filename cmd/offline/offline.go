@@ -81,15 +81,13 @@ func buildHeartbeats(ctx context.Context, params params.Params) []heartbeat.Hear
 	userAgent := heartbeat.UserAgent(ctx, params.API.Plugin)
 
 	heartbeats = append(heartbeats, heartbeat.New(
-		params.Heartbeat.AIAdditions,
-		params.Heartbeat.AIDeletions,
+		params.Heartbeat.AILineChanges,
 		params.Heartbeat.Project.BranchAlternate,
 		params.Heartbeat.Category.String(),
 		params.Heartbeat.CursorPosition,
 		params.Heartbeat.Entity,
 		params.Heartbeat.EntityType,
-		params.Heartbeat.HumanAdditions,
-		params.Heartbeat.HumanDeletions,
+		params.Heartbeat.HumanLineChanges,
 		params.Heartbeat.IsUnsavedEntity,
 		params.Heartbeat.IsWrite,
 		params.Heartbeat.Language,

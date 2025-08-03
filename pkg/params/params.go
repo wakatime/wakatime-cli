@@ -178,15 +178,13 @@ type (
 
 	// ExtraHeartbeat contains extra heartbeat.
 	ExtraHeartbeat struct {
-		AIAdditions       any     `json:"ai_additions"`
-		AIDeletions       any     `json:"ai_deletions"`
+		AILineChanges     any     `json:"ai_line_changes"`
 		BranchAlternate   string  `json:"alternate_branch"`
 		Category          string  `json:"category"`
 		CursorPosition    any     `json:"cursorpos"`
 		Entity            string  `json:"entity"`
 		EntityType        string  `json:"entity_type"`
-		HumanAdditions    any     `json:"human_additions"`
-		HumanDeletions    any     `json:"human_deletions"`
+		HumanLineChanges  any     `json:"human_line_changes"`
 		IsUnsavedEntity   any     `json:"is_unsaved_entity"`
 		IsWrite           any     `json:"is_write"`
 		Language          *string `json:"language"`
@@ -202,16 +200,14 @@ type (
 
 	// Heartbeat contains heartbeat command parameters.
 	Heartbeat struct {
-		AIAdditions       *int
-		AIDeletions       *int
+		AILineChanges     *int
 		Category          heartbeat.Category
 		CursorPosition    *int
 		Entity            string
 		EntityType        heartbeat.EntityType
 		ExtraHeartbeats   []heartbeat.Heartbeat
 		GuessLanguage     bool
-		HumanAdditions    *int
-		HumanDeletions    *int
+		HumanLineChanges  *int
 		IsUnsavedEntity   bool
 		IsWrite           *bool
 		Language          *string
@@ -469,14 +465,11 @@ func loadAPIKey(ctx context.Context, v *viper.Viper, order FlagReadOrder) (strin
 
 // LoadHeartbeatParams loads heartbeats params from viper.Viper instance.
 func LoadHeartbeatParams(ctx context.Context, v *viper.Viper, order FlagReadOrder) (Heartbeat, error) {
-	var aiAdditions *int
-	if num := v.GetInt("ai-additions"); v.IsSet("ai-additions") {
-		aiAdditions = heartbeat.PointerTo(num)
-	}
-
-	var aiDeletions *int
-	if num := v.GetInt("ai-deletions"); v.IsSet("ai-deletions") {
-		aiDeletions = heartbeat.PointerTo(num)
+	var aiLineChanges *int
+	if num := v.GetInt("ai-line-changes"); v.IsSet("ai-line-changes") {
+		if num > 0 {
+			aiLineChanges = heartbeat.PointerTo(num)
+		}
 	}
 
 	var category heartbeat.Category
@@ -527,14 +520,11 @@ func LoadHeartbeatParams(ctx context.Context, v *viper.Viper, order FlagReadOrde
 		isWrite = heartbeat.PointerTo(b)
 	}
 
-	var humanAdditions *int
-	if num := v.GetInt("human-additions"); v.IsSet("human-additions") {
-		humanAdditions = heartbeat.PointerTo(num)
-	}
-
-	var humanDeletions *int
-	if num := v.GetInt("human-deletions"); v.IsSet("human-deletions") {
-		humanDeletions = heartbeat.PointerTo(num)
+	var humanLineChanges *int
+	if num := v.GetInt("human-line-changes"); v.IsSet("human-line-changes") {
+		if num > 0 {
+			humanLineChanges = heartbeat.PointerTo(num)
+		}
 	}
 
 	var lineNumber *int
@@ -573,16 +563,14 @@ func LoadHeartbeatParams(ctx context.Context, v *viper.Viper, order FlagReadOrde
 	}
 
 	return Heartbeat{
-		AIAdditions:       aiAdditions,
-		AIDeletions:       aiDeletions,
+		AILineChanges:     aiLineChanges,
 		Category:          category,
 		CursorPosition:    cursorPosition,
 		Entity:            entity,
 		ExtraHeartbeats:   extraHeartbeats,
 		EntityType:        entityType,
 		GuessLanguage:     vipertools.FirstNonEmptyBool(v, guessLanguageOrder[order]...),
-		HumanAdditions:    humanAdditions,
-		HumanDeletions:    humanDeletions,
+		HumanLineChanges:  humanLineChanges,
 		IsUnsavedEntity:   v.GetBool("is-unsaved-entity"),
 		IsWrite:           isWrite,
 		Language:          language,
@@ -1159,14 +1147,9 @@ func (p FilterParams) String() string {
 
 // String implements fmt.Stringer interface.
 func (p Heartbeat) String() string {
-	var aiAdditions string
-	if p.AIAdditions != nil {
-		aiAdditions = strconv.Itoa(*p.AIAdditions)
-	}
-
-	var aiDeletions string
-	if p.AIDeletions != nil {
-		aiDeletions = strconv.Itoa(*p.AIDeletions)
+	var aiLineChanges string
+	if p.AILineChanges != nil {
+		aiLineChanges = strconv.Itoa(*p.AILineChanges)
 	}
 
 	var cursorPosition string
@@ -1184,14 +1167,9 @@ func (p Heartbeat) String() string {
 		language = *p.Language
 	}
 
-	var humanAdditions string
-	if p.HumanAdditions != nil {
-		humanAdditions = strconv.Itoa(*p.HumanAdditions)
-	}
-
-	var humanDeletions string
-	if p.HumanDeletions != nil {
-		humanDeletions = strconv.Itoa(*p.HumanDeletions)
+	var humanLineChanges string
+	if p.HumanLineChanges != nil {
+		humanLineChanges = strconv.Itoa(*p.HumanLineChanges)
 	}
 
 	var lineNumber string
@@ -1205,21 +1183,19 @@ func (p Heartbeat) String() string {
 	}
 
 	return fmt.Sprintf(
-		"ai additions: '%s', ai deletions: '%s', category: '%s', cursor position: '%s', entity: '%s',"+
-			" entity type: '%s', num extra heartbeats: %d, guess language: %t, human additions: '%s',"+
-			" human deletions: '%s', is unsaved entity: %t, is write: %t, language: '%s',"+
+		"ai line changes: '%s', category: '%s', cursor position: '%s', entity: '%s',"+
+			" entity type: '%s', num extra heartbeats: %d, guess language: %t, human line changes: '%s',"+
+			" is unsaved entity: %t, is write: %t, language: '%s',"+
 			" line number: '%s', lines in file: '%s', time: %.5f, filter params: (%s),"+
 			" project params: (%s), sanitize params: (%s)",
-		aiAdditions,
-		aiDeletions,
+		aiLineChanges,
 		p.Category,
 		cursorPosition,
 		p.Entity,
 		p.EntityType,
 		len(p.ExtraHeartbeats),
 		p.GuessLanguage,
-		humanAdditions,
-		humanDeletions,
+		humanLineChanges,
 		p.IsUnsavedEntity,
 		isWrite,
 		language,

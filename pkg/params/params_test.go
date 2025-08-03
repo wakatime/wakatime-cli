@@ -99,26 +99,26 @@ func TestLoadHeartbeatParams_ProjectConfigTakesPrecedence(t *testing.T) {
 	assert.False(t, params.GuessLanguage)
 }
 
-func TestLoadHeartbeatParams_AIAdditions(t *testing.T) {
+func TestLoadHeartbeatParams_AILineChanges(t *testing.T) {
 	v := vipertools.MustNew()
 	v.Set("entity", "/path/to/file")
-	v.Set("ai-additions", "789")
+	v.Set("ai-line-changes", "789")
 
 	params, err := paramspkg.LoadHeartbeatParams(t.Context(), v, paramspkg.FlagReadOrderFlagPrecedence)
 	require.NoError(t, err)
 
-	assert.Equal(t, 789, *params.AIAdditions)
+	assert.Equal(t, 789, *params.AILineChanges)
 }
 
-func TestLoadHeartbeatParams_AIDeletions(t *testing.T) {
+func TestLoadHeartbeatParams_AILineChangesNegative(t *testing.T) {
 	v := vipertools.MustNew()
 	v.Set("entity", "/path/to/file")
-	v.Set("ai-deletions", "123")
+	v.Set("ai-line-changes", "-789")
 
 	params, err := paramspkg.LoadHeartbeatParams(t.Context(), v, paramspkg.FlagReadOrderFlagPrecedence)
 	require.NoError(t, err)
 
-	assert.Equal(t, 123, *params.AIDeletions)
+	assert.Nil(t, params.AILineChanges)
 }
 
 func TestLoadHeartbeatParams_AlternateProject(t *testing.T) {
@@ -158,6 +158,8 @@ func TestLoadHeartbeatParams_Category(t *testing.T) {
 		"indexing":       heartbeat.IndexingCategory,
 		"learning":       heartbeat.LearningCategory,
 		"manual testing": heartbeat.ManualTestingCategory,
+		"meeting":        heartbeat.MeetingCategory,
+		"notes":          heartbeat.NotesCategory,
 		"planning":       heartbeat.PlanningCategory,
 		"researching":    heartbeat.ResearchingCategory,
 		"running tests":  heartbeat.RunningTestsCategory,
@@ -625,23 +627,23 @@ func TestLoadHeartbeat_GuessLanguage_Default(t *testing.T) {
 func TestLoadHeartbeatParams_HumanAdditions(t *testing.T) {
 	v := vipertools.MustNew()
 	v.Set("entity", "/path/to/file")
-	v.Set("human-additions", "456")
+	v.Set("human-line-changes", "456")
 
 	params, err := paramspkg.LoadHeartbeatParams(t.Context(), v, paramspkg.FlagReadOrderFlagPrecedence)
 	require.NoError(t, err)
 
-	assert.Equal(t, 456, *params.HumanAdditions)
+	assert.Equal(t, 456, *params.HumanLineChanges)
 }
 
-func TestLoadHeartbeatParams_HumanDeletions(t *testing.T) {
+func TestLoadHeartbeatParams_HumanAdditionsNegative(t *testing.T) {
 	v := vipertools.MustNew()
 	v.Set("entity", "/path/to/file")
-	v.Set("human-deletions", "899")
+	v.Set("human-line-changes", "-456")
 
 	params, err := paramspkg.LoadHeartbeatParams(t.Context(), v, paramspkg.FlagReadOrderFlagPrecedence)
 	require.NoError(t, err)
 
-	assert.Equal(t, 899, *params.HumanDeletions)
+	assert.Nil(t, params.HumanLineChanges)
 }
 
 func TestLoadHeartbeatParams_IsUnsavedEntity(t *testing.T) {
@@ -3043,29 +3045,27 @@ func TestFilterParams_String(t *testing.T) {
 
 func TestHeartbeat_String(t *testing.T) {
 	heartbeat := paramspkg.Heartbeat{
-		AIAdditions:     heartbeat.PointerTo(789),
-		AIDeletions:     heartbeat.PointerTo(101112),
-		Category:        heartbeat.CodingCategory,
-		CursorPosition:  heartbeat.PointerTo(15),
-		Entity:          "path/to/entity.go",
-		EntityType:      heartbeat.FileType,
-		ExtraHeartbeats: make([]heartbeat.Heartbeat, 3),
-		GuessLanguage:   true,
-		HumanAdditions:  heartbeat.PointerTo(123),
-		HumanDeletions:  heartbeat.PointerTo(456),
-		IsUnsavedEntity: true,
-		IsWrite:         heartbeat.PointerTo(true),
-		Language:        heartbeat.PointerTo("Golang"),
-		LineNumber:      heartbeat.PointerTo(4),
-		LinesInFile:     heartbeat.PointerTo(56),
-		Time:            1585598059,
+		AILineChanges:    heartbeat.PointerTo(123),
+		Category:         heartbeat.CodingCategory,
+		CursorPosition:   heartbeat.PointerTo(15),
+		Entity:           "path/to/entity.go",
+		EntityType:       heartbeat.FileType,
+		ExtraHeartbeats:  make([]heartbeat.Heartbeat, 3),
+		GuessLanguage:    true,
+		HumanLineChanges: heartbeat.PointerTo(456),
+		IsUnsavedEntity:  true,
+		IsWrite:          heartbeat.PointerTo(true),
+		Language:         heartbeat.PointerTo("Golang"),
+		LineNumber:       heartbeat.PointerTo(4),
+		LinesInFile:      heartbeat.PointerTo(56),
+		Time:             1585598059,
 	}
 
 	assert.Equal(
 		t,
-		"ai additions: '789', ai deletions: '101112', category: 'coding', cursor position: '15',"+
+		"ai line changes: '123', category: 'coding', cursor position: '15',"+
 			" entity: 'path/to/entity.go', entity type: 'file', num extra heartbeats: 3,"+
-			" guess language: true, human additions: '123', human deletions: '456',"+
+			" guess language: true, human line changes: '456',"+
 			" is unsaved entity: true, is write: true, language: 'Golang', line number: '4',"+
 			" lines in file: '56', time: 1585598059.00000, filter params: (exclude: '[]',"+
 			" exclude unknown project: false, include: '[]', include only with"+

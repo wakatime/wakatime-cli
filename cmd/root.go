@@ -52,8 +52,8 @@ func NewRootCMD() *cobra.Command {
 
 func setFlags(cmd *cobra.Command, v *viper.Viper) {
 	flags := cmd.Flags()
-	flags.Int("ai-additions", 0, "Optional number of lines added by AI since last heartbeat in the current file.")
-	flags.Int("ai-deletions", 0, "Optional number of lines deleted by AI since last heartbeat in the current file.")
+	flags.Int("ai-line-changes", 0, "Optional number of lines added or removed by AI since "+
+		" last heartbeat in the current file.")
 	flags.String("alternate-branch", "", "Optional alternate branch name. Auto-detected branch takes priority.")
 	flags.String("alternate-language", "", "Optional alternate language name. Auto-detected language takes priority.")
 	flags.String("alternate-project", "", "Optional alternate project name. Auto-detected project takes priority.")
@@ -71,9 +71,9 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 	flags.String(
 		"category",
 		"",
-		"Category of this heartbeat activity. Can be \"coding\", \"ai coding\", "+
-			" \"building\", \"indexing\", \"debugging\", \"learning\","+
-			" \"meeting\", \"planning\", \"researching\", \"communicating\", \"supporting\" "+
+		"Category of this heartbeat activity. Can be \"coding\", \"ai coding\","+
+			" \"building\", \"indexing\", \"debugging\", \"learning\", \"notes\","+
+			" \"meeting\", \"planning\", \"researching\", \"communicating\", \"supporting\","+
 			" \"advising\", \"running tests\", \"writing tests\", \"manual testing\","+
 			" \"writing docs\", \"code reviewing\", \"browsing\","+
 			" \"translating\", or \"designing\". Defaults to \"coding\".",
@@ -151,8 +151,8 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 			" created with a random project name.",
 	)
 	flags.String("hostname", "", "Optional name of local machine. Defaults to local machine name read from system.")
-	flags.Int("human-additions", 0, "Optional number of lines added by humans since last heartbeat in the current file.")
-	flags.Int("human-deletions", 0, "Optional number of lines deleted by humans since last heartbeat in the current file.")
+	flags.Int("human-line-changes", 0, "Optional number of lines added or removed by humans since"+
+		" last heartbeat in the current file.")
 	flags.StringSlice(
 		"include",
 		nil,

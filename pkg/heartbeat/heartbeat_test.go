@@ -21,14 +21,12 @@ import (
 func TestNew(t *testing.T) {
 	h := heartbeat.New(
 		heartbeat.PointerTo(5),
-		heartbeat.PointerTo(3),
 		"feature/branch",
 		heartbeat.CodingCategory.String(),
 		heartbeat.PointerTo(12),
 		"testdata/main.go",
 		heartbeat.FileType,
 		heartbeat.PointerTo(2),
-		heartbeat.PointerTo(3),
 		true,
 		heartbeat.PointerTo(true),
 		heartbeat.PointerTo("Go"),
@@ -47,14 +45,12 @@ func TestNew(t *testing.T) {
 	assert.True(t, strings.HasSuffix(h.Entity, "testdata/main.go"))
 
 	assert.Equal(t, heartbeat.Heartbeat{
-		AIAdditions:         heartbeat.PointerTo(5),
-		AIDeletions:         heartbeat.PointerTo(3),
+		AILineChanges:       heartbeat.PointerTo(5),
 		BranchAlternate:     "feature/branch",
 		Category:            heartbeat.CodingCategory.String(),
 		CursorPosition:      heartbeat.PointerTo(12),
 		EntityType:          heartbeat.FileType,
-		HumanAdditions:      heartbeat.PointerTo(2),
-		HumanDeletions:      heartbeat.PointerTo(3),
+		HumanLineChanges:    heartbeat.PointerTo(2),
 		IsUnsavedEntity:     true,
 		IsWrite:             heartbeat.PointerTo(true),
 		Language:            heartbeat.PointerTo("Go"),
@@ -95,23 +91,21 @@ func TestHeartbeat_ID_NilFields(t *testing.T) {
 
 func TestHeartbeat_JSON(t *testing.T) {
 	h := heartbeat.Heartbeat{
-		AIAdditions:    heartbeat.PointerTo(5),
-		AIDeletions:    heartbeat.PointerTo(3),
-		Branch:         heartbeat.PointerTo("heartbeat"),
-		Category:       heartbeat.DebuggingCategory.String(),
-		CursorPosition: heartbeat.PointerTo(12),
-		Dependencies:   []string{"dep1", "dep2"},
-		Entity:         "/tmp/main.go",
-		EntityType:     heartbeat.FileType,
-		HumanAdditions: heartbeat.PointerTo(2),
-		HumanDeletions: heartbeat.PointerTo(3),
-		IsWrite:        heartbeat.PointerTo(true),
-		Language:       heartbeat.PointerTo("Go"),
-		LineNumber:     heartbeat.PointerTo(42),
-		Lines:          heartbeat.PointerTo(100),
-		Project:        heartbeat.PointerTo("wakatime"),
-		Time:           1585598060.1,
-		UserAgent:      "wakatime/13.0.7",
+		AILineChanges:    heartbeat.PointerTo(5),
+		Branch:           heartbeat.PointerTo("heartbeat"),
+		Category:         heartbeat.DebuggingCategory.String(),
+		CursorPosition:   heartbeat.PointerTo(12),
+		Dependencies:     []string{"dep1", "dep2"},
+		Entity:           "/tmp/main.go",
+		EntityType:       heartbeat.FileType,
+		HumanLineChanges: heartbeat.PointerTo(2),
+		IsWrite:          heartbeat.PointerTo(true),
+		Language:         heartbeat.PointerTo("Go"),
+		LineNumber:       heartbeat.PointerTo(42),
+		Lines:            heartbeat.PointerTo(100),
+		Project:          heartbeat.PointerTo("wakatime"),
+		Time:             1585598060.1,
+		UserAgent:        "wakatime/13.0.7",
 	}
 
 	jsonEncoded, err := json.Marshal(h)
