@@ -88,6 +88,22 @@ func TestWithDetection_EntityNotFile(t *testing.T) {
 				ProjectOverride: "billing",
 			},
 		},
+		"entity not file project folder takes precedence": {
+			Heartbeats: []heartbeat.Heartbeat{
+				{
+					EntityType:          heartbeat.AppType,
+					ProjectAlternate:    "pci",
+					ProjectPathOverride: "/home/user/projects/proj-from-folder/",
+				},
+			},
+			Expected: heartbeat.Heartbeat{
+				Branch:              heartbeat.PointerTo(""),
+				EntityType:          heartbeat.AppType,
+				Project:             heartbeat.PointerTo("proj-from-folder"),
+				ProjectAlternate:    "pci",
+				ProjectPathOverride: "/home/user/projects/proj-from-folder/",
+			},
+		},
 	}
 
 	for name, test := range tests {
