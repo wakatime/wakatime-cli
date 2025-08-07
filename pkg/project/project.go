@@ -145,7 +145,7 @@ func WithDetection(config Config) heartbeat.HandleOption {
 			for n, h := range hh {
 				logger.Debugf("execute project detection for: %s", h.Entity)
 
-				// first, use .wakatime-project or [projectmap] section with entity path.
+				// First use .wakatime-project or [projectmap] section with entity path.
 				// Then, detect with project folder. This tries to use the same project name
 				// across all IDEs instead of sometimes using alternate project when file is unsaved
 				result, detector := Detect(ctx, config.MapPatterns,
@@ -153,13 +153,13 @@ func WithDetection(config Config) heartbeat.HandleOption {
 					DetecterArg{Filepath: h.ProjectPathOverride, ShouldRun: true},
 				)
 
-				// second, use project override
+				// Project override
 				if result.Project == "" && h.ProjectOverride != "" {
 					result.Project = h.ProjectOverride
 					result.Folder = h.ProjectPathOverride
 				}
 
-				// third, autodetect with revision control with entity path.
+				// Autodetect with revision control from entity path.
 				// Then, autodetect with project folder. This tries to use the same project name
 				// across all IDEs instead of sometimes using alternate project when file is unsaved
 				if result.Project == "" || result.Branch == "" || result.Folder == "" {
@@ -177,30 +177,40 @@ func WithDetection(config Config) heartbeat.HandleOption {
 					result.Folder = firstNonEmptyString(result.Folder, revControlResult.Folder)
 				}
 
-				// fourth, use alternate project
-				if result.Project == "" && h.ProjectAlternate != "" {
-					result.Project = h.ProjectAlternate
-					result.Folder = firstNonEmptyString(h.ProjectPathOverride, result.Folder)
+				folder := h.ProjectPathOverride
+				if runtime.GOOS == "windows" {
+					folder = windows.FormatFilePath(folder)
 				}
 
-				// fifth, use alternate branch
+				// Use project folder last part as project name
+				if result.Project == "" && h.ProjectPathOverride != "" {
+					proj := filepath.Base(folder)
+
+					if proj != "." && proj != "/" {
+						result.Project = proj
+					}
+					result.Folder = folder
+				}
+
+				// Alternate project if none auto-detected
+				if result.Project == "" && h.ProjectAlternate != "" {
+					result.Project = h.ProjectAlternate
+				}
+
+				// Alternate branch if none detected
 				if result.Branch == "" && h.BranchAlternate != "" {
 					result.Branch = h.BranchAlternate
 				}
 
-				// sixth, use project folder found or entity's path
-				result.Folder = firstNonEmptyString(result.Folder, h.ProjectPathOverride)
+				// Make sure project folder is defined when not found from entity's path
+				result.Folder = firstNonEmptyString(result.Folder, folder)
 
-				// seventh, if no folder is found, use entity's directory
+				// If no folder found, use entity's directory
 				if h.EntityType == heartbeat.FileType && result.Folder == "" {
 					result.Folder = filepath.Dir(h.Entity)
 				}
 
-				if runtime.GOOS == "windows" && result.Folder != "" {
-					result.Folder = windows.FormatFilePath(result.Folder)
-				}
-
-				// finally, obfuscate project name if necessary
+				// Obfuscate project name if necessary
 				if heartbeat.ShouldSanitize(ctx, heartbeat.SanitizeCheck{
 					Entity:              h.Entity,
 					ProjectPath:         result.Folder,
@@ -212,7 +222,7 @@ func WithDetection(config Config) heartbeat.HandleOption {
 
 				result.Folder = FormatProjectFolder(ctx, result.Folder)
 
-				// count total subfolders in project's path
+				// Count total subfolders in project's path
 				if result.Folder != "" && strings.HasPrefix(h.Entity, result.Folder) {
 					subfolders := CountSlashesInProjectFolder(result.Folder)
 					if subfolders > 0 {
@@ -705,13 +715,14 @@ func FormatProjectFolder(ctx context.Context, fp string) string {
 	formatted, err := filepath.Abs(fp)
 	if err != nil {
 		logger.Debugf("failed to resolve absolute path for %q: %s", fp, err)
-		return formatted
+		return fp
 	}
 
 	// evaluate any symlinks
 	formatted, err = realpath.Realpath(formatted)
 	if err != nil {
 		logger.Debugf("failed to resolve real path for %q: %s", formatted, err)
+		return fp
 	}
 
 	return formatted
