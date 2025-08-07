@@ -29,11 +29,6 @@ func (g Git) Detect(ctx context.Context) (Result, bool, error) {
 	logger := log.Extract(ctx)
 	fp := g.Filepath
 
-	// Take only the directory
-	if fileOrDirExists(fp) {
-		fp = filepath.Dir(fp)
-	}
-
 	// Find for submodule takes priority if enabled
 	gitdirSubmodule, ok, err := findSubmodule(ctx, fp, g.SubmoduleDisabledPatterns)
 	if err != nil {
