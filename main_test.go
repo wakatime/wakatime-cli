@@ -51,7 +51,7 @@ func TestSendHeartbeats_EntityFileInTempDir(t *testing.T) {
 
 	copyFile(t, "testdata/main.go", filepath.Join(tmpDir, "testdata", "main.go"))
 
-	testSendHeartbeats(t, tmpDir, filepath.Join(tmpDir, "testdata", "main.go"), "")
+	testSendHeartbeats(t, tmpDir, filepath.Join(tmpDir, "testdata", "main.go"), filepath.Base(tmpDir))
 }
 
 func testSendHeartbeats(t *testing.T, projectFolder, entity, prj string) {
