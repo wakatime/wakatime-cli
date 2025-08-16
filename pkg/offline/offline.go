@@ -7,6 +7,7 @@ import (
 	"math"
 	"net/http"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/mitchellh/go-homedir"
@@ -73,7 +74,7 @@ func WithQueue(filepath string) heartbeat.HandleOption {
 				return nil, err
 			}
 
-			err = handleResults(ctx, filepath, results, hh)
+			_, err = handleResults(ctx, filepath, results, hh)
 			if err != nil {
 				return nil, fmt.Errorf("failed to handle results: %s", err)
 			}
@@ -171,9 +172,13 @@ func Sync(ctx context.Context, filepath string, syncLimit int) func(next heartbe
 				return err
 			}
 
-			err = handleResults(ctx, filepath, results, hh)
+			stopSending, err := handleResults(ctx, filepath, results, hh)
 			if err != nil {
 				return fmt.Errorf("failed to handle heartbeats api results: %s", err)
+			}
+
+			if stopSending {
+				break
 			}
 		}
 
@@ -181,10 +186,16 @@ func Sync(ctx context.Context, filepath string, syncLimit int) func(next heartbe
 	}
 }
 
-func handleResults(ctx context.Context, filepath string, results []heartbeat.Result, hh []heartbeat.Heartbeat) error {
+func handleResults(
+	ctx context.Context,
+	filepath string,
+	results []heartbeat.Result,
+	hh []heartbeat.Heartbeat,
+) (bool, error) {
 	var (
 		err               error
 		withInvalidStatus []heartbeat.Heartbeat
+		stopSending       bool
 	)
 
 	logger := log.Extract(ctx)
@@ -193,6 +204,8 @@ func handleResults(ctx context.Context, filepath string, results []heartbeat.Res
 	for n, result := range results {
 		if n >= len(hh) {
 			logger.Warnln("results from api not matching heartbeats sent")
+
+			stopSending = true
 
 			break
 		}
@@ -214,11 +227,14 @@ func handleResults(ctx context.Context, filepath string, results []heartbeat.Res
 
 		if result.Status < http.StatusOK || result.Status > 299 {
 			withInvalidStatus = append(withInvalidStatus, hh[n])
+			logger.Debugf("heartbeat %d has invalid status code %d: %s", n, result.Status, strings.Join(result.Errors, ", "))
 		}
 	}
 
 	if len(withInvalidStatus) > 0 {
 		logger.Debugf("pushing %d heartbeat(s) with invalid result to queue", len(withInvalidStatus))
+
+		stopSending = true
 
 		err = pushHeartbeatsWithRetry(ctx, filepath, withInvalidStatus)
 		if err != nil {
@@ -239,7 +255,7 @@ func handleResults(ctx context.Context, filepath string, results []heartbeat.Res
 		}
 	}
 
-	return err
+	return err != nil && !stopSending, err
 }
 
 func popHeartbeats(ctx context.Context, filepath string, limit int) ([]heartbeat.Heartbeat, error) {
