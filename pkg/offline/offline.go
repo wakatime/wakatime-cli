@@ -200,11 +200,13 @@ func handleResults(
 
 	logger := log.Extract(ctx)
 
+	if len(results) != len(hh) {
+		logger.Warnf("expected %d results from api but received %d", len(hh), len(results))
+	}
+
 	// push heartbeats with invalid result status codes to queue
 	for n, result := range results {
 		if n >= len(hh) {
-			logger.Warnln("results from api not matching heartbeats sent")
-
 			stopSending = true
 
 			break
