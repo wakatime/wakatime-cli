@@ -189,6 +189,7 @@ func WithDetection(config Config) heartbeat.HandleOption {
 					if proj != "." && proj != "/" {
 						result.Project = proj
 					}
+
 					result.Folder = folder
 				}
 
