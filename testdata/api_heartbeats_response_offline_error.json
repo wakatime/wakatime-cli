@@ -1,0 +1,26 @@
+{
+    "responses": [
+        [
+            {
+                "data": {
+                    "id": "S4N5O6P7-Q8R9-0123-4567-234567ABCDE4"
+                }
+            },
+            201
+        ],
+        [
+            {
+                "error": "This is a heartbeat error."
+            },
+            500
+        ],
+        [
+            {
+                "data": {
+                    "id": "U6P7Q8R9-S0T1-2345-6789-4567ABCDEF06"
+                }
+            },
+            201
+        ]
+    ]
+}

@@ -420,6 +420,174 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
 
+func TestSendHeartbeats_ExtraHeartbeatsNestedError(t *testing.T) {
+	resetSingleton(t)
+
+	testServerURL, router, tearDown := setupTestServer()
+	defer tearDown()
+
+	var (
+		plugin   = "plugin/0.0.1"
+		numCalls int
+	)
+
+	ctx := t.Context()
+
+	projectFolder, err := filepath.Abs("../..")
+	require.NoError(t, err)
+
+	subfolders := project.CountSlashesInProjectFolder(projectFolder)
+
+	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
+		// check request
+		expectedBody, err := os.ReadFile("testdata/api_heartbeats_request_extra_heartbeats_template.json")
+		require.NoError(t, err)
+
+		body, err := io.ReadAll(req.Body)
+		require.NoError(t, err)
+
+		var entities []struct {
+			Entity string `json:"entity"`
+		}
+
+		err = json.Unmarshal(body, &entities)
+		require.NoError(t, err)
+
+		assert.True(t, strings.HasSuffix(entities[0].Entity, "testdata/main.go"))
+		assert.True(t, strings.HasSuffix(entities[1].Entity, "testdata/main.go"))
+		assert.True(t, strings.HasSuffix(entities[2].Entity, "testdata/main.py"))
+
+		for i := 3; i < 25; i++ {
+			assert.True(t, strings.HasSuffix(entities[i].Entity, "testdata/main.go"))
+		}
+
+		userAgent := heartbeat.UserAgent(ctx, plugin)
+
+		expectedBodyStr := fmt.Sprintf(
+			string(expectedBody),
+			entities[0].Entity, subfolders, userAgent,
+			entities[1].Entity, subfolders, userAgent,
+			entities[2].Entity, subfolders, userAgent,
+			entities[3].Entity, subfolders, userAgent,
+			entities[4].Entity, subfolders, userAgent,
+			entities[5].Entity, subfolders, userAgent,
+			entities[6].Entity, subfolders, userAgent,
+			entities[7].Entity, subfolders, userAgent,
+			entities[8].Entity, subfolders, userAgent,
+			entities[9].Entity, subfolders, userAgent,
+			entities[10].Entity, subfolders, userAgent,
+			entities[11].Entity, subfolders, userAgent,
+			entities[12].Entity, subfolders, userAgent,
+			entities[13].Entity, subfolders, userAgent,
+			entities[14].Entity, subfolders, userAgent,
+			entities[15].Entity, subfolders, userAgent,
+			entities[16].Entity, subfolders, userAgent,
+			entities[17].Entity, subfolders, userAgent,
+			entities[18].Entity, subfolders, userAgent,
+			entities[19].Entity, subfolders, userAgent,
+			entities[20].Entity, subfolders, userAgent,
+			entities[21].Entity, subfolders, userAgent,
+			entities[22].Entity, subfolders, userAgent,
+			entities[23].Entity, subfolders, userAgent,
+			entities[24].Entity, subfolders, userAgent,
+		)
+
+		assert.JSONEq(t, expectedBodyStr, string(body))
+
+		// send response
+		w.WriteHeader(http.StatusCreated)
+
+		f, err := os.Open("testdata/api_heartbeats_response_extra_heartbeats_error.json")
+		require.NoError(t, err)
+
+		defer f.Close()
+
+		_, err = io.Copy(w, f)
+		require.NoError(t, err)
+
+		numCalls++
+	})
+
+	r, w, err := os.Pipe()
+	require.NoError(t, err)
+
+	defer func() {
+		r.Close()
+		w.Close()
+	}()
+
+	origStdin := os.Stdin
+
+	defer func() { os.Stdin = origStdin }()
+
+	os.Stdin = r
+
+	data, err := os.ReadFile("testdata/extra_heartbeats.json")
+	require.NoError(t, err)
+
+	go func() {
+		_, err := w.Write(data)
+		require.NoError(t, err)
+
+		w.Close()
+	}()
+
+	tmpDir := t.TempDir()
+
+	logFile, err := os.CreateTemp(tmpDir, "")
+	require.NoError(t, err)
+
+	defer logFile.Close()
+
+	v := viper.New()
+	v.SetDefault("sync-offline-activity", 0)
+	v.Set("api-url", testServerURL)
+	v.Set("category", "debugging")
+	v.Set("cursorpos", 1)
+	v.Set("entity", "testdata/main.go")
+	v.Set("entity-type", "file")
+	v.Set("extra-heartbeats", true)
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("hide-branch-names", true)
+	v.Set("project", "wakatime-cli")
+	v.Set("language", "Go")
+	v.Set("alternate-language", "Golang")
+	v.Set("lineno", 2)
+	v.Set("plugin", plugin)
+	v.Set("time", 1585598059.1)
+	v.Set("timeout", 5)
+	v.Set("write", true)
+	v.Set("log-file", logFile.Name())
+	v.Set("verbose", true)
+
+	logger, err := cmd.SetupLogging(ctx, v)
+	require.NoError(t, err)
+
+	defer logger.Flush()
+
+	ctx = log.ToContext(ctx, logger)
+
+	offlineQueueFile, err := os.CreateTemp(t.TempDir(), "")
+	require.NoError(t, err)
+
+	defer offlineQueueFile.Close()
+
+	err = cmdheartbeat.SendHeartbeats(ctx, v, offlineQueueFile.Name())
+	require.NoError(t, err)
+
+	output, err := io.ReadAll(logFile)
+	require.NoError(t, err)
+
+	assert.Contains(t, string(output), "heartbeat 23 has invalid status code 401: This heartbeat will be saved offline")
+
+	offlineCount, err := offline.CountHeartbeats(ctx, offlineQueueFile.Name())
+	require.NoError(t, err)
+
+	assert.Equal(t, 2, offlineCount)
+
+	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+}
+
 func TestSendHeartbeats_ExtraHeartbeats_Sanitize(t *testing.T) {
 	resetSingleton(t)
 

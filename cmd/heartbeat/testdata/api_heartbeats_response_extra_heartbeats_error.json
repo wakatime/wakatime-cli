@@ -178,19 +178,19 @@
         ],
         [
             {
-                "data": {
-                    "id": "W3X4Y5Z6-A7B8-3456-789A-BCDEF0123456"
+                "errors": {
+                    "category": [
+                        "This heartbeat will be thrown away."
+                    ]
                 }
             },
-            201
+            400
         ],
         [
             {
-                "data": {
-                    "id": "X4Y5Z6A7-B8C9-4567-89AB-CDEF01234567"
-                }
+                "error": "This heartbeat will be saved offline."
             },
-            201
+            401
         ],
         [
             {
