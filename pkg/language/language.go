@@ -125,6 +125,10 @@ func detectSpecialCases(ctx context.Context, fp string) (heartbeat.Language, boo
 		return heartbeat.LanguageObjectiveCPP, true
 	}
 
+	if ext == ".pas" && folderContainsDelphiFiles(ctx, dir) {
+		return heartbeat.LanguageDelphi, true
+	}
+
 	return heartbeat.LanguageUnknown, false
 }
 
@@ -186,7 +190,7 @@ func folderContainsCFiles(ctx context.Context, dir string) bool {
 	return false
 }
 
-// folderContainsCFiles returns true, if filder contains c++ files.
+// folderContainsCPPFiles returns true, if filder contains c++ files.
 func folderContainsCPPFiles(ctx context.Context, dir string) bool {
 	if dir == "" {
 		return false
@@ -204,6 +208,32 @@ func folderContainsCPPFiles(ctx context.Context, dir string) bool {
 	for _, cppExt := range cppExtensions {
 		for _, e := range extensions {
 			if e == cppExt {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+// folderContainsDelphiFiles returns true, if filder contains Delphi files.
+func folderContainsDelphiFiles(ctx context.Context, dir string) bool {
+	if dir == "" {
+		return false
+	}
+
+	logger := log.Extract(ctx)
+
+	extensions, err := loadFolderExtensions(dir)
+	if err != nil {
+		logger.Warnf("failed loading folder extensions: %s", err)
+		return false
+	}
+
+	expectedExtensions := []string{".fmx", ".dfm", ".dproj"}
+	for _, ext := range expectedExtensions {
+		for _, e := range extensions {
+			if e == ext {
 				return true
 			}
 		}
