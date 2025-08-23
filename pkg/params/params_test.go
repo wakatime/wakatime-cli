@@ -3159,7 +3159,7 @@ func TestStatusBar_String(t *testing.T) {
 
 	assert.Equal(
 		t,
-		"hide categories: true, output: 'json'",
+		"hide categories: true, max categories: 0, output: 'json'",
 		statusbar.String(),
 	)
 }
