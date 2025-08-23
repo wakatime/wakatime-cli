@@ -824,7 +824,7 @@ func LoadStatusBarParams(v *viper.Viper, order FlagReadOrder) (StatusBar, error)
 			return StatusBar{}, fmt.Errorf("failed to parse today-max-categories: %s", err)
 		}
 
-		if val < 1 {
+		if val < 0 {
 			return StatusBar{}, fmt.Errorf("today-max-categories must be a positive number, got %d", val)
 		}
 
