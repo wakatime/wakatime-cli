@@ -14,26 +14,56 @@ import (
 
 func TestRenderToday(t *testing.T) {
 	tests := map[string]struct {
-		Output   output.Output
-		Expected string
+		Output        output.Output
+		MaxCategories int
+		Expected      string
 	}{
 		"text output": {
-			Output:   output.TextOutput,
-			Expected: "2 hrs 17 mins Coding, 7 secs Debugging",
+			Output:        output.TextOutput,
+			MaxCategories: 0,
+			Expected:      "2 hrs 17 mins Coding, 7 secs Debugging, 6 secs AI Coding",
+		},
+		"text output truncated 2": {
+			Output:        output.TextOutput,
+			MaxCategories: 2,
+			Expected:      "2 hrs 17 mins Coding, 7 secs Debugging...",
+		},
+		"text output truncated 1": {
+			Output:        output.TextOutput,
+			MaxCategories: 1,
+			Expected:      "2 hrs 17 mins Coding",
 		},
 		"json output": {
-			Output:   output.JSONOutput,
-			Expected: readFile(t, "testdata/statusbar_today_simplified.json"),
+			Output:        output.JSONOutput,
+			MaxCategories: 0,
+			Expected:      readFile(t, "testdata/statusbar_today_simplified.json"),
+		},
+		"json output truncated 2": {
+			Output:        output.JSONOutput,
+			MaxCategories: 2,
+			Expected:      readFile(t, "testdata/statusbar_today_simplified_truncated_2.json"),
+		},
+		"json output truncated 1": {
+			Output:        output.JSONOutput,
+			MaxCategories: 1,
+			Expected:      readFile(t, "testdata/statusbar_today_simplified_truncated_1.json"),
 		},
 		"raw json output": {
-			Output:   output.RawJSONOutput,
-			Expected: readFile(t, "testdata/statusbar_today.json"),
+			Output:        output.RawJSONOutput,
+			MaxCategories: 0,
+			Expected:      readFile(t, "testdata/statusbar_today.json"),
+		},
+		"raw json output not truncated": {
+			Output:        output.RawJSONOutput,
+			MaxCategories: 1,
+			Expected:      readFile(t, "testdata/statusbar_today.json"),
 		},
 	}
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			rendered, err := summary.RenderToday(testSummary(), false, test.Output)
+			s := testSummary()
+			rendered, err := summary.RenderToday(s, false, test.MaxCategories, test.Output)
 			require.NoError(t, err)
 
 			assert.Equal(t, test.Expected, rendered)
@@ -45,14 +75,32 @@ func TestRenderToday_OneCategory(t *testing.T) {
 	s := testSummary()
 	s.Data.Categories = s.Data.Categories[:1]
 
-	rendered, err := summary.RenderToday(s, false, output.TextOutput)
+	rendered, err := summary.RenderToday(s, false, 1, output.TextOutput)
 	require.NoError(t, err)
 
 	assert.Equal(t, "2 hrs 17 mins", rendered)
 }
 
+func TestRenderToday_OneCategoryTruncated(t *testing.T) {
+	s := testSummary()
+
+	rendered, err := summary.RenderToday(s, false, 1, output.TextOutput)
+	require.NoError(t, err)
+
+	assert.Equal(t, "2 hrs 17 mins Coding", rendered)
+}
+
+func TestRenderToday_Truncated(t *testing.T) {
+	s := testSummary()
+
+	rendered, err := summary.RenderToday(s, false, 2, output.TextOutput)
+	require.NoError(t, err)
+
+	assert.Equal(t, "2 hrs 17 mins Coding, 7 secs Debugging...", rendered)
+}
+
 func TestRenderToday_MultipleCategoriesHidden(t *testing.T) {
-	rendered, err := summary.RenderToday(testSummary(), true, output.TextOutput)
+	rendered, err := summary.RenderToday(testSummary(), true, 0, output.TextOutput)
 	require.NoError(t, err)
 
 	assert.Equal(t, "2 hrs 17 mins", rendered)
@@ -91,6 +139,17 @@ func testSummary() *summary.Summary {
 					Seconds:      7,
 					Text:         "7 secs",
 					TotalSeconds: 7.100772,
+				},
+				{
+					Decimal:      "0.00",
+					Digital:      "0:00:06",
+					Hours:        0,
+					Minutes:      0,
+					Name:         "AI Coding",
+					Percent:      0.08,
+					Seconds:      6,
+					Text:         "6 secs",
+					TotalSeconds: 6.100772,
 				},
 			},
 			Dependencies: []summary.Dependency{

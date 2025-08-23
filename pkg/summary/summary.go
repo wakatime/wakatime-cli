@@ -158,7 +158,7 @@ type (
 // RenderToday generates a text representation from summary of the current day.
 // If out is set to output.RawJSONOutput or output.JSONOutput, the summary will be marshaled to JSON.
 // Expects exactly one summary for the current day. Will return an error otherwise.
-func RenderToday(summary *Summary, hideCategories bool, out output.Output) (string, error) {
+func RenderToday(summary *Summary, hideCategories bool, maxCategories int, out output.Output) (string, error) {
 	if summary == nil {
 		return "", errors.New("no summary found for the current day")
 	}
@@ -179,7 +179,7 @@ func RenderToday(summary *Summary, hideCategories bool, out output.Output) (stri
 		}
 
 		s := simplified{
-			Text:            getText(summary, hideCategories),
+			Text:            getText(summary, hideCategories, maxCategories),
 			HasTeamFeatures: summary.HasTeamFeatures,
 		}
 
@@ -191,18 +191,31 @@ func RenderToday(summary *Summary, hideCategories bool, out output.Output) (stri
 		return string(data), nil
 	}
 
-	return getText(summary, hideCategories), nil
+	return getText(summary, hideCategories, maxCategories), nil
 }
 
-func getText(summary *Summary, hideCategories bool) string {
+func getText(summary *Summary, hideCategories bool, maxCategories int) string {
 	if len(summary.Data.Categories) < 2 || hideCategories {
 		return summary.Data.GrandTotal.Text
 	}
 
 	var outputs []string
-	for _, category := range summary.Data.Categories {
+
+	categories := summary.Data.Categories
+
+	if maxCategories > 0 && len(categories) > maxCategories {
+		categories = categories[:maxCategories]
+	}
+
+	for _, category := range categories {
 		outputs = append(outputs, fmt.Sprintf("%s %s", category.Text, category.Name))
 	}
 
-	return strings.Join(outputs, ", ")
+	result := strings.Join(outputs, ", ")
+
+	if maxCategories > 1 && len(summary.Data.Categories) > maxCategories {
+		result += "..."
+	}
+
+	return result
 }

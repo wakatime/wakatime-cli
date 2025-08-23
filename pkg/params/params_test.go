@@ -2919,6 +2919,46 @@ func TestLoadStatusBarParams_Output_Invalid(t *testing.T) {
 	assert.Equal(t, "failed to parse output: invalid output \"invalid\"", err.Error())
 }
 
+func TestLoadStatusBarParams_MaxCategories(t *testing.T) {
+	v := vipertools.MustNew()
+	v.Set("today-max-categories", 0)
+
+	params, err := paramspkg.LoadStatusBarParams(v, paramspkg.FlagReadOrderFlagPrecedence)
+	require.NoError(t, err)
+
+	assert.Equal(t, output.TextOutput, params.Output)
+}
+
+func TestLoadStatusBarParams_MaxCategoriesNegative(t *testing.T) {
+	v := vipertools.MustNew()
+	v.Set("today-max-categories", -1)
+
+	_, err := paramspkg.LoadStatusBarParams(v, paramspkg.FlagReadOrderFlagPrecedence)
+	require.Error(t, err)
+
+	assert.Equal(t, "today-max-categories must be a positive number, got -1", err.Error())
+}
+
+func TestLoadStatusBarParams_MaxCategoriesSetting(t *testing.T) {
+	v := vipertools.MustNew()
+	v.Set("settings.status_bar_max_categories", 1)
+
+	params, err := paramspkg.LoadStatusBarParams(v, paramspkg.FlagReadOrderFlagPrecedence)
+	require.NoError(t, err)
+
+	assert.Equal(t, output.TextOutput, params.Output)
+}
+
+func TestLoadStatusBarParams_MaxCategoriesNegativeSetting(t *testing.T) {
+	v := vipertools.MustNew()
+	v.Set("settings.status_bar_max_categories", -1)
+
+	_, err := paramspkg.LoadStatusBarParams(v, paramspkg.FlagReadOrderFlagPrecedence)
+	require.Error(t, err)
+
+	assert.Equal(t, "today-max-categories must be a positive number, got -1", err.Error())
+}
+
 func TestLoadHeartbeatParams_ExtraHeartbeats_StdinReadOnlyOnce(t *testing.T) {
 	r, w, err := os.Pipe()
 	require.NoError(t, err)
@@ -3159,7 +3199,7 @@ func TestStatusBar_String(t *testing.T) {
 
 	assert.Equal(
 		t,
-		"hide categories: true, output: 'json'",
+		"hide categories: true, max categories: 0, output: 'json'",
 		statusbar.String(),
 	)
 }
