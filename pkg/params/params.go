@@ -150,6 +150,10 @@ var (
 		FlagReadOrderFlagPrecedence:          {"today-hide-categories", "settings.status_bar_hide_categories"},
 		FlagReadOrderProjectConfigPrecedence: {"settings.status_bar_hide_categories", "today-hide-categories"},
 	}
+	todayMaxCategoriesOrder = map[FlagReadOrder][]string{
+		FlagReadOrderFlagPrecedence:          {"today-max-categories", "settings.status_bar_max_categories"},
+		FlagReadOrderProjectConfigPrecedence: {"settings.status_bar_max_categories", "today-max-categories"},
+	}
 )
 
 type (
@@ -262,6 +266,7 @@ type (
 	// StatusBar contains status bar related parameters.
 	StatusBar struct {
 		HideCategories bool
+		MaxCategories  int
 		Output         output.Output
 	}
 )
@@ -811,6 +816,21 @@ func LoadStatusBarParams(v *viper.Viper, order FlagReadOrder) (StatusBar, error)
 		hideCategories = val
 	}
 
+	maxCategories := 2
+
+	if maxCategoriesStr := vipertools.FirstNonEmptyString(v, todayMaxCategoriesOrder[order]...); maxCategoriesStr != "" {
+		val, err := strconv.Atoi(maxCategoriesStr)
+		if err != nil {
+			return StatusBar{}, fmt.Errorf("failed to parse today-max-categories: %s", err)
+		}
+
+		if val < 1 {
+			return StatusBar{}, fmt.Errorf("today-max-categories must be a positive number, got %d", val)
+		}
+
+		maxCategories = val
+	}
+
 	var out output.Output
 
 	if outputStr := vipertools.GetString(v, "output"); outputStr != "" {
@@ -824,6 +844,7 @@ func LoadStatusBarParams(v *viper.Viper, order FlagReadOrder) (StatusBar, error)
 
 	return StatusBar{
 		HideCategories: hideCategories,
+		MaxCategories:  maxCategories,
 		Output:         out,
 	}, nil
 }
@@ -1248,8 +1269,9 @@ func (p SanitizeParams) String() string {
 // String implements fmt.Stringer interface.
 func (p StatusBar) String() string {
 	return fmt.Sprintf(
-		"hide categories: %t, output: '%s'",
+		"hide categories: %t, max categories: %d, output: '%s'",
 		p.HideCategories,
+		p.MaxCategories,
 		p.Output,
 	)
 }
