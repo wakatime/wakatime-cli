@@ -32,7 +32,7 @@ func TestFileExperts(t *testing.T) {
 		numCalls int
 	)
 
-	projectFolder, err := filepath.Abs("../..")
+	projectFolder, err := filepath.Abs("testdata")
 	require.NoError(t, err)
 
 	subfolders := project.CountSlashesInProjectFolder(projectFolder)
@@ -85,7 +85,7 @@ func TestFileExperts(t *testing.T) {
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("api-url", testServerURL)
 	v.Set("plugin", plugin)
-	v.Set("project", "wakatime-cli")
+	v.Set("projectmap..*", "wakatime-cli")
 	v.Set("entity", "testdata/main.go")
 
 	output, err := fileexperts.FileExperts(t.Context(), v)
@@ -143,6 +143,7 @@ func TestFileExperts_ErrApi(t *testing.T) {
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("api-url", testServerURL)
 	v.Set("entity", "testdata/main.go")
+	v.Set("projectmap..*", "wakatime-cli")
 
 	_, err := fileexperts.FileExperts(t.Context(), v)
 	require.Error(t, err)
@@ -177,6 +178,7 @@ func TestFileExperts_ErrAuth(t *testing.T) {
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("api-url", testServerURL)
 	v.Set("entity", "testdata/main.go")
+	v.Set("projectmap..*", "wakatime-cli")
 
 	_, err := fileexperts.FileExperts(t.Context(), v)
 	require.Error(t, err)
@@ -210,6 +212,7 @@ func TestFileExperts_ErrBadRequest(t *testing.T) {
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("api-url", testServerURL)
 	v.Set("entity", "testdata/main.go")
+	v.Set("projectmap..*", "wakatime-cli")
 
 	_, err := fileexperts.FileExperts(t.Context(), v)
 	require.Error(t, err)
