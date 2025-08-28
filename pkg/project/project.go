@@ -648,11 +648,11 @@ func CountSlashesInProjectFolder(directory string) int {
 	directory = windows.FormatFilePath(directory)
 
 	// Add trailing slash if not present.
-	if !strings.HasSuffix(directory, `/`) {
-		directory += `/`
+	if !strings.HasSuffix(directory, "/") {
+		directory += "/"
 	}
 
-	return strings.Count(directory, `/`)
+	return strings.Count(directory, "/")
 }
 
 // FindFileOrDirectory searches current and all parent folders for a file or directory named `filename`.

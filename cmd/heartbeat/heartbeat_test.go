@@ -46,7 +46,7 @@ func TestSendHeartbeats(t *testing.T) {
 		numCalls int
 	)
 
-	projectFolder, err := filepath.Abs("../..")
+	projectFolder, err := filepath.Abs("testdata")
 	require.NoError(t, err)
 
 	tmpFile, err := os.CreateTemp(t.TempDir(), "wakatime-config")
@@ -117,7 +117,7 @@ func TestSendHeartbeats(t *testing.T) {
 	v.Set("language", "Go")
 	v.Set("alternate-language", "Golang")
 	v.Set("hide-branch-names", true)
-	v.Set("project", "wakatime-cli")
+	v.Set("projectmap..*", "wakatime-cli")
 	v.Set("lineno", 13)
 	v.Set("local-file", "testdata/localfile.go")
 	v.Set("plugin", plugin)
@@ -178,7 +178,7 @@ func TestSendHeartbeats_RateLimited(t *testing.T) {
 	v.Set("language", "Go")
 	v.Set("alternate-language", "Golang")
 	v.Set("hide-branch-names", true)
-	v.Set("project", "wakatime-cli")
+	v.Set("projectmap..*", "wakatime-cli")
 	v.Set("lineno", 13)
 	v.Set("local-file", "testdata/localfile.go")
 	v.Set("plugin", plugin)
@@ -286,7 +286,7 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 
 	ctx := t.Context()
 
-	projectFolder, err := filepath.Abs("../..")
+	projectFolder, err := filepath.Abs("testdata")
 	require.NoError(t, err)
 
 	subfolders := project.CountSlashesInProjectFolder(projectFolder)
@@ -395,7 +395,7 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 	v.Set("extra-heartbeats", true)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("hide-branch-names", true)
-	v.Set("project", "wakatime-cli")
+	v.Set("projectmap..*", "wakatime-cli")
 	v.Set("language", "Go")
 	v.Set("alternate-language", "Golang")
 	v.Set("lineno", 2)
@@ -433,7 +433,7 @@ func TestSendHeartbeats_ExtraHeartbeatsNestedError(t *testing.T) {
 
 	ctx := t.Context()
 
-	projectFolder, err := filepath.Abs("../..")
+	projectFolder, err := filepath.Abs("testdata")
 	require.NoError(t, err)
 
 	subfolders := project.CountSlashesInProjectFolder(projectFolder)
@@ -549,7 +549,7 @@ func TestSendHeartbeats_ExtraHeartbeatsNestedError(t *testing.T) {
 	v.Set("extra-heartbeats", true)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("hide-branch-names", true)
-	v.Set("project", "wakatime-cli")
+	v.Set("projectmap..*", "wakatime-cli")
 	v.Set("language", "Go")
 	v.Set("alternate-language", "Golang")
 	v.Set("lineno", 2)
@@ -651,7 +651,7 @@ func TestSendHeartbeats_ExtraHeartbeats_Sanitize(t *testing.T) {
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("hide-branch-names", true)
 	v.Set("hide-file-names", true)
-	v.Set("project", "wakatime-cli")
+	v.Set("projectmap..*", "wakatime-cli")
 	v.Set("language", "Go")
 	v.Set("alternate-language", "Golang")
 	v.Set("lineno", 13)
@@ -782,7 +782,7 @@ func TestSendHeartbeats_ExtraHeartbeatsIsUnsavedEntity(t *testing.T) {
 
 	ctx := t.Context()
 
-	projectFolder, err := filepath.Abs("../..")
+	projectFolder, err := filepath.Abs(".")
 	require.NoError(t, err)
 
 	subfolders := project.CountSlashesInProjectFolder(projectFolder)
@@ -812,7 +812,7 @@ func TestSendHeartbeats_ExtraHeartbeatsIsUnsavedEntity(t *testing.T) {
 			string(expectedBody),
 			entities[0].Entity, subfolders, userAgent,
 			entities[1].Entity, subfolders, userAgent,
-			entities[2].Entity, subfolders, userAgent,
+			entities[2].Entity, subfolders+1, userAgent,
 		)
 
 		assert.JSONEq(t, expectedBodyStr, string(body))
@@ -873,7 +873,7 @@ func TestSendHeartbeats_ExtraHeartbeatsIsUnsavedEntity(t *testing.T) {
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("language", "Go")
 	v.Set("alternate-language", "Golang")
-	v.Set("project", "wakatime-cli")
+	v.Set("projectmap..*", "wakatime-cli")
 	v.Set("hide-branch-names", true)
 	v.Set("lineno", 11)
 	v.Set("lines-in-file", 91)
@@ -917,7 +917,7 @@ func TestSendHeartbeats_NonExistingExtraHeartbeatsEntity(t *testing.T) {
 
 	ctx := t.Context()
 
-	projectFolder, err := filepath.Abs("../..")
+	projectFolder, err := filepath.Abs("testdata")
 	require.NoError(t, err)
 
 	subfolders := project.CountSlashesInProjectFolder(projectFolder)
@@ -1001,7 +1001,7 @@ func TestSendHeartbeats_NonExistingExtraHeartbeatsEntity(t *testing.T) {
 	v.Set("entity", "testdata/main.go")
 	v.Set("entity-type", "file")
 	v.Set("hide-branch-names", true)
-	v.Set("project", "wakatime-cli")
+	v.Set("projectmap..*", "wakatime-cli")
 	v.Set("extra-heartbeats", true)
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("plugin", plugin)
