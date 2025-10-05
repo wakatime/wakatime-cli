@@ -57,3 +57,17 @@ If you’re connected to a remote host using the [ssh extension][ssh extension] 
 [plugins status]: https://wakatime.com/plugins/status
 [user agents api]: https://wakatime.com/api/v1/users/current/user_agents
 [machines api]: https://wakatime.com/api/v1/users/current/machine_names
+
+## Wakatime-cli Not Found
+The corresponding wakatime-cli package may fail to download properly due to network issues. Please open the log file and look for content similar to the following:
+```plaintext
+[WakaTime][ERROR] Failed to install dependencies: FetchError: request to
+```
+In the relevant content, you will find a URL, which usually points to a zip package. Download this zip package and place the unzipped content into the .wakatime directory under the current user's HOME directory.
+
+Supplementary Notes
+HOME Directory: Its path varies across different operating systems.
+- For Windows systems, it is usually C:\Users\YourUsername.
+- For macOS and Linux systems:
+    1. It is usually /Users/YourUsername on macOS.
+    2. It is usually /home/YourUsername on Linux.
