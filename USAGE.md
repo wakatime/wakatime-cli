@@ -32,6 +32,7 @@ include_only_with_project_file = false
 exclude_unknown_project = false
 status_bar_enabled = true
 status_bar_coding_activity = true
+compact = false
 status_bar_hide_categories = false
 status_bar_max_categories = 0
 offline = true
@@ -100,6 +101,7 @@ Notice how you have to include the exclude patterns from your main `~/.wakatime.
 | exclude_unknown_project        | When set, any activity where the project cannot be detected will be ignored. | _bool_ | `false` |
 | status_bar_enabled             | Turns on wakatime status bar for certain editors. | _bool_ | `true` |
 | status_bar_coding_activity     | Enables displaying Today's code stats in the status bar of some editors. When false, only the WakaTime icon is displayed in the status bar. | _bool_ | `true` |
+| compact                        | When `true`, use compact output | _bool_ | `false` |
 | status_bar_hide_categories     | When `true`, --today only displays the total code stats, never displaying Categories in the output. | _bool_ | `false` |
 | status_bar_max_categories      | When greater than zero, limits the number of categories displayed in the status bar. | _int_ | `0` |
 | offline                        | Enables saving code stats locally to ~/.wakatime/offline_heartbeats.bdb when offline, and syncing to the dashboard later when back online. | _bool_ | `true` |

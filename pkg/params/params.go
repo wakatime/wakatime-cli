@@ -150,6 +150,20 @@ var (
 		FlagReadOrderFlagPrecedence:          {"today-hide-categories", "settings.status_bar_hide_categories"},
 		FlagReadOrderProjectConfigPrecedence: {"settings.status_bar_hide_categories", "today-hide-categories"},
 	}
+	compactOrder = map[FlagReadOrder][]string{
+		FlagReadOrderFlagPrecedence: {
+			"compact",
+			"today-compact", // legacy alias
+			"settings.compact",
+			"settings.status_bar_compact", // legacy alias
+		},
+		FlagReadOrderProjectConfigPrecedence: {
+			"settings.compact",
+			"settings.status_bar_compact", // legacy alias
+			"compact",
+			"today-compact", // legacy alias
+		},
+	}
 	todayMaxCategoriesOrder = map[FlagReadOrder][]string{
 		FlagReadOrderFlagPrecedence:          {"today-max-categories", "settings.status_bar_max_categories"},
 		FlagReadOrderProjectConfigPrecedence: {"settings.status_bar_max_categories", "today-max-categories"},
@@ -265,6 +279,7 @@ type (
 
 	// StatusBar contains status bar related parameters.
 	StatusBar struct {
+		Compact        bool
 		HideCategories bool
 		MaxCategories  int
 		Output         output.Output
@@ -805,6 +820,17 @@ func LoadOfflineParams(ctx context.Context, v *viper.Viper, order FlagReadOrder)
 
 // LoadStatusBarParams loads status bar params from viper.Viper instance.
 func LoadStatusBarParams(v *viper.Viper, order FlagReadOrder) (StatusBar, error) {
+	var compact bool
+
+	if compactStr := vipertools.FirstNonEmptyString(v, compactOrder[order]...); compactStr != "" {
+		val, err := strconv.ParseBool(compactStr)
+		if err != nil {
+			return StatusBar{}, fmt.Errorf("failed to parse today-compact: %s", err)
+		}
+
+		compact = val
+	}
+
 	var hideCategories bool
 
 	if hideCategoriesStr := vipertools.FirstNonEmptyString(v, todayHideCategoriesOrder[order]...); hideCategoriesStr != "" {
@@ -843,6 +869,7 @@ func LoadStatusBarParams(v *viper.Viper, order FlagReadOrder) (StatusBar, error)
 	}
 
 	return StatusBar{
+		Compact:        compact,
 		HideCategories: hideCategories,
 		MaxCategories:  maxCategories,
 		Output:         out,
@@ -1269,7 +1296,8 @@ func (p SanitizeParams) String() string {
 // String implements fmt.Stringer interface.
 func (p StatusBar) String() string {
 	return fmt.Sprintf(
-		"hide categories: %t, max categories: %d, output: '%s'",
+		"compact: %t, hide categories: %t, max categories: %d, output: '%s'",
+		p.Compact,
 		p.HideCategories,
 		p.MaxCategories,
 		p.Output,

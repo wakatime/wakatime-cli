@@ -117,6 +117,7 @@ func TestWithDetection_SshConfig_Hostname(t *testing.T) {
 				},
 			}, hh)
 			assert.Contains(t, hh[0].LocalFile, "main.go")
+
 			return []heartbeat.Result{
 				{
 					Status:    201,
@@ -286,6 +287,7 @@ func TestWithDetection_SshConfig_UserKnownHostsFile_Match(t *testing.T) {
 				},
 			}, hh)
 			assert.Contains(t, hh[0].LocalFile, "main.go")
+
 			return []heartbeat.Result{
 				{
 					Status:    201,

@@ -158,7 +158,7 @@ type (
 // RenderToday generates a text representation from summary of the current day.
 // If out is set to output.RawJSONOutput or output.JSONOutput, the summary will be marshaled to JSON.
 // Expects exactly one summary for the current day. Will return an error otherwise.
-func RenderToday(summary *Summary, hideCategories bool, maxCategories int, out output.Output) (string, error) {
+func RenderToday(summary *Summary, compact bool, hideCategories bool, maxCategories int, out output.Output) (string, error) {
 	if summary == nil {
 		return "", errors.New("no summary found for the current day")
 	}
@@ -179,7 +179,7 @@ func RenderToday(summary *Summary, hideCategories bool, maxCategories int, out o
 		}
 
 		s := simplified{
-			Text:            getText(summary, hideCategories, maxCategories),
+			Text:            getText(summary, compact, hideCategories, maxCategories),
 			HasTeamFeatures: summary.HasTeamFeatures,
 		}
 
@@ -191,11 +191,11 @@ func RenderToday(summary *Summary, hideCategories bool, maxCategories int, out o
 		return string(data), nil
 	}
 
-	return getText(summary, hideCategories, maxCategories), nil
+	return getText(summary, compact, hideCategories, maxCategories), nil
 }
 
-func getText(summary *Summary, hideCategories bool, maxCategories int) string {
-	if len(summary.Data.Categories) < 2 || hideCategories {
+func getText(summary *Summary, compact bool, hideCategories bool, maxCategories int) string {
+	if compact || len(summary.Data.Categories) < 2 || hideCategories {
 		return summary.Data.GrandTotal.Text
 	}
 

@@ -14,6 +14,7 @@ import (
 
 func TestRenderToday(t *testing.T) {
 	tests := map[string]struct {
+		Compact       bool
 		Output        output.Output
 		MaxCategories int
 		Expected      string
@@ -33,10 +34,22 @@ func TestRenderToday(t *testing.T) {
 			MaxCategories: 1,
 			Expected:      "2 hrs 17 mins Coding",
 		},
+		"text output compact": {
+			Compact:       true,
+			Output:        output.TextOutput,
+			MaxCategories: 2,
+			Expected:      "2 hrs 17 mins",
+		},
 		"json output": {
 			Output:        output.JSONOutput,
 			MaxCategories: 0,
 			Expected:      readFile(t, "testdata/statusbar_today_simplified.json"),
+		},
+		"json output compact": {
+			Compact:       true,
+			Output:        output.JSONOutput,
+			MaxCategories: 0,
+			Expected:      `{"text":"2 hrs 17 mins","has_team_features":true}`,
 		},
 		"json output truncated 2": {
 			Output:        output.JSONOutput,
@@ -63,7 +76,7 @@ func TestRenderToday(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			s := testSummary()
-			rendered, err := summary.RenderToday(s, false, test.MaxCategories, test.Output)
+			rendered, err := summary.RenderToday(s, test.Compact, false, test.MaxCategories, test.Output)
 			require.NoError(t, err)
 
 			assert.Equal(t, test.Expected, rendered)
@@ -75,7 +88,7 @@ func TestRenderToday_OneCategory(t *testing.T) {
 	s := testSummary()
 	s.Data.Categories = s.Data.Categories[:1]
 
-	rendered, err := summary.RenderToday(s, false, 1, output.TextOutput)
+	rendered, err := summary.RenderToday(s, false, false, 1, output.TextOutput)
 	require.NoError(t, err)
 
 	assert.Equal(t, "2 hrs 17 mins", rendered)
@@ -84,7 +97,7 @@ func TestRenderToday_OneCategory(t *testing.T) {
 func TestRenderToday_OneCategoryTruncated(t *testing.T) {
 	s := testSummary()
 
-	rendered, err := summary.RenderToday(s, false, 1, output.TextOutput)
+	rendered, err := summary.RenderToday(s, false, false, 1, output.TextOutput)
 	require.NoError(t, err)
 
 	assert.Equal(t, "2 hrs 17 mins Coding", rendered)
@@ -93,14 +106,14 @@ func TestRenderToday_OneCategoryTruncated(t *testing.T) {
 func TestRenderToday_Truncated(t *testing.T) {
 	s := testSummary()
 
-	rendered, err := summary.RenderToday(s, false, 2, output.TextOutput)
+	rendered, err := summary.RenderToday(s, false, false, 2, output.TextOutput)
 	require.NoError(t, err)
 
 	assert.Equal(t, "2 hrs 17 mins Coding, 7 secs Debugging...", rendered)
 }
 
 func TestRenderToday_MultipleCategoriesHidden(t *testing.T) {
-	rendered, err := summary.RenderToday(testSummary(), true, 0, output.TextOutput)
+	rendered, err := summary.RenderToday(testSummary(), false, true, 0, output.TextOutput)
 	require.NoError(t, err)
 
 	assert.Equal(t, "2 hrs 17 mins", rendered)

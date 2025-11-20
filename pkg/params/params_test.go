@@ -2881,6 +2881,27 @@ func TestLoadStatusBarParams_HideCategories_ConfigTakesPrecedence(t *testing.T) 
 	assert.True(t, params.HideCategories)
 }
 
+func TestLoadStatusBarParams_Compact_FlagTakesPrecedence(t *testing.T) {
+	v := vipertools.MustNew()
+	v.Set("compact", false)
+	v.Set("settings.compact", true)
+
+	params, err := paramspkg.LoadStatusBarParams(v, paramspkg.FlagReadOrderFlagPrecedence)
+	require.NoError(t, err)
+
+	assert.False(t, params.Compact)
+}
+
+func TestLoadStatusBarParams_Compact_ConfigTakesPrecedence(t *testing.T) {
+	v := vipertools.MustNew()
+	v.Set("settings.compact", true)
+
+	params, err := paramspkg.LoadStatusBarParams(v, paramspkg.FlagReadOrderFlagPrecedence)
+	require.NoError(t, err)
+
+	assert.True(t, params.Compact)
+}
+
 func TestLoadStatusBarParams_Output(t *testing.T) {
 	tests := map[string]output.Output{
 		"text": output.TextOutput,
@@ -3199,7 +3220,7 @@ func TestStatusBar_String(t *testing.T) {
 
 	assert.Equal(
 		t,
-		"hide categories: true, max categories: 0, output: 'json'",
+		"compact: false, hide categories: true, max categories: 0, output: 'json'",
 		statusbar.String(),
 	)
 }
