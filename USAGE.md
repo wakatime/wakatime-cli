@@ -32,7 +32,6 @@ include_only_with_project_file = false
 exclude_unknown_project = false
 status_bar_enabled = true
 status_bar_coding_activity = true
-compact = false
 status_bar_hide_categories = false
 status_bar_max_categories = 0
 offline = true
@@ -45,6 +44,7 @@ log_file =
 import_cfg = /path/to/another/wakatime.cfg
 metrics = true
 guess_language = true
+compact = false
 
 [projectmap]
 projects/foo = new project name
