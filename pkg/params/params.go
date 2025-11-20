@@ -153,15 +153,11 @@ var (
 	compactOrder = map[FlagReadOrder][]string{
 		FlagReadOrderFlagPrecedence: {
 			"compact",
-			"today-compact", // legacy alias
 			"settings.compact",
-			"settings.status_bar_compact", // legacy alias
 		},
 		FlagReadOrderProjectConfigPrecedence: {
 			"settings.compact",
-			"settings.status_bar_compact", // legacy alias
 			"compact",
-			"today-compact", // legacy alias
 		},
 	}
 	todayMaxCategoriesOrder = map[FlagReadOrder][]string{
@@ -825,7 +821,7 @@ func LoadStatusBarParams(v *viper.Viper, order FlagReadOrder) (StatusBar, error)
 	if compactStr := vipertools.FirstNonEmptyString(v, compactOrder[order]...); compactStr != "" {
 		val, err := strconv.ParseBool(compactStr)
 		if err != nil {
-			return StatusBar{}, fmt.Errorf("failed to parse today-compact: %s", err)
+			return StatusBar{}, fmt.Errorf("failed to parse compact: %s", err)
 		}
 
 		compact = val
