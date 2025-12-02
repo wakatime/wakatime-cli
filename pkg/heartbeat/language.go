@@ -281,6 +281,8 @@ const (
 	LanguageCool
 	// LanguageCoq represents the Coq programming language.
 	LanguageCoq
+	// LanguageCore represents the Core programming language.
+	LanguageCore
 	// LanguageCPerl represents the CPerl programming language.
 	LanguageCPerl
 	// LanguageCPP represents the CPP programming language.
@@ -541,6 +543,8 @@ const (
 	LanguageGDScript3
 	// LanguageGEDCOM represents the GEDCOM programming language.
 	LanguageGEDCOM
+	// LanguageGemtext represents the Gemtext programming language.
+	LanguageGemtext
 	// LanguageGenie represents the Genie programming language.
 	LanguageGenie
 	// LanguageGenshi represents the Genshi programming language.
@@ -855,6 +859,8 @@ const (
 	LanguageLookML
 	// LanguageLoomScript represents the LoomScript programming language.
 	LanguageLoomScript
+	// LanguageLox represents the lox programming language.
+	LanguageLox
 	// LanguageLSL represents the LSL programming language.
 	LanguageLSL
 	// LanguageLTspiceSymbol represents the LTspiceSymbol programming language.
@@ -1741,6 +1747,7 @@ const (
 	languageCoNLLUStr                      = "CoNLL-U"
 	languageCoolStr                        = "Cool"
 	languageCoqStr                         = "Coq"
+	languageCoreStr                        = "Core"
 	languageCPerlStr                       = "cperl"
 	languageCppObjdumpStr                  = "Cpp-ObjDump"
 	languageCPPStr                         = "C++"
@@ -1875,6 +1882,7 @@ const (
 	languageGDScript3Str                   = "GDScript3"
 	languageGDScriptStr                    = "GDScript"
 	languageGEDCOMStr                      = "GEDCOM"
+	languageGemtextStr                     = "Gemtext"
 	languageGenieStr                       = "Genie"
 	languageGenshiHTMLStr                  = "Genshi HTML"
 	languageGenshiStr                      = "Genshi"
@@ -2030,6 +2038,7 @@ const (
 	languageLOLCODEStr                     = "LOLCODE"
 	languageLookMLStr                      = "LookML"
 	languageLoomScriptStr                  = "LoomScript"
+	languageLoxStr                         = "lox"
 	languageLSLStr                         = "LSL"
 	languageLTspiceSymbolStr               = "LTspice Symbol"
 	languageLuaStr                         = "Lua"
@@ -2740,6 +2749,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageCool, true
 	case normalizeString(languageCoqStr):
 		return LanguageCoq, true
+	case normalizeString(languageCoreStr):
+		return LanguageCore, true
 	case normalizeString(languageCPerlStr):
 		return LanguageCPerl, true
 	case normalizeString(languageCPPStr):
@@ -3004,6 +3015,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageGDScript3, true
 	case normalizeString(languageGEDCOMStr):
 		return LanguageGEDCOM, true
+	case normalizeString(languageGemtextStr):
+		return LanguageGemtext, true
 	case normalizeString(languageGenieStr):
 		return LanguageGenie, true
 	case normalizeString(languageGenshiStr):
@@ -3314,6 +3327,8 @@ func ParseLanguage(s string) (Language, bool) {
 		return LanguageLookML, true
 	case normalizeString(languageLoomScriptStr):
 		return LanguageLoomScript, true
+	case normalizeString(languageLoxStr):
+		return LanguageLox, true
 	case normalizeString(languageLSLStr):
 		return LanguageLSL, true
 	case normalizeString(languageLTspiceSymbolStr):
@@ -4466,6 +4481,8 @@ func (l Language) String() string {
 		return languageCoolStr
 	case LanguageCoq:
 		return languageCoqStr
+	case LanguageCore:
+		return languageCoreStr
 	case LanguageCPerl:
 		return languageCPerlStr
 	case LanguageCPP:
@@ -4724,6 +4741,8 @@ func (l Language) String() string {
 		return languageGDScript3Str
 	case LanguageGEDCOM:
 		return languageGEDCOMStr
+	case LanguageGemtext:
+		return languageGemtextStr
 	case LanguageGenie:
 		return languageGenieStr
 	case LanguageGenshi:
@@ -5034,6 +5053,8 @@ func (l Language) String() string {
 		return languageLookMLStr
 	case LanguageLoomScript:
 		return languageLoomScriptStr
+	case LanguageLox:
+		return languageLoxStr
 	case LanguageLSL:
 		return languageLSLStr
 	case LanguageLTspiceSymbol:

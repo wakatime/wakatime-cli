@@ -14,7 +14,7 @@ import (
 
 func TestWithSanitization_ObfuscateFile(t *testing.T) {
 	opt := heartbeat.WithSanitization(heartbeat.SanitizeConfig{
-		FilePatterns: []regex.Regex{regex.NewRegexpWrap(regexp.MustCompile(".*"))},
+		HideFilePatterns: []regex.Regex{regex.NewRegexpWrap(regexp.MustCompile(".*"))},
 	})
 
 	handle := opt(func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
@@ -112,7 +112,7 @@ func TestSanitize_Obfuscate(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			r := heartbeat.Sanitize(ctx, test.Heartbeat, heartbeat.SanitizeConfig{
-				FilePatterns: []regex.Regex{regex.NewRegexpWrap(regexp.MustCompile(".*"))},
+				HideFilePatterns: []regex.Regex{regex.NewRegexpWrap(regexp.MustCompile(".*"))},
 			})
 
 			assert.Equal(t, test.Expected, r)
@@ -122,8 +122,8 @@ func TestSanitize_Obfuscate(t *testing.T) {
 
 func TestSanitize_ObfuscateFile_SkipBranchIfNotMatching(t *testing.T) {
 	r := heartbeat.Sanitize(t.Context(), testHeartbeat(), heartbeat.SanitizeConfig{
-		FilePatterns:   []regex.Regex{regex.NewRegexpWrap(regexp.MustCompile(".*"))},
-		BranchPatterns: []regex.Regex{regex.NewRegexpWrap(regexp.MustCompile("not_matching"))},
+		HideFilePatterns:   []regex.Regex{regex.NewRegexpWrap(regexp.MustCompile(".*"))},
+		HideBranchPatterns: []regex.Regex{regex.NewRegexpWrap(regexp.MustCompile("not_matching"))},
 	})
 
 	assert.Equal(t, heartbeat.Heartbeat{
@@ -144,8 +144,8 @@ func TestSanitize_ObfuscateFile_NilFields(t *testing.T) {
 	h.Dependencies = nil
 
 	r := heartbeat.Sanitize(t.Context(), h, heartbeat.SanitizeConfig{
-		FilePatterns:   []regex.Regex{regex.NewRegexpWrap(regexp.MustCompile(".*"))},
-		BranchPatterns: []regex.Regex{regex.NewRegexpWrap(regexp.MustCompile(".*"))},
+		HideFilePatterns:   []regex.Regex{regex.NewRegexpWrap(regexp.MustCompile(".*"))},
+		HideBranchPatterns: []regex.Regex{regex.NewRegexpWrap(regexp.MustCompile(".*"))},
 	})
 
 	assert.Equal(t, heartbeat.Heartbeat{
@@ -161,7 +161,7 @@ func TestSanitize_ObfuscateFile_NilFields(t *testing.T) {
 
 func TestSanitize_ObfuscateProject(t *testing.T) {
 	r := heartbeat.Sanitize(t.Context(), testHeartbeat(), heartbeat.SanitizeConfig{
-		ProjectPatterns: []regex.Regex{regex.NewRegexpWrap(regexp.MustCompile(".*"))},
+		HideProjectPatterns: []regex.Regex{regex.NewRegexpWrap(regexp.MustCompile(".*"))},
 	})
 
 	assert.Equal(t, heartbeat.Heartbeat{
@@ -179,8 +179,8 @@ func TestSanitize_ObfuscateProject(t *testing.T) {
 
 func TestSanitize_ObfuscateProject_SkipBranchIfNotMatching(t *testing.T) {
 	r := heartbeat.Sanitize(t.Context(), testHeartbeat(), heartbeat.SanitizeConfig{
-		ProjectPatterns: []regex.Regex{regex.NewRegexpWrap(regexp.MustCompile(".*"))},
-		BranchPatterns:  []regex.Regex{regex.NewRegexpWrap(regexp.MustCompile("not_matching"))},
+		HideProjectPatterns: []regex.Regex{regex.NewRegexpWrap(regexp.MustCompile(".*"))},
+		HideBranchPatterns:  []regex.Regex{regex.NewRegexpWrap(regexp.MustCompile("not_matching"))},
 	})
 
 	assert.Equal(t, heartbeat.Heartbeat{
@@ -202,8 +202,8 @@ func TestSanitize_ObfuscateProject_NilFields(t *testing.T) {
 	h.Dependencies = nil
 
 	r := heartbeat.Sanitize(t.Context(), h, heartbeat.SanitizeConfig{
-		ProjectPatterns: []regex.Regex{regex.NewRegexpWrap(regexp.MustCompile(".*"))},
-		BranchPatterns:  []regex.Regex{regex.NewRegexpWrap(regexp.MustCompile(".*"))},
+		HideProjectPatterns: []regex.Regex{regex.NewRegexpWrap(regexp.MustCompile(".*"))},
+		HideBranchPatterns:  []regex.Regex{regex.NewRegexpWrap(regexp.MustCompile(".*"))},
 	})
 
 	assert.Equal(t, heartbeat.Heartbeat{
@@ -219,7 +219,7 @@ func TestSanitize_ObfuscateProject_NilFields(t *testing.T) {
 
 func TestSanitize_ObfuscateBranch(t *testing.T) {
 	r := heartbeat.Sanitize(t.Context(), testHeartbeat(), heartbeat.SanitizeConfig{
-		BranchPatterns: []regex.Regex{regex.NewRegexpWrap(regexp.MustCompile(".*"))},
+		HideBranchPatterns: []regex.Regex{regex.NewRegexpWrap(regexp.MustCompile(".*"))},
 	})
 
 	assert.Equal(t, heartbeat.Heartbeat{
@@ -243,7 +243,7 @@ func TestSanitize_ObfuscateBranch_NilFields(t *testing.T) {
 	h.Project = nil
 
 	r := heartbeat.Sanitize(t.Context(), h, heartbeat.SanitizeConfig{
-		BranchPatterns: []regex.Regex{regex.NewRegexpWrap(regexp.MustCompile(".*"))},
+		HideBranchPatterns: []regex.Regex{regex.NewRegexpWrap(regexp.MustCompile(".*"))},
 	})
 
 	assert.Equal(t, heartbeat.Heartbeat{
@@ -262,7 +262,7 @@ func TestSanitize_ObfuscateBranch_NilFields(t *testing.T) {
 
 func TestSanitize_ObfuscateDependency(t *testing.T) {
 	r := heartbeat.Sanitize(t.Context(), testHeartbeat(), heartbeat.SanitizeConfig{
-		DependencyPatterns: []regex.Regex{regex.NewRegexpWrap(regexp.MustCompile(".*"))},
+		HideDependencyPatterns: []regex.Regex{regex.NewRegexpWrap(regexp.MustCompile(".*"))},
 	})
 
 	assert.Equal(t, heartbeat.Heartbeat{
