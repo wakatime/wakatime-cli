@@ -46,7 +46,7 @@ func (c *Client) SendDiagnostics(
 	}
 
 	for _, d := range diagnostics {
-		switch d.Type {
+		switch d.Type { // nolint:exhaustive
 		case diagnostic.TypeError:
 			body.OriginalError = d.Value
 		case diagnostic.TypeLogs:

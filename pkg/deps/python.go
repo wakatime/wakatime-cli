@@ -123,7 +123,7 @@ func (p *ParserPython) processKeyword(value string) {
 }
 
 func (p *ParserPython) processNameNamespace(value string) {
-	switch p.State {
+	switch p.State { // nolint:exhaustive
 	case StatePythonFrom, StatePythonImport:
 		p.Buffer += value
 	default:

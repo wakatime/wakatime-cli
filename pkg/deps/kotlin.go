@@ -115,7 +115,7 @@ func (p *ParserKotlin) processKeyword(value string) {
 }
 
 func (p *ParserKotlin) processNameNamespace(value string) {
-	switch p.State {
+	switch p.State { // nolint:exhaustive
 	case StateKotlinImport:
 		p.append(value)
 	default:

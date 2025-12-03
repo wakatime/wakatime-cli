@@ -78,6 +78,8 @@ func (d DetectorID) String() string {
 		return subversionDetectorString
 	case TfvcDetector:
 		return tfvcDetectorString
+	case UnknownDetector:
+		fallthrough
 	default:
 		return ""
 	}

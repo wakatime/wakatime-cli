@@ -5,6 +5,7 @@ run:
 linters:
   enable:
     - bodyclose
+    - exhaustive
     - gochecknoglobals
     - gochecknoinits
     - gocritic
@@ -21,6 +22,8 @@ linters:
     - whitespace
     - wsl_v5
   settings:
+    exhaustive:
+      ignore-enum-members: "chroma.+"
     revive:
       rules:
         - name: bare-return
