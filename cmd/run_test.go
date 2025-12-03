@@ -16,6 +16,7 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/api"
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
 	"github.com/wakatime/wakatime-cli/pkg/log"
+	"github.com/wakatime/wakatime-cli/pkg/log/setup"
 	"github.com/wakatime/wakatime-cli/pkg/offline"
 	"github.com/wakatime/wakatime-cli/pkg/version"
 
@@ -114,7 +115,7 @@ func TestRunCmd_ErrBackoff(t *testing.T) {
 	v.Set("offline-queue-file", offlineQueueFile.Name())
 	v.Set("plugin", "vim")
 
-	logger, err := cmd.SetupLogging(ctx, v)
+	logger, err := setup.Logging(ctx, v)
 	require.NoError(t, err)
 
 	defer logger.Flush()
@@ -229,7 +230,7 @@ func TestRunCmd_Verbose_ErrBackoff(t *testing.T) {
 	v.Set("log-file", logFile.Name())
 	v.Set("verbose", true)
 
-	logger, err := cmd.SetupLogging(ctx, v)
+	logger, err := setup.Logging(ctx, v)
 	require.NoError(t, err)
 
 	defer logger.Flush()
@@ -325,7 +326,7 @@ func TestRunCmd_SendDiagnostics_Err(t *testing.T) {
 	v.Set("offline-queue-file", offlineQueueFile.Name())
 	v.Set("plugin", "vim")
 
-	logger, err := cmd.SetupLogging(ctx, v)
+	logger, err := setup.Logging(ctx, v)
 	require.NoError(t, err)
 
 	ctx = log.ToContext(ctx, logger)
@@ -415,7 +416,7 @@ func TestRunCmd_SendDiagnostics_Panic(t *testing.T) {
 	v.Set("offline-queue-file", offlineQueueFile.Name())
 	v.Set("plugin", "vim")
 
-	logger, err := cmd.SetupLogging(ctx, v)
+	logger, err := setup.Logging(ctx, v)
 	require.NoError(t, err)
 
 	ctx = log.ToContext(ctx, logger)
@@ -504,7 +505,7 @@ func TestRunCmd_SendDiagnostics_NoLogs_Panic(t *testing.T) {
 	v.Set("offline-queue-file", offlineQueueFile.Name())
 	v.Set("plugin", "vim")
 
-	logger, err := cmd.SetupLogging(ctx, v)
+	logger, err := setup.Logging(ctx, v)
 	require.NoError(t, err)
 
 	ctx = log.ToContext(ctx, logger)
@@ -594,7 +595,7 @@ func TestRunCmd_SendDiagnostics_WakaError(t *testing.T) {
 	v.Set("offline-queue-file", offlineQueueFile.Name())
 	v.Set("plugin", "vim")
 
-	logger, err := cmd.SetupLogging(ctx, v)
+	logger, err := setup.Logging(ctx, v)
 	require.NoError(t, err)
 
 	ctx = log.ToContext(ctx, logger)

@@ -156,7 +156,7 @@ lint: install-linter
 .PHONY: vulncheck
 vulncheck:
 	go install golang.org/x/vuln/cmd/govulncheck@latest
-	./bin/govulncheck-with-excludes.sh ./...
+	govulncheck
 
 .PHONY: test
 test:
