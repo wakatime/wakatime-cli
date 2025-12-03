@@ -251,6 +251,8 @@ func WakaResourcesDir(ctx context.Context) (string, error) {
 	switch hometype {
 	case WakaHomeTypeEnvVar:
 		return home, nil
+	case WakaHomeTypeOSDir, WakaHomeTypeUnknown:
+		fallthrough
 	default:
 		return filepath.Join(home, defaultFolder), nil
 	}

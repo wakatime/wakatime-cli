@@ -156,6 +156,7 @@ func TestNewHandle(t *testing.T) {
 					UserAgent:  "wakatime/13.0.7",
 				},
 			}, hh)
+
 			return []heartbeat.Result{
 				{
 					Status: 201,

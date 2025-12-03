@@ -90,7 +90,7 @@ func WithDetection(c Config) heartbeat.HandleOption {
 func Detect(ctx context.Context, filepath string, language heartbeat.Language) ([]string, error) {
 	var parser DependencyParser
 
-	switch language {
+	switch language { // nolint:exhaustive
 	case heartbeat.LanguageC:
 		parser = &ParserC{}
 	case heartbeat.LanguageCPP:

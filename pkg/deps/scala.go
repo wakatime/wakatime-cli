@@ -90,7 +90,7 @@ func (p *ParserScala) processKeyword(value string) {
 }
 
 func (p *ParserScala) processNameNamespace(value string) {
-	switch p.State {
+	switch p.State { // nolint:exhaustive
 	case StateScalaImport:
 		p.append(value)
 	default:
