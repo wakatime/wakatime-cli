@@ -58,6 +58,10 @@ linters:
         - name: unused-receiver
         - name: var-declaration
         - name: var-naming
+          arguments:
+            - []
+            - []
+            - - skip-package-name-checks: true
     usetesting:
       os-setenv: true
       os-temp-dir: true
