@@ -16,6 +16,7 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
 	"github.com/wakatime/wakatime-cli/pkg/ini"
 	"github.com/wakatime/wakatime-cli/pkg/log"
+	"github.com/wakatime/wakatime-cli/pkg/log/setup"
 	"github.com/wakatime/wakatime-cli/pkg/version"
 	"github.com/wakatime/wakatime-cli/pkg/vipertools"
 
@@ -105,7 +106,7 @@ func TestRunCmd_Panic(t *testing.T) {
 	v.Set("api-url", testServerURL)
 	v.Set("log-file", logFile.Name())
 
-	logger, err := SetupLogging(ctx, v)
+	logger, err := setup.Logging(ctx, v)
 	require.NoError(t, err)
 
 	defer logger.Flush()
@@ -185,7 +186,7 @@ func TestRunCmd_Panic_Verbose(t *testing.T) {
 	v.Set("api-url", testServerURL)
 	v.Set("log-file", logFile.Name())
 
-	logger, err := SetupLogging(ctx, v)
+	logger, err := setup.Logging(ctx, v)
 	require.NoError(t, err)
 
 	defer logger.Flush()
@@ -314,7 +315,7 @@ func TestRunCmd_BackoffLoggedWithVerbose(t *testing.T) {
 	v.Set("internal.backoff_retries", "1")
 	v.Set("verbose", verbose)
 
-	logger, err := SetupLogging(ctx, v)
+	logger, err := setup.Logging(ctx, v)
 	require.NoError(t, err)
 
 	defer logger.Flush()
@@ -378,7 +379,7 @@ func TestRunCmd_BackoffNotLogged(t *testing.T) {
 	v.Set("internal.backoff_retries", "1")
 	v.Set("verbose", verbose)
 
-	logger, err := SetupLogging(ctx, v)
+	logger, err := setup.Logging(ctx, v)
 	require.NoError(t, err)
 
 	defer logger.Flush()

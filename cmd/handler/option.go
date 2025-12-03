@@ -119,11 +119,11 @@ func WithProjectFiltering() Preprocessor {
 func WithHeartbeatSanitization() Preprocessor {
 	return func(params params.Params) heartbeat.HandleOption {
 		return heartbeat.WithSanitization(heartbeat.SanitizeConfig{
-			BranchPatterns:     params.Heartbeat.Sanitize.HideBranchNames,
-			DependencyPatterns: params.Heartbeat.Sanitize.HideDependencies,
-			FilePatterns:       params.Heartbeat.Sanitize.HideFileNames,
-			HideProjectFolder:  params.Heartbeat.Sanitize.HideProjectFolder,
-			ProjectPatterns:    params.Heartbeat.Sanitize.HideProjectNames,
+			HideBranchPatterns:     params.Heartbeat.Sanitize.HideBranchNames,
+			HideDependencyPatterns: params.Heartbeat.Sanitize.HideDependencies,
+			HideFilePatterns:       params.Heartbeat.Sanitize.HideFileNames,
+			HideProjectFolder:      params.Heartbeat.Sanitize.HideProjectFolder,
+			HideProjectPatterns:    params.Heartbeat.Sanitize.HideProjectNames,
 		})
 	}
 }

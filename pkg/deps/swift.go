@@ -93,7 +93,7 @@ func (p *ParserSwift) processKeywordDeclaration(value string) {
 }
 
 func (p *ParserSwift) processNameClass(value string) {
-	switch p.State {
+	switch p.State { // nolint:exhaustive
 	case StateSwiftImport:
 		p.append(value)
 	default:

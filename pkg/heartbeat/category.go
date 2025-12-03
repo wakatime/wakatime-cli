@@ -261,6 +261,8 @@ func (c Category) String() string {
 		return writingDocsCategoryString
 	case WritingTestsCategory:
 		return writingTestsCategoryString
+	case UndefinedCategory:
+		fallthrough
 	default:
 		return ""
 	}

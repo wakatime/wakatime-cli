@@ -14,10 +14,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/wakatime/wakatime-cli/cmd"
 	"github.com/wakatime/wakatime-cli/pkg/filter"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/log"
+	"github.com/wakatime/wakatime-cli/pkg/log/setup"
 	"github.com/wakatime/wakatime-cli/pkg/regex"
 	"github.com/wakatime/wakatime-cli/pkg/remote"
 	"github.com/wakatime/wakatime-cli/pkg/windows"
@@ -117,6 +117,7 @@ func TestWithDetection_SshConfig_Hostname(t *testing.T) {
 				},
 			}, hh)
 			assert.Contains(t, hh[0].LocalFile, "main.go")
+
 			return []heartbeat.Result{
 				{
 					Status:    201,
@@ -164,7 +165,7 @@ func TestWithDetection_SshConfig_UserKnownHostsFile_Mismatch(t *testing.T) {
 	v.Set("log-file", logFile.Name())
 	v.Set("verbose", true)
 
-	logger, err := cmd.SetupLogging(ctx, v)
+	logger, err := setup.Logging(ctx, v)
 	require.NoError(t, err)
 
 	defer logger.Flush()
@@ -286,6 +287,7 @@ func TestWithDetection_SshConfig_UserKnownHostsFile_Match(t *testing.T) {
 				},
 			}, hh)
 			assert.Contains(t, hh[0].LocalFile, "main.go")
+
 			return []heartbeat.Result{
 				{
 					Status:    201,
