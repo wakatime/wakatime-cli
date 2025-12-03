@@ -11,18 +11,18 @@ import (
 
 // SanitizeConfig defines how a heartbeat should be sanitized.
 type SanitizeConfig struct {
-	// BranchPatterns will be matched against the entity file path and if matching, will obfuscate it.
-	BranchPatterns []regex.Regex
-	// DependencyPatterns will be matched against the entity file path and if matching, will omit all dependencies.
-	DependencyPatterns []regex.Regex
-	// FilePatterns will be matched against a file entity's name and if matching will obfuscate
+	// HideBranchPatterns will be matched against the entity file path and if matching, will obfuscate it.
+	HideBranchPatterns []regex.Regex
+	// HideDependencyPatterns will be matched against the entity file path and if matching, will omit all dependencies.
+	HideDependencyPatterns []regex.Regex
+	// HideFilePatterns will be matched against a file entity's name and if matching will obfuscate
 	// the file name and common heartbeat meta data (cursor position, dependencies, line number and lines).
-	FilePatterns []regex.Regex
+	HideFilePatterns []regex.Regex
 	// HideProjectFolder determines if project folder should be obfuscated.
 	HideProjectFolder bool
-	// ProjectPatterns will be matched against the entity file path and if matching will obfuscate
+	// HideProjectPatterns will be matched against the entity file path and if matching will obfuscate
 	// common heartbeat meta data (cursor position, dependencies, line number and lines).
-	ProjectPatterns []regex.Regex
+	HideProjectPatterns []regex.Regex
 }
 
 // WithSanitization initializes and returns a heartbeat handle option, which
@@ -57,14 +57,14 @@ func Sanitize(ctx context.Context, h Heartbeat, config SanitizeConfig) Heartbeat
 
 	// project patterns
 	if h.Project != nil {
-		check.Patterns = config.ProjectPatterns
+		check.Patterns = config.HideProjectPatterns
 		if ShouldSanitize(ctx, check) {
 			h = sanitizeMetaData(h)
 		}
 	}
 
 	// file patterns
-	check.Patterns = config.FilePatterns
+	check.Patterns = config.HideFilePatterns
 	if ShouldSanitize(ctx, check) {
 		if h.EntityType == FileType {
 			h.Entity = "HIDDEN" + filepath.Ext(h.Entity)
@@ -72,11 +72,11 @@ func Sanitize(ctx context.Context, h Heartbeat, config SanitizeConfig) Heartbeat
 			h.Entity = "HIDDEN"
 		}
 
-		if len(config.BranchPatterns) == 0 {
+		if len(config.HideBranchPatterns) == 0 {
 			h.Branch = nil
 		}
 
-		if len(config.DependencyPatterns) == 0 {
+		if len(config.HideDependencyPatterns) == 0 {
 			h.Dependencies = nil
 		}
 
@@ -85,7 +85,7 @@ func Sanitize(ctx context.Context, h Heartbeat, config SanitizeConfig) Heartbeat
 
 	// branch patterns
 	if h.Branch != nil {
-		check.Patterns = config.BranchPatterns
+		check.Patterns = config.HideBranchPatterns
 		if ShouldSanitize(ctx, check) {
 			h.Branch = nil
 		}
@@ -93,7 +93,7 @@ func Sanitize(ctx context.Context, h Heartbeat, config SanitizeConfig) Heartbeat
 
 	// dependency patterns
 	if h.Dependencies != nil {
-		check.Patterns = config.DependencyPatterns
+		check.Patterns = config.HideDependencyPatterns
 		if ShouldSanitize(ctx, check) {
 			h.Dependencies = nil
 		}
