@@ -23,7 +23,7 @@ require (
 	github.com/stretchr/testify v1.10.0
 	go.etcd.io/bbolt v1.4.2
 	go.uber.org/zap v1.27.0
-	golang.org/x/crypto v0.44.0
+	golang.org/x/crypto v0.45.0
 	golang.org/x/net v0.47.0
 	golang.org/x/text v0.31.0
 	gopkg.in/ini.v1 v1.67.0
