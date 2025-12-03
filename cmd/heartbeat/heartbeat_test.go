@@ -14,13 +14,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/wakatime/wakatime-cli/cmd"
 	cmdheartbeat "github.com/wakatime/wakatime-cli/cmd/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/api"
 	"github.com/wakatime/wakatime-cli/pkg/file"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/ini"
 	"github.com/wakatime/wakatime-cli/pkg/log"
+	"github.com/wakatime/wakatime-cli/pkg/log/setup"
 	"github.com/wakatime/wakatime-cli/pkg/offline"
 	"github.com/wakatime/wakatime-cli/pkg/params"
 	"github.com/wakatime/wakatime-cli/pkg/project"
@@ -560,7 +560,7 @@ func TestSendHeartbeats_ExtraHeartbeatsNestedError(t *testing.T) {
 	v.Set("log-file", logFile.Name())
 	v.Set("verbose", true)
 
-	logger, err := cmd.SetupLogging(ctx, v)
+	logger, err := setup.Logging(ctx, v)
 	require.NoError(t, err)
 
 	defer logger.Flush()
@@ -748,7 +748,7 @@ func TestSendHeartbeats_NonExistingEntity(t *testing.T) {
 	v.Set("log-file", logFile.Name())
 	v.Set("verbose", true)
 
-	logger, err := cmd.SetupLogging(ctx, v)
+	logger, err := setup.Logging(ctx, v)
 	require.NoError(t, err)
 
 	defer logger.Flush()
@@ -883,7 +883,7 @@ func TestSendHeartbeats_ExtraHeartbeatsIsUnsavedEntity(t *testing.T) {
 	v.Set("log-file", logFile.Name())
 	v.Set("verbose", true)
 
-	logger, err := cmd.SetupLogging(ctx, v)
+	logger, err := setup.Logging(ctx, v)
 	require.NoError(t, err)
 
 	defer logger.Flush()
@@ -1009,7 +1009,7 @@ func TestSendHeartbeats_NonExistingExtraHeartbeatsEntity(t *testing.T) {
 	v.Set("log-file", logFile.Name())
 	v.Set("verbose", true)
 
-	logger, err := cmd.SetupLogging(ctx, v)
+	logger, err := setup.Logging(ctx, v)
 	require.NoError(t, err)
 
 	defer logger.Flush()
@@ -1100,7 +1100,7 @@ func TestSendHeartbeats_ErrBackoff(t *testing.T) {
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("log-file", logFile.Name())
 
-	logger, err := cmd.SetupLogging(ctx, v)
+	logger, err := setup.Logging(ctx, v)
 	require.NoError(t, err)
 
 	defer logger.Flush()
@@ -1162,7 +1162,7 @@ func TestSendHeartbeats_ErrBackoff_Verbose(t *testing.T) {
 	v.Set("log-file", logFile.Name())
 	v.Set("verbose", true)
 
-	logger, err := cmd.SetupLogging(ctx, v)
+	logger, err := setup.Logging(ctx, v)
 	require.NoError(t, err)
 
 	defer logger.Flush()

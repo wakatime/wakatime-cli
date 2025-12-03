@@ -13,12 +13,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/wakatime/wakatime-cli/cmd"
 	"github.com/wakatime/wakatime-cli/pkg/api"
 	"github.com/wakatime/wakatime-cli/pkg/apikey"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	inipkg "github.com/wakatime/wakatime-cli/pkg/ini"
 	"github.com/wakatime/wakatime-cli/pkg/log"
+	"github.com/wakatime/wakatime-cli/pkg/log/setup"
 	"github.com/wakatime/wakatime-cli/pkg/offline"
 	"github.com/wakatime/wakatime-cli/pkg/output"
 	paramspkg "github.com/wakatime/wakatime-cli/pkg/params"
@@ -572,7 +572,7 @@ func TestLoadHeartbeatParams_ExtraHeartbeats_NoData(t *testing.T) {
 	v.Set("log-file", logFile.Name())
 	v.Set("verbose", true)
 
-	logger, err := cmd.SetupLogging(ctx, v)
+	logger, err := setup.Logging(ctx, v)
 	require.NoError(t, err)
 
 	defer logger.Flush()
@@ -1202,7 +1202,7 @@ func TestLoadHeartbeatParams_SanitizeParams_HideBranchNames_InvalidRegex(t *test
 	v.Set("hide-branch-names", ".*secret.*\n[0-9+")
 	v.Set("log-file", logFile.Name())
 
-	logger, err := cmd.SetupLogging(ctx, v)
+	logger, err := setup.Logging(ctx, v)
 	require.NoError(t, err)
 
 	defer logger.Flush()
@@ -1359,7 +1359,7 @@ func TestLoadHeartbeatParams_SanitizeParams_HideDependencies_InvalidRegex(t *tes
 	v.Set("hide-dependencies", ".*secret.*\n[0-9+")
 	v.Set("log-file", logFile.Name())
 
-	logger, err := cmd.SetupLogging(ctx, v)
+	logger, err := setup.Logging(ctx, v)
 	require.NoError(t, err)
 
 	defer logger.Flush()
@@ -1534,7 +1534,7 @@ func TestLoadHeartbeatParams_SanitizeParams_HideProjectNames_InvalidRegex(t *tes
 	v.Set("hide-project-names", ".*secret.*\n[0-9+")
 	v.Set("log-file", logFile.Name())
 
-	logger, err := cmd.SetupLogging(ctx, v)
+	logger, err := setup.Logging(ctx, v)
 	require.NoError(t, err)
 
 	defer logger.Flush()
@@ -1744,7 +1744,7 @@ func TestLoadHeartbeatParams_SanitizeParams_HideFileNames_InvalidRegex(t *testin
 	v.Set("hide-file-names", ".*secret.*\n[0-9+")
 	v.Set("log-file", logFile.Name())
 
-	logger, err := cmd.SetupLogging(ctx, v)
+	logger, err := setup.Logging(ctx, v)
 	require.NoError(t, err)
 
 	defer logger.Flush()

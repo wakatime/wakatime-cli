@@ -7,7 +7,6 @@ import (
 	"io"
 	stdlog "log"
 	"os"
-	"path/filepath"
 	"runtime/debug"
 	"strings"
 
@@ -16,7 +15,6 @@ import (
 	"github.com/wakatime/wakatime-cli/cmd/configwrite"
 	"github.com/wakatime/wakatime-cli/cmd/fileexperts"
 	cmdheartbeat "github.com/wakatime/wakatime-cli/cmd/heartbeat"
-	"github.com/wakatime/wakatime-cli/cmd/logfile"
 	cmdoffline "github.com/wakatime/wakatime-cli/cmd/offline"
 	"github.com/wakatime/wakatime-cli/cmd/offlinecount"
 	"github.com/wakatime/wakatime-cli/cmd/offlineprint"
@@ -29,6 +27,7 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/ini"
 	"github.com/wakatime/wakatime-cli/pkg/lexer"
 	"github.com/wakatime/wakatime-cli/pkg/log"
+	"github.com/wakatime/wakatime-cli/pkg/log/setup"
 	"github.com/wakatime/wakatime-cli/pkg/metrics"
 	"github.com/wakatime/wakatime-cli/pkg/offline"
 	"github.com/wakatime/wakatime-cli/pkg/params"
@@ -38,7 +37,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"go.uber.org/zap/zapcore"
-	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 type diagnostics struct {
@@ -66,7 +64,7 @@ func RunE(cmd *cobra.Command, v *viper.Viper) error {
 		}
 	}
 
-	logger, err = SetupLogging(ctx, v)
+	logger, err = setup.Logging(ctx, v)
 	if err != nil {
 		// log to std out and exit, as logger instance failed to setup
 		stdlog.Fatalf("failed to setup logging: %s", err)
@@ -216,43 +214,6 @@ func parseConfigFiles(ctx context.Context, v *viper.Viper) error {
 	}
 
 	return nil
-}
-
-// SetupLogging uses the --log-file param to configure logging to file or stdout.
-// It returns a logger with the configured settings or the default settings if it's not set.
-func SetupLogging(ctx context.Context, v *viper.Viper) (*log.Logger, error) {
-	params, err := logfile.LoadParams(ctx, v)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load log params: %s", err)
-	}
-
-	var destOutput io.Writer = os.Stdout
-
-	if !params.ToStdout {
-		dir := filepath.Dir(params.File)
-		if _, err := os.Stat(dir); os.IsNotExist(err) {
-			err := os.MkdirAll(dir, 0750)
-			if err != nil {
-				return nil, fmt.Errorf("failed to create log file directory %q: %s", dir, err)
-			}
-		}
-
-		// rotate log files
-		destOutput = &lumberjack.Logger{
-			Filename:   params.File,
-			MaxSize:    log.MaxLogFileSize,
-			MaxBackups: log.MaxNumberOfBackups,
-		}
-	}
-
-	logger := log.New(
-		destOutput,
-		log.WithVerbose(params.Verbose),
-		log.WithSendDiagsOnErrors(params.SendDiagsOnErrors),
-		log.WithMetrics(params.Metrics),
-	)
-
-	return logger, nil
 }
 
 // cmdFn represents a command function.

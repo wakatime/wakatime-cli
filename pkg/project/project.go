@@ -348,7 +348,11 @@ func obfuscateProjectName(ctx context.Context, folder string) string {
 
 	err := Write(folder, project)
 	if err != nil {
-		logger.Warnf("failed to write: %s", err)
+		logger.Errorf("failed to write: %s", err)
+
+		// use 'Unknown Project' when unable to save random project name to local .wakatime-project file, to
+		// prevent tons of random project names on the dashboard
+		return ""
 	}
 
 	return project

@@ -12,10 +12,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/wakatime/wakatime-cli/cmd"
 	"github.com/wakatime/wakatime-cli/cmd/fileexperts"
 	"github.com/wakatime/wakatime-cli/pkg/api"
 	"github.com/wakatime/wakatime-cli/pkg/log"
+	"github.com/wakatime/wakatime-cli/pkg/log/setup"
 	"github.com/wakatime/wakatime-cli/pkg/project"
 
 	"github.com/spf13/viper"
@@ -111,7 +111,7 @@ func TestFileExperts_NonExistingEntity(t *testing.T) {
 	v.Set("log-file", logFile.Name())
 	v.Set("verbose", true)
 
-	logger, err := cmd.SetupLogging(ctx, v)
+	logger, err := setup.Logging(ctx, v)
 	require.NoError(t, err)
 
 	defer logger.Flush()
