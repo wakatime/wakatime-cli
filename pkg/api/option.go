@@ -73,7 +73,8 @@ func WithNTLM(creds string) (Option, error) {
 		withAuth(c)
 
 		c.client.Transport = ntlmssp.Negotiator{
-			RoundTripper: LazyCreateNewTransport(c),
+			AllowBasicAuth: true,
+			RoundTripper:   LazyCreateNewTransport(c),
 		}
 	}, nil
 }
