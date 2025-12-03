@@ -140,35 +140,41 @@ func TestOption_WithNTLM(t *testing.T) {
 			router.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
 				authHeader, ok := req.Header["Authorization"]
 				if !ok {
+					w.Header().Set("Www-Authenticate", "Basic xyxyxyx")
 					w.WriteHeader(http.StatusUnauthorized)
+
 					return
 				}
 
 				if strings.HasPrefix(authHeader[0], "Basic ") {
-					w.Header().Set("WWW-Authenticate", "NTLM xyxyxyx")
+					w.Header().Set("Www-Authenticate", "NTLM xyxyxyx")
 					w.WriteHeader(http.StatusUnauthorized)
 
 					return
 				}
 
-				msg, err := ntlmssp.NewNegotiateMessage("domain", "")
+				msg, err := ntlmssp.NewNegotiateMessage("", "")
 				require.NoError(t, err)
 
 				numCalls++
 
 				assert.Equal(t, []string{"NTLM " + base64.StdEncoding.EncodeToString(msg)}, authHeader)
+
+				w.WriteHeader(http.StatusOK)
 			})
 
 			withNTLM, err := api.WithNTLM(proxyURL)
 			require.NoError(t, err)
 
-			req, err := http.NewRequest(http.MethodGet, url, nil)
+			req, err := http.NewRequest(http.MethodGet, url+"/", nil)
 			require.NoError(t, err)
 
-			c := api.NewClient("", []api.Option{withNTLM}...)
+			c := api.NewClient(url, []api.Option{withNTLM}...)
 
 			resp, err := c.Do(ctx, req)
 			require.NoError(t, err)
+
+			assert.Equal(t, http.StatusOK, resp.StatusCode)
 
 			defer resp.Body.Close()
 
@@ -202,7 +208,9 @@ func TestOption_WithNTLMRequestRetry(t *testing.T) {
 
 		authHeader, ok := req.Header["Authorization"]
 		if !ok {
+			w.Header().Set("Www-Authenticate", "Basic xyxyxyx")
 			w.WriteHeader(http.StatusUnauthorized)
+
 			return
 		}
 
@@ -213,12 +221,14 @@ func TestOption_WithNTLMRequestRetry(t *testing.T) {
 			return
 		}
 
-		msg, err := ntlmssp.NewNegotiateMessage("domain", "")
+		msg, err := ntlmssp.NewNegotiateMessage("", "")
 		require.NoError(t, err)
 
 		numCalls++
 
 		assert.Equal(t, []string{"NTLM " + base64.StdEncoding.EncodeToString(msg)}, authHeader)
+
+		w.WriteHeader(http.StatusOK)
 	})
 
 	withNTLMRetry, err := api.WithNTLMRequestRetry(ctx, `domain\\john:secret`)
@@ -231,6 +241,8 @@ func TestOption_WithNTLMRequestRetry(t *testing.T) {
 
 	resp, err := c.Do(ctx, req)
 	require.NoError(t, err)
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
 	defer resp.Body.Close()
 
