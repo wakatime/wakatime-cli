@@ -158,9 +158,13 @@ vulncheck:
 	go install golang.org/x/vuln/cmd/govulncheck@latest
 	govulncheck
 
+.PHONY: generate
+generate:
+	go generate ./...
+
 .PHONY: test
 test:
-	go test -race -covermode=atomic -coverprofile=coverage.out ./...
+	go test -race -tags=!ignore -covermode=atomic -coverprofile=coverage.out ./...
 
 .PHONY: test-integration
 test-integration:
