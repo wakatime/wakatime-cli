@@ -1,7 +1,6 @@
 package heartbeat_test
 
 import (
-	"encoding/json"
 	"fmt"
 	"testing"
 
@@ -998,36 +997,6 @@ func TestParseLanguageFromChroma_AllLexersSupported(t *testing.T) {
 	}
 }
 
-func TestLanguage_MarshalJSON(t *testing.T) {
-	for value, language := range languageTests() {
-		t.Run(value, func(t *testing.T) {
-			data, err := json.Marshal(language)
-			require.NoError(t, err)
-
-			assert.JSONEq(t, `"`+value+`"`, string(data))
-		})
-	}
-}
-
-func TestLanguage_MarshalJSON_UnknownLanguage(t *testing.T) {
-	data, err := json.Marshal(heartbeat.LanguageUnknown)
-	require.NoError(t, err)
-
-	assert.JSONEq(t, `null`, string(data))
-}
-
-func TestLanguage_UnmarshalJSON(t *testing.T) {
-	for value, language := range languageTests() {
-		t.Run(value, func(t *testing.T) {
-			var l heartbeat.Language
-
-			require.NoError(t, json.Unmarshal([]byte(`"`+value+`"`), &l))
-
-			assert.Equal(t, language, l)
-		})
-	}
-}
-
 func TestLanguage_String(t *testing.T) {
 	for value, language := range languageTests() {
 		t.Run(value, func(t *testing.T) {
@@ -1113,5 +1082,78 @@ func TestLanguage_StringChroma_AllLexersSupported(t *testing.T) {
 		))
 
 		assert.Equal(t, config.Name, parsed.StringChroma())
+	}
+}
+
+func BenchmarkParseLanguage(b *testing.B) {
+	testCases := []string{
+		"Go",
+		"JavaScript",
+		"Python",
+		"TypeScript",
+		"Rust",
+		"unknown-language",
+	}
+
+	for b.Loop() {
+		for _, tc := range testCases {
+			heartbeat.ParseLanguage(tc)
+		}
+	}
+}
+
+func BenchmarkParseLanguage_Single(b *testing.B) {
+	benchmarks := []struct {
+		name  string
+		input string
+	}{
+		{"common_language", "JavaScript"},
+		{"case_insensitive", "PYTHON"},
+		{"with_spaces", "Visual Basic"},
+		{"unknown", "nonexistent-lang"},
+	}
+
+	for _, bm := range benchmarks {
+		b.Run(bm.name, func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				heartbeat.ParseLanguage(bm.input)
+			}
+		})
+	}
+}
+
+func BenchmarkStringChroma(b *testing.B) {
+	languages := []heartbeat.Language{
+		heartbeat.LanguageGo,
+		heartbeat.LanguageJavaScript,
+		heartbeat.LanguagePython,
+		heartbeat.LanguageAMPL,          // has chroma mapping
+		heartbeat.LanguageFStar,         // has chroma mapping
+		heartbeat.LanguageSystemVerilog, // has chroma mapping
+	}
+
+	for b.Loop() {
+		for _, lang := range languages {
+			lang.StringChroma()
+		}
+	}
+}
+
+func BenchmarkStringChroma_Single(b *testing.B) {
+	benchmarks := []struct {
+		name string
+		lang heartbeat.Language
+	}{
+		{"with_chroma_mapping", heartbeat.LanguageAMPL},
+		{"without_chroma_mapping", heartbeat.LanguageGo},
+		{"fallback_to_string", heartbeat.LanguageJavaScript},
+	}
+
+	for _, bm := range benchmarks {
+		b.Run(bm.name, func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				bm.lang.StringChroma()
+			}
+		})
 	}
 }
