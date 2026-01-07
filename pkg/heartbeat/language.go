@@ -1,3 +1,75 @@
+// language.go contains programming language definitions and mappings.
+// To override the priority of languages when multiple languages map to the same
+// string, use the corresponding priority map defined in language_gen.go.
+//
+// priority:
+// 1. LanguageTransactSQL -> languageTSQLStr
+// 2. LanguageGo -> languageGoStr
+// 3. LanguageSYSTEMD -> languageSYSTEMDStr
+// 4. LanguageApacheConfig -> languageApacheConfigStr
+// 5. LanguageBatchfile -> languageBatchfileStr
+// 6. LanguageBatchfile -> languageBatchScriptStr
+// 7. LanguageClassicASP -> languageClassicASPStr
+// 8. LanguageClassicASP -> languageASPClassicStr
+// 9. LanguageDesktopFile -> languageDesktopFileStr
+// 10. LanguageFStar -> languageFStarStr
+// 11. LanguageSalt -> languageSaltStr
+// 12. LanguageSalt -> languageSaltStackStr
+// 13. LanguageMaterializeSQLDialect -> languageMaterializeSQLDialectStr
+// 14. LanguageMaterializeSQLDialect -> languageMzqlStr
+// 15. LanguageVBNet -> languageVBNetStr
+// 16. LanguageVBNet -> languageVisualBasicNet
+//
+// chromaPriority: (chroma lexer name -> Language constant)
+// These override the default Chroma lexer to Language mapping.
+// 1. Ampl -> LanguageAMPL
+// 2. ApacheConf -> LanguageApacheConfig
+// 3. ArangoDB AQL -> LanguageArangoDBQueryLanguage
+// 4. c-objdump -> LanguageCObjdump
+// 5. Coldfusion CFC -> LanguageColdfusionCFC
+// 6. Coldfusion HTML -> LanguageColdfusionHTML
+// 7. cpp-objdump -> LanguageCppObjdump
+// 8. CUDA -> LanguageCUDA
+// 9. dns -> LanguageDNSZone
+// 10. EmacsLisp -> LanguageEmacsLisp
+// 11. FSharp -> LanguageFSharp
+// 12. GAS -> LanguageAssembly
+// 13. Go HTML Template -> LanguageGo
+// 14. Go Text Template -> LanguageGo
+// 15. Hxml -> LanguageHxml
+// 16. JSON-LD -> LanguageJSONLD
+// 17. ISCdhcpd -> LanguageISCdhcpd
+// 18. LessCss -> LanguageLess
+// 19. liquid -> LanguageLiquid
+// 20. markdown -> LanguageMarkdown
+// 21. NewLisp -> LanguageNewLisp
+// 22. Nim -> LanguageNimrod
+// 23. Ooc -> LanguageOoc
+// 24. Org Mode -> LanguageOrg
+// 25. plaintext -> LanguageText
+// 26. properties -> LanguageJavaProperties
+// 27. PSL -> LanguagePSL
+// 28. R -> LanguageS
+// 29. react -> LanguageJSX
+// 30. ReasonML -> LanguageReasonML
+// 31. REBOL -> LanguageREBOL
+// 32. Rexx -> LanguageRexx
+// 33. Sed -> LanguageSed
+// 34. stas -> LanguageStas
+// 35. SYSTEMD -> LanguageSYSTEMD
+// 36. systemverilog -> LanguageSystemVerilog
+// 37. Tal -> LanguageUxntal
+// 38. Transact-SQL -> LanguageTransactSQL
+// 39. TypoScriptCssData -> LanguageTypoScript
+// 40. TypoScriptHtmlData -> LanguageTypoScript
+// 41. VB.net -> LanguageVBNet
+// 42. verilog -> LanguageVerilog
+// 43. vue -> LanguageVueJS
+// 44. Web IDL -> LanguageWebIDL
+// 45. FStar -> LanguageFStar
+// 46. Protocol Buffer Text Format -> LanguageProtocolBuffer
+// 47. WebAssembly Text Format -> LanguageWebAssembly
+
 package heartbeat
 
 //go:generate go run language_gen.go
@@ -186,6 +258,8 @@ const (
 	LanguageC
 	// LanguageC2hsHaskell represents the C2hsHaskell programming language.
 	LanguageC2hsHaskell
+	// LanguageC3 represents the C3 programming language.
+	LanguageC3
 	// LanguageCa65Assembler represents the ca65 assembler programming language.
 	LanguageCa65Assembler
 	// LanguageCabalConfig represents the CabalConfig programming language.
@@ -776,6 +850,8 @@ const (
 	LanguageJuttle
 	// LanguageKaitai represent the Kaitai programming language.
 	LanguageKaitai
+	// LanguageKakoune represents the Kakoune programming language.
+	LanguageKakoune
 	// LanguageKal represents the Kal console programming language.
 	LanguageKal
 	// LanguageKconfig represents the Kconfig console programming language.
@@ -1168,6 +1244,8 @@ const (
 	LanguageRego
 	// LanguageRegularExpression represents the RegularExpression programming language.
 	LanguageRegularExpression
+	// LanguageRGBDSAssembly represents the RGBDS Assembly programming language.
+	LanguageRGBDSAssembly
 	// LanguageRenderScript represents the RenderScript programming language.
 	LanguageRenderScript
 	// LanguageRenPy represents the RenPy programming language.
@@ -1636,7 +1714,6 @@ const (
 	languageAntBuildSystemStr              = "Ant Build System"
 	languageANTLRStr                       = "ANTLR"
 	languageApacheConfigStr                = "Apache Config"
-	languageApacheConfStr                  = "ApacheConf"
 	languageApexStr                        = "Apex"
 	languageAPIBlueprintStr                = "API Blueprint"
 	languageAPLStr                         = "APL"
@@ -1700,6 +1777,7 @@ const (
 	languageBSTStr                         = "BST"
 	languageBUGSStr                        = "BUGS"
 	languageC2hsHaskellStr                 = "C2hs Haskell"
+	languageC3Str                          = "C3"
 	languageCa65AssemblerStr               = "ca65 assembler"
 	languageCabalConfigStr                 = "Cabal Config"
 	languageCaddyfileDirectivesStr         = "Caddyfile Directives"
@@ -1908,6 +1986,9 @@ const (
 	languageGoStr                          = "Go"
 	languageGosuStr                        = "Gosu"
 	languageGosuTemplateStr                = "Gosu Template"
+	languageGoHTMLTemplateStr              = "Go HTML Template"
+	languageGoTemplateStr                  = "Go Template"
+	languageGoTextTemplateStr              = "Go Text Template"
 	languageGraceStr                       = "Grace"
 	languageGradleConfigStr                = "Gradle Config"
 	languageGradleStr                      = "Gradle"
@@ -1997,6 +2078,7 @@ const (
 	languageJupyterNotebookStr             = "Jupyter Notebook"
 	languageJuttleStr                      = "Juttle"
 	languageKaitaiStr                      = "Kaitai Struct"
+	languageKakouneStr                     = "Kakoune"
 	languageKalStr                         = "Kal"
 	languageKconfigStr                     = "Kconfig"
 	languageKernelLogStr                   = "Kernel log"
@@ -2194,6 +2276,7 @@ const (
 	languageRegistryStr                    = "reg"
 	languageRegoStr                        = "Rego"
 	languageRegularExpressionStr           = "Regular Expression"
+	languageRGBDSAssemblyStr               = "RGBDS Assembly"
 	languageRenderScriptStr                = "RenderScript"
 	languageRenPyStr                       = "Ren'Py"
 	languageReScriptStr                    = "ReScript"
@@ -2419,54 +2502,6 @@ const (
 	languageZigStr                         = "Zig"
 	languageZILStr                         = "ZIL"
 	languageZimplStr                       = "Zimpl"
-)
-
-const (
-	languageAMPLChromaStr               = "Ampl"
-	languageApacheConfChromaStr         = "ApacheConf"
-	languageArangoDBAQLChromaStr        = "ArangoDB AQL"
-	languageAssemblyChromaStr           = "GAS"
-	languageCObjdumpChromaStr           = "c-objdump"
-	languageColdfusionCFCChromaStr      = "Coldfusion CFC"
-	languageColdfusionHTMLChromaStr     = "Coldfusion HTML"
-	languageCppObjdumpChromaStr         = "cpp-objdump"
-	languageCUDAChromaStr               = "CUDA"
-	languageDNSChromaStr                = "dns"
-	languageFSharpChromaStr             = "FSharp"
-	languageEmacsLispChromaStr          = "EmacsLisp"
-	languageGoHTMLTemplateChromaStr     = "Go HTML Template"
-	languageGoTemplateChromaStr         = "Go Template"
-	languageGoTextTemplateChromaStr     = "Go Text Template"
-	languageHxmlChromaStr               = "Hxml"
-	languageISCdhcpdChromaStr           = "ISCdhcpd"
-	languageJSXChromaStr                = "react"
-	languageJSONLDChromaStr             = "JSON-LD"
-	languageLessChromaStr               = "LessCss"
-	languageLiquidChromaStr             = "liquid"
-	languageMarkdownChromaStr           = "markdown"
-	languageNewLispChromaStr            = "NewLisp"
-	languageNimrodChromaStr             = "Nim"
-	languagePropertiesJavaChromaStr     = "properties"
-	languagePSLChromaStr                = "PSL"
-	languageOocChromaStr                = "Ooc"
-	languageOrgChromaStr                = "Org Mode"
-	languageRChromaStr                  = "R"
-	languageReasonMLChromaStr           = "ReasonML"
-	languageREBOLChromaStr              = "REBOL"
-	languageRexxChromaStr               = "Rexx"
-	languageSedChromaStr                = "Sed"
-	languageStasChromaStr               = "stas"
-	languageSYSTEMDChromaStr            = "SYSTEMD"
-	languageSystemVerilogChromaStr      = "systemverilog"
-	languageTalChromaStr                = "Tal"
-	languageTextChromaStr               = "plaintext"
-	languageTransactSQLChromaStr        = "Transact-SQL"
-	languageTypoScriptHTMLDataChromaStr = "TypoScriptHtmlData"
-	languageTypoScriptCSSDataChromaStr  = "TypoScriptCssData"
-	languageVBNetChromaStr              = "VB.net"
-	languageVerilogChromaStr            = "verilog"
-	languageVueJSChromaStr              = "vue"
-	languageWebIDLChromaStr             = "Web IDL"
 )
 
 // ParseLanguage parses a language from a string. Will return false
