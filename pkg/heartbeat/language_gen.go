@@ -181,6 +181,36 @@ func main() {
 	}
 
 	// Apply chromaPriority overrides - these specify which Language to use for specific Chroma lexer names
+	// First, check if any chromaPriority references a non-existent Language constant
+	missingLanguages := make(map[string]*languageInfo)
+	for _, cp := range chromaPriorities {
+		if _, exists := existingLanguages[cp.langConst]; !exists {
+			// Language constant doesn't exist - need to create it
+			// Extract the language name from the constant (e.g., "LanguageFoo" -> "Foo")
+			langName := strings.TrimPrefix(cp.langConst, "Language")
+			strConst := "language" + langName + "Str"
+			// Use the chroma name as the string value
+			missingLanguages[cp.langConst] = &languageInfo{
+				constName: cp.langConst,
+				strConst:  strConst,
+				strValue:  cp.chromaName,
+			}
+		}
+	}
+
+	// If there are missing languages, add them to language.go
+	if len(missingLanguages) > 0 {
+		fmt.Printf("Adding %d missing Language constants from chromaPriority to language.go...\n", len(missingLanguages))
+		addMissingLanguagesToFile(missingLanguages)
+		// Re-read the file to get updated existingLanguages
+		existingLanguages, _, _, _, _ = readLanguageFile()
+		// Update languageToString for the new languages
+		for langConst, info := range missingLanguages {
+			languageToString[langConst] = info.strConst
+			existingLanguages[langConst] = info
+		}
+	}
+
 	for _, cp := range chromaPriorities {
 		normalized := normalizeString(cp.chromaName)
 		if normalized != "" {
@@ -800,4 +830,158 @@ func updateTestFile(languageTests, languageTestsAliases map[string]string) {
 	fmt.Printf("\nUpdated language_test.go with:\n")
 	fmt.Printf("  - %d languageTests entries\n", len(languageTests))
 	fmt.Printf("  - %d languageTestsAliases entries\n", len(languageTestsAliases))
+}
+
+// addMissingLanguagesToFile adds missing Language constants and string constants to language.go
+// in alphabetical order.
+func addMissingLanguagesToFile(missingLanguages map[string]*languageInfo) {
+	content, err := os.ReadFile("language.go")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error reading language.go: %v\n", err)
+		return
+	}
+
+	contentStr := string(content)
+
+	// For each missing language, insert the constant and string constant in alphabetical order
+	for langConst, info := range missingLanguages {
+		fmt.Printf("  Adding %s (%s = %q)\n", langConst, info.strConst, info.strValue)
+
+		// Insert Language constant in alphabetical order
+		contentStr = insertLanguageConstant(contentStr, langConst, info.strValue)
+
+		// Insert string constant in alphabetical order
+		contentStr = insertStringConstant(contentStr, info.strConst, info.strValue)
+	}
+
+	// Format the code
+	formatted, err := format.Source([]byte(contentStr))
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error formatting language.go: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Writing unformatted content for debugging\n")
+		os.WriteFile("language.go", []byte(contentStr), 0644)
+		return
+	}
+
+	// Write the updated file
+	err = os.WriteFile("language.go", formatted, 0644)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error writing language.go: %v\n", err)
+		return
+	}
+}
+
+// insertLanguageConstant inserts a Language constant in alphabetical order in the const block.
+func insertLanguageConstant(content, langConst, strValue string) string {
+	// Pattern to find Language constant declarations
+	// We need to find the right place to insert based on alphabetical order
+	lines := strings.Split(content, "\n")
+	var result []string
+
+	// Find the const block with Language constants
+	inConstBlock := false
+	passedUnknown := false
+	inserted := false
+	langConstPattern := regexp.MustCompile(`^\s*//\s*(Language\w+)\s+represent`)
+
+	for i := 0; i < len(lines); i++ {
+		line := lines[i]
+
+		// Detect start of Language const block (after LanguageUnknown)
+		if strings.Contains(line, "LanguageUnknown represents") {
+			inConstBlock = true
+		}
+
+		// Skip LanguageUnknown - we start comparing after it
+		if inConstBlock && strings.Contains(line, "Language1CEnterprise represents") {
+			passedUnknown = true
+		}
+
+		// If we're in the const block, past Unknown, and haven't inserted yet
+		if inConstBlock && passedUnknown && !inserted {
+			// Check if this is a Language constant comment
+			if matches := langConstPattern.FindStringSubmatch(line); matches != nil {
+				existingConst := matches[1]
+				// Skip LanguageUnknown
+				if existingConst == "LanguageUnknown" {
+					result = append(result, line)
+					continue
+				}
+				// Compare alphabetically (case-insensitive)
+				if strings.ToLower(langConst) < strings.ToLower(existingConst) {
+					// Insert before this constant
+					comment := fmt.Sprintf("\t// %s represents the %s programming language.", langConst, strValue)
+					constDecl := fmt.Sprintf("\t%s", langConst)
+					result = append(result, comment, constDecl)
+					inserted = true
+				}
+			}
+		}
+
+		result = append(result, line)
+
+		// Detect end of Language const block (the closing parenthesis after all Language constants)
+		// We look for a line that's just ")" after we've seen Language constants
+		if inConstBlock && passedUnknown && !inserted && strings.TrimSpace(line) == ")" {
+			// Insert before the closing parenthesis
+			// Remove the last added line (the closing paren)
+			result = result[:len(result)-1]
+			comment := fmt.Sprintf("\t// %s represents the %s programming language.", langConst, strValue)
+			constDecl := fmt.Sprintf("\t%s", langConst)
+			result = append(result, comment, constDecl, line)
+			inserted = true
+			inConstBlock = false
+		}
+	}
+
+	return strings.Join(result, "\n")
+}
+
+// insertStringConstant inserts a string constant in alphabetical order in the const block.
+func insertStringConstant(content, strConst, strValue string) string {
+	lines := strings.Split(content, "\n")
+	var result []string
+
+	// Find the string constants block
+	inStringConstBlock := false
+	inserted := false
+	strConstPattern := regexp.MustCompile(`^\s+(language\w+Str)\s*=\s*"`)
+
+	for i := 0; i < len(lines); i++ {
+		line := lines[i]
+
+		// Detect start of string constants block
+		if strings.Contains(line, "language1CEnterpriseStr") && strings.Contains(line, "=") {
+			inStringConstBlock = true
+		}
+
+		// If we're in the string const block and haven't inserted yet
+		if inStringConstBlock && !inserted {
+			if matches := strConstPattern.FindStringSubmatch(line); matches != nil {
+				existingConst := matches[1]
+				// Compare alphabetically (case-insensitive)
+				if strings.ToLower(strConst) < strings.ToLower(existingConst) {
+					// Insert before this constant
+					// Calculate padding for alignment
+					constLine := fmt.Sprintf("\t%s = %q", strConst, strValue)
+					result = append(result, constLine)
+					inserted = true
+				}
+			}
+		}
+
+		result = append(result, line)
+
+		// Detect end of string constants block (closing parenthesis)
+		if inStringConstBlock && !inserted && strings.TrimSpace(line) == ")" {
+			// Insert before the closing parenthesis
+			result = result[:len(result)-1]
+			constLine := fmt.Sprintf("\t%s = %q", strConst, strValue)
+			result = append(result, constLine, line)
+			inserted = true
+			inStringConstBlock = false
+		}
+	}
+
+	return strings.Join(result, "\n")
 }

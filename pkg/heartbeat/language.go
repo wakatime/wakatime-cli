@@ -18,7 +18,7 @@
 // 13. LanguageMaterializeSQLDialect -> languageMaterializeSQLDialectStr
 // 14. LanguageMaterializeSQLDialect -> languageMzqlStr
 // 15. LanguageVBNet -> languageVBNetStr
-// 16. LanguageVBNet -> languageVisualBasicNet
+// 16. LanguageVBNet -> languageVisualBasicNetStr
 //
 // chromaPriority: (chroma lexer name -> Language constant)
 // These override the default Chroma lexer to Language mapping.
@@ -69,6 +69,7 @@
 // 45. FStar -> LanguageFStar
 // 46. Protocol Buffer Text Format -> LanguageProtocolBuffer
 // 47. WebAssembly Text Format -> LanguageWebAssembly
+// 48. MDX -> LanguageMDX
 
 package heartbeat
 
@@ -164,9 +165,9 @@ const (
 	LanguageASPDotNet
 	// LanguageAspectJ represents the AspectJ programming language.
 	LanguageAspectJ
-	// LanguageAspxCSharp represents the CSharpAspx programming language.
+	// LanguageAspxCSharp represents the Aspx C# programming language.
 	LanguageAspxCSharp
-	// LanguageAspxVBNet represents the VBNetAspx programming language.
+	// LanguageAspxVBNet represents the Aspx VB.Net programming language.
 	LanguageAspxVBNet
 	// LanguageAssembly represents the Assembly programming language.
 	LanguageAssembly
@@ -796,7 +797,7 @@ const (
 	LanguageJade
 	// LanguageJAGS represents the JAGS programming language.
 	LanguageJAGS
-	// LanguageJanet represents the Markdown programming language.
+	// LanguageJanet represents the Janet programming language.
 	LanguageJanet
 	// LanguageJasmin represents the Jasmin programming language.
 	LanguageJasmin
@@ -846,17 +847,17 @@ const (
 	LanguageJungle
 	// LanguageJupyterNotebook represents the JupyterNotebook programming language.
 	LanguageJupyterNotebook
-	// LanguageJuttle represents the Juttle console programming language.
+	// LanguageJuttle represents the Juttle programming language.
 	LanguageJuttle
 	// LanguageKaitai represent the Kaitai programming language.
 	LanguageKaitai
 	// LanguageKakoune represents the Kakoune programming language.
 	LanguageKakoune
-	// LanguageKal represents the Kal console programming language.
+	// LanguageKal represents the Kal programming language.
 	LanguageKal
-	// LanguageKconfig represents the Kconfig console programming language.
+	// LanguageKconfig represents the Kconfig programming language.
 	LanguageKconfig
-	// LanguageKernelLog represents the Kernel log console programming language.
+	// LanguageKernelLog represents the Kernel Log programming language.
 	LanguageKernelLog
 	// LanguageKiCadLayout represent the KiCadLayout programming language.
 	LanguageKiCadLayout
@@ -866,7 +867,7 @@ const (
 	LanguageKiCadSchematic
 	// LanguageKit represent the Kit programming language.
 	LanguageKit
-	// LanguageKoka represents the Koka console programming language.
+	// LanguageKoka represents the Koka programming language.
 	LanguageKoka
 	// LanguageKotlin represents the Kotlin programming language.
 	LanguageKotlin
@@ -886,7 +887,7 @@ const (
 	LanguageLatte
 	// LanguageLean represents the Lean programming language.
 	LanguageLean
-	// LanguageLean4 represents the Markdown programming language.
+	// LanguageLean4 represents the Lean4 programming language.
 	LanguageLean4
 	// LanguageLess represents the Less programming language.
 	LanguageLess
@@ -894,11 +895,11 @@ const (
 	LanguageLex
 	// LanguageLFE represents the LFE programming language.
 	LanguageLFE
-	// LanguageLighttpd represents the Lighttpd configuration file programming language.
+	// LanguageLighttpd represents the Lighttpd programming language.
 	LanguageLighttpd
 	// LanguageLilyPond represents the LilyPond programming language.
 	LanguageLilyPond
-	// LanguageLimbo represents the Limbo configuration file programming language.
+	// LanguageLimbo represents the Limbo programming language.
 	LanguageLimbo
 	// LanguageLinkerScript represents the LinkerScript programming language.
 	LanguageLinkerScript
@@ -974,6 +975,8 @@ const (
 	LanguageMaxMSP
 	// LanguageMCFunction represents the MCFunction programming language.
 	LanguageMCFunction
+	// LanguageMDX represents the MDX programming language.
+	LanguageMDX
 	// LanguageMeson represents the Meson programming language.
 	LanguageMeson
 	// LanguageMetafont represents the Metafont programming language.
@@ -1172,7 +1175,7 @@ const (
 	LanguagePRQL
 	// LanguagePSL represents the Property Specification Language programming language.
 	LanguagePSL
-	// LanguagePsyShPHP represents the PHPPsySH programming language.
+	// LanguagePsyShPHP represents the PsySH PHP programming language.
 	LanguagePsyShPHP
 	// LanguagePug represents the Pug programming language.
 	LanguagePug
@@ -1286,7 +1289,7 @@ const (
 	LanguageRouge
 	// LanguageRPC represents the RPC programming language.
 	LanguageRPC
-	// LanguageRPGLE represents the RPC programming language.
+	// LanguageRPGLE represents the RPGLE programming language.
 	LanguageRPGLE
 	// LanguageRPMSpec represents the RPMSpec programming language.
 	LanguageRPMSpec
@@ -1304,7 +1307,7 @@ const (
 	LanguageRust
 	// LanguageS represents the S programming language.
 	LanguageS
-	// LanguageSage represents the LanguageSage programming language.
+	// LanguageSage represents the Sage programming language.
 	LanguageSage
 	// LanguageSalt represents the Salt programming language.
 	LanguageSalt
@@ -1328,17 +1331,17 @@ const (
 	LanguageScribe
 	// LanguageSCSS represents the SCSS programming language.
 	LanguageSCSS
-	// LanguageSed represents the LanguageSed programming language.
+	// LanguageSed represents the Sed programming language.
 	LanguageSed
 	// LanguageSelf represents the Self programming language.
 	LanguageSelf
 	// LanguageSGML represents the SGML programming language.
 	LanguageSGML
-	// LanguageShaderLab represents the LanguageShaderLab programming language.
+	// LanguageShaderLab represents the ShaderLab programming language.
 	LanguageShaderLab
 	// LanguageShell represents the Shell programming language.
 	LanguageShell
-	// LanguageShellSession represents the LanguageShellSession programming language.
+	// LanguageShellSession represents the Shell Session programming language.
 	LanguageShellSession
 	// LanguageShen represents the Shen programming language.
 	LanguageShen
@@ -1358,7 +1361,7 @@ const (
 	LanguageSKILL
 	// LanguageSlash represents the Slash programming language.
 	LanguageSlash
-	// LanguageSlice represents the LanguageSlice programming language.
+	// LanguageSlice represents the Slice programming language.
 	LanguageSlice
 	// LanguageSlim represents the Slim programming language.
 	LanguageSlim
@@ -1378,9 +1381,9 @@ const (
 	LanguageSMIME
 	// LanguageSML represents the Standard ML programming language.
 	LanguageSML
-	// LanguageSmPL represents the LanguageSmPL programming language.
+	// LanguageSmPL represents the SmPL programming language.
 	LanguageSmPL
-	// LanguageSMT represents the LanguageSMT programming language.
+	// LanguageSMT represents the SMT programming language.
 	LanguageSMT
 	// LanguageSNBT represents the SNBT programming language.
 	LanguageSNBT
@@ -1394,47 +1397,47 @@ const (
 	LanguageSourcePawn
 	// LanguageSPARQL represents the SPARQL programming language.
 	LanguageSPARQL
-	// LanguageSplineFontDatabase represents the LanguageSplineFontDatabase programming language.
+	// LanguageSplineFontDatabase represents the Spline Font Database programming language.
 	LanguageSplineFontDatabase
 	// LanguageSourcesList represents the Debian Sourcelist programming language.
 	LanguageSourcesList
-	// LanguageSQF represents the LanguageSQF programming language.
+	// LanguageSQF represents the SQF programming language.
 	LanguageSQF
 	// LanguageSQL represents the SQL programming language.
 	LanguageSQL
-	// LanguageSQLPL represents the LanguageSQLPL programming language.
+	// LanguageSQLPL represents the SQLPL programming language.
 	LanguageSQLPL
 	// LanguageSqlite3con represents the sqlite3con programming language.
 	LanguageSqlite3con
 	// LanguageSquidConf represents the SquidConf programming language.
 	LanguageSquidConf
-	// LanguageSquirrel represents the LanguageSquirrel programming language.
+	// LanguageSquirrel represents the Squirrel programming language.
 	LanguageSquirrel
-	// LanguageSRecodeTemplate represents the LanguageSRecodeTemplate programming language.
+	// LanguageSRecodeTemplate represents the SRecode Template programming language.
 	LanguageSRecodeTemplate
-	// LanguageSSHConfig represents the LanguageSSHConfig programming language.
+	// LanguageSSHConfig represents the SSH Config programming language.
 	LanguageSSHConfig
 	// LanguageSSP represents the Scalate Server Page programming language.
 	LanguageSSP
 	// LanguageStan represents the Stan programming language.
 	LanguageStan
-	// LanguageStarlark represents the LanguageStarlark programming language.
+	// LanguageStarlark represents the Starlark programming language.
 	LanguageStarlark
 	// LanguageStas represents the st(ack) as(sembler) programming language.
 	LanguageStas
 	// LanguageStata represents the Stata programming language.
 	LanguageStata
-	// LanguageSTON represents the LanguageSTON programming language.
+	// LanguageSTON represents the STON programming language.
 	LanguageSTON
-	// LanguageSVG represents the LanguageSVG programming language.
+	// LanguageSVG represents the SVG programming language.
 	LanguageSVG
 	// LanguageStylus represents the Stylus programming language.
 	LanguageStylus
 	// LanguageSublimeTextConfig represents the SublimeTextConfig programming language.
 	LanguageSublimeTextConfig
-	// LanguageSubRipText represents the LanguageSubRipText programming language.
+	// LanguageSubRipText represents the SubRip Text programming language.
 	LanguageSubRipText
-	// LanguageSugarSS represents the LanguageSugarSS programming language.
+	// LanguageSugarSS represents the SugarSS programming language.
 	LanguageSugarSS
 	// LanguageSuperCollider represents the SuperCollider programming language.
 	LanguageSuperCollider
@@ -1865,9 +1868,7 @@ const (
 	languageDCPU16AsmStr                   = "DCPU-16 ASM"
 	languageDebianControlFileStr           = "Debian Control file"
 	languageDelphiStr                      = "Delphi"
-	languageDesktopEntryStr                = "desktop_entry"
 	languageDesktopFileStr                 = "Desktop file"
-	languageDesktopStr                     = "desktop"
 	languageDevicetreeStr                  = "Devicetree"
 	languageDGStr                          = "dg"
 	languageDhallStr                       = "Dhall"
@@ -1946,7 +1947,6 @@ const (
 	languageFreeMarkerStr                  = "FreeMarker"
 	languageFregeStr                       = "Frege"
 	languageFSharpStr                      = "F#"
-	languageFStarLiteralStr                = "FStar"
 	languageFStarStr                       = "F*"
 	languageFutharkStr                     = "Futhark"
 	languageGameMakerLanguageStr           = "Game Maker Language"
@@ -1980,7 +1980,6 @@ const (
 	languageGlyphStr                       = "Glyph"
 	languageGNStr                          = "GN"
 	languageGnuplotStr                     = "Gnuplot"
-	languageGolangStr                      = "Golang"
 	languageGoloStr                        = "Golo"
 	languageGoodDataCLStr                  = "GoodData-CL"
 	languageGoStr                          = "Go"
@@ -2134,13 +2133,13 @@ const (
 	languageMaskStr                        = "Mask"
 	languageMasonStr                       = "Mason"
 	languageMaterializeSQLDialectStr       = "Materialize SQL dialect"
-	languageMaterializeStr                 = "materialize"
 	languageMathematicaStr                 = "Mathematica"
 	languageMatlabSessionStr               = "Matlab session"
 	languageMatlabStr                      = "Matlab"
 	languageMaxMSPStr                      = "Max/MSP"
 	languageMaxStr                         = "Max"
 	languageMCFunctionStr                  = "MCFunction"
+	languageMDXStr                         = "MDX"
 	languageMesonStr                       = "Meson"
 	languageMetafontStr                    = "Metafont"
 	languageMetalStr                       = "Metal"
@@ -2406,7 +2405,6 @@ const (
 	languageTOMLStr                        = "TOML"
 	languageTradingViewStr                 = "TradingView"
 	languageTrafficScriptStr               = "TrafficScript"
-	languageTransactSQLStr                 = "Transact-SQL"
 	languageTreetopStr                     = "Treetop"
 	languageTSQLStr                        = "TSQL"
 	languageTSVStr                         = "TSV"
@@ -2448,7 +2446,7 @@ const (
 	languageVimLStr                        = "VimL"
 	languageVimScriptStr                   = "Vim Script"
 	languageVimSnippetStr                  = "Vim Snippet"
-	languageVisualBasicNet                 = "Visual Basic .NET"
+	languageVisualBasicNetStr              = "Visual Basic .NET"
 	languageVoltStr                        = "Volt"
 	languageVShellStr                      = "V shell"
 	languageVStr                           = "V"
