@@ -769,9 +769,13 @@ func updateTestFile(languageTests, languageTestsAliases map[string]string) {
 	for k := range languageTests {
 		testKeys = append(testKeys, k)
 	}
-	// Sort case-insensitively for proper alphabetical order
+	// Sort case-insensitively for proper alphabetical order, with case-sensitive tiebreaker for determinism
 	sort.Slice(testKeys, func(i, j int) bool {
-		return strings.ToLower(testKeys[i]) < strings.ToLower(testKeys[j])
+		li, lj := strings.ToLower(testKeys[i]), strings.ToLower(testKeys[j])
+		if li != lj {
+			return li < lj
+		}
+		return testKeys[i] < testKeys[j]
 	})
 
 	for _, k := range testKeys {
@@ -789,9 +793,13 @@ func updateTestFile(languageTests, languageTestsAliases map[string]string) {
 	for k := range languageTestsAliases {
 		aliasKeys = append(aliasKeys, k)
 	}
-	// Sort case-insensitively for proper alphabetical order
+	// Sort case-insensitively for proper alphabetical order, with case-sensitive tiebreaker for determinism
 	sort.Slice(aliasKeys, func(i, j int) bool {
-		return strings.ToLower(aliasKeys[i]) < strings.ToLower(aliasKeys[j])
+		li, lj := strings.ToLower(aliasKeys[i]), strings.ToLower(aliasKeys[j])
+		if li != lj {
+			return li < lj
+		}
+		return aliasKeys[i] < aliasKeys[j]
 	})
 
 	for _, k := range aliasKeys {
