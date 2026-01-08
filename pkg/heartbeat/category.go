@@ -129,7 +129,7 @@ func DetectCategory(h Heartbeat) Category {
 		return WritingTestsCategory
 	}
 
-	if strings.HasSuffix(file, ".md") {
+	if strings.HasSuffix(file, ".md") || strings.HasSuffix(file, ".mdx") {
 		return WritingDocsCategory
 	}
 
