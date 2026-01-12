@@ -39,6 +39,74 @@ func TestFile_Detect_FileExists(t *testing.T) {
 	assert.Equal(t, expected, result)
 }
 
+func TestFile_Detect_ProjectPlaceholder(t *testing.T) {
+	tmpDir, err := realpath.Realpath(t.TempDir())
+	require.NoError(t, err)
+
+	// by default t.TempDir() returns a path like /tmp/xyz123, so we append
+	// wakatime-cli to simulate a project folder name
+	tmpDir = filepath.Join(tmpDir, "wakatime-cli")
+
+	err = os.MkdirAll(tmpDir, 0700)
+	require.NoError(t, err)
+
+	copyFile(
+		t,
+		"testdata/wakatime-project-placeholder",
+		filepath.Join(tmpDir, ".wakatime-project"),
+	)
+
+	f := project.File{
+		Filepath: filepath.Join(tmpDir, ".wakatime-project"),
+	}
+
+	result, detected, err := f.Detect(t.Context())
+	require.NoError(t, err)
+
+	expected := project.Result{
+		Branch:  "master",
+		Folder:  tmpDir,
+		Project: "my-company/wakatime-cli",
+	}
+
+	assert.True(t, detected)
+	assert.Equal(t, expected, result)
+}
+
+func TestFile_Detect_ProjectPlaceholderOnly(t *testing.T) {
+	tmpDir, err := realpath.Realpath(t.TempDir())
+	require.NoError(t, err)
+
+	// by default t.TempDir() returns a path like /tmp/xyz123, so we append
+	// wakatime-cli to simulate a project folder name
+	tmpDir = filepath.Join(tmpDir, "wakatime-cli")
+
+	err = os.MkdirAll(tmpDir, 0700)
+	require.NoError(t, err)
+
+	copyFile(
+		t,
+		"testdata/wakatime-project-only-placeholder",
+		filepath.Join(tmpDir, ".wakatime-project"),
+	)
+
+	f := project.File{
+		Filepath: filepath.Join(tmpDir, ".wakatime-project"),
+	}
+
+	result, detected, err := f.Detect(t.Context())
+	require.NoError(t, err)
+
+	expected := project.Result{
+		Branch:  "",
+		Folder:  tmpDir,
+		Project: "wakatime-cli",
+	}
+
+	assert.True(t, detected)
+	assert.Equal(t, expected, result)
+}
+
 func TestFile_Detect_ParentFolderExists(t *testing.T) {
 	tmpDir, err := realpath.Realpath(t.TempDir())
 	require.NoError(t, err)

@@ -10,6 +10,10 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/log"
 )
 
+const (
+	projectNamePlaceholder = "{project}"
+)
+
 // File contains file data.
 type File struct {
 	Filepath string
@@ -38,7 +42,12 @@ func (f File) Detect(ctx context.Context) (Result, bool, error) {
 	}
 
 	if len(lines) > 0 {
-		result.Project = strings.TrimSpace(lines[0])
+		trimmed := strings.TrimSpace(lines[0])
+		if strings.Contains(trimmed, projectNamePlaceholder) {
+			trimmed = strings.ReplaceAll(trimmed, projectNamePlaceholder, result.Project)
+		}
+
+		result.Project = strings.TrimSpace(trimmed)
 	}
 
 	if len(lines) > 1 {
