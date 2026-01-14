@@ -1,7 +1,6 @@
 package heartbeat_test
 
 import (
-	"encoding/json"
 	"fmt"
 	"testing"
 
@@ -38,12 +37,12 @@ func languageTests() map[string]heartbeat.Language {
 		"Ansible":                          heartbeat.LanguageAnsible,
 		"Ant Build System":                 heartbeat.LanguageAntBuildSystem,
 		"ANTLR":                            heartbeat.LanguageANTLR,
-		"APL":                              heartbeat.LanguageAPL,
-		"AppleScript":                      heartbeat.LanguageAppleScript,
 		"Apache Config":                    heartbeat.LanguageApacheConfig,
 		"Apex":                             heartbeat.LanguageApex,
 		"API Blueprint":                    heartbeat.LanguageAPIBlueprint,
+		"APL":                              heartbeat.LanguageAPL,
 		"Apollo Guidance Computer":         heartbeat.LanguageApolloGuidanceComputer,
+		"AppleScript":                      heartbeat.LanguageAppleScript,
 		"ArangoDB Query Language":          heartbeat.LanguageArangoDBQueryLanguage,
 		"Arc":                              heartbeat.LanguageArc,
 		"Arduino":                          heartbeat.LanguageArduino,
@@ -71,8 +70,8 @@ func languageTests() map[string]heartbeat.Language {
 		"BARE":                             heartbeat.LanguageBARE,
 		"Bash":                             heartbeat.LanguageBash,
 		"Bash Session":                     heartbeat.LanguageBashSession,
-		"Batchfile":                        heartbeat.LanguageBatchfile,
 		"Basic":                            heartbeat.LanguageBasic,
+		"Batchfile":                        heartbeat.LanguageBatchfile,
 		"BBC Basic":                        heartbeat.LanguageBBCBasic,
 		"BBCode":                           heartbeat.LanguageBBCode,
 		"BC":                               heartbeat.LanguageBC,
@@ -95,22 +94,24 @@ func languageTests() map[string]heartbeat.Language {
 		"BQN":                              heartbeat.LanguageBQN,
 		"Brainfuck":                        heartbeat.LanguageBrainfuck,
 		"BrightScript":                     heartbeat.LanguageBrightScript,
-		"Browserslist":                     heartbeat.LanguageBrowserslist,
 		"Bro":                              heartbeat.LanguageBro,
+		"Browserslist":                     heartbeat.LanguageBrowserslist,
 		"BST":                              heartbeat.LanguageBST,
 		"BUGS":                             heartbeat.LanguageBUGS,
 		"C":                                heartbeat.LanguageC,
-		"C++":                              heartbeat.LanguageCPP,
 		"C#":                               heartbeat.LanguageCSharp,
+		"C++":                              heartbeat.LanguageCPP,
+		"C-ObjDump":                        heartbeat.LanguageCObjdump,
 		"C2hs Haskell":                     heartbeat.LanguageC2hsHaskell,
+		"C3":                               heartbeat.LanguageC3,
 		"ca65 assembler":                   heartbeat.LanguageCa65Assembler,
 		"Cabal Config":                     heartbeat.LanguageCabalConfig,
 		"Caddyfile":                        heartbeat.LanguageCaddyfile,
 		"Caddyfile Directives":             heartbeat.LanguageCaddyfileDirectives,
 		"cADL":                             heartbeat.LanguageCADL,
 		"CAmkES":                           heartbeat.LanguageCAmkES,
-		"CapDL":                            heartbeat.LanguageCapDL,
 		"Cap'n Proto":                      heartbeat.LanguageCapNProto,
+		"CapDL":                            heartbeat.LanguageCapDL,
 		"CartoCSS":                         heartbeat.LanguageCartoCSS,
 		"Cassandra CQL":                    heartbeat.LanguageCassandraCQL,
 		"CBM BASIC V2":                     heartbeat.LanguageCBMBasicV2,
@@ -134,7 +135,6 @@ func languageTests() map[string]heartbeat.Language {
 		"ClojureScript":                    heartbeat.LanguageClojureScript,
 		"Closure Templates":                heartbeat.LanguageClosureTemplates,
 		"Cloud Firestore Security Rules":   heartbeat.LanguageCloudFirestoreSecurityRules,
-		"C-ObjDump":                        heartbeat.LanguageCObjdump,
 		"CMake":                            heartbeat.LanguageCMake,
 		"COBOL":                            heartbeat.LanguageCOBOL,
 		"COBOLFree":                        heartbeat.LanguageCOBOLFree,
@@ -178,12 +178,12 @@ func languageTests() map[string]heartbeat.Language {
 		"Cypher":                           heartbeat.LanguageCypher,
 		"Cython":                           heartbeat.LanguageCython,
 		"D":                                heartbeat.LanguageD,
-		"Dafny":                            heartbeat.LanguageDafny,
 		"d-objdump":                        heartbeat.LanguageDObjdump,
+		"Dafny":                            heartbeat.LanguageDafny,
 		"Darcs Patch":                      heartbeat.LanguageDarcsPatch,
 		"Dart":                             heartbeat.LanguageDart,
-		"DataWeave":                        heartbeat.LanguageDataWeave,
 		"DASM16":                           heartbeat.LanguageDASM16,
+		"DataWeave":                        heartbeat.LanguageDataWeave,
 		"Dax":                              heartbeat.LanguageDax,
 		"DCL":                              heartbeat.LanguageDCL,
 		"DCPU-16 ASM":                      heartbeat.LanguageDCPU16Asm,
@@ -210,10 +210,11 @@ func languageTests() map[string]heartbeat.Language {
 		"DTrace":                           heartbeat.LanguageDTrace,
 		"Duel":                             heartbeat.LanguageDuel,
 		"Dylan":                            heartbeat.LanguageDylan,
-		"DylanLID":                         heartbeat.LanguageDylanLID,
 		"Dylan session":                    heartbeat.LanguageDylanSession,
+		"DylanLID":                         heartbeat.LanguageDylanLID,
 		"DynASM":                           heartbeat.LanguageDynASM,
 		"E":                                heartbeat.LanguageE,
+		"E-mail":                           heartbeat.LanguageEMail,
 		"Eagle":                            heartbeat.LanguageEagle,
 		"Earl Grey":                        heartbeat.LanguageEarlGrey,
 		"Easybuild":                        heartbeat.LanguageEasybuild,
@@ -232,7 +233,7 @@ func languageTests() map[string]heartbeat.Language {
 		"Elixir iex session":               heartbeat.LanguageElixirIexSession,
 		"Elm":                              heartbeat.LanguageElm,
 		"Emacs Lisp":                       heartbeat.LanguageEmacsLisp,
-		"E-mail":                           heartbeat.LanguageEMail,
+		"Embedded Ragel":                   heartbeat.LanguageRagelEmbedded,
 		"EmberScript":                      heartbeat.LanguageEmberScript,
 		"EML":                              heartbeat.LanguageEML,
 		"EQ":                               heartbeat.LanguageEQ,
@@ -243,8 +244,8 @@ func languageTests() map[string]heartbeat.Language {
 		"Evoque":                           heartbeat.LanguageEvoque,
 		"execline":                         heartbeat.LanguageExecline,
 		"Ezhil":                            heartbeat.LanguageEzhil,
-		"F*":                               heartbeat.LanguageFStar,
 		"F#":                               heartbeat.LanguageFSharp,
+		"F*":                               heartbeat.LanguageFStar,
 		"Factor":                           heartbeat.LanguageFactor,
 		"Fancy":                            heartbeat.LanguageFancy,
 		"Fantom":                           heartbeat.LanguageFantom,
@@ -255,27 +256,27 @@ func languageTests() map[string]heartbeat.Language {
 		"Filebench WML":                    heartbeat.LanguageFilebenchWML,
 		"Filterscript":                     heartbeat.LanguageFilterscript,
 		"Fish":                             heartbeat.LanguageFish,
-		"FLUX":                             heartbeat.LanguageFLUX,
 		"Flatline":                         heartbeat.LanguageFlatline,
 		"FloScript":                        heartbeat.LanguageFloScript,
+		"FLUX":                             heartbeat.LanguageFLUX,
 		"Font":                             heartbeat.LanguageFont,
 		"Formatted":                        heartbeat.LanguageFormatted,
 		"Forth":                            heartbeat.LanguageForth,
 		"Fortran":                          heartbeat.LanguageFortran,
-		"FortranFixed":                     heartbeat.LanguageFortranFixed,
 		"Fortran Free Form":                heartbeat.LanguageFortranFreeForm,
+		"FortranFixed":                     heartbeat.LanguageFortranFixed,
 		"FoxPro":                           heartbeat.LanguageFoxPro,
 		"Freefem":                          heartbeat.LanguageFreefem,
 		"FreeMarker":                       heartbeat.LanguageFreeMarker,
 		"Frege":                            heartbeat.LanguageFrege,
 		"Futhark":                          heartbeat.LanguageFuthark,
+		"G-code":                           heartbeat.LanguageGCode,
 		"Game Maker Language":              heartbeat.LanguageGameMakerLanguage,
 		"GAML":                             heartbeat.LanguageGAML,
 		"GAMS":                             heartbeat.LanguageGAMS,
 		"GAP":                              heartbeat.LanguageGap,
 		"GAS":                              heartbeat.LanguageGas,
 		"GCC Machine Description":          heartbeat.LanguageGCCMachineDescription,
-		"G-code":                           heartbeat.LanguageGCode,
 		"GDB":                              heartbeat.LanguageGDB,
 		"GDNative":                         heartbeat.LanguageGDNative,
 		"GDScript":                         heartbeat.LanguageGDScript,
@@ -301,6 +302,9 @@ func languageTests() map[string]heartbeat.Language {
 		"GN":                               heartbeat.LanguageGN,
 		"Gnuplot":                          heartbeat.LanguageGnuplot,
 		"Go":                               heartbeat.LanguageGo,
+		"Go HTML Template":                 heartbeat.LanguageGoHTMLTemplate,
+		"Go Template":                      heartbeat.LanguageGoTemplate,
+		"Go Text Template":                 heartbeat.LanguageGoTextTemplate,
 		"Golo":                             heartbeat.LanguageGolo,
 		"GoodData-CL":                      heartbeat.LanguageGoodDataCL,
 		"Gosu":                             heartbeat.LanguageGosu,
@@ -381,12 +385,12 @@ func languageTests() map[string]heartbeat.Language {
 		"Jolie":                            heartbeat.LanguageJolie,
 		"JSGF":                             heartbeat.LanguageJSGF,
 		"JSON":                             heartbeat.LanguageJSON,
+		"JSON with Comments":               heartbeat.LanguageJSONWithComments,
 		"JSON5":                            heartbeat.LanguageJSON5,
 		"JSONata":                          heartbeat.LanguageJSONata,
 		"JSONiq":                           heartbeat.LanguageJSONiq,
 		"JSONLD":                           heartbeat.LanguageJSONLD,
 		"Jsonnet":                          heartbeat.LanguageJsonnet,
-		"JSON with Comments":               heartbeat.LanguageJSONWithComments,
 		"JSX":                              heartbeat.LanguageJSX,
 		"Julia":                            heartbeat.LanguageJulia,
 		"Julia console":                    heartbeat.LanguageJuliaConsole,
@@ -394,6 +398,7 @@ func languageTests() map[string]heartbeat.Language {
 		"Jupyter Notebook":                 heartbeat.LanguageJupyterNotebook,
 		"Juttle":                           heartbeat.LanguageJuttle,
 		"Kaitai Struct":                    heartbeat.LanguageKaitai,
+		"Kakoune":                          heartbeat.LanguageKakoune,
 		"Kal":                              heartbeat.LanguageKal,
 		"Kconfig":                          heartbeat.LanguageKconfig,
 		"Kernel log":                       heartbeat.LanguageKernelLog,
@@ -455,6 +460,7 @@ func languageTests() map[string]heartbeat.Language {
 		"Max":                              heartbeat.LanguageMax,
 		"Max/MSP":                          heartbeat.LanguageMaxMSP,
 		"MCFunction":                       heartbeat.LanguageMCFunction,
+		"MDX":                              heartbeat.LanguageMDX,
 		"Meson":                            heartbeat.LanguageMeson,
 		"Metafont":                         heartbeat.LanguageMetafont,
 		"Metal":                            heartbeat.LanguageMetal,
@@ -501,17 +507,17 @@ func languageTests() map[string]heartbeat.Language {
 		"Nit":                              heartbeat.LanguageNit,
 		"Nix":                              heartbeat.LanguageNix,
 		"Notmuch":                          heartbeat.LanguageNotmuch,
-		"Nu":                               heartbeat.LanguageNu,
 		"NSIS":                             heartbeat.LanguageNSIS,
+		"Nu":                               heartbeat.LanguageNu,
 		"NumPy":                            heartbeat.LanguageNumPy,
 		"Nushell":                          heartbeat.LanguageNushell,
 		"NuSMV":                            heartbeat.LanguageNuSMV,
 		"objdump":                          heartbeat.LanguageObjdump,
 		"objdump-nasm":                     heartbeat.LanguageNASMObjdump,
-		"ObjectPascal":                     heartbeat.LanguageObjectPascal,
 		"Objective-C":                      heartbeat.LanguageObjectiveC,
 		"Objective-C++":                    heartbeat.LanguageObjectiveCPP,
 		"Objective-J":                      heartbeat.LanguageObjectiveJ,
+		"ObjectPascal":                     heartbeat.LanguageObjectPascal,
 		"OCaml":                            heartbeat.LanguageOCaml,
 		"Octave":                           heartbeat.LanguageOctave,
 		"Odin":                             heartbeat.LanguageODIN,
@@ -563,15 +569,14 @@ func languageTests() map[string]heartbeat.Language {
 		"Python":                           heartbeat.LanguagePython,
 		"Python 2":                         heartbeat.LanguagePython2,
 		"Python 2.x Traceback":             heartbeat.LanguagePython2Traceback,
-		"Python Traceback":                 heartbeat.LanguagePythonTraceback,
 		"Python console session":           heartbeat.LanguagePythonConsole,
+		"Python Traceback":                 heartbeat.LanguagePythonTraceback,
 		"QBasic":                           heartbeat.LanguageQBasic,
 		"QML":                              heartbeat.LanguageQML,
 		"QVTO":                             heartbeat.LanguageQVTO,
 		"R":                                heartbeat.LanguageR,
 		"Racket":                           heartbeat.LanguageRacket,
 		"Ragel":                            heartbeat.LanguageRagel,
-		"Embedded Ragel":                   heartbeat.LanguageRagelEmbedded,
 		"Raku":                             heartbeat.LanguageRaku,
 		"RAML":                             heartbeat.LanguageRAML,
 		"Rascal":                           heartbeat.LanguageRascal,
@@ -590,19 +595,20 @@ func languageTests() map[string]heartbeat.Language {
 		"reg":                              heartbeat.LanguageRegistry,
 		"Rego":                             heartbeat.LanguageRego,
 		"Regular Expression":               heartbeat.LanguageRegularExpression,
-		"RenderScript":                     heartbeat.LanguageRenderScript,
+		"Relax-NG Compact":                 heartbeat.LanguageRNGCompact,
 		"Ren'Py":                           heartbeat.LanguageRenPy,
+		"RenderScript":                     heartbeat.LanguageRenderScript,
 		"ReScript":                         heartbeat.LanguageReScript,
 		"ResourceBundle":                   heartbeat.LanguageResourceBundle,
 		"reStructuredText":                 heartbeat.LanguageReStructuredText,
 		"REXX":                             heartbeat.LanguageRexx,
+		"RGBDS Assembly":                   heartbeat.LanguageRGBDSAssembly,
 		"RHTML":                            heartbeat.LanguageRHTML,
 		"Rich Text Format":                 heartbeat.LanguageRichTextFormat,
 		"Ride":                             heartbeat.LanguageRide,
 		"Ring":                             heartbeat.LanguageRing,
 		"Riot":                             heartbeat.LanguageRiot,
 		"RMarkdown":                        heartbeat.LanguageRMarkdown,
-		"Relax-NG Compact":                 heartbeat.LanguageRNGCompact,
 		"Roboconf Graph":                   heartbeat.LanguageRoboconfGraph,
 		"Roboconf Instances":               heartbeat.LanguageRoboconfInstances,
 		"RobotFramework":                   heartbeat.LanguageRobotFramework,
@@ -619,6 +625,7 @@ func languageTests() map[string]heartbeat.Language {
 		"RUNOFF":                           heartbeat.LanguageRUNOFF,
 		"Rust":                             heartbeat.LanguageRust,
 		"S":                                heartbeat.LanguageS,
+		"S/MIME":                           heartbeat.LanguageSMIME,
 		"Sage":                             heartbeat.LanguageSage,
 		"Salt":                             heartbeat.LanguageSalt,
 		"SARL":                             heartbeat.LanguageSARL,
@@ -655,7 +662,6 @@ func languageTests() map[string]heartbeat.Language {
 		"Smalltalk":                        heartbeat.LanguageSmalltalk,
 		"SmartGameFormat":                  heartbeat.LanguageSmartGameFormat,
 		"Smarty":                           heartbeat.LanguageSmarty,
-		"S/MIME":                           heartbeat.LanguageSMIME,
 		"SmPL":                             heartbeat.LanguageSmPL,
 		"SMT":                              heartbeat.LanguageSMT,
 		"SNBT":                             heartbeat.LanguageSNBT,
@@ -667,17 +673,17 @@ func languageTests() map[string]heartbeat.Language {
 		"Spline Font Database":             heartbeat.LanguageSplineFontDatabase,
 		"SQF":                              heartbeat.LanguageSQF,
 		"SQL":                              heartbeat.LanguageSQL,
-		"SQLPL":                            heartbeat.LanguageSQLPL,
 		"sqlite3con":                       heartbeat.LanguageSqlite3con,
+		"SQLPL":                            heartbeat.LanguageSQLPL,
 		"SquidConf":                        heartbeat.LanguageSquidConf,
 		"Squirrel":                         heartbeat.LanguageSquirrel,
 		"SRecode Template":                 heartbeat.LanguageSRecodeTemplate,
 		"SSH Config":                       heartbeat.LanguageSSHConfig,
 		"st(ack) as(sembler)":              heartbeat.LanguageStas,
 		"Stan":                             heartbeat.LanguageStan,
+		"Standard ML":                      heartbeat.LanguageSML,
 		"Starlark":                         heartbeat.LanguageStarlark,
 		"Stata":                            heartbeat.LanguageStata,
-		"Standard ML":                      heartbeat.LanguageSML,
 		"STON":                             heartbeat.LanguageSTON,
 		"Stylus":                           heartbeat.LanguageStylus,
 		"Sublime Text Config":              heartbeat.LanguageSublimeTextConfig,
@@ -708,26 +714,26 @@ func languageTests() map[string]heartbeat.Language {
 		"Text":                             heartbeat.LanguageText,
 		"Textile":                          heartbeat.LanguageTextile,
 		"Thrift":                           heartbeat.LanguageThrift,
-		"tiddler":                          heartbeat.LanguageTiddler,
 		"TI Program":                       heartbeat.LanguageTIProgram,
+		"tiddler":                          heartbeat.LanguageTiddler,
 		"TLA":                              heartbeat.LanguageTLA,
 		"Todotxt":                          heartbeat.LanguageTodotxt,
 		"TOML":                             heartbeat.LanguageTOML,
 		"TradingView":                      heartbeat.LanguageTradingView,
 		"TrafficScript":                    heartbeat.LanguageTrafficScript,
-		"TSQL":                             heartbeat.LanguageTransactSQL,
 		"Treetop":                          heartbeat.LanguageTreetop,
+		"TSQL":                             heartbeat.LanguageTransactSQL,
 		"TSV":                              heartbeat.LanguageTSV,
 		"TSX":                              heartbeat.LanguageTSX,
 		"Turing":                           heartbeat.LanguageTuring,
 		"Turtle":                           heartbeat.LanguageTurtle,
 		"Twig":                             heartbeat.LanguageTwig,
 		"TXL":                              heartbeat.LanguageTXL,
-		"Typst":                            heartbeat.LanguageTypst,
 		"Type Language":                    heartbeat.LanguageTypeLanguage,
-		"Typographic Number Theory":        heartbeat.LanguageTNT,
 		"TypeScript":                       heartbeat.LanguageTypeScript,
+		"Typographic Number Theory":        heartbeat.LanguageTNT,
 		"TypoScript":                       heartbeat.LanguageTypoScript,
+		"Typst":                            heartbeat.LanguageTypst,
 		"ucode":                            heartbeat.LanguageUcode,
 		"Unicon":                           heartbeat.LanguageUnicon,
 		"Unified Parallel C":               heartbeat.LanguageUnifiedParallelC,
@@ -740,10 +746,11 @@ func languageTests() map[string]heartbeat.Language {
 		"USD":                              heartbeat.LanguageUSD,
 		"Uxntal":                           heartbeat.LanguageUxntal,
 		"V":                                heartbeat.LanguageV,
+		"V shell":                          heartbeat.LanguageVShell,
 		"Vala":                             heartbeat.LanguageVala,
 		"VB":                               heartbeat.LanguageVB,
-		"VBA":                              heartbeat.LanguageVBA,
 		"VB.NET":                           heartbeat.LanguageVBNet,
+		"VBA":                              heartbeat.LanguageVBA,
 		"VBScript":                         heartbeat.LanguageVBScript,
 		"VCL":                              heartbeat.LanguageVCL,
 		"VCLSnippets":                      heartbeat.LanguageVCLSnippets,
@@ -754,21 +761,20 @@ func languageTests() map[string]heartbeat.Language {
 		"VHDL":                             heartbeat.LanguageVHDL,
 		"VHS":                              heartbeat.LanguageVHS,
 		"Vim Help File":                    heartbeat.LanguageVimHelpFile,
-		"VimL":                             heartbeat.LanguageVimL,
 		"Vim Script":                       heartbeat.LanguageVimScript,
 		"Vim Snippet":                      heartbeat.LanguageVimSnippet,
+		"VimL":                             heartbeat.LanguageVimL,
 		"Volt":                             heartbeat.LanguageVolt,
-		"V shell":                          heartbeat.LanguageVShell,
 		"Vue.js":                           heartbeat.LanguageVueJS,
 		"Wavefront Material":               heartbeat.LanguageWavefrontMaterial,
 		"Wavefront Object":                 heartbeat.LanguageWavefrontObject,
+		"WDiff":                            heartbeat.LanguageWDiff,
 		"wdl":                              heartbeat.LanguageWdl,
 		"WDTE":                             heartbeat.LanguageWDTE,
-		"WDiff":                            heartbeat.LanguageWDiff,
+		"Web Ontology Language":            heartbeat.LanguageWebOntologyLanguage,
 		"WebAssembly":                      heartbeat.LanguageWebAssembly,
 		"WebGPU Shading Language":          heartbeat.LanguageWebGPUShadingLanguage,
 		"WebIDL":                           heartbeat.LanguageWebIDL,
-		"Web Ontology Language":            heartbeat.LanguageWebOntologyLanguage,
 		"WebVTT":                           heartbeat.LanguageWebVTT,
 		"Wget Config":                      heartbeat.LanguageWgetConfig,
 		"Whiley":                           heartbeat.LanguageWhiley,
@@ -776,19 +782,19 @@ func languageTests() map[string]heartbeat.Language {
 		"wisp":                             heartbeat.LanguageWisp,
 		"Wollok":                           heartbeat.LanguageWollok,
 		"World of Warcraft Addon Data":     heartbeat.LanguageWowAddonData,
+		"X BitMap":                         heartbeat.LanguageXBitMap,
+		"X Font Directory Index":           heartbeat.LanguageXFontDirectoryIndex,
+		"X PixMap":                         heartbeat.LanguageXPixMap,
 		"X10":                              heartbeat.LanguageX10,
 		"XAML":                             heartbeat.LanguageXAML,
 		"xBase":                            heartbeat.LanguageXBase,
-		"X BitMap":                         heartbeat.LanguageXBitMap,
 		"XC":                               heartbeat.LanguageXC,
 		"XCompose":                         heartbeat.LanguageXCompose,
-		"X Font Directory Index":           heartbeat.LanguageXFontDirectoryIndex,
 		"XML":                              heartbeat.LanguageXML,
 		"XML Property List":                heartbeat.LanguageXMLPropertyList,
 		"Xojo":                             heartbeat.LanguageXojo,
 		"Xorg":                             heartbeat.LanguageXorg,
 		"XPages":                           heartbeat.LanguageXPages,
-		"X PixMap":                         heartbeat.LanguageXPixMap,
 		"XProc":                            heartbeat.LanguageXProc,
 		"XQuery":                           heartbeat.LanguageXQuery,
 		"XS":                               heartbeat.LanguageXS,
@@ -814,20 +820,218 @@ func languageTests() map[string]heartbeat.Language {
 
 func languageTestsAliases() map[string]heartbeat.Language {
 	return map[string]heartbeat.Language{
-		"ApacheConf":        heartbeat.LanguageApacheConfig,
-		"ASP Classic":       heartbeat.LanguageClassicASP,
-		"Batch Script":      heartbeat.LanguageBatchfile,
-		"csharp":            heartbeat.LanguageCSharp,
-		"desktop":           heartbeat.LanguageDesktopFile,
-		"desktop_entry":     heartbeat.LanguageDesktopFile,
-		"FStar":             heartbeat.LanguageFStar,
-		"Golang":            heartbeat.LanguageGo,
-		"JSON-LD":           heartbeat.LanguageJSONLD,
-		"materialize":       heartbeat.LanguageMaterializeSQLDialect,
-		"mzql":              heartbeat.LanguageMaterializeSQLDialect,
-		"SaltStack":         heartbeat.LanguageSalt,
-		"Transact-SQL":      heartbeat.LanguageTransactSQL,
-		"Visual Basic .NET": heartbeat.LanguageVBNet,
+		"1S":                          heartbeat.LanguageOnesEnterprise,
+		"1S:Enterprise":               heartbeat.LanguageOnesEnterprise,
+		"abl":                         heartbeat.LanguageOpenEdgeABL,
+		"ada2005":                     heartbeat.LanguageAda,
+		"ada95":                       heartbeat.LanguageAda,
+		"ahk":                         heartbeat.LanguageAutoHotkey,
+		"ApacheConf":                  heartbeat.LanguageApacheConfig,
+		"apacheconf":                  heartbeat.LanguageApacheConfig,
+		"ArangoDB AQL":                heartbeat.LanguageArangoDBQueryLanguage,
+		"arexx":                       heartbeat.LanguageRexx,
+		"as":                          heartbeat.LanguageActionScript,
+		"as3":                         heartbeat.LanguageActionScript3,
+		"asm":                         heartbeat.LanguageGas,
+		"ASP Classic":                 heartbeat.LanguageClassicASP,
+		"b3d":                         heartbeat.LanguageBlitzBasic,
+		"bat":                         heartbeat.LanguageBatchfile,
+		"batch":                       heartbeat.LanguageBatchfile,
+		"Batch Script":                heartbeat.LanguageBatchfile,
+		"bf":                          heartbeat.LanguageBrainfuck,
+		"bib":                         heartbeat.LanguageBibTeX,
+		"bplus":                       heartbeat.LanguageBlitzBasic,
+		"bsdmake":                     heartbeat.LanguageMakefile,
+		"caddy":                       heartbeat.LanguageCaddyfile,
+		"caddy-d":                     heartbeat.LanguageCaddyfileDirectives,
+		"caddyfile-d":                 heartbeat.LanguageCaddyfileDirectives,
+		"capnp":                       heartbeat.LanguageCapNProto,
+		"cassandra":                   heartbeat.LanguageCassandraCQL,
+		"cassette":                    heartbeat.LanguageVHS,
+		"cf3":                         heartbeat.LanguageCFEngine3,
+		"cfg":                         heartbeat.LanguageINI,
+		"cfs":                         heartbeat.LanguageCfstatement,
+		"chai":                        heartbeat.LanguageChaiScript,
+		"chpl":                        heartbeat.LanguageChapel,
+		"cl":                          heartbeat.LanguageCommonLisp,
+		"clj":                         heartbeat.LanguageClojure,
+		"coffee":                      heartbeat.LanguageCoffeeScript,
+		"Coldfusion HTML":             heartbeat.LanguageColdfusionHTML,
+		"console":                     heartbeat.LanguageBashSession,
+		"containerfile":               heartbeat.LanguageDocker,
+		"cql":                         heartbeat.LanguageCassandraCQL,
+		"cr":                          heartbeat.LanguageCrystal,
+		"csh":                         heartbeat.LanguageTcsh,
+		"Cucumber":                    heartbeat.LanguageGherkin,
+		"cucumber":                    heartbeat.LanguageGherkin,
+		"desktop":                     heartbeat.LanguageDesktopFile,
+		"desktop_entry":               heartbeat.LanguageDesktopFile,
+		"django":                      heartbeat.LanguageDjangoJinja,
+		"dns":                         heartbeat.LanguageDNSZone,
+		"dosbatch":                    heartbeat.LanguageBatchfile,
+		"dosini":                      heartbeat.LanguageINI,
+		"dts":                         heartbeat.LanguageDevicetree,
+		"duby":                        heartbeat.LanguageRuby,
+		"elisp":                       heartbeat.LanguageEmacsLisp,
+		"emacs":                       heartbeat.LanguageEmacsLisp,
+		"ex":                          heartbeat.LanguageElixir,
+		"exs":                         heartbeat.LanguageElixir,
+		"f90":                         heartbeat.LanguageFortran,
+		"fishshell":                   heartbeat.LanguageFish,
+		"fnl":                         heartbeat.LanguageFennel,
+		"FStar":                       heartbeat.LanguageFStar,
+		"gawk":                        heartbeat.LanguageAwk,
+		"gd":                          heartbeat.LanguageGDScript,
+		"gd3":                         heartbeat.LanguageGDScript3,
+		"gemini":                      heartbeat.LanguageGemtext,
+		"gmi":                         heartbeat.LanguageGemtext,
+		"gmni":                        heartbeat.LanguageGemtext,
+		"golang":                      heartbeat.LanguageGo,
+		"gql":                         heartbeat.LanguageGraphQL,
+		"graphqls":                    heartbeat.LanguageGraphQL,
+		"gsed":                        heartbeat.LanguageSed,
+		"hbs":                         heartbeat.LanguageHandlebars,
+		"hs":                          heartbeat.LanguageHaskell,
+		"html+genshi":                 heartbeat.LanguageGenshiHTML,
+		"html+kid":                    heartbeat.LanguageGenshiHTML,
+		"hx":                          heartbeat.LanguageHaxe,
+		"hxsl":                        heartbeat.LanguageHaxe,
+		"hylang":                      heartbeat.LanguageHy,
+		"idr":                         heartbeat.LanguageIdris,
+		"jinja":                       heartbeat.LanguageDjangoJinja,
+		"jl":                          heartbeat.LanguageJulia,
+		"js":                          heartbeat.LanguageJavaScript,
+		"kak":                         heartbeat.LanguageKakoune,
+		"kakrc":                       heartbeat.LanguageKakoune,
+		"kakscript":                   heartbeat.LanguageKakoune,
+		"kid":                         heartbeat.LanguageGenshi,
+		"ksh":                         heartbeat.LanguageBash,
+		"LessCss":                     heartbeat.LanguageLess,
+		"lighttpd":                    heartbeat.LanguageLighttpd,
+		"lighty":                      heartbeat.LanguageLighttpd,
+		"lisp":                        heartbeat.LanguageCommonLisp,
+		"luau":                        heartbeat.LanguageLua,
+		"m2":                          heartbeat.LanguageModula2,
+		"make":                        heartbeat.LanguageMakefile,
+		"mariadb":                     heartbeat.LanguageMySQL,
+		"materialize":                 heartbeat.LanguageMaterializeSQLDialect,
+		"mawk":                        heartbeat.LanguageAwk,
+		"mcf":                         heartbeat.LanguageMCFunction,
+		"md":                          heartbeat.LanguageMarkdown,
+		"meson.build":                 heartbeat.LanguageMeson,
+		"mf":                          heartbeat.LanguageMakefile,
+		"mkd":                         heartbeat.LanguageMarkdown,
+		"mma":                         heartbeat.LanguageMathematica,
+		"moon":                        heartbeat.LanguageMoonScript,
+		"morrowind":                   heartbeat.LanguageMorrowindScript,
+		"mwscript":                    heartbeat.LanguageMorrowindScript,
+		"MZN":                         heartbeat.LanguageMiniZinc,
+		"mzn":                         heartbeat.LanguageMiniZinc,
+		"mzql":                        heartbeat.LanguageMaterializeSQLDialect,
+		"mzsql":                       heartbeat.LanguageMaterializeSQLDialect,
+		"nawk":                        heartbeat.LanguageAwk,
+		"nb":                          heartbeat.LanguageMathematica,
+		"ng2":                         heartbeat.LanguageAngular2,
+		"Nim":                         heartbeat.LanguageNimrod,
+		"nim":                         heartbeat.LanguageNimrod,
+		"nixos":                       heartbeat.LanguageNix,
+		"no-highlight":                heartbeat.LanguageText,
+		"nroff":                       heartbeat.LanguageGroff,
+		"nsh":                         heartbeat.LanguageNSIS,
+		"nsi":                         heartbeat.LanguageNSIS,
+		"obj-c":                       heartbeat.LanguageObjectiveC,
+		"objc":                        heartbeat.LanguageObjectiveC,
+		"ones":                        heartbeat.LanguageOnesEnterprise,
+		"openedge":                    heartbeat.LanguageOpenEdgeABL,
+		"Org Mode":                    heartbeat.LanguageOrg,
+		"orgmode":                     heartbeat.LanguageOrg,
+		"php3":                        heartbeat.LanguagePHP,
+		"php4":                        heartbeat.LanguagePHP,
+		"php5":                        heartbeat.LanguagePHP,
+		"pl":                          heartbeat.LanguagePerl,
+		"pl6":                         heartbeat.LanguageRaku,
+		"plain":                       heartbeat.LanguageText,
+		"plaintext":                   heartbeat.LanguageText,
+		"plc":                         heartbeat.LanguagePlutusCore,
+		"posh":                        heartbeat.LanguagePowerShell,
+		"postgres":                    heartbeat.LanguagePostgres,
+		"postgresql":                  heartbeat.LanguagePostgres,
+		"postscr":                     heartbeat.LanguagePostScript,
+		"pov":                         heartbeat.LanguagePOVRay,
+		"pq":                          heartbeat.LanguagePowerQuery,
+		"progress":                    heartbeat.LanguageOpenEdgeABL,
+		"properties":                  heartbeat.LanguageJavaProperties,
+		"proto":                       heartbeat.LanguageProtocolBuffer,
+		"protobuf":                    heartbeat.LanguageProtocolBuffer,
+		"Protocol Buffer Text Format": heartbeat.LanguageProtocolBuffer,
+		"ps1":                         heartbeat.LanguagePowerShell,
+		"psd1":                        heartbeat.LanguagePowerShell,
+		"PSL":                         heartbeat.LanguagePSL,
+		"psl":                         heartbeat.LanguagePSL,
+		"psm1":                        heartbeat.LanguagePowerShell,
+		"pwsh":                        heartbeat.LanguagePowerShell,
+		"py":                          heartbeat.LanguagePython,
+		"py2":                         heartbeat.LanguagePython2,
+		"py3":                         heartbeat.LanguagePython,
+		"pyrex":                       heartbeat.LanguageCython,
+		"python3":                     heartbeat.LanguagePython,
+		"pyx":                         heartbeat.LanguageCython,
+		"qbs":                         heartbeat.LanguageQML,
+		"rb":                          heartbeat.LanguageRuby,
+		"react":                       heartbeat.LanguageJSX,
+		"ReasonML":                    heartbeat.LanguageReasonML,
+		"reasonml":                    heartbeat.LanguageReasonML,
+		"registry":                    heartbeat.LanguageRegistry,
+		"rest":                        heartbeat.LanguageReStructuredText,
+		"rgbasm":                      heartbeat.LanguageRGBDSAssembly,
+		"rkt":                         heartbeat.LanguageRacket,
+		"RPG IV":                      heartbeat.LanguageRPGLE,
+		"rs":                          heartbeat.LanguageRust,
+		"rst":                         heartbeat.LanguageReStructuredText,
+		"SaltStack":                   heartbeat.LanguageSalt,
+		"scm":                         heartbeat.LanguageScheme,
+		"sh":                          heartbeat.LanguageBash,
+		"sml":                         heartbeat.LanguageSML,
+		"sol":                         heartbeat.LanguageSolidity,
+		"sp":                          heartbeat.LanguageSourcePawn,
+		"spec":                        heartbeat.LanguageRPMSpec,
+		"spitfire":                    heartbeat.LanguageCheetah,
+		"splus":                       heartbeat.LanguageR,
+		"SQLRPGLE":                    heartbeat.LanguageRPGLE,
+		"squeak":                      heartbeat.LanguageSmalltalk,
+		"squid":                       heartbeat.LanguageSquidConf,
+		"ssed":                        heartbeat.LanguageSed,
+		"st":                          heartbeat.LanguageSmalltalk,
+		"stas":                        heartbeat.LanguageStas,
+		"sv":                          heartbeat.LanguageSystemVerilog,
+		"Tal":                         heartbeat.LanguageUxntal,
+		"tal":                         heartbeat.LanguageUxntal,
+		"tape":                        heartbeat.LanguageVHS,
+		"tf":                          heartbeat.LanguageTerraform,
+		"Transact-SQL":                heartbeat.LanguageTransactSQL,
+		"ts":                          heartbeat.LanguageTypeScript,
+		"tv":                          heartbeat.LanguageTradingView,
+		"TypoScriptCssData":           heartbeat.LanguageTypoScript,
+		"typoscriptcssdata":           heartbeat.LanguageTypoScript,
+		"TypoScriptHtmlData":          heartbeat.LanguageTypoScript,
+		"typoscripthtmldata":          heartbeat.LanguageTypoScript,
+		"udiff":                       heartbeat.LanguageDiff,
+		"vapi":                        heartbeat.LanguageVala,
+		"vim":                         heartbeat.LanguageVimL,
+		"Visual Basic .NET":           heartbeat.LanguageVBNet,
+		"vlang":                       heartbeat.LanguageV,
+		"vsh":                         heartbeat.LanguageVShell,
+		"vtt":                         heartbeat.LanguageWebVTT,
+		"vue":                         heartbeat.LanguageVueJS,
+		"WebAssembly Text Format":     heartbeat.LanguageWebAssembly,
+		"wgsl":                        heartbeat.LanguageWebGPUShadingLanguage,
+		"winbatch":                    heartbeat.LanguageBatchfile,
+		"xml+genshi":                  heartbeat.LanguageGenshi,
+		"xml+kid":                     heartbeat.LanguageGenshi,
+		"xorg.conf":                   heartbeat.LanguageXorg,
+		"z80":                         heartbeat.LanguageZ80Assembly,
+		"zsh":                         heartbeat.LanguageBash,
+		"🔥":                           heartbeat.LanguageMojo,
 	}
 }
 
@@ -998,36 +1202,6 @@ func TestParseLanguageFromChroma_AllLexersSupported(t *testing.T) {
 	}
 }
 
-func TestLanguage_MarshalJSON(t *testing.T) {
-	for value, language := range languageTests() {
-		t.Run(value, func(t *testing.T) {
-			data, err := json.Marshal(language)
-			require.NoError(t, err)
-
-			assert.JSONEq(t, `"`+value+`"`, string(data))
-		})
-	}
-}
-
-func TestLanguage_MarshalJSON_UnknownLanguage(t *testing.T) {
-	data, err := json.Marshal(heartbeat.LanguageUnknown)
-	require.NoError(t, err)
-
-	assert.JSONEq(t, `null`, string(data))
-}
-
-func TestLanguage_UnmarshalJSON(t *testing.T) {
-	for value, language := range languageTests() {
-		t.Run(value, func(t *testing.T) {
-			var l heartbeat.Language
-
-			require.NoError(t, json.Unmarshal([]byte(`"`+value+`"`), &l))
-
-			assert.Equal(t, language, l)
-		})
-	}
-}
-
 func TestLanguage_String(t *testing.T) {
 	for value, language := range languageTests() {
 		t.Run(value, func(t *testing.T) {
@@ -1037,7 +1211,8 @@ func TestLanguage_String(t *testing.T) {
 }
 
 func TestLanguage_String_UnknownLanguage(t *testing.T) {
-	assert.Equal(t, "Unknown", heartbeat.LanguageUnknown.String())
+	var lang heartbeat.Language = -1
+	assert.Equal(t, "Unknown", lang.String())
 }
 
 func TestLanguage_StringChroma(t *testing.T) {
@@ -1093,15 +1268,25 @@ func TestLanguage_StringChroma(t *testing.T) {
 	}
 }
 
+func TestLanguage_StringChroma_UnknownLanguage(t *testing.T) {
+	var lang heartbeat.Language = -1
+	assert.Equal(t, "Unknown", lang.StringChroma())
+}
+
 func TestLanguage_StringChroma_AllLexersSupported(t *testing.T) {
 	for _, lexer := range lexers.GlobalLexerRegistry.Lexers {
 		config := lexer.Config()
 
 		// Aliases, which match in addition to standard spelling of languages are ignored here.
+		// These are Chroma lexers that map to existing Language constants via chromaPriority.
 		switch config.Name {
 		case "Go HTML Template", "Go Text Template", "Go Template":
 			continue
 		case "TypoScriptCssData", "TypoScriptHtmlData":
+			continue
+		case "Protocol Buffer Text Format", "WebAssembly Text Format":
+			continue
+		case "ApacheConf", "ArangoDB AQL", "dns":
 			continue
 		}
 
@@ -1113,5 +1298,78 @@ func TestLanguage_StringChroma_AllLexersSupported(t *testing.T) {
 		))
 
 		assert.Equal(t, config.Name, parsed.StringChroma())
+	}
+}
+
+func BenchmarkParseLanguage(b *testing.B) {
+	testCases := []string{
+		"Go",
+		"JavaScript",
+		"Python",
+		"TypeScript",
+		"Rust",
+		"unknown-language",
+	}
+
+	for b.Loop() {
+		for _, tc := range testCases {
+			heartbeat.ParseLanguage(tc)
+		}
+	}
+}
+
+func BenchmarkParseLanguage_Single(b *testing.B) {
+	benchmarks := []struct {
+		name  string
+		input string
+	}{
+		{"common_language", "JavaScript"},
+		{"case_insensitive", "PYTHON"},
+		{"with_spaces", "Visual Basic"},
+		{"unknown", "nonexistent-lang"},
+	}
+
+	for _, bm := range benchmarks {
+		b.Run(bm.name, func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				heartbeat.ParseLanguage(bm.input)
+			}
+		})
+	}
+}
+
+func BenchmarkStringChroma(b *testing.B) {
+	languages := []heartbeat.Language{
+		heartbeat.LanguageGo,
+		heartbeat.LanguageJavaScript,
+		heartbeat.LanguagePython,
+		heartbeat.LanguageAMPL,          // has chroma mapping
+		heartbeat.LanguageFStar,         // has chroma mapping
+		heartbeat.LanguageSystemVerilog, // has chroma mapping
+	}
+
+	for b.Loop() {
+		for _, lang := range languages {
+			lang.StringChroma()
+		}
+	}
+}
+
+func BenchmarkStringChroma_Single(b *testing.B) {
+	benchmarks := []struct {
+		name string
+		lang heartbeat.Language
+	}{
+		{"with_chroma_mapping", heartbeat.LanguageAMPL},
+		{"without_chroma_mapping", heartbeat.LanguageGo},
+		{"fallback_to_string", heartbeat.LanguageJavaScript},
+	}
+
+	for _, bm := range benchmarks {
+		b.Run(bm.name, func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				bm.lang.StringChroma()
+			}
+		})
 	}
 }

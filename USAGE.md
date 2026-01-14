@@ -175,11 +175,25 @@ See the [source code](https://github.com/wakatime/wakatime-cli/blob/36f6372880d7
 
 ### WakaTime Project File
 
-To overwrite the auto-detected project, create a `.wakatime-project` file in your project’s root folder.
+To overwrite the auto-detected project, create a `.wakatime-project` file in your project's root folder.
 The first line of the file contents overwrites the project name, if present.
 The second line, if present, overwrites the current branch name when working inside this folder.
-When the `.wakatime-project` file is empty, the folder’s name is used as the project name.
+When the `.wakatime-project` file is empty, the folder's name is used as the project name.
 Whenever a `.wakatime-project` file is found, it overwrites all other project detection.
+
+#### Project Name Placeholder
+
+You can use the `{project}` placeholder in the first line to include the folder name dynamically. This allows you to add a prefix or suffix to your project name while keeping the actual folder name.
+
+Examples:
+
+| `.wakatime-project` content | Folder name | Resulting project name |
+| --- | --- | --- |
+| `my-company/{project}` | `api` | `my-company/api` |
+| `{project}-backend` | `users` | `users-backend` |
+| `team/{project}/main` | `dashboard` | `team/dashboard/main` |
+
+This is useful when you want to organize projects under a common namespace (like your company or team name) without hardcoding the folder name.
 
 ## Internal INI Config File
 

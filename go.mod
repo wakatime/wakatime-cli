@@ -5,7 +5,7 @@ go 1.25.5
 require (
 	github.com/Azure/go-ntlmssp v0.1.0
 	github.com/alecthomas/assert v1.0.0
-	github.com/alecthomas/chroma/v2 v2.20.0
+	github.com/alecthomas/chroma/v2 v2.21.1
 	github.com/danwakefield/fnmatch v0.0.0-20160403171240-cbb64ac3d964
 	github.com/dlclark/regexp2 v1.11.5
 	github.com/gandarez/go-olson-timezone v0.1.0
@@ -32,7 +32,7 @@ require (
 
 require (
 	github.com/alecthomas/colour v0.1.0 // indirect
-	github.com/alecthomas/repr v0.5.1 // indirect
+	github.com/alecthomas/repr v0.5.2 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect

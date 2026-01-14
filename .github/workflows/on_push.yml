@@ -30,6 +30,11 @@ jobs:
         name: Pull dependencies
         run: make install-go-modules
       -
+        name: Check generated files are up to date
+        run: |
+          go generate ./...
+          git diff --exit-code pkg/heartbeat/language_generated.go || (echo "language_generated.go is out of date. Run 'go generate ./...' and commit the changes." && exit 1)
+      -
         name: Unit tests
         run: make test
       -
