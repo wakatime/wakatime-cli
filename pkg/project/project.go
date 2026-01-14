@@ -163,8 +163,11 @@ func WithDetection(config Config) heartbeat.HandleOption {
 
 				// Autodetect with revision control from entity path.
 				// Then, autodetect with project folder. This tries to use the same project name
-				// across all IDEs instead of sometimes using alternate project when file is unsaved
-				if result.Project == "" || result.Branch == "" || result.Folder == "" {
+				// across all IDEs instead of sometimes using alternate project when file is unsaved.
+				// Also needed for {project} placeholder interpolation in .wakatime-project files.
+				hasPlaceholder := detector == FileDetector && strings.Contains(result.Project, projectPlaceholder)
+
+				if result.Project == "" || result.Branch == "" || result.Folder == "" || hasPlaceholder {
 					revControlResult := DetectWithRevControl(
 						ctx,
 						config.Submodule.DisabledPatterns,
@@ -174,7 +177,17 @@ func WithDetection(config Config) heartbeat.HandleOption {
 						DetecterArg{Filepath: h.ProjectPathOverride, ShouldRun: true},
 					)
 
-					result.Project = firstNonEmptyString(result.Project, revControlResult.Project)
+					// Handle {project} placeholder in file-detected project name
+					if hasPlaceholder {
+						result.Project = interpolateProjectPlaceholder(
+							result.Project,
+							revControlResult.Project,
+							firstNonEmptyString(result.Folder, h.ProjectPathOverride),
+						)
+					} else {
+						result.Project = firstNonEmptyString(result.Project, revControlResult.Project)
+					}
+
 					result.Branch = firstNonEmptyString(result.Branch, revControlResult.Branch)
 					result.Folder = firstNonEmptyString(result.Folder, revControlResult.Folder)
 				}
@@ -705,6 +718,24 @@ func firstNonEmptyString(values ...string) string {
 	}
 
 	return ""
+}
+
+// interpolateProjectPlaceholder replaces {project} placeholder with the detected project name.
+// If vcsProject is empty, it falls back to the folder basename.
+func interpolateProjectPlaceholder(projectTemplate, vcsProject, folder string) string {
+	if vcsProject != "" {
+		return strings.ReplaceAll(projectTemplate, projectPlaceholder, vcsProject)
+	}
+
+	// Fallback: use folder basename if no VCS project detected
+	if folder != "" {
+		basename := filepath.Base(folder)
+		if basename != "." && basename != "/" && basename != "\\" {
+			return strings.ReplaceAll(projectTemplate, projectPlaceholder, basename)
+		}
+	}
+
+	return projectTemplate
 }
 
 // FormatProjectFolder returns the abs and real path for the given directory path.

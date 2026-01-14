@@ -4,7 +4,6 @@ go 1.25.5
 
 require (
 	github.com/Azure/go-ntlmssp v0.1.0
-	github.com/alecthomas/assert v1.0.0
 	github.com/alecthomas/chroma/v2 v2.21.1
 	github.com/danwakefield/fnmatch v0.0.0-20160403171240-cbb64ac3d964
 	github.com/dlclark/regexp2 v1.11.5
@@ -31,8 +30,6 @@ require (
 )
 
 require (
-	github.com/alecthomas/colour v0.1.0 // indirect
-	github.com/alecthomas/repr v0.5.2 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
@@ -43,11 +40,9 @@ require (
 	github.com/juju/testing v0.0.0-20211215003918-77eb13d6cad2 // indirect
 	github.com/juju/version v0.0.0-20210303051006-2015802527a8 // indirect
 	github.com/kr/fs v0.1.0 // indirect
-	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/sagikazarmark/locafero v0.12.0 // indirect
-	github.com/sergi/go-diff v1.3.1 // indirect
 	github.com/spf13/afero v1.15.0 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
