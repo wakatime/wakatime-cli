@@ -685,6 +685,236 @@ func TestWrite(t *testing.T) {
 	assert.Equal(t, string([]byte("billing\n")), string(actual))
 }
 
+func TestWithDetection_ProjectPlaceholder_WithGit(t *testing.T) {
+	fp := setupTestGitBasic(t)
+
+	ctx := t.Context()
+
+	// Create .wakatime-project file with {project} placeholder
+	wakatimeProjectContent := "my-company/{project}\n"
+	err := os.WriteFile(filepath.Join(fp, "wakatime-cli", ".wakatime-project"), []byte(wakatimeProjectContent), 0600)
+	require.NoError(t, err)
+
+	entity := filepath.Join(fp, "wakatime-cli/src/pkg/file.go")
+	projectPath := filepath.Join(fp, "wakatime-cli")
+	projectPath = project.FormatProjectFolder(ctx, projectPath)
+
+	if runtime.GOOS == "windows" {
+		entity = windows.FormatFilePath(entity)
+	}
+
+	opt := project.WithDetection(project.Config{})
+
+	handle := opt(func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		assert.Equal(t, []heartbeat.Heartbeat{
+			{
+				Branch:           heartbeat.PointerTo("master"),
+				Entity:           entity,
+				EntityType:       heartbeat.FileType,
+				Project:          heartbeat.PointerTo("my-company/wakatime-cli"),
+				ProjectPath:      projectPath,
+				ProjectRootCount: heartbeat.PointerTo(project.CountSlashesInProjectFolder(projectPath)),
+			},
+		}, hh)
+
+		return nil, nil
+	})
+
+	_, err = handle(ctx, []heartbeat.Heartbeat{
+		{
+			EntityType: heartbeat.FileType,
+			Entity:     entity,
+		},
+	})
+	require.NoError(t, err)
+}
+
+func TestWithDetection_ProjectPlaceholder_AsPrefix(t *testing.T) {
+	fp := setupTestGitBasic(t)
+
+	ctx := t.Context()
+
+	// Create .wakatime-project file with {project} placeholder as prefix
+	wakatimeProjectContent := "{project}-internal\n"
+	err := os.WriteFile(filepath.Join(fp, "wakatime-cli", ".wakatime-project"), []byte(wakatimeProjectContent), 0600)
+	require.NoError(t, err)
+
+	entity := filepath.Join(fp, "wakatime-cli/src/pkg/file.go")
+	projectPath := filepath.Join(fp, "wakatime-cli")
+	projectPath = project.FormatProjectFolder(ctx, projectPath)
+
+	if runtime.GOOS == "windows" {
+		entity = windows.FormatFilePath(entity)
+	}
+
+	opt := project.WithDetection(project.Config{})
+
+	handle := opt(func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		assert.Equal(t, []heartbeat.Heartbeat{
+			{
+				Branch:           heartbeat.PointerTo("master"),
+				Entity:           entity,
+				EntityType:       heartbeat.FileType,
+				Project:          heartbeat.PointerTo("wakatime-cli-internal"),
+				ProjectPath:      projectPath,
+				ProjectRootCount: heartbeat.PointerTo(project.CountSlashesInProjectFolder(projectPath)),
+			},
+		}, hh)
+
+		return nil, nil
+	})
+
+	_, err = handle(ctx, []heartbeat.Heartbeat{
+		{
+			EntityType: heartbeat.FileType,
+			Entity:     entity,
+		},
+	})
+	require.NoError(t, err)
+}
+
+func TestWithDetection_ProjectPlaceholder_Alone(t *testing.T) {
+	fp := setupTestGitBasic(t)
+
+	ctx := t.Context()
+
+	// Create .wakatime-project file with just {project} placeholder
+	wakatimeProjectContent := "{project}\n"
+	err := os.WriteFile(filepath.Join(fp, "wakatime-cli", ".wakatime-project"), []byte(wakatimeProjectContent), 0600)
+	require.NoError(t, err)
+
+	entity := filepath.Join(fp, "wakatime-cli/src/pkg/file.go")
+	projectPath := filepath.Join(fp, "wakatime-cli")
+	projectPath = project.FormatProjectFolder(ctx, projectPath)
+
+	if runtime.GOOS == "windows" {
+		entity = windows.FormatFilePath(entity)
+	}
+
+	opt := project.WithDetection(project.Config{})
+
+	handle := opt(func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		assert.Equal(t, []heartbeat.Heartbeat{
+			{
+				Branch:           heartbeat.PointerTo("master"),
+				Entity:           entity,
+				EntityType:       heartbeat.FileType,
+				Project:          heartbeat.PointerTo("wakatime-cli"),
+				ProjectPath:      projectPath,
+				ProjectRootCount: heartbeat.PointerTo(project.CountSlashesInProjectFolder(projectPath)),
+			},
+		}, hh)
+
+		return nil, nil
+	})
+
+	_, err = handle(ctx, []heartbeat.Heartbeat{
+		{
+			EntityType: heartbeat.FileType,
+			Entity:     entity,
+		},
+	})
+	require.NoError(t, err)
+}
+
+func TestWithDetection_ProjectPlaceholder_NoVCS_FallbackToFolderName(t *testing.T) {
+	tmpDir, err := realpath.Realpath(t.TempDir())
+	require.NoError(t, err)
+
+	ctx := t.Context()
+
+	// Create directory structure without VCS
+	projectDir := filepath.Join(tmpDir, "my-project")
+	err = os.MkdirAll(filepath.Join(projectDir, "src"), os.FileMode(int(0700)))
+	require.NoError(t, err)
+
+	// Create .wakatime-project file with {project} placeholder
+	wakatimeProjectContent := "my-company/{project}\n"
+	err = os.WriteFile(filepath.Join(projectDir, ".wakatime-project"), []byte(wakatimeProjectContent), 0600)
+	require.NoError(t, err)
+
+	// Create entity file
+	entityFile := filepath.Join(projectDir, "src", "file.go")
+	err = os.WriteFile(entityFile, []byte("package main"), 0600)
+	require.NoError(t, err)
+
+	entity := entityFile
+	projectPath := project.FormatProjectFolder(ctx, projectDir)
+
+	if runtime.GOOS == "windows" {
+		entity = windows.FormatFilePath(entity)
+	}
+
+	opt := project.WithDetection(project.Config{})
+
+	handle := opt(func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		assert.Equal(t, []heartbeat.Heartbeat{
+			{
+				Branch:           heartbeat.PointerTo(""),
+				Entity:           entity,
+				EntityType:       heartbeat.FileType,
+				Project:          heartbeat.PointerTo("my-company/my-project"),
+				ProjectPath:      projectPath,
+				ProjectRootCount: heartbeat.PointerTo(project.CountSlashesInProjectFolder(projectPath)),
+			},
+		}, hh)
+
+		return nil, nil
+	})
+
+	_, err = handle(ctx, []heartbeat.Heartbeat{
+		{
+			EntityType: heartbeat.FileType,
+			Entity:     entity,
+		},
+	})
+	require.NoError(t, err)
+}
+
+func TestWithDetection_ProjectPlaceholder_MultiplePlaceholders(t *testing.T) {
+	fp := setupTestGitBasic(t)
+
+	ctx := t.Context()
+
+	// Create .wakatime-project file with multiple {project} placeholders
+	wakatimeProjectContent := "{project}/{project}\n"
+	err := os.WriteFile(filepath.Join(fp, "wakatime-cli", ".wakatime-project"), []byte(wakatimeProjectContent), 0600)
+	require.NoError(t, err)
+
+	entity := filepath.Join(fp, "wakatime-cli/src/pkg/file.go")
+	projectPath := filepath.Join(fp, "wakatime-cli")
+	projectPath = project.FormatProjectFolder(ctx, projectPath)
+
+	if runtime.GOOS == "windows" {
+		entity = windows.FormatFilePath(entity)
+	}
+
+	opt := project.WithDetection(project.Config{})
+
+	handle := opt(func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		assert.Equal(t, []heartbeat.Heartbeat{
+			{
+				Branch:           heartbeat.PointerTo("master"),
+				Entity:           entity,
+				EntityType:       heartbeat.FileType,
+				Project:          heartbeat.PointerTo("wakatime-cli/wakatime-cli"),
+				ProjectPath:      projectPath,
+				ProjectRootCount: heartbeat.PointerTo(project.CountSlashesInProjectFolder(projectPath)),
+			},
+		}, hh)
+
+		return nil, nil
+	})
+
+	_, err = handle(ctx, []heartbeat.Heartbeat{
+		{
+			EntityType: heartbeat.FileType,
+			Entity:     entity,
+		},
+	})
+	require.NoError(t, err)
+}
+
 func TestCountSlashesInProjectFolder(t *testing.T) {
 	tests := map[string]struct {
 		path     string

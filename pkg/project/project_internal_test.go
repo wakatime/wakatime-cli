@@ -6,8 +6,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/alecthomas/assert"
 	"github.com/gandarez/go-realpath"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/stretchr/testify/require"
 	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/log/setup"
@@ -79,4 +80,71 @@ func copyFile(t *testing.T, source, destination string) {
 
 	err = os.WriteFile(destination, input, 0600)
 	require.NoError(t, err)
+}
+
+func TestInterpolateProjectPlaceholder_WithVCSProject(t *testing.T) {
+	result := interpolateProjectPlaceholder("my-company/{project}", "wakatime-cli", "/some/folder")
+
+	assert.Equal(t, "my-company/wakatime-cli", result)
+}
+
+func TestInterpolateProjectPlaceholder_WithVCSProject_AsPrefix(t *testing.T) {
+	result := interpolateProjectPlaceholder("{project}-internal", "wakatime-cli", "/some/folder")
+
+	assert.Equal(t, "wakatime-cli-internal", result)
+}
+
+func TestInterpolateProjectPlaceholder_WithVCSProject_Alone(t *testing.T) {
+	result := interpolateProjectPlaceholder("{project}", "wakatime-cli", "/some/folder")
+
+	assert.Equal(t, "wakatime-cli", result)
+}
+
+func TestInterpolateProjectPlaceholder_WithVCSProject_MultiplePlaceholders(t *testing.T) {
+	result := interpolateProjectPlaceholder("{project}/{project}", "wakatime-cli", "/some/folder")
+
+	assert.Equal(t, "wakatime-cli/wakatime-cli", result)
+}
+
+func TestInterpolateProjectPlaceholder_FallbackToFolderBasename(t *testing.T) {
+	result := interpolateProjectPlaceholder("my-company/{project}", "", "/path/to/my-project")
+
+	assert.Equal(t, "my-company/my-project", result)
+}
+
+func TestInterpolateProjectPlaceholder_FallbackToFolderBasename_Alone(t *testing.T) {
+	result := interpolateProjectPlaceholder("{project}", "", "/path/to/my-project")
+
+	assert.Equal(t, "my-project", result)
+}
+
+func TestInterpolateProjectPlaceholder_EmptyVCSAndFolder(t *testing.T) {
+	result := interpolateProjectPlaceholder("my-company/{project}", "", "")
+
+	assert.Equal(t, "my-company/{project}", result)
+}
+
+func TestInterpolateProjectPlaceholder_FolderIsDot(t *testing.T) {
+	result := interpolateProjectPlaceholder("my-company/{project}", "", ".")
+
+	assert.Equal(t, "my-company/{project}", result)
+}
+
+func TestInterpolateProjectPlaceholder_FolderIsSlash(t *testing.T) {
+	result := interpolateProjectPlaceholder("my-company/{project}", "", "/")
+
+	assert.Equal(t, "my-company/{project}", result)
+}
+
+func TestInterpolateProjectPlaceholder_NoPlaceholder(t *testing.T) {
+	result := interpolateProjectPlaceholder("my-static-project", "wakatime-cli", "/some/folder")
+
+	assert.Equal(t, "my-static-project", result)
+}
+
+func TestInterpolateProjectPlaceholder_VCSProjectTakesPrecedenceOverFolder(t *testing.T) {
+	// Even if folder has a different name, VCS project should be used
+	result := interpolateProjectPlaceholder("prefix-{project}", "vcs-name", "/path/to/folder-name")
+
+	assert.Equal(t, "prefix-vcs-name", result)
 }
