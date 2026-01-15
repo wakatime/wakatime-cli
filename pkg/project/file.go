@@ -11,7 +11,9 @@ import (
 )
 
 const (
-	projectNamePlaceholder = "{project}"
+	// projectPlaceholder is the placeholder string that will be replaced
+	// with the auto-detected project name from revision control.
+	projectPlaceholder = "{project}"
 )
 
 // File contains file data.
@@ -42,12 +44,7 @@ func (f File) Detect(ctx context.Context) (Result, bool, error) {
 	}
 
 	if len(lines) > 0 {
-		trimmed := strings.TrimSpace(lines[0])
-		if strings.Contains(trimmed, projectNamePlaceholder) {
-			trimmed = strings.ReplaceAll(trimmed, projectNamePlaceholder, result.Project)
-		}
-
-		result.Project = strings.TrimSpace(trimmed)
+		result.Project = strings.TrimSpace(lines[0])
 	}
 
 	if len(lines) > 1 {

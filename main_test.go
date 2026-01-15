@@ -247,6 +247,131 @@ func TestSendHeartbeats_SecondaryApiKey(t *testing.T) {
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
 
+func TestSendHeartbeats_WakatimeProjectFile(t *testing.T) {
+	apiURL, router, close := setupTestServer()
+	defer close()
+
+	ctx := t.Context()
+
+	var numCalls int
+
+	tmpDir := t.TempDir()
+
+	// Structure:
+	// tmpDir/
+	//   my-company/
+	//     .wakatime-project (contains "my-company/{project}")
+	//     wakatime-cli/     <- git repo
+	//       .git/
+	//       src/
+	//         main.go
+	gitRepoDir := filepath.Join(tmpDir, "my-company", "wakatime-cli")
+	srcDir := filepath.Join(gitRepoDir, "src")
+
+	err := os.MkdirAll(srcDir, os.FileMode(int(0700)))
+	require.NoError(t, err)
+
+	// Setup git repository
+	err = os.Mkdir(filepath.Join(gitRepoDir, ".git"), os.FileMode(int(0700)))
+	require.NoError(t, err)
+
+	copyFile(t, "testdata/git_basic/config", filepath.Join(gitRepoDir, ".git", "config"))
+	copyFile(t, "testdata/git_basic/HEAD", filepath.Join(gitRepoDir, ".git", "HEAD"))
+
+	// Copy .wakatime-project to parent directory (my-company/)
+	copyFile(t, "testdata/wakatime-project-placeholder", filepath.Join(tmpDir, "my-company", ".wakatime-project"))
+	copyFile(t, "testdata/main.go", filepath.Join(srcDir, "main.go"))
+
+	entityPath, err := realpath.Realpath(filepath.Join(srcDir, "main.go"))
+	require.NoError(t, err)
+
+	// The project folder is the directory containing .wakatime-project (my-company/),
+	// not the git repository folder (my-company/wakatime-cli/)
+	wakatimeProjectDir := filepath.Join(tmpDir, "my-company")
+	projectPath, err := realpath.Realpath(wakatimeProjectDir)
+	require.NoError(t, err)
+
+	subfolders := project.CountSlashesInProjectFolder(projectPath)
+
+	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
+		numCalls++
+
+		// check headers
+		assert.Equal(t, http.MethodPost, req.Method)
+		assert.Equal(t, []string{"application/json"}, req.Header["Accept"])
+		assert.Equal(t, []string{"application/json"}, req.Header["Content-Type"])
+		assert.Equal(t, []string{"Basic MDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAw"}, req.Header["Authorization"])
+		assert.Equal(t, []string{heartbeat.UserAgent(ctx, "")}, req.Header["User-Agent"])
+
+		// check body
+		expectedBodyTpl, err := os.ReadFile("testdata/api_heartbeats_request_template.json")
+		require.NoError(t, err)
+
+		entityPathFormatted := strings.ReplaceAll(entityPath, `\`, `/`)
+
+		expectedBody := fmt.Sprintf(
+			string(expectedBodyTpl),
+			entityPathFormatted,
+			"my-company/wakatime-cli",
+			subfolders,
+			heartbeat.UserAgent(ctx, ""),
+		)
+
+		body, err := io.ReadAll(req.Body)
+		require.NoError(t, err)
+
+		assert.JSONEq(t, expectedBody, string(body))
+
+		// write response
+		f, err := os.Open("testdata/api_heartbeats_response.json")
+		require.NoError(t, err)
+
+		w.WriteHeader(http.StatusCreated)
+		_, err = io.Copy(w, f)
+		require.NoError(t, err)
+	})
+
+	offlineQueueFile, err := os.CreateTemp(tmpDir, "")
+	require.NoError(t, err)
+
+	defer offlineQueueFile.Close()
+
+	offlineQueueFileLegacy, err := os.CreateTemp(tmpDir, "")
+	require.NoError(t, err)
+
+	// close the file to avoid "The process cannot access the file because it is being used by another process" error
+	offlineQueueFileLegacy.Close()
+
+	tmpInternalConfigFile, err := os.CreateTemp(tmpDir, "wakatime-internal.cfg")
+	require.NoError(t, err)
+
+	defer tmpInternalConfigFile.Close()
+
+	runWakatimeCli(
+		t,
+		&bytes.Buffer{},
+		"--api-url", apiURL,
+		"--key", "00000000-0000-4000-8000-000000000000",
+		"--config", "testdata/wakatime.cfg",
+		"--internal-config", tmpInternalConfigFile.Name(),
+		"--entity", filepath.Join(srcDir, "main.go"),
+		"--category", "writing tests",
+		"--cursorpos", "12",
+		"--offline-queue-file", offlineQueueFile.Name(),
+		"--offline-queue-file-legacy", offlineQueueFileLegacy.Name(),
+		"--ai-line-changes", "123",
+		"--human-line-changes", "456",
+		"--lineno", "42",
+		"--lines-in-file", "100",
+		"--time", "1585598059",
+		"--hide-branch-names", ".*",
+		"--write",
+		"--verbose",
+	)
+
+	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+}
+
 func TestSendHeartbeats_Timeout(t *testing.T) {
 	apiURL, router, close := setupTestServer()
 	defer close()

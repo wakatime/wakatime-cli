@@ -43,13 +43,6 @@ func TestFile_Detect_ProjectPlaceholder(t *testing.T) {
 	tmpDir, err := realpath.Realpath(t.TempDir())
 	require.NoError(t, err)
 
-	// by default t.TempDir() returns a path like /tmp/xyz123, so we append
-	// wakatime-cli to simulate a project folder name
-	tmpDir = filepath.Join(tmpDir, "wakatime-cli")
-
-	err = os.MkdirAll(tmpDir, 0700)
-	require.NoError(t, err)
-
 	copyFile(
 		t,
 		"testdata/wakatime-project-placeholder",
@@ -63,10 +56,11 @@ func TestFile_Detect_ProjectPlaceholder(t *testing.T) {
 	result, detected, err := f.Detect(t.Context())
 	require.NoError(t, err)
 
+	// File detector returns raw placeholder - interpolation happens in project.go
 	expected := project.Result{
 		Branch:  "master",
 		Folder:  tmpDir,
-		Project: "my-company/wakatime-cli",
+		Project: "my-company/{project}",
 	}
 
 	assert.True(t, detected)
@@ -75,13 +69,6 @@ func TestFile_Detect_ProjectPlaceholder(t *testing.T) {
 
 func TestFile_Detect_ProjectPlaceholderOnly(t *testing.T) {
 	tmpDir, err := realpath.Realpath(t.TempDir())
-	require.NoError(t, err)
-
-	// by default t.TempDir() returns a path like /tmp/xyz123, so we append
-	// wakatime-cli to simulate a project folder name
-	tmpDir = filepath.Join(tmpDir, "wakatime-cli")
-
-	err = os.MkdirAll(tmpDir, 0700)
 	require.NoError(t, err)
 
 	copyFile(
@@ -97,10 +84,11 @@ func TestFile_Detect_ProjectPlaceholderOnly(t *testing.T) {
 	result, detected, err := f.Detect(t.Context())
 	require.NoError(t, err)
 
+	// File detector returns raw placeholder - interpolation happens in project.go
 	expected := project.Result{
 		Branch:  "",
 		Folder:  tmpDir,
-		Project: "wakatime-cli",
+		Project: "{project}",
 	}
 
 	assert.True(t, detected)
