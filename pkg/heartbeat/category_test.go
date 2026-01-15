@@ -109,7 +109,9 @@ func TestWithCategory(t *testing.T) {
 		assert.Equal(t, heartbeat.WritingTestsCategory.String(), hh[6].Category)
 		assert.Equal(t, heartbeat.WritingTestsCategory.String(), hh[7].Category)
 		assert.Equal(t, heartbeat.WritingTestsCategory.String(), hh[8].Category)
-		assert.Equal(t, heartbeat.WritingDocsCategory.String(), hh[9].Category)
+		assert.Equal(t, heartbeat.WritingTestsCategory.String(), hh[9].Category)
+		assert.Equal(t, heartbeat.WritingTestsCategory.String(), hh[10].Category)
+		assert.Equal(t, heartbeat.WritingDocsCategory.String(), hh[11].Category)
 
 		return []heartbeat.Result{
 			{
@@ -146,6 +148,12 @@ func TestWithCategory(t *testing.T) {
 		},
 		{
 			Entity: "/foo/testdata/file.md",
+		},
+		{
+			Entity: "/foo/file.test.js",
+		},
+		{
+			Entity: "/foo/file.spec.js",
 		},
 		{
 			Entity: "/foo/file.md",
