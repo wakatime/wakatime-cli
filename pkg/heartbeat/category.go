@@ -3,6 +3,7 @@ package heartbeat
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"slices"
 	"strings"
 
@@ -126,6 +127,11 @@ func DetectCategory(h Heartbeat) Category {
 	if slices.ContainsFunc([]string{"/tests/", "/test/", "/testdata/", "/spec/", "/specs/"}, func(s string) bool {
 		return strings.Contains(file, s)
 	}) {
+		return WritingTestsCategory
+	}
+
+	var testFileRegex = regexp.MustCompile(`(?i).*\.(test|spec)\.[^.]+$`)
+	if testFileRegex.MatchString(file) {
 		return WritingTestsCategory
 	}
 
