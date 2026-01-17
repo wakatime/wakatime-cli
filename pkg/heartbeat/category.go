@@ -130,7 +130,7 @@ func DetectCategory(h Heartbeat) Category {
 		return WritingTestsCategory
 	}
 
-	var testFileRegex = regexp.MustCompile(`(?i).*\.(test|spec)\.[^.]+$`)
+	var testFileRegex = regexp.MustCompile(`(?i).*[\.\-_](test|spec)\.[^.\\]+$`)
 	if testFileRegex.MatchString(file) {
 		return WritingTestsCategory
 	}
