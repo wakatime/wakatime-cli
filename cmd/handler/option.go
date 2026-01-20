@@ -56,12 +56,14 @@ func WithRemoteDetection() Preprocessor {
 	}
 }
 
-// WithAPIKeyReplacing returns a Preprocessor that replaces API keys in heartbeats.
+// WithAPIKeyReplacing returns a Preprocessor that replaces API keys and URLs in heartbeats.
 func WithAPIKeyReplacing() Preprocessor {
 	return func(params params.Params) heartbeat.HandleOption {
 		return apikey.WithReplacing(apikey.Config{
 			DefaultAPIKey: params.API.Key,
+			DefaultAPIURL: params.API.URL,
 			MapPatterns:   params.API.KeyPatterns,
+			URLPatterns:   params.API.URLPatterns,
 		})
 	}
 }

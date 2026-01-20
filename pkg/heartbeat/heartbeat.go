@@ -22,6 +22,7 @@ var remoteAddressRegex = regexp.MustCompile(`(?i)^((ssh|sftp)://)+(?P<credential
 type Heartbeat struct {
 	AILineChanges         *int       `json:"ai_line_changes,omitempty"`
 	APIKey                string     `json:"-"`
+	APIURL                string     `json:"-"`
 	Branch                *string    `json:"branch,omitempty"`
 	BranchAlternate       string     `json:"-"`
 	Category              string     `json:"category,omitempty"`

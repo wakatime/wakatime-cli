@@ -4,6 +4,7 @@ package main_test
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -245,6 +246,511 @@ func TestSendHeartbeats_SecondaryApiKey(t *testing.T) {
 	)
 
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+}
+
+func TestSendHeartbeats_MultipleAPIURLs(t *testing.T) {
+	// Setup default API server
+	defaultAPIURL, defaultRouter, closeDefault := setupTestServer()
+	defer closeDefault()
+
+	// Setup custom API server for work projects
+	customAPIURL, customRouter, closeCustom := setupTestServer()
+	defer closeCustom()
+
+	ctx := t.Context()
+
+	var defaultAPICalls, customAPICalls int
+
+	// Handler for default API - should receive heartbeat for non-work files
+	defaultRouter.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
+		defaultAPICalls++
+
+		// check headers - should use default API key
+		assert.Equal(t, http.MethodPost, req.Method)
+		assert.Equal(t, []string{"application/json"}, req.Header["Accept"])
+		assert.Equal(t, []string{"application/json"}, req.Header["Content-Type"])
+		assert.Equal(t, []string{"Basic MDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAw"}, req.Header["Authorization"])
+		assert.Equal(t, []string{heartbeat.UserAgent(ctx, "")}, req.Header["User-Agent"])
+
+		// write response
+		f, err := os.Open("testdata/api_heartbeats_response.json")
+		require.NoError(t, err)
+
+		w.WriteHeader(http.StatusCreated)
+		_, err = io.Copy(w, f)
+		require.NoError(t, err)
+	})
+
+	// Handler for custom API - should receive heartbeat for work files
+	customRouter.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
+		customAPICalls++
+
+		// check headers - should use custom API key
+		assert.Equal(t, http.MethodPost, req.Method)
+		assert.Equal(t, []string{"application/json"}, req.Header["Accept"])
+		assert.Equal(t, []string{"application/json"}, req.Header["Content-Type"])
+		assert.Equal(t, []string{"Basic MDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAx"}, req.Header["Authorization"])
+		assert.Equal(t, []string{heartbeat.UserAgent(ctx, "")}, req.Header["User-Agent"])
+
+		// write response
+		f, err := os.Open("testdata/api_heartbeats_response.json")
+		require.NoError(t, err)
+
+		w.WriteHeader(http.StatusCreated)
+		_, err = io.Copy(w, f)
+		require.NoError(t, err)
+	})
+
+	tmpDir := t.TempDir()
+
+	// Create work directory structure
+	workDir := filepath.Join(tmpDir, "work", "projects")
+	err := os.MkdirAll(workDir, 0755)
+	require.NoError(t, err)
+
+	// Create a work file
+	workFile := filepath.Join(workDir, "main.go")
+	copyFile(t, "testdata/main.go", workFile)
+
+	// Create a personal file (non-work)
+	personalDir := filepath.Join(tmpDir, "personal")
+	err = os.MkdirAll(personalDir, 0755)
+	require.NoError(t, err)
+
+	personalFile := filepath.Join(personalDir, "main.go")
+	copyFile(t, "testdata/main.go", personalFile)
+
+	// Create config file with [api_urls] section
+	tmpConfigFile, err := os.CreateTemp(tmpDir, "wakatime.cfg")
+	require.NoError(t, err)
+
+	defer tmpConfigFile.Close()
+
+	cfgFileTpl, err := os.ReadFile("testdata/wakatime_api_urls_template.cfg")
+	require.NoError(t, err)
+
+	cfgFile := fmt.Sprintf(
+		string(cfgFileTpl),
+		defaultAPIURL,
+		customAPIURL,
+	)
+
+	_, err = tmpConfigFile.WriteString(cfgFile)
+	require.NoError(t, err)
+
+	offlineQueueFile, err := os.CreateTemp(tmpDir, "")
+	require.NoError(t, err)
+
+	defer offlineQueueFile.Close()
+
+	offlineQueueFileLegacy, err := os.CreateTemp(tmpDir, "")
+	require.NoError(t, err)
+
+	offlineQueueFileLegacy.Close()
+
+	tmpInternalConfigFile, err := os.CreateTemp(tmpDir, "wakatime-internal.cfg")
+	require.NoError(t, err)
+
+	defer tmpInternalConfigFile.Close()
+
+	// Send heartbeat for work file - should go to BOTH default API and custom API
+	// (new behavior: always send to default when api_key is set, plus matching api_urls)
+	runWakatimeCli(
+		t,
+		&bytes.Buffer{},
+		"--key", "00000000-0000-4000-8000-000000000000",
+		"--config", tmpConfigFile.Name(),
+		"--internal-config", tmpInternalConfigFile.Name(),
+		"--entity", workFile,
+		"--cursorpos", "12",
+		"--offline-queue-file", offlineQueueFile.Name(),
+		"--offline-queue-file-legacy", offlineQueueFileLegacy.Name(),
+		"--lineno", "42",
+		"--lines-in-file", "100",
+		"--time", "1585598059",
+		"--hide-branch-names", ".*",
+		"--heartbeat-rate-limit-seconds", "0",
+		"--write",
+		"--verbose",
+	)
+
+	// Work file goes to BOTH APIs: default (always) + custom (pattern match)
+	assert.Eventually(t, func() bool { return customAPICalls == 1 }, time.Second, 50*time.Millisecond)
+	assert.Eventually(t, func() bool { return defaultAPICalls == 1 }, time.Second, 50*time.Millisecond)
+
+	// Reset counters
+	defaultAPICalls = 0
+	customAPICalls = 0
+
+	// Send heartbeat for personal file - should go to default API only (no pattern match)
+	runWakatimeCli(
+		t,
+		&bytes.Buffer{},
+		"--key", "00000000-0000-4000-8000-000000000000",
+		"--config", tmpConfigFile.Name(),
+		"--internal-config", tmpInternalConfigFile.Name(),
+		"--entity", personalFile,
+		"--cursorpos", "12",
+		"--offline-queue-file", offlineQueueFile.Name(),
+		"--offline-queue-file-legacy", offlineQueueFileLegacy.Name(),
+		"--lineno", "42",
+		"--lines-in-file", "100",
+		"--time", "1585598060",
+		"--hide-branch-names", ".*",
+		"--heartbeat-rate-limit-seconds", "0",
+		"--write",
+		"--verbose",
+	)
+
+	assert.Eventually(t, func() bool { return defaultAPICalls == 1 }, time.Second, 50*time.Millisecond)
+	assert.Equal(t, 0, customAPICalls)
+}
+
+func TestSendHeartbeats_MultipleAPIURLs_ExtraHeartbeats(t *testing.T) {
+	// Setup default API server
+	defaultAPIURL, defaultRouter, closeDefault := setupTestServer()
+	defer closeDefault()
+
+	// Setup custom API server for work projects
+	customAPIURL, customRouter, closeCustom := setupTestServer()
+	defer closeCustom()
+
+	ctx := t.Context()
+
+	var defaultAPICalls, customAPICalls int
+
+	// Handler for default API
+	defaultRouter.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
+		defaultAPICalls++
+
+		// should use default API key
+		assert.Equal(t, []string{"Basic MDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAw"}, req.Header["Authorization"])
+
+		// write response
+		f, err := os.Open("testdata/api_heartbeats_response.json")
+		require.NoError(t, err)
+
+		w.WriteHeader(http.StatusCreated)
+		_, err = io.Copy(w, f)
+		require.NoError(t, err)
+	})
+
+	// Handler for custom API
+	customRouter.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
+		customAPICalls++
+
+		// should use custom API key
+		assert.Equal(t, []string{"Basic MDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAx"}, req.Header["Authorization"])
+
+		// write response
+		f, err := os.Open("testdata/api_heartbeats_response.json")
+		require.NoError(t, err)
+
+		w.WriteHeader(http.StatusCreated)
+		_, err = io.Copy(w, f)
+		require.NoError(t, err)
+	})
+
+	tmpDir := t.TempDir()
+
+	// Create work directory structure
+	workDir := filepath.Join(tmpDir, "work", "projects")
+	err := os.MkdirAll(workDir, 0755)
+	require.NoError(t, err)
+
+	workFile := filepath.Join(workDir, "main.go")
+	copyFile(t, "testdata/main.go", workFile)
+
+	// Create personal directory
+	personalDir := filepath.Join(tmpDir, "personal")
+	err = os.MkdirAll(personalDir, 0755)
+	require.NoError(t, err)
+
+	personalFile := filepath.Join(personalDir, "main.go")
+	copyFile(t, "testdata/main.go", personalFile)
+
+	// Create config file with [api_urls] section
+	tmpConfigFile, err := os.CreateTemp(tmpDir, "wakatime.cfg")
+	require.NoError(t, err)
+
+	defer tmpConfigFile.Close()
+
+	cfgFileTpl, err := os.ReadFile("testdata/wakatime_api_urls_template.cfg")
+	require.NoError(t, err)
+
+	cfgFile := fmt.Sprintf(
+		string(cfgFileTpl),
+		defaultAPIURL,
+		customAPIURL,
+	)
+
+	_, err = tmpConfigFile.WriteString(cfgFile)
+	require.NoError(t, err)
+
+	offlineQueueFile, err := os.CreateTemp(tmpDir, "")
+	require.NoError(t, err)
+
+	defer offlineQueueFile.Close()
+
+	offlineQueueFileLegacy, err := os.CreateTemp(tmpDir, "")
+	require.NoError(t, err)
+
+	offlineQueueFileLegacy.Close()
+
+	tmpInternalConfigFile, err := os.CreateTemp(tmpDir, "wakatime-internal.cfg")
+	require.NoError(t, err)
+
+	defer tmpInternalConfigFile.Close()
+
+	// Prepare extra heartbeats JSON - one work file and one personal file (must be single line)
+	workFilePath := strings.ReplaceAll(workFile, `\`, `/`)
+	personalFilePath := strings.ReplaceAll(personalFile, `\`, `/`)
+
+	// nolint:revive
+	extraHeartbeats := fmt.Sprintf(
+		`[{"entity": "%s", "type": "file", "time": 1585598060, "is_write": true}, {"entity": "%s", "type": "file", "time": 1585598061, "is_write": true}]`,
+		workFilePath,
+		personalFilePath,
+	)
+
+	buffer := bytes.NewBuffer([]byte(extraHeartbeats))
+
+	// Send main heartbeat (personal) + extra heartbeats (work + personal)
+	runWakatimeCli(
+		t,
+		buffer,
+		"--key", "00000000-0000-4000-8000-000000000000",
+		"--config", tmpConfigFile.Name(),
+		"--internal-config", tmpInternalConfigFile.Name(),
+		"--entity", personalFile,
+		"--extra-heartbeats", "true",
+		"--cursorpos", "12",
+		"--offline-queue-file", offlineQueueFile.Name(),
+		"--offline-queue-file-legacy", offlineQueueFileLegacy.Name(),
+		"--lineno", "42",
+		"--lines-in-file", "100",
+		"--time", "1585598059",
+		"--hide-branch-names", ".*",
+		"--heartbeat-rate-limit-seconds", "0",
+		"--write",
+		"--verbose",
+	)
+
+	// Both APIs should receive calls - work files go to custom, personal files go to default
+	assert.Eventually(t, func() bool { return defaultAPICalls >= 1 }, time.Second, 50*time.Millisecond)
+	assert.Eventually(t, func() bool { return customAPICalls >= 1 }, time.Second, 50*time.Millisecond)
+
+	offlineCount, err := offline.CountHeartbeats(ctx, offlineQueueFile.Name())
+	require.NoError(t, err)
+
+	assert.Zero(t, offlineCount)
+}
+
+func TestSendHeartbeats_MultipleAPIURLs_BothServers(t *testing.T) {
+	// This test verifies that a single CLI invocation can send heartbeats
+	// to multiple different API URLs based on file path patterns.
+
+	// Setup default API server (for personal files)
+	defaultAPIURL, defaultRouter, closeDefault := setupTestServer()
+	defer closeDefault()
+
+	// Setup custom API server (for work files)
+	customAPIURL, customRouter, closeCustom := setupTestServer()
+	defer closeCustom()
+
+	ctx := t.Context()
+
+	var (
+		defaultAPICalls, customAPICalls                 int
+		defaultReceivedEntities, customReceivedEntities []string
+	)
+
+	// Handler for default API (personal files)
+	defaultRouter.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
+		defaultAPICalls++
+
+		// should use default API key
+		assert.Equal(t, []string{"Basic MDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAw"}, req.Header["Authorization"])
+
+		// Parse request body to capture entities
+		body, err := io.ReadAll(req.Body)
+		require.NoError(t, err)
+
+		var heartbeats []struct {
+			Entity string `json:"entity"`
+		}
+
+		err = json.Unmarshal(body, &heartbeats)
+		require.NoError(t, err)
+
+		for _, h := range heartbeats {
+			defaultReceivedEntities = append(defaultReceivedEntities, h.Entity)
+		}
+
+		// Generate dynamic response based on number of heartbeats received
+		responses := make([][]any, len(heartbeats))
+		for i := range heartbeats {
+			responses[i] = []any{
+				map[string]any{"data": map[string]string{"id": fmt.Sprintf("id-%d", i)}},
+				201,
+			}
+		}
+
+		w.WriteHeader(http.StatusCreated)
+		err = json.NewEncoder(w).Encode(map[string]any{"responses": responses})
+		require.NoError(t, err)
+	})
+
+	// Handler for custom API (work files)
+	customRouter.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
+		customAPICalls++
+
+		// should use custom API key
+		assert.Equal(t, []string{"Basic MDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAx"}, req.Header["Authorization"])
+
+		// Parse request body to capture entities
+		body, err := io.ReadAll(req.Body)
+		require.NoError(t, err)
+
+		var heartbeats []struct {
+			Entity string `json:"entity"`
+		}
+
+		err = json.Unmarshal(body, &heartbeats)
+		require.NoError(t, err)
+
+		for _, h := range heartbeats {
+			customReceivedEntities = append(customReceivedEntities, h.Entity)
+		}
+
+		// Generate dynamic response based on number of heartbeats received
+		responses := make([][]any, len(heartbeats))
+		for i := range heartbeats {
+			responses[i] = []any{
+				map[string]any{"data": map[string]string{"id": fmt.Sprintf("id-%d", i)}},
+				201,
+			}
+		}
+
+		w.WriteHeader(http.StatusCreated)
+		err = json.NewEncoder(w).Encode(map[string]any{"responses": responses})
+		require.NoError(t, err)
+	})
+
+	tmpDir := t.TempDir()
+
+	// Create work directory structure
+	workDir := filepath.Join(tmpDir, "work", "projects")
+	err := os.MkdirAll(workDir, 0755)
+	require.NoError(t, err)
+
+	workFile := filepath.Join(workDir, "work_main.go")
+	copyFile(t, "testdata/main.go", workFile)
+
+	// Create personal directory
+	personalDir := filepath.Join(tmpDir, "personal")
+	err = os.MkdirAll(personalDir, 0755)
+	require.NoError(t, err)
+
+	personalFile := filepath.Join(personalDir, "personal_main.go")
+	copyFile(t, "testdata/main.go", personalFile)
+
+	// Create config file with [api_urls] section
+	tmpConfigFile, err := os.CreateTemp(tmpDir, "wakatime.cfg")
+	require.NoError(t, err)
+
+	defer tmpConfigFile.Close()
+
+	cfgFileTpl, err := os.ReadFile("testdata/wakatime_api_urls_template.cfg")
+	require.NoError(t, err)
+
+	cfgFile := fmt.Sprintf(
+		string(cfgFileTpl),
+		defaultAPIURL,
+		customAPIURL,
+	)
+
+	_, err = tmpConfigFile.WriteString(cfgFile)
+	require.NoError(t, err)
+
+	offlineQueueFile, err := os.CreateTemp(tmpDir, "")
+	require.NoError(t, err)
+
+	defer offlineQueueFile.Close()
+
+	offlineQueueFileLegacy, err := os.CreateTemp(tmpDir, "")
+	require.NoError(t, err)
+
+	offlineQueueFileLegacy.Close()
+
+	tmpInternalConfigFile, err := os.CreateTemp(tmpDir, "wakatime-internal.cfg")
+	require.NoError(t, err)
+
+	defer tmpInternalConfigFile.Close()
+
+	// Prepare extra heartbeat JSON - work file as extra heartbeat
+	workFilePath := strings.ReplaceAll(workFile, `\`, `/`)
+
+	extraHeartbeats := fmt.Sprintf(`[{"entity": "%s", "type": "file", "time": 1585598060, "is_write": true}]`, workFilePath)
+
+	buffer := bytes.NewBuffer([]byte(extraHeartbeats))
+
+	// Send main heartbeat (personal file) + extra heartbeat (work file)
+	// This should result in calls to both API servers
+	runWakatimeCli(
+		t,
+		buffer,
+		"--key", "00000000-0000-4000-8000-000000000000",
+		"--config", tmpConfigFile.Name(),
+		"--internal-config", tmpInternalConfigFile.Name(),
+		"--entity", personalFile,
+		"--extra-heartbeats", "true",
+		"--cursorpos", "12",
+		"--offline-queue-file", offlineQueueFile.Name(),
+		"--offline-queue-file-legacy", offlineQueueFileLegacy.Name(),
+		"--lineno", "42",
+		"--lines-in-file", "100",
+		"--time", "1585598059",
+		"--hide-branch-names", ".*",
+		"--heartbeat-rate-limit-seconds", "0",
+		"--write",
+		"--verbose",
+	)
+
+	// Verify both APIs received calls
+	assert.Eventually(t, func() bool { return defaultAPICalls >= 1 }, time.Second, 50*time.Millisecond)
+	assert.Eventually(t, func() bool { return customAPICalls >= 1 }, time.Second, 50*time.Millisecond)
+
+	// With new behavior:
+	// - Personal file -> default API only
+	// - Work file -> BOTH default API AND custom API (because api_key is set)
+	// So default receives 2 (personal + work), custom receives 1 (work)
+	assert.Len(t, defaultReceivedEntities, 2)
+	assert.Len(t, customReceivedEntities, 1)
+
+	// Verify work file went to custom API
+	assert.Contains(t, customReceivedEntities[0], "work_main.go")
+
+	// Verify default API received both files
+	var hasPersonal, hasWork bool
+
+	for _, entity := range defaultReceivedEntities {
+		if strings.Contains(entity, "personal_main.go") {
+			hasPersonal = true
+		}
+
+		if strings.Contains(entity, "work_main.go") {
+			hasWork = true
+		}
+	}
+
+	assert.True(t, hasPersonal, "default API should receive personal_main.go")
+	assert.True(t, hasWork, "default API should receive work_main.go")
+
+	offlineCount, err := offline.CountHeartbeats(ctx, offlineQueueFile.Name())
+	require.NoError(t, err)
+
+	assert.Zero(t, offlineCount)
 }
 
 func TestSendHeartbeats_WakatimeProjectFile(t *testing.T) {

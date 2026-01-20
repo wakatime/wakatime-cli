@@ -117,7 +117,9 @@ func syncOfflineActivityLegacy(ctx context.Context, v *viper.Viper, queueFilepat
 		offline.WithSync(queueFilepath, offlineParams.SyncMax),
 		apikey.WithReplacing(apikey.Config{
 			DefaultAPIKey: apiParams.Key,
+			DefaultAPIURL: apiParams.URL,
 			MapPatterns:   apiParams.KeyPatterns,
+			URLPatterns:   apiParams.URLPatterns,
 		}),
 	)
 
@@ -154,7 +156,9 @@ func SyncOfflineActivity(ctx context.Context, v *viper.Viper, queueFilepath stri
 		offline.WithSync(queueFilepath, offlineParams.SyncMax),
 		apikey.WithReplacing(apikey.Config{
 			DefaultAPIKey: apiParams.Key,
+			DefaultAPIURL: apiParams.URL,
 			MapPatterns:   apiParams.KeyPatterns,
+			URLPatterns:   apiParams.URLPatterns,
 		}),
 	)
 
