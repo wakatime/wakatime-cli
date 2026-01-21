@@ -16,9 +16,7 @@ import (
 func WithFormatting() HandleOption {
 	return func(next Handle) Handle {
 		return func(ctx context.Context, hh []Heartbeat) ([]Result, error) {
-			logger := log.Extract(ctx)
-			logger.Debugln("execute heartbeat filepath formatting")
-
+			// logger.Debugln("execute heartbeat filepath formatting")
 			for n, h := range hh {
 				if h.EntityType != FileType {
 					continue

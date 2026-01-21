@@ -37,7 +37,7 @@ func WithDetection(c Config) heartbeat.HandleOption {
 	return func(next heartbeat.Handle) heartbeat.Handle {
 		return func(ctx context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 			logger := log.Extract(ctx)
-			logger.Debugln("execute dependency detection")
+			// logger.Debugln("execute dependency detection")
 
 			for n, h := range hh {
 				if h.EntityType != heartbeat.FileType {

@@ -53,6 +53,10 @@ projects/foo = new project name
 projects/foo = your-api-key
 ^/home/user/projects/bar(\d+)/ = your-api-key
 
+[api_urls]
+^/home/user/work/ = https://work.example.com/api/v1|your-work-api-key
+^/home/user/personal/ = https://personal.example.com/api/v1|your-personal-api-key
+
 [git]
 submodules_disabled = false
 project_from_git_remote = false
@@ -82,36 +86,36 @@ Notice how you have to include the exclude patterns from your main `~/.wakatime.
 
 ### Settings Section
 
-| option                         | description | type | default value |
-| ---                            | ---         | ---  | ---           |
-| debug                          | Turns on debug messages in log file. | _bool_ | `false` |
-| api_key                        | Your wakatime api key. | _string_ | |
-| api_key_vault_cmd              | A command to get your api key, perhaps from some sort of secure vault. Actually a space-separated list of an executable and its arguments. Executables in PATH can be referred to by their basenames. Shell syntax not supported. | _string_ | |
-| api_url                        | The WakaTime API base url. | _string_ | <https://api.wakatime.com/api/v1> |
-| heartbeat_rate_limit_seconds   | Rate limit sending heartbeats to the API once per duration. Set to 0 to disable rate limiting. | _int_ | `120` |
-| hide_file_names                | Obfuscate filenames. Will not send file names to api. | _bool_;_list_ | `false` |
-| hide_project_names             | Obfuscate project names. When a project folder is detected instead of using the folder name as the project, a `.wakatime-project file` is created with a random project name. | _bool_;_list_ | `false` |
-| hide_branch_names              | Obfuscate branch names. Will not send revision control branch names to api. | _bool_;_list_ | `false` |
-| hide_dependencies              | Prevent sending imports/libraries/dependencies used in currently focused file to the api.  | _bool_;_list_ | `false` |
-| hide_project_folder            | When set, send the file's path relative to the project folder. For ex: `/User/me/projects/bar/src/file.ts` is sent as `src/file.ts` so the server never sees the full path. When the project folder cannot be detected, only the file name is sent. For ex: `file.ts`. | _bool_ | `false` |
-| exclude                        | Filename patterns to exclude from logging. POSIX regex syntax. | _bool_;_list_ | |
-| include                        | Filename patterns to log. When used in combination with `exclude`, files matching `include` will still be logged. POSIX regex syntax | _bool_;_list_ | |
-| include_only_with_project_file | Disables tracking folders unless they contain a `.wakatime-project file`. | _bool_ | `false` |
-| exclude_unknown_project        | When set, any activity where the project cannot be detected will be ignored. | _bool_ | `false` |
-| status_bar_enabled             | Turns on wakatime status bar for certain editors. | _bool_ | `true` |
-| status_bar_coding_activity     | Enables displaying Today's code stats in the status bar of some editors. When false, only the WakaTime icon is displayed in the status bar. | _bool_ | `true` |
-| status_bar_hide_categories     | When `true`, --today only displays the total code stats, never displaying Categories in the output. | _bool_ | `false` |
-| status_bar_max_categories      | When greater than zero, limits the number of categories displayed in the status bar. | _int_ | `0` |
-| offline                        | Enables saving code stats locally to ~/.wakatime/offline_heartbeats.bdb when offline, and syncing to the dashboard later when back online. | _bool_ | `true` |
-| proxy                          | Optional proxy configuration. Supports HTTPS, SOCKS and NTLM proxies. For ex: `https://user:pass@host:port`, `socks5://user:pass@host:port`, `domain\\user:pass` | _string_ | |
-| no_ssl_verify                  | Disables SSL certificate verification for HTTPS requests. By default, SSL certificates are verified. | _bool_ | `false` |
-| ssl_certs_file                 | Path to a CA certs file. By default, uses bundled Letsencrypt CA cert along with system ca certs. | _filepath_ | |
-| timeout                        | Connection timeout in seconds when communicating with the api. | _int_ | `120` |
-| hostname                       | Optional name of local machine. By default, auto-detects the local machine’s hostname. | _string_ | |
-| log_file                       | Optional log file path. | _filepath_ | `~/.wakatime/wakatime.log` |
-| import_cfg                     | Optional path to another wakatime.cfg file to import. If set it will overwrite values loaded from $WAKATIME_HOME/.wakatime.cfg file. | _filepath_ | |
-| metrics                        | When set, collects metrics usage in '~/.wakatime/metrics' folder. For further reference visit <https://go.dev/blog/pprof>. | _bool_ | `false` |
-| guess_language                 | When `true`, enables detecting programming language from file contents. | _bool_ | `false` |
+| option                         | description                                                                                                                                                                                                                                                            | type          | default value                     |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- | --------------------------------- |
+| debug                          | Turns on debug messages in log file.                                                                                                                                                                                                                                   | _bool_        | `false`                           |
+| api_key                        | Your wakatime api key.                                                                                                                                                                                                                                                 | _string_      |                                   |
+| api_key_vault_cmd              | A command to get your api key, perhaps from some sort of secure vault. Actually a space-separated list of an executable and its arguments. Executables in PATH can be referred to by their basenames. Shell syntax not supported.                                      | _string_      |                                   |
+| api_url                        | The WakaTime API base url.                                                                                                                                                                                                                                             | _string_      | <https://api.wakatime.com/api/v1> |
+| heartbeat_rate_limit_seconds   | Rate limit sending heartbeats to the API once per duration. Set to 0 to disable rate limiting.                                                                                                                                                                         | _int_         | `120`                             |
+| hide_file_names                | Obfuscate filenames. Will not send file names to api.                                                                                                                                                                                                                  | _bool_;_list_ | `false`                           |
+| hide_project_names             | Obfuscate project names. When a project folder is detected instead of using the folder name as the project, a `.wakatime-project file` is created with a random project name.                                                                                          | _bool_;_list_ | `false`                           |
+| hide_branch_names              | Obfuscate branch names. Will not send revision control branch names to api.                                                                                                                                                                                            | _bool_;_list_ | `false`                           |
+| hide_dependencies              | Prevent sending imports/libraries/dependencies used in currently focused file to the api.                                                                                                                                                                              | _bool_;_list_ | `false`                           |
+| hide_project_folder            | When set, send the file's path relative to the project folder. For ex: `/User/me/projects/bar/src/file.ts` is sent as `src/file.ts` so the server never sees the full path. When the project folder cannot be detected, only the file name is sent. For ex: `file.ts`. | _bool_        | `false`                           |
+| exclude                        | Filename patterns to exclude from logging. POSIX regex syntax.                                                                                                                                                                                                         | _bool_;_list_ |                                   |
+| include                        | Filename patterns to log. When used in combination with `exclude`, files matching `include` will still be logged. POSIX regex syntax                                                                                                                                   | _bool_;_list_ |                                   |
+| include_only_with_project_file | Disables tracking folders unless they contain a `.wakatime-project file`.                                                                                                                                                                                              | _bool_        | `false`                           |
+| exclude_unknown_project        | When set, any activity where the project cannot be detected will be ignored.                                                                                                                                                                                           | _bool_        | `false`                           |
+| status_bar_enabled             | Turns on wakatime status bar for certain editors.                                                                                                                                                                                                                      | _bool_        | `true`                            |
+| status_bar_coding_activity     | Enables displaying Today's code stats in the status bar of some editors. When false, only the WakaTime icon is displayed in the status bar.                                                                                                                            | _bool_        | `true`                            |
+| status_bar_hide_categories     | When `true`, --today only displays the total code stats, never displaying Categories in the output.                                                                                                                                                                    | _bool_        | `false`                           |
+| status_bar_max_categories      | When greater than zero, limits the number of categories displayed in the status bar.                                                                                                                                                                                   | _int_         | `0`                               |
+| offline                        | Enables saving code stats locally to ~/.wakatime/offline_heartbeats.bdb when offline, and syncing to the dashboard later when back online.                                                                                                                             | _bool_        | `true`                            |
+| proxy                          | Optional proxy configuration. Supports HTTPS, SOCKS and NTLM proxies. For ex: `https://user:pass@host:port`, `socks5://user:pass@host:port`, `domain\\user:pass`                                                                                                       | _string_      |                                   |
+| no_ssl_verify                  | Disables SSL certificate verification for HTTPS requests. By default, SSL certificates are verified.                                                                                                                                                                   | _bool_        | `false`                           |
+| ssl_certs_file                 | Path to a CA certs file. By default, uses bundled Letsencrypt CA cert along with system ca certs.                                                                                                                                                                      | _filepath_    |                                   |
+| timeout                        | Connection timeout in seconds when communicating with the api.                                                                                                                                                                                                         | _int_         | `120`                             |
+| hostname                       | Optional name of local machine. By default, auto-detects the local machine’s hostname.                                                                                                                                                                                 | _string_      |                                   |
+| log_file                       | Optional log file path.                                                                                                                                                                                                                                                | _filepath_    | `~/.wakatime/wakatime.log`        |
+| import_cfg                     | Optional path to another wakatime.cfg file to import. If set it will overwrite values loaded from $WAKATIME_HOME/.wakatime.cfg file.                                                                                                                                   | _filepath_    |                                   |
+| metrics                        | When set, collects metrics usage in '~/.wakatime/metrics' folder. For further reference visit <https://go.dev/blog/pprof>.                                                                                                                                             | _bool_        | `false`                           |
+| guess_language                 | When `true`, enables detecting programming language from file contents.                                                                                                                                                                                                | _bool_        | `false`                           |
 
 ### Project Map Section
 
@@ -133,6 +137,34 @@ projects/foo = your-api-key
 ^/home/user/projects/bar(\d+)/ = your-api-key
 ```
 
+### Api URLs Section
+
+A key value pair list separated by new line, where the key is a regex pattern and the value is an API URL and API key separated by a pipe (`|`). Use when heartbeats from certain paths should be sent to a different WakaTime-compatible server with a specific API key. This is useful for sending work-related coding activity to a corporate WakaTime server in addition to the default WakaTime API.
+
+The format is: `pattern = api_url|api_key`
+
+**Behavior:**
+
+- If `api_key` is set, heartbeats are **always** sent to `api_url` (default WakaTime API), **and also** to any matching `api_urls` patterns
+- If the same `api_url` + `api_key` combination exists in both the default settings and `api_urls`, the heartbeat is only sent once (deduplicated)
+- All matching patterns receive heartbeats, not just the first match
+
+```ini
+[api_urls]
+^/home/user/work/ = https://work.example.com/api/v1|your-work-api-key
+^/home/user/personal/ = https://personal.example.com/api/v1|your-personal-api-key
+.* =
+⁠.* = https://your-backup-server.com/api/v1|your-backup-api-key ⁠
+
+```
+
+With this configuration:
+
+- Files in `/home/user/work/` are sent to both the default WakaTime API (if `api_key` is set) AND `work.example.com`
+- Files in `/home/user/personal/` are sent to both the default WakaTime API (if `api_key` is set) AND `personal.example.com`
+- When no api_url or no api_key are present(`.* = `), the default api_key and api_url are used
+- ⁠Files not matching the work or personal regex patterns are sent to both the default api url and your-backup-server.com (duplicated/tee'd)
+
 ### Api Key Environment Variable
 
 If a `WAKATIME_API_KEY` env var exists, wakatime-cli will use its value as the api key.
@@ -141,9 +173,9 @@ However, if an api key exists in your `~/.wakatime.cfg` file then it takes prece
 
 ### Git Section
 
-| option              | description | type | default value |
-| ---                 | ---         | ---  | ---           |
-| submodules_disabled | It will be matched against the submodule path and if matching, will skip it. | _bool_;_list_ | false |
+| option              | description                                                                  | type          | default value |
+| ------------------- | ---------------------------------------------------------------------------- | ------------- | ------------- |
+| submodules_disabled | It will be matched against the submodule path and if matching, will skip it. | _bool_;_list_ | false         |
 
 ### Git Submodule Project Map Section
 
@@ -188,10 +220,10 @@ You can use the `{project}` placeholder in the first line to include the folder 
 Examples:
 
 | `.wakatime-project` content | Folder name | Resulting project name |
-| --- | --- | --- |
-| `my-company/{project}` | `api` | `my-company/api` |
-| `{project}-backend` | `users` | `users-backend` |
-| `team/{project}/main` | `dashboard` | `team/dashboard/main` |
+| --------------------------- | ----------- | ---------------------- |
+| `my-company/{project}`      | `api`       | `my-company/api`       |
+| `{project}-backend`         | `users`     | `users-backend`        |
+| `team/{project}/main`       | `dashboard` | `team/dashboard/main`  |
 
 This is useful when you want to organize projects under a common namespace (like your company or team name) without hardcoding the folder name.
 

@@ -142,10 +142,8 @@ type (
 func WithDetection(config Config) heartbeat.HandleOption {
 	return func(next heartbeat.Handle) heartbeat.Handle {
 		return func(ctx context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
-			logger := log.Extract(ctx)
-
 			for n, h := range hh {
-				logger.Debugf("execute project detection for: %s", h.Entity)
+				// logger.Debugf("execute project detection for: %s", h.Entity)
 
 				// First use .wakatime-project or [projectmap] section with entity path.
 				// Then, detect with project folder. This tries to use the same project name
@@ -276,8 +274,7 @@ func Detect(ctx context.Context, patterns []MapPattern, args ...DetecterArg) (Re
 		}
 
 		for _, p := range configPlugins {
-			logger.Debugf("execute %s", p.ID().String())
-
+			// logger.Debugf("execute %s", p.ID().String())
 			result, detected, err := p.Detect(ctx)
 			if err != nil {
 				logger.Errorf("unexpected error occurred at %q: %s", p.ID().String(), err)
@@ -326,8 +323,7 @@ func DetectWithRevControl(
 		}
 
 		for _, p := range revControlPlugins {
-			logger.Debugf("execute %s", p.ID().String())
-
+			// logger.Debugf("execute %s", p.ID().String())
 			result, detected, err := p.Detect(ctx)
 			if err != nil {
 				logger.Errorf("unexpected error occurred at %q: %s", p.ID().String(), err)

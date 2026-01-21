@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"sort"
+	"slices"
 	"strings"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
@@ -25,17 +25,27 @@ import (
 func (c *Client) SendHeartbeats(ctx context.Context, heartbeats []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 	logger := log.Extract(ctx)
 
-	url := c.baseURL + "/users/current/heartbeats.bulk"
-
-	logger.Debugf("sending %d heartbeat(s) to api at %s", len(heartbeats), url)
+	logger.Debugf("sending %d heartbeat(s) to api", len(heartbeats))
 
 	var results []heartbeat.Result
 
-	grouped := groupByAPIKey(heartbeats)
+	grouped := groupByAPIURLAndKey(heartbeats)
 	keys := sortKeys(grouped)
 
 	for _, k := range keys {
-		res, err := c.sendHeartbeats(ctx, url, grouped[k])
+		hh := grouped[k]
+
+		// Determine the URL to use, if heartbeat has APIURL set then use it. Otherwise use client's baseURL.
+		baseURL := c.baseURL
+		if hh[0].APIURL != "" {
+			baseURL = hh[0].APIURL
+		}
+
+		url := baseURL + "/users/current/heartbeats.bulk"
+
+		logger.Debugf("sending %d heartbeat(s) to %s", len(hh), url)
+
+		res, err := c.sendHeartbeats(ctx, url, hh)
 		if err != nil {
 			return nil, err
 		}
@@ -232,11 +242,13 @@ func parseHeartbeatResponseError(ctx context.Context, data json.RawMessage) ([]s
 	return errs, nil
 }
 
-func groupByAPIKey(hh []heartbeat.Heartbeat) map[string][]heartbeat.Heartbeat {
+func groupByAPIURLAndKey(hh []heartbeat.Heartbeat) map[string][]heartbeat.Heartbeat {
 	var grouped = make(map[string][]heartbeat.Heartbeat, 0)
 
 	for _, h := range hh {
-		grouped[h.APIKey] = append(grouped[h.APIKey], h)
+		// Group by combination of APIURL and APIKey
+		key := h.APIURL + "|" + h.APIKey
+		grouped[key] = append(grouped[key], h)
 	}
 
 	return grouped
@@ -251,7 +263,7 @@ func sortKeys[K string, V any](m map[K]V) []K {
 		i++
 	}
 
-	sort.Slice(keys, func(i, j int) bool { return keys[i] < keys[j] })
+	slices.Sort(keys)
 
 	return keys
 }

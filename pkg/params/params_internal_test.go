@@ -95,3 +95,64 @@ func TestSafeTimeParse_Err(t *testing.T) {
 		})
 	}
 }
+
+func TestNormalizeURL(t *testing.T) {
+	tests := map[string]struct {
+		Input    string
+		Expected string
+	}{
+		"already normalized": {
+			Input:    "https://api.wakatime.com/api/v1",
+			Expected: "https://api.wakatime.com/api/v1",
+		},
+		"trailing slash": {
+			Input:    "https://api.wakatime.com/api/v1/",
+			Expected: "https://api.wakatime.com/api/v1",
+		},
+		"with heartbeat endpoint": {
+			Input:    "https://api.wakatime.com/api/v1/heartbeat",
+			Expected: "https://api.wakatime.com/api/v1",
+		},
+		"with heartbeats endpoint": {
+			Input:    "https://api.wakatime.com/api/v1/heartbeats",
+			Expected: "https://api.wakatime.com/api/v1",
+		},
+		"with users current heartbeats endpoint": {
+			Input:    "https://api.wakatime.com/api/v1/users/current/heartbeats",
+			Expected: "https://api.wakatime.com/api/v1",
+		},
+		"with bulk suffix": {
+			Input:    "https://api.wakatime.com/api/v1/users/current/heartbeats.bulk",
+			Expected: "https://api.wakatime.com/api/v1",
+		},
+		"with trailing slash and bulk suffix": {
+			Input:    "https://api.wakatime.com/api/v1/users/current/heartbeats.bulk/",
+			Expected: "https://api.wakatime.com/api/v1",
+		},
+		"custom domain": {
+			Input:    "https://custom.example.com/api/v1",
+			Expected: "https://custom.example.com/api/v1",
+		},
+		"custom domain with endpoint": {
+			Input:    "https://custom.example.com/api/v1/users/current/heartbeats.bulk",
+			Expected: "https://custom.example.com/api/v1",
+		},
+		"http scheme": {
+			Input:    "http://localhost:8080/api/v1",
+			Expected: "http://localhost:8080/api/v1",
+		},
+		"empty string": {
+			Input:    "",
+			Expected: "",
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			result, err := normalizeURL(test.Input)
+			require.NoError(t, err)
+
+			assert.Equal(t, test.Expected, result)
+		})
+	}
+}

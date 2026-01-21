@@ -25,7 +25,7 @@ func WithFiltering(config Config) heartbeat.HandleOption {
 	return func(next heartbeat.Handle) heartbeat.Handle {
 		return func(ctx context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 			logger := log.Extract(ctx)
-			logger.Debugln("execute heartbeat filtering")
+			// logger.Debugln("execute heartbeat filtering")
 
 			var filtered []heartbeat.Heartbeat
 
@@ -51,7 +51,7 @@ func WithLengthValidator() heartbeat.HandleOption {
 	return func(next heartbeat.Handle) heartbeat.Handle {
 		return func(ctx context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 			logger := log.Extract(ctx)
-			logger.Debugln("execute heartbeats length validation")
+			// logger.Debugln("execute heartbeats length validation")
 
 			if len(hh) == 0 {
 				logger.Debugln("no heartbeats left after filtering. abort heartbeat handling.")

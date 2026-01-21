@@ -3,6 +3,7 @@ package heartbeat
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"slices"
 	"strings"
 
@@ -89,7 +90,7 @@ func WithCategory() HandleOption {
 	return func(next Handle) Handle {
 		return func(ctx context.Context, hh []Heartbeat) ([]Result, error) {
 			logger := log.Extract(ctx)
-			logger.Debugln("execute heartbeat category detection")
+			// logger.Debugln("execute heartbeat category detection")
 
 			for n, h := range hh {
 				// remove category coding if it was set by the user to avoid sending it to the API
@@ -126,6 +127,11 @@ func DetectCategory(h Heartbeat) Category {
 	if slices.ContainsFunc([]string{"/tests/", "/test/", "/testdata/", "/spec/", "/specs/"}, func(s string) bool {
 		return strings.Contains(file, s)
 	}) {
+		return WritingTestsCategory
+	}
+
+	var testFileRegex = regexp.MustCompile(`(?i).*[\.\-_](test|spec)\.[^.\\]+$`)
+	if testFileRegex.MatchString(file) {
 		return WritingTestsCategory
 	}
 
