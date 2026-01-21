@@ -4,8 +4,6 @@ import (
 	"context"
 	"path/filepath"
 	"strings"
-
-	"github.com/wakatime/wakatime-cli/pkg/log"
 )
 
 // WithEntityModifier initializes and returns a heartbeat handle option, which
@@ -13,9 +11,8 @@ import (
 func WithEntityModifier() HandleOption {
 	return func(next Handle) Handle {
 		return func(ctx context.Context, hh []Heartbeat) ([]Result, error) {
-			logger := log.Extract(ctx)
-			logger.Debugln("execute heartbeat entity modifier")
-
+			// logger := log.Extract(ctx)
+			// logger.Debugln("execute heartbeat entity modifier")
 			for n, h := range hh {
 				// Support XCode playgrounds
 				if h.EntityType == FileType && isXCodePlayground(ctx, h.Entity) {

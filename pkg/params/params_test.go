@@ -3266,18 +3266,27 @@ func TestLoadAPIParams_APIURLs_ParseConfig(t *testing.T) {
 	assert.Equal(t, expected, params.URLPatterns)
 }
 
-func TestLoadAPIParams_APIURLs_InvalidFormat(t *testing.T) {
+func TestLoadAPIParams_APIURLs_MissingAPIKey(t *testing.T) {
 	ctx := t.Context()
 
 	v := vipertools.MustNew()
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("api_url", "https://default.com/api/v1")
 	v.Set("api_urls./work/projects", "https://work.example.com/api/v1") // missing api key
 
 	params, err := paramspkg.LoadAPIParams(ctx, v, paramspkg.FlagReadOrderFlagPrecedence)
 	require.NoError(t, err)
 
-	// Invalid format should be skipped with a warning
-	assert.Empty(t, params.URLPatterns)
+	// missing api key should default to api_key
+	expected := []apikey.URLPattern{
+		{
+			APIURL: "https://work.example.com/api/v1",
+			APIKey: "00000000-0000-4000-8000-000000000000",
+			Regex:  regex.NewRegexpWrap(regexp.MustCompile("(?i)/work/projects")),
+		},
+	}
+
+	assert.Equal(t, expected, params.URLPatterns)
 }
 
 func TestLoadAPIParams_APIURLs_InvalidAPIKey(t *testing.T) {
@@ -3293,6 +3302,29 @@ func TestLoadAPIParams_APIURLs_InvalidAPIKey(t *testing.T) {
 	var errAuth api.ErrAuth
 
 	assert.ErrorAs(t, err, &errAuth)
+}
+
+func TestLoadAPIParams_APIURLs_Empty(t *testing.T) {
+	ctx := t.Context()
+
+	v := vipertools.MustNew()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("api_url", "https://default.com/api/v1")
+	v.Set("api_urls./work/projects", "")
+
+	params, err := paramspkg.LoadAPIParams(ctx, v, paramspkg.FlagReadOrderFlagPrecedence)
+	require.NoError(t, err)
+
+	// empty string should default to api_url and api_key
+	expected := []apikey.URLPattern{
+		{
+			APIURL: "https://default.com/api/v1",
+			APIKey: "00000000-0000-4000-8000-000000000000",
+			Regex:  regex.NewRegexpWrap(regexp.MustCompile("(?i)/work/projects")),
+		},
+	}
+
+	assert.Equal(t, expected, params.URLPatterns)
 }
 
 func TestLoadAPIParams_APIURLs_NormalizesURL(t *testing.T) {

@@ -7,8 +7,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-
-	"github.com/wakatime/wakatime-cli/pkg/log"
 )
 
 // Subversion contains svn data.
@@ -19,11 +17,8 @@ type Subversion struct {
 
 // Detect gets information about the svn project for a given file.
 func (s Subversion) Detect(ctx context.Context) (Result, bool, error) {
-	logger := log.Extract(ctx)
-
-	binary, ok := findSvnBinary(ctx)
+	binary, ok := findSvnBinary()
 	if !ok {
-		logger.Debugln("svn binary not found")
 		return Result{}, false, nil
 	}
 
@@ -80,21 +75,18 @@ func svnInfo(fp string, binary string) (map[string]string, bool, error) {
 	return result, true, nil
 }
 
-func findSvnBinary(ctx context.Context) (string, bool) {
+func findSvnBinary() (string, bool) {
 	locations := []string{
 		"svn",
 		"/usr/bin/svn",
 		"/usr/local/bin/svn",
 	}
 
-	logger := log.Extract(ctx)
-
 	for _, loc := range locations {
 		cmd := exec.Command(loc, "--version") // nolint:gosec
 
 		err := cmd.Run()
 		if err != nil {
-			logger.Debugf("failed while calling %s --version: %s", loc, err)
 			continue
 		}
 

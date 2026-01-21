@@ -51,7 +51,7 @@ func WithQueue(filepath string) heartbeat.HandleOption {
 	return func(next heartbeat.Handle) heartbeat.Handle {
 		return func(ctx context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 			logger := log.Extract(ctx)
-			logger.Debugf("execute offline queue with file %s", filepath)
+			// logger.Debugf("execute offline queue with file %s", filepath)
 
 			if len(hh) == 0 {
 				logger.Debugln("abort execution, as there are no heartbeats ready for sending")
@@ -112,9 +112,7 @@ func QueueFilepath(ctx context.Context, v *viper.Viper) (string, error) {
 func WithSync(filepath string, syncLimit int) heartbeat.HandleOption {
 	return func(next heartbeat.Handle) heartbeat.Handle {
 		return func(ctx context.Context, _ []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
-			logger := log.Extract(ctx)
-			logger.Debugf("execute offline sync with file %s", filepath)
-
+			// logger.Debugf("execute offline sync with file %s", filepath)
 			err := Sync(ctx, filepath, syncLimit)(next)
 			if err != nil {
 				return nil, fmt.Errorf("failed to sync offline heartbeats: %s", err)

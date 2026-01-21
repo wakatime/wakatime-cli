@@ -58,9 +58,7 @@ type (
 func WithReplacing(config Config) heartbeat.HandleOption {
 	return func(next heartbeat.Handle) heartbeat.Handle {
 		return func(ctx context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
-			logger := log.Extract(ctx)
-			logger.Debugln("execute api key replacing")
-
+			// logger.Debugln("execute api key replacing")
 			var result []heartbeat.Heartbeat
 
 			for _, h := range hh {

@@ -14,7 +14,7 @@ func WithValidation() heartbeat.HandleOption {
 	return func(next heartbeat.Handle) heartbeat.Handle {
 		return func(ctx context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 			logger := log.Extract(ctx)
-			logger.Debugln("execute fileexperts validation")
+			// logger.Debugln("execute fileexperts validation")
 
 			var filtered []heartbeat.Heartbeat
 
