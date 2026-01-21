@@ -406,6 +406,147 @@ func TestSyncOfflineActivity_MultipleApiKey(t *testing.T) {
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
 
+func TestSyncOfflineActivity_MultipleAPIURLs(t *testing.T) {
+	resetSingleton(t)
+
+	// Setup default API server
+	defaultAPIURL, defaultRouter, closeDefault := setupTestServer()
+	defer closeDefault()
+
+	// Setup custom API server for work projects
+	customAPIURL, customRouter, closeCustom := setupTestServer()
+	defer closeCustom()
+
+	var (
+		plugin             = "plugin/0.0.1"
+		defaultServerCalls int
+		customServerCalls  int
+		mu                 sync.Mutex
+	)
+
+	// Handler for default server
+	defaultRouter.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
+		mu.Lock()
+		defaultServerCalls++
+		mu.Unlock()
+
+		// check request
+		assert.Equal(t, http.MethodPost, req.Method)
+		assert.Equal(t, []string{"Basic MDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAw"}, req.Header["Authorization"])
+
+		body, err := io.ReadAll(req.Body)
+		require.NoError(t, err)
+
+		var heartbeats []heartbeat.Heartbeat
+
+		err = json.Unmarshal(body, &heartbeats)
+		require.NoError(t, err)
+
+		// Generate dynamic response
+		var responses [][]any
+		for _, h := range heartbeats {
+			responses = append(responses, []any{
+				map[string]any{"data": map[string]string{"id": h.Entity}},
+				201,
+			})
+		}
+
+		w.WriteHeader(http.StatusCreated)
+
+		err = json.NewEncoder(w).Encode(map[string]any{"responses": responses})
+		require.NoError(t, err)
+	})
+
+	// Handler for custom server
+	customRouter.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
+		mu.Lock()
+		customServerCalls++
+		mu.Unlock()
+
+		// check request
+		assert.Equal(t, http.MethodPost, req.Method)
+		assert.Equal(t, []string{"Basic MDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAx"}, req.Header["Authorization"])
+
+		body, err := io.ReadAll(req.Body)
+		require.NoError(t, err)
+
+		var heartbeats []heartbeat.Heartbeat
+
+		err = json.Unmarshal(body, &heartbeats)
+		require.NoError(t, err)
+
+		// Generate dynamic response
+		var responses [][]any
+		for _, h := range heartbeats {
+			responses = append(responses, []any{
+				map[string]any{"data": map[string]string{"id": h.Entity}},
+				201,
+			})
+		}
+
+		w.WriteHeader(http.StatusCreated)
+
+		err = json.NewEncoder(w).Encode(map[string]any{"responses": responses})
+		require.NoError(t, err)
+	})
+
+	// setup offline queue with heartbeat that matches api_urls pattern
+	f, err := os.CreateTemp(t.TempDir(), "")
+	require.NoError(t, err)
+
+	db, err := bolt.Open(f.Name(), 0600, nil)
+	require.NoError(t, err)
+
+	// Create heartbeat with path that will match the api_urls pattern
+	workHeartbeat := heartbeat.Heartbeat{
+		Branch:         heartbeat.PointerTo("heartbeat"),
+		Category:       "coding",
+		CursorPosition: heartbeat.PointerTo(12),
+		Dependencies:   []string{"dep1", "dep2"},
+		Entity:         "/work/projects/main.go",
+		EntityType:     heartbeat.FileType,
+		IsWrite:        heartbeat.PointerTo(true),
+		Language:       heartbeat.PointerTo("Go"),
+		LineNumber:     heartbeat.PointerTo(42),
+		Lines:          heartbeat.PointerTo(100),
+		Project:        heartbeat.PointerTo("wakatime-cli"),
+		Time:           1592868367.219124,
+		UserAgent:      "wakatime/13.0.6",
+	}
+
+	workHeartbeatData, err := json.Marshal(workHeartbeat)
+	require.NoError(t, err)
+
+	insertHeartbeatRecords(t, db, "heartbeats", []heartbeatRecord{
+		{
+			ID:        "1592868367.219124-file-coding-wakatime-cli-heartbeat-/work/projects/main.go-true",
+			Heartbeat: string(workHeartbeatData),
+		},
+	})
+
+	err = db.Close()
+	require.NoError(t, err)
+
+	v := viper.New()
+	v.Set("api-url", defaultAPIURL)
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("sync-offline-activity", 100)
+	v.Set("plugin", plugin)
+	// Set api_urls pattern to match /work/ paths
+	v.Set("api_urls./work/", customAPIURL+"|00000000-0000-4000-8000-000000000001")
+
+	err = offlinesync.SyncOfflineActivity(t.Context(), v, f.Name())
+	require.NoError(t, err)
+
+	// Verify both servers received calls
+	assert.Eventually(t, func() bool {
+		mu.Lock()
+		defer mu.Unlock()
+
+		return defaultServerCalls >= 1 && customServerCalls >= 1
+	}, time.Second, 50*time.Millisecond)
+}
+
 func setupTestServer() (string, *http.ServeMux, func()) {
 	router := http.NewServeMux()
 	srv := httptest.NewServer(router)

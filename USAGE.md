@@ -53,6 +53,10 @@ projects/foo = new project name
 projects/foo = your-api-key
 ^/home/user/projects/bar(\d+)/ = your-api-key
 
+[api_urls]
+^/home/user/work/ = https://work.example.com/api/v1|your-work-api-key
+^/home/user/personal/ = https://personal.example.com/api/v1|your-personal-api-key
+
 [git]
 submodules_disabled = false
 project_from_git_remote = false
@@ -132,6 +136,33 @@ A key value pair list separated by new line, where the value before equal sign i
 projects/foo = your-api-key
 ^/home/user/projects/bar(\d+)/ = your-api-key
 ```
+
+### Api URLs Section
+
+A key value pair list separated by new line, where the key is a regex pattern and the value is an API URL and API key separated by a pipe (`|`). Use when heartbeats from certain paths should be sent to a different WakaTime-compatible server with a specific API key. This is useful for sending work-related coding activity to a corporate WakaTime server in addition to the default WakaTime API.
+
+The format is: `pattern = api_url|api_key`
+
+**Behavior:**
+
+- If `api_key` is set, heartbeats are **always** sent to `api_url` (default WakaTime API), **and also** to any matching `api_urls` patterns
+- If the same `api_url` + `api_key` combination exists in both the default settings and `api_urls`, the heartbeat is only sent once (deduplicated)
+- All matching patterns receive heartbeats, not just the first match
+
+```ini
+[api_urls]
+^/home/user/work/ = https://work.example.com/api/v1|your-work-api-key
+^/home/user/personal/ = https://personal.example.com/api/v1|your-personal-api-key
+.* = your-personal-api-key ⁠
+⁠.* = https://your-backup-server.com/api/v1|your-backup-api-key ⁠
+
+```
+
+With this configuration:
+
+- Files in `/home/user/work/` are sent to both the default WakaTime API (if `api_key` is set) AND `work.example.com`
+- Files in `/home/user/personal/` are sent to both the default WakaTime API (if `api_key` is set) AND `personal.example.com`
+- ⁠Files not matching the work or personal regex patterns are sent to both the default api url and your-backup-server.com (duplicated)
 
 ### Api Key Environment Variable
 

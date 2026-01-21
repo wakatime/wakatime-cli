@@ -178,6 +178,7 @@ type (
 		SSLCertFilepath  string
 		Timeout          time.Duration
 		URL              string
+		URLPatterns      []apikey.URLPattern
 	}
 
 	// ExtraHeartbeat contains extra heartbeat.
@@ -279,118 +280,28 @@ func LoadAPIParams(ctx context.Context, v *viper.Viper, order FlagReadOrder) (AP
 		return API{}, err
 	}
 
-	logger := log.Extract(ctx)
-
-	var apiKeyPatterns []apikey.MapPattern
-
-	apiKeyMap := vipertools.GetStringMapString(v, "project_api_key")
-
-	for k, s := range apiKeyMap {
-		// make all regex case insensitive
-		if !strings.HasPrefix(k, "(?i)") {
-			k = "(?i)" + k
-		}
-
-		compiled, err := regex.Compile(k)
-		if err != nil {
-			logger.Warnf("failed to compile project_api_key regex pattern %q", k)
-			continue
-		}
-
-		if !apiKeyRegex.MatchString(s) {
-			return API{}, api.ErrAuth{Err: fmt.Errorf("invalid api key format for %q", k)}
-		}
-
-		if s == apiKey {
-			continue
-		}
-
-		apiKeyPatterns = append(apiKeyPatterns, apikey.MapPattern{
-			APIKey: s,
-			Regex:  compiled,
-		})
-	}
-
-	apiURLStr := api.BaseURL
-
-	if u := vipertools.FirstNonEmptyString(v, "api-url", "apiurl", "settings.api_url"); u != "" {
-		apiURLStr = u
-	}
-
-	// remove endpoint from api base url to support legacy api_url param
-	apiURLStr = strings.TrimSuffix(apiURLStr, "/")
-	apiURLStr = strings.TrimSuffix(apiURLStr, ".bulk")
-	apiURLStr = strings.TrimSuffix(apiURLStr, "/users/current/heartbeats")
-	apiURLStr = strings.TrimSuffix(apiURLStr, "/heartbeats")
-	apiURLStr = strings.TrimSuffix(apiURLStr, "/heartbeat")
-
-	apiURL, err := url.Parse(apiURLStr)
+	apiKeyPatterns, err := loadAPIKeyPatterns(ctx, v, apiKey)
 	if err != nil {
-		return API{}, api.ErrAuth{Err: fmt.Errorf("invalid api url: %s", err)}
+		return API{}, err
 	}
 
-	var backoffAt time.Time
-
-	backoffAtStr := vipertools.GetString(v, "internal.backoff_at")
-	if backoffAtStr != "" {
-		parsed, err := safeTimeParse(ini.DateFormat, backoffAtStr)
-		// nolint:gocritic
-		if err != nil {
-			logger.Warnf("failed to parse backoff_at: %s", err)
-		} else if parsed.After(time.Now()) {
-			backoffAt = time.Now()
-		} else {
-			backoffAt = parsed
-		}
-	}
-
-	var backoffRetries = 0
-
-	backoffRetriesStr := vipertools.GetString(v, "internal.backoff_retries")
-	if backoffRetriesStr != "" {
-		parsed, err := strconv.Atoi(backoffRetriesStr)
-		if err != nil {
-			logger.Warnf("failed to parse backoff_retries: %s", err)
-		} else {
-			backoffRetries = parsed
-		}
-	}
-
-	hostname := vipertools.FirstNonEmptyString(v, "hostname", "settings.hostname")
-	gitpod := os.Getenv("GITPOD_WORKSPACE_ID")
-
-	if hostname == "" && gitpod != "" {
-		hostname = gitpodHostname
-	}
-
-	if hostname == "" {
-		hostname, err = os.Hostname()
-		if err != nil {
-			logger.Warnf("failed to retrieve hostname from system: %s", err)
-		}
-	}
-
-	proxyURL := vipertools.FirstNonEmptyString(v, "proxy", "settings.proxy")
-
-	rgx := proxyRegex
-	if strings.Contains(proxyURL, `\\`) {
-		rgx = ntlmProxyRegex
-	}
-
-	if proxyURL != "" && !rgx.MatchString(proxyURL) {
-		return API{}, api.ErrAuth{Err: fmt.Errorf(errMsgTemplate, proxyURL)}
-	}
-
-	proxyEnv := httpproxy.FromEnvironment()
-
-	proxyEnvURL, err := proxyEnv.ProxyFunc()(apiURL)
+	apiURLPatterns, err := loadAPIURLPatterns(ctx, v)
 	if err != nil {
-		logger.Warnf("failed to get proxy url from environment for api url: %s", err)
+		return API{}, err
 	}
 
-	// try use proxy from environment if no custom proxy is set
-	if proxyURL == "" && proxyEnvURL != nil {
-		proxyURL = proxyEnvURL.String()
+	apiURL, err := loadAPIURL(v)
+	if err != nil {
+		return API{}, err
+	}
+
+	backoffAt, backoffRetries := loadBackoffParams(ctx, v)
+
+	hostname := loadHostname(ctx, v)
+
+	proxyURL, err := loadProxyURL(ctx, v, apiURL)
+	if err != nil {
+		return API{}, err
 	}
 
 	sslCertFilepath := vipertools.FirstNonEmptyString(v, "ssl-certs-file", "settings.ssl_certs_file")
@@ -419,7 +330,198 @@ func LoadAPIParams(ctx context.Context, v *viper.Viper, order FlagReadOrder) (AP
 		SSLCertFilepath:  sslCertFilepath,
 		Timeout:          time.Duration(timeout) * time.Second,
 		URL:              apiURL.String(),
+		URLPatterns:      apiURLPatterns,
 	}, nil
+}
+
+func loadAPIKeyPatterns(ctx context.Context, v *viper.Viper, defaultAPIKey string) ([]apikey.MapPattern, error) {
+	logger := log.Extract(ctx)
+
+	var patterns []apikey.MapPattern
+
+	apiKeyMap := vipertools.GetStringMapString(v, "project_api_key")
+
+	for k, s := range apiKeyMap {
+		// make all regex case insensitive
+		if !strings.HasPrefix(k, "(?i)") {
+			k = "(?i)" + k
+		}
+
+		compiled, err := regex.Compile(k)
+		if err != nil {
+			logger.Warnf("failed to compile project_api_key regex pattern %q", k)
+			continue
+		}
+
+		if !apiKeyRegex.MatchString(s) {
+			return nil, api.ErrAuth{Err: fmt.Errorf("invalid api key format for %q", k)}
+		}
+
+		if s == defaultAPIKey {
+			continue
+		}
+
+		patterns = append(patterns, apikey.MapPattern{
+			APIKey: s,
+			Regex:  compiled,
+		})
+	}
+
+	return patterns, nil
+}
+
+func loadAPIURLPatterns(ctx context.Context, v *viper.Viper) ([]apikey.URLPattern, error) {
+	logger := log.Extract(ctx)
+
+	var patterns []apikey.URLPattern
+
+	apiURLMap := vipertools.GetStringMapString(v, "api_urls")
+
+	for k, s := range apiURLMap {
+		// make all regex case insensitive
+		if !strings.HasPrefix(k, "(?i)") {
+			k = "(?i)" + k
+		}
+
+		compiled, err := regex.Compile(k)
+		if err != nil {
+			logger.Warnf("failed to compile api_urls regex pattern %q", k)
+			continue
+		}
+
+		// split value by | to get api_url and api_key
+		parts := strings.SplitN(s, "|", 2)
+		if len(parts) != 2 {
+			logger.Warnf("invalid api_urls format for %q, expected 'api_url|api_key'", k)
+			continue
+		}
+
+		apiURLValue := strings.TrimSpace(parts[0])
+		apiKeyValue := strings.TrimSpace(parts[1])
+
+		if apiURLValue == "" {
+			logger.Warnf("empty api_url for %q", k)
+			continue
+		}
+
+		if !apiKeyRegex.MatchString(apiKeyValue) {
+			return nil, api.ErrAuth{Err: fmt.Errorf("invalid api key format in api_urls for %q", k)}
+		}
+
+		apiURLValue, err = normalizeURL(apiURLValue)
+		if err != nil {
+			logger.Warnf("invalid api_url format for %q: %s", k, err)
+			continue
+		}
+
+		patterns = append(patterns, apikey.URLPattern{
+			APIURL: apiURLValue,
+			APIKey: apiKeyValue,
+			Regex:  compiled,
+		})
+	}
+
+	return patterns, nil
+}
+
+func loadAPIURL(v *viper.Viper) (*url.URL, error) {
+	apiURLStr := api.BaseURL
+
+	if u := vipertools.FirstNonEmptyString(v, "api-url", "apiurl", "settings.api_url"); u != "" {
+		apiURLStr = u
+	}
+
+	apiURLStr, err := normalizeURL(apiURLStr)
+	if err != nil {
+		return nil, api.ErrAuth{Err: fmt.Errorf("invalid api url: %s", err)}
+	}
+
+	apiURL, err := url.Parse(apiURLStr)
+	if err != nil {
+		return nil, api.ErrAuth{Err: fmt.Errorf("failed to parse api url: %s", err)}
+	}
+
+	return apiURL, nil
+}
+
+func loadBackoffParams(ctx context.Context, v *viper.Viper) (backoffAt time.Time, backoffRetries int) {
+	logger := log.Extract(ctx)
+
+	backoffAtStr := vipertools.GetString(v, "internal.backoff_at")
+	if backoffAtStr != "" {
+		parsed, err := safeTimeParse(ini.DateFormat, backoffAtStr)
+		// nolint:gocritic
+		if err != nil {
+			logger.Warnf("failed to parse backoff_at: %s", err)
+		} else if parsed.After(time.Now()) {
+			backoffAt = time.Now()
+		} else {
+			backoffAt = parsed
+		}
+	}
+
+	backoffRetriesStr := vipertools.GetString(v, "internal.backoff_retries")
+	if backoffRetriesStr != "" {
+		parsed, err := strconv.Atoi(backoffRetriesStr)
+		if err != nil {
+			logger.Warnf("failed to parse backoff_retries: %s", err)
+		} else {
+			backoffRetries = parsed
+		}
+	}
+
+	return backoffAt, backoffRetries
+}
+
+func loadHostname(ctx context.Context, v *viper.Viper) string {
+	logger := log.Extract(ctx)
+
+	hostname := vipertools.FirstNonEmptyString(v, "hostname", "settings.hostname")
+	gitpod := os.Getenv("GITPOD_WORKSPACE_ID")
+
+	if hostname == "" && gitpod != "" {
+		hostname = gitpodHostname
+	}
+
+	if hostname == "" {
+		var err error
+
+		hostname, err = os.Hostname()
+		if err != nil {
+			logger.Warnf("failed to retrieve hostname from system: %s", err)
+		}
+	}
+
+	return hostname
+}
+
+func loadProxyURL(ctx context.Context, v *viper.Viper, apiURL *url.URL) (string, error) {
+	logger := log.Extract(ctx)
+
+	proxyURL := vipertools.FirstNonEmptyString(v, "proxy", "settings.proxy")
+
+	rgx := proxyRegex
+	if strings.Contains(proxyURL, `\\`) {
+		rgx = ntlmProxyRegex
+	}
+
+	if proxyURL != "" && !rgx.MatchString(proxyURL) {
+		return "", api.ErrAuth{Err: fmt.Errorf(errMsgTemplate, proxyURL)}
+	}
+
+	proxyEnv := httpproxy.FromEnvironment()
+
+	proxyEnvURL, err := proxyEnv.ProxyFunc()(apiURL)
+	if err != nil {
+		logger.Warnf("failed to get proxy url from environment for api url: %s", err)
+	}
+
+	// try use proxy from environment if no custom proxy is set
+	if proxyURL == "" && proxyEnvURL != nil {
+		proxyURL = proxyEnvURL.String()
+	}
+
+	return proxyURL, nil
 }
 
 // loadAPIKey loads a valid default WakaTime API Key or returns an error.
@@ -1286,6 +1388,22 @@ func (order FlagReadOrder) String() string {
 	default:
 		return "unknown"
 	}
+}
+
+func normalizeURL(apiURL string) (string, error) {
+	// validate and normalize the URL
+	apiURL = strings.TrimSuffix(apiURL, "/")
+	apiURL = strings.TrimSuffix(apiURL, ".bulk")
+	apiURL = strings.TrimSuffix(apiURL, "/users/current/heartbeats")
+	apiURL = strings.TrimSuffix(apiURL, "/heartbeats")
+	apiURL = strings.TrimSuffix(apiURL, "/heartbeat")
+
+	_, err := url.Parse(apiURL)
+	if err != nil {
+		return "", err
+	}
+
+	return apiURL, nil
 }
 
 func parseBoolOrRegexList(ctx context.Context, s string) ([]regex.Regex, error) {
