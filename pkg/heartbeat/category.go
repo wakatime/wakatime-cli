@@ -90,7 +90,7 @@ func WithCategory() HandleOption {
 	return func(next Handle) Handle {
 		return func(ctx context.Context, hh []Heartbeat) ([]Result, error) {
 			logger := log.Extract(ctx)
-			logger.Debugln("execute heartbeat category detection")
+			// logger.Debugln("execute heartbeat category detection")
 
 			for n, h := range hh {
 				// remove category coding if it was set by the user to avoid sending it to the API

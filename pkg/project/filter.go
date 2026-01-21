@@ -22,7 +22,7 @@ func WithFiltering(config FilterConfig) heartbeat.HandleOption {
 	return func(next heartbeat.Handle) heartbeat.Handle {
 		return func(ctx context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 			logger := log.Extract(ctx)
-			logger.Debugln("execute project filtering")
+			// logger.Debugln("execute project filtering")
 
 			var filtered []heartbeat.Heartbeat
 

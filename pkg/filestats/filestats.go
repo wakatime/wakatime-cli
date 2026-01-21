@@ -16,7 +16,7 @@ func WithDetection() heartbeat.HandleOption {
 	return func(next heartbeat.Handle) heartbeat.Handle {
 		return func(ctx context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 			logger := log.Extract(ctx)
-			logger.Debugln("execute filestats detection")
+			// logger.Debugln("execute filestats detection")
 
 			for n, h := range hh {
 				if h.EntityType != heartbeat.FileType {

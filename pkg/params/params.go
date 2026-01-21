@@ -280,17 +280,17 @@ func LoadAPIParams(ctx context.Context, v *viper.Viper, order FlagReadOrder) (AP
 		return API{}, err
 	}
 
+	apiURL, err := loadAPIURL(v)
+	if err != nil {
+		return API{}, err
+	}
+
 	apiKeyPatterns, err := loadAPIKeyPatterns(ctx, v, apiKey)
 	if err != nil {
 		return API{}, err
 	}
 
-	apiURLPatterns, err := loadAPIURLPatterns(ctx, v)
-	if err != nil {
-		return API{}, err
-	}
-
-	apiURL, err := loadAPIURL(v)
+	apiURLPatterns, err := loadAPIURLPatterns(ctx, v, apiURL, apiKey)
 	if err != nil {
 		return API{}, err
 	}
@@ -370,7 +370,12 @@ func loadAPIKeyPatterns(ctx context.Context, v *viper.Viper, defaultAPIKey strin
 	return patterns, nil
 }
 
-func loadAPIURLPatterns(ctx context.Context, v *viper.Viper) ([]apikey.URLPattern, error) {
+func loadAPIURLPatterns(
+	ctx context.Context,
+	v *viper.Viper,
+	defaultURL *url.URL,
+	defaultKey string,
+) ([]apikey.URLPattern, error) {
 	logger := log.Extract(ctx)
 
 	var patterns []apikey.URLPattern
@@ -391,13 +396,21 @@ func loadAPIURLPatterns(ctx context.Context, v *viper.Viper) ([]apikey.URLPatter
 
 		// split value by | to get api_url and api_key
 		parts := strings.SplitN(s, "|", 2)
-		if len(parts) != 2 {
+		if len(parts) > 2 {
 			logger.Warnf("invalid api_urls format for %q, expected 'api_url|api_key'", k)
 			continue
 		}
 
-		apiURLValue := strings.TrimSpace(parts[0])
-		apiKeyValue := strings.TrimSpace(parts[1])
+		apiURLValue := defaultURL.String()
+		apiKeyValue := defaultKey
+
+		if len(parts) > 0 && strings.TrimSpace(parts[0]) != "" {
+			apiURLValue = strings.TrimSpace(parts[0])
+		}
+
+		if len(parts) == 2 {
+			apiKeyValue = strings.TrimSpace(parts[1])
+		}
 
 		if apiURLValue == "" {
 			logger.Warnf("empty api_url for %q", k)
@@ -427,7 +440,7 @@ func loadAPIURLPatterns(ctx context.Context, v *viper.Viper) ([]apikey.URLPatter
 func loadAPIURL(v *viper.Viper) (*url.URL, error) {
 	apiURLStr := api.BaseURL
 
-	if u := vipertools.FirstNonEmptyString(v, "api-url", "apiurl", "settings.api_url"); u != "" {
+	if u := vipertools.FirstNonEmptyString(v, "api-url", "apiurl", "api_url", "settings.api_url"); u != "" {
 		apiURLStr = u
 	}
 

@@ -51,7 +51,7 @@ func WithDetection() heartbeat.HandleOption {
 	return func(next heartbeat.Handle) heartbeat.Handle {
 		return func(ctx context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 			logger := log.Extract(ctx)
-			logger.Debugln("execute remote file detection")
+			// logger.Debugln("execute remote file detection")
 
 			var filtered []heartbeat.Heartbeat
 
@@ -107,7 +107,7 @@ func WithCleanup() heartbeat.HandleOption {
 	return func(next heartbeat.Handle) heartbeat.Handle {
 		return func(ctx context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 			logger := log.Extract(ctx)
-			logger.Debugln("execute remote cleanup")
+			// logger.Debugln("execute remote cleanup")
 
 			for _, h := range hh {
 				if h.LocalFileNeedsCleanup {

@@ -427,7 +427,9 @@ func TestSyncOfflineActivity_MultipleAPIURLs(t *testing.T) {
 	// Handler for default server
 	defaultRouter.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
 		mu.Lock()
+
 		defaultServerCalls++
+
 		mu.Unlock()
 
 		// check request
@@ -460,7 +462,9 @@ func TestSyncOfflineActivity_MultipleAPIURLs(t *testing.T) {
 	// Handler for custom server
 	customRouter.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
 		mu.Lock()
+
 		customServerCalls++
+
 		mu.Unlock()
 
 		// check request

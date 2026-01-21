@@ -5,7 +5,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/regex"
 )
 
@@ -30,9 +29,7 @@ type SanitizeConfig struct {
 func WithSanitization(config SanitizeConfig) HandleOption {
 	return func(next Handle) Handle {
 		return func(ctx context.Context, hh []Heartbeat) ([]Result, error) {
-			logger := log.Extract(ctx)
-			logger.Debugln("execute heartbeat sanitization")
-
+			// logger.Debugln("execute heartbeat sanitization")
 			for n, h := range hh {
 				hh[n] = Sanitize(ctx, h, config)
 			}

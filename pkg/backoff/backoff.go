@@ -42,7 +42,7 @@ func WithBackoff(config Config) heartbeat.HandleOption {
 	return func(next heartbeat.Handle) heartbeat.Handle {
 		return func(ctx context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 			logger := log.Extract(ctx)
-			logger.Debugln("execute heartbeat backoff algorithm")
+			// logger.Debugln("execute heartbeat backoff algorithm")
 
 			if shouldBackoff(ctx, config.Retries, config.At) {
 				if config.HasProxy {

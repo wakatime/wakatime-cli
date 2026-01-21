@@ -25,7 +25,7 @@ func WithDetection(config Config) heartbeat.HandleOption {
 	return func(next heartbeat.Handle) heartbeat.Handle {
 		return func(ctx context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 			logger := log.Extract(ctx)
-			logger.Debugln("execute language detection")
+			// logger.Debugln("execute language detection")
 
 			for n, h := range hh {
 				if hh[n].Language != nil {
