@@ -251,7 +251,7 @@ jobs:
       -
         name: Calculate semver tag
         id: semver-tag
-        uses: wakatime/semver-action@master
+        uses: gandarez/semver-action@master
         with:
           prefix: v
           prerelease_id: alpha
