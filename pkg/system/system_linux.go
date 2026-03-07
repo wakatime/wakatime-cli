@@ -28,14 +28,14 @@ func OSName(ctx context.Context) string {
 	}
 
 	arr := buf.Sysname[:]
-	output := make([]byte, 0, len(arr))
+	output := make([]rune, 0, len(arr))
 
 	for _, c := range arr {
 		if c == 0x00 {
 			break
 		}
 
-		output = append(output, byte(c))
+		output = append(output, rune(c))
 	}
 
 	alternateOS := string(output)
