@@ -56,7 +56,7 @@ func svnInfo(fp string, binary string) (map[string]string, bool, error) {
 		return nil, false, nil
 	}
 
-	cmd := exec.Command(binary, "info", fp)
+	cmd := exec.Command(binary, "info", fp) //nolint:gosec // binary is selected from fixed allowlist in findSvnBinary.
 
 	out, err := cmd.Output()
 	if err != nil {

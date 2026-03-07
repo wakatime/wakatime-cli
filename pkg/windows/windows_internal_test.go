@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -31,16 +33,22 @@ The command completed successfully.`
 )
 
 // testCommander implements commander interface.
-type testCommander struct{}
+type testCommander struct {
+	allowed []string
+}
 
 // Command uses the test executable (taken from os.Args[0]), to execute
 // TestNetUseOutput test to emulate `net use` command execution.
-func (testCommander) Command(_ string, args ...string) *exec.Cmd {
+func (c testCommander) Command(name string, args ...string) *exec.Cmd {
 	cs := []string{"-test.run=TestNetUseOutput", "--"}
+	cs = append(cs, name)
 	cs = append(cs, args...)
 	// nolint:gosec
 	cmd := exec.Command(os.Args[0], cs...)
-	cmd.Env = []string{"GO_WANT_TEST_OUTPUT=1"}
+	cmd.Env = []string{
+		"GO_WANT_TEST_OUTPUT=1",
+		fmt.Sprintf("GO_ALLOWED_NET_NAMES=%s", strings.Join(c.allowed, ",")),
+	}
 
 	return cmd
 }
@@ -54,13 +62,45 @@ func TestNetUseOutput(*testing.T) {
 		return
 	}
 
-	defer os.Exit(0)
+	args := os.Args
+
+	idx := len(args)
+	for i, arg := range args {
+		if arg == "--" {
+			idx = i + 1
+			break
+		}
+	}
+
+	if idx+1 >= len(args) {
+		os.Exit(1)
+	}
+
+	name := args[idx]
+	if args[idx+1] != "use" {
+		os.Exit(1)
+	}
+
+	allowed := strings.Split(os.Getenv("GO_ALLOWED_NET_NAMES"), ",")
+	isAllowed := false
+
+	for _, candidate := range allowed {
+		if candidate == name {
+			isAllowed = true
+			break
+		}
+	}
+
+	if !isAllowed {
+		os.Exit(1)
+	}
 
 	fmt.Print(netUseOutputMultiple)
+	os.Exit(0)
 }
 
 func TestFormatLocalFilePath(t *testing.T) {
-	cmd = testCommander{}
+	cmd = testCommander{allowed: []string{"net", "net.exe"}}
 	formatted, err := FormatLocalFilePath(`X:\localfile`, `S:\entity`)
 	require.NoError(t, err)
 
@@ -73,7 +113,7 @@ func TestFormatLocalFilePath_LocalFileExists(t *testing.T) {
 
 	defer tmpFile.Close()
 
-	cmd = testCommander{}
+	cmd = testCommander{allowed: []string{"net", "net.exe"}}
 	formatted, err := FormatLocalFilePath(tmpFile.Name(), `S:\entity`)
 	require.NoError(t, err)
 
@@ -86,7 +126,7 @@ func TestFormatLocalFilePath_EntityExists(t *testing.T) {
 
 	defer tmpFile.Close()
 
-	cmd = testCommander{}
+	cmd = testCommander{allowed: []string{"net", "net.exe"}}
 	formatted, err := FormatLocalFilePath(`X:\localfile`, tmpFile.Name())
 	require.NoError(t, err)
 
@@ -94,7 +134,7 @@ func TestFormatLocalFilePath_EntityExists(t *testing.T) {
 }
 
 func TestToUncPath(t *testing.T) {
-	cmd = testCommander{}
+	cmd = testCommander{allowed: []string{"net", "net.exe"}}
 	x, err := toUncPath(`S:\path\to\file`)
 	require.NoError(t, err)
 
@@ -102,11 +142,23 @@ func TestToUncPath(t *testing.T) {
 }
 
 func TestToUncPath_NoDrive(t *testing.T) {
-	cmd = testCommander{}
+	cmd = testCommander{allowed: []string{"net", "net.exe"}}
 	x, err := toUncPath(`path\to\file`)
 	require.NoError(t, err)
 
 	assert.Equal(t, `path\to\file`, x)
+}
+
+func TestToUncPath_FallbackToSystem32NetExe(t *testing.T) {
+	t.Setenv("WINDIR", `C:\Windows`)
+
+	system32NetExe := filepath.Join(`C:\Windows`, "System32", "net.exe")
+	cmd = testCommander{allowed: []string{system32NetExe}}
+
+	x, err := toUncPath(`S:\path\to\file`)
+	require.NoError(t, err)
+
+	assert.Equal(t, `\\tower\Movies\path\to\file`, x)
 }
 
 func TestParseNetUseOutput(t *testing.T) {

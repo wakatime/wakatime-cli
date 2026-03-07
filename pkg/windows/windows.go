@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"unicode"
@@ -71,6 +72,7 @@ type realCommander struct{}
 
 // Command calls exec.Command function.
 func (realCommander) Command(name string, args ...string) *exec.Cmd {
+	//nolint:gosec // Wrapper for dependency injection in tests; callers provide validated command values.
 	return exec.Command(name, args...)
 }
 
@@ -113,7 +115,7 @@ func toUncPath(fp string) (string, error) {
 		return fp, nil
 	}
 
-	out, err := cmd.Command("net use").Output()
+	out, err := netUseOutput()
 	if err != nil {
 		return "", fmt.Errorf("failed to execute net use command: %s", err)
 	}
@@ -128,6 +130,34 @@ func toUncPath(fp string) (string, error) {
 	}
 
 	return fp, nil
+}
+
+func netUseOutput() ([]byte, error) {
+	var (
+		out     []byte
+		err     error
+		cmdErrs []string
+	)
+
+	cmds := [][]string{
+		{"net", "use"},
+		{"net.exe", "use"},
+	}
+
+	if winDir := os.Getenv("WINDIR"); winDir != "" {
+		cmds = append(cmds, []string{filepath.Join(winDir, "System32", "net.exe"), "use"})
+	}
+
+	for _, args := range cmds {
+		out, err = cmd.Command(args[0], args[1:]...).Output()
+		if err == nil {
+			return out, nil
+		}
+
+		cmdErrs = append(cmdErrs, fmt.Sprintf("%q: %s", strings.Join(args, " "), err))
+	}
+
+	return nil, errors.New(strings.Join(cmdErrs, "; "))
 }
 
 // driveLetter represents the letter of a drive.

@@ -443,6 +443,7 @@ func (c Client) sshClient(ctx context.Context) (*ssh.Client, error) {
 
 	// Try to use $SSH_AUTH_SOCK which contains the path of the unix file socket that the sshd agent uses
 	// for communication with other processes
+	//nolint:gosec // SSH_AUTH_SOCK is a local unix-domain socket path used for ssh-agent authentication.
 	if aconn, err := net.Dial("unix", os.Getenv("SSH_AUTH_SOCK")); err == nil {
 		auths = append(auths, ssh.PublicKeysCallback(agent.NewClient(aconn).Signers))
 	}
