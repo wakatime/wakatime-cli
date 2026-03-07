@@ -26,7 +26,7 @@ PR branch names must use one of the following prefixes:
 - `^docs?/.+` - `build`
 - `^misc/.+` - `build`
 
-This branching strategy comes from [semver-action](https://github.com/wakatime/semver-action#branch-names).
+This branching strategy comes from [semver-action](https://github.com/gandarez/semver-action#branch-names).
 
 We use two branches:
 
