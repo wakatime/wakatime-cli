@@ -50,6 +50,7 @@ func NewClient(baseURL string, opts ...Option) *Client {
 		},
 		doFunc: func(c *Client, req *http.Request) (*http.Response, error) {
 			req.Header.Set("Accept", "application/json")
+			//nolint:gosec // Request target comes from configured API URL and internal request construction.
 			return c.client.Do(req)
 		},
 	}
