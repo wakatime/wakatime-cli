@@ -188,7 +188,7 @@ func parseNetUseOutput(text string) (remoteDrives, error) {
 		if cols.Empty() {
 			cols, err = parseNetUseColumns(line)
 			if err != nil {
-				return nil, fmt.Errorf("failed to parse columns from 'net use' output: %s", err)
+				return nil, fmt.Errorf("%s from 'net use' output: %s", err, strings.Join(lines, "\n"))
 			}
 
 			continue
