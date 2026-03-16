@@ -253,6 +253,8 @@ jobs:
         id: semver-tag
         uses: gandarez/semver-action@master
         with:
+          debug: true
+          branching_model: trunk-based
           prefix: v
           prerelease_id: alpha
           main_branch_name: release
