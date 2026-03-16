@@ -253,9 +253,12 @@ jobs:
         id: semver-tag
         uses: gandarez/semver-action@master
         with:
+          debug: true
+          branching_model: git-flow
+          develop_branch_name: develop
+          main_branch_name: release
           prefix: v
           prerelease_id: alpha
-          main_branch_name: release
       - name: Create tag
         uses: actions/github-script@v7
         with:
