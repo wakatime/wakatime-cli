@@ -1,106 +1,22 @@
 package windows
 
 import (
-	"fmt"
+	"errors"
 	"os"
-	"os/exec"
-	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-const (
-	netUseOutputOne = `New connections will be remembered.
-
-Status       Local     Remote                    Network
-
--------------------------------------------------------------------------------
-OK           Z:        \\remotepc\share          Microsoft Windows Network
-The command completed successfully.`
-	netUseOutputMultiple = `New connections will be remembered.
-
-Status       Local     Remote                    Network
-
--------------------------------------------------------------------------------
-OK           S:        \\tower\Movies            Microsoft Windows Network
-OK                     \\tower\Buildings         Microsoft Windows Network
-             T:        \\tower\Music             Microsoft Windows Network
-Unavailable  U:        \\tower\Pictures          Microsoft Windows Network
-The command completed successfully.`
-)
-
-// testCommander implements commander interface.
-type testCommander struct {
-	allowed []string
-}
-
-// Command uses the test executable (taken from os.Args[0]), to execute
-// TestNetUseOutput test to emulate `net use` command execution.
-func (c testCommander) Command(name string, args ...string) *exec.Cmd {
-	cs := []string{"-test.run=TestNetUseOutput", "--"}
-	cs = append(cs, name)
-	cs = append(cs, args...)
-	// nolint:gosec
-	cmd := exec.Command(os.Args[0], cs...)
-	cmd.Env = []string{
-		"GO_WANT_TEST_OUTPUT=1",
-		fmt.Sprintf("GO_ALLOWED_NET_NAMES=%s", strings.Join(c.allowed, ",")),
-	}
-
-	return cmd
-}
-
-// TestNetUseOutput is only used to be triggered by testCommander.Command.
-// If trigger by testCommander.Command is detected via set GO_WANT_TEST_OUTPUT
-// environment variable, it will emulates `net use` command usage by writing
-// mocked `net use` output to stdout.
-func TestNetUseOutput(*testing.T) {
-	if os.Getenv("GO_WANT_TEST_OUTPUT") != "1" {
-		return
-	}
-
-	args := os.Args
-
-	idx := len(args)
-	for i, arg := range args {
-		if arg == "--" {
-			idx = i + 1
-			break
-		}
-	}
-
-	if idx+1 >= len(args) {
-		os.Exit(1)
-	}
-
-	name := args[idx]
-	if args[idx+1] != "use" {
-		os.Exit(1)
-	}
-
-	allowed := strings.Split(os.Getenv("GO_ALLOWED_NET_NAMES"), ",")
-	isAllowed := false
-
-	for _, candidate := range allowed {
-		if candidate == name {
-			isAllowed = true
-			break
-		}
-	}
-
-	if !isAllowed {
-		os.Exit(1)
-	}
-
-	fmt.Print(netUseOutputMultiple)
-	os.Exit(0)
-}
-
 func TestFormatLocalFilePath(t *testing.T) {
-	cmd = testCommander{allowed: []string{"net", "net.exe"}}
+	restore := stubWindowsAPIs(
+		func(string) (uint32, error) { return driveRemote, nil },
+		func(string) (string, error) { return `\\tower\Movies\entity`, nil },
+		func(string) (string, error) { return `\\tower\Movies\entity`, nil },
+	)
+	defer restore()
+
 	formatted, err := FormatLocalFilePath(`X:\localfile`, `S:\entity`)
 	require.NoError(t, err)
 
@@ -113,7 +29,13 @@ func TestFormatLocalFilePath_LocalFileExists(t *testing.T) {
 
 	defer tmpFile.Close()
 
-	cmd = testCommander{allowed: []string{"net", "net.exe"}}
+	restore := stubWindowsAPIs(
+		func(string) (uint32, error) { return driveRemote, nil },
+		func(string) (string, error) { return `\\tower\Movies\entity`, nil },
+		func(string) (string, error) { return `\\tower\Movies\entity`, nil },
+	)
+	defer restore()
+
 	formatted, err := FormatLocalFilePath(tmpFile.Name(), `S:\entity`)
 	require.NoError(t, err)
 
@@ -126,7 +48,13 @@ func TestFormatLocalFilePath_EntityExists(t *testing.T) {
 
 	defer tmpFile.Close()
 
-	cmd = testCommander{allowed: []string{"net", "net.exe"}}
+	restore := stubWindowsAPIs(
+		func(string) (uint32, error) { return driveRemote, nil },
+		func(string) (string, error) { return `\\tower\Movies\entity`, nil },
+		func(string) (string, error) { return `\\tower\Movies\entity`, nil },
+	)
+	defer restore()
+
 	formatted, err := FormatLocalFilePath(`X:\localfile`, tmpFile.Name())
 	require.NoError(t, err)
 
@@ -134,7 +62,22 @@ func TestFormatLocalFilePath_EntityExists(t *testing.T) {
 }
 
 func TestToUncPath(t *testing.T) {
-	cmd = testCommander{allowed: []string{"net", "net.exe"}}
+	restore := stubWindowsAPIs(
+		func(root string) (uint32, error) {
+			assert.Equal(t, `S:\`, root)
+			return driveRemote, nil
+		},
+		func(path string) (string, error) {
+			assert.Equal(t, `S:\path\to\file`, path)
+			return `\\tower\Movies\path\to\file`, nil
+		},
+		func(string) (string, error) {
+			t.Fatal("WNetGetConnection fallback should not be used for full path")
+			return "", nil
+		},
+	)
+	defer restore()
+
 	x, err := toUncPath(`S:\path\to\file`)
 	require.NoError(t, err)
 
@@ -142,18 +85,48 @@ func TestToUncPath(t *testing.T) {
 }
 
 func TestToUncPath_NoDrive(t *testing.T) {
-	cmd = testCommander{allowed: []string{"net", "net.exe"}}
 	x, err := toUncPath(`path\to\file`)
 	require.NoError(t, err)
 
 	assert.Equal(t, `path\to\file`, x)
 }
 
-func TestToUncPath_FallbackToSystem32NetExe(t *testing.T) {
-	t.Setenv("WINDIR", `C:\Windows`)
+func TestToUncPath_LocalDrive(t *testing.T) {
+	restore := stubWindowsAPIs(
+		func(root string) (uint32, error) {
+			assert.Equal(t, `C:\`, root)
+			return 3, nil
+		},
+		func(string) (string, error) {
+			t.Fatal("WNetGetUniversalName should not be called for local drives")
+			return "", nil
+		},
+		func(string) (string, error) {
+			t.Fatal("WNetGetConnection should not be called for local drives")
+			return "", nil
+		},
+	)
+	defer restore()
 
-	system32NetExe := filepath.Join(`C:\Windows`, "System32", "net.exe")
-	cmd = testCommander{allowed: []string{system32NetExe}}
+	x, err := toUncPath(`C:\path\to\file`)
+	require.NoError(t, err)
+
+	assert.Equal(t, `C:\path\to\file`, x)
+}
+
+func TestToUncPath_FallbackToConnectionName(t *testing.T) {
+	restore := stubWindowsAPIs(
+		func(string) (uint32, error) { return driveRemote, nil },
+		func(path string) (string, error) {
+			assert.Equal(t, `S:\path\to\file`, path)
+			return "", errNotSupported
+		},
+		func(localName string) (string, error) {
+			assert.Equal(t, "S:", localName)
+			return `\\tower\Movies`, nil
+		},
+	)
+	defer restore()
 
 	x, err := toUncPath(`S:\path\to\file`)
 	require.NoError(t, err)
@@ -161,51 +134,63 @@ func TestToUncPath_FallbackToSystem32NetExe(t *testing.T) {
 	assert.Equal(t, `\\tower\Movies\path\to\file`, x)
 }
 
-func TestParseNetUseOutput(t *testing.T) {
-	tests := map[string]struct {
-		Output   string
-		Expected remoteDrives
-	}{
-		"one drive": {
-			Output: netUseOutputOne,
-			Expected: remoteDrives{
-				"Z": `\\remotepc\share`,
-			},
+func TestToUncPath_RootPathUsesConnectionName(t *testing.T) {
+	restore := stubWindowsAPIs(
+		func(string) (uint32, error) { return driveRemote, nil },
+		func(string) (string, error) {
+			t.Fatal("WNetGetUniversalName should not be called for bare drive roots")
+			return "", nil
 		},
-		"multiple drive": {
-			Output: netUseOutputMultiple,
-			Expected: remoteDrives{
-				"S": `\\tower\Movies`,
-				"T": `\\tower\Music`,
-				"U": `\\tower\Pictures`,
-			},
+		func(localName string) (string, error) {
+			assert.Equal(t, "S:", localName)
+			return `\\tower\Movies`, nil
 		},
-	}
+	)
+	defer restore()
 
-	for name, test := range tests {
-		t.Run(name, func(t *testing.T) {
-			drives, err := parseNetUseOutput(test.Output)
-			require.NoError(t, err)
-
-			assert.Equal(t, test.Expected, drives)
-		})
-	}
-}
-
-func TestParseNetUseColumns(t *testing.T) {
-	columns, err := parseNetUseColumns(`Status       Local     Remote       Network`)
+	x, err := toUncPath(`S:`)
 	require.NoError(t, err)
 
-	assert.Equal(t, netUseColumns{
-		Local: netUseColumn{
-			Start: 13,
-			Width: 10,
-		},
-		Remote: netUseColumn{
-			Start: 23,
-			Width: 13,
-		},
-	}, columns)
+	assert.Equal(t, `\\tower\Movies`, x)
+}
+
+func TestToUncPath_GetDriveTypeError(t *testing.T) {
+	restore := stubWindowsAPIs(
+		func(string) (uint32, error) { return 0, errors.New("boom") },
+		func(string) (string, error) { return "", nil },
+		func(string) (string, error) { return "", nil },
+	)
+	defer restore()
+
+	_, err := toUncPath(`S:\path\to\file`)
+	require.Error(t, err)
+	assert.ErrorContains(t, err, `failed to get drive type for "S:\\"`)
+}
+
+func TestToUncPath_GetUniversalNameError(t *testing.T) {
+	restore := stubWindowsAPIs(
+		func(string) (uint32, error) { return driveRemote, nil },
+		func(string) (string, error) { return "", errors.New("boom") },
+		func(string) (string, error) { return "", nil },
+	)
+	defer restore()
+
+	_, err := toUncPath(`S:\path\to\file`)
+	require.Error(t, err)
+	assert.ErrorContains(t, err, `failed to get universal path for "S:\\path\\to\\file"`)
+}
+
+func TestToUncPath_GetConnectionNameError(t *testing.T) {
+	restore := stubWindowsAPIs(
+		func(string) (uint32, error) { return driveRemote, nil },
+		func(string) (string, error) { return "", errNotSupported },
+		func(string) (string, error) { return "", errors.New("boom") },
+	)
+	defer restore()
+
+	_, err := toUncPath(`S:\path\to\file`)
+	require.Error(t, err)
+	assert.ErrorContains(t, err, `failed to get connection name for "S:"`)
 }
 
 func TestSplitDrive(t *testing.T) {
@@ -248,5 +233,25 @@ func TestSplitDrive(t *testing.T) {
 			assert.Equal(t, test.ExpectedDriveLetter, driveLetter)
 			assert.Equal(t, test.ExpectedPath, path)
 		})
+	}
+}
+
+func stubWindowsAPIs(
+	driveType func(string) (uint32, error),
+	universalName func(string) (string, error),
+	connectionName func(string) (string, error),
+) func() {
+	prevDriveType := getDriveType
+	prevUniversalName := getUniversalName
+	prevConnectionName := getConnectionName
+
+	getDriveType = driveType
+	getUniversalName = universalName
+	getConnectionName = connectionName
+
+	return func() {
+		getDriveType = prevDriveType
+		getUniversalName = prevUniversalName
+		getConnectionName = prevConnectionName
 	}
 }
