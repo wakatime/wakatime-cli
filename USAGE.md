@@ -116,6 +116,7 @@ Notice how you have to include the exclude patterns from your main `~/.wakatime.
 | import_cfg                     | Optional path to another wakatime.cfg file to import. If set it will overwrite values loaded from $WAKATIME_HOME/.wakatime.cfg file.                                                                                                                                   | _filepath_    |                                   |
 | metrics                        | When set, collects metrics usage in '~/.wakatime/metrics' folder. For further reference visit <https://go.dev/blog/pprof>.                                                                                                                                             | _bool_        | `false`                           |
 | guess_language                 | When `true`, enables detecting programming language from file contents.                                                                                                                                                                                                | _bool_        | `false`                           |
+| sync_ai_disabled               | When `true`, disables detecting AI Coding from AI transcript session logs. By default, transcript logs for Claude, Codex, Cursor, etc. are parsed to find when AI edited or read files in your projects.                                                               | _bool_        | `false`                           |
 
 ### Project Map Section
 

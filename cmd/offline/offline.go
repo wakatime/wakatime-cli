@@ -19,8 +19,13 @@ import (
 // SaveHeartbeats saves heartbeats to the offline db without trying to send to the API.
 // Used when we have more heartbeats than `offline.SendLimit`, when we couldn't send
 // heartbeats to the API, or the API returned an auth error.
-func SaveHeartbeats(ctx context.Context, v *viper.Viper, heartbeats []heartbeat.Heartbeat, queueFilepath string) error {
-	params, err := LoadParams(ctx, v, params.FlagReadOrderFlagPrecedence)
+func SaveHeartbeats(
+	ctx context.Context,
+	v *viper.Viper,
+	queueFilepath string,
+	heartbeats []heartbeat.Heartbeat,
+) error {
+	params, err := loadParams(ctx, v, params.FlagReadOrderFlagPrecedence)
 	if err != nil {
 		return fmt.Errorf("failed to load command parameters: %w", err)
 	}
@@ -34,87 +39,25 @@ func SaveHeartbeats(ctx context.Context, v *viper.Viper, heartbeats []heartbeat.
 		return errors.New("saving to offline db disabled")
 	}
 
-	if heartbeats == nil {
-		// We're not saving surplus extra heartbeats, so save
-		// main heartbeat and all extra heartbeats to offline db
-		heartbeats = buildHeartbeats(ctx, params)
+	if len(heartbeats) == 0 {
+		return nil
+	}
+
+	if params.Offline.Disabled {
+		return errors.New("saving to offline db disabled")
 	}
 
 	handleOpts := initHandleOptions()
 	sender := heartbeat.NewHandle(Noop{}, filter.WithLengthValidator(), offline.WithQueue(queueFilepath))
 	handle := handler.New(v, handler.Config{
 		Params:       params,
-		ParamsLoader: LoadParams,
+		ParamsLoader: loadParams,
 		Opts:         handleOpts,
 	})(sender)
 
 	_, _ = handle(ctx, heartbeats)
 
 	return nil
-}
-
-// LoadParams loads params from viper.Viper instance. Returns ErrAuth
-// if failed to retrieve api key.
-func LoadParams(ctx context.Context, v *viper.Viper, order params.FlagReadOrder) (params.Params, error) {
-	logger := log.Extract(ctx)
-
-	paramAPI, err := params.LoadAPIParams(ctx, v, order)
-	if err != nil {
-		logger.Warnf("failed to load API parameters: %s", err)
-	}
-
-	paramHeartbeat, err := params.LoadHeartbeatParams(ctx, v, order)
-	if err != nil {
-		return params.Params{}, fmt.Errorf("failed to load heartbeat parameters: %s", err)
-	}
-
-	return params.Params{
-		API:       paramAPI,
-		Heartbeat: paramHeartbeat,
-		Offline:   params.LoadOfflineParams(ctx, v, order),
-	}, nil
-}
-
-func buildHeartbeats(ctx context.Context, params params.Params) []heartbeat.Heartbeat {
-	heartbeats := []heartbeat.Heartbeat{}
-
-	userAgent := heartbeat.UserAgent(ctx, params.API.Plugin)
-
-	heartbeats = append(heartbeats, heartbeat.New(
-		params.Heartbeat.AILineChanges,
-		params.Heartbeat.Project.BranchAlternate,
-		params.Heartbeat.Category.String(),
-		params.Heartbeat.CursorPosition,
-		params.Heartbeat.Entity,
-		params.Heartbeat.EntityType,
-		params.Heartbeat.HumanLineChanges,
-		params.Heartbeat.IsUnsavedEntity,
-		params.Heartbeat.IsWrite,
-		params.Heartbeat.Language,
-		params.Heartbeat.LanguageAlternate,
-		params.Heartbeat.LineNumber,
-		params.Heartbeat.LinesInFile,
-		params.Heartbeat.LocalFile,
-		params.Heartbeat.Project.Alternate,
-		params.Heartbeat.Project.ProjectFromGitRemote,
-		params.Heartbeat.Project.Override,
-		params.Heartbeat.Sanitize.ProjectPathOverride,
-		params.Heartbeat.Time,
-		userAgent,
-	))
-
-	if len(params.Heartbeat.ExtraHeartbeats) > 0 {
-		logger := log.Extract(ctx)
-		logger.Debugf("include %d extra heartbeat(s) from stdin", len(params.Heartbeat.ExtraHeartbeats))
-
-		for _, h := range params.Heartbeat.ExtraHeartbeats {
-			h.UserAgent = userAgent
-
-			heartbeats = append(heartbeats, h)
-		}
-	}
-
-	return heartbeats
 }
 
 func initHandleOptions() []handler.Preprocessor {
@@ -132,6 +75,36 @@ func initHandleOptions() []handler.Preprocessor {
 		handler.WithHeartbeatSanitization(),
 		handler.WithRemoteCleanup(),
 	}
+}
+
+func loadParams(
+	ctx context.Context,
+	v *viper.Viper,
+	order params.FlagReadOrder,
+) (params.Params, error) {
+	if v == nil {
+		return params.Params{}, errors.New("viper instance unset")
+	}
+
+	// ignore api param errors so we can still save heartbeats offline
+	apiParams, _ := params.LoadAPIParams(ctx, v, order)
+
+	aiParams, err := params.LoadAIParams(ctx, v, params.FlagReadOrderFlagPrecedence)
+	if err != nil {
+		return params.Params{}, fmt.Errorf("failed to load ai params: %w", err)
+	}
+
+	heartbeatParams, err := params.LoadHeartbeatParams(ctx, v, order)
+	if err != nil {
+		return params.Params{}, fmt.Errorf("failed to load heartbeat params: %s", err)
+	}
+
+	return params.Params{
+		AI:        aiParams,
+		API:       apiParams,
+		Heartbeat: heartbeatParams,
+		Offline:   params.LoadOfflineParams(ctx, v, order),
+	}, nil
 }
 
 func setLogFields(ctx context.Context, params params.Params) {

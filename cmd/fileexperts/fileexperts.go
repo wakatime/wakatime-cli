@@ -108,6 +108,7 @@ func LoadParams(ctx context.Context, v *viper.Viper, order params.FlagReadOrder)
 	}
 
 	return params.Params{
+		AI:        heartbeatParams.AIParams,
 		API:       apiParams,
 		Heartbeat: heartbeatParams,
 		StatusBar: statusBarParams,

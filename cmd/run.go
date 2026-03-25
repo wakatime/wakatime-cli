@@ -30,7 +30,7 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/log/setup"
 	"github.com/wakatime/wakatime-cli/pkg/metrics"
 	"github.com/wakatime/wakatime-cli/pkg/offline"
-	"github.com/wakatime/wakatime-cli/pkg/params"
+	pkgparams "github.com/wakatime/wakatime-cli/pkg/params"
 	"github.com/wakatime/wakatime-cli/pkg/vipertools"
 	"github.com/wakatime/wakatime-cli/pkg/wakaerror"
 
@@ -58,7 +58,7 @@ func RunE(cmd *cobra.Command, v *viper.Viper) error {
 		logger.Errorf("failed to parse config files: %s", err)
 
 		if v.IsSet("entity") {
-			_ = saveHeartbeats(ctx, v)
+			_ = fallbackSaveHeartbeats(ctx, v)
 
 			return exitcode.Err{Code: exitcode.ErrConfigFileParse}
 		}
@@ -312,7 +312,7 @@ func runCmd(ctx context.Context, v *viper.Viper, verbose bool, sendDiagsOnErrors
 	return errresponse
 }
 
-func saveHeartbeats(ctx context.Context, v *viper.Viper) int {
+func fallbackSaveHeartbeats(ctx context.Context, v *viper.Viper) int {
 	logger := log.Extract(ctx)
 
 	queueFilepath, err := offline.QueueFilepath(ctx, v)
@@ -320,7 +320,16 @@ func saveHeartbeats(ctx context.Context, v *viper.Viper) int {
 		logger.Warnf("failed to load offline queue filepath: %s", err)
 	}
 
-	if err := cmdoffline.SaveHeartbeats(ctx, v, nil, queueFilepath); err != nil {
+	apiParams, _ := pkgparams.LoadAPIParams(ctx, v, pkgparams.FlagReadOrderFlagPrecedence)
+
+	heartbeatParams, err := pkgparams.LoadHeartbeatParams(ctx, v, pkgparams.FlagReadOrderFlagPrecedence)
+	if err != nil {
+		logger.Errorf("failed to load command parameters: %s", err)
+	}
+
+	heartbeats := cmdheartbeat.BuildHeartbeats(ctx, apiParams.Plugin, heartbeatParams)
+
+	if err := cmdoffline.SaveHeartbeats(ctx, v, queueFilepath, heartbeats); err != nil {
 		logger.Errorf("failed to save heartbeats to offline queue: %s", err)
 
 		return exitcode.ErrGeneric
@@ -330,7 +339,7 @@ func saveHeartbeats(ctx context.Context, v *viper.Viper) int {
 }
 
 func sendDiagnostics(ctx context.Context, v *viper.Viper, d diagnostics) error {
-	paramAPI, err := params.LoadAPIParams(ctx, v, params.FlagReadOrderFlagPrecedence)
+	paramAPI, err := pkgparams.LoadAPIParams(ctx, v, pkgparams.FlagReadOrderFlagPrecedence)
 	if err != nil {
 		return fmt.Errorf("failed to load API parameters: %s", err)
 	}

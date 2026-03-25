@@ -206,7 +206,7 @@ func InternalFilePath(ctx context.Context, v *viper.Viper) (string, error) {
 	return filepath.Join(folder, defaultInternalFile), nil
 }
 
-// WakaHomeDir returns the current user's home directory.
+// WakaHomeDir returns WAKATIME_HOME or the current user's home directory.
 func WakaHomeDir(ctx context.Context) (string, WakaHomeType, error) {
 	logger := log.Extract(ctx)
 
@@ -220,13 +220,25 @@ func WakaHomeDir(ctx context.Context) (string, WakaHomeType, error) {
 		logger.Warnf("failed to expand WAKATIME_HOME filepath: %s. It will try to get user home dir.", err)
 	}
 
+	home, err := UserHomeDir(ctx)
+	if err != nil {
+		return "", WakaHomeTypeUnknown, err
+	}
+
+	return home, WakaHomeTypeOSDir, nil
+}
+
+// UserHomeDir returns the current user's home directory.
+func UserHomeDir(ctx context.Context) (string, error) {
+	logger := log.Extract(ctx)
+
 	home, err := os.UserHomeDir()
 	if err != nil {
 		logger.Warnf("failed to get user home dir: %s", err)
 	}
 
 	if home != "" {
-		return home, WakaHomeTypeOSDir, nil
+		return home, nil
 	}
 
 	u, err := user.LookupId(strconv.Itoa(os.Getuid()))
@@ -234,11 +246,11 @@ func WakaHomeDir(ctx context.Context) (string, WakaHomeType, error) {
 		logger.Warnf("failed to user info by userid: %s", err)
 	}
 
-	if u.HomeDir != "" {
-		return u.HomeDir, WakaHomeTypeOSDir, nil
+	if u != nil && u.HomeDir != "" {
+		return u.HomeDir, nil
 	}
 
-	return "", WakaHomeTypeUnknown, fmt.Errorf("could not determine wakatime home dir")
+	return "", fmt.Errorf("could not determine wakatime home dir")
 }
 
 // WakaResourcesDir returns the ~/.wakatime/ folder.
