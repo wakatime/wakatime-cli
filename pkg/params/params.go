@@ -159,6 +159,7 @@ var (
 type (
 	// Params contains params.
 	Params struct {
+		AI        AIParams
 		API       API
 		Heartbeat Heartbeat
 		Offline   Offline
@@ -205,6 +206,7 @@ type (
 
 	// Heartbeat contains heartbeat command parameters.
 	Heartbeat struct {
+		AIParams          AIParams
 		AILineChanges     *int
 		Category          heartbeat.Category
 		CursorPosition    *int
@@ -232,6 +234,12 @@ type (
 		ExcludeUnknownProject      bool
 		Include                    []regex.Regex
 		IncludeOnlyWithProjectFile bool
+	}
+
+	// AIParams contains AI sync command parameters.
+	AIParams struct {
+		SyncAfterTime time.Time
+		SyncDisabled  bool
 	}
 
 	// Offline contains offline related parameters.
@@ -673,12 +681,18 @@ func LoadHeartbeatParams(ctx context.Context, v *viper.Viper, order FlagReadOrde
 		return Heartbeat{}, fmt.Errorf("failed to load sanitize params: %s", err)
 	}
 
+	aiParams, err := LoadAIParams(ctx, v, order)
+	if err != nil {
+		return Heartbeat{}, fmt.Errorf("failed to load ai params: %s", err)
+	}
+
 	var language *string
 	if l := vipertools.GetString(v, "language"); l != "" {
 		language = &l
 	}
 
 	return Heartbeat{
+		AIParams:          aiParams,
 		AILineChanges:     aiLineChanges,
 		Category:          category,
 		CursorPosition:    cursorPosition,
@@ -852,6 +866,23 @@ func loadProjectMapPatterns(ctx context.Context, v *viper.Viper, prefix string) 
 	}
 
 	return mapPatterns
+}
+
+// LoadAIParams loads ai sync params from viper.Viper instance.
+func LoadAIParams(_ context.Context, v *viper.Viper, _ FlagReadOrder) (AIParams, error) {
+	syncAIAfter := v.GetFloat64("sync-ai-after")
+
+	var syncAfterTime time.Time
+	if syncAIAfter == 0 {
+		syncAfterTime = time.Now().Add(-2 * time.Minute)
+	} else {
+		syncAfterTime = time.Unix(0, int64(syncAIAfter*float64(time.Second)))
+	}
+
+	return AIParams{
+		SyncAfterTime: syncAfterTime,
+		SyncDisabled:  v.GetBool("sync-ai-disabled") || v.GetBool("settings.sync_ai_disabled"),
+	}, nil
 }
 
 // LoadOfflineParams loads offline params from viper.Viper instance.

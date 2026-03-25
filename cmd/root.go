@@ -242,6 +242,12 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 		"Override the bundled CA certs file. By default, uses"+
 			" system ca certs.",
 	)
+	flags.Float64("sync-ai-after", 0, "Parse AI transcript logs for Claude, Codex, Copilot, "+
+		"Cursor, etc. after a floating-point unix epoch timestamp. Sends any AI heartbeats"+
+		"along with normal heartbeats, changing the category of normal heartbeats to "+
+		"'AI Coding' before sending.")
+	flags.Bool("sync-ai-disabled", false, "Disable parsing AI transcript logs when sending heartbeats. "+
+		"By default, AI transcript logs are parsed every time when sending heartbeats.")
 	flags.Int(
 		"sync-offline-activity",
 		offline.SyncMaxDefault,
