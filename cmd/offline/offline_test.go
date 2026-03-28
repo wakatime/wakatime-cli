@@ -1,13 +1,17 @@
 package offline_test
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"testing"
 
+	cmdheartbeat "github.com/wakatime/wakatime-cli/cmd/heartbeat"
 	cmdoffline "github.com/wakatime/wakatime-cli/cmd/offline"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/offline"
+	"github.com/wakatime/wakatime-cli/pkg/params"
 
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
@@ -43,7 +47,10 @@ func TestSaveHeartbeats(t *testing.T) {
 	v.Set("timeout", 5)
 	v.Set("write", true)
 
-	err = cmdoffline.SaveHeartbeats(ctx, v, nil, offlineQueueFile.Name())
+	hh, err := testBuildHeartbeats(ctx, v)
+	require.NoError(t, err)
+
+	err = cmdoffline.SaveHeartbeats(ctx, v, offlineQueueFile.Name(), hh)
 	require.NoError(t, err)
 
 	offlineCount, err := offline.CountHeartbeats(ctx, offlineQueueFile.Name())
@@ -78,7 +85,7 @@ func TestSaveHeartbeats_ExtraHeartbeats(t *testing.T) {
 	v.Set("entity", "testdata/main.go")
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 
-	err = cmdoffline.SaveHeartbeats(ctx, v, hh, offlineQueueFile.Name())
+	err = cmdoffline.SaveHeartbeats(ctx, v, offlineQueueFile.Name(), hh)
 	require.NoError(t, err)
 
 	offlineCount, err := offline.CountHeartbeats(ctx, offlineQueueFile.Name())
@@ -106,7 +113,24 @@ func TestSaveHeartbeats_OfflineDisabled(t *testing.T) {
 	v.Set("entity", "testdata/main.go")
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 
-	err = cmdoffline.SaveHeartbeats(ctx, v, nil, offlineQueueFile.Name())
+	hh, err := testBuildHeartbeats(ctx, v)
+	require.NoError(t, err)
+
+	err = cmdoffline.SaveHeartbeats(ctx, v, offlineQueueFile.Name(), hh)
 
 	assert.EqualError(t, err, "saving to offline db disabled")
+}
+
+func testBuildHeartbeats(ctx context.Context, v *viper.Viper) ([]heartbeat.Heartbeat, error) {
+	apiParams, err := params.LoadAPIParams(ctx, v, params.FlagReadOrderFlagPrecedence)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load API parameters: %w", err)
+	}
+
+	heartbeatParams, err := params.LoadHeartbeatParams(ctx, v, params.FlagReadOrderFlagPrecedence)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load heartbeat params: %w", err)
+	}
+
+	return cmdheartbeat.BuildHeartbeats(ctx, apiParams.Plugin, heartbeatParams), nil
 }

@@ -1,6 +1,7 @@
 package heartbeat_test
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -130,7 +131,10 @@ func TestSendHeartbeats(t *testing.T) {
 
 	defer offlineQueueFile.Close()
 
-	err = cmdheartbeat.SendHeartbeats(t.Context(), v, offlineQueueFile.Name())
+	params, heartbeats, err := testLoadParamsAndHeartbeats(t.Context(), v)
+	require.NoError(t, err)
+
+	err = cmdheartbeat.SendHeartbeats(t.Context(), v, params, offlineQueueFile.Name(), heartbeats)
 	require.NoError(t, err)
 
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
@@ -191,7 +195,10 @@ func TestSendHeartbeats_RateLimited(t *testing.T) {
 	v.Set("offline-queue-file", offlineQueueFile.Name())
 	v.Set("internal.heartbeats_last_sent_at", time.Now().Add(-time.Minute).Format(time.RFC3339))
 
-	err = cmdheartbeat.SendHeartbeats(t.Context(), v, offlineQueueFile.Name())
+	params, heartbeats, err := testLoadParamsAndHeartbeats(t.Context(), v)
+	require.NoError(t, err)
+
+	err = cmdheartbeat.SendHeartbeats(t.Context(), v, params, offlineQueueFile.Name(), heartbeats)
 	require.NoError(t, err)
 
 	assert.Zero(t, numCalls)
@@ -229,7 +236,10 @@ func TestSendHeartbeats_WithFiltering_Exclude(t *testing.T) {
 
 	defer offlineQueueFile.Close()
 
-	err = cmdheartbeat.SendHeartbeats(t.Context(), v, offlineQueueFile.Name())
+	params, heartbeats, err := testLoadParamsAndHeartbeats(t.Context(), v)
+	require.NoError(t, err)
+
+	err = cmdheartbeat.SendHeartbeats(t.Context(), v, params, offlineQueueFile.Name(), heartbeats)
 	require.NoError(t, err)
 
 	assert.Equal(t, 0, numCalls)
@@ -267,7 +277,10 @@ func TestSendHeartbeats_WithFiltering_Exclude_All(t *testing.T) {
 
 	defer offlineQueueFile.Close()
 
-	err = cmdheartbeat.SendHeartbeats(t.Context(), v, offlineQueueFile.Name())
+	params, heartbeats, err := testLoadParamsAndHeartbeats(t.Context(), v)
+	require.NoError(t, err)
+
+	err = cmdheartbeat.SendHeartbeats(t.Context(), v, params, offlineQueueFile.Name(), heartbeats)
 	require.NoError(t, err)
 
 	assert.Equal(t, 0, numCalls)
@@ -409,7 +422,10 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 
 	defer offlineQueueFile.Close()
 
-	err = cmdheartbeat.SendHeartbeats(ctx, v, offlineQueueFile.Name())
+	params, heartbeats, err := testLoadParamsAndHeartbeats(ctx, v)
+	require.NoError(t, err)
+
+	err = cmdheartbeat.SendHeartbeats(ctx, v, params, offlineQueueFile.Name(), heartbeats)
 	require.NoError(t, err)
 
 	offlineCount, err := offline.CountHeartbeats(ctx, offlineQueueFile.Name())
@@ -572,7 +588,10 @@ func TestSendHeartbeats_ExtraHeartbeatsNestedError(t *testing.T) {
 
 	defer offlineQueueFile.Close()
 
-	err = cmdheartbeat.SendHeartbeats(ctx, v, offlineQueueFile.Name())
+	params, heartbeats, err := testLoadParamsAndHeartbeats(ctx, v)
+	require.NoError(t, err)
+
+	err = cmdheartbeat.SendHeartbeats(ctx, v, params, offlineQueueFile.Name(), heartbeats)
 	require.NoError(t, err)
 
 	output, err := io.ReadAll(logFile)
@@ -665,7 +684,10 @@ func TestSendHeartbeats_ExtraHeartbeats_Sanitize(t *testing.T) {
 
 	defer offlineQueueFile.Close()
 
-	err = cmdheartbeat.SendHeartbeats(ctx, v, offlineQueueFile.Name())
+	params, heartbeats, err := testLoadParamsAndHeartbeats(ctx, v)
+	require.NoError(t, err)
+
+	err = cmdheartbeat.SendHeartbeats(ctx, v, params, offlineQueueFile.Name(), heartbeats)
 	require.NoError(t, err)
 
 	offlineCount, err := offline.CountHeartbeats(ctx, offlineQueueFile.Name())
@@ -760,7 +782,10 @@ func TestSendHeartbeats_NonExistingEntity(t *testing.T) {
 
 	defer offlineQueueFile.Close()
 
-	err = cmdheartbeat.SendHeartbeats(ctx, v, offlineQueueFile.Name())
+	params, heartbeats, err := testLoadParamsAndHeartbeats(ctx, v)
+	require.NoError(t, err)
+
+	err = cmdheartbeat.SendHeartbeats(ctx, v, params, offlineQueueFile.Name(), heartbeats)
 	require.NoError(t, err)
 
 	output, err := io.ReadAll(logFile)
@@ -895,7 +920,10 @@ func TestSendHeartbeats_ExtraHeartbeatsIsUnsavedEntity(t *testing.T) {
 
 	defer offlineQueueFile.Close()
 
-	err = cmdheartbeat.SendHeartbeats(ctx, v, offlineQueueFile.Name())
+	params, heartbeats, err := testLoadParamsAndHeartbeats(ctx, v)
+	require.NoError(t, err)
+
+	err = cmdheartbeat.SendHeartbeats(ctx, v, params, offlineQueueFile.Name(), heartbeats)
 	require.NoError(t, err)
 
 	output, err := io.ReadAll(logFile)
@@ -1021,13 +1049,45 @@ func TestSendHeartbeats_NonExistingExtraHeartbeatsEntity(t *testing.T) {
 
 	defer offlineQueueFile.Close()
 
-	err = cmdheartbeat.SendHeartbeats(ctx, v, offlineQueueFile.Name())
+	params, heartbeats, err := testLoadParamsAndHeartbeats(ctx, v)
+	require.NoError(t, err)
+
+	err = cmdheartbeat.SendHeartbeats(ctx, v, params, offlineQueueFile.Name(), heartbeats)
 	require.NoError(t, err)
 
 	output, err := io.ReadAll(logFile)
 	require.NoError(t, err)
 
 	assert.Contains(t, string(output), "skipping because of non-existing file")
+}
+
+func TestSendHeartbeats_MissingHeartbeatEntity(t *testing.T) {
+	resetSingleton(t)
+
+	_, router, tearDown := setupTestServer()
+	defer tearDown()
+
+	var numCalls int
+
+	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, _ *http.Request) {
+		numCalls++
+
+		w.WriteHeader(http.StatusCreated)
+	})
+
+	v := viper.New()
+
+	_, err := cmdheartbeat.Run(t.Context(), v)
+	require.Error(t, err)
+
+	assert.EqualError(
+		t,
+		err,
+		"failed to save heartbeats to offline queue: failed to load command parameters: "+
+			"failed to load heartbeat params: failed to retrieve entity",
+	)
+
+	assert.Eventually(t, func() bool { return numCalls == 0 }, time.Second, 50*time.Millisecond)
 }
 
 func TestSendHeartbeats_ErrAuth_UnsetAPIKey(t *testing.T) {
@@ -1044,24 +1104,28 @@ func TestSendHeartbeats_ErrAuth_UnsetAPIKey(t *testing.T) {
 		w.WriteHeader(http.StatusCreated)
 	})
 
-	v := viper.New()
+	tmpDir := t.TempDir()
 
-	offlineQueueFile, err := os.CreateTemp(t.TempDir(), "")
+	logFile, err := os.CreateTemp(tmpDir, "")
 	require.NoError(t, err)
 
-	defer offlineQueueFile.Close()
+	defer logFile.Close()
 
-	err = cmdheartbeat.SendHeartbeats(t.Context(), v, offlineQueueFile.Name())
+	v := viper.New()
+	v.Set("internal.backoff_at", time.Now().Add(10*time.Minute).Format(ini.DateFormat))
+	v.Set("internal.backoff_retries", "1")
+	v.SetDefault("sync-offline-activity", 1000)
+	v.Set("entity", "testdata/main.go")
+	v.Set("entity-type", "file")
+	v.Set("log-file", logFile.Name())
+
+	_, err = cmdheartbeat.Run(t.Context(), v)
 	require.Error(t, err)
-
-	var errauth api.ErrAuth
-
-	assert.ErrorAs(t, err, &errauth)
 
 	assert.EqualError(
 		t,
 		err,
-		"failed to load command parameters: failed to load API parameters: api key not found or empty",
+		"failed to load heartbeat command parameters: failed to load API parameters: api key not found or empty",
 	)
 
 	assert.Eventually(t, func() bool { return numCalls == 0 }, time.Second, 50*time.Millisecond)
@@ -1112,7 +1176,10 @@ func TestSendHeartbeats_ErrBackoff(t *testing.T) {
 
 	defer offlineQueueFile.Close()
 
-	err = cmdheartbeat.SendHeartbeats(ctx, v, offlineQueueFile.Name())
+	params, heartbeats, err := testLoadParamsAndHeartbeats(ctx, v)
+	require.NoError(t, err)
+
+	err = cmdheartbeat.SendHeartbeats(ctx, v, params, offlineQueueFile.Name(), heartbeats)
 	require.ErrorAs(t, err, &api.ErrBackoff{})
 
 	assert.Equal(t, 0, numCalls)
@@ -1174,7 +1241,10 @@ func TestSendHeartbeats_ErrBackoff_Verbose(t *testing.T) {
 
 	defer offlineQueueFile.Close()
 
-	err = cmdheartbeat.SendHeartbeats(ctx, v, offlineQueueFile.Name())
+	params, heartbeats, err := testLoadParamsAndHeartbeats(ctx, v)
+	require.NoError(t, err)
+
+	err = cmdheartbeat.SendHeartbeats(ctx, v, params, offlineQueueFile.Name(), heartbeats)
 	require.Error(t, err)
 	assert.ErrorAs(t, err, &api.ErrBackoff{})
 
@@ -1281,7 +1351,10 @@ func TestSendHeartbeats_ObfuscateProject(t *testing.T) {
 
 	defer offlineQueueFile.Close()
 
-	err = cmdheartbeat.SendHeartbeats(ctx, v, offlineQueueFile.Name())
+	params, heartbeats, err := testLoadParamsAndHeartbeats(ctx, v)
+	require.NoError(t, err)
+
+	err = cmdheartbeat.SendHeartbeats(ctx, v, params, offlineQueueFile.Name(), heartbeats)
 	require.NoError(t, err)
 
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
@@ -1373,7 +1446,10 @@ func TestSendHeartbeats_ObfuscateProjectNotBranch(t *testing.T) {
 
 	defer offlineQueueFile.Close()
 
-	err = cmdheartbeat.SendHeartbeats(ctx, v, offlineQueueFile.Name())
+	params, heartbeats, err := testLoadParamsAndHeartbeats(ctx, v)
+	require.NoError(t, err)
+
+	err = cmdheartbeat.SendHeartbeats(ctx, v, params, offlineQueueFile.Name(), heartbeats)
 	require.NoError(t, err)
 
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
@@ -1425,4 +1501,33 @@ func resetSingleton(t *testing.T) {
 	t.Helper()
 
 	params.Once = sync.Once{}
+}
+
+func testLoadParamsAndHeartbeats(
+	ctx context.Context,
+	v *viper.Viper,
+) (params.Params, []heartbeat.Heartbeat, error) {
+	apiParams, err := params.LoadAPIParams(ctx, v, params.FlagReadOrderFlagPrecedence)
+	if err != nil {
+		return params.Params{}, nil, fmt.Errorf("failed to load API parameters: %w", err)
+	}
+
+	heartbeatParams, err := params.LoadHeartbeatParams(ctx, v, params.FlagReadOrderFlagPrecedence)
+	if err != nil {
+		return params.Params{}, nil, fmt.Errorf("failed to load heartbeat params: %w", err)
+	}
+
+	aiParams, err := params.LoadAIParams(ctx, v, params.FlagReadOrderFlagPrecedence)
+	if err != nil {
+		return params.Params{}, nil, fmt.Errorf("failed to load ai params: %w", err)
+	}
+
+	loaded := params.Params{
+		AI:        aiParams,
+		API:       apiParams,
+		Heartbeat: heartbeatParams,
+		Offline:   params.LoadOfflineParams(ctx, v, params.FlagReadOrderFlagPrecedence),
+	}
+
+	return loaded, cmdheartbeat.BuildHeartbeats(ctx, apiParams.Plugin, heartbeatParams), nil
 }

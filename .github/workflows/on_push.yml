@@ -259,6 +259,7 @@ jobs:
           main_branch_name: release
           prefix: v
           prerelease_id: alpha
+          major_regex: (?i)^(.+:)?(major/.+|release/.+)
       - name: Create tag
         uses: actions/github-script@v7
         with:
