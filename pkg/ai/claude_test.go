@@ -61,7 +61,7 @@ func TestClaudeParse(t *testing.T) {
 	require.NotNil(t, got[0].IsWrite)
 	assert.True(t, *got[0].IsWrite)
 	assert.Equal(t, float64(time.Date(2026, 3, 18, 12, 0, 0, 0, time.UTC).Unix()), got[0].Time)
-	assert.Contains(t, got[0].UserAgent, "Claude Code/2.1.45")
+	assert.Contains(t, got[0].UserAgent, "ClaudeCode/2.1.45")
 }
 
 func TestClaudeParse_NoClaudeProjectsDir(t *testing.T) {

@@ -17,6 +17,8 @@ type Config struct {
 // ParserID represents an AI Parser ID.
 type ParserID int
 
+const maxTranscriptLineSize = 10 * 1024 * 1024
+
 const (
 	// UnknownParser is the parser ID used when not detected.
 	UnknownParser ParserID = iota
@@ -138,7 +140,9 @@ func parseAIHeartbeats(ctx context.Context, config Config) (Heartbeats, error) {
 		Claude{
 			After: config.SyncAfterTime,
 		},
-		// Codex{},
+		Codex{
+			After: config.SyncAfterTime,
+		},
 		// Cursor{},
 	}
 
