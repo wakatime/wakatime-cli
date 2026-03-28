@@ -14,8 +14,6 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/log"
 )
 
-const maxClaudeTranscriptLineSize = 10 * 1024 * 1024
-
 // Claude contains params for detecting heartbeats from Claude transcripts.
 type Claude struct {
 	After time.Time
@@ -41,7 +39,7 @@ type (
 		StructuredPatch *[]structuredPatch `json:"structuredPatch"`
 	}
 
-	logLine struct {
+	claudeLogLine struct {
 		Timestamp     time.Time      `json:"timestamp"`
 		Version       string         `json:"version"`
 		ToolUseResult *toolUseResult `json:"toolUseResult"`
@@ -126,15 +124,38 @@ func (g Claude) transcriptPaths(ctx context.Context) ([]string, error) {
 func (g Claude) parseTranscript(ctx context.Context, transcript string) (Heartbeats, error) {
 	logger := log.Extract(ctx)
 
-	//nolint:gosec // Transcript paths are discovered from ~/.claude/projects in transcriptPaths.
+	//nolint:gosec
 	fh, err := os.Open(filepath.Clean(transcript))
 	if err != nil {
 		return nil, fmt.Errorf("failed to open claude transcript %q: %s", transcript, err)
 	}
 	defer fh.Close() // nolint:errcheck,gosec
 
+	info, err := fh.Stat()
+	if err != nil {
+		return nil, fmt.Errorf("failed to stat claude transcript %q: %s", transcript, err)
+	}
+
+	skipFirstLine := false
+
+	if info.Size() > maxTranscriptLineSize {
+		if _, err := fh.Seek(info.Size()-maxTranscriptLineSize, 0); err != nil {
+			return nil, fmt.Errorf("failed to seek claude transcript %q: %s", transcript, err)
+		}
+
+		skipFirstLine = true
+	}
+
 	scanner := bufio.NewScanner(fh)
-	scanner.Buffer(make([]byte, 0, 64*1024), maxClaudeTranscriptLineSize)
+	scanner.Buffer(make([]byte, 0, 64*1024), maxTranscriptLineSize)
+
+	if skipFirstLine {
+		scanner.Scan()
+
+		if err := scanner.Err(); err != nil {
+			return nil, fmt.Errorf("failed to read claude transcript %q: %s", transcript, err)
+		}
+	}
 
 	var heartbeats Heartbeats
 
@@ -150,7 +171,7 @@ func (g Claude) parseTranscript(ctx context.Context, transcript string) (Heartbe
 			continue
 		}
 
-		var logLine logLine
+		var logLine claudeLogLine
 		if err := json.Unmarshal(line, &logLine); err != nil {
 			logger.Warnf("failed parsing claude transcript line from %q: %s", transcript, err)
 			logger.Debugf("failed parsing claude transcript line: %s", line)
@@ -174,7 +195,7 @@ func (g Claude) parseTranscript(ctx context.Context, transcript string) (Heartbe
 			continue
 		}
 
-		filePath := getFilePath(*logLine.ToolUseResult)
+		filePath := getClaudeFilePath(*logLine.ToolUseResult)
 		if filePath == "" {
 			continue
 		}
@@ -214,7 +235,7 @@ func (g Claude) parseTranscript(ctx context.Context, transcript string) (Heartbe
 	return heartbeats, nil
 }
 
-func getFilePath(result toolUseResult) string {
+func getClaudeFilePath(result toolUseResult) string {
 	if result.FilePath != nil {
 		return *result.FilePath
 	}
@@ -253,10 +274,10 @@ func claudeLineChanges(result toolUseResult) int {
 
 func claudePlugin(version string) string {
 	if version == "" {
-		return "Claude Code"
+		return "ClaudeCode"
 	}
 
-	return "Claude Code/" + version
+	return "ClaudeCode/" + version
 }
 
 // ID returns its id.
