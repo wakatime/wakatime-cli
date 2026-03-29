@@ -25,15 +25,20 @@ type (
 		OldLines int `json:"oldLines"`
 	}
 
+	contentValue struct {
+		String *string
+		Array  *[]json.RawMessage
+	}
+
 	toolUseResultFile struct {
-		Content  *string `json:"content"`
-		FilePath *string `json:"filePath"`
+		Content  *contentValue `json:"content"`
+		FilePath *string       `json:"filePath"`
 	}
 
 	toolUseResult struct {
 		Type            *string            `json:"type"`
 		File            *toolUseResultFile `json:"file"`
-		Content         *string            `json:"content"`
+		Content         *contentValue      `json:"content"`
 		FilePath        *string            `json:"filePath"`
 		OriginalFile    *string            `json:"originalFile"`
 		StructuredPatch *[]structuredPatch `json:"structuredPatch"`
@@ -50,6 +55,28 @@ type (
 		ToolUseResult *toolUseResultValue `json:"toolUseResult"`
 	}
 )
+
+func (v *contentValue) UnmarshalJSON(data []byte) error {
+	if string(data) == "null" {
+		return nil
+	}
+
+	var str string
+	if err := json.Unmarshal(data, &str); err == nil {
+		v.String = &str
+
+		return nil
+	}
+
+	var arr []json.RawMessage
+	if err := json.Unmarshal(data, &arr); err == nil {
+		v.Array = &arr
+
+		return nil
+	}
+
+	return fmt.Errorf("unsupported content type")
+}
 
 func (v *toolUseResultValue) UnmarshalJSON(data []byte) error {
 	if string(data) == "null" {
@@ -280,10 +307,10 @@ func claudeLineChanges(result toolUseResult) int {
 		return lineChanges
 	}
 
-	if result.Content != nil && result.OriginalFile == nil {
+	if result.Content != nil && result.Content.String != nil && result.OriginalFile == nil {
 		lineChanges := 1
 
-		for _, char := range *result.Content {
+		for _, char := range *result.Content.String {
 			if char == '\n' {
 				lineChanges++
 			}
