@@ -25,15 +25,20 @@ type (
 		OldLines int `json:"oldLines"`
 	}
 
+	contentValue struct {
+		String *string
+		Array  *[]json.RawMessage
+	}
+
 	toolUseResultFile struct {
-		Content  *string `json:"content"`
-		FilePath *string `json:"filePath"`
+		Content  *contentValue `json:"content"`
+		FilePath *string       `json:"filePath"`
 	}
 
 	toolUseResult struct {
 		Type            *string            `json:"type"`
 		File            *toolUseResultFile `json:"file"`
-		Content         *string            `json:"content"`
+		Content         *contentValue      `json:"content"`
 		FilePath        *string            `json:"filePath"`
 		OriginalFile    *string            `json:"originalFile"`
 		StructuredPatch *[]structuredPatch `json:"structuredPatch"`
@@ -50,6 +55,28 @@ type (
 		ToolUseResult *toolUseResultValue `json:"toolUseResult"`
 	}
 )
+
+func (v *contentValue) UnmarshalJSON(data []byte) error {
+	if string(data) == "null" {
+		return nil
+	}
+
+	var str string
+	if err := json.Unmarshal(data, &str); err == nil {
+		v.String = &str
+
+		return nil
+	}
+
+	var arr []json.RawMessage
+	if err := json.Unmarshal(data, &arr); err == nil {
+		v.Array = &arr
+
+		return nil
+	}
+
+	return fmt.Errorf("unsupported content type")
+}
 
 func (v *toolUseResultValue) UnmarshalJSON(data []byte) error {
 	if string(data) == "null" {
@@ -71,6 +98,40 @@ func (v *toolUseResultValue) UnmarshalJSON(data []byte) error {
 	}
 
 	return fmt.Errorf("unsupported toolUseResult type")
+}
+
+func (v *contentValue) lineChanges() int {
+	if v == nil {
+		return 0
+	}
+
+	if v.String != nil {
+		return countStringLines(*v.String)
+	}
+
+	if v.Array == nil {
+		return 0
+	}
+
+	lineChanges := 0
+
+	for _, item := range *v.Array {
+		var str string
+		if err := json.Unmarshal(item, &str); err == nil {
+			lineChanges += countStringLines(str)
+
+			continue
+		}
+
+		var block struct {
+			Text *string `json:"text"`
+		}
+		if err := json.Unmarshal(item, &block); err == nil && block.Text != nil {
+			lineChanges += countStringLines(*block.Text)
+		}
+	}
+
+	return lineChanges
 }
 
 // Parse parses the Claude JSONL session transcript logs for ai heartbeats.
@@ -280,19 +341,29 @@ func claudeLineChanges(result toolUseResult) int {
 		return lineChanges
 	}
 
-	if result.Content != nil && result.OriginalFile == nil {
-		lineChanges := 1
-
-		for _, char := range *result.Content {
-			if char == '\n' {
-				lineChanges++
-			}
+	if result.OriginalFile == nil {
+		if lineChanges := result.Content.lineChanges(); lineChanges != 0 {
+			return lineChanges
 		}
 
-		return lineChanges
+		if result.File != nil {
+			return result.File.Content.lineChanges()
+		}
 	}
 
 	return 0
+}
+
+func countStringLines(content string) int {
+	lineChanges := 1
+
+	for _, char := range content {
+		if char == '\n' {
+			lineChanges++
+		}
+	}
+
+	return lineChanges
 }
 
 func claudePlugin(version string) string {
