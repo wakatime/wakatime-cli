@@ -206,16 +206,12 @@ func (g Claude) parseTranscript(ctx context.Context, transcript string) (Heartbe
 			continue
 		}
 
-		if logLine.Timestamp.IsZero() {
+		if logLine.Timestamp.IsZero() || logLine.Timestamp.Before(g.After) {
 			continue
 		}
 
 		if logLine.Version != "" {
 			claudeVersion = logLine.Version
-		}
-
-		if logLine.Timestamp.Before(g.After) {
-			continue
 		}
 
 		if logLine.ToolUseResult == nil || logLine.ToolUseResult.Object == nil {
