@@ -252,7 +252,7 @@ jobs:
       -
         name: Calculate semver tag
         id: semver-tag
-        uses: gandarez/semver-action@master
+        uses: alanhamlett/semver-action@master
         with:
           debug: true
           branching_model: git-flow
