@@ -38,6 +38,9 @@ func TestClaudeParse(t *testing.T) {
 		"{\"timestamp\":\"2026-03-18T12:20:00Z\",\"toolUseResult\":{" +
 			"\"agentId\":\"worker-1\",\"agentType\":\"worker\",\"content\":[{" +
 			"\"type\":\"text\",\"text\":\"summary block\"}]}}",
+		"{\"timestamp\":\"2026-03-18T12:25:00Z\",\"toolUseResult\":{" +
+			"\"filePath\":\"/tmp/array.go\",\"content\":[{" +
+			"\"type\":\"text\",\"text\":\"first\\nsecond\"},{\"type\":\"text\",\"text\":\"third\"}]}}",
 		"{\"timestamp\":\"2026-03-18T12:30:00Z\",\"toolUseResult\":{" +
 			"\"filePath\":\"/tmp/new.go\",\"content\":\"first\\nsecond\\nthird\"}}",
 		"{\"timestamp\":\"2026-03-18T13:00:00Z\",\"toolUseResult\":{" +
@@ -55,7 +58,7 @@ func TestClaudeParse(t *testing.T) {
 
 	got, err := parser.Parse(ctx)
 	require.NoError(t, err)
-	require.Len(t, got, 4)
+	require.Len(t, got, 5)
 
 	assert.Equal(t, "/tmp/edited.go", got[0].Entity)
 	assert.Equal(t, heartbeat.FileType, got[0].EntityType)
@@ -66,6 +69,12 @@ func TestClaudeParse(t *testing.T) {
 	assert.True(t, *got[0].IsWrite)
 	assert.Equal(t, float64(time.Date(2026, 3, 18, 12, 0, 0, 0, time.UTC).Unix()), got[0].Time)
 	assert.Contains(t, got[0].UserAgent, "ClaudeCode/2.1.45")
+
+	assert.Equal(t, "/tmp/array.go", got[1].Entity)
+	require.NotNil(t, got[1].AILineChanges)
+	assert.Equal(t, 3, *got[1].AILineChanges)
+	require.NotNil(t, got[1].IsWrite)
+	assert.True(t, *got[1].IsWrite)
 }
 
 func TestClaudeParse_NoClaudeProjectsDir(t *testing.T) {
