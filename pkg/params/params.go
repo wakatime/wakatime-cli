@@ -1374,11 +1374,26 @@ func (p Offline) String() string {
 }
 
 // String implements fmt.Stringer interface.
+func (p AIParams) String() string {
+	var syncAfterTime string
+	if !p.SyncAfterTime.IsZero() {
+		syncAfterTime = p.SyncAfterTime.Format(ini.DateFormat)
+	}
+
+	return fmt.Sprintf(
+		"sync after time: '%s', disabled: %t",
+		syncAfterTime,
+		p.SyncDisabled,
+	)
+}
+
+// String implements fmt.Stringer interface.
 func (p Params) String() string {
 	return fmt.Sprintf(
-		"api params: (%s), heartbeat params: (%s), offline params: (%s), status bar params: (%s)",
+		"api params: (%s), heartbeat params: (%s), ai params: (%s), offline params: (%s), status bar params: (%s)",
 		p.API,
 		p.Heartbeat,
+		p.AI,
 		p.Offline,
 		p.StatusBar,
 	)
