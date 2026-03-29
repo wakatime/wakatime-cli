@@ -20,7 +20,8 @@ func TestCodexParse(t *testing.T) {
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
 
-	transcriptDir := filepath.Join(home, ".codex", "sessions", "2026", "03", "28")
+	now := time.Now()
+	transcriptDir := filepath.Join(home, ".codex", "sessions", now.Format("2006"), now.Format("01"), now.Format("02"))
 	require.NoError(t, os.MkdirAll(transcriptDir, 0o755))
 
 	transcriptPath := filepath.Join(transcriptDir, "rollout-2026-03-28T07-33-13-019d3438-39ae-7fb2-8526-d6c02ba3577c.jsonl")

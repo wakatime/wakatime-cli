@@ -39,12 +39,39 @@ type (
 		StructuredPatch *[]structuredPatch `json:"structuredPatch"`
 	}
 
+	toolUseResultValue struct {
+		Object *toolUseResult
+		String *string
+	}
+
 	claudeLogLine struct {
-		Timestamp     time.Time      `json:"timestamp"`
-		Version       string         `json:"version"`
-		ToolUseResult *toolUseResult `json:"toolUseResult"`
+		Timestamp     time.Time           `json:"timestamp"`
+		Version       string              `json:"version"`
+		ToolUseResult *toolUseResultValue `json:"toolUseResult"`
 	}
 )
+
+func (v *toolUseResultValue) UnmarshalJSON(data []byte) error {
+	if string(data) == "null" {
+		return nil
+	}
+
+	var result toolUseResult
+	if err := json.Unmarshal(data, &result); err == nil {
+		v.Object = &result
+
+		return nil
+	}
+
+	var str string
+	if err := json.Unmarshal(data, &str); err == nil {
+		v.String = &str
+
+		return nil
+	}
+
+	return fmt.Errorf("unsupported toolUseResult type")
+}
 
 // Parse parses the Claude JSONL session transcript logs for ai heartbeats.
 func (g Claude) Parse(ctx context.Context) (Heartbeats, error) {
@@ -191,16 +218,16 @@ func (g Claude) parseTranscript(ctx context.Context, transcript string) (Heartbe
 			continue
 		}
 
-		if logLine.ToolUseResult == nil {
+		if logLine.ToolUseResult == nil || logLine.ToolUseResult.Object == nil {
 			continue
 		}
 
-		filePath := getClaudeFilePath(*logLine.ToolUseResult)
+		filePath := getClaudeFilePath(*logLine.ToolUseResult.Object)
 		if filePath == "" {
 			continue
 		}
 
-		lineChanges := claudeLineChanges(*logLine.ToolUseResult)
+		lineChanges := claudeLineChanges(*logLine.ToolUseResult.Object)
 
 		isWrite := lineChanges != 0
 

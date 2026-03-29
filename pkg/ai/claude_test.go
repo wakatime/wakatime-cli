@@ -34,6 +34,7 @@ func TestClaudeParse(t *testing.T) {
 		"{\"timestamp\":\"2026-03-18T12:00:00Z\",\"version\":\"2.1.45\"," +
 			"\"toolUseResult\":{\"filePath\":\"/tmp/edited.go\"," +
 			"\"structuredPatch\":[{\"oldLines\":3,\"newLines\":5},{\"oldLines\":4,\"newLines\":1}]}}",
+		"{\"timestamp\":\"2026-03-18T12:15:00Z\",\"toolUseResult\":\"plain string result\"}",
 		"{\"timestamp\":\"2026-03-18T12:30:00Z\",\"toolUseResult\":{" +
 			"\"filePath\":\"/tmp/new.go\",\"content\":\"first\\nsecond\\nthird\"}}",
 		"{\"timestamp\":\"2026-03-18T13:00:00Z\",\"toolUseResult\":{" +
