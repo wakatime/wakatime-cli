@@ -190,11 +190,7 @@ func (g Codex) parseTranscript(ctx context.Context, transcript string) (Heartbea
 			continue
 		}
 
-		if logLine.Timestamp.IsZero() {
-			continue
-		}
-
-		if logLine.Timestamp.Before(g.After) {
+		if logLine.Timestamp.IsZero() || logLine.Timestamp.Before(g.After) {
 			continue
 		}
 
