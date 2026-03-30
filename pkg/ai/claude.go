@@ -57,7 +57,7 @@ type (
 )
 
 func (v *contentValue) UnmarshalJSON(data []byte) error {
-	if string(data) == "null" {
+	if data == nil || string(data) == "null" {
 		return nil
 	}
 
@@ -79,7 +79,7 @@ func (v *contentValue) UnmarshalJSON(data []byte) error {
 }
 
 func (v *toolUseResultValue) UnmarshalJSON(data []byte) error {
-	if string(data) == "null" {
+	if data == nil || string(data) == "null" {
 		return nil
 	}
 

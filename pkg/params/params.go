@@ -874,14 +874,15 @@ func LoadAIParams(_ context.Context, v *viper.Viper, _ FlagReadOrder) (AIParams,
 
 	var syncAfterTime time.Time
 	if syncAIAfter == 0 {
-		syncAfterTime = time.Now().Add(-2 * time.Minute)
+		syncAfterTime = time.Now().Add(2 * time.Minute)
 	} else {
 		syncAfterTime = time.Unix(0, int64(syncAIAfter*float64(time.Second)))
 	}
 
+	// Disable AI parsing until #1288 fixed
 	return AIParams{
 		SyncAfterTime: syncAfterTime,
-		SyncDisabled:  v.GetBool("sync-ai-disabled") || v.GetBool("settings.sync_ai_disabled"),
+		SyncDisabled:  true || v.GetBool("sync-ai-disabled") || v.GetBool("settings.sync_ai_disabled"),
 	}, nil
 }
 
