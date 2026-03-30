@@ -39,6 +39,9 @@ const (
 	// SyncMaxDefault is the default maximum number of heartbeats from the
 	// offline queue, which will be synced upon sending heartbeats to the API.
 	SyncMaxDefault = 1000
+	// readDedupeWindowSeconds defines the max distance between two heartbeats
+	// for the same entity to be considered duplicates during read cleanup.
+	readDedupeWindowSeconds = 1
 )
 
 // WithQueue initializes and returns a heartbeat handle option, which can be
@@ -273,6 +276,15 @@ func popHeartbeats(ctx context.Context, filepath string, limit int) ([]heartbeat
 
 	queue := NewQueue(tx)
 	logger := log.Extract(ctx)
+
+	_, err = queue.DeleteDuplicates()
+	if err != nil {
+		logger.Errorf("failed to delete duplicate offline heartbeats: %s", err)
+
+		_ = tx.Rollback()
+
+		return nil, err
+	}
 
 	queued, err := queue.PopMany(limit)
 	if err != nil {
@@ -572,4 +584,48 @@ func (q *Queue) ReadMany(limit int) ([]heartbeat.Heartbeat, error) {
 	}
 
 	return heartbeats, nil
+}
+
+// DeleteDuplicates cleanups and deletes duplicate heartbeats from the offline db.
+func (q *Queue) DeleteDuplicates() (int, error) {
+	b, err := q.tx.CreateBucketIfNotExists([]byte(q.Bucket))
+	if err != nil {
+		return 0, fmt.Errorf("failed to create/load bucket: %s", err)
+	}
+
+	kept := make(map[string][]float64)
+	deleted := 0
+
+	c := b.Cursor()
+	for key, value := c.First(); key != nil; key, value = c.Next() {
+		var h heartbeat.Heartbeat
+
+		err := json.Unmarshal(value, &h)
+		if err != nil {
+			return 0, fmt.Errorf("failed to json unmarshal heartbeat data: %s", err)
+		}
+
+		isDuplicate := false
+
+		for _, keptTime := range kept[h.Entity] {
+			if math.Abs(h.Time-keptTime) <= readDedupeWindowSeconds {
+				isDuplicate = true
+				break
+			}
+		}
+
+		if isDuplicate {
+			if err := c.Delete(); err != nil {
+				return 0, fmt.Errorf("failed to delete duplicate heartbeat with key %q: %s", string(key), err)
+			}
+
+			deleted++
+
+			continue
+		}
+
+		kept[h.Entity] = append(kept[h.Entity], h.Time)
+	}
+
+	return deleted, nil
 }
