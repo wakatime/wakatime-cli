@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strconv"
 	"testing"
 	"time"
 
@@ -474,13 +473,19 @@ func TestSync_MultipleRequests(t *testing.T) {
 	db, err := bolt.Open(f.Name(), 0600, nil)
 	require.NoError(t, err)
 
-	dataGo, err := os.ReadFile("testdata/heartbeat_go.json")
-	require.NoError(t, err)
-
 	for i := 0; i < 26; i++ {
+		h := heartbeat.Heartbeat{
+			Entity:     fmt.Sprintf("/tmp/main-%02d.go", i),
+			EntityType: heartbeat.FileType,
+			Time:       float64(1592868367 + i*10),
+			UserAgent:  "wakatime/test",
+		}
+		data, marshalErr := json.Marshal(h)
+		require.NoError(t, marshalErr)
+
 		insertHeartbeatRecord(t, db, "heartbeats", heartbeatRecord{
-			ID:        strconv.Itoa(i) + "1592868367.219124-file-coding-wakatime-cli-heartbeat-/tmp/main.go-true",
-			Heartbeat: string(dataGo),
+			ID:        h.ID(),
+			Heartbeat: string(data),
 		})
 	}
 
@@ -1013,6 +1018,88 @@ func TestSync_SyncUnlimited(t *testing.T) {
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
 
+func TestSync_DeletesDuplicates(t *testing.T) {
+	f, err := os.CreateTemp(t.TempDir(), "")
+	require.NoError(t, err)
+
+	defer f.Close()
+
+	db, err := bolt.Open(f.Name(), 0600, nil)
+	require.NoError(t, err)
+
+	records := make([]heartbeatRecord, 0, 4)
+
+	for _, h := range []heartbeat.Heartbeat{
+		{
+			Entity:     "/tmp/a.go",
+			EntityType: heartbeat.FileType,
+			Time:       1000,
+			UserAgent:  "wakatime/test",
+		},
+		{
+			Entity:     "/tmp/dup.go",
+			EntityType: heartbeat.FileType,
+			Time:       3000,
+			UserAgent:  "wakatime/test",
+		},
+		{
+			Entity:     "/tmp/dup.go",
+			EntityType: heartbeat.FileType,
+			Time:       3000.5,
+			UserAgent:  "wakatime/test",
+		},
+		{
+			Entity:     "/tmp/b.go",
+			EntityType: heartbeat.FileType,
+			Time:       4000,
+			UserAgent:  "wakatime/test",
+		},
+	} {
+		data, marshalErr := json.Marshal(h)
+		require.NoError(t, marshalErr)
+
+		records = append(records, heartbeatRecord{
+			ID:        h.ID(),
+			Heartbeat: string(data),
+		})
+	}
+
+	insertHeartbeatRecords(t, db, "heartbeats", records)
+
+	err = db.Close()
+	require.NoError(t, err)
+
+	syncFn := offline.Sync(t.Context(), f.Name(), 5)
+
+	var (
+		numCalls  int
+		totalSent int
+	)
+
+	err = syncFn(func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		numCalls++
+		totalSent += len(hh)
+
+		results := make([]heartbeat.Result, len(hh))
+		for i := range hh {
+			results[i] = heartbeat.Result{
+				Status: http.StatusCreated,
+				ID:     fmt.Sprintf("id-%d-%d", numCalls, i),
+			}
+		}
+
+		return results, nil
+	})
+	require.NoError(t, err)
+
+	assert.Equal(t, 1, numCalls)
+	assert.Equal(t, 3, totalSent)
+
+	count, err := offline.CountHeartbeats(t.Context(), f.Name())
+	require.NoError(t, err)
+	assert.Zero(t, count)
+}
+
 func TestCountHeartbeats(t *testing.T) {
 	// setup
 	f, err := os.CreateTemp(t.TempDir(), "")
@@ -1464,6 +1551,127 @@ func TestQueue_ReadMany_Empty(t *testing.T) {
 
 	// check
 	assert.Len(t, hh, 0)
+}
+
+func TestQueue_DeleteDuplicates(t *testing.T) {
+	db, cleanup := initDB(t)
+	defer cleanup()
+
+	hh := []heartbeat.Heartbeat{
+		{
+			Entity:     "/tmp/dup.go",
+			EntityType: heartbeat.FileType,
+			Time:       1000,
+			UserAgent:  "wakatime/test",
+		},
+		{
+			Entity:     "/tmp/dup.go",
+			EntityType: heartbeat.FileType,
+			Time:       1000.5,
+			UserAgent:  "wakatime/test",
+		},
+		{
+			Entity:     "/tmp/dup.go",
+			EntityType: heartbeat.FileType,
+			Time:       1001.2,
+			UserAgent:  "wakatime/test",
+		},
+		{
+			Entity:     "/tmp/other.go",
+			EntityType: heartbeat.FileType,
+			Time:       1000.4,
+			UserAgent:  "wakatime/test",
+		},
+	}
+
+	tx, err := db.Begin(true)
+	require.NoError(t, err)
+
+	q := offline.NewQueue(tx)
+	q.Bucket = "test_bucket"
+	err = q.PushMany(hh)
+	require.NoError(t, err)
+
+	err = tx.Commit()
+	require.NoError(t, err)
+
+	tx, err = db.Begin(true)
+	require.NoError(t, err)
+
+	q = offline.NewQueue(tx)
+	q.Bucket = "test_bucket"
+	deleted, err := q.DeleteDuplicates()
+	require.NoError(t, err)
+	assert.Equal(t, 1, deleted)
+
+	remaining, err := q.ReadMany(10)
+	require.NoError(t, err)
+
+	err = tx.Commit()
+	require.NoError(t, err)
+
+	assert.Len(t, remaining, 3)
+	assert.Contains(t, remaining, hh[0])
+	assert.NotContains(t, remaining, hh[1])
+	assert.Contains(t, remaining, hh[2])
+	assert.Contains(t, remaining, hh[3])
+}
+
+func TestQueue_DeleteDuplicates_ChecksAllKeptTimesWithSymmetricWindow(t *testing.T) {
+	db, cleanup := initDB(t)
+	defer cleanup()
+
+	records := []heartbeatRecord{
+		{
+			ID:        "a",
+			Heartbeat: `{"entity":"/tmp/dup.go","type":"file","time":1002,"user_agent":"wakatime/test"}`,
+		},
+		{
+			ID:        "b",
+			Heartbeat: `{"entity":"/tmp/dup.go","type":"file","time":1000,"user_agent":"wakatime/test"}`,
+		},
+		{
+			ID:        "c",
+			Heartbeat: `{"entity":"/tmp/dup.go","type":"file","time":1001.1,"user_agent":"wakatime/test"}`,
+		},
+	}
+
+	insertHeartbeatRecords(t, db, "test_bucket", records)
+
+	tx, err := db.Begin(true)
+	require.NoError(t, err)
+
+	q := offline.NewQueue(tx)
+	q.Bucket = "test_bucket"
+	deleted, err := q.DeleteDuplicates()
+	require.NoError(t, err)
+	assert.Equal(t, 1, deleted)
+
+	remaining, err := q.ReadMany(10)
+	require.NoError(t, err)
+
+	err = tx.Commit()
+	require.NoError(t, err)
+
+	assert.Len(t, remaining, 2)
+	assert.Contains(t, remaining, heartbeat.Heartbeat{
+		Entity:     "/tmp/dup.go",
+		EntityType: heartbeat.FileType,
+		Time:       1002,
+		UserAgent:  "wakatime/test",
+	})
+	assert.Contains(t, remaining, heartbeat.Heartbeat{
+		Entity:     "/tmp/dup.go",
+		EntityType: heartbeat.FileType,
+		Time:       1000,
+		UserAgent:  "wakatime/test",
+	})
+	assert.NotContains(t, remaining, heartbeat.Heartbeat{
+		Entity:     "/tmp/dup.go",
+		EntityType: heartbeat.FileType,
+		Time:       1001.1,
+		UserAgent:  "wakatime/test",
+	})
 }
 
 func initDB(t *testing.T) (*bolt.DB, func()) {
