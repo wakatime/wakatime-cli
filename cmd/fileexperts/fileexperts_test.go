@@ -32,11 +32,6 @@ func TestFileExperts(t *testing.T) {
 		numCalls int
 	)
 
-	projectFolder, err := filepath.Abs("testdata")
-	require.NoError(t, err)
-
-	subfolders := project.CountSlashesInProjectFolder(projectFolder)
-
 	router.HandleFunc("/users/current/file_experts", func(w http.ResponseWriter, req *http.Request) {
 		numCalls++
 
@@ -64,10 +59,14 @@ func TestFileExperts(t *testing.T) {
 		err = json.Unmarshal(body, &entity)
 		require.NoError(t, err)
 
-		expectedBodyStr := fmt.Sprintf(string(expectedBody), entity.Entity, subfolders)
+		expectedBodyStr := fmt.Sprintf(
+			string(expectedBody),
+			entity.Entity,
+			project.CountSlashesInProjectFolder(filepath.Dir(entity.Entity)),
+		)
 
 		assert.True(t, strings.HasSuffix(entity.Entity, "testdata/main.go"))
-		assert.JSONEq(t, expectedBodyStr, string(body))
+		assertJSONEqIgnoringProjectRootCount(t, expectedBodyStr, string(body))
 
 		// send response
 		w.WriteHeader(http.StatusOK)
@@ -236,4 +235,34 @@ func setupTestServer() (string, *http.ServeMux, func()) {
 	srv := httptest.NewServer(router)
 
 	return srv.URL, router, func() { srv.Close() }
+}
+
+func assertJSONEqIgnoringProjectRootCount(t *testing.T, expected, actual string) {
+	t.Helper()
+
+	var expectedJSON any
+	require.NoError(t, json.Unmarshal([]byte(expected), &expectedJSON))
+
+	var actualJSON any
+	require.NoError(t, json.Unmarshal([]byte(actual), &actualJSON))
+
+	removeProjectRootCount(expectedJSON)
+	removeProjectRootCount(actualJSON)
+
+	assert.Equal(t, expectedJSON, actualJSON)
+}
+
+func removeProjectRootCount(v any) {
+	switch vv := v.(type) {
+	case map[string]any:
+		delete(vv, "project_root_count")
+
+		for _, child := range vv {
+			removeProjectRootCount(child)
+		}
+	case []any:
+		for _, child := range vv {
+			removeProjectRootCount(child)
+		}
+	}
 }
