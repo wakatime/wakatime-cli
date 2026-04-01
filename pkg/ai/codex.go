@@ -80,31 +80,37 @@ func (g Codex) transcriptPaths(ctx context.Context) ([]string, error) {
 		return nil, fmt.Errorf("failed to find user home dir: %s", err)
 	}
 
-	now := time.Now()
-	sessionsDir := filepath.Join(home, ".codex", "sessions", now.Format("2006"), now.Format("01"), now.Format("02"))
-
-	sessions, err := os.ReadDir(sessionsDir)
-	if err != nil {
+	sessionsDir := filepath.Join(home, ".codex", "sessions")
+	if _, err := os.Stat(sessionsDir); err != nil {
 		if os.IsNotExist(err) {
 			return nil, nil
 		}
 
-		return nil, fmt.Errorf("failed to read .codex sessions directory: %s", err)
+		return nil, fmt.Errorf("failed to stat .codex sessions directory: %s", err)
 	}
 
 	var transcripts []string
 
-	for _, file := range sessions {
-		if file.IsDir() || filepath.Ext(file.Name()) != ".jsonl" {
-			continue
+	err = filepath.WalkDir(sessionsDir, func(path string, entry os.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
 		}
 
-		info, err := file.Info()
+		if entry.IsDir() || filepath.Ext(entry.Name()) != ".jsonl" {
+			return nil
+		}
+
+		info, err := entry.Info()
 		if err != nil || info.ModTime().Before(g.After) {
-			continue
+			return nil
 		}
 
-		transcripts = append(transcripts, filepath.Join(sessionsDir, file.Name()))
+		transcripts = append(transcripts, path)
+
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to walk .codex sessions directory: %s", err)
 	}
 
 	return transcripts, nil
