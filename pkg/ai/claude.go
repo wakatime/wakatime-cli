@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
@@ -277,41 +278,11 @@ func (g Claude) parseTranscript(ctx context.Context, transcript string) (Heartbe
 			claudeVersion = logLine.Version
 		}
 
-		if logLine.ToolUseResult == nil || logLine.ToolUseResult.Object == nil {
+		if logLine.ToolUseResult == nil {
 			continue
 		}
 
-		filePath := getClaudeFilePath(*logLine.ToolUseResult.Object)
-		if filePath == "" {
-			continue
-		}
-
-		lineChanges := claudeLineChanges(*logLine.ToolUseResult.Object)
-
-		isWrite := lineChanges != 0
-
-		heartbeats = append(heartbeats, heartbeat.New(
-			heartbeat.PointerTo(lineChanges),
-			"",
-			heartbeat.AICodingCategory.String(),
-			nil,
-			filePath,
-			heartbeat.FileType,
-			nil,
-			false,
-			heartbeat.PointerTo(isWrite),
-			nil,
-			"",
-			nil,
-			nil,
-			"",
-			"",
-			false,
-			"",
-			"",
-			float64(logLine.Timestamp.Unix()),
-			aiUserAgent(ctx, filePath, g.UserAgents, g.FallbackUserAgent, claudePlugin(claudeVersion)),
-		))
+		heartbeats = append(heartbeats, g.claudeHeartbeats(ctx, logLine, claudeVersion)...)
 	}
 
 	if err := scanner.Err(); err != nil {
@@ -319,6 +290,92 @@ func (g Claude) parseTranscript(ctx context.Context, transcript string) (Heartbe
 	}
 
 	return heartbeats, nil
+}
+
+func (g Claude) claudeHeartbeats(ctx context.Context, logLine claudeLogLine, version string) Heartbeats {
+	var heartbeats Heartbeats
+
+	if heartbeat := g.claudeAppHeartbeat(ctx, logLine, version); heartbeat != nil {
+		heartbeats = append(heartbeats, *heartbeat)
+	}
+
+	if heartbeat := g.claudeFileHeartbeat(ctx, logLine, version); heartbeat != nil {
+		heartbeats = append(heartbeats, *heartbeat)
+	}
+
+	return heartbeats
+}
+
+func (g Claude) claudeAppHeartbeat(ctx context.Context, logLine claudeLogLine, version string) *heartbeat.Heartbeat {
+	lineChanges := claudeAppLineChanges(logLine.ToolUseResult)
+	if lineChanges == 0 {
+		return nil
+	}
+
+	entity := "ClaudeCode"
+	h := heartbeat.New(
+		nil,
+		"",
+		heartbeat.AICodingCategory.String(),
+		nil,
+		entity,
+		heartbeat.AppType,
+		nil,
+		false,
+		heartbeat.PointerTo(false),
+		nil,
+		"",
+		nil,
+		nil,
+		"",
+		"",
+		false,
+		"",
+		"",
+		float64(logLine.Timestamp.Unix()),
+		aiUserAgent(ctx, entity, g.UserAgents, g.FallbackUserAgent, claudePlugin(version)),
+	)
+
+	return &h
+}
+
+func (g Claude) claudeFileHeartbeat(ctx context.Context, logLine claudeLogLine, version string) *heartbeat.Heartbeat {
+	if logLine.ToolUseResult == nil || logLine.ToolUseResult.Object == nil {
+		return nil
+	}
+
+	filePath := getClaudeFilePath(*logLine.ToolUseResult.Object)
+	if filePath == "" {
+		return nil
+	}
+
+	lineChanges := claudeLineChanges(*logLine.ToolUseResult.Object)
+	isWrite := lineChanges != 0
+
+	h := heartbeat.New(
+		heartbeat.PointerTo(lineChanges),
+		"",
+		heartbeat.AICodingCategory.String(),
+		nil,
+		filePath,
+		heartbeat.FileType,
+		nil,
+		false,
+		heartbeat.PointerTo(isWrite),
+		nil,
+		"",
+		nil,
+		nil,
+		"",
+		"",
+		false,
+		"",
+		"",
+		float64(logLine.Timestamp.Unix()),
+		aiUserAgent(ctx, filePath, g.UserAgents, g.FallbackUserAgent, claudePlugin(version)),
+	)
+
+	return &h
 }
 
 func getClaudeFilePath(result toolUseResult) string {
@@ -351,6 +408,34 @@ func claudeLineChanges(result toolUseResult) int {
 		if result.File != nil {
 			return result.File.Content.lineChanges()
 		}
+	}
+
+	return 0
+}
+
+func claudeAppLineChanges(result *toolUseResultValue) int {
+	if result == nil {
+		return 0
+	}
+
+	if result.String != nil && strings.TrimSpace(*result.String) != "" {
+		return countStringLines(*result.String)
+	}
+
+	if result.Object == nil {
+		return 0
+	}
+
+	if getClaudeFilePath(*result.Object) != "" {
+		return 0
+	}
+
+	if lineChanges := result.Object.Content.lineChanges(); lineChanges != 0 {
+		return lineChanges
+	}
+
+	if result.Object.File != nil {
+		return result.Object.File.Content.lineChanges()
 	}
 
 	return 0

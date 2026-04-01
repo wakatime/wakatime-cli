@@ -39,6 +39,15 @@ func TestCursorParse(t *testing.T) {
 	}, "\n")
 	createCursorDB(t, dbPath, []cursorTestRow{
 		{
+			Key: "bubbleId:composer-1:user",
+			Value: map[string]any{
+				"_v":        3,
+				"type":      1,
+				"text":      "Please update the file",
+				"createdAt": "2026-03-15T23:34:10Z",
+			},
+		},
+		{
 			Key: "bubbleId:composer-1:old-edit",
 			Value: map[string]any{
 				"_v":        3,
@@ -75,6 +84,15 @@ func TestCursorParse(t *testing.T) {
 					"name":   "read_file_v2",
 					"params": `{"targetFile":"/tmp/read.go","effectiveUri":"/tmp/read.go"}`,
 				},
+			},
+		},
+		{
+			Key: "bubbleId:composer-1:assistant",
+			Value: map[string]any{
+				"_v":        3,
+				"type":      2,
+				"text":      "I updated the implementation",
+				"createdAt": "2026-03-15T23:35:30Z",
 			},
 		},
 		{
@@ -139,36 +157,53 @@ func TestCursorParse(t *testing.T) {
 
 	got, err := parser.Parse(ctx)
 	require.NoError(t, err)
-	require.Len(t, got, 4)
+	require.Len(t, got, 6)
 
-	assert.Equal(t, "/tmp/edited.js", got[0].Entity)
-	assert.Equal(t, heartbeat.FileType, got[0].EntityType)
+	assert.Equal(t, "Cursor", got[0].Entity)
+	assert.Equal(t, heartbeat.AppType, got[0].EntityType)
 	assert.Equal(t, heartbeat.AICodingCategory.String(), got[0].Category)
-	require.NotNil(t, got[0].AILineChanges)
-	assert.Equal(t, 3, *got[0].AILineChanges)
+	assert.Nil(t, got[0].AILineChanges)
 	require.NotNil(t, got[0].IsWrite)
-	assert.True(t, *got[0].IsWrite)
-	assert.Equal(t, float64(time.Date(2026, 3, 15, 23, 34, 39, 0, time.UTC).Unix()), got[0].Time)
-	assert.Contains(t, got[0].UserAgent, heartbeat.UserAgent(ctx, "editor/1.2.3"))
+	assert.False(t, *got[0].IsWrite)
+	assert.Equal(t, float64(time.Date(2026, 3, 15, 23, 34, 10, 0, time.UTC).Unix()), got[0].Time)
+	assert.Contains(t, got[0].UserAgent, heartbeat.UserAgent(ctx, "plugin/0.0.1"))
 	assert.Contains(t, got[0].UserAgent, "Cursor")
 
-	assert.Equal(t, "/tmp/read.go", got[1].Entity)
+	assert.Equal(t, "/tmp/edited.js", got[1].Entity)
+	assert.Equal(t, heartbeat.FileType, got[1].EntityType)
+	assert.Equal(t, heartbeat.AICodingCategory.String(), got[1].Category)
 	require.NotNil(t, got[1].AILineChanges)
-	assert.Equal(t, 0, *got[1].AILineChanges)
+	assert.Equal(t, 3, *got[1].AILineChanges)
 	require.NotNil(t, got[1].IsWrite)
-	assert.False(t, *got[1].IsWrite)
-	assert.Contains(t, got[1].UserAgent, "plugin/0.0.1")
+	assert.True(t, *got[1].IsWrite)
+	assert.Equal(t, float64(time.Date(2026, 3, 15, 23, 34, 39, 0, time.UTC).Unix()), got[1].Time)
+	assert.Contains(t, got[1].UserAgent, heartbeat.UserAgent(ctx, "editor/1.2.3"))
 	assert.Contains(t, got[1].UserAgent, "Cursor")
 
-	assert.Equal(t, "/tmp/diff.go", got[2].Entity)
+	assert.Equal(t, "/tmp/read.go", got[2].Entity)
 	require.NotNil(t, got[2].AILineChanges)
 	assert.Equal(t, 0, *got[2].AILineChanges)
 	require.NotNil(t, got[2].IsWrite)
-	assert.True(t, *got[2].IsWrite)
+	assert.False(t, *got[2].IsWrite)
+	assert.Contains(t, got[2].UserAgent, "plugin/0.0.1")
+	assert.Contains(t, got[2].UserAgent, "Cursor")
 
-	assert.Equal(t, "legacy/relative.py", got[3].Entity)
-	require.NotNil(t, got[3].AILineChanges)
-	assert.Equal(t, 2, *got[3].AILineChanges)
+	assert.Equal(t, "Cursor", got[3].Entity)
+	assert.Equal(t, heartbeat.AppType, got[3].EntityType)
+	assert.Nil(t, got[3].AILineChanges)
+	require.NotNil(t, got[3].IsWrite)
+	assert.False(t, *got[3].IsWrite)
+	assert.Equal(t, float64(time.Date(2026, 3, 15, 23, 35, 30, 0, time.UTC).Unix()), got[3].Time)
+
+	assert.Equal(t, "/tmp/diff.go", got[4].Entity)
+	require.NotNil(t, got[4].AILineChanges)
+	assert.Equal(t, 0, *got[4].AILineChanges)
+	require.NotNil(t, got[4].IsWrite)
+	assert.True(t, *got[4].IsWrite)
+
+	assert.Equal(t, "legacy/relative.py", got[5].Entity)
+	require.NotNil(t, got[5].AILineChanges)
+	assert.Equal(t, 2, *got[5].AILineChanges)
 }
 
 func TestCursorParse_NoCursorStateDB(t *testing.T) {

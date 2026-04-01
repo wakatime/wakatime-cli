@@ -62,7 +62,7 @@ func TestClaudeParse(t *testing.T) {
 
 	got, err := parser.Parse(ctx)
 	require.NoError(t, err)
-	require.Len(t, got, 5)
+	require.Len(t, got, 7)
 
 	assert.Equal(t, "/tmp/edited.go", got[0].Entity)
 	assert.Equal(t, heartbeat.FileType, got[0].EntityType)
@@ -75,13 +75,39 @@ func TestClaudeParse(t *testing.T) {
 	assert.Contains(t, got[0].UserAgent, heartbeat.UserAgent(ctx, "editor/1.2.3"))
 	assert.Contains(t, got[0].UserAgent, "ClaudeCode/2.1.45")
 
-	assert.Equal(t, "/tmp/array.go", got[1].Entity)
-	require.NotNil(t, got[1].AILineChanges)
-	assert.Equal(t, 3, *got[1].AILineChanges)
+	assert.Equal(t, "ClaudeCode", got[1].Entity)
+	assert.Equal(t, heartbeat.AppType, got[1].EntityType)
+	assert.Nil(t, got[1].AILineChanges)
 	require.NotNil(t, got[1].IsWrite)
-	assert.True(t, *got[1].IsWrite)
+	assert.False(t, *got[1].IsWrite)
 	assert.Contains(t, got[1].UserAgent, "plugin/0.0.1")
 	assert.Contains(t, got[1].UserAgent, "ClaudeCode/2.1.45")
+
+	assert.Equal(t, "ClaudeCode", got[2].Entity)
+	assert.Equal(t, heartbeat.AppType, got[2].EntityType)
+	assert.Nil(t, got[2].AILineChanges)
+	require.NotNil(t, got[2].IsWrite)
+	assert.False(t, *got[2].IsWrite)
+
+	assert.Equal(t, "/tmp/array.go", got[3].Entity)
+	require.NotNil(t, got[3].AILineChanges)
+	assert.Equal(t, 3, *got[3].AILineChanges)
+	require.NotNil(t, got[3].IsWrite)
+	assert.True(t, *got[3].IsWrite)
+	assert.Contains(t, got[3].UserAgent, "plugin/0.0.1")
+	assert.Contains(t, got[3].UserAgent, "ClaudeCode/2.1.45")
+
+	assert.Equal(t, "/tmp/new.go", got[4].Entity)
+	require.NotNil(t, got[4].AILineChanges)
+	assert.Equal(t, 3, *got[4].AILineChanges)
+
+	assert.Equal(t, "/tmp/read.go", got[5].Entity)
+	require.NotNil(t, got[5].AILineChanges)
+	assert.Equal(t, 0, *got[5].AILineChanges)
+
+	assert.Equal(t, "/tmp/empty.go", got[6].Entity)
+	require.NotNil(t, got[6].AILineChanges)
+	assert.Equal(t, 0, *got[6].AILineChanges)
 }
 
 func TestClaudeParse_NoClaudeProjectsDir(t *testing.T) {
