@@ -142,6 +142,7 @@ func (g Codex) parseTranscript(ctx context.Context, transcript string) (Heartbea
 	}
 
 	cwd := ""
+	sessionEntity := filepath.Base(transcript)
 	version := ""
 
 	if len(firstLine) > 0 {
@@ -215,6 +216,7 @@ func (g Codex) parseTranscript(ctx context.Context, transcript string) (Heartbea
 		entities := getCodexEntities(
 			ctx,
 			logLine.Timestamp,
+			sessionEntity,
 			version,
 			cwd,
 			g.UserAgents,
@@ -238,6 +240,7 @@ func (g Codex) parseTranscript(ctx context.Context, transcript string) (Heartbea
 func getCodexEntities(
 	ctx context.Context,
 	timestamp time.Time,
+	sessionEntity string,
 	version string,
 	cwd string,
 	userAgents map[string]string,
@@ -248,6 +251,7 @@ func getCodexEntities(
 		if heartbeat := codexMessageHeartbeat(
 			ctx,
 			timestamp,
+			sessionEntity,
 			version,
 			userAgents,
 			fallbackUserAgent,
@@ -333,14 +337,14 @@ func codexPatchHeartbeats(
 func codexMessageHeartbeat(
 	ctx context.Context,
 	timestamp time.Time,
+	sessionEntity string,
 	version string,
 	userAgents map[string]string,
 	fallbackUserAgent string,
 	payload codexPayload,
 ) *heartbeat.Heartbeat {
-	entity := "Codex"
-
 	var (
+		entity       = sessionEntity
 		expectedType string
 		lineChanges  int
 	)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -39,24 +40,34 @@ func TestCodexParse(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, got, 3)
 
-	assert.Equal(t, "Codex", got[0].Entity)
+	assert.Equal(t, filepath.Base(transcriptPath), got[0].Entity)
 	assert.Equal(t, heartbeat.AppType, got[0].EntityType)
 	assert.Equal(t, heartbeat.AICodingCategory.String(), got[0].Category)
 	assert.Nil(t, got[0].AILineChanges)
 	require.NotNil(t, got[0].IsWrite)
 	assert.False(t, *got[0].IsWrite)
 	assert.Equal(t, float64(time.Date(2026, 3, 28, 11, 33, 14, 289, time.UTC).Unix()), got[0].Time)
-	assert.Contains(t, got[0].UserAgent, heartbeat.UserAgent(ctx, "plugin/0.0.1"))
 	assert.Contains(t, got[0].UserAgent, "Codex/0.116.0-alpha.1")
+	assert.True(
+		t,
+		strings.Index(got[0].UserAgent, "Codex/0.116.0-alpha.1") <
+			strings.Index(got[0].UserAgent, "plugin/0.0.1"),
+	)
+	assert.Contains(t, got[0].UserAgent, "plugin/0.0.1")
 
-	assert.Equal(t, "Codex", got[1].Entity)
+	assert.Equal(t, filepath.Base(transcriptPath), got[1].Entity)
 	assert.Equal(t, heartbeat.AppType, got[1].EntityType)
 	assert.Nil(t, got[1].AILineChanges)
 	require.NotNil(t, got[1].IsWrite)
 	assert.False(t, *got[1].IsWrite)
 	assert.Equal(t, float64(time.Date(2026, 3, 28, 11, 33, 18, 535, time.UTC).Unix()), got[1].Time)
-	assert.Contains(t, got[1].UserAgent, heartbeat.UserAgent(ctx, "plugin/0.0.1"))
 	assert.Contains(t, got[1].UserAgent, "Codex/0.116.0-alpha.1")
+	assert.True(
+		t,
+		strings.Index(got[1].UserAgent, "Codex/0.116.0-alpha.1") <
+			strings.Index(got[1].UserAgent, "plugin/0.0.1"),
+	)
+	assert.Contains(t, got[1].UserAgent, "plugin/0.0.1")
 
 	assert.Equal(t, "/home/user/projects/wakatime-cli/pkg/ai/claude.go", got[2].Entity)
 	assert.Equal(t, heartbeat.FileType, got[2].EntityType)
@@ -66,8 +77,13 @@ func TestCodexParse(t *testing.T) {
 	require.NotNil(t, got[2].IsWrite)
 	assert.True(t, *got[2].IsWrite)
 	assert.Equal(t, float64(time.Date(2026, 3, 28, 11, 33, 34, 952, time.UTC).Unix()), got[2].Time)
-	assert.Contains(t, got[2].UserAgent, heartbeat.UserAgent(ctx, "editor/1.2.3"))
 	assert.Contains(t, got[2].UserAgent, "Codex/0.116.0-alpha.1")
+	assert.True(
+		t,
+		strings.Index(got[2].UserAgent, "Codex/0.116.0-alpha.1") <
+			strings.Index(got[2].UserAgent, "editor/1.2.3"),
+	)
+	assert.Contains(t, got[2].UserAgent, "editor/1.2.3")
 }
 
 func TestCodexParse_ParsesTranscriptFromPreviousDayFolder(t *testing.T) {
