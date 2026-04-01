@@ -33,11 +33,17 @@ type (
 	}
 
 	codexPayload struct {
-		Type   string  `json:"type"`
-		Name   *string `json:"name"`
-		Input  *string `json:"input"`
-		Role   *string `json:"role"`
-		Status *string `json:"status"`
+		Type    string             `json:"type"`
+		Name    *string            `json:"name"`
+		Input   *string            `json:"input"`
+		Role    *string            `json:"role"`
+		Status  *string            `json:"status"`
+		Content []codexContentItem `json:"content"`
+	}
+
+	codexContentItem struct {
+		Type string `json:"type"`
+		Text string `json:"text"`
 	}
 
 	codexLogLine struct {
@@ -238,10 +244,35 @@ func getCodexEntities(
 	fallbackUserAgent string,
 	payload codexPayload,
 ) Heartbeats {
-	if payload.Name == nil || *payload.Name != "apply_patch" {
+	if payload.Type == "message" && payload.Role != nil {
+		if heartbeat := codexMessageHeartbeat(
+			ctx,
+			timestamp,
+			version,
+			userAgents,
+			fallbackUserAgent,
+			payload,
+		); heartbeat != nil {
+			return Heartbeats{*heartbeat}
+		}
+	}
+
+	if payload.Name == nil || *payload.Name != "apply_patch" || payload.Input == nil {
 		return nil
 	}
 
+	return codexPatchHeartbeats(ctx, timestamp, version, cwd, userAgents, fallbackUserAgent, *payload.Input)
+}
+
+func codexPatchHeartbeats(
+	ctx context.Context,
+	timestamp time.Time,
+	version string,
+	cwd string,
+	userAgents map[string]string,
+	fallbackUserAgent string,
+	input string,
+) Heartbeats {
 	var heartbeats Heartbeats
 
 	var (
@@ -250,7 +281,7 @@ func getCodexEntities(
 		deletions   int
 	)
 
-	lines := strings.Split(*payload.Input, "\n")
+	lines := strings.Split(input, "\n")
 	for i := range lines {
 		line := lines[i]
 		if strings.TrimSpace(line) == "" {
@@ -297,6 +328,68 @@ func getCodexEntities(
 	}
 
 	return heartbeats
+}
+
+func codexMessageHeartbeat(
+	ctx context.Context,
+	timestamp time.Time,
+	version string,
+	userAgents map[string]string,
+	fallbackUserAgent string,
+	payload codexPayload,
+) *heartbeat.Heartbeat {
+	entity := "Codex"
+
+	var (
+		expectedType string
+		lineChanges  int
+	)
+
+	switch *payload.Role {
+	case "user":
+		expectedType = "input_text"
+	case "assistant":
+		expectedType = "output_text"
+	default:
+		return nil
+	}
+
+	for _, item := range payload.Content {
+		if item.Type != expectedType || strings.TrimSpace(item.Text) == "" {
+			continue
+		}
+
+		lineChanges += countStringLines(item.Text)
+	}
+
+	if lineChanges == 0 {
+		return nil
+	}
+
+	h := heartbeat.New(
+		nil,
+		"",
+		heartbeat.AICodingCategory.String(),
+		nil,
+		entity,
+		heartbeat.AppType,
+		nil,
+		false,
+		heartbeat.PointerTo(false),
+		nil,
+		"",
+		nil,
+		nil,
+		"",
+		"",
+		false,
+		"",
+		"",
+		float64(timestamp.Unix()),
+		aiUserAgent(ctx, entity, userAgents, fallbackUserAgent, codexPlugin(version)),
+	)
+
+	return &h
 }
 
 func codexFilePath(cwd string, line string) string {

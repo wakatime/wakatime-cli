@@ -46,6 +46,7 @@ type (
 	cursorLogLine struct {
 		CreatedAt      time.Time             `json:"createdAt"`
 		Type           int                   `json:"type"`
+		Text           string                `json:"text"`
 		ToolFormerData *cursorToolFormerData `json:"toolFormerData"`
 		CodeBlocks     []cursorCodeBlock     `json:"codeBlocks"`
 	}
@@ -104,16 +105,12 @@ func (g Cursor) Parse(ctx context.Context) (Heartbeats, error) {
 			continue
 		}
 
-		if logLine.Type != 2 || logLine.ToolFormerData == nil || logLine.ToolFormerData.Status != "completed" {
+		parsed := g.cursorHeartbeats(ctx, logLine)
+		if len(parsed) == 0 {
 			continue
 		}
 
-		heartbeat := g.cursorHeartbeat(ctx, logLine)
-		if heartbeat == nil {
-			continue
-		}
-
-		heartbeats = append(heartbeats, *heartbeat)
+		heartbeats = append(heartbeats, parsed...)
 	}
 
 	return heartbeats, nil
@@ -165,12 +162,17 @@ func (g Cursor) queryRows(ctx context.Context, dbPath string) ([]string, error) 
 SELECT CAST(value AS TEXT)
 FROM cursorDiskKV
 WHERE key LIKE 'bubbleId:%'
-  AND json_extract(CAST(value AS TEXT), '$.toolFormerData.status') = 'completed'
-  AND json_extract(
-    CAST(value AS TEXT),
-    '$.toolFormerData.name'
-  ) IN ('edit_file', 'edit_file_v2', 'read_file', 'read_file_v2')
   AND json_extract(CAST(value AS TEXT), '$.createdAt') >= ?
+  AND (
+    (
+      json_extract(CAST(value AS TEXT), '$.toolFormerData.status') = 'completed'
+      AND json_extract(
+        CAST(value AS TEXT),
+        '$.toolFormerData.name'
+      ) IN ('edit_file', 'edit_file_v2', 'read_file', 'read_file_v2')
+    )
+    OR json_extract(CAST(value AS TEXT), '$.text') IS NOT NULL
+  )
 ORDER BY json_extract(CAST(value AS TEXT), '$.createdAt') ASC;
 `, g.After.UTC().Format(time.RFC3339Nano))
 	if err != nil {
@@ -199,7 +201,61 @@ ORDER BY json_extract(CAST(value AS TEXT), '$.createdAt') ASC;
 	return results, nil
 }
 
-func (g Cursor) cursorHeartbeat(ctx context.Context, logLine cursorLogLine) *heartbeat.Heartbeat {
+func (g Cursor) cursorHeartbeats(ctx context.Context, logLine cursorLogLine) Heartbeats {
+	var heartbeats Heartbeats
+
+	if heartbeat := g.cursorAppHeartbeat(ctx, logLine); heartbeat != nil {
+		heartbeats = append(heartbeats, *heartbeat)
+	}
+
+	if logLine.Type != 2 || logLine.ToolFormerData == nil || logLine.ToolFormerData.Status != "completed" {
+		return heartbeats
+	}
+
+	if heartbeat := g.cursorFileHeartbeat(ctx, logLine); heartbeat != nil {
+		heartbeats = append(heartbeats, *heartbeat)
+	}
+
+	return heartbeats
+}
+
+func (g Cursor) cursorAppHeartbeat(ctx context.Context, logLine cursorLogLine) *heartbeat.Heartbeat {
+	if strings.TrimSpace(logLine.Text) == "" {
+		return nil
+	}
+
+	if logLine.Type != 1 && logLine.Type != 2 {
+		return nil
+	}
+
+	entity := "Cursor"
+	h := heartbeat.New(
+		nil,
+		"",
+		heartbeat.AICodingCategory.String(),
+		nil,
+		entity,
+		heartbeat.AppType,
+		nil,
+		false,
+		heartbeat.PointerTo(false),
+		nil,
+		"",
+		nil,
+		nil,
+		"",
+		"",
+		false,
+		"",
+		"",
+		float64(logLine.CreatedAt.Unix()),
+		aiUserAgent(ctx, entity, g.UserAgents, g.FallbackUserAgent, cursorPlugin()),
+	)
+
+	return &h
+}
+
+func (g Cursor) cursorFileHeartbeat(ctx context.Context, logLine cursorLogLine) *heartbeat.Heartbeat {
 	switch logLine.ToolFormerData.Name {
 	case "edit_file_v2":
 		var params cursorEditParams
