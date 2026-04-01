@@ -7,6 +7,7 @@ import (
 
 	"github.com/wakatime/wakatime-cli/pkg/ini"
 	"github.com/wakatime/wakatime-cli/pkg/regex"
+	"github.com/wakatime/wakatime-cli/pkg/vipertools"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -65,7 +66,7 @@ func TestParseBoolOrRegexList(t *testing.T) {
 }
 
 func TestSafeTimeParse(t *testing.T) {
-	parsed, err := safeTimeParse(ini.DateFormat, "2024-01-13T13:35:58Z")
+	parsed, err := vipertools.SafeTimeParse(ini.DateFormat, "2024-01-13T13:35:58Z")
 	require.NoError(t, err)
 
 	assert.Equal(t, time.Date(2024, 1, 13, 13, 35, 58, 0, time.UTC), parsed)
@@ -88,7 +89,7 @@ func TestSafeTimeParse_Err(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			parsed, err := safeTimeParse(ini.DateFormat, test.Input)
+			parsed, err := vipertools.SafeTimeParse(ini.DateFormat, test.Input)
 			require.Equal(t, time.Time{}, parsed)
 
 			assert.EqualError(t, err, test.Expected)

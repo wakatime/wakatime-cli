@@ -20,6 +20,7 @@ import (
 	cmdheartbeat "github.com/wakatime/wakatime-cli/cmd/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/ai"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/ini"
 	"github.com/wakatime/wakatime-cli/pkg/params"
 )
 
@@ -71,7 +72,41 @@ func TestPreserveAttributesMutatesAIHeartbeats(t *testing.T) {
 	assert.Equal(t, "/tmp/project", aiHeartbeats[0].ProjectPath)
 }
 
-/*
+func TestWithAISyncUpdatesLastParsedAtBeforeParsing(t *testing.T) {
+	tmpInternal, err := os.CreateTemp(t.TempDir(), "wakatime-internal")
+	require.NoError(t, err)
+
+	defer tmpInternal.Close()
+
+	v := viper.New()
+	v.Set("internal-config", tmpInternal.Name())
+
+	handle := ai.WithAISync(ai.Config{
+		V: v,
+	})(func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		results := make([]heartbeat.Result, len(hh))
+		for i := range hh {
+			results[i] = heartbeat.Result{Heartbeat: hh[i]}
+		}
+
+		return results, nil
+	})
+
+	_, err = handle(t.Context(), []heartbeat.Heartbeat{})
+	require.NoError(t, err)
+
+	writer, err := ini.NewWriter(t.Context(), v, ini.InternalFilePath)
+	require.NoError(t, err)
+
+	err = writer.File.Reload()
+	require.NoError(t, err)
+
+	lastParsedAt, err := writer.File.Section("internal").Key("ai_heartbeats_last_parsed_at").TimeFormat(ini.DateFormat)
+	require.NoError(t, err)
+
+	assert.WithinDuration(t, time.Now(), lastParsedAt, 2*time.Second)
+}
+
 func TestSendHeartbeats_WithAIParsing(t *testing.T) {
 	resetSingleton(t)
 
@@ -116,6 +151,11 @@ func TestSendHeartbeats_WithAIParsing(t *testing.T) {
 	require.NoError(t, err)
 
 	defer tmpFile.Close()
+
+	tmpInternalFile, err := os.CreateTemp(t.TempDir(), "wakatime-internal-config")
+	require.NoError(t, err)
+
+	defer tmpInternalFile.Close()
 
 	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
 		numCalls++
@@ -168,6 +208,7 @@ func TestSendHeartbeats_WithAIParsing(t *testing.T) {
 	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("api-url", testServerURL)
 	v.Set("config", tmpFile.Name())
+	v.Set("internal-config", tmpInternalFile.Name())
 	v.Set("category", "debugging")
 	v.Set("cursorpos", 42)
 	v.Set("entity", entity)
@@ -181,7 +222,7 @@ func TestSendHeartbeats_WithAIParsing(t *testing.T) {
 	v.Set("time", 1773835200.1)
 	v.Set("timeout", 5)
 	v.Set("write", true)
-	v.Set("sync-ai-after", float64(time.Date(2026, 3, 18, 11, 0, 0, 0, time.UTC).Unix()))
+	v.Set("internal.ai_heartbeats_last_parsed_at", time.Date(2026, 3, 18, 11, 0, 0, 0, time.UTC).Format(ini.DateFormat))
 
 	offlineQueueFile, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)
@@ -196,7 +237,6 @@ func TestSendHeartbeats_WithAIParsing(t *testing.T) {
 
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
-*/
 
 func TestSendHeartbeats_WithAIParsingDisabled(t *testing.T) {
 	resetSingleton(t)
@@ -240,6 +280,11 @@ func TestSendHeartbeats_WithAIParsingDisabled(t *testing.T) {
 	require.NoError(t, err)
 
 	defer tmpFile.Close()
+
+	tmpInternalFile, err := os.CreateTemp(t.TempDir(), "wakatime-internal-config")
+	require.NoError(t, err)
+
+	defer tmpInternalFile.Close()
 
 	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
 		numCalls++
@@ -287,6 +332,7 @@ func TestSendHeartbeats_WithAIParsingDisabled(t *testing.T) {
 	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("api-url", testServerURL)
 	v.Set("config", tmpFile.Name())
+	v.Set("internal-config", tmpInternalFile.Name())
 	v.Set("category", "debugging")
 	v.Set("cursorpos", 42)
 	v.Set("entity", entity)
@@ -300,7 +346,7 @@ func TestSendHeartbeats_WithAIParsingDisabled(t *testing.T) {
 	v.Set("time", 1773835200.1)
 	v.Set("timeout", 5)
 	v.Set("write", true)
-	v.Set("sync-ai-after", float64(time.Date(2026, 3, 18, 11, 0, 0, 0, time.UTC).Unix()))
+	v.Set("internal.ai_heartbeats_last_parsed_at", time.Date(2026, 3, 18, 11, 0, 0, 0, time.UTC).Format(ini.DateFormat))
 	v.Set("sync-ai-disabled", true)
 
 	offlineQueueFile, err := os.CreateTemp(t.TempDir(), "")
@@ -357,6 +403,11 @@ func TestSendHeartbeats_WithAIParsingBatchAppliedOnce(t *testing.T) {
 
 	defer tmpFile.Close()
 
+	tmpInternalFile, err := os.CreateTemp(t.TempDir(), "wakatime-internal-config")
+	require.NoError(t, err)
+
+	defer tmpInternalFile.Close()
+
 	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
 		numCalls++
 
@@ -389,6 +440,7 @@ func TestSendHeartbeats_WithAIParsingBatchAppliedOnce(t *testing.T) {
 	v.SetDefault("sync-offline-activity", 1000)
 	v.Set("api-url", testServerURL)
 	v.Set("config", tmpFile.Name())
+	v.Set("internal-config", tmpInternalFile.Name())
 	v.Set("category", "debugging")
 	v.Set("cursorpos", 42)
 	v.Set("entity", entity)
@@ -402,7 +454,7 @@ func TestSendHeartbeats_WithAIParsingBatchAppliedOnce(t *testing.T) {
 	v.Set("time", 1773835200.1)
 	v.Set("timeout", 5)
 	v.Set("write", true)
-	v.Set("sync-ai-after", float64(time.Date(2026, 3, 18, 11, 0, 0, 0, time.UTC).Unix()))
+	v.Set("internal.ai_heartbeats_last_parsed_at", time.Date(2026, 3, 18, 11, 0, 0, 0, time.UTC).Format(ini.DateFormat))
 
 	params, heartbeats, err := testLoadParamsAndHeartbeats(t.Context(), v)
 	require.NoError(t, err)

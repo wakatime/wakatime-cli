@@ -242,7 +242,7 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 		"Override the bundled CA certs file. By default, uses"+
 			" system ca certs.",
 	)
-	flags.Float64("sync-ai-after", 0, "Parse AI transcript logs for Claude, Codex, Copilot, "+
+	flags.Float64("sync-ai-after", 0, "(deprecated) Parse AI transcript logs for Claude, Codex, Copilot, "+
 		"Cursor, etc. after a floating-point unix epoch timestamp. Sends any AI heartbeats"+
 		"along with normal heartbeats, changing the category of normal heartbeats to "+
 		"'AI Coding' before sending.")
@@ -292,6 +292,7 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 	_ = flags.MarkHidden("hide-filenames")
 	_ = flags.MarkHidden("hidefilenames")
 	_ = flags.MarkHidden("logfile")
+	_ = flags.MarkHidden("sync-ai-after")
 	_ = flags.MarkHidden("sync-ai-disable")
 
 	// hide internal flags

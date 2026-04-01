@@ -22,8 +22,7 @@ type Preprocessor func(params params.Params) heartbeat.HandleOption
 func WithAIParsing() Preprocessor {
 	return func(params params.Params) heartbeat.HandleOption {
 		return ai.WithAISync(ai.Config{
-			SyncAfterTime: params.AI.SyncAfterTime,
-			SyncDisabled:  params.AI.SyncDisabled,
+			SyncDisabled: params.AI.SyncDisabled,
 		})
 	}
 }
