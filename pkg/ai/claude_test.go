@@ -53,7 +53,11 @@ func TestClaudeParse(t *testing.T) {
 	require.NoError(t, os.WriteFile(transcriptPath, []byte(transcript), 0o644))
 
 	parser := ai.Claude{
-		After: time.Date(2026, 3, 18, 11, 0, 0, 0, time.UTC),
+		After:             time.Date(2026, 3, 18, 11, 0, 0, 0, time.UTC),
+		FallbackUserAgent: "plugin/0.0.1",
+		UserAgents: map[string]string{
+			"/tmp/edited.go": heartbeat.UserAgent(ctx, "editor/1.2.3"),
+		},
 	}
 
 	got, err := parser.Parse(ctx)
@@ -68,6 +72,7 @@ func TestClaudeParse(t *testing.T) {
 	require.NotNil(t, got[0].IsWrite)
 	assert.True(t, *got[0].IsWrite)
 	assert.Equal(t, float64(time.Date(2026, 3, 18, 12, 0, 0, 0, time.UTC).Unix()), got[0].Time)
+	assert.Contains(t, got[0].UserAgent, heartbeat.UserAgent(ctx, "editor/1.2.3"))
 	assert.Contains(t, got[0].UserAgent, "ClaudeCode/2.1.45")
 
 	assert.Equal(t, "/tmp/array.go", got[1].Entity)
@@ -75,6 +80,8 @@ func TestClaudeParse(t *testing.T) {
 	assert.Equal(t, 3, *got[1].AILineChanges)
 	require.NotNil(t, got[1].IsWrite)
 	assert.True(t, *got[1].IsWrite)
+	assert.Contains(t, got[1].UserAgent, "plugin/0.0.1")
+	assert.Contains(t, got[1].UserAgent, "ClaudeCode/2.1.45")
 }
 
 func TestClaudeParse_NoClaudeProjectsDir(t *testing.T) {

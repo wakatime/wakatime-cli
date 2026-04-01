@@ -32,7 +32,7 @@ func TestPreserveAttributesMutatesAIHeartbeats(t *testing.T) {
 	projectRootCount := 2
 
 	aiHeartbeats := []heartbeat.Heartbeat{
-		{Entity: "/tmp/main.go"},
+		{Entity: "/tmp/main.go", Time: 100, UserAgent: "Codex/0.116.0-alpha.1"},
 	}
 	humanHeartbeats := []heartbeat.Heartbeat{
 		{
@@ -48,6 +48,7 @@ func TestPreserveAttributesMutatesAIHeartbeats(t *testing.T) {
 			ProjectPath:         "/tmp/project",
 			ProjectPathOverride: "/tmp/override-project",
 			ProjectRootCount:    &projectRootCount,
+			Time:                99,
 		},
 	}
 
@@ -66,10 +67,12 @@ func TestPreserveAttributesMutatesAIHeartbeats(t *testing.T) {
 	assert.Equal(t, "/tmp/project", got[0].ProjectPath)
 	assert.Equal(t, "/tmp/override-project", got[0].ProjectPathOverride)
 	assert.Equal(t, &projectRootCount, got[0].ProjectRootCount)
+	assert.Equal(t, "Codex/0.116.0-alpha.1", got[0].UserAgent)
 
 	assert.Equal(t, &project, aiHeartbeats[0].Project)
 	assert.Equal(t, branch, aiHeartbeats[0].BranchAlternate)
 	assert.Equal(t, "/tmp/project", aiHeartbeats[0].ProjectPath)
+	assert.Equal(t, "Codex/0.116.0-alpha.1", aiHeartbeats[0].UserAgent)
 }
 
 func TestWithAISyncUpdatesLastParsedAtBeforeParsing(t *testing.T) {
@@ -179,6 +182,7 @@ func TestSendHeartbeats_WithAIParsing(t *testing.T) {
 			Project          *string `json:"project"`
 			Language         *string `json:"language"`
 			ProjectRootCount *int    `json:"project_root_count"`
+			UserAgent        string  `json:"user_agent"`
 		}
 
 		err = json.Unmarshal(body, &entities)
@@ -190,6 +194,8 @@ func TestSendHeartbeats_WithAIParsing(t *testing.T) {
 		assert.Equal(t, "wakatime-cli", *entities[0].Project)
 		assert.Equal(t, "Golang", *entities[0].Language)
 		assert.Greater(t, *entities[0].ProjectRootCount, 1)
+		assert.Contains(t, entities[0].UserAgent, heartbeat.UserAgent(t.Context(), plugin))
+		assert.Contains(t, entities[0].UserAgent, "ClaudeCode/2.1.45")
 		assert.Equal(t, local, entities[1].Entity)
 
 		// send response

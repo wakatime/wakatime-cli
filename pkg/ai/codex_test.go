@@ -28,7 +28,11 @@ func TestCodexParse(t *testing.T) {
 	copyFile(t, "testdata/codex.jsonl", transcriptPath)
 
 	parser := ai.Codex{
-		After: time.Date(2026, 3, 28, 04, 0, 0, 0, time.UTC),
+		After:             time.Date(2026, 3, 28, 04, 0, 0, 0, time.UTC),
+		FallbackUserAgent: "plugin/0.0.1",
+		UserAgents: map[string]string{
+			"/home/user/projects/wakatime-cli/pkg/ai/claude.go": heartbeat.UserAgent(ctx, "editor/1.2.3"),
+		},
 	}
 
 	got, err := parser.Parse(ctx)
@@ -43,6 +47,7 @@ func TestCodexParse(t *testing.T) {
 	require.NotNil(t, got[0].IsWrite)
 	assert.True(t, *got[0].IsWrite)
 	assert.Equal(t, float64(time.Date(2026, 3, 28, 11, 33, 34, 952, time.UTC).Unix()), got[0].Time)
+	assert.Contains(t, got[0].UserAgent, heartbeat.UserAgent(ctx, "editor/1.2.3"))
 	assert.Contains(t, got[0].UserAgent, "Codex/0.116.0-alpha.1")
 }
 

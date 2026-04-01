@@ -128,7 +128,11 @@ func TestCursorParse(t *testing.T) {
 	})
 
 	parser := ai.Cursor{
-		After: time.Date(2026, 3, 15, 23, 34, 0, 0, time.UTC),
+		After:             time.Date(2026, 3, 15, 23, 34, 0, 0, time.UTC),
+		FallbackUserAgent: "plugin/0.0.1",
+		UserAgents: map[string]string{
+			"/tmp/edited.js": heartbeat.UserAgent(ctx, "editor/1.2.3"),
+		},
 	}
 
 	got, err := parser.Parse(ctx)
@@ -143,6 +147,7 @@ func TestCursorParse(t *testing.T) {
 	require.NotNil(t, got[0].IsWrite)
 	assert.True(t, *got[0].IsWrite)
 	assert.Equal(t, float64(time.Date(2026, 3, 15, 23, 34, 39, 0, time.UTC).Unix()), got[0].Time)
+	assert.Contains(t, got[0].UserAgent, heartbeat.UserAgent(ctx, "editor/1.2.3"))
 	assert.Contains(t, got[0].UserAgent, "Cursor")
 
 	assert.Equal(t, "/tmp/read.go", got[1].Entity)
@@ -150,6 +155,8 @@ func TestCursorParse(t *testing.T) {
 	assert.Equal(t, 0, *got[1].AILineChanges)
 	require.NotNil(t, got[1].IsWrite)
 	assert.False(t, *got[1].IsWrite)
+	assert.Contains(t, got[1].UserAgent, "plugin/0.0.1")
+	assert.Contains(t, got[1].UserAgent, "Cursor")
 
 	assert.Equal(t, "/tmp/diff.go", got[2].Entity)
 	require.NotNil(t, got[2].AILineChanges)

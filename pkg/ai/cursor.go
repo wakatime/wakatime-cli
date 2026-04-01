@@ -19,7 +19,9 @@ import (
 
 // Cursor contains params for detecting heartbeats from Cursor transcripts.
 type Cursor struct {
-	After time.Time
+	After             time.Time
+	FallbackUserAgent string
+	UserAgents        map[string]string
 }
 
 type (
@@ -100,7 +102,7 @@ func (g Cursor) Parse(ctx context.Context) (Heartbeats, error) {
 			continue
 		}
 
-		heartbeat := cursorHeartbeat(ctx, logLine)
+		heartbeat := g.cursorHeartbeat(ctx, logLine)
 		if heartbeat == nil {
 			continue
 		}
@@ -178,7 +180,7 @@ ORDER BY json_extract(CAST(value AS TEXT), '$.createdAt') ASC;
 	return results, nil
 }
 
-func cursorHeartbeat(ctx context.Context, logLine cursorLogLine) *heartbeat.Heartbeat {
+func (g Cursor) cursorHeartbeat(ctx context.Context, logLine cursorLogLine) *heartbeat.Heartbeat {
 	switch logLine.ToolFormerData.Name {
 	case "edit_file_v2":
 		var params cursorEditParams
@@ -212,7 +214,7 @@ func cursorHeartbeat(ctx context.Context, logLine cursorLogLine) *heartbeat.Hear
 			"",
 			"",
 			float64(logLine.CreatedAt.Unix()),
-			heartbeat.UserAgent(ctx, cursorPlugin()),
+			aiUserAgent(ctx, filePath, g.UserAgents, g.FallbackUserAgent, cursorPlugin()),
 		)
 
 		return &h
@@ -260,7 +262,7 @@ func cursorHeartbeat(ctx context.Context, logLine cursorLogLine) *heartbeat.Hear
 			"",
 			"",
 			float64(logLine.CreatedAt.Unix()),
-			heartbeat.UserAgent(ctx, cursorPlugin()),
+			aiUserAgent(ctx, filePath, g.UserAgents, g.FallbackUserAgent, cursorPlugin()),
 		)
 
 		return &h
@@ -318,7 +320,7 @@ func cursorHeartbeat(ctx context.Context, logLine cursorLogLine) *heartbeat.Hear
 			"",
 			"",
 			float64(logLine.CreatedAt.Unix()),
-			heartbeat.UserAgent(ctx, cursorPlugin()),
+			aiUserAgent(ctx, filePath, g.UserAgents, g.FallbackUserAgent, cursorPlugin()),
 		)
 
 		return &h
