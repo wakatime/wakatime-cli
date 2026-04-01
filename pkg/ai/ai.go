@@ -153,7 +153,9 @@ func parseAIHeartbeats(ctx context.Context, after time.Time) (Heartbeats, error)
 		Codex{
 			After: after,
 		},
-		// Cursor{},
+		Cursor{
+			After: after,
+		},
 	}
 
 	for _, p := range parsers {
