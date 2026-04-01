@@ -46,7 +46,33 @@ func TestCodexParse(t *testing.T) {
 	assert.Contains(t, got[0].UserAgent, "Codex/0.116.0-alpha.1")
 }
 
-func TestCodexParse_NoClaudeProjectsDir(t *testing.T) {
+func TestCodexParse_ParsesTranscriptFromPreviousDayFolder(t *testing.T) {
+	ctx := context.Background()
+
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	transcriptDir := filepath.Join(home, ".codex", "sessions", "2026", "03", "27")
+	require.NoError(t, os.MkdirAll(transcriptDir, 0o755))
+
+	transcriptPath := filepath.Join(transcriptDir, "rollout-2026-03-28T07-33-13-019d3438-39ae-7fb2-8526-d6c02ba3577c.jsonl")
+	copyFile(t, "testdata/codex.jsonl", transcriptPath)
+
+	now := time.Now()
+	require.NoError(t, os.Chtimes(transcriptPath, now, now))
+
+	parser := ai.Codex{
+		After: time.Date(2026, 3, 28, 11, 0, 0, 0, time.UTC),
+	}
+
+	got, err := parser.Parse(ctx)
+	require.NoError(t, err)
+	require.Len(t, got, 1)
+	assert.Equal(t, "/home/user/projects/wakatime-cli/pkg/ai/claude.go", got[0].Entity)
+}
+
+func TestCodexParse_NoCodexSessionsDir(t *testing.T) {
 	ctx := context.Background()
 
 	home := t.TempDir()
