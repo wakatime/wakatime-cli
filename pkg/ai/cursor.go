@@ -1,3 +1,5 @@
+//go:build !freebsd && !openbsd && !netbsd && !dragonfly
+
 package ai
 
 import (
