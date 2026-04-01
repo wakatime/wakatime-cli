@@ -297,6 +297,7 @@ func applyAIParsing(
 ) ([]heartbeat.Heartbeat, error) {
 	handle := ai.WithAISync(ai.Config{
 		SyncDisabled: params.AI.SyncDisabled,
+		Plugin:       params.API.Plugin,
 		V:            v,
 	})(func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		results := make([]heartbeat.Result, len(hh))

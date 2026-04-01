@@ -16,7 +16,9 @@ import (
 
 // Claude contains params for detecting heartbeats from Claude transcripts.
 type Claude struct {
-	After time.Time
+	After             time.Time
+	FallbackUserAgent string
+	UserAgents        map[string]string
 }
 
 type (
@@ -308,7 +310,7 @@ func (g Claude) parseTranscript(ctx context.Context, transcript string) (Heartbe
 			"",
 			"",
 			float64(logLine.Timestamp.Unix()),
-			heartbeat.UserAgent(ctx, claudePlugin(claudeVersion)),
+			aiUserAgent(ctx, filePath, g.UserAgents, g.FallbackUserAgent, claudePlugin(claudeVersion)),
 		))
 	}
 

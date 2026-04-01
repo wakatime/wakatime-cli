@@ -18,7 +18,9 @@ import (
 
 // Codex contains params for detecting heartbeats from Codex session transcripts.
 type Codex struct {
-	After time.Time
+	After             time.Time
+	FallbackUserAgent string
+	UserAgents        map[string]string
 }
 
 type (
@@ -204,7 +206,15 @@ func (g Codex) parseTranscript(ctx context.Context, transcript string) (Heartbea
 			continue
 		}
 
-		entities := getCodexEntities(ctx, logLine.Timestamp, version, cwd, *logLine.Payload)
+		entities := getCodexEntities(
+			ctx,
+			logLine.Timestamp,
+			version,
+			cwd,
+			g.UserAgents,
+			g.FallbackUserAgent,
+			*logLine.Payload,
+		)
 		if len(entities) == 0 {
 			continue
 		}
@@ -224,6 +234,8 @@ func getCodexEntities(
 	timestamp time.Time,
 	version string,
 	cwd string,
+	userAgents map[string]string,
+	fallbackUserAgent string,
 	payload codexPayload,
 ) Heartbeats {
 	if payload.Name == nil || *payload.Name != "apply_patch" {
@@ -252,6 +264,8 @@ func getCodexEntities(
 					currentFile,
 					timestamp,
 					version,
+					userAgents,
+					fallbackUserAgent,
 					additions,
 					deletions,
 				))
@@ -275,6 +289,8 @@ func getCodexEntities(
 			currentFile,
 			timestamp,
 			version,
+			userAgents,
+			fallbackUserAgent,
 			additions,
 			deletions,
 		))
@@ -307,6 +323,8 @@ func codexHeartbeat(
 	currentFile string,
 	timestamp time.Time,
 	version string,
+	userAgents map[string]string,
+	fallbackUserAgent string,
 	additions int,
 	deletions int,
 ) heartbeat.Heartbeat {
@@ -330,7 +348,7 @@ func codexHeartbeat(
 		"",
 		"",
 		float64(timestamp.Unix()),
-		heartbeat.UserAgent(ctx, codexPlugin(version)),
+		aiUserAgent(ctx, currentFile, userAgents, fallbackUserAgent, codexPlugin(version)),
 	)
 }
 

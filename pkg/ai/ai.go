@@ -15,6 +15,7 @@ import (
 // Config contains filtering configurations.
 type Config struct {
 	SyncDisabled bool
+	Plugin       string
 	V            *viper.Viper
 }
 
@@ -87,7 +88,9 @@ func WithAISync(config Config) heartbeat.HandleOption {
 				return next(ctx, hh)
 			}
 
-			heartbeats, err := parseAIHeartbeats(ctx, lastParsedAt)
+			userAgents := entityUserAgents(hh)
+
+			heartbeats, err := parseAIHeartbeats(ctx, lastParsedAt, userAgents, config.Plugin)
 			if err != nil {
 				logger.Errorf("failed to parse ai heartbeats: %s", err)
 				return next(ctx, hh)
@@ -143,17 +146,30 @@ func WithAISync(config Config) heartbeat.HandleOption {
 	}
 }
 
-func parseAIHeartbeats(ctx context.Context, after time.Time) (Heartbeats, error) {
+func parseAIHeartbeats(
+	ctx context.Context,
+	after time.Time,
+	userAgents map[string]string,
+	fallbackUserAgent string,
+) (Heartbeats, error) {
 	logger := log.Extract(ctx)
 
 	var parsers = []Parser{
 		Claude{
-			After: after,
+			After:             after,
+			UserAgents:        userAgents,
+			FallbackUserAgent: fallbackUserAgent,
 		},
 		Codex{
-			After: after,
+			After:             after,
+			UserAgents:        userAgents,
+			FallbackUserAgent: fallbackUserAgent,
 		},
-		// Cursor{},
+		Cursor{
+			After:             after,
+			UserAgents:        userAgents,
+			FallbackUserAgent: fallbackUserAgent,
+		},
 	}
 
 	for _, p := range parsers {
@@ -269,4 +285,31 @@ func PreserveAttributes(aiHeartbeats []heartbeat.Heartbeat, humanHeartbeats []he
 	}
 
 	return aiHeartbeats
+}
+
+func entityUserAgents(hh []heartbeat.Heartbeat) map[string]string {
+	userAgents := make(map[string]string, len(hh))
+
+	for _, h := range hh {
+		if h.Entity == "" || h.UserAgent == "" {
+			continue
+		}
+
+		userAgents[h.Entity] = h.UserAgent
+	}
+
+	return userAgents
+}
+
+func aiUserAgent(ctx context.Context, entity string, userAgents map[string]string, fallback string, parser string) string {
+	existing := fallback
+	if fromHeartbeat, found := userAgents[entity]; found && fromHeartbeat != "" {
+		existing = fromHeartbeat
+	}
+
+	if existing != "" {
+		return heartbeat.UserAgent(ctx, existing+" "+parser)
+	}
+
+	return heartbeat.UserAgent(ctx, parser)
 }
