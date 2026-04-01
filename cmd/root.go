@@ -248,6 +248,7 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 		"'AI Coding' before sending.")
 	flags.Bool("sync-ai-disabled", false, "Disable parsing AI transcript logs when sending heartbeats. "+
 		"By default, AI transcript logs are parsed every time when sending heartbeats.")
+	flags.Bool("sync-ai-disable", false, "")
 	flags.Int(
 		"sync-offline-activity",
 		offline.SyncMaxDefault,
@@ -291,6 +292,7 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 	_ = flags.MarkHidden("hide-filenames")
 	_ = flags.MarkHidden("hidefilenames")
 	_ = flags.MarkHidden("logfile")
+	_ = flags.MarkHidden("sync-ai-disable")
 
 	// hide internal flags
 	_ = flags.MarkHidden("offline-queue-file")
