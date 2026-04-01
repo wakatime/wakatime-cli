@@ -12,7 +12,6 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
-	"runtime/debug"
 	"strconv"
 	"strings"
 	"sync"
@@ -238,8 +237,7 @@ type (
 
 	// AIParams contains AI sync command parameters.
 	AIParams struct {
-		SyncAfterTime time.Time
-		SyncDisabled  bool
+		SyncDisabled bool
 	}
 
 	// Offline contains offline related parameters.
@@ -470,7 +468,7 @@ func loadBackoffParams(ctx context.Context, v *viper.Viper) (backoffAt time.Time
 
 	backoffAtStr := vipertools.GetString(v, "internal.backoff_at")
 	if backoffAtStr != "" {
-		parsed, err := safeTimeParse(ini.DateFormat, backoffAtStr)
+		parsed, err := vipertools.SafeTimeParse(ini.DateFormat, backoffAtStr)
 		// nolint:gocritic
 		if err != nil {
 			logger.Warnf("failed to parse backoff_at: %s", err)
@@ -870,20 +868,8 @@ func loadProjectMapPatterns(ctx context.Context, v *viper.Viper, prefix string) 
 
 // LoadAIParams loads ai sync params from viper.Viper instance.
 func LoadAIParams(_ context.Context, v *viper.Viper, _ FlagReadOrder) (AIParams, error) {
-	syncAIAfter := v.GetFloat64("sync-ai-after")
-
-	var syncAfterTime time.Time
-	if syncAIAfter == 0 {
-		syncAfterTime = time.Now().Add(2 * time.Minute)
-	} else {
-		syncAfterTime = time.Unix(0, int64(syncAIAfter*float64(time.Second)))
-	}
-
-	// Disable AI parsing until #1288 fixed
 	return AIParams{
-		SyncAfterTime: syncAfterTime,
-		SyncDisabled: true ||
-			v.GetBool("sync-ai-disable") ||
+		SyncDisabled: v.GetBool("sync-ai-disable") ||
 			v.GetBool("sync-ai-disabled") ||
 			v.GetBool("settings.sync_ai_disabled"),
 	}, nil
@@ -933,7 +919,7 @@ func LoadOfflineParams(ctx context.Context, v *viper.Viper, order FlagReadOrder)
 
 	lastSentAtStr := vipertools.GetString(v, "internal.heartbeats_last_sent_at")
 	if lastSentAtStr != "" {
-		parsed, err := safeTimeParse(ini.DateFormat, lastSentAtStr)
+		parsed, err := vipertools.SafeTimeParse(ini.DateFormat, lastSentAtStr)
 		// nolint:gocritic
 		if err != nil {
 			logger.Warnf("failed to parse heartbeats_last_sent_at: %s", err)
@@ -997,18 +983,6 @@ func LoadStatusBarParams(v *viper.Viper, order FlagReadOrder) (StatusBar, error)
 		MaxCategories:  maxCategories,
 		Output:         out,
 	}, nil
-}
-
-func safeTimeParse(format, s string) (parsed time.Time, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("panicked: failed to time.Parse: %v. Stack: %s", r, string(debug.Stack()))
-		}
-	}()
-
-	parsed, err = time.Parse(format, s)
-
-	return parsed, err
 }
 
 func readAPIKeyFromCommand(cmdStr string) (string, error) {
@@ -1379,14 +1353,8 @@ func (p Offline) String() string {
 
 // String implements fmt.Stringer interface.
 func (p AIParams) String() string {
-	var syncAfterTime string
-	if !p.SyncAfterTime.IsZero() {
-		syncAfterTime = p.SyncAfterTime.Format(ini.DateFormat)
-	}
-
 	return fmt.Sprintf(
-		"sync after time: '%s', disabled: %t",
-		syncAfterTime,
+		"disabled: %t",
 		p.SyncDisabled,
 	)
 }
