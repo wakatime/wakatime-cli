@@ -41,12 +41,12 @@ func TestEntityUserAgentsAndAIUserAgent(t *testing.T) {
 	assert.Equal(t, map[string]string{"/tmp/main.go": "editor/1.0.0"}, userAgents)
 	assert.Equal(
 		t,
-		heartbeat.UserAgent(ctx, "editor/1.0.0 "+cursorPlugin()),
+		heartbeat.UserAgent(ctx, cursorPlugin()+" "+"editor/1.0.0"),
 		aiUserAgent(ctx, "/tmp/main.go", userAgents, "plugin/0.1.0", cursorPlugin()),
 	)
 	assert.Equal(
 		t,
-		heartbeat.UserAgent(ctx, "plugin/0.1.0 "+cursorPlugin()),
+		heartbeat.UserAgent(ctx, cursorPlugin()+" "+"plugin/0.1.0"),
 		aiUserAgent(ctx, "/tmp/other.go", userAgents, "plugin/0.1.0", cursorPlugin()),
 	)
 	assert.Equal(
@@ -69,6 +69,7 @@ func TestGetLastParsedAt(t *testing.T) {
 	t.Run("clamps future timestamp and writes updated value", func(t *testing.T) {
 		tmpInternal, err := os.CreateTemp(t.TempDir(), "wakatime-internal")
 		require.NoError(t, err)
+
 		defer tmpInternal.Close()
 
 		v := viper.New()
@@ -78,6 +79,7 @@ func TestGetLastParsedAt(t *testing.T) {
 		before := time.Now()
 		parsed, err := getLastParsedAt(ctx, v)
 		after := time.Now()
+
 		require.NoError(t, err)
 		assert.False(t, parsed.Before(before))
 		assert.False(t, parsed.After(after))
@@ -156,12 +158,13 @@ func TestCursorHeartbeatFallbacks(t *testing.T) {
 	assert.False(t, *read.IsWrite)
 
 	appHeartbeats := parser.cursorHeartbeats(ctx, cursorLogLine{
+		BubbleID:  "composer-1",
 		CreatedAt: createdAt,
 		Type:      1,
 		Text:      "Please edit the file",
 	})
 	require.Len(t, appHeartbeats, 1)
-	assert.Equal(t, "Cursor", appHeartbeats[0].Entity)
+	assert.Equal(t, "composer-1", appHeartbeats[0].Entity)
 	assert.Equal(t, heartbeat.AppType, appHeartbeats[0].EntityType)
 	assert.Nil(t, appHeartbeats[0].AILineChanges)
 	require.NotNil(t, appHeartbeats[0].IsWrite)
@@ -252,45 +255,74 @@ func TestCodexHelpers(t *testing.T) {
 	ctx := context.Background()
 	timestamp := time.Date(2026, 3, 28, 12, 0, 0, 0, time.UTC)
 
-	assert.Nil(t, getCodexEntities(ctx, timestamp, "1.2.3", "/workspace", nil, "", codexPayload{}))
-	assert.Nil(t, getCodexEntities(ctx, timestamp, "1.2.3", "/workspace", nil, "", codexPayload{
+	assert.Nil(t, getCodexEntities(ctx, timestamp, "session.jsonl", "1.2.3", "/workspace", nil, "", codexPayload{}))
+	assert.Nil(t, getCodexEntities(ctx, timestamp, "session.jsonl", "1.2.3", "/workspace", nil, "", codexPayload{
 		Name:  heartbeat.PointerTo("not_apply_patch"),
 		Input: heartbeat.PointerTo("*** Update File: pkg/main.go\n+one"),
 	}))
 
-	userHeartbeats := getCodexEntities(ctx, timestamp, "1.2.3", "/workspace", nil, "plugin/0.1.0", codexPayload{
-		Type: "message",
-		Role: heartbeat.PointerTo("user"),
-		Content: []codexContentItem{
-			{Type: "input_text", Text: "Please implement this"},
+	userHeartbeats := getCodexEntities(
+		ctx,
+		timestamp,
+		"session.jsonl",
+		"1.2.3",
+		"/workspace",
+		nil,
+		"plugin/0.1.0",
+		codexPayload{
+			Type: "message",
+			Role: heartbeat.PointerTo("user"),
+			Content: []codexContentItem{
+				{Type: "input_text", Text: "Please implement this"},
+			},
 		},
-	})
+	)
 	require.Len(t, userHeartbeats, 1)
-	assert.Equal(t, "Codex", userHeartbeats[0].Entity)
+	assert.Equal(t, "session.jsonl", userHeartbeats[0].Entity)
 	assert.Equal(t, heartbeat.AppType, userHeartbeats[0].EntityType)
 	assert.Nil(t, userHeartbeats[0].AILineChanges)
 	require.NotNil(t, userHeartbeats[0].IsWrite)
 	assert.False(t, *userHeartbeats[0].IsWrite)
 	assert.Contains(t, userHeartbeats[0].UserAgent, "Codex/1.2.3")
 
-	assistantHeartbeats := getCodexEntities(ctx, timestamp, "1.2.3", "/workspace", nil, "plugin/0.1.0", codexPayload{
-		Type: "message",
-		Role: heartbeat.PointerTo("assistant"),
-		Content: []codexContentItem{
-			{Type: "output_text", Text: "I am on it"},
+	assistantHeartbeats := getCodexEntities(
+		ctx,
+		timestamp,
+		"session.jsonl",
+		"1.2.3",
+		"/workspace",
+		nil,
+		"plugin/0.1.0",
+		codexPayload{
+			Type: "message",
+			Role: heartbeat.PointerTo("assistant"),
+			Content: []codexContentItem{
+				{Type: "output_text", Text: "I am on it"},
+			},
 		},
-	})
+	)
 	require.Len(t, assistantHeartbeats, 1)
-	assert.Equal(t, "Codex", assistantHeartbeats[0].Entity)
+	assert.Equal(t, "session.jsonl", assistantHeartbeats[0].Entity)
 	assert.Equal(t, heartbeat.AppType, assistantHeartbeats[0].EntityType)
 	assert.Nil(t, assistantHeartbeats[0].AILineChanges)
 	require.NotNil(t, assistantHeartbeats[0].IsWrite)
 	assert.False(t, *assistantHeartbeats[0].IsWrite)
 
-	heartbeats := getCodexEntities(ctx, timestamp, "1.2.3", "/workspace", nil, "plugin/0.1.0", codexPayload{
-		Name:  heartbeat.PointerTo("apply_patch"),
-		Input: heartbeat.PointerTo("*** Update File: pkg/main.go\n+one\n-two\n*** Add File: /tmp/extra.go\n+alpha\n+beta"),
-	})
+	heartbeats := getCodexEntities(
+		ctx,
+		timestamp,
+		"session.jsonl",
+		"1.2.3",
+		"/workspace",
+		nil,
+		"plugin/0.1.0",
+		codexPayload{
+			Name: heartbeat.PointerTo("apply_patch"),
+			Input: heartbeat.PointerTo(
+				"*** Update File: pkg/main.go\n+one\n-two\n*** Add File: /tmp/extra.go\n+alpha\n+beta",
+			),
+		},
+	)
 	require.Len(t, heartbeats, 2)
 	assert.Equal(t, filepath.Join("/workspace", "pkg/main.go"), heartbeats[0].Entity)
 	require.NotNil(t, heartbeats[0].AILineChanges)

@@ -308,7 +308,7 @@ func aiUserAgent(ctx context.Context, entity string, userAgents map[string]strin
 	}
 
 	if existing != "" {
-		return heartbeat.UserAgent(ctx, existing+" "+parser)
+		return heartbeat.UserAgent(ctx, parser+" "+existing)
 	}
 
 	return heartbeat.UserAgent(ctx, parser)

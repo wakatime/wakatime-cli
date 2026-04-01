@@ -251,6 +251,7 @@ func (g Claude) parseTranscript(ctx context.Context, transcript string) (Heartbe
 	var heartbeats Heartbeats
 
 	claudeVersion := ""
+	sessionEntity := filepath.Base(transcript)
 
 	for scanner.Scan() {
 		if ctx.Err() != nil {
@@ -282,7 +283,7 @@ func (g Claude) parseTranscript(ctx context.Context, transcript string) (Heartbe
 			continue
 		}
 
-		heartbeats = append(heartbeats, g.claudeHeartbeats(ctx, logLine, claudeVersion)...)
+		heartbeats = append(heartbeats, g.claudeHeartbeats(ctx, logLine, sessionEntity, claudeVersion)...)
 	}
 
 	if err := scanner.Err(); err != nil {
@@ -292,10 +293,15 @@ func (g Claude) parseTranscript(ctx context.Context, transcript string) (Heartbe
 	return heartbeats, nil
 }
 
-func (g Claude) claudeHeartbeats(ctx context.Context, logLine claudeLogLine, version string) Heartbeats {
+func (g Claude) claudeHeartbeats(
+	ctx context.Context,
+	logLine claudeLogLine,
+	sessionEntity string,
+	version string,
+) Heartbeats {
 	var heartbeats Heartbeats
 
-	if heartbeat := g.claudeAppHeartbeat(ctx, logLine, version); heartbeat != nil {
+	if heartbeat := g.claudeAppHeartbeat(ctx, logLine, sessionEntity, version); heartbeat != nil {
 		heartbeats = append(heartbeats, *heartbeat)
 	}
 
@@ -306,19 +312,23 @@ func (g Claude) claudeHeartbeats(ctx context.Context, logLine claudeLogLine, ver
 	return heartbeats
 }
 
-func (g Claude) claudeAppHeartbeat(ctx context.Context, logLine claudeLogLine, version string) *heartbeat.Heartbeat {
+func (g Claude) claudeAppHeartbeat(
+	ctx context.Context,
+	logLine claudeLogLine,
+	sessionEntity string,
+	version string,
+) *heartbeat.Heartbeat {
 	lineChanges := claudeAppLineChanges(logLine.ToolUseResult)
 	if lineChanges == 0 {
 		return nil
 	}
 
-	entity := "ClaudeCode"
 	h := heartbeat.New(
 		nil,
 		"",
 		heartbeat.AICodingCategory.String(),
 		nil,
-		entity,
+		sessionEntity,
 		heartbeat.AppType,
 		nil,
 		false,
@@ -333,7 +343,7 @@ func (g Claude) claudeAppHeartbeat(ctx context.Context, logLine claudeLogLine, v
 		"",
 		"",
 		float64(logLine.Timestamp.Unix()),
-		aiUserAgent(ctx, entity, g.UserAgents, g.FallbackUserAgent, claudePlugin(version)),
+		aiUserAgent(ctx, sessionEntity, g.UserAgents, g.FallbackUserAgent, claudePlugin(version)),
 	)
 
 	return &h

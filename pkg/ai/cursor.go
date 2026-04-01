@@ -44,11 +44,17 @@ type (
 	}
 
 	cursorLogLine struct {
+		BubbleID       string
 		CreatedAt      time.Time             `json:"createdAt"`
 		Type           int                   `json:"type"`
 		Text           string                `json:"text"`
 		ToolFormerData *cursorToolFormerData `json:"toolFormerData"`
 		CodeBlocks     []cursorCodeBlock     `json:"codeBlocks"`
+	}
+
+	cursorLogRow struct {
+		BubbleID string
+		Value    string
 	}
 
 	cursorEditParams struct {
@@ -97,9 +103,11 @@ func (g Cursor) Parse(ctx context.Context) (Heartbeats, error) {
 
 	for _, row := range rows {
 		var logLine cursorLogLine
-		if err := json.Unmarshal([]byte(row), &logLine); err != nil {
+		if err := json.Unmarshal([]byte(row.Value), &logLine); err != nil {
 			continue
 		}
+
+		logLine.BubbleID = row.BubbleID
 
 		if logLine.CreatedAt.IsZero() || logLine.CreatedAt.Before(g.After) {
 			continue
@@ -151,7 +159,7 @@ func stateDBPath(ctx context.Context) (string, error) {
 	return "", nil
 }
 
-func (g Cursor) queryRows(ctx context.Context, dbPath string) ([]string, error) {
+func (g Cursor) queryRows(ctx context.Context, dbPath string) ([]cursorLogRow, error) {
 	db, err := sql.Open("sqlite", dbPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed opening cursor sqlite db %q: %s", dbPath, err)
@@ -159,7 +167,7 @@ func (g Cursor) queryRows(ctx context.Context, dbPath string) ([]string, error) 
 	defer db.Close() // nolint:errcheck
 
 	rows, err := db.QueryContext(ctx, `
-SELECT CAST(value AS TEXT)
+SELECT key, CAST(value AS TEXT)
 FROM cursorDiskKV
 WHERE key LIKE 'bubbleId:%'
   AND json_extract(CAST(value AS TEXT), '$.createdAt') >= ?
@@ -180,17 +188,28 @@ ORDER BY json_extract(CAST(value AS TEXT), '$.createdAt') ASC;
 	}
 	defer rows.Close() // nolint:errcheck
 
-	var results []string
+	var results []cursorLogRow
 
 	for rows.Next() {
-		var row string
-		if err := rows.Scan(&row); err != nil {
+		var (
+			key string
+			row string
+		)
+		if err := rows.Scan(&key, &row); err != nil {
 			return nil, fmt.Errorf("failed scanning cursor sqlite row: %s", err)
 		}
 
 		row = strings.TrimSpace(row)
 		if row != "" {
-			results = append(results, row)
+			bubbleID := strings.TrimPrefix(key, "bubbleId:")
+			if idx := strings.Index(bubbleID, ":"); idx != -1 {
+				bubbleID = bubbleID[:idx]
+			}
+
+			results = append(results, cursorLogRow{
+				BubbleID: bubbleID,
+				Value:    row,
+			})
 		}
 	}
 
@@ -228,7 +247,11 @@ func (g Cursor) cursorAppHeartbeat(ctx context.Context, logLine cursorLogLine) *
 		return nil
 	}
 
-	entity := "Cursor"
+	entity := logLine.BubbleID
+	if entity == "" {
+		entity = "Cursor"
+	}
+
 	h := heartbeat.New(
 		nil,
 		"",
