@@ -2,16 +2,20 @@ package ai
 
 import (
 	"context"
+	"fmt"
 	"time"
 
+	"github.com/spf13/viper"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/ini"
 	"github.com/wakatime/wakatime-cli/pkg/log"
+	"github.com/wakatime/wakatime-cli/pkg/vipertools"
 )
 
 // Config contains filtering configurations.
 type Config struct {
-	SyncAfterTime time.Time
-	SyncDisabled  bool
+	SyncDisabled bool
+	V            *viper.Viper
 }
 
 // ParserID represents an AI Parser ID.
@@ -77,7 +81,13 @@ func WithAISync(config Config) heartbeat.HandleOption {
 				return next(ctx, hh)
 			}
 
-			heartbeats, err := parseAIHeartbeats(ctx, config)
+			lastParsedAt, err := getLastParsedAt(ctx, config.V)
+			if err != nil {
+				logger.Debugf("failed ai last parsed: %s", err)
+				return next(ctx, hh)
+			}
+
+			heartbeats, err := parseAIHeartbeats(ctx, lastParsedAt)
 			if err != nil {
 				logger.Errorf("failed to parse ai heartbeats: %s", err)
 				return next(ctx, hh)
@@ -133,15 +143,15 @@ func WithAISync(config Config) heartbeat.HandleOption {
 	}
 }
 
-func parseAIHeartbeats(ctx context.Context, config Config) (Heartbeats, error) {
+func parseAIHeartbeats(ctx context.Context, after time.Time) (Heartbeats, error) {
 	logger := log.Extract(ctx)
 
 	var parsers = []Parser{
 		Claude{
-			After: config.SyncAfterTime,
+			After: after,
 		},
 		Codex{
-			After: config.SyncAfterTime,
+			After: after,
 		},
 		// Cursor{},
 	}
@@ -161,6 +171,44 @@ func parseAIHeartbeats(ctx context.Context, config Config) (Heartbeats, error) {
 	}
 
 	return nil, nil
+}
+
+func getLastParsedAt(ctx context.Context, v *viper.Viper) (time.Time, error) {
+	lastParsedAt := time.Now().Add(-1 * time.Minute)
+
+	if v == nil {
+		return lastParsedAt, fmt.Errorf("missing viper instance")
+	}
+
+	logger := log.Extract(ctx)
+
+	lastParsedAtStr := vipertools.GetString(v, "internal.ai_heartbeats_last_parsed_at")
+	if lastParsedAtStr != "" {
+		parsed, err := vipertools.SafeTimeParse(ini.DateFormat, lastParsedAtStr)
+		// nolint:gocritic
+		if err != nil {
+			logger.Warnf("failed to parse ai_heartbeats_last_parsed_at: %s", err)
+		} else if parsed.After(time.Now()) {
+			lastParsedAt = time.Now()
+		} else {
+			lastParsedAt = parsed
+		}
+	}
+
+	w, err := ini.NewWriter(ctx, v, ini.InternalFilePath)
+	if err != nil {
+		return lastParsedAt, fmt.Errorf("failed to parse internal config file: %s", err)
+	}
+
+	keyValue := map[string]string{
+		"ai_heartbeats_last_parsed_at": time.Now().Format(ini.DateFormat),
+	}
+
+	if err := w.Write(ctx, "internal", keyValue); err != nil {
+		return lastParsedAt, fmt.Errorf("failed to write to internal config file: %s", err)
+	}
+
+	return lastParsedAt, nil
 }
 
 // PreserveAttributes mutates aiHeartbeats pulling in the attributes from

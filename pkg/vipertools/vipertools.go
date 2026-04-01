@@ -2,7 +2,9 @@ package vipertools
 
 import (
 	"fmt"
+	"runtime/debug"
 	"strings"
+	"time"
 
 	viperini "github.com/go-viper/encoding/ini"
 	"github.com/spf13/cast"
@@ -131,4 +133,17 @@ func GetStringMapString(v *viper.Viper, prefix string) map[string]string {
 	}
 
 	return m
+}
+
+// SafeTimeParse turns a string into a time.Time.
+func SafeTimeParse(format, s string) (parsed time.Time, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("panicked: failed to time.Parse: %v. Stack: %s", r, string(debug.Stack()))
+		}
+	}()
+
+	parsed, err = time.Parse(format, s)
+
+	return parsed, err
 }

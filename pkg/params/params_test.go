@@ -3138,17 +3138,13 @@ func TestOffline_String(t *testing.T) {
 }
 
 func TestParamsString_IncludesAIParams(t *testing.T) {
-	syncAfterTime, err := time.Parse(inipkg.DateFormat, "2026-03-29T07:35:07-04:00")
-	require.NoError(t, err)
-
 	params := paramspkg.AIParams{
-		SyncAfterTime: syncAfterTime,
-		SyncDisabled:  true,
+		SyncDisabled: true,
 	}
 
 	assert.Equal(
 		t,
-		"sync after time: '2026-03-29T07:35:07-04:00', disabled: true",
+		"disabled: true",
 		params.String(),
 	)
 }
