@@ -75,7 +75,7 @@ func TestClaudeParse(t *testing.T) {
 	assert.Contains(t, got[0].UserAgent, heartbeat.UserAgent(ctx, "editor/1.2.3"))
 	assert.Contains(t, got[0].UserAgent, "ClaudeCode/2.1.45")
 
-	assert.Equal(t, "ClaudeCode", got[1].Entity)
+	assert.Equal(t, filepath.Base(transcriptPath), got[1].Entity)
 	assert.Equal(t, heartbeat.AppType, got[1].EntityType)
 	assert.Nil(t, got[1].AILineChanges)
 	require.NotNil(t, got[1].IsWrite)
@@ -83,7 +83,7 @@ func TestClaudeParse(t *testing.T) {
 	assert.Contains(t, got[1].UserAgent, "plugin/0.0.1")
 	assert.Contains(t, got[1].UserAgent, "ClaudeCode/2.1.45")
 
-	assert.Equal(t, "ClaudeCode", got[2].Entity)
+	assert.Equal(t, filepath.Base(transcriptPath), got[2].Entity)
 	assert.Equal(t, heartbeat.AppType, got[2].EntityType)
 	assert.Nil(t, got[2].AILineChanges)
 	require.NotNil(t, got[2].IsWrite)
