@@ -882,7 +882,10 @@ func LoadAIParams(_ context.Context, v *viper.Viper, _ FlagReadOrder) (AIParams,
 	// Disable AI parsing until #1288 fixed
 	return AIParams{
 		SyncAfterTime: syncAfterTime,
-		SyncDisabled:  true || v.GetBool("sync-ai-disabled") || v.GetBool("settings.sync_ai_disabled"),
+		SyncDisabled: true ||
+			v.GetBool("sync-ai-disable") ||
+			v.GetBool("sync-ai-disabled") ||
+			v.GetBool("settings.sync_ai_disabled"),
 	}, nil
 }
 

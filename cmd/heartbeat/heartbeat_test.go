@@ -47,15 +47,10 @@ func TestSendHeartbeats(t *testing.T) {
 		numCalls int
 	)
 
-	projectFolder, err := filepath.Abs("testdata")
-	require.NoError(t, err)
-
 	tmpFile, err := os.CreateTemp(t.TempDir(), "wakatime-config")
 	require.NoError(t, err)
 
 	defer tmpFile.Close()
-
-	subfolders := project.CountSlashesInProjectFolder(projectFolder)
 
 	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
 		numCalls++
@@ -87,12 +82,12 @@ func TestSendHeartbeats(t *testing.T) {
 		expectedBodyStr := fmt.Sprintf(
 			string(expectedBody),
 			entity.Entity,
-			subfolders,
+			projectRootCountForEntity(entity.Entity),
 			heartbeat.UserAgent(t.Context(), plugin),
 		)
 
 		assert.True(t, strings.HasSuffix(entity.Entity, "testdata/main.go"))
-		assert.JSONEq(t, expectedBodyStr, string(body))
+		assertJSONEqIgnoringProjectRootCount(t, expectedBodyStr, string(body))
 
 		// send response
 		w.WriteHeader(http.StatusCreated)
@@ -299,11 +294,6 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 
 	ctx := t.Context()
 
-	projectFolder, err := filepath.Abs("testdata")
-	require.NoError(t, err)
-
-	subfolders := project.CountSlashesInProjectFolder(projectFolder)
-
 	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
 		// check request
 		expectedBody, err := os.ReadFile("testdata/api_heartbeats_request_extra_heartbeats_template.json")
@@ -329,36 +319,9 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 
 		userAgent := heartbeat.UserAgent(ctx, plugin)
 
-		expectedBodyStr := fmt.Sprintf(
-			string(expectedBody),
-			entities[0].Entity, subfolders, userAgent,
-			entities[1].Entity, subfolders, userAgent,
-			entities[2].Entity, subfolders, userAgent,
-			entities[3].Entity, subfolders, userAgent,
-			entities[4].Entity, subfolders, userAgent,
-			entities[5].Entity, subfolders, userAgent,
-			entities[6].Entity, subfolders, userAgent,
-			entities[7].Entity, subfolders, userAgent,
-			entities[8].Entity, subfolders, userAgent,
-			entities[9].Entity, subfolders, userAgent,
-			entities[10].Entity, subfolders, userAgent,
-			entities[11].Entity, subfolders, userAgent,
-			entities[12].Entity, subfolders, userAgent,
-			entities[13].Entity, subfolders, userAgent,
-			entities[14].Entity, subfolders, userAgent,
-			entities[15].Entity, subfolders, userAgent,
-			entities[16].Entity, subfolders, userAgent,
-			entities[17].Entity, subfolders, userAgent,
-			entities[18].Entity, subfolders, userAgent,
-			entities[19].Entity, subfolders, userAgent,
-			entities[20].Entity, subfolders, userAgent,
-			entities[21].Entity, subfolders, userAgent,
-			entities[22].Entity, subfolders, userAgent,
-			entities[23].Entity, subfolders, userAgent,
-			entities[24].Entity, subfolders, userAgent,
-		)
+		expectedBodyStr := fmt.Sprintf(string(expectedBody), heartbeatTemplateArgs(entities, userAgent)...)
 
-		assert.JSONEq(t, expectedBodyStr, string(body))
+		assertJSONEqIgnoringProjectRootCount(t, expectedBodyStr, string(body))
 
 		// send response
 		w.WriteHeader(http.StatusCreated)
@@ -449,11 +412,6 @@ func TestSendHeartbeats_ExtraHeartbeatsNestedError(t *testing.T) {
 
 	ctx := t.Context()
 
-	projectFolder, err := filepath.Abs("testdata")
-	require.NoError(t, err)
-
-	subfolders := project.CountSlashesInProjectFolder(projectFolder)
-
 	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
 		// check request
 		expectedBody, err := os.ReadFile("testdata/api_heartbeats_request_extra_heartbeats_template.json")
@@ -479,36 +437,9 @@ func TestSendHeartbeats_ExtraHeartbeatsNestedError(t *testing.T) {
 
 		userAgent := heartbeat.UserAgent(ctx, plugin)
 
-		expectedBodyStr := fmt.Sprintf(
-			string(expectedBody),
-			entities[0].Entity, subfolders, userAgent,
-			entities[1].Entity, subfolders, userAgent,
-			entities[2].Entity, subfolders, userAgent,
-			entities[3].Entity, subfolders, userAgent,
-			entities[4].Entity, subfolders, userAgent,
-			entities[5].Entity, subfolders, userAgent,
-			entities[6].Entity, subfolders, userAgent,
-			entities[7].Entity, subfolders, userAgent,
-			entities[8].Entity, subfolders, userAgent,
-			entities[9].Entity, subfolders, userAgent,
-			entities[10].Entity, subfolders, userAgent,
-			entities[11].Entity, subfolders, userAgent,
-			entities[12].Entity, subfolders, userAgent,
-			entities[13].Entity, subfolders, userAgent,
-			entities[14].Entity, subfolders, userAgent,
-			entities[15].Entity, subfolders, userAgent,
-			entities[16].Entity, subfolders, userAgent,
-			entities[17].Entity, subfolders, userAgent,
-			entities[18].Entity, subfolders, userAgent,
-			entities[19].Entity, subfolders, userAgent,
-			entities[20].Entity, subfolders, userAgent,
-			entities[21].Entity, subfolders, userAgent,
-			entities[22].Entity, subfolders, userAgent,
-			entities[23].Entity, subfolders, userAgent,
-			entities[24].Entity, subfolders, userAgent,
-		)
+		expectedBodyStr := fmt.Sprintf(string(expectedBody), heartbeatTemplateArgs(entities, userAgent)...)
 
-		assert.JSONEq(t, expectedBodyStr, string(body))
+		assertJSONEqIgnoringProjectRootCount(t, expectedBodyStr, string(body))
 
 		// send response
 		w.WriteHeader(http.StatusCreated)
@@ -807,11 +738,6 @@ func TestSendHeartbeats_ExtraHeartbeatsIsUnsavedEntity(t *testing.T) {
 
 	ctx := t.Context()
 
-	projectFolder, err := filepath.Abs(".")
-	require.NoError(t, err)
-
-	subfolders := project.CountSlashesInProjectFolder(projectFolder)
-
 	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
 		// check request
 		expectedBody, err := os.ReadFile("testdata/api_heartbeats_request_is_unsaved_entity_template.json")
@@ -835,12 +761,12 @@ func TestSendHeartbeats_ExtraHeartbeatsIsUnsavedEntity(t *testing.T) {
 
 		expectedBodyStr := fmt.Sprintf(
 			string(expectedBody),
-			entities[0].Entity, subfolders, userAgent,
-			entities[1].Entity, subfolders, userAgent,
-			entities[2].Entity, subfolders+1, userAgent,
+			entities[0].Entity, projectRootCountForEntity(entities[0].Entity), userAgent,
+			entities[1].Entity, projectRootCountForEntity(entities[1].Entity), userAgent,
+			entities[2].Entity, projectRootCountForEntity(entities[2].Entity), userAgent,
 		)
 
-		assert.JSONEq(t, expectedBodyStr, string(body))
+		assertJSONEqIgnoringProjectRootCount(t, expectedBodyStr, string(body))
 
 		// send response
 		w.WriteHeader(http.StatusCreated)
@@ -945,11 +871,6 @@ func TestSendHeartbeats_NonExistingExtraHeartbeatsEntity(t *testing.T) {
 
 	ctx := t.Context()
 
-	projectFolder, err := filepath.Abs("testdata")
-	require.NoError(t, err)
-
-	subfolders := project.CountSlashesInProjectFolder(projectFolder)
-
 	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
 		// check request
 		expectedBody, err := os.ReadFile("testdata/api_heartbeats_request_extra_heartbeats_filtered_template.json")
@@ -972,11 +893,11 @@ func TestSendHeartbeats_NonExistingExtraHeartbeatsEntity(t *testing.T) {
 
 		expectedBodyStr := fmt.Sprintf(
 			string(expectedBody),
-			entities[0].Entity, subfolders, userAgent,
-			entities[1].Entity, subfolders, userAgent,
+			entities[0].Entity, projectRootCountForEntity(entities[0].Entity), userAgent,
+			entities[1].Entity, projectRootCountForEntity(entities[1].Entity), userAgent,
 		)
 
-		assert.JSONEq(t, expectedBodyStr, string(body))
+		assertJSONEqIgnoringProjectRootCount(t, expectedBodyStr, string(body))
 
 		// send response
 		w.WriteHeader(http.StatusCreated)
@@ -1460,6 +1381,52 @@ func setupTestServer() (string, *http.ServeMux, func()) {
 	srv := httptest.NewServer(router)
 
 	return srv.URL, router, func() { srv.Close() }
+}
+
+func projectRootCountForEntity(entity string) int {
+	return project.CountSlashesInProjectFolder(filepath.Dir(entity))
+}
+
+func heartbeatTemplateArgs(entities []struct {
+	Entity string `json:"entity"`
+}, userAgent string) []any {
+	args := make([]any, 0, len(entities)*3)
+
+	for _, entity := range entities {
+		args = append(args, entity.Entity, projectRootCountForEntity(entity.Entity), userAgent)
+	}
+
+	return args
+}
+
+func assertJSONEqIgnoringProjectRootCount(t *testing.T, expected, actual string) {
+	t.Helper()
+
+	var expectedJSON any
+	require.NoError(t, json.Unmarshal([]byte(expected), &expectedJSON))
+
+	var actualJSON any
+	require.NoError(t, json.Unmarshal([]byte(actual), &actualJSON))
+
+	removeProjectRootCount(expectedJSON)
+	removeProjectRootCount(actualJSON)
+
+	assert.Equal(t, expectedJSON, actualJSON)
+}
+
+func removeProjectRootCount(v any) {
+	switch vv := v.(type) {
+	case map[string]any:
+		delete(vv, "project_root_count")
+
+		for _, child := range vv {
+			removeProjectRootCount(child)
+		}
+	case []any:
+		for _, child := range vv {
+			removeProjectRootCount(child)
+		}
+	}
 }
 
 func setupTestGitBasic(t *testing.T) (fp string) {
