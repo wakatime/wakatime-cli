@@ -83,6 +83,10 @@ func (g Cursor) Parse(ctx context.Context) (Heartbeats, error) {
 		return Heartbeats{}, nil
 	}
 
+	if !cursorStateDBModifiedAfter(dbPath, g.After) {
+		return Heartbeats{}, nil
+	}
+
 	rows, err := g.queryRows(ctx, dbPath)
 	if err != nil {
 		return nil, err
@@ -113,6 +117,19 @@ func (g Cursor) Parse(ctx context.Context) (Heartbeats, error) {
 	}
 
 	return heartbeats, nil
+}
+
+func cursorStateDBModifiedAfter(dbPath string, after time.Time) bool {
+	if after.IsZero() {
+		return true
+	}
+
+	info, err := os.Stat(dbPath)
+	if err != nil {
+		return false
+	}
+
+	return info.ModTime().After(after)
 }
 
 func stateDBPath(ctx context.Context) (string, error) {
