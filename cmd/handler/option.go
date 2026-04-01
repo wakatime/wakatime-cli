@@ -23,6 +23,7 @@ func WithAIParsing() Preprocessor {
 	return func(params params.Params) heartbeat.HandleOption {
 		return ai.WithAISync(ai.Config{
 			SyncDisabled: params.AI.SyncDisabled,
+			Plugin:       params.API.Plugin,
 		})
 	}
 }
