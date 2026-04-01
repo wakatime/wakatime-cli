@@ -183,6 +183,43 @@ func TestCursorParse_NoCursorStateDB(t *testing.T) {
 	assert.Empty(t, got)
 }
 
+func TestCursorParse_SkipsStaleCursorStateDB(t *testing.T) {
+	ctx := context.Background()
+
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	dbDir := filepath.Join(home, "Library", "Application Support", "Cursor", "User", "globalStorage")
+	require.NoError(t, os.MkdirAll(dbDir, 0o755))
+
+	dbPath := filepath.Join(dbDir, "state.vscdb")
+	createCursorDB(t, dbPath, []cursorTestRow{
+		{
+			Key: "bubbleId:composer-1:edit",
+			Value: map[string]any{
+				"_v":        3,
+				"type":      2,
+				"createdAt": "2026-03-15T23:34:39Z",
+				"toolFormerData": map[string]any{
+					"status": "completed",
+					"name":   "edit_file_v2",
+					"params": `{"relativeWorkspacePath":"/tmp/edited.js","streamingContent":"first"}`,
+				},
+			},
+		},
+	})
+
+	staleTime := time.Date(2026, 3, 15, 23, 33, 0, 0, time.UTC)
+	require.NoError(t, os.Chtimes(dbPath, staleTime, staleTime))
+
+	got, err := ai.Cursor{
+		After: staleTime.Add(time.Second),
+	}.Parse(ctx)
+	require.NoError(t, err)
+	assert.Empty(t, got)
+}
+
 type cursorTestRow struct {
 	Key   string
 	Value map[string]any
