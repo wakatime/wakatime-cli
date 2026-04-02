@@ -669,7 +669,7 @@ func LoadHeartbeatParams(ctx context.Context, v *viper.Viper, order FlagReadOrde
 		return Heartbeat{}, fmt.Errorf("failed to load filter params: %s", err)
 	}
 
-	projectParams, err := loadProjectParams(ctx, v)
+	projectParams, err := LoadProjectParams(ctx, v)
 	if err != nil {
 		return Heartbeat{}, fmt.Errorf("failed to parse project params: %s", err)
 	}
@@ -818,7 +818,8 @@ func loadSanitizeParams(ctx context.Context, v *viper.Viper, order FlagReadOrder
 	}, nil
 }
 
-func loadProjectParams(ctx context.Context, v *viper.Viper) (ProjectParams, error) {
+// LoadProjectParams loads project detection params from viper.Viper instance.
+func LoadProjectParams(ctx context.Context, v *viper.Viper) (ProjectParams, error) {
 	submodulesDisabled, err := parseBoolOrRegexList(ctx, vipertools.GetString(v, "git.submodules_disabled"))
 	if err != nil {
 		return ProjectParams{}, fmt.Errorf(
