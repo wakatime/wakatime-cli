@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/ini"
+	"github.com/wakatime/wakatime-cli/pkg/params"
 )
 
 func TestParserIDStringAndPlugins(t *testing.T) {
@@ -54,6 +55,67 @@ func TestEntityUserAgentsAndAIUserAgent(t *testing.T) {
 		heartbeat.UserAgent(ctx, cursorPlugin()),
 		aiUserAgent(ctx, "/tmp/other.go", userAgents, "", cursorPlugin()),
 	)
+}
+
+func TestApplyProjectOverridesWhenEmpty(t *testing.T) {
+	heartbeats := Heartbeats{
+		{Entity: "/tmp/main.go", EntityType: heartbeat.FileType},
+		{Entity: "Codex session", EntityType: heartbeat.AppType},
+	}
+
+	got := applyProject(heartbeats, Config{
+		Plugin: "",
+		Project: params.ProjectParams{
+			BranchAlternate: "mybranch",
+			Alternate:       "fallback-project",
+			Override:        "myproject",
+		},
+		Sanitize: params.SanitizeParams{
+			ProjectPathOverride: "/path/to/project",
+		},
+	})
+
+	require.Len(t, got, 2)
+
+	for _, h := range got {
+		assert.Equal(t, "fallback-project", h.ProjectAlternate)
+		assert.Equal(t, "myproject", h.ProjectOverride)
+		assert.Equal(t, "/path/to/project", h.ProjectPathOverride)
+		assert.Equal(t, "mybranch", h.BranchAlternate)
+	}
+}
+
+func TestApplyProjectOverridesNotEmpty(t *testing.T) {
+	heartbeats := Heartbeats{
+		{
+			Entity:              "Codex session",
+			EntityType:          heartbeat.AppType,
+			ProjectPathOverride: "/detected/cwd",
+			ProjectAlternate:    "alternate",
+			ProjectOverride:     "override",
+			Project:             heartbeat.PointerTo("myproj"),
+		},
+	}
+
+	got := applyProject(heartbeats, Config{
+		Plugin: "",
+		Project: params.ProjectParams{
+			Alternate: "fallback-project",
+			Override:  "myproject",
+		},
+		Sanitize: params.SanitizeParams{
+			ProjectPathOverride: "/path/to/project",
+		},
+	})
+
+	require.Len(t, got, 1)
+
+	for _, h := range got {
+		assert.Equal(t, "/detected/cwd", h.ProjectPathOverride)
+		assert.Equal(t, "override", h.ProjectOverride)
+		assert.Equal(t, "alternate", h.ProjectAlternate)
+		assert.Equal(t, heartbeat.PointerTo("myproj"), h.Project)
+	}
 }
 
 func TestAppHeartbeatEntity(t *testing.T) {
@@ -354,4 +416,80 @@ func TestCodexHelpers(t *testing.T) {
 	assert.Equal(t, filepath.Join("/workspace", "pkg/main.go"), codexFilePath("/workspace", "*** Update File: pkg/main.go"))
 	assert.Equal(t, "/tmp/main.go", codexFilePath("/workspace", "*** Add File: /tmp/main.go"))
 	assert.Equal(t, "", codexFilePath("/workspace", "*** Move to: pkg/main.go"))
+}
+
+func TestPreserveAttributesMutatesAIHeartbeats(t *testing.T) {
+	project := "sample-project"
+	branch := "main"
+	language := "Go"
+	lines := 120
+	projectRootCount := 2
+
+	aiHeartbeats := []heartbeat.Heartbeat{
+		{Entity: "/tmp/main.go", Time: 100, UserAgent: "Codex/0.116.0-alpha.1"},
+	}
+	humanHeartbeats := []heartbeat.Heartbeat{
+		{
+			Entity:              "/tmp/main.go",
+			Project:             &project,
+			ProjectAlternate:    project,
+			Branch:              &branch,
+			BranchAlternate:     branch,
+			Language:            &language,
+			LanguageAlternate:   language,
+			Lines:               &lines,
+			ProjectOverride:     "override-project",
+			ProjectPath:         "/tmp/project",
+			ProjectPathOverride: "/tmp/override-project",
+			ProjectRootCount:    &projectRootCount,
+			Time:                99,
+		},
+	}
+
+	got := preserveAttributes(aiHeartbeats, humanHeartbeats)
+
+	require.Len(t, got, 1)
+	assert.Same(t, &aiHeartbeats[0], &got[0])
+	assert.Equal(t, &project, got[0].Project)
+	assert.Equal(t, project, got[0].ProjectAlternate)
+	assert.Equal(t, &branch, got[0].Branch)
+	assert.Equal(t, branch, got[0].BranchAlternate)
+	assert.Equal(t, &language, got[0].Language)
+	assert.Equal(t, language, got[0].LanguageAlternate)
+	assert.Equal(t, &lines, got[0].Lines)
+	assert.Equal(t, "override-project", got[0].ProjectOverride)
+	assert.Equal(t, "/tmp/project", got[0].ProjectPath)
+	assert.Equal(t, "/tmp/override-project", got[0].ProjectPathOverride)
+	assert.Equal(t, &projectRootCount, got[0].ProjectRootCount)
+	assert.Equal(t, "Codex/0.116.0-alpha.1", got[0].UserAgent)
+
+	assert.Equal(t, &project, aiHeartbeats[0].Project)
+	assert.Equal(t, branch, aiHeartbeats[0].BranchAlternate)
+	assert.Equal(t, "/tmp/project", aiHeartbeats[0].ProjectPath)
+	assert.Equal(t, "Codex/0.116.0-alpha.1", aiHeartbeats[0].UserAgent)
+}
+
+func TestPreserveAttributes_AppHeartbeatFallsBackToHumanProjectFolder(t *testing.T) {
+	aiHeartbeats := []heartbeat.Heartbeat{
+		{
+			Entity:     "session.jsonl",
+			EntityType: heartbeat.AppType,
+			Time:       100,
+		},
+	}
+	humanHeartbeats := []heartbeat.Heartbeat{
+		{
+			Entity:              "/tmp/main.go",
+			EntityType:          heartbeat.FileType,
+			ProjectPath:         "/tmp/project",
+			ProjectPathOverride: "/tmp/project-override",
+			Time:                99,
+		},
+	}
+
+	got := preserveAttributes(aiHeartbeats, humanHeartbeats)
+
+	require.Len(t, got, 1)
+	assert.Equal(t, "/tmp/project-override", got[0].ProjectPathOverride)
+	assert.Equal(t, "", got[0].ProjectPath)
 }

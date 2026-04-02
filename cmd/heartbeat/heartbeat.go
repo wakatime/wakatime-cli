@@ -223,6 +223,8 @@ func applyAIParsing(
 	handle := ai.WithAISync(ai.Config{
 		SyncDisabled: params.AI.SyncDisabled,
 		Plugin:       params.API.Plugin,
+		Project:      params.Heartbeat.Project,
+		Sanitize:     params.Heartbeat.Sanitize,
 		V:            v,
 	})(func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		results := make([]heartbeat.Result, len(hh))

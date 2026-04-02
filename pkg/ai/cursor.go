@@ -20,11 +20,7 @@ import (
 )
 
 // Cursor contains params for detecting heartbeats from Cursor transcripts.
-type Cursor struct {
-	After             time.Time
-	FallbackUserAgent string
-	UserAgents        map[string]string
-}
+type Cursor ParserConfig
 
 type (
 	cursorToolFormerData struct {

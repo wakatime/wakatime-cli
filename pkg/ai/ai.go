@@ -11,6 +11,7 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/ini"
 	"github.com/wakatime/wakatime-cli/pkg/log"
+	"github.com/wakatime/wakatime-cli/pkg/params"
 	"github.com/wakatime/wakatime-cli/pkg/vipertools"
 )
 
@@ -18,7 +19,24 @@ import (
 type Config struct {
 	SyncDisabled bool
 	Plugin       string
+	Project      params.ProjectParams
+	Sanitize     params.SanitizeParams
 	V            *viper.Viper
+}
+
+// ProjectInfo contains --project, --alternate-project, and --project-folder cli args.
+type ProjectInfo struct {
+	Alternate           string
+	Override            string
+	ProjectPathOverride string
+}
+
+// ParserConfig contains the arguments for each Parser implementation.
+type ParserConfig struct {
+	After             time.Time
+	FallbackUserAgent string
+	UserAgents        map[string]string
+	ProjectInfo       ProjectInfo
 }
 
 // ParserID represents an AI Parser ID.
@@ -118,7 +136,9 @@ func WithAISync(config Config) heartbeat.HandleOption {
 				return next(ctx, hh)
 			}
 
-			heartbeats = PreserveAttributes(heartbeats, hh)
+			heartbeats = preserveAttributes(heartbeats, hh)
+
+			heartbeats = applyProject(heartbeats, config)
 
 			minHeartbeatTime := heartbeats[0].Time
 
@@ -207,6 +227,28 @@ func parseAIHeartbeats(
 	return nil, nil
 }
 
+func applyProject(heartbeats Heartbeats, config Config) Heartbeats {
+	for i := range heartbeats {
+		if heartbeats[i].ProjectOverride == "" {
+			heartbeats[i].ProjectOverride = config.Project.Override
+		}
+
+		if heartbeats[i].ProjectAlternate == "" {
+			heartbeats[i].ProjectAlternate = config.Project.Alternate
+		}
+
+		if heartbeats[i].BranchAlternate == "" {
+			heartbeats[i].BranchAlternate = config.Project.BranchAlternate
+		}
+
+		if heartbeats[i].ProjectPathOverride == "" {
+			heartbeats[i].ProjectPathOverride = config.Sanitize.ProjectPathOverride
+		}
+	}
+
+	return heartbeats
+}
+
 func getLastParsedAt(ctx context.Context, v *viper.Viper) (time.Time, error) {
 	lastParsedAt := time.Now().Add(-1 * time.Minute)
 
@@ -245,10 +287,14 @@ func getLastParsedAt(ctx context.Context, v *viper.Viper) (time.Time, error) {
 	return lastParsedAt, nil
 }
 
-// PreserveAttributes mutates aiHeartbeats pulling in the attributes from
+// preserveAttributes mutates aiHeartbeats pulling in the attributes from
 // humanHeartbeats, which should normally have more details already populated
 // from the IDE than available on aiHeartbeats.
-func PreserveAttributes(aiHeartbeats []heartbeat.Heartbeat, humanHeartbeats []heartbeat.Heartbeat) Heartbeats {
+func preserveAttributes(aiHeartbeats []heartbeat.Heartbeat, humanHeartbeats []heartbeat.Heartbeat) Heartbeats {
+	if len(humanHeartbeats) == 0 {
+		return aiHeartbeats
+	}
+
 	originals := make(map[string][]heartbeat.Heartbeat, len(humanHeartbeats))
 	fallbackProjectFolder := ""
 
@@ -264,12 +310,14 @@ func PreserveAttributes(aiHeartbeats []heartbeat.Heartbeat, humanHeartbeats []he
 	}
 
 	for i := range aiHeartbeats {
-		for _, h := range originals[aiHeartbeats[i].Entity] {
-			preserveAttributesFromHumanHeartbeat(&aiHeartbeats[i], h)
+		aiHeartbeat := &aiHeartbeats[i]
+
+		for _, h := range originals[aiHeartbeat.Entity] {
+			preserveAttributesFromHumanHeartbeat(aiHeartbeat, h)
 		}
 
-		if aiHeartbeats[i].EntityType == heartbeat.AppType && aiHeartbeats[i].ProjectPathOverride == "" {
-			aiHeartbeats[i].ProjectPathOverride = fallbackProjectFolder
+		if aiHeartbeat.EntityType == heartbeat.AppType && aiHeartbeat.ProjectPathOverride == "" {
+			aiHeartbeat.ProjectPathOverride = fallbackProjectFolder
 		}
 	}
 

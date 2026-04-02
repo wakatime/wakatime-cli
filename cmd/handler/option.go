@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"github.com/wakatime/wakatime-cli/pkg/ai"
 	"github.com/wakatime/wakatime-cli/pkg/apikey"
 	"github.com/wakatime/wakatime-cli/pkg/deps"
 	"github.com/wakatime/wakatime-cli/pkg/fileexperts"
@@ -17,16 +16,6 @@ import (
 // Preprocessor is a function used to preprocess heartbeat parameters.
 // It takes params.Params as input and returns a heartbeat.HandleOption.
 type Preprocessor func(params params.Params) heartbeat.HandleOption
-
-// WithAIParsing returns a Preprocessor that appends ai heartbeats.
-func WithAIParsing() Preprocessor {
-	return func(params params.Params) heartbeat.HandleOption {
-		return ai.WithAISync(ai.Config{
-			SyncDisabled: params.AI.SyncDisabled,
-			Plugin:       params.API.Plugin,
-		})
-	}
-}
 
 // WithFormatting returns a Preprocessor that applies heartbeat formatting.
 func WithFormatting() Preprocessor {
