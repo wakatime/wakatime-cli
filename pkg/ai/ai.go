@@ -232,59 +232,78 @@ func getLastParsedAt(ctx context.Context, v *viper.Viper) (time.Time, error) {
 // from the IDE than available on aiHeartbeats.
 func PreserveAttributes(aiHeartbeats []heartbeat.Heartbeat, humanHeartbeats []heartbeat.Heartbeat) Heartbeats {
 	originals := make(map[string][]heartbeat.Heartbeat, len(humanHeartbeats))
+	fallbackProjectFolder := ""
+
 	for _, h := range humanHeartbeats {
 		originals[h.Entity] = append(originals[h.Entity], h)
-	}
 
-	for i := range aiHeartbeats {
-		for _, h := range originals[aiHeartbeats[i].Entity] {
-			if h.Project != nil && aiHeartbeats[i].Project == nil {
-				aiHeartbeats[i].Project = h.Project
-			}
-
-			if h.ProjectAlternate != "" && aiHeartbeats[i].ProjectAlternate == "" {
-				aiHeartbeats[i].ProjectAlternate = h.ProjectAlternate
-			}
-
-			if h.Branch != nil && aiHeartbeats[i].Branch == nil {
-				aiHeartbeats[i].Branch = h.Branch
-			}
-
-			if h.BranchAlternate != "" && aiHeartbeats[i].BranchAlternate == "" {
-				aiHeartbeats[i].BranchAlternate = h.BranchAlternate
-			}
-
-			if h.Language != nil && aiHeartbeats[i].Language == nil {
-				aiHeartbeats[i].Language = h.Language
-			}
-
-			if h.LanguageAlternate != "" && aiHeartbeats[i].LanguageAlternate == "" {
-				aiHeartbeats[i].LanguageAlternate = h.LanguageAlternate
-			}
-
-			if h.Lines != nil && *h.Lines > 0 {
-				aiHeartbeats[i].Lines = h.Lines
-			}
-
-			if h.ProjectOverride != "" && aiHeartbeats[i].ProjectOverride == "" {
-				aiHeartbeats[i].ProjectOverride = h.ProjectOverride
-			}
-
-			if h.ProjectPath != "" && aiHeartbeats[i].ProjectPath == "" {
-				aiHeartbeats[i].ProjectPath = h.ProjectPath
-			}
-
-			if h.ProjectPathOverride != "" && aiHeartbeats[i].ProjectPathOverride == "" {
-				aiHeartbeats[i].ProjectPathOverride = h.ProjectPathOverride
-			}
-
-			if h.ProjectRootCount != nil && aiHeartbeats[i].ProjectRootCount == nil {
-				aiHeartbeats[i].ProjectRootCount = h.ProjectRootCount
+		if fallbackProjectFolder == "" {
+			fallbackProjectFolder = firstNonEmptyString(h.ProjectPathOverride, h.ProjectPath)
+			if h.EntityType == heartbeat.FileType && fallbackProjectFolder == "" {
+				fallbackProjectFolder = h.Entity
 			}
 		}
 	}
 
+	for i := range aiHeartbeats {
+		for _, h := range originals[aiHeartbeats[i].Entity] {
+			preserveAttributesFromHumanHeartbeat(&aiHeartbeats[i], h)
+		}
+
+		if aiHeartbeats[i].EntityType == heartbeat.AppType && aiHeartbeats[i].ProjectPathOverride == "" {
+			aiHeartbeats[i].ProjectPathOverride = fallbackProjectFolder
+		}
+	}
+
 	return aiHeartbeats
+}
+
+func preserveAttributesFromHumanHeartbeat(aiHeartbeat *heartbeat.Heartbeat, human heartbeat.Heartbeat) {
+	preserveStringPointer(&aiHeartbeat.Project, human.Project)
+	preserveStringValue(&aiHeartbeat.ProjectAlternate, human.ProjectAlternate)
+	preserveStringPointer(&aiHeartbeat.Branch, human.Branch)
+	preserveStringValue(&aiHeartbeat.BranchAlternate, human.BranchAlternate)
+	preserveStringPointer(&aiHeartbeat.Language, human.Language)
+	preserveStringValue(&aiHeartbeat.LanguageAlternate, human.LanguageAlternate)
+	preservePositiveIntPointer(&aiHeartbeat.Lines, human.Lines)
+	preserveStringValue(&aiHeartbeat.ProjectOverride, human.ProjectOverride)
+	preserveStringValue(&aiHeartbeat.ProjectPath, human.ProjectPath)
+	preserveStringValue(&aiHeartbeat.ProjectPathOverride, human.ProjectPathOverride)
+	preserveIntPointer(&aiHeartbeat.ProjectRootCount, human.ProjectRootCount)
+}
+
+func preserveStringPointer(dst **string, src *string) {
+	if *dst == nil && src != nil {
+		*dst = src
+	}
+}
+
+func preserveStringValue(dst *string, src string) {
+	if *dst == "" && src != "" {
+		*dst = src
+	}
+}
+
+func preserveIntPointer(dst **int, src *int) {
+	if *dst == nil && src != nil {
+		*dst = src
+	}
+}
+
+func preservePositiveIntPointer(dst **int, src *int) {
+	if src != nil && *src > 0 {
+		*dst = src
+	}
+}
+
+func firstNonEmptyString(values ...string) string {
+	for _, value := range values {
+		if value != "" {
+			return value
+		}
+	}
+
+	return ""
 }
 
 func entityUserAgents(hh []heartbeat.Heartbeat) map[string]string {

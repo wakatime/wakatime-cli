@@ -26,9 +26,9 @@ type Codex struct {
 type (
 	codexSessionMeta struct {
 		Type    string `json:"type"`
-		Payload struct {
-			Cwd     string `json:"cwd"`
-			Version string `json:"cli_version"`
+		Payload *struct {
+			Cwd     *string `json:"cwd"`
+			Version *string `json:"cli_version"`
 		} `json:"payload"`
 	}
 
@@ -39,6 +39,7 @@ type (
 		Role    *string            `json:"role"`
 		Status  *string            `json:"status"`
 		Content []codexContentItem `json:"content"`
+		Cwd     *string            `json:"cwd"`
 	}
 
 	codexContentItem struct {
@@ -146,12 +147,11 @@ func (g Codex) parseTranscript(ctx context.Context, transcript string) (Heartbea
 	version := ""
 
 	if len(firstLine) > 0 {
-		var sessionMeta codexSessionMeta
+		var sessionMeta *codexSessionMeta
 		if err := json.Unmarshal(firstLine, &sessionMeta); err != nil {
 			logger.Debugf("failed parsing codex session metadata from %q: %s", transcript, err)
 		} else {
-			cwd = sessionMeta.Payload.Cwd
-			version = sessionMeta.Payload.Version
+			cwd, version = codexSessionInfo(cwd, version, sessionMeta)
 		}
 	}
 
@@ -237,6 +237,22 @@ func (g Codex) parseTranscript(ctx context.Context, transcript string) (Heartbea
 	return heartbeats, nil
 }
 
+func codexSessionInfo(cwd string, version string, sessionMeta *codexSessionMeta) (string, string) {
+	if sessionMeta == nil || sessionMeta.Type != "session_meta" || sessionMeta.Payload == nil {
+		return cwd, version
+	}
+
+	if sessionMeta.Payload.Cwd != nil && *sessionMeta.Payload.Cwd != "" {
+		cwd = *sessionMeta.Payload.Cwd
+	}
+
+	if sessionMeta.Payload.Version != nil && *sessionMeta.Payload.Version != "" {
+		version = *sessionMeta.Payload.Version
+	}
+
+	return cwd, version
+}
+
 func getCodexEntities(
 	ctx context.Context,
 	timestamp time.Time,
@@ -253,6 +269,7 @@ func getCodexEntities(
 			timestamp,
 			sessionEntity,
 			version,
+			cwd,
 			userAgents,
 			fallbackUserAgent,
 			payload,
@@ -339,6 +356,7 @@ func codexMessageHeartbeat(
 	timestamp time.Time,
 	sessionEntity string,
 	version string,
+	cwd string,
 	userAgents map[string]string,
 	fallbackUserAgent string,
 	payload codexPayload,
@@ -388,7 +406,7 @@ func codexMessageHeartbeat(
 		"",
 		false,
 		"",
-		"",
+		cwd,
 		float64(timestamp.Unix()),
 		aiUserAgent(ctx, entity, userAgents, fallbackUserAgent, codexPlugin(version)),
 	)
