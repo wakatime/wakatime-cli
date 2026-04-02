@@ -246,6 +246,12 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 		"Cursor, etc. after a floating-point unix epoch timestamp. Sends any AI heartbeats"+
 		"along with normal heartbeats, changing the category of normal heartbeats to "+
 		"'AI Coding' before sending.")
+	flags.Bool(
+		"sync-ai-activity",
+		false,
+		"Parse AI transcript logs for Claude, Codex, Cursor, etc. and send any resulting AI heartbeats"+
+			" without requiring --entity.",
+	)
 	flags.Bool("sync-ai-disabled", false, "Disable parsing AI transcript logs when sending heartbeats. "+
 		"By default, AI transcript logs are parsed every time when sending heartbeats.")
 	flags.Bool("sync-ai-disable", false, "")

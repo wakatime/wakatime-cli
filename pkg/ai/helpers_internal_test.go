@@ -56,6 +56,14 @@ func TestEntityUserAgentsAndAIUserAgent(t *testing.T) {
 	)
 }
 
+func TestAppHeartbeatEntity(t *testing.T) {
+	assert.Equal(t, "Codex rollout-2026-04-02T11-15-29-019d4ec3-83f2-77b2-805a-3a1461effcc7",
+		appHeartbeatEntity("Codex", "/tmp/rollout-2026-04-02T11-15-29-019d4ec3-83f2-77b2-805a-3a1461effcc7.jsonl"))
+	assert.Equal(t, "Claude session", appHeartbeatEntity("Claude", "session.jsonl"))
+	assert.Equal(t, "Cursor composer-1", appHeartbeatEntity("Cursor", "composer-1"))
+	assert.Equal(t, "Cursor", appHeartbeatEntity("Cursor", ""))
+}
+
 func TestGetLastParsedAt(t *testing.T) {
 	ctx := context.Background()
 
@@ -127,7 +135,7 @@ func TestCursorHeartbeatFallbacks(t *testing.T) {
 			RawArgs: `{"target_file":"/tmp/raw-edit.go","code_edit":"one\ntwo"}`,
 			Status:  "completed",
 		},
-	})
+	}, "")
 	require.Len(t, editHeartbeats, 1)
 	edit := &editHeartbeats[0]
 	require.NotNil(t, edit)
@@ -149,7 +157,7 @@ func TestCursorHeartbeatFallbacks(t *testing.T) {
 		CodeBlocks: []cursorCodeBlock{{
 			URI: &cursorURI{FSPath: "/tmp/from-read-block.go"},
 		}},
-	})
+	}, "")
 	require.Len(t, readHeartbeats, 1)
 	read := &readHeartbeats[0]
 	require.NotNil(t, read)
@@ -162,10 +170,11 @@ func TestCursorHeartbeatFallbacks(t *testing.T) {
 		CreatedAt: createdAt,
 		Type:      1,
 		Text:      "Please edit the file",
-	})
+	}, "/tmp")
 	require.Len(t, appHeartbeats, 1)
-	assert.Equal(t, "composer-1", appHeartbeats[0].Entity)
+	assert.Equal(t, "Cursor composer-1", appHeartbeats[0].Entity)
 	assert.Equal(t, heartbeat.AppType, appHeartbeats[0].EntityType)
+	assert.Equal(t, "/tmp", appHeartbeats[0].ProjectPathOverride)
 	assert.Nil(t, appHeartbeats[0].AILineChanges)
 	require.NotNil(t, appHeartbeats[0].IsWrite)
 	assert.False(t, *appHeartbeats[0].IsWrite)
@@ -219,6 +228,15 @@ func TestClaudeHelpers(t *testing.T) {
 			File: &toolUseResultFile{FilePath: heartbeat.PointerTo("/tmp/nested.go")},
 		}))
 		assert.Equal(t, "", getClaudeFilePath(toolUseResult{}))
+		assert.Equal(t, filepath.Dir("/tmp/direct.go"), claudeProjectPath(claudeLogLine{
+			ToolUseResult: &toolUseResultValue{
+				Object: &toolUseResult{FilePath: heartbeat.PointerTo("/tmp/direct.go")},
+			},
+		}))
+		assert.Equal(t, "/workspace", claudeProjectPath(claudeLogLine{
+			Cwd: heartbeat.PointerTo("/workspace"),
+		}))
+		assert.Equal(t, "", claudeProjectPath(claudeLogLine{}))
 
 		assert.Equal(t, 1, claudeLineChanges(toolUseResult{
 			StructuredPatch: &[]structuredPatch{{OldLines: 1, NewLines: 2}},

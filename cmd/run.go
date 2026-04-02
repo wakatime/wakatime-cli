@@ -144,6 +144,12 @@ func RunE(cmd *cobra.Command, v *viper.Viper) error {
 		return RunCmd(ctx, v, logger.IsVerboseEnabled(), logger.SendDiagsOnErrors(), offlinesync.RunWithoutRateLimiting)
 	}
 
+	if v.GetBool("sync-ai-activity") {
+		logger.Debugln("command: sync-ai-activity")
+
+		return RunCmd(ctx, v, logger.IsVerboseEnabled(), logger.SendDiagsOnErrors(), cmdheartbeat.RunAISyncActivity)
+	}
+
 	if v.GetBool("offline-count") {
 		logger.Debugln("command: offline-count")
 
@@ -163,6 +169,7 @@ func RunE(cmd *cobra.Command, v *viper.Viper) error {
 		"--file-experts",
 		"--offline-count",
 		"--print-offline-heartbeats",
+		"--sync-ai-activity",
 		"--sync-offline-activity",
 		"--today",
 		"--today-goal",

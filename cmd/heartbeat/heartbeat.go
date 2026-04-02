@@ -97,82 +97,7 @@ func SendHeartbeats(
 		return err
 	}
 
-	if ratelimit.IsRateLimited(ratelimit.Params{
-		Disabled:   params.Offline.Disabled,
-		LastSentAt: params.Offline.LastSentAt,
-		Timeout:    params.Offline.RateLimit,
-	}) {
-		err := offlinecmd.SaveHeartbeats(ctx, v, queueFilepath, heartbeats)
-		if err == nil {
-			return nil
-		}
-
-		// log offline db error then try to send heartbeats to API so they're not lost
-		logger.Errorf("failed to save rate limited heartbeats: %s", err)
-	}
-
-	var (
-		chOfflineSave = make(chan bool)
-		savedOffline  bool
-	)
-
-	// only send at once the maximum amount of `offline.SendLimit`.
-	if len(heartbeats) > offline.SendLimit {
-		savedOffline = true
-
-		extraHeartbeats := heartbeats[offline.SendLimit:]
-
-		logger.Debugf("save %d extra heartbeat(s) to offline queue", len(extraHeartbeats))
-
-		go func(done chan<- bool) {
-			if err := offlinecmd.SaveHeartbeats(ctx, v, queueFilepath, extraHeartbeats); err != nil {
-				logger.Errorf("failed to save extra heartbeats to offline queue: %s", err)
-			}
-
-			done <- true
-		}(chOfflineSave)
-
-		heartbeats = heartbeats[:offline.SendLimit]
-	}
-
-	handleOpts := initHandleOptions()
-
-	sender, err := buildHandle(ctx, v, params, queueFilepath)
-	if err != nil {
-		if err := offlinecmd.SaveHeartbeats(ctx, v, queueFilepath, heartbeats); err != nil {
-			log.Extract(ctx).Errorf("failed to save extra heartbeats to offline queue: %s", err)
-		}
-
-		return fmt.Errorf("failed to initialize api client: %w", err)
-	}
-
-	handle := handler.New(v, handler.Config{
-		Params:       params,
-		ParamsLoader: loadParams,
-		Opts:         handleOpts,
-	})(sender)
-	results, err := handle(ctx, heartbeats)
-
-	// wait for offline queue save to finish
-	if savedOffline {
-		<-chOfflineSave
-	}
-
-	if err != nil {
-		return err
-	}
-
-	for _, result := range results {
-		if len(result.Errors) > 0 {
-			logger.Warnln(strings.Join(result.Errors, " "))
-		}
-	}
-
-	if err := ratelimit.Reset(ctx, v); err != nil {
-		logger.Errorf("failed to reset rate limit: %s", err)
-	}
-
-	return nil
+	return sendPreparedHeartbeats(ctx, v, params, queueFilepath, heartbeats, true)
 }
 
 func loadParams(
@@ -320,6 +245,102 @@ func applyAIParsing(
 	}
 
 	return parsed, nil
+}
+
+func sendPreparedHeartbeats(
+	ctx context.Context,
+	v *viper.Viper,
+	params params.Params,
+	queueFilepath string,
+	heartbeats []heartbeat.Heartbeat,
+	withProjectConfig bool,
+) error {
+	logger := log.Extract(ctx)
+
+	setLogFields(ctx, params)
+	logger.Debugf("params: %s", params)
+
+	if ratelimit.IsRateLimited(ratelimit.Params{
+		Disabled:   params.Offline.Disabled,
+		LastSentAt: params.Offline.LastSentAt,
+		Timeout:    params.Offline.RateLimit,
+	}) {
+		err := offlinecmd.SaveHeartbeats(ctx, v, queueFilepath, heartbeats)
+		if err == nil {
+			return nil
+		}
+
+		logger.Errorf("failed to save rate limited heartbeats: %s", err)
+	}
+
+	var (
+		chOfflineSave = make(chan bool)
+		savedOffline  bool
+	)
+
+	if len(heartbeats) > offline.SendLimit {
+		savedOffline = true
+
+		extraHeartbeats := heartbeats[offline.SendLimit:]
+
+		logger.Debugf("save %d extra heartbeat(s) to offline queue", len(extraHeartbeats))
+
+		go func(done chan<- bool) {
+			if err := offlinecmd.SaveHeartbeats(ctx, v, queueFilepath, extraHeartbeats); err != nil {
+				logger.Errorf("failed to save extra heartbeats to offline queue: %s", err)
+			}
+
+			done <- true
+		}(chOfflineSave)
+
+		heartbeats = heartbeats[:offline.SendLimit]
+	}
+
+	sender, err := buildHandle(ctx, v, params, queueFilepath)
+	if err != nil {
+		if err := offlinecmd.SaveHeartbeats(ctx, v, queueFilepath, heartbeats); err != nil {
+			logger.Errorf("failed to save extra heartbeats to offline queue: %s", err)
+		}
+
+		return fmt.Errorf("failed to initialize api client: %w", err)
+	}
+
+	opts := initHandleOptions()
+
+	handle := sender
+	if withProjectConfig {
+		handle = handler.New(v, handler.Config{
+			Params:       params,
+			ParamsLoader: loadParams,
+			Opts:         opts,
+		})(sender)
+	} else {
+		for i := len(opts) - 1; i >= 0; i-- {
+			handle = opts[i](params)(handle)
+		}
+	}
+
+	results, err := handle(ctx, heartbeats)
+
+	if savedOffline {
+		<-chOfflineSave
+	}
+
+	if err != nil {
+		return err
+	}
+
+	for _, result := range results {
+		if len(result.Errors) > 0 {
+			logger.Warnln(strings.Join(result.Errors, " "))
+		}
+	}
+
+	if err := ratelimit.Reset(ctx, v); err != nil {
+		logger.Errorf("failed to reset rate limit: %s", err)
+	}
+
+	return nil
 }
 
 func setLogFields(ctx context.Context, params params.Params) {

@@ -101,6 +101,8 @@ func (g Cursor) Parse(ctx context.Context) (Heartbeats, error) {
 
 	var heartbeats Heartbeats
 
+	bubbleCWDs := make(map[string]string)
+
 	for _, row := range rows {
 		var logLine cursorLogLine
 		if err := json.Unmarshal([]byte(row.Value), &logLine); err != nil {
@@ -109,11 +111,15 @@ func (g Cursor) Parse(ctx context.Context) (Heartbeats, error) {
 
 		logLine.BubbleID = row.BubbleID
 
+		if cwd := cursorProjectPath(logLine); cwd != "" && logLine.BubbleID != "" {
+			bubbleCWDs[logLine.BubbleID] = cwd
+		}
+
 		if logLine.CreatedAt.IsZero() || logLine.CreatedAt.Before(g.After) {
 			continue
 		}
 
-		parsed := g.cursorHeartbeats(ctx, logLine)
+		parsed := g.cursorHeartbeats(ctx, logLine, bubbleCWDs[logLine.BubbleID])
 		if len(parsed) == 0 {
 			continue
 		}
@@ -220,10 +226,10 @@ ORDER BY json_extract(CAST(value AS TEXT), '$.createdAt') ASC;
 	return results, nil
 }
 
-func (g Cursor) cursorHeartbeats(ctx context.Context, logLine cursorLogLine) Heartbeats {
+func (g Cursor) cursorHeartbeats(ctx context.Context, logLine cursorLogLine, cwd string) Heartbeats {
 	var heartbeats Heartbeats
 
-	if heartbeat := g.cursorAppHeartbeat(ctx, logLine); heartbeat != nil {
+	if heartbeat := g.cursorAppHeartbeat(ctx, logLine, cwd); heartbeat != nil {
 		heartbeats = append(heartbeats, *heartbeat)
 	}
 
@@ -238,7 +244,7 @@ func (g Cursor) cursorHeartbeats(ctx context.Context, logLine cursorLogLine) Hea
 	return heartbeats
 }
 
-func (g Cursor) cursorAppHeartbeat(ctx context.Context, logLine cursorLogLine) *heartbeat.Heartbeat {
+func (g Cursor) cursorAppHeartbeat(ctx context.Context, logLine cursorLogLine, cwd string) *heartbeat.Heartbeat {
 	if strings.TrimSpace(logLine.Text) == "" {
 		return nil
 	}
@@ -247,10 +253,7 @@ func (g Cursor) cursorAppHeartbeat(ctx context.Context, logLine cursorLogLine) *
 		return nil
 	}
 
-	entity := logLine.BubbleID
-	if entity == "" {
-		entity = "Cursor"
-	}
+	entity := appHeartbeatEntity("Cursor", logLine.BubbleID)
 
 	h := heartbeat.New(
 		nil,
@@ -270,7 +273,7 @@ func (g Cursor) cursorAppHeartbeat(ctx context.Context, logLine cursorLogLine) *
 		"",
 		false,
 		"",
-		"",
+		cwd,
 		float64(logLine.CreatedAt.Unix()),
 		aiUserAgent(ctx, entity, g.UserAgents, g.FallbackUserAgent, cursorPlugin()),
 	)
@@ -437,6 +440,70 @@ func cursorFilePath(path string, codeBlocks []cursorCodeBlock) string {
 	}
 
 	return codeBlocks[0].URI.FSPath
+}
+
+func cursorProjectPath(logLine cursorLogLine) string {
+	if logLine.ToolFormerData == nil {
+		return ""
+	}
+
+	var filePath string
+
+	switch logLine.ToolFormerData.Name {
+	case "edit_file_v2":
+		var params cursorEditParams
+		if err := json.Unmarshal([]byte(logLine.ToolFormerData.Params), &params); err == nil {
+			filePath = cursorFilePath(params.RelativeWorkspacePath, logLine.CodeBlocks)
+		}
+	case "edit_file":
+		var (
+			params  cursorEditParams
+			rawArgs cursorEditRawArgs
+		)
+
+		_ = json.Unmarshal([]byte(logLine.ToolFormerData.Params), &params)
+		_ = json.Unmarshal([]byte(logLine.ToolFormerData.RawArgs), &rawArgs)
+
+		filePath = cursorFilePath(params.RelativeWorkspacePath, logLine.CodeBlocks)
+		if filePath == "" {
+			filePath = rawArgs.TargetFile
+		}
+	case "read_file_v2", "read_file":
+		var (
+			params  cursorReadParams
+			rawArgs cursorReadRawArgs
+		)
+
+		_ = json.Unmarshal([]byte(logLine.ToolFormerData.Params), &params)
+		_ = json.Unmarshal([]byte(logLine.ToolFormerData.RawArgs), &rawArgs)
+
+		filePath = params.TargetFile
+		if filePath == "" {
+			filePath = params.EffectiveURI
+		}
+
+		if filePath == "" {
+			filePath = params.Path
+		}
+
+		if filePath == "" {
+			filePath = params.RelativeWorkspacePath
+		}
+
+		if filePath == "" {
+			filePath = rawArgs.TargetFile
+		}
+
+		if filePath == "" {
+			filePath = cursorFilePath("", logLine.CodeBlocks)
+		}
+	}
+
+	if filePath == "" {
+		return ""
+	}
+
+	return filepath.Dir(filePath)
 }
 
 func cursorLineChanges(content string) int {

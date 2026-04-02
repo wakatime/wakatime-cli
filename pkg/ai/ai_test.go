@@ -75,6 +75,31 @@ func TestPreserveAttributesMutatesAIHeartbeats(t *testing.T) {
 	assert.Equal(t, "Codex/0.116.0-alpha.1", aiHeartbeats[0].UserAgent)
 }
 
+func TestPreserveAttributes_AppHeartbeatFallsBackToHumanProjectFolder(t *testing.T) {
+	aiHeartbeats := []heartbeat.Heartbeat{
+		{
+			Entity:     "session.jsonl",
+			EntityType: heartbeat.AppType,
+			Time:       100,
+		},
+	}
+	humanHeartbeats := []heartbeat.Heartbeat{
+		{
+			Entity:              "/tmp/main.go",
+			EntityType:          heartbeat.FileType,
+			ProjectPath:         "/tmp/project",
+			ProjectPathOverride: "/tmp/project-override",
+			Time:                99,
+		},
+	}
+
+	got := ai.PreserveAttributes(aiHeartbeats, humanHeartbeats)
+
+	require.Len(t, got, 1)
+	assert.Equal(t, "/tmp/project-override", got[0].ProjectPathOverride)
+	assert.Equal(t, "", got[0].ProjectPath)
+}
+
 func TestWithAISyncUpdatesLastParsedAtBeforeParsing(t *testing.T) {
 	tmpInternal, err := os.CreateTemp(t.TempDir(), "wakatime-internal")
 	require.NoError(t, err)

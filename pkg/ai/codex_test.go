@@ -40,10 +40,11 @@ func TestCodexParse(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, got, 3)
 
-	assert.Equal(t, filepath.Base(transcriptPath), got[0].Entity)
+	assert.Equal(t, "Codex rollout-2026-03-28T07-33-13-019d3438-39ae-7fb2-8526-d6c02ba3577c", got[0].Entity)
 	assert.Equal(t, heartbeat.AppType, got[0].EntityType)
 	assert.Equal(t, heartbeat.AICodingCategory.String(), got[0].Category)
 	assert.Nil(t, got[0].AILineChanges)
+	assert.Equal(t, "/root/wakatime-cli", got[0].ProjectPathOverride)
 	require.NotNil(t, got[0].IsWrite)
 	assert.False(t, *got[0].IsWrite)
 	assert.Equal(t, float64(time.Date(2026, 3, 28, 11, 33, 14, 289, time.UTC).Unix()), got[0].Time)
@@ -55,9 +56,10 @@ func TestCodexParse(t *testing.T) {
 	)
 	assert.Contains(t, got[0].UserAgent, "plugin/0.0.1")
 
-	assert.Equal(t, filepath.Base(transcriptPath), got[1].Entity)
+	assert.Equal(t, "Codex rollout-2026-03-28T07-33-13-019d3438-39ae-7fb2-8526-d6c02ba3577c", got[1].Entity)
 	assert.Equal(t, heartbeat.AppType, got[1].EntityType)
 	assert.Nil(t, got[1].AILineChanges)
+	assert.Equal(t, "/root/wakatime-cli", got[1].ProjectPathOverride)
 	require.NotNil(t, got[1].IsWrite)
 	assert.False(t, *got[1].IsWrite)
 	assert.Equal(t, float64(time.Date(2026, 3, 28, 11, 33, 18, 535, time.UTC).Unix()), got[1].Time)
@@ -122,6 +124,42 @@ func TestCodexParse_NoCodexSessionsDir(t *testing.T) {
 	got, err := ai.Codex{After: time.Now()}.Parse(ctx)
 	require.NoError(t, err)
 	assert.Empty(t, got)
+}
+
+func TestCodexParse_RetainsCwdFromSkippedSessionMetaLine(t *testing.T) {
+	ctx := context.Background()
+
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	now := time.Now()
+	transcriptDir := filepath.Join(home, ".codex", "sessions", now.Format("2006"), now.Format("01"), now.Format("02"))
+	require.NoError(t, os.MkdirAll(transcriptDir, 0o755))
+
+	transcriptPath := filepath.Join(transcriptDir, "session.jsonl")
+	transcript := strings.Join([]string{
+		strings.Join([]string{
+			`{"timestamp":"2026-03-28T11:00:00Z","type":"session_meta",`,
+			`"payload":{"cwd":"/workspace/project","cli_version":"0.116.0-alpha.10"}}`,
+		}, ""),
+		strings.Join([]string{
+			`{"timestamp":"2026-03-28T11:33:18Z","type":"message",`,
+			`"payload":{"type":"message","role":"assistant",`,
+			`"content":[{"type":"output_text","text":"I am on it"}]}}`,
+		}, ""),
+	}, "\n") + "\n"
+	require.NoError(t, os.WriteFile(transcriptPath, []byte(transcript), 0o644))
+
+	parser := ai.Codex{
+		After: time.Date(2026, 3, 28, 11, 30, 0, 0, time.UTC),
+	}
+
+	got, err := parser.Parse(ctx)
+	require.NoError(t, err)
+	require.Len(t, got, 1)
+	assert.Equal(t, heartbeat.AppType, got[0].EntityType)
+	assert.Equal(t, "/workspace/project", got[0].ProjectPathOverride)
 }
 
 func copyFile(t *testing.T, source, destination string) {
