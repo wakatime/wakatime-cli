@@ -78,6 +78,7 @@ func TestClaudeParse(t *testing.T) {
 	assert.Equal(t, filepath.Base(transcriptPath), got[1].Entity)
 	assert.Equal(t, heartbeat.AppType, got[1].EntityType)
 	assert.Nil(t, got[1].AILineChanges)
+	assert.Equal(t, "/tmp", got[1].ProjectPathOverride)
 	require.NotNil(t, got[1].IsWrite)
 	assert.False(t, *got[1].IsWrite)
 	assert.Contains(t, got[1].UserAgent, "plugin/0.0.1")
@@ -86,6 +87,7 @@ func TestClaudeParse(t *testing.T) {
 	assert.Equal(t, filepath.Base(transcriptPath), got[2].Entity)
 	assert.Equal(t, heartbeat.AppType, got[2].EntityType)
 	assert.Nil(t, got[2].AILineChanges)
+	assert.Equal(t, "/tmp", got[2].ProjectPathOverride)
 	require.NotNil(t, got[2].IsWrite)
 	assert.False(t, *got[2].IsWrite)
 
@@ -120,4 +122,38 @@ func TestClaudeParse_NoClaudeProjectsDir(t *testing.T) {
 	got, err := ai.Claude{After: time.Now()}.Parse(ctx)
 	require.NoError(t, err)
 	assert.Empty(t, got)
+}
+
+func TestClaudeParse_RetainsProjectFolderFromSkippedFileLine(t *testing.T) {
+	ctx := context.Background()
+
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	transcriptDir := filepath.Join(home, ".claude", "projects", "sample-project")
+	require.NoError(t, os.MkdirAll(transcriptDir, 0o755))
+
+	transcriptPath := filepath.Join(transcriptDir, "session.jsonl")
+	transcript := strings.Join([]string{
+		strings.Join([]string{
+			`{"timestamp":"2026-03-18T11:00:00Z","version":"2.1.45",`,
+			`"toolUseResult":{"filePath":"/workspace/project/main.go","content":"one"}}`,
+		}, ""),
+		strings.Join([]string{
+			`{"timestamp":"2026-03-18T12:20:00Z",`,
+			`"toolUseResult":{"content":[{"type":"text","text":"summary block"}]}}`,
+		}, ""),
+	}, "\n") + "\n"
+	require.NoError(t, os.WriteFile(transcriptPath, []byte(transcript), 0o644))
+
+	parser := ai.Claude{
+		After: time.Date(2026, 3, 18, 12, 0, 0, 0, time.UTC),
+	}
+
+	got, err := parser.Parse(ctx)
+	require.NoError(t, err)
+	require.Len(t, got, 1)
+	assert.Equal(t, heartbeat.AppType, got[0].EntityType)
+	assert.Equal(t, "/workspace/project", got[0].ProjectPathOverride)
 }

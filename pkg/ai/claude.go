@@ -56,6 +56,10 @@ type (
 		Timestamp     time.Time           `json:"timestamp"`
 		Version       string              `json:"version"`
 		ToolUseResult *toolUseResultValue `json:"toolUseResult"`
+		IsSideChain   *bool               `json:"isSidechain"`
+		PromptID      *string             `json:"promptId"`
+		Type          *string             `json:"type"`
+		Cwd           *string             `json:"cwd"`
 	}
 )
 
@@ -251,6 +255,7 @@ func (g Claude) parseTranscript(ctx context.Context, transcript string) (Heartbe
 	var heartbeats Heartbeats
 
 	claudeVersion := ""
+	cwd := ""
 	sessionEntity := filepath.Base(transcript)
 
 	for scanner.Scan() {
@@ -271,19 +276,23 @@ func (g Claude) parseTranscript(ctx context.Context, transcript string) (Heartbe
 			continue
 		}
 
-		if logLine.Timestamp.IsZero() || logLine.Timestamp.Before(g.After) {
-			continue
-		}
-
 		if logLine.Version != "" {
 			claudeVersion = logLine.Version
+		}
+
+		if lineCwd := claudeProjectPath(logLine); lineCwd != "" {
+			cwd = lineCwd
+		}
+
+		if logLine.Timestamp.IsZero() || logLine.Timestamp.Before(g.After) {
+			continue
 		}
 
 		if logLine.ToolUseResult == nil {
 			continue
 		}
 
-		heartbeats = append(heartbeats, g.claudeHeartbeats(ctx, logLine, sessionEntity, claudeVersion)...)
+		heartbeats = append(heartbeats, g.claudeHeartbeats(ctx, logLine, sessionEntity, claudeVersion, cwd)...)
 	}
 
 	if err := scanner.Err(); err != nil {
@@ -298,10 +307,11 @@ func (g Claude) claudeHeartbeats(
 	logLine claudeLogLine,
 	sessionEntity string,
 	version string,
+	cwd string,
 ) Heartbeats {
 	var heartbeats Heartbeats
 
-	if heartbeat := g.claudeAppHeartbeat(ctx, logLine, sessionEntity, version); heartbeat != nil {
+	if heartbeat := g.claudeAppHeartbeat(ctx, logLine, sessionEntity, version, cwd); heartbeat != nil {
 		heartbeats = append(heartbeats, *heartbeat)
 	}
 
@@ -317,6 +327,7 @@ func (g Claude) claudeAppHeartbeat(
 	logLine claudeLogLine,
 	sessionEntity string,
 	version string,
+	cwd string,
 ) *heartbeat.Heartbeat {
 	lineChanges := claudeAppLineChanges(logLine.ToolUseResult)
 	if lineChanges == 0 {
@@ -341,7 +352,7 @@ func (g Claude) claudeAppHeartbeat(
 		"",
 		false,
 		"",
-		"",
+		cwd,
 		float64(logLine.Timestamp.Unix()),
 		aiUserAgent(ctx, sessionEntity, g.UserAgents, g.FallbackUserAgent, claudePlugin(version)),
 	)
@@ -398,6 +409,25 @@ func getClaudeFilePath(result toolUseResult) string {
 	}
 
 	return ""
+}
+
+func claudeProjectPath(logLine claudeLogLine) string {
+	if logLine.Cwd != nil && *logLine.Cwd != "" {
+		return *logLine.Cwd
+	}
+
+	result := logLine.ToolUseResult
+
+	if result == nil || result.Object == nil {
+		return ""
+	}
+
+	filePath := getClaudeFilePath(*result.Object)
+	if filePath == "" {
+		return ""
+	}
+
+	return filepath.Dir(filePath)
 }
 
 func claudeLineChanges(result toolUseResult) int {
