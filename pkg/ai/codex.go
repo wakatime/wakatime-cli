@@ -17,11 +17,7 @@ import (
 )
 
 // Codex contains params for detecting heartbeats from Codex session transcripts.
-type Codex struct {
-	After             time.Time
-	FallbackUserAgent string
-	UserAgents        map[string]string
-}
+type Codex ParserConfig
 
 type (
 	codexSessionMeta struct {

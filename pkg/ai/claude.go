@@ -16,11 +16,7 @@ import (
 )
 
 // Claude contains params for detecting heartbeats from Claude transcripts.
-type Claude struct {
-	After             time.Time
-	FallbackUserAgent string
-	UserAgents        map[string]string
-}
+type Claude ParserConfig
 
 type (
 	structuredPatch struct {

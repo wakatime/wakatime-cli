@@ -9,6 +9,7 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/offline"
 	"github.com/wakatime/wakatime-cli/pkg/params"
+	"github.com/wakatime/wakatime-cli/pkg/vipertools"
 	"github.com/wakatime/wakatime-cli/pkg/wakaerror"
 
 	"github.com/spf13/viper"
@@ -26,17 +27,28 @@ func RunAISyncActivity(ctx context.Context, v *viper.Viper) (int, error) {
 
 	aiParams, err := params.LoadAIParams(ctx, v, params.FlagReadOrderFlagPrecedence)
 	if err != nil {
-		return exitcode.ErrAuth, fmt.Errorf("failed to load ai parameters: %w", err)
+		return exitcode.ErrAuth, fmt.Errorf("failed to load ai params: %w", err)
 	}
 
 	apiParams, err := params.LoadAPIParams(ctx, v, params.FlagReadOrderFlagPrecedence)
 	if err != nil {
-		return exitcode.ErrAuth, fmt.Errorf("failed to load API parameters: %w", err)
+		return exitcode.ErrAuth, fmt.Errorf("failed to load API params: %w", err)
+	}
+
+	projectParams, err := params.LoadProjectParams(ctx, v)
+	if err != nil {
+		return exitcode.ErrAuth, fmt.Errorf("failed to load project params: %w", err)
 	}
 
 	loadedParams := params.Params{
-		AI:      aiParams,
-		API:     apiParams,
+		AI:  aiParams,
+		API: apiParams,
+		Heartbeat: params.Heartbeat{
+			Project: projectParams,
+			Sanitize: params.SanitizeParams{
+				ProjectPathOverride: vipertools.GetString(v, "project-folder"),
+			},
+		},
 		Offline: params.LoadOfflineParams(ctx, v, params.FlagReadOrderFlagPrecedence),
 	}
 
