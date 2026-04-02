@@ -253,10 +253,7 @@ func (g Cursor) cursorAppHeartbeat(ctx context.Context, logLine cursorLogLine, c
 		return nil
 	}
 
-	entity := logLine.BubbleID
-	if entity == "" {
-		entity = "Cursor"
-	}
+	entity := appHeartbeatEntity("Cursor", logLine.BubbleID)
 
 	h := heartbeat.New(
 		nil,

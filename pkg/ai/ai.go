@@ -3,6 +3,8 @@ package ai
 import (
 	"context"
 	"fmt"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/spf13/viper"
@@ -67,6 +69,22 @@ type (
 	// Heartbeats contains the parsed ai heartbeats from Parse().
 	Heartbeats []heartbeat.Heartbeat
 )
+
+func appHeartbeatEntity(parserName string, rawEntity string) string {
+	entity := strings.TrimSpace(rawEntity)
+	if entity == "" {
+		return parserName
+	}
+
+	entity = filepath.Base(entity)
+
+	entity = strings.TrimSuffix(entity, filepath.Ext(entity))
+	if entity == "" || strings.EqualFold(entity, parserName) {
+		return parserName
+	}
+
+	return parserName + " " + entity
+}
 
 // WithAISync initializes and returns a heartbeat handle option, which
 // can be used in a heartbeat processing pipeline to add heartbeats

@@ -256,7 +256,7 @@ func (g Claude) parseTranscript(ctx context.Context, transcript string) (Heartbe
 
 	claudeVersion := ""
 	cwd := ""
-	sessionEntity := filepath.Base(transcript)
+	sessionEntity := appHeartbeatEntity("Claude", transcript)
 
 	for scanner.Scan() {
 		if ctx.Err() != nil {

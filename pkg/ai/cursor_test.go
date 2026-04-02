@@ -159,7 +159,7 @@ func TestCursorParse(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, got, 6)
 
-	assert.Equal(t, "composer-1", got[0].Entity)
+	assert.Equal(t, "Cursor composer-1", got[0].Entity)
 	assert.Equal(t, heartbeat.AppType, got[0].EntityType)
 	assert.Equal(t, heartbeat.AICodingCategory.String(), got[0].Category)
 	assert.Nil(t, got[0].AILineChanges)
@@ -191,10 +191,10 @@ func TestCursorParse(t *testing.T) {
 	assert.Contains(t, got[2].UserAgent, "plugin/0.0.1")
 	assert.Contains(t, got[2].UserAgent, "Cursor")
 
-	assert.Equal(t, "composer-1", got[3].Entity)
+	assert.Equal(t, "Cursor composer-1", got[3].Entity)
 	assert.Equal(t, heartbeat.AppType, got[3].EntityType)
 	assert.Nil(t, got[3].AILineChanges)
-	assert.Equal(t, "/tmp", got[3].ProjectPathOverride)
+	assert.Equal(t, filepath.Dir("/tmp/diff.go"), got[3].ProjectPathOverride)
 	require.NotNil(t, got[3].IsWrite)
 	assert.False(t, *got[3].IsWrite)
 	assert.Equal(t, float64(time.Date(2026, 3, 15, 23, 35, 30, 0, time.UTC).Unix()), got[3].Time)
