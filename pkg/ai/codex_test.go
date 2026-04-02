@@ -40,7 +40,7 @@ func TestCodexParse(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, got, 3)
 
-	assert.Equal(t, filepath.Base(transcriptPath), got[0].Entity)
+	assert.Equal(t, "Codex rollout-2026-03-28T07-33-13-019d3438-39ae-7fb2-8526-d6c02ba3577c", got[0].Entity)
 	assert.Equal(t, heartbeat.AppType, got[0].EntityType)
 	assert.Equal(t, heartbeat.AICodingCategory.String(), got[0].Category)
 	assert.Nil(t, got[0].AILineChanges)
@@ -56,7 +56,7 @@ func TestCodexParse(t *testing.T) {
 	)
 	assert.Contains(t, got[0].UserAgent, "plugin/0.0.1")
 
-	assert.Equal(t, filepath.Base(transcriptPath), got[1].Entity)
+	assert.Equal(t, "Codex rollout-2026-03-28T07-33-13-019d3438-39ae-7fb2-8526-d6c02ba3577c", got[1].Entity)
 	assert.Equal(t, heartbeat.AppType, got[1].EntityType)
 	assert.Nil(t, got[1].AILineChanges)
 	assert.Equal(t, "/root/wakatime-cli", got[1].ProjectPathOverride)

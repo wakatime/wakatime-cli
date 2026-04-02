@@ -75,19 +75,19 @@ func TestClaudeParse(t *testing.T) {
 	assert.Contains(t, got[0].UserAgent, heartbeat.UserAgent(ctx, "editor/1.2.3"))
 	assert.Contains(t, got[0].UserAgent, "ClaudeCode/2.1.45")
 
-	assert.Equal(t, filepath.Base(transcriptPath), got[1].Entity)
+	assert.Equal(t, "Claude session", got[1].Entity)
 	assert.Equal(t, heartbeat.AppType, got[1].EntityType)
 	assert.Nil(t, got[1].AILineChanges)
-	assert.Equal(t, "/tmp", got[1].ProjectPathOverride)
+	assert.Equal(t, filepath.Dir("/tmp/edited.go"), got[1].ProjectPathOverride)
 	require.NotNil(t, got[1].IsWrite)
 	assert.False(t, *got[1].IsWrite)
 	assert.Contains(t, got[1].UserAgent, "plugin/0.0.1")
 	assert.Contains(t, got[1].UserAgent, "ClaudeCode/2.1.45")
 
-	assert.Equal(t, filepath.Base(transcriptPath), got[2].Entity)
+	assert.Equal(t, "Claude session", got[2].Entity)
 	assert.Equal(t, heartbeat.AppType, got[2].EntityType)
 	assert.Nil(t, got[2].AILineChanges)
-	assert.Equal(t, "/tmp", got[2].ProjectPathOverride)
+	assert.Equal(t, filepath.Dir("/tmp/array.go"), got[2].ProjectPathOverride)
 	require.NotNil(t, got[2].IsWrite)
 	assert.False(t, *got[2].IsWrite)
 
@@ -155,5 +155,5 @@ func TestClaudeParse_RetainsProjectFolderFromSkippedFileLine(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, got, 1)
 	assert.Equal(t, heartbeat.AppType, got[0].EntityType)
-	assert.Equal(t, "/workspace/project", got[0].ProjectPathOverride)
+	assert.Equal(t, filepath.Dir("/workspace/project/main.go"), got[0].ProjectPathOverride)
 }

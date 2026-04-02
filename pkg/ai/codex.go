@@ -143,7 +143,7 @@ func (g Codex) parseTranscript(ctx context.Context, transcript string) (Heartbea
 	}
 
 	cwd := ""
-	sessionEntity := filepath.Base(transcript)
+	sessionEntity := appHeartbeatEntity("Codex", transcript)
 	version := ""
 
 	if len(firstLine) > 0 {
