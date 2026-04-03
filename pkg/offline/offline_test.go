@@ -937,6 +937,84 @@ func TestSync_SyncLimit(t *testing.T) {
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
 
+func TestSync_SyncLimitAcrossMultipleBatches(t *testing.T) {
+	f, err := os.CreateTemp(t.TempDir(), "")
+	require.NoError(t, err)
+
+	defer f.Close()
+
+	db, err := bolt.Open(f.Name(), 0600, nil)
+	require.NoError(t, err)
+
+	for i := 0; i < 40; i++ {
+		h := heartbeat.Heartbeat{
+			Entity:     fmt.Sprintf("/tmp/limit-%02d.go", i),
+			EntityType: heartbeat.FileType,
+			Time:       float64(1592868367 + i*10),
+			UserAgent:  "wakatime/test",
+		}
+		data, marshalErr := json.Marshal(h)
+		require.NoError(t, marshalErr)
+
+		insertHeartbeatRecord(t, db, "heartbeats", heartbeatRecord{
+			ID:        h.ID(),
+			Heartbeat: string(data),
+		})
+	}
+
+	require.NoError(t, db.Close())
+
+	syncFn := offline.Sync(t.Context(), f.Name(), 30)
+
+	var (
+		numCalls int
+		sent     int
+	)
+
+	err = syncFn(func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		numCalls++
+		sent += len(hh)
+
+		if numCalls == 1 {
+			assert.Len(t, hh, 25)
+		} else {
+			assert.Len(t, hh, 5)
+		}
+
+		results := make([]heartbeat.Result, len(hh))
+		for i := range hh {
+			results[i] = heartbeat.Result{Status: http.StatusCreated, ID: fmt.Sprintf("created-%d-%d", numCalls, i)}
+		}
+
+		return results, nil
+	})
+	require.NoError(t, err)
+	assert.Equal(t, 2, numCalls)
+	assert.Equal(t, 30, sent)
+
+	db, err = bolt.Open(f.Name(), 0600, nil)
+	require.NoError(t, err)
+
+	var stored []heartbeatRecord
+
+	err = db.View(func(tx *bolt.Tx) error {
+		c := tx.Bucket([]byte("heartbeats")).Cursor()
+
+		for key, value := c.First(); key != nil; key, value = c.Next() {
+			stored = append(stored, heartbeatRecord{
+				ID:        string(key),
+				Heartbeat: string(value),
+			})
+		}
+
+		return nil
+	})
+	require.NoError(t, err)
+	require.NoError(t, db.Close())
+
+	require.Len(t, stored, 10)
+}
+
 func TestSync_SyncUnlimited(t *testing.T) {
 	// setup
 	f, err := os.CreateTemp(t.TempDir(), "")
