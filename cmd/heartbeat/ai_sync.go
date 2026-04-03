@@ -67,7 +67,16 @@ func RunAISyncActivity(ctx context.Context, v *viper.Viper) (int, error) {
 		return exitcode.Success, nil
 	}
 
-	if err := sendPreparedHeartbeats(ctx, v, loadedParams, queueFilepath, heartbeats, false); err != nil {
+	useProjectConfig := shouldUseProjectConfig(heartbeats)
+
+	if err := sendPreparedHeartbeats(
+		ctx,
+		v,
+		loadedParams,
+		queueFilepath,
+		heartbeats,
+		useProjectConfig,
+	); err != nil {
 		if errwaka, ok := err.(wakaerror.Error); ok {
 			return errwaka.ExitCode(), fmt.Errorf("sending ai activity failed: %w", errwaka)
 		}

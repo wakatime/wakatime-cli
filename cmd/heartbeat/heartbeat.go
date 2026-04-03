@@ -361,3 +361,13 @@ func setLogFields(ctx context.Context, params params.Params) {
 		log.AddField(ctx, "is_write", params.Heartbeat.IsWrite)
 	}
 }
+
+func shouldUseProjectConfig(heartbeats []heartbeat.Heartbeat) bool {
+	for _, h := range heartbeats {
+		if h.EntityType == heartbeat.FileType && !h.IsUnsavedEntity {
+			return true
+		}
+	}
+
+	return false
+}
