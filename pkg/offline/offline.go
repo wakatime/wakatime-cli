@@ -181,6 +181,8 @@ func Sync(ctx context.Context, filepath string, syncLimit int) func(next heartbe
 			if stopSending {
 				break
 			}
+
+			alreadySent += len(hh)
 		}
 
 		return nil
