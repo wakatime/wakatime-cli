@@ -51,14 +51,17 @@ const (
 	ClaudeParser
 	// CodexParser is the parser ID for Codex.
 	CodexParser
+	// CopilotParser is the parser ID for GitHub Copilot Chat.
+	CopilotParser
 	// CursorParser is the parser ID for Cursor.
 	CursorParser
 )
 
 const (
-	claudeParserString = "claude-parser"
-	codexParserString  = "codex-parser"
-	cursorParserString = "cursor-parser"
+	claudeParserString  = "claude-parser"
+	codexParserString   = "codex-parser"
+	copilotParserString = "copilot-parser"
+	cursorParserString  = "cursor-parser"
 )
 
 // String implements fmt.Stringer interface.
@@ -68,6 +71,8 @@ func (d ParserID) String() string {
 		return claudeParserString
 	case CodexParser:
 		return codexParserString
+	case CopilotParser:
+		return copilotParserString
 	case CursorParser:
 		return cursorParserString
 	case UnknownParser:
@@ -203,12 +208,19 @@ func parseAIHeartbeats(
 			UserAgents:        userAgents,
 			FallbackUserAgent: fallbackUserAgent,
 		},
+		Copilot{
+			After:             after,
+			UserAgents:        userAgents,
+			FallbackUserAgent: fallbackUserAgent,
+		},
 		Cursor{
 			After:             after,
 			UserAgents:        userAgents,
 			FallbackUserAgent: fallbackUserAgent,
 		},
 	}
+
+	var aiHeartbeats Heartbeats
 
 	for _, p := range parsers {
 		logger.Debugf("execute %s", p.ID().String())
@@ -220,11 +232,11 @@ func parseAIHeartbeats(
 		}
 
 		if len(heartbeats) > 0 {
-			return heartbeats, nil
+			aiHeartbeats = append(aiHeartbeats, heartbeats...)
 		}
 	}
 
-	return nil, nil
+	return aiHeartbeats, nil
 }
 
 func applyProject(heartbeats Heartbeats, config Config) Heartbeats {
