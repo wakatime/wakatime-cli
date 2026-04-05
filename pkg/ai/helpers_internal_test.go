@@ -20,6 +20,7 @@ func TestParserIDStringAndPlugins(t *testing.T) {
 	assert.Equal(t, "", UnknownParser.String())
 	assert.Equal(t, claudeParserString, ClaudeParser.String())
 	assert.Equal(t, codexParserString, CodexParser.String())
+	assert.Equal(t, copilotParserString, CopilotParser.String())
 	assert.Equal(t, cursorParserString, CursorParser.String())
 	assert.Equal(t, "", ParserID(99).String())
 
@@ -27,6 +28,8 @@ func TestParserIDStringAndPlugins(t *testing.T) {
 	assert.Equal(t, "ClaudeCode/1.2.3", claudePlugin("1.2.3"))
 	assert.Equal(t, "Codex", codexPlugin(""))
 	assert.Equal(t, "Codex/1.2.3", codexPlugin("1.2.3"))
+	assert.Equal(t, "GitHubCopilot", copilotPlugin(nil))
+	assert.Equal(t, "GitHubCopilot/0.42.3", copilotPlugin(&copilotAgent{ExtensionVersion: "0.42.3"}))
 	assert.Equal(t, "Cursor", cursorPlugin())
 }
 
