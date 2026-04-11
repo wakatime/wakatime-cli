@@ -176,7 +176,19 @@ func WithAISync(config Config) heartbeat.HandleOption {
 					continue // remove this human heartbeat, it's actually AI
 				}
 
-				if h.Time > minHeartbeatTime-1 && h.Time < maxHeartbeatTime+1 {
+				inRange := func(windowMinutes float64) bool {
+					const secondsPerMinute = 60.0
+
+					windowSeconds := windowMinutes * secondsPerMinute
+
+					return h.Time > minHeartbeatTime-windowSeconds && h.Time < maxHeartbeatTime+windowSeconds
+				}
+
+				if inRange(2) {
+					h.Category = "ai coding"
+				}
+
+				if (h.HumanLineChanges == nil || *h.HumanLineChanges == 0) && inRange(30) {
 					h.Category = "ai coding"
 				}
 
