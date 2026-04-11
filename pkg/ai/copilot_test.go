@@ -221,3 +221,40 @@ func TestCopilotParseJSONLSession(t *testing.T) {
 	assert.Equal(t, "Copilot session-2", got[2].Entity)
 	assert.Equal(t, heartbeat.AppType, got[2].EntityType)
 }
+
+func TestCopilotParseJSONLSession_IgnoresStringVariableValues(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	workspaceDir := filepath.Join(home, "Library", "Application Support", "Code", "User", "workspaceStorage", "workspace-3")
+	require.NoError(t, os.MkdirAll(filepath.Join(workspaceDir, "chatSessions"), 0o755))
+
+	sessionPath := filepath.Join(workspaceDir, "chatSessions", "session-3.jsonl")
+	lines := []string{
+		strings.Join([]string{
+			`{"kind":0,"v":{"version":3,"creationDate":1771000000000,`,
+			`"sessionId":"session-3","requests":[{"requestId":"request-b",`,
+			`"timestamp":1771000005000,`,
+			`"agent":{"extensionVersion":"0.43.0"},`,
+			`"message":{"text":"Find bugs in this repo"},`,
+			`"variableData":{"variables":[{"id":"vscode.customizations.index",`,
+			`"kind":"promptText","value":"<skills>...</skills>"}]},`,
+			`"response":[]}]}}`,
+		}, ""),
+		`{"kind":1,"k":["requests",0,"modelState"],"v":{"value":1,"completedAt":1771000009000}}`,
+	}
+	require.NoError(t, os.WriteFile(sessionPath, []byte(strings.Join(lines, "\n")+"\n"), 0o644))
+
+	got, err := ai.Copilot{
+		After:             time.Unix(1771000000, 0),
+		FallbackUserAgent: "editor/1.0.0",
+	}.Parse(t.Context())
+	require.NoError(t, err)
+	require.Len(t, got, 2)
+
+	assert.Equal(t, "Copilot session-3", got[0].Entity)
+	assert.Equal(t, heartbeat.AppType, got[0].EntityType)
+	assert.Equal(t, "Copilot session-3", got[1].Entity)
+	assert.Equal(t, heartbeat.AppType, got[1].EntityType)
+}

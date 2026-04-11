@@ -141,7 +141,7 @@ func WithAISync(config Config) heartbeat.HandleOption {
 				return next(ctx, hh)
 			}
 
-			heartbeats = preserveAttributes(heartbeats, hh)
+			heartbeats, firstHumanEdit := preserveAttributes(heartbeats, hh)
 
 			heartbeats = applyProject(heartbeats, config)
 
@@ -176,7 +176,19 @@ func WithAISync(config Config) heartbeat.HandleOption {
 					continue // remove this human heartbeat, it's actually AI
 				}
 
-				if h.Time > minHeartbeatTime-1 && h.Time < maxHeartbeatTime+1 {
+				inRange := func(windowMinutes float64) bool {
+					const secondsPerMinute = 60.0
+
+					windowSeconds := windowMinutes * secondsPerMinute
+
+					return h.Time > minHeartbeatTime-windowSeconds && h.Time < maxHeartbeatTime+windowSeconds
+				}
+
+				if inRange(2) {
+					h.Category = "ai coding"
+				}
+
+				if (firstHumanEdit == nil || *firstHumanEdit > h.Time) && inRange(30) {
 					h.Category = "ai coding"
 				}
 
@@ -302,15 +314,21 @@ func getLastParsedAt(ctx context.Context, v *viper.Viper) (time.Time, error) {
 // preserveAttributes mutates aiHeartbeats pulling in the attributes from
 // humanHeartbeats, which should normally have more details already populated
 // from the IDE than available on aiHeartbeats.
-func preserveAttributes(aiHeartbeats []heartbeat.Heartbeat, humanHeartbeats []heartbeat.Heartbeat) Heartbeats {
+func preserveAttributes(aiHeartbeats []heartbeat.Heartbeat, humanHeartbeats []heartbeat.Heartbeat) (Heartbeats, *float64) {
 	if len(humanHeartbeats) == 0 {
-		return aiHeartbeats
+		return aiHeartbeats, nil
 	}
 
 	originals := make(map[string][]heartbeat.Heartbeat, len(humanHeartbeats))
 	fallbackProjectFolder := ""
 
+	var firstHumanEdit *float64
+
 	for _, h := range humanHeartbeats {
+		if (firstHumanEdit == nil || h.Time < *firstHumanEdit) && h.HumanLineChanges != nil && *h.HumanLineChanges != 0 {
+			firstHumanEdit = &h.Time
+		}
+
 		originals[h.Entity] = append(originals[h.Entity], h)
 
 		if fallbackProjectFolder == "" {
@@ -333,7 +351,7 @@ func preserveAttributes(aiHeartbeats []heartbeat.Heartbeat, humanHeartbeats []he
 		}
 	}
 
-	return aiHeartbeats
+	return aiHeartbeats, firstHumanEdit
 }
 
 func preserveAttributesFromHumanHeartbeat(aiHeartbeat *heartbeat.Heartbeat, human heartbeat.Heartbeat) {

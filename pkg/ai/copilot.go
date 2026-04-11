@@ -149,6 +149,33 @@ type (
 	}
 )
 
+func (v *copilotVariable) UnmarshalJSON(data []byte) error {
+	type alias struct {
+		Kind  string          `json:"kind"`
+		ID    string          `json:"id"`
+		Value json.RawMessage `json:"value"`
+	}
+
+	var decoded alias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return err
+	}
+
+	v.Kind = decoded.Kind
+	v.ID = decoded.ID
+
+	if len(decoded.Value) == 0 || string(decoded.Value) == "null" {
+		return nil
+	}
+
+	var pathValue copilotPathValue
+	if err := json.Unmarshal(decoded.Value, &pathValue); err == nil {
+		v.Value = &pathValue
+	}
+
+	return nil
+}
+
 func (m *copilotMessageWithURIs) UnmarshalJSON(data []byte) error {
 	if data == nil || string(data) == "null" {
 		return nil
