@@ -482,8 +482,9 @@ func TestWithAISyncMarksHumanHeartbeatsAsAICoding(t *testing.T) {
 	})
 
 	humanWithinTwoMinutes := "/tmp/human-within-two-minutes.go"
-	humanWithinThirtyMinutesNoChanges := "/tmp/human-within-thirty-minutes-no-changes.go"
+	humanWithinThirtyMinutesNoChangesBeforeEdit := "/tmp/human-within-thirty-minutes-no-changes-before-edit.go"
 	humanWithinThirtyMinutesWithChanges := "/tmp/human-within-thirty-minutes-with-changes.go"
+	humanWithinThirtyMinutesNoChangesAfterEdit := "/tmp/human-within-thirty-minutes-no-changes-after-edit.go"
 	humanOutsideThirtyMinutes := "/tmp/human-outside-thirty-minutes.go"
 
 	got, err := handle(t.Context(), []heartbeat.Heartbeat{
@@ -496,11 +497,11 @@ func TestWithAISyncMarksHumanHeartbeatsAsAICoding(t *testing.T) {
 			UserAgent:        "editor/1.2.3",
 		},
 		{
-			Entity:           humanWithinThirtyMinutesNoChanges,
+			Entity:           humanWithinThirtyMinutesNoChangesBeforeEdit,
 			EntityType:       heartbeat.FileType,
 			Category:         "debugging",
 			HumanLineChanges: heartbeat.PointerTo(0),
-			Time:             1773838500.1,
+			Time:             1773836999.1,
 			UserAgent:        "editor/1.2.3",
 		},
 		{
@@ -509,6 +510,14 @@ func TestWithAISyncMarksHumanHeartbeatsAsAICoding(t *testing.T) {
 			Category:         "debugging",
 			HumanLineChanges: heartbeat.PointerTo(1),
 			Time:             1773838500.2,
+			UserAgent:        "editor/1.2.3",
+		},
+		{
+			Entity:           humanWithinThirtyMinutesNoChangesAfterEdit,
+			EntityType:       heartbeat.FileType,
+			Category:         "debugging",
+			HumanLineChanges: heartbeat.PointerTo(0),
+			Time:             1773838500.1,
 			UserAgent:        "editor/1.2.3",
 		},
 		{
@@ -528,8 +537,9 @@ func TestWithAISyncMarksHumanHeartbeatsAsAICoding(t *testing.T) {
 	}
 
 	assert.Equal(t, "ai coding", categoriesByEntity[humanWithinTwoMinutes])
-	assert.Equal(t, "ai coding", categoriesByEntity[humanWithinThirtyMinutesNoChanges])
+	assert.Equal(t, "ai coding", categoriesByEntity[humanWithinThirtyMinutesNoChangesBeforeEdit])
 	assert.Equal(t, "debugging", categoriesByEntity[humanWithinThirtyMinutesWithChanges])
+	assert.Equal(t, "debugging", categoriesByEntity[humanWithinThirtyMinutesNoChangesAfterEdit])
 	assert.Equal(t, "debugging", categoriesByEntity[humanOutsideThirtyMinutes])
 }
 

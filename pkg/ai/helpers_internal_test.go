@@ -449,7 +449,7 @@ func TestPreserveAttributesMutatesAIHeartbeats(t *testing.T) {
 		},
 	}
 
-	got := preserveAttributes(aiHeartbeats, humanHeartbeats)
+	got, _ := preserveAttributes(aiHeartbeats, humanHeartbeats)
 
 	require.Len(t, got, 1)
 	assert.Same(t, &aiHeartbeats[0], &got[0])
@@ -490,7 +490,7 @@ func TestPreserveAttributes_AppHeartbeatFallsBackToHumanProjectFolder(t *testing
 		},
 	}
 
-	got := preserveAttributes(aiHeartbeats, humanHeartbeats)
+	got, _ := preserveAttributes(aiHeartbeats, humanHeartbeats)
 
 	require.Len(t, got, 1)
 	assert.Equal(t, "/tmp/project-override", got[0].ProjectPathOverride)
