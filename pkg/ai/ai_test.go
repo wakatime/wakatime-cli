@@ -432,6 +432,107 @@ func TestSendHeartbeats_WithAIParsingBatchAppliedOnce(t *testing.T) {
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
 
+func TestWithAISyncMarksHumanHeartbeatsAsAICoding(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	entity, err := filepath.Abs("testdata/main.go")
+	require.NoError(t, err)
+
+	entity = strings.ReplaceAll(entity, "\\", "/")
+
+	local, err := filepath.Abs("testdata/localfile.go")
+	require.NoError(t, err)
+
+	local = strings.ReplaceAll(local, "\\", "/")
+
+	transcriptDir := filepath.Join(home, ".claude", "projects", "sample-project")
+	require.NoError(t, os.MkdirAll(transcriptDir, 0o755))
+
+	transcriptPath := filepath.Join(transcriptDir, "session.jsonl")
+	transcript := strings.Join([]string{
+		"{\"timestamp\":\"2026-03-18T12:00:00Z\",\"version\":\"2.1.45\"," +
+			"\"toolUseResult\":{\"filePath\":\"" + entity + "\"," +
+			"\"structuredPatch\":[{\"oldLines\":3,\"newLines\":5}]}}",
+		"{\"timestamp\":\"2026-03-18T12:30:00Z\",\"toolUseResult\":{" +
+			"\"filePath\":\"" + local + "\",\"content\":\"first\\nsecond\\nthird\"}}",
+	}, "\n") + "\n"
+	require.NoError(t, os.WriteFile(transcriptPath, []byte(transcript), 0o644))
+
+	tmpInternal, err := os.CreateTemp(t.TempDir(), "wakatime-internal")
+	require.NoError(t, err)
+
+	defer tmpInternal.Close()
+
+	v := viper.New()
+	v.Set("internal-config", tmpInternal.Name())
+	v.Set("internal.ai_heartbeats_last_parsed_at", time.Date(2026, 3, 18, 11, 0, 0, 0, time.UTC).Format(ini.DateFormat))
+
+	handle := ai.WithAISync(ai.Config{
+		Plugin: "plugin/0.0.1",
+		V:      v,
+	})(func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		results := make([]heartbeat.Result, len(hh))
+		for i := range hh {
+			results[i] = heartbeat.Result{Heartbeat: hh[i]}
+		}
+
+		return results, nil
+	})
+
+	humanWithinTwoMinutes := "/tmp/human-within-two-minutes.go"
+	humanWithinThirtyMinutesNoChanges := "/tmp/human-within-thirty-minutes-no-changes.go"
+	humanWithinThirtyMinutesWithChanges := "/tmp/human-within-thirty-minutes-with-changes.go"
+	humanOutsideThirtyMinutes := "/tmp/human-outside-thirty-minutes.go"
+
+	got, err := handle(t.Context(), []heartbeat.Heartbeat{
+		{
+			Entity:           humanWithinTwoMinutes,
+			EntityType:       heartbeat.FileType,
+			Category:         "debugging",
+			HumanLineChanges: heartbeat.PointerTo(3),
+			Time:             1773835260.1,
+			UserAgent:        "editor/1.2.3",
+		},
+		{
+			Entity:           humanWithinThirtyMinutesNoChanges,
+			EntityType:       heartbeat.FileType,
+			Category:         "debugging",
+			HumanLineChanges: heartbeat.PointerTo(0),
+			Time:             1773838500.1,
+			UserAgent:        "editor/1.2.3",
+		},
+		{
+			Entity:           humanWithinThirtyMinutesWithChanges,
+			EntityType:       heartbeat.FileType,
+			Category:         "debugging",
+			HumanLineChanges: heartbeat.PointerTo(1),
+			Time:             1773838500.2,
+			UserAgent:        "editor/1.2.3",
+		},
+		{
+			Entity:           humanOutsideThirtyMinutes,
+			EntityType:       heartbeat.FileType,
+			Category:         "debugging",
+			HumanLineChanges: heartbeat.PointerTo(0),
+			Time:             1773839100.1,
+			UserAgent:        "editor/1.2.3",
+		},
+	})
+	require.NoError(t, err)
+
+	categoriesByEntity := make(map[string]string, len(got))
+	for _, result := range got {
+		categoriesByEntity[result.Heartbeat.Entity] = result.Heartbeat.Category
+	}
+
+	assert.Equal(t, "ai coding", categoriesByEntity[humanWithinTwoMinutes])
+	assert.Equal(t, "ai coding", categoriesByEntity[humanWithinThirtyMinutesNoChanges])
+	assert.Equal(t, "debugging", categoriesByEntity[humanWithinThirtyMinutesWithChanges])
+	assert.Equal(t, "debugging", categoriesByEntity[humanOutsideThirtyMinutes])
+}
+
 func resetSingleton(t *testing.T) {
 	t.Helper()
 
