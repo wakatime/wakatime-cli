@@ -267,7 +267,7 @@ func sendPreparedHeartbeats(
 		LastSentAt: params.Offline.LastSentAt,
 		Timeout:    params.Offline.RateLimit,
 	}) {
-		err := offlinecmd.SaveHeartbeats(ctx, v, queueFilepath, heartbeats)
+		err := offlinecmd.SaveHeartbeatsWithParams(ctx, v, queueFilepath, heartbeats, params)
 		if err == nil {
 			return nil
 		}
@@ -288,7 +288,7 @@ func sendPreparedHeartbeats(
 		logger.Debugf("save %d extra heartbeat(s) to offline queue", len(extraHeartbeats))
 
 		go func(done chan<- bool) {
-			if err := offlinecmd.SaveHeartbeats(ctx, v, queueFilepath, extraHeartbeats); err != nil {
+			if err := offlinecmd.SaveHeartbeatsWithParams(ctx, v, queueFilepath, extraHeartbeats, params); err != nil {
 				logger.Errorf("failed to save extra heartbeats to offline queue: %s", err)
 			}
 
@@ -300,7 +300,7 @@ func sendPreparedHeartbeats(
 
 	sender, err := buildHandle(ctx, v, params, queueFilepath)
 	if err != nil {
-		if err := offlinecmd.SaveHeartbeats(ctx, v, queueFilepath, heartbeats); err != nil {
+		if err := offlinecmd.SaveHeartbeatsWithParams(ctx, v, queueFilepath, heartbeats, params); err != nil {
 			logger.Errorf("failed to save extra heartbeats to offline queue: %s", err)
 		}
 
