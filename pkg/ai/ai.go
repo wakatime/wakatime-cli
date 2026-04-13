@@ -141,39 +141,17 @@ func WithAISync(config Config) heartbeat.HandleOption {
 				return next(ctx, hh)
 			}
 
-			heartbeats, firstHumanEdit := preserveAttributes(heartbeats, hh)
+			minAIHeartbeatTime, maxAIHeartbeatTime := minMaxAIHeartbeatTimes(heartbeats)
 
-			heartbeats = applyProject(heartbeats, config)
+			heartbeats, firstHumanEdit := preserveHumanAttributes(heartbeats, hh, config, maxAIHeartbeatTime)
 
-			minHeartbeatTime := heartbeats[0].Time
+			entities := entityToTimeMap(heartbeats)
 
-			maxHeartbeatTime := heartbeats[0].Time
-			for i := 1; i < len(heartbeats); i++ {
-				t := heartbeats[i].Time
-				if t < minHeartbeatTime {
-					minHeartbeatTime = t
-				} else if t > maxHeartbeatTime {
-					maxHeartbeatTime = t
-				}
-			}
-
-			entities := make(map[string][]float64, len(heartbeats))
-			for _, h := range heartbeats {
-				entities[h.Entity] = append(entities[h.Entity], h.Time)
-			}
-
+			// Add back Human heartbeats unless they look like duplicate IDE heartbeats
+			// caused by the same AI edit on the same entity and timestamp.
 			for _, h := range hh {
-				found := false
-
-				for _, t := range entities[h.Entity] {
-					if t >= h.Time-5 && t <= h.Time+5 {
-						found = true
-						break
-					}
-				}
-
-				if found {
-					continue // remove this human heartbeat, it's actually AI
+				if sameEntityAIHeartbeatWithinWindow(h, entities, 5) && (firstHumanEdit == nil || h.Time < *firstHumanEdit) {
+					continue
 				}
 
 				inRange := func(windowMinutes float64) bool {
@@ -181,18 +159,14 @@ func WithAISync(config Config) heartbeat.HandleOption {
 
 					windowSeconds := windowMinutes * secondsPerMinute
 
-					return h.Time > minHeartbeatTime-windowSeconds && h.Time < maxHeartbeatTime+windowSeconds
+					return h.Time > minAIHeartbeatTime-windowSeconds && h.Time < maxAIHeartbeatTime+windowSeconds
 				}
 
-				if inRange(2) {
+				if inRange(2) || ((firstHumanEdit == nil || h.Time < *firstHumanEdit) && inRange(30)) {
 					h.Category = "ai coding"
 				}
 
-				if (firstHumanEdit == nil || *firstHumanEdit > h.Time) && inRange(30) {
-					h.Category = "ai coding"
-				}
-
-				// add this human heartbeat
+				// add back this human heartbeat
 				heartbeats = append(heartbeats, h)
 			}
 
@@ -251,28 +225,6 @@ func parseAIHeartbeats(
 	return aiHeartbeats, nil
 }
 
-func applyProject(heartbeats Heartbeats, config Config) Heartbeats {
-	for i := range heartbeats {
-		if heartbeats[i].ProjectOverride == "" {
-			heartbeats[i].ProjectOverride = config.Project.Override
-		}
-
-		if heartbeats[i].ProjectAlternate == "" {
-			heartbeats[i].ProjectAlternate = config.Project.Alternate
-		}
-
-		if heartbeats[i].BranchAlternate == "" {
-			heartbeats[i].BranchAlternate = config.Project.BranchAlternate
-		}
-
-		if heartbeats[i].ProjectPathOverride == "" {
-			heartbeats[i].ProjectPathOverride = config.Sanitize.ProjectPathOverride
-		}
-	}
-
-	return heartbeats
-}
-
 func getLastParsedAt(ctx context.Context, v *viper.Viper) (time.Time, error) {
 	lastParsedAt := time.Now().Add(-1 * time.Minute)
 
@@ -311,21 +263,25 @@ func getLastParsedAt(ctx context.Context, v *viper.Viper) (time.Time, error) {
 	return lastParsedAt, nil
 }
 
-// preserveAttributes mutates aiHeartbeats pulling in the attributes from
+// preserveHumanAttributes mutates aiHeartbeats pulling in the attributes from
 // humanHeartbeats, which should normally have more details already populated
 // from the IDE than available on aiHeartbeats.
-func preserveAttributes(aiHeartbeats []heartbeat.Heartbeat, humanHeartbeats []heartbeat.Heartbeat) (Heartbeats, *float64) {
-	if len(humanHeartbeats) == 0 {
-		return aiHeartbeats, nil
-	}
-
+func preserveHumanAttributes(
+	aiHeartbeats []heartbeat.Heartbeat,
+	humanHeartbeats []heartbeat.Heartbeat,
+	config Config,
+	after float64,
+) (Heartbeats, *float64) {
 	originals := make(map[string][]heartbeat.Heartbeat, len(humanHeartbeats))
 	fallbackProjectFolder := ""
 
 	var firstHumanEdit *float64
 
 	for _, h := range humanHeartbeats {
-		if (firstHumanEdit == nil || h.Time < *firstHumanEdit) && h.HumanLineChanges != nil && *h.HumanLineChanges != 0 {
+		if h.Time > after+1 &&
+			(firstHumanEdit == nil || h.Time < *firstHumanEdit) &&
+			h.HumanLineChanges != nil &&
+			*h.HumanLineChanges != 0 {
 			firstHumanEdit = &h.Time
 		}
 
@@ -346,12 +302,67 @@ func preserveAttributes(aiHeartbeats []heartbeat.Heartbeat, humanHeartbeats []he
 			preserveAttributesFromHumanHeartbeat(aiHeartbeat, h)
 		}
 
+		if aiHeartbeat.ProjectOverride == "" {
+			aiHeartbeat.ProjectOverride = config.Project.Override
+		}
+
+		if aiHeartbeat.ProjectAlternate == "" {
+			aiHeartbeat.ProjectAlternate = config.Project.Alternate
+		}
+
+		if aiHeartbeat.BranchAlternate == "" {
+			aiHeartbeat.BranchAlternate = config.Project.BranchAlternate
+		}
+
+		if aiHeartbeat.ProjectPathOverride == "" {
+			aiHeartbeat.ProjectPathOverride = config.Sanitize.ProjectPathOverride
+		}
+
 		if aiHeartbeat.EntityType == heartbeat.AppType && aiHeartbeat.ProjectPathOverride == "" {
 			aiHeartbeat.ProjectPathOverride = fallbackProjectFolder
 		}
 	}
 
 	return aiHeartbeats, firstHumanEdit
+}
+
+func minMaxAIHeartbeatTimes(aiHeartbeats []heartbeat.Heartbeat) (float64, float64) {
+	minHeartbeatTime := aiHeartbeats[0].Time
+
+	maxHeartbeatTime := aiHeartbeats[0].Time
+	for i := 1; i < len(aiHeartbeats); i++ {
+		t := aiHeartbeats[i].Time
+		if t < minHeartbeatTime {
+			minHeartbeatTime = t
+		} else if t > maxHeartbeatTime {
+			maxHeartbeatTime = t
+		}
+	}
+
+	return minHeartbeatTime, maxHeartbeatTime
+}
+
+func entityToTimeMap(aiHeartbeats []heartbeat.Heartbeat) map[string][]float64 {
+	entities := make(map[string][]float64, len(aiHeartbeats))
+	for _, h := range aiHeartbeats {
+		entities[h.Entity] = append(entities[h.Entity], h.Time)
+	}
+
+	return entities
+}
+
+func sameEntityAIHeartbeatWithinWindow(
+	h heartbeat.Heartbeat,
+	aiEntityTimes map[string][]float64,
+	windowSeconds float64,
+) bool {
+	for _, t := range aiEntityTimes[h.Entity] {
+		if t >= h.Time-windowSeconds && t <= h.Time+windowSeconds {
+			return true
+		}
+	}
+
+	return false
 }
 
 func preserveAttributesFromHumanHeartbeat(aiHeartbeat *heartbeat.Heartbeat, human heartbeat.Heartbeat) {

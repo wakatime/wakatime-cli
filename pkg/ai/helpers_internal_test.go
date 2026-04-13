@@ -60,13 +60,13 @@ func TestEntityUserAgentsAndAIUserAgent(t *testing.T) {
 	)
 }
 
-func TestApplyProjectOverridesWhenEmpty(t *testing.T) {
-	heartbeats := Heartbeats{
+func TestPreserveHumanAttributesAppliesConfigOverridesWhenEmpty(t *testing.T) {
+	aiHeartbeats := Heartbeats{
 		{Entity: "/tmp/main.go", EntityType: heartbeat.FileType},
 		{Entity: "Codex session", EntityType: heartbeat.AppType},
 	}
 
-	got := applyProject(heartbeats, Config{
+	got, _ := preserveHumanAttributes(aiHeartbeats, nil, Config{
 		Plugin: "",
 		Project: params.ProjectParams{
 			BranchAlternate: "mybranch",
@@ -76,7 +76,7 @@ func TestApplyProjectOverridesWhenEmpty(t *testing.T) {
 		Sanitize: params.SanitizeParams{
 			ProjectPathOverride: "/path/to/project",
 		},
-	})
+	}, 0)
 
 	require.Len(t, got, 2)
 
@@ -88,8 +88,8 @@ func TestApplyProjectOverridesWhenEmpty(t *testing.T) {
 	}
 }
 
-func TestApplyProjectOverridesNotEmpty(t *testing.T) {
-	heartbeats := Heartbeats{
+func TestPreserveHumanAttributesKeepsExistingProjectOverrides(t *testing.T) {
+	aiHeartbeats := Heartbeats{
 		{
 			Entity:              "Codex session",
 			EntityType:          heartbeat.AppType,
@@ -99,8 +99,11 @@ func TestApplyProjectOverridesNotEmpty(t *testing.T) {
 			Project:             heartbeat.PointerTo("myproj"),
 		},
 	}
+	humanHeartbeats := []heartbeat.Heartbeat{
+		{Entity: "/tmp/human.go", EntityType: heartbeat.FileType, Time: 100},
+	}
 
-	got := applyProject(heartbeats, Config{
+	got, _ := preserveHumanAttributes(aiHeartbeats, humanHeartbeats, Config{
 		Plugin: "",
 		Project: params.ProjectParams{
 			Alternate: "fallback-project",
@@ -109,7 +112,7 @@ func TestApplyProjectOverridesNotEmpty(t *testing.T) {
 		Sanitize: params.SanitizeParams{
 			ProjectPathOverride: "/path/to/project",
 		},
-	})
+	}, 0)
 
 	require.Len(t, got, 1)
 
@@ -449,7 +452,7 @@ func TestPreserveAttributesMutatesAIHeartbeats(t *testing.T) {
 		},
 	}
 
-	got, _ := preserveAttributes(aiHeartbeats, humanHeartbeats)
+	got, _ := preserveHumanAttributes(aiHeartbeats, humanHeartbeats, Config{}, 0)
 
 	require.Len(t, got, 1)
 	assert.Same(t, &aiHeartbeats[0], &got[0])
@@ -490,7 +493,7 @@ func TestPreserveAttributes_AppHeartbeatFallsBackToHumanProjectFolder(t *testing
 		},
 	}
 
-	got, _ := preserveAttributes(aiHeartbeats, humanHeartbeats)
+	got, _ := preserveHumanAttributes(aiHeartbeats, humanHeartbeats, Config{}, 0)
 
 	require.Len(t, got, 1)
 	assert.Equal(t, "/tmp/project-override", got[0].ProjectPathOverride)
