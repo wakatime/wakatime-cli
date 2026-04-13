@@ -486,12 +486,15 @@ func TestWithAISyncMarksHumanHeartbeatsAsAICoding(t *testing.T) {
 	humanWithinThirtyMinutesWithChanges := "/tmp/human-within-thirty-minutes-with-changes.go"
 	humanWithinThirtyMinutesNoChangesAfterEdit := "/tmp/human-within-thirty-minutes-no-changes-after-edit.go"
 	humanOutsideThirtyMinutes := "/tmp/human-outside-thirty-minutes.go"
+	humanNearbyDebugging := "/tmp/human-nearby-debugging.go"
+	humanAIDuplicate := entity
+	humanAfterAIDifferentWrite := entity
 
 	got, err := handle(t.Context(), []heartbeat.Heartbeat{
 		{
 			Entity:           humanWithinTwoMinutes,
 			EntityType:       heartbeat.FileType,
-			Category:         "debugging",
+			Category:         "coding",
 			HumanLineChanges: heartbeat.PointerTo(3),
 			Time:             1773835260.1,
 			UserAgent:        "editor/1.2.3",
@@ -499,7 +502,7 @@ func TestWithAISyncMarksHumanHeartbeatsAsAICoding(t *testing.T) {
 		{
 			Entity:           humanWithinThirtyMinutesNoChangesBeforeEdit,
 			EntityType:       heartbeat.FileType,
-			Category:         "debugging",
+			Category:         "coding",
 			HumanLineChanges: heartbeat.PointerTo(0),
 			Time:             1773836999.1,
 			UserAgent:        "editor/1.2.3",
@@ -515,7 +518,7 @@ func TestWithAISyncMarksHumanHeartbeatsAsAICoding(t *testing.T) {
 		{
 			Entity:           humanWithinThirtyMinutesNoChangesAfterEdit,
 			EntityType:       heartbeat.FileType,
-			Category:         "debugging",
+			Category:         "coding",
 			HumanLineChanges: heartbeat.PointerTo(0),
 			Time:             1773838500.1,
 			UserAgent:        "editor/1.2.3",
@@ -523,24 +526,54 @@ func TestWithAISyncMarksHumanHeartbeatsAsAICoding(t *testing.T) {
 		{
 			Entity:           humanOutsideThirtyMinutes,
 			EntityType:       heartbeat.FileType,
-			Category:         "debugging",
+			Category:         "coding",
 			HumanLineChanges: heartbeat.PointerTo(0),
 			Time:             1773839100.1,
+			UserAgent:        "editor/1.2.3",
+		},
+		{
+			Entity:           humanNearbyDebugging,
+			EntityType:       heartbeat.FileType,
+			Category:         "debugging",
+			HumanLineChanges: heartbeat.PointerTo(0),
+			Time:             1773835261.1,
+			UserAgent:        "editor/1.2.3",
+		},
+		{
+			Entity:           humanAIDuplicate,
+			EntityType:       heartbeat.FileType,
+			Category:         "coding",
+			HumanLineChanges: heartbeat.PointerTo(0),
+			Time:             1773835201.1,
+			UserAgent:        "editor/1.2.3",
+		},
+		{
+			Entity:           humanAfterAIDifferentWrite,
+			EntityType:       heartbeat.FileType,
+			Category:         "coding",
+			HumanLineChanges: heartbeat.PointerTo(2),
+			Time:             1773835203.1,
 			UserAgent:        "editor/1.2.3",
 		},
 	})
 	require.NoError(t, err)
 
 	categoriesByEntity := make(map[string]string, len(got))
+
+	countByEntity := make(map[string]int, len(got))
 	for _, result := range got {
 		categoriesByEntity[result.Heartbeat.Entity] = result.Heartbeat.Category
+		countByEntity[result.Heartbeat.Entity]++
 	}
 
 	assert.Equal(t, "ai coding", categoriesByEntity[humanWithinTwoMinutes])
 	assert.Equal(t, "ai coding", categoriesByEntity[humanWithinThirtyMinutesNoChangesBeforeEdit])
 	assert.Equal(t, "debugging", categoriesByEntity[humanWithinThirtyMinutesWithChanges])
-	assert.Equal(t, "debugging", categoriesByEntity[humanWithinThirtyMinutesNoChangesAfterEdit])
-	assert.Equal(t, "debugging", categoriesByEntity[humanOutsideThirtyMinutes])
+	assert.Equal(t, "ai coding", categoriesByEntity[humanWithinThirtyMinutesNoChangesAfterEdit])
+	assert.Equal(t, "coding", categoriesByEntity[humanOutsideThirtyMinutes])
+	assert.Equal(t, "ai coding", categoriesByEntity[humanNearbyDebugging])
+	assert.Equal(t, "ai coding", categoriesByEntity[humanAfterAIDifferentWrite])
+	assert.Equal(t, 1, countByEntity[humanAfterAIDifferentWrite])
 }
 
 func resetSingleton(t *testing.T) {
