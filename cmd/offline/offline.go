@@ -30,6 +30,27 @@ func SaveHeartbeats(
 		return fmt.Errorf("failed to load command parameters: %w", err)
 	}
 
+	return saveHeartbeats(ctx, v, queueFilepath, heartbeats, params)
+}
+
+// SaveHeartbeatsWithParams saves heartbeats to the offline db using already loaded command params.
+func SaveHeartbeatsWithParams(
+	ctx context.Context,
+	v *viper.Viper,
+	queueFilepath string,
+	heartbeats []heartbeat.Heartbeat,
+	params params.Params,
+) error {
+	return saveHeartbeats(ctx, v, queueFilepath, heartbeats, params)
+}
+
+func saveHeartbeats(
+	ctx context.Context,
+	v *viper.Viper,
+	queueFilepath string,
+	heartbeats []heartbeat.Heartbeat,
+	params params.Params,
+) error {
 	logger := log.Extract(ctx)
 
 	setLogFields(ctx, params)
