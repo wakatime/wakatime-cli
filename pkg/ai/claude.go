@@ -20,12 +20,15 @@ type Claude ParserConfig
 
 type (
 	claudeUsage struct {
-		InputTokens  *int `json:"input_tokens"`
-		OutputTokens *int `json:"output_tokens"`
-		TotalTokens  *int `json:"total_tokens"`
+		InputTokens              *int `json:"input_tokens"`
+		CacheCreationInputTokens *int `json:"cache_creation_input_tokens"`
+		CacheReadInputTokens     *int `json:"cache_read_input_tokens"`
+		OutputTokens             *int `json:"output_tokens"`
+		TotalTokens              *int `json:"total_tokens"`
 	}
 
 	claudeMessage struct {
+		ID    string       `json:"id"`
 		Usage *claudeUsage `json:"usage"`
 	}
 
@@ -69,6 +72,15 @@ type (
 		PromptID      *string             `json:"promptId"`
 		Type          *string             `json:"type"`
 		Cwd           *string             `json:"cwd"`
+	}
+
+	// claudeLastMessage tracks the most recent message's token contribution
+	// so that streaming duplicates (same message.id logged multiple times)
+	// replace rather than accumulate.
+	claudeLastMessage struct {
+		ID           string
+		InputTokens  int64
+		OutputTokens int64
 	}
 )
 
@@ -266,6 +278,7 @@ func (g Claude) parseTranscript(ctx context.Context, transcript string) (Heartbe
 	var (
 		heartbeats Heartbeats
 		tokens     heartbeat.AITokens
+		lastMsg    claudeLastMessage
 	)
 
 	claudeVersion := ""
@@ -303,7 +316,7 @@ func (g Claude) parseTranscript(ctx context.Context, transcript string) (Heartbe
 			cwd = lineCwd
 		}
 
-		tokens = g.claudeTokenCounts(logLine, tokens)
+		tokens = g.claudeTokenCounts(logLine, tokens, &lastMsg)
 
 		if logLine.Timestamp.IsZero() || logLine.Timestamp.Before(g.After) {
 			tokens = g.advanceTokens(tokens)
@@ -327,9 +340,13 @@ func (g Claude) parseTranscript(ctx context.Context, transcript string) (Heartbe
 	return heartbeats, nil
 }
 
-func (g Claude) claudeTokenCounts(line claudeLogLine, previous heartbeat.AITokens) heartbeat.AITokens {
+func (g Claude) claudeTokenCounts(
+	line claudeLogLine,
+	previous heartbeat.AITokens,
+	lastMsg *claudeLastMessage,
+) heartbeat.AITokens {
 	if line.Message != nil && line.Message.Usage != nil {
-		return g.messageTokenCounts(*line.Message.Usage, previous)
+		return g.messageTokenCounts(*line.Message, previous, lastMsg)
 	}
 
 	if line.Usage == nil {
@@ -352,19 +369,50 @@ func (g Claude) claudeTokenCounts(line claudeLogLine, previous heartbeat.AIToken
 	return current
 }
 
-func (Claude) messageTokenCounts(usage claudeUsage, previous heartbeat.AITokens) heartbeat.AITokens {
+func (Claude) messageTokenCounts(
+	msg claudeMessage,
+	previous heartbeat.AITokens,
+	lastMsg *claudeLastMessage,
+) heartbeat.AITokens {
+	usage := msg.Usage
 	current := previous
 
+	inputTokens := int64(0)
+
 	if usage.InputTokens != nil {
-		current.CurrentInput = previous.LastInput + int64(*usage.InputTokens)
+		inputTokens = int64(*usage.InputTokens)
+
+		if usage.CacheCreationInputTokens != nil {
+			inputTokens += int64(*usage.CacheCreationInputTokens)
+		}
+
+		if usage.CacheReadInputTokens != nil {
+			inputTokens += int64(*usage.CacheReadInputTokens)
+		}
 	}
+
+	outputTokens := int64(0)
 
 	switch {
 	case usage.OutputTokens != nil:
-		current.CurrentOutput = previous.LastOutput + int64(*usage.OutputTokens)
+		outputTokens = int64(*usage.OutputTokens)
 	case usage.TotalTokens != nil:
-		current.CurrentOutput = previous.LastOutput + int64(*usage.TotalTokens)
+		outputTokens = int64(*usage.TotalTokens)
 	}
+
+	if msg.ID != "" && msg.ID == lastMsg.ID {
+		// Same message (streaming update): replace previous contribution with latest.
+		current.CurrentInput += inputTokens - lastMsg.InputTokens
+		current.CurrentOutput += outputTokens - lastMsg.OutputTokens
+	} else {
+		// New message: accumulate onto the running total.
+		current.CurrentInput += inputTokens
+		current.CurrentOutput += outputTokens
+	}
+
+	lastMsg.ID = msg.ID
+	lastMsg.InputTokens = inputTokens
+	lastMsg.OutputTokens = outputTokens
 
 	return current
 }
@@ -610,15 +658,19 @@ func (Claude) lineChanges(result toolUseResult) int {
 		return lineChanges
 	}
 
-	if result.OriginalFile == nil {
-		if lineChanges := result.Content.lineChanges(); lineChanges != 0 {
-			return lineChanges
-		}
-
-		if result.File != nil {
-			return result.File.Content.lineChanges()
-		}
+	// originalFile with content means this is a read/verify, not a write.
+	// An empty string (from creates where no original existed) is not a read.
+	if result.OriginalFile != nil && *result.OriginalFile != "" {
+		return 0
 	}
+
+	// Use top-level Content for writes/creates.
+	if lineChanges := result.Content.lineChanges(); lineChanges != 0 {
+		return lineChanges
+	}
+
+	// File subfield represents read results (Read tool), not writes.
+	// Don't count File.Content as line changes.
 
 	return 0
 }
