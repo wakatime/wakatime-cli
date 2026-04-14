@@ -23,6 +23,18 @@ import (
 type Cursor ParserConfig
 
 type (
+	cursorTokenCount struct {
+		InputTokens  *int `json:"inputTokens"`
+		OutputTokens *int `json:"outputTokens"`
+		TotalTokens  *int `json:"totalTokens"`
+	}
+
+	cursorUsage struct {
+		InputTokens  *int `json:"input_tokens"`
+		OutputTokens *int `json:"output_tokens"`
+		TotalTokens  *int `json:"total_tokens"`
+	}
+
 	cursorToolFormerData struct {
 		Status  string `json:"status"`
 		Name    string `json:"name"`
@@ -44,6 +56,8 @@ type (
 		CreatedAt      time.Time             `json:"createdAt"`
 		Type           int                   `json:"type"`
 		Text           string                `json:"text"`
+		TokenCount     *cursorTokenCount     `json:"tokenCount"`
+		Usage          *cursorUsage          `json:"usage"`
 		ToolFormerData *cursorToolFormerData `json:"toolFormerData"`
 		CodeBlocks     []cursorCodeBlock     `json:"codeBlocks"`
 	}
@@ -77,7 +91,7 @@ type (
 
 // Parse parses the Cursor SQLite state db for ai heartbeats.
 func (g Cursor) Parse(ctx context.Context) (Heartbeats, error) {
-	dbPath, err := stateDBPath(ctx)
+	dbPath, err := g.stateDBPath(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +100,7 @@ func (g Cursor) Parse(ctx context.Context) (Heartbeats, error) {
 		return Heartbeats{}, nil
 	}
 
-	if !cursorStateDBModifiedAfter(dbPath, g.After) {
+	if !g.stateDBModifiedAfter(dbPath, g.After) {
 		return Heartbeats{}, nil
 	}
 
@@ -98,6 +112,7 @@ func (g Cursor) Parse(ctx context.Context) (Heartbeats, error) {
 	var heartbeats Heartbeats
 
 	bubbleCWDs := make(map[string]string)
+	bubbleTokens := make(map[string]heartbeat.AITokens)
 
 	for _, row := range rows {
 		var logLine cursorLogLine
@@ -107,18 +122,24 @@ func (g Cursor) Parse(ctx context.Context) (Heartbeats, error) {
 
 		logLine.BubbleID = row.BubbleID
 
-		if cwd := cursorProjectPath(logLine); cwd != "" && logLine.BubbleID != "" {
+		if cwd := g.projectPath(logLine); cwd != "" && logLine.BubbleID != "" {
 			bubbleCWDs[logLine.BubbleID] = cwd
 		}
 
+		tokens := g.cursorTokenCounts(logLine, bubbleTokens[logLine.BubbleID])
+
 		if logLine.CreatedAt.IsZero() || logLine.CreatedAt.Before(g.After) {
+			bubbleTokens[logLine.BubbleID] = g.advanceTokens(tokens)
 			continue
 		}
 
-		parsed := g.cursorHeartbeats(logLine, bubbleCWDs[logLine.BubbleID])
+		parsed := g.cursorHeartbeats(logLine, bubbleCWDs[logLine.BubbleID], tokens)
 		if len(parsed) == 0 {
+			bubbleTokens[logLine.BubbleID] = tokens
 			continue
 		}
+
+		bubbleTokens[logLine.BubbleID] = g.advanceTokens(tokens)
 
 		heartbeats = append(heartbeats, parsed...)
 	}
@@ -126,7 +147,43 @@ func (g Cursor) Parse(ctx context.Context) (Heartbeats, error) {
 	return heartbeats, nil
 }
 
-func cursorStateDBModifiedAfter(dbPath string, after time.Time) bool {
+func (Cursor) cursorTokenCounts(line cursorLogLine, previous heartbeat.AITokens) heartbeat.AITokens {
+	if line.TokenCount != nil {
+		current := previous
+		if line.TokenCount.InputTokens != nil {
+			current.CurrentInput = previous.LastInput + int64(*line.TokenCount.InputTokens)
+		}
+
+		switch {
+		case line.TokenCount.OutputTokens != nil:
+			current.CurrentOutput = previous.LastOutput + int64(*line.TokenCount.OutputTokens)
+		case line.TokenCount.TotalTokens != nil:
+			current.CurrentOutput = previous.LastOutput + int64(*line.TokenCount.TotalTokens)
+		}
+
+		return current
+	}
+
+	if line.Usage == nil {
+		return previous
+	}
+
+	current := previous
+	if line.Usage.InputTokens != nil {
+		current.CurrentInput = int64(*line.Usage.InputTokens)
+	}
+
+	switch {
+	case line.Usage.OutputTokens != nil:
+		current.CurrentOutput = int64(*line.Usage.OutputTokens)
+	case line.Usage.TotalTokens != nil:
+		current.CurrentOutput = int64(*line.Usage.TotalTokens)
+	}
+
+	return current
+}
+
+func (Cursor) stateDBModifiedAfter(dbPath string, after time.Time) bool {
 	if after.IsZero() {
 		return true
 	}
@@ -139,7 +196,7 @@ func cursorStateDBModifiedAfter(dbPath string, after time.Time) bool {
 	return info.ModTime().After(after)
 }
 
-func stateDBPath(ctx context.Context) (string, error) {
+func (Cursor) stateDBPath(ctx context.Context) (string, error) {
 	home, err := ini.UserHomeDir(ctx)
 	if err != nil {
 		return "", fmt.Errorf("failed to find user home dir: %s", err)
@@ -161,7 +218,7 @@ func stateDBPath(ctx context.Context) (string, error) {
 	return "", nil
 }
 
-func (g Cursor) queryRows(ctx context.Context, dbPath string) ([]cursorLogRow, error) {
+func (Cursor) queryRows(ctx context.Context, dbPath string) ([]cursorLogRow, error) {
 	db, err := sql.Open("sqlite", dbPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed opening cursor sqlite db %q: %s", dbPath, err)
@@ -172,7 +229,6 @@ func (g Cursor) queryRows(ctx context.Context, dbPath string) ([]cursorLogRow, e
 SELECT key, CAST(value AS TEXT)
 FROM cursorDiskKV
 WHERE key LIKE 'bubbleId:%'
-  AND json_extract(CAST(value AS TEXT), '$.createdAt') >= ?
   AND (
     (
       json_extract(CAST(value AS TEXT), '$.toolFormerData.status') = 'completed'
@@ -184,7 +240,7 @@ WHERE key LIKE 'bubbleId:%'
     OR json_extract(CAST(value AS TEXT), '$.text') IS NOT NULL
   )
 ORDER BY json_extract(CAST(value AS TEXT), '$.createdAt') ASC;
-`, g.After.UTC().Format(time.RFC3339Nano))
+`)
 	if err != nil {
 		return nil, fmt.Errorf("failed querying cursor sqlite db %q: %s", dbPath, err)
 	}
@@ -222,25 +278,44 @@ ORDER BY json_extract(CAST(value AS TEXT), '$.createdAt') ASC;
 	return results, nil
 }
 
-func (g Cursor) cursorHeartbeats(logLine cursorLogLine, cwd string) Heartbeats {
+func (g Cursor) cursorHeartbeats(logLine cursorLogLine, cwd string, tokens heartbeat.AITokens) Heartbeats {
 	var heartbeats Heartbeats
 
-	if heartbeat := g.cursorAppHeartbeat(logLine, cwd); heartbeat != nil {
+	assignTokens := g.hasTokenDelta(tokens)
+
+	appTokens := g.tokensForFirstHeartbeat(assignTokens, tokens)
+	if heartbeat := g.cursorAppHeartbeat(
+		logLine,
+		cwd,
+		logLine.BubbleID,
+		appTokens,
+	); heartbeat != nil {
 		heartbeats = append(heartbeats, *heartbeat)
+		assignTokens = false
 	}
 
 	if logLine.Type != 2 || logLine.ToolFormerData == nil || logLine.ToolFormerData.Status != "completed" {
 		return heartbeats
 	}
 
-	if heartbeat := g.cursorFileHeartbeat(logLine); heartbeat != nil {
+	fileTokens := g.tokensForFirstHeartbeat(assignTokens, tokens)
+	if heartbeat := g.cursorFileHeartbeat(
+		logLine,
+		logLine.BubbleID,
+		fileTokens,
+	); heartbeat != nil {
 		heartbeats = append(heartbeats, *heartbeat)
 	}
 
 	return heartbeats
 }
 
-func (g Cursor) cursorAppHeartbeat(logLine cursorLogLine, cwd string) *heartbeat.Heartbeat {
+func (g Cursor) cursorAppHeartbeat(
+	logLine cursorLogLine,
+	cwd string,
+	sessionID string,
+	tokens *heartbeat.AITokens,
+) *heartbeat.Heartbeat {
 	if strings.TrimSpace(logLine.Text) == "" {
 		return nil
 	}
@@ -251,33 +326,26 @@ func (g Cursor) cursorAppHeartbeat(logLine cursorLogLine, cwd string) *heartbeat
 
 	entity := appHeartbeatEntity("Cursor", logLine.BubbleID)
 
-	h := heartbeat.New(
+	h := g.newHeartbeat(
 		nil,
-		"",
-		heartbeat.AICodingCategory.String(),
-		nil,
+		sessionID,
+		tokens,
 		entity,
 		heartbeat.AppType,
-		nil,
-		false,
 		heartbeat.PointerTo(false),
-		nil,
-		"",
-		nil,
-		nil,
-		"",
-		"",
-		false,
-		"",
 		cwd,
 		float64(logLine.CreatedAt.Unix()),
-		aiUserAgent(entity, g.UserAgents, g.FallbackUserAgent, cursorPlugin()),
+		aiUserAgent(entity, g.UserAgents, g.FallbackUserAgent, aiPlugin(g, "")),
 	)
 
 	return &h
 }
 
-func (g Cursor) cursorFileHeartbeat(logLine cursorLogLine) *heartbeat.Heartbeat {
+func (g Cursor) cursorFileHeartbeat(
+	logLine cursorLogLine,
+	sessionID string,
+	tokens *heartbeat.AITokens,
+) *heartbeat.Heartbeat {
 	switch logLine.ToolFormerData.Name {
 	case "edit_file_v2":
 		var params cursorEditParams
@@ -285,33 +353,22 @@ func (g Cursor) cursorFileHeartbeat(logLine cursorLogLine) *heartbeat.Heartbeat 
 			return nil
 		}
 
-		filePath := cursorFilePath(params.RelativeWorkspacePath, logLine.CodeBlocks)
+		filePath := g.filePath(params.RelativeWorkspacePath, logLine.CodeBlocks)
 		if filePath == "" {
 			return nil
 		}
 
-		lineChanges := cursorLineChanges(params.StreamingContent)
-		h := heartbeat.New(
+		lineChanges := g.lineChanges(params.StreamingContent)
+		h := g.newHeartbeat(
 			heartbeat.PointerTo(lineChanges),
-			"",
-			heartbeat.AICodingCategory.String(),
-			nil,
+			sessionID,
+			tokens,
 			filePath,
 			heartbeat.FileType,
-			nil,
-			false,
 			heartbeat.PointerTo(true),
-			nil,
-			"",
-			nil,
-			nil,
-			"",
-			"",
-			false,
-			"",
 			"",
 			float64(logLine.CreatedAt.Unix()),
-			aiUserAgent(filePath, g.UserAgents, g.FallbackUserAgent, cursorPlugin()),
+			aiUserAgent(filePath, g.UserAgents, g.FallbackUserAgent, aiPlugin(g, "")),
 		)
 
 		return &h
@@ -324,7 +381,7 @@ func (g Cursor) cursorFileHeartbeat(logLine cursorLogLine) *heartbeat.Heartbeat 
 		_ = json.Unmarshal([]byte(logLine.ToolFormerData.Params), &params)
 		_ = json.Unmarshal([]byte(logLine.ToolFormerData.RawArgs), &rawArgs)
 
-		filePath := cursorFilePath(params.RelativeWorkspacePath, logLine.CodeBlocks)
+		filePath := g.filePath(params.RelativeWorkspacePath, logLine.CodeBlocks)
 		if filePath == "" {
 			filePath = rawArgs.TargetFile
 		}
@@ -338,28 +395,17 @@ func (g Cursor) cursorFileHeartbeat(logLine cursorLogLine) *heartbeat.Heartbeat 
 			content = logLine.CodeBlocks[0].Content
 		}
 
-		lineChanges := cursorLineChanges(content)
-		h := heartbeat.New(
+		lineChanges := g.lineChanges(content)
+		h := g.newHeartbeat(
 			heartbeat.PointerTo(lineChanges),
-			"",
-			heartbeat.AICodingCategory.String(),
-			nil,
+			sessionID,
+			tokens,
 			filePath,
 			heartbeat.FileType,
-			nil,
-			false,
 			heartbeat.PointerTo(true),
-			nil,
-			"",
-			nil,
-			nil,
-			"",
-			"",
-			false,
-			"",
 			"",
 			float64(logLine.CreatedAt.Unix()),
-			aiUserAgent(filePath, g.UserAgents, g.FallbackUserAgent, cursorPlugin()),
+			aiUserAgent(filePath, g.UserAgents, g.FallbackUserAgent, aiPlugin(g, "")),
 		)
 
 		return &h
@@ -390,34 +436,23 @@ func (g Cursor) cursorFileHeartbeat(logLine cursorLogLine) *heartbeat.Heartbeat 
 		}
 
 		if filePath == "" {
-			filePath = cursorFilePath("", logLine.CodeBlocks)
+			filePath = g.filePath("", logLine.CodeBlocks)
 		}
 
 		if filePath == "" {
 			return nil
 		}
 
-		h := heartbeat.New(
+		h := g.newHeartbeat(
 			heartbeat.PointerTo(0),
-			"",
-			heartbeat.AICodingCategory.String(),
-			nil,
+			sessionID,
+			tokens,
 			filePath,
 			heartbeat.FileType,
-			nil,
-			false,
 			heartbeat.PointerTo(false),
-			nil,
-			"",
-			nil,
-			nil,
-			"",
-			"",
-			false,
-			"",
 			"",
 			float64(logLine.CreatedAt.Unix()),
-			aiUserAgent(filePath, g.UserAgents, g.FallbackUserAgent, cursorPlugin()),
+			aiUserAgent(filePath, g.UserAgents, g.FallbackUserAgent, aiPlugin(g, "")),
 		)
 
 		return &h
@@ -426,7 +461,108 @@ func (g Cursor) cursorFileHeartbeat(logLine cursorLogLine) *heartbeat.Heartbeat 
 	}
 }
 
-func cursorFilePath(path string, codeBlocks []cursorCodeBlock) string {
+func (Cursor) tokenDelta(tokens heartbeat.AITokens) (int64, int64) {
+	input := tokens.CurrentInput - tokens.LastInput
+	if input < 0 {
+		input = 0
+	}
+
+	output := tokens.CurrentOutput - tokens.LastOutput
+	if output < 0 {
+		output = 0
+	}
+
+	return input, output
+}
+
+func (g Cursor) hasTokenDelta(tokens heartbeat.AITokens) bool {
+	input, output := g.tokenDelta(tokens)
+	return input > 0 || output > 0
+}
+
+func (Cursor) advanceTokens(tokens heartbeat.AITokens) heartbeat.AITokens {
+	tokens.LastInput = tokens.CurrentInput
+	tokens.LastOutput = tokens.CurrentOutput
+
+	return tokens
+}
+
+func (Cursor) tokensForFirstHeartbeat(assign bool, tokens heartbeat.AITokens) *heartbeat.AITokens {
+	if !assign {
+		return nil
+	}
+
+	copy := tokens
+
+	return &copy
+}
+
+func (Cursor) newHeartbeat(
+	aiLineChanges *int,
+	aiSession string,
+	aiTokens *heartbeat.AITokens,
+	entity string,
+	entityType heartbeat.EntityType,
+	isWrite *bool,
+	projectPathOverride string,
+	timestamp float64,
+	userAgent string,
+) heartbeat.Heartbeat {
+	if aiTokens != nil {
+		return heartbeat.NewWithAITokens(
+			aiLineChanges,
+			aiSession,
+			*aiTokens,
+			"",
+			heartbeat.AICodingCategory.String(),
+			nil,
+			entity,
+			entityType,
+			nil,
+			false,
+			isWrite,
+			nil,
+			"",
+			nil,
+			nil,
+			"",
+			"",
+			false,
+			"",
+			projectPathOverride,
+			timestamp,
+			userAgent,
+		)
+	}
+
+	h := heartbeat.New(
+		aiLineChanges,
+		"",
+		heartbeat.AICodingCategory.String(),
+		nil,
+		entity,
+		entityType,
+		nil,
+		false,
+		isWrite,
+		nil,
+		"",
+		nil,
+		nil,
+		"",
+		"",
+		false,
+		"",
+		projectPathOverride,
+		timestamp,
+		userAgent,
+	)
+	h.AISession = aiSession
+
+	return h
+}
+
+func (Cursor) filePath(path string, codeBlocks []cursorCodeBlock) string {
 	if path != "" {
 		return path
 	}
@@ -438,7 +574,7 @@ func cursorFilePath(path string, codeBlocks []cursorCodeBlock) string {
 	return codeBlocks[0].URI.FSPath
 }
 
-func cursorProjectPath(logLine cursorLogLine) string {
+func (g Cursor) projectPath(logLine cursorLogLine) string {
 	if logLine.ToolFormerData == nil {
 		return ""
 	}
@@ -449,7 +585,7 @@ func cursorProjectPath(logLine cursorLogLine) string {
 	case "edit_file_v2":
 		var params cursorEditParams
 		if err := json.Unmarshal([]byte(logLine.ToolFormerData.Params), &params); err == nil {
-			filePath = cursorFilePath(params.RelativeWorkspacePath, logLine.CodeBlocks)
+			filePath = g.filePath(params.RelativeWorkspacePath, logLine.CodeBlocks)
 		}
 	case "edit_file":
 		var (
@@ -460,7 +596,7 @@ func cursorProjectPath(logLine cursorLogLine) string {
 		_ = json.Unmarshal([]byte(logLine.ToolFormerData.Params), &params)
 		_ = json.Unmarshal([]byte(logLine.ToolFormerData.RawArgs), &rawArgs)
 
-		filePath = cursorFilePath(params.RelativeWorkspacePath, logLine.CodeBlocks)
+		filePath = g.filePath(params.RelativeWorkspacePath, logLine.CodeBlocks)
 		if filePath == "" {
 			filePath = rawArgs.TargetFile
 		}
@@ -491,7 +627,7 @@ func cursorProjectPath(logLine cursorLogLine) string {
 		}
 
 		if filePath == "" {
-			filePath = cursorFilePath("", logLine.CodeBlocks)
+			filePath = g.filePath("", logLine.CodeBlocks)
 		}
 	}
 
@@ -502,13 +638,13 @@ func cursorProjectPath(logLine cursorLogLine) string {
 	return filepath.Dir(filePath)
 }
 
-func cursorLineChanges(content string) int {
+func (g Cursor) lineChanges(content string) int {
 	if strings.TrimSpace(content) == "" {
 		return 0
 	}
 
-	if cursorLooksLikeUnifiedDiff(content) {
-		return cursorLineChangesFromDiff(content)
+	if g.looksLikeUnifiedDiff(content) {
+		return g.lineChangesFromDiff(content)
 	}
 
 	lineChanges := 0
@@ -522,7 +658,7 @@ func cursorLineChanges(content string) int {
 	return lineChanges
 }
 
-func cursorLooksLikeUnifiedDiff(content string) bool {
+func (Cursor) looksLikeUnifiedDiff(content string) bool {
 	trimmed := strings.TrimLeft(content, " \t\r\n")
 	if strings.HasPrefix(trimmed, "--- ") || strings.HasPrefix(trimmed, "+++ ") || strings.HasPrefix(trimmed, "@@") {
 		return true
@@ -533,7 +669,7 @@ func cursorLooksLikeUnifiedDiff(content string) bool {
 		strings.Contains(content, "\n@@")
 }
 
-func cursorLineChangesFromDiff(diff string) int {
+func (Cursor) lineChangesFromDiff(diff string) int {
 	lineChanges := 0
 
 	for _, line := range strings.Split(diff, "\n") {
@@ -551,11 +687,7 @@ func cursorLineChangesFromDiff(diff string) int {
 	return lineChanges
 }
 
-func cursorPlugin() string {
+// Name returns its name.
+func (Cursor) Name() string {
 	return "Cursor"
-}
-
-// ID returns its id.
-func (Cursor) ID() ParserID {
-	return CursorParser
 }

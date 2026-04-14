@@ -46,7 +46,8 @@ func TestRunAISyncActivity_SendsAIHeartbeatsWithoutEntity(t *testing.T) {
 	transcript := strings.Join([]string{
 		"{\"timestamp\":\"2026-03-18T12:00:00Z\",\"version\":\"2.1.45\"," +
 			"\"toolUseResult\":{\"filePath\":\"" + entity + "\"," +
-			"\"structuredPatch\":[{\"oldLines\":3,\"newLines\":5},{\"oldLines\":4,\"newLines\":1}]}}",
+			"\"structuredPatch\":[{\"oldLines\":3,\"newLines\":5}," +
+			"{\"oldLines\":4,\"newLines\":1}]},\"usage\":{\"total_tokens\":7}}",
 	}, "\n") + "\n"
 	require.NoError(t, os.WriteFile(transcriptPath, []byte(transcript), 0o644))
 
@@ -66,17 +67,21 @@ func TestRunAISyncActivity_SendsAIHeartbeatsWithoutEntity(t *testing.T) {
 		require.NoError(t, err)
 
 		var entities []struct {
-			Entity       string  `json:"entity"`
-			Category     string  `json:"category"`
-			Language     *string `json:"language"`
-			Project      *string `json:"project"`
-			UserAgent    string  `json:"user_agent"`
-			AILineChange *int    `json:"ai_line_changes"`
+			Entity         string  `json:"entity"`
+			AISession      string  `json:"ai_session"`
+			AIInputTokens  int64   `json:"ai_input_tokens"`
+			AIOutputTokens int64   `json:"ai_output_tokens"`
+			Category       string  `json:"category"`
+			Language       *string `json:"language"`
+			Project        *string `json:"project"`
+			UserAgent      string  `json:"user_agent"`
+			AILineChange   *int    `json:"ai_line_changes"`
 		}
 
 		require.NoError(t, json.Unmarshal(body, &entities))
 		require.Len(t, entities, 1)
 		assert.Equal(t, entity, entities[0].Entity)
+		assert.Equal(t, "session", entities[0].AISession)
 		assert.Equal(t, "ai coding", entities[0].Category)
 		require.NotNil(t, entities[0].Language)
 		assert.Equal(t, "Go", *entities[0].Language)
@@ -84,7 +89,9 @@ func TestRunAISyncActivity_SendsAIHeartbeatsWithoutEntity(t *testing.T) {
 		assert.Equal(t, "myproject", *entities[0].Project)
 		require.NotNil(t, entities[0].AILineChange)
 		assert.Equal(t, -1, *entities[0].AILineChange)
-		assert.Contains(t, entities[0].UserAgent, "ClaudeCode/2.1.45")
+		assert.Zero(t, entities[0].AIInputTokens)
+		assert.Equal(t, int64(7), entities[0].AIOutputTokens)
+		assert.Contains(t, entities[0].UserAgent, "Claude/2.1.45")
 		assert.Contains(t, entities[0].UserAgent, "plugin/0.0.1")
 
 		w.WriteHeader(http.StatusCreated)
@@ -146,7 +153,8 @@ func TestRunAISyncActivity_UsesAlternateProject(t *testing.T) {
 	transcript := strings.Join([]string{
 		"{\"timestamp\":\"2026-03-18T12:00:00Z\",\"version\":\"2.1.45\"," +
 			"\"toolUseResult\":{\"filePath\":\"" + entity + "\"," +
-			"\"structuredPatch\":[{\"oldLines\":3,\"newLines\":5},{\"oldLines\":4,\"newLines\":1}]}}",
+			"\"structuredPatch\":[{\"oldLines\":3,\"newLines\":5}," +
+			"{\"oldLines\":4,\"newLines\":1}]},\"usage\":{\"total_tokens\":7}}",
 	}, "\n") + "\n"
 	require.NoError(t, os.WriteFile(transcriptPath, []byte(transcript), 0o644))
 
@@ -271,4 +279,9 @@ func TestRunAISyncActivity_RateLimitedWithoutEntity_SavesOffline(t *testing.T) {
 	offlineCount, err := offline.CountHeartbeats(t.Context(), offlineQueueFile.Name())
 	require.NoError(t, err)
 	assert.Equal(t, 1, offlineCount)
+
+	queued, err := offline.ReadHeartbeats(t.Context(), offlineQueueFile.Name(), 1)
+	require.NoError(t, err)
+	require.Len(t, queued, 1)
+	assert.Equal(t, "session", queued[0].AISession)
 }

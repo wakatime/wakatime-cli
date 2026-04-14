@@ -23,19 +23,36 @@ type (
 	codexSessionMeta struct {
 		Type    string `json:"type"`
 		Payload *struct {
+			ID      *string `json:"id"`
 			Cwd     *string `json:"cwd"`
 			Version *string `json:"cli_version"`
 		} `json:"payload"`
 	}
 
 	codexPayload struct {
-		Type    string             `json:"type"`
-		Name    *string            `json:"name"`
-		Input   *string            `json:"input"`
-		Role    *string            `json:"role"`
-		Status  *string            `json:"status"`
-		Content []codexContentItem `json:"content"`
-		Cwd     *string            `json:"cwd"`
+		Type    *string                     `json:"type"`
+		Name    *string                     `json:"name"`
+		Input   *string                     `json:"input"`
+		Role    *string                     `json:"role"`
+		Status  *string                     `json:"status"`
+		Content []codexContentItem          `json:"content"`
+		Cwd     *string                     `json:"cwd"`
+		Info    *codexPayloadTokenCountInfo `json:"info"`
+	}
+
+	codexPayloadTokenCountInfo struct {
+		TotalTokenUsage    *codexPayloadTokenCountInfoUsage `json:"total_token_usage"`
+		LastTokenUsage     *codexPayloadTokenCountInfoUsage `json:"last_token_usage"`
+		ModelContextWindow *int                             `json:"model_context_window"`
+		TotalTokens        *int                             `json:"total_tokens"`
+	}
+
+	codexPayloadTokenCountInfoUsage struct {
+		InputTokens           *int `json:"input_tokens"`
+		CachedInputTokens     *int `json:"cached_input_tokens"`
+		OutputTokens          *int `json:"output_tokens"`
+		ReasoningOutputTokens *int `json:"reasoning_output_tokens"`
+		TotalTokens           *int `json:"total_tokens"`
 	}
 
 	codexContentItem struct {
@@ -63,7 +80,7 @@ func (g Codex) Parse(ctx context.Context) (Heartbeats, error) {
 		return Heartbeats{}, nil
 	}
 
-	logger.Debugf("Found %d transcript logs modified after %s for %s", len(transcripts), g.After, g.ID())
+	logger.Debugf("Found %d transcript logs modified after %s for %s", len(transcripts), g.After, g.Name())
 
 	var heartbeats Heartbeats
 
@@ -140,6 +157,7 @@ func (g Codex) parseTranscript(ctx context.Context, transcript string) (Heartbea
 
 	cwd := ""
 	sessionEntity := appHeartbeatEntity("Codex", transcript)
+	sessionID := g.sessionIDFromPath(transcript)
 	version := ""
 
 	if len(firstLine) > 0 {
@@ -147,7 +165,7 @@ func (g Codex) parseTranscript(ctx context.Context, transcript string) (Heartbea
 		if err := json.Unmarshal(firstLine, &sessionMeta); err != nil {
 			logger.Debugf("failed parsing codex session metadata from %q: %s", transcript, err)
 		} else {
-			cwd, version = codexSessionInfo(cwd, version, sessionMeta)
+			cwd, version, sessionID = g.sessionInfo(cwd, version, sessionID, sessionMeta)
 		}
 	}
 
@@ -181,7 +199,10 @@ func (g Codex) parseTranscript(ctx context.Context, transcript string) (Heartbea
 		}
 	}
 
-	var heartbeats Heartbeats
+	var (
+		heartbeats Heartbeats
+		tokens     heartbeat.AITokens
+	)
 
 	for scanner.Scan() {
 		if ctx.Err() != nil {
@@ -201,28 +222,35 @@ func (g Codex) parseTranscript(ctx context.Context, transcript string) (Heartbea
 			continue
 		}
 
+		tokens = g.codexTokenCounts(logLine, tokens)
+
 		if logLine.Timestamp.IsZero() || logLine.Timestamp.Before(g.After) {
 			continue
 		}
 
-		if logLine.Payload == nil {
+		var aiHeartbeats Heartbeats
+		if logLine.Payload != nil {
+			aiHeartbeats = g.getHeartbeats(
+				logLine.Timestamp,
+				sessionEntity,
+				sessionID,
+				version,
+				cwd,
+				g.UserAgents,
+				g.FallbackUserAgent,
+				*logLine.Payload,
+				tokens,
+			)
+		}
+
+		if len(aiHeartbeats) == 0 {
 			continue
 		}
 
-		entities := getCodexEntities(
-			logLine.Timestamp,
-			sessionEntity,
-			version,
-			cwd,
-			g.UserAgents,
-			g.FallbackUserAgent,
-			*logLine.Payload,
-		)
-		if len(entities) == 0 {
-			continue
-		}
+		tokens.LastInput = tokens.CurrentInput
+		tokens.LastOutput = tokens.CurrentOutput
 
-		heartbeats = append(heartbeats, entities...)
+		heartbeats = append(heartbeats, aiHeartbeats...)
 	}
 
 	if err := scanner.Err(); err != nil {
@@ -232,9 +260,18 @@ func (g Codex) parseTranscript(ctx context.Context, transcript string) (Heartbea
 	return heartbeats, nil
 }
 
-func codexSessionInfo(cwd string, version string, sessionMeta *codexSessionMeta) (string, string) {
+func (Codex) sessionInfo(
+	cwd string,
+	version string,
+	sessionID string,
+	sessionMeta *codexSessionMeta,
+) (string, string, string) {
 	if sessionMeta == nil || sessionMeta.Type != "session_meta" || sessionMeta.Payload == nil {
-		return cwd, version
+		return cwd, version, sessionID
+	}
+
+	if sessionMeta.Payload.ID != nil && *sessionMeta.Payload.ID != "" {
+		sessionID = *sessionMeta.Payload.ID
 	}
 
 	if sessionMeta.Payload.Cwd != nil && *sessionMeta.Payload.Cwd != "" {
@@ -245,27 +282,31 @@ func codexSessionInfo(cwd string, version string, sessionMeta *codexSessionMeta)
 		version = *sessionMeta.Payload.Version
 	}
 
-	return cwd, version
+	return cwd, version, sessionID
 }
 
-func getCodexEntities(
+func (g Codex) getHeartbeats(
 	timestamp time.Time,
 	sessionEntity string,
+	sessionID string,
 	version string,
 	cwd string,
 	userAgents map[string]string,
 	fallbackUserAgent string,
 	payload codexPayload,
+	tokens heartbeat.AITokens,
 ) Heartbeats {
-	if payload.Type == "message" && payload.Role != nil {
-		if heartbeat := codexMessageHeartbeat(
+	if payload.Type != nil && *payload.Type == "message" && payload.Role != nil {
+		if heartbeat := g.messageHeartbeat(
 			timestamp,
 			sessionEntity,
+			sessionID,
 			version,
 			cwd,
 			userAgents,
 			fallbackUserAgent,
 			payload,
+			tokens,
 		); heartbeat != nil {
 			return Heartbeats{*heartbeat}
 		}
@@ -275,16 +316,18 @@ func getCodexEntities(
 		return nil
 	}
 
-	return codexPatchHeartbeats(timestamp, version, cwd, userAgents, fallbackUserAgent, *payload.Input)
+	return g.patchHeartbeats(timestamp, version, cwd, userAgents, fallbackUserAgent, *payload.Input, sessionID, tokens)
 }
 
-func codexPatchHeartbeats(
+func (g Codex) patchHeartbeats(
 	timestamp time.Time,
 	version string,
 	cwd string,
 	userAgents map[string]string,
 	fallbackUserAgent string,
 	input string,
+	sessionID string,
+	tokens heartbeat.AITokens,
 ) Heartbeats {
 	var heartbeats Heartbeats
 
@@ -303,14 +346,16 @@ func codexPatchHeartbeats(
 
 		if strings.HasPrefix(line, "*** ") {
 			if currentFile != "" {
-				heartbeats = append(heartbeats, codexHeartbeat(
+				heartbeats = append(heartbeats, g.heartbeat(
 					currentFile,
+					sessionID,
 					timestamp,
 					version,
 					userAgents,
 					fallbackUserAgent,
 					additions,
 					deletions,
+					tokens,
 				))
 			}
 
@@ -327,28 +372,32 @@ func codexPatchHeartbeats(
 	}
 
 	if currentFile != "" {
-		heartbeats = append(heartbeats, codexHeartbeat(
+		heartbeats = append(heartbeats, g.heartbeat(
 			currentFile,
+			sessionID,
 			timestamp,
 			version,
 			userAgents,
 			fallbackUserAgent,
 			additions,
 			deletions,
+			tokens,
 		))
 	}
 
 	return heartbeats
 }
 
-func codexMessageHeartbeat(
+func (g Codex) messageHeartbeat(
 	timestamp time.Time,
 	sessionEntity string,
+	sessionID string,
 	version string,
 	cwd string,
 	userAgents map[string]string,
 	fallbackUserAgent string,
 	payload codexPayload,
+	tokens heartbeat.AITokens,
 ) *heartbeat.Heartbeat {
 	var (
 		entity       = sessionEntity
@@ -377,8 +426,10 @@ func codexMessageHeartbeat(
 		return nil
 	}
 
-	h := heartbeat.New(
+	h := heartbeat.NewWithAITokens(
 		nil,
+		sessionID,
+		tokens,
 		"",
 		heartbeat.AICodingCategory.String(),
 		nil,
@@ -397,7 +448,7 @@ func codexMessageHeartbeat(
 		"",
 		cwd,
 		float64(timestamp.Unix()),
-		aiUserAgent(entity, userAgents, fallbackUserAgent, codexPlugin(version)),
+		aiUserAgent(entity, userAgents, fallbackUserAgent, aiPlugin(g, version)),
 	)
 
 	return &h
@@ -422,17 +473,21 @@ func codexFilePath(cwd string, line string) string {
 	return ""
 }
 
-func codexHeartbeat(
+func (g Codex) heartbeat(
 	currentFile string,
+	sessionID string,
 	timestamp time.Time,
 	version string,
 	userAgents map[string]string,
 	fallbackUserAgent string,
 	additions int,
 	deletions int,
+	tokens heartbeat.AITokens,
 ) heartbeat.Heartbeat {
-	return heartbeat.New(
+	return heartbeat.NewWithAITokens(
 		heartbeat.PointerTo(additions-deletions),
+		sessionID,
+		tokens,
 		"",
 		heartbeat.AICodingCategory.String(),
 		nil,
@@ -451,19 +506,66 @@ func codexHeartbeat(
 		"",
 		"",
 		float64(timestamp.Unix()),
-		aiUserAgent(currentFile, userAgents, fallbackUserAgent, codexPlugin(version)),
+		aiUserAgent(currentFile, userAgents, fallbackUserAgent, aiPlugin(g, version)),
 	)
 }
 
-func codexPlugin(version string) string {
-	if version == "" {
-		return "Codex"
+func (Codex) codexTokenCounts(line codexLogLine, previous heartbeat.AITokens) heartbeat.AITokens {
+	if line.Payload == nil {
+		return previous
 	}
 
-	return "Codex/" + version
+	payload := *line.Payload
+	if payload.Type == nil || *payload.Type != "token_count" || payload.Info == nil {
+		return previous
+	}
+
+	info := *payload.Info
+
+	lastInput := previous.LastInput
+	lastOutput := previous.LastOutput
+
+	var (
+		currentInput  int64
+		currentOutput int64
+	)
+
+	if lastInput == 0 && lastOutput == 0 &&
+		info.LastTokenUsage != nil &&
+		info.LastTokenUsage.InputTokens != nil &&
+		info.LastTokenUsage.OutputTokens != nil {
+		lastInput = int64(*info.LastTokenUsage.InputTokens)
+		lastOutput = int64(*info.LastTokenUsage.OutputTokens)
+	}
+
+	if info.TotalTokenUsage != nil && info.TotalTokenUsage.InputTokens != nil && info.TotalTokenUsage.OutputTokens != nil {
+		currentInput = int64(*info.TotalTokenUsage.InputTokens)
+		currentOutput = int64(*info.TotalTokenUsage.OutputTokens)
+	} else if info.TotalTokens != nil {
+		currentOutput = int64(*info.TotalTokens)
+	}
+
+	return heartbeat.AITokens{
+		LastInput:     lastInput,
+		LastOutput:    lastOutput,
+		CurrentInput:  currentInput,
+		CurrentOutput: currentOutput,
+	}
 }
 
-// ID returns its id.
-func (Codex) ID() ParserID {
-	return CodexParser
+func (Codex) sessionIDFromPath(path string) string {
+	base := strings.TrimPrefix(filepath.Base(path), "rollout-")
+	base = strings.TrimSuffix(base, filepath.Ext(base))
+
+	parts := strings.SplitN(base, "-", 6)
+	if len(parts) == 6 {
+		return parts[5]
+	}
+
+	return base
+}
+
+// Name returns its id.
+func (Codex) Name() string {
+	return "Codex"
 }

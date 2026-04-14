@@ -41,6 +41,7 @@ func TestCodexParse(t *testing.T) {
 	require.Len(t, got, 3)
 
 	assert.Equal(t, "Codex rollout-2026-03-28T07-33-13-019d3438-39ae-7fb2-8526-d6c02ba3577c", got[0].Entity)
+	assert.Equal(t, "019d3438-39ae-7fb2-8526-d6c02ba3577c", got[0].AISession)
 	assert.Equal(t, heartbeat.AppType, got[0].EntityType)
 	assert.Equal(t, heartbeat.AICodingCategory.String(), got[0].Category)
 	assert.Nil(t, got[0].AILineChanges)
@@ -58,20 +59,24 @@ func TestCodexParse(t *testing.T) {
 
 	assert.Equal(t, "Codex rollout-2026-03-28T07-33-13-019d3438-39ae-7fb2-8526-d6c02ba3577c", got[1].Entity)
 	assert.Equal(t, heartbeat.AppType, got[1].EntityType)
+	assert.Equal(t, "019d3438-39ae-7fb2-8526-d6c02ba3577c", got[1].AISession)
 	assert.Nil(t, got[1].AILineChanges)
 	assert.Equal(t, "/root/wakatime-cli", got[1].ProjectPathOverride)
 	require.NotNil(t, got[1].IsWrite)
 	assert.False(t, *got[1].IsWrite)
-	assert.Equal(t, float64(time.Date(2026, 3, 28, 11, 33, 18, 535, time.UTC).Unix()), got[1].Time)
-	assert.Contains(t, got[1].UserAgent, "Codex/0.116.0-alpha.1")
+	assert.Zero(t, got[1].AIInputTokens)
+	assert.Equal(t, int64(12), got[1].AIOutputTokens)
+	assert.Equal(t, float64(time.Date(2026, 3, 28, 11, 33, 18, 535000000, time.UTC).Unix()), got[1].Time)
+	assert.Contains(t, got[1].UserAgent, "Codex/0.116.0-alpha.10")
 	assert.True(
 		t,
-		strings.Index(got[1].UserAgent, "Codex/0.116.0-alpha.1") <
+		strings.Index(got[1].UserAgent, "Codex/0.116.0-alpha.10") <
 			strings.Index(got[1].UserAgent, "plugin/0.0.1"),
 	)
 	assert.Contains(t, got[1].UserAgent, "plugin/0.0.1")
 
 	assert.Equal(t, "/home/user/projects/wakatime-cli/pkg/ai/claude.go", got[2].Entity)
+	assert.Equal(t, "019d3438-39ae-7fb2-8526-d6c02ba3577c", got[2].AISession)
 	assert.Equal(t, heartbeat.FileType, got[2].EntityType)
 	assert.Equal(t, heartbeat.AICodingCategory.String(), got[2].Category)
 	require.NotNil(t, got[2].AILineChanges)
@@ -79,10 +84,10 @@ func TestCodexParse(t *testing.T) {
 	require.NotNil(t, got[2].IsWrite)
 	assert.True(t, *got[2].IsWrite)
 	assert.Equal(t, float64(time.Date(2026, 3, 28, 11, 33, 34, 952, time.UTC).Unix()), got[2].Time)
-	assert.Contains(t, got[2].UserAgent, "Codex/0.116.0-alpha.1")
+	assert.Contains(t, got[2].UserAgent, "Codex/0.116.0-alpha.10")
 	assert.True(
 		t,
-		strings.Index(got[2].UserAgent, "Codex/0.116.0-alpha.1") <
+		strings.Index(got[2].UserAgent, "Codex/0.116.0-alpha.10") <
 			strings.Index(got[2].UserAgent, "editor/1.2.3"),
 	)
 	assert.Contains(t, got[2].UserAgent, "editor/1.2.3")

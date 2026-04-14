@@ -1517,6 +1517,44 @@ func TestQueue_PushMany(t *testing.T) {
 	assert.JSONEq(t, string(dataJs), stored[2].Heartbeat)
 }
 
+func TestQueue_PushMany_PreservesAITokensAndSession(t *testing.T) {
+	db, cleanup := initDB(t)
+	defer cleanup()
+
+	tx, err := db.Begin(true)
+	require.NoError(t, err)
+
+	q := offline.NewQueue(tx)
+	q.Bucket = "test_bucket"
+
+	expected := heartbeat.Heartbeat{
+		AISession:      "session-123",
+		AIOutputTokens: 17,
+		Category:       heartbeat.AICodingCategory.String(),
+		Entity:         "Claude session",
+		EntityType:     heartbeat.AppType,
+		IsWrite:        heartbeat.PointerTo(false),
+		Time:           1770000000,
+		UserAgent:      "Claude/2.1.45 plugin/0.0.1",
+	}
+
+	require.NoError(t, q.PushMany([]heartbeat.Heartbeat{expected}))
+	require.NoError(t, tx.Commit())
+
+	tx, err = db.Begin(true)
+	require.NoError(t, err)
+
+	defer tx.Rollback()
+
+	q = offline.NewQueue(tx)
+	q.Bucket = "test_bucket"
+
+	got, err := q.ReadMany(1)
+	require.NoError(t, err)
+	require.Len(t, got, 1)
+	assert.Equal(t, expected, got[0])
+}
+
 func TestQueue_ReadMany(t *testing.T) {
 	// setup
 	f, err := os.CreateTemp(t.TempDir(), "")

@@ -17,20 +17,13 @@ import (
 )
 
 func TestParserIDStringAndPlugins(t *testing.T) {
-	assert.Equal(t, "", UnknownParser.String())
-	assert.Equal(t, claudeParserString, ClaudeParser.String())
-	assert.Equal(t, codexParserString, CodexParser.String())
-	assert.Equal(t, copilotParserString, CopilotParser.String())
-	assert.Equal(t, cursorParserString, CursorParser.String())
-	assert.Equal(t, "", ParserID(99).String())
-
-	assert.Equal(t, "ClaudeCode", claudePlugin(""))
-	assert.Equal(t, "ClaudeCode/1.2.3", claudePlugin("1.2.3"))
-	assert.Equal(t, "Codex", codexPlugin(""))
-	assert.Equal(t, "Codex/1.2.3", codexPlugin("1.2.3"))
-	assert.Equal(t, "GitHubCopilot", copilotPlugin(nil))
-	assert.Equal(t, "GitHubCopilot/0.42.3", copilotPlugin(&copilotAgent{ExtensionVersion: "0.42.3"}))
-	assert.Equal(t, "Cursor", cursorPlugin())
+	assert.Equal(t, "Claude", aiPlugin(Claude{}, ""))
+	assert.Equal(t, "Claude/1.2.3", aiPlugin(Claude{}, "1.2.3"))
+	assert.Equal(t, "Codex", aiPlugin(Codex{}, ""))
+	assert.Equal(t, "Codex/1.2.3", aiPlugin(Codex{}, "1.2.3"))
+	assert.Equal(t, "Copilot", aiPlugin(Copilot{}, Copilot{}.version(nil)))
+	assert.Equal(t, "Copilot/0.42.3", aiPlugin(Copilot{}, Copilot{}.version(&copilotAgent{ExtensionVersion: "0.42.3"})))
+	assert.Equal(t, "Cursor", aiPlugin(Cursor{}, ""))
 }
 
 func TestEntityUserAgentsAndAIUserAgent(t *testing.T) {
@@ -45,30 +38,30 @@ func TestEntityUserAgentsAndAIUserAgent(t *testing.T) {
 	assert.Equal(t, map[string]string{"/tmp/main.go": "editor/1.0.0"}, userAgents)
 	assert.Equal(
 		t,
-		cursorPlugin()+" "+"editor/1.0.0",
-		aiUserAgent("/tmp/main.go", userAgents, "plugin/0.1.0", cursorPlugin()),
+		aiPlugin(Cursor{}, "")+" "+"editor/1.0.0",
+		aiUserAgent("/tmp/main.go", userAgents, "plugin/0.1.0", aiPlugin(Cursor{}, "")),
 	)
 	assert.Equal(
 		t,
-		cursorPlugin()+" "+"plugin/0.1.0",
-		aiUserAgent("/tmp/other.go", userAgents, "plugin/0.1.0", cursorPlugin()),
+		aiPlugin(Cursor{}, "")+" "+"plugin/0.1.0",
+		aiUserAgent("/tmp/other.go", userAgents, "plugin/0.1.0", aiPlugin(Cursor{}, "")),
 	)
 	assert.Equal(
 		t,
-		cursorPlugin()+" "+heartbeat.UserAgent(ctx, "editor/1.0.0"),
+		aiPlugin(Cursor{}, "")+" "+heartbeat.UserAgent(ctx, "editor/1.0.0"),
 		aiUserAgent(
 			"/tmp/rendered.go",
 			map[string]string{
 				"/tmp/rendered.go": heartbeat.UserAgent(ctx, "editor/1.0.0"),
 			},
 			"plugin/0.1.0",
-			cursorPlugin(),
+			aiPlugin(Cursor{}, ""),
 		),
 	)
 	assert.Equal(
 		t,
-		cursorPlugin(),
-		aiUserAgent("/tmp/other.go", userAgents, "", cursorPlugin()),
+		aiPlugin(Cursor{}, ""),
+		aiUserAgent("/tmp/other.go", userAgents, "", aiPlugin(Cursor{}, "")),
 	)
 }
 
@@ -144,6 +137,13 @@ func TestAppHeartbeatEntity(t *testing.T) {
 	assert.Equal(t, "Cursor", appHeartbeatEntity("Cursor", ""))
 }
 
+func TestCodexSessionIDFromPath(t *testing.T) {
+	assert.Equal(t, "019d4ec3-83f2-77b2-805a-3a1461effcc7",
+		Codex{}.sessionIDFromPath("/tmp/rollout-2026-04-02T11-15-29-019d4ec3-83f2-77b2-805a-3a1461effcc7.jsonl"))
+	assert.Equal(t, "session",
+		Codex{}.sessionIDFromPath("/tmp/session.jsonl"))
+}
+
 func TestGetLastParsedAt(t *testing.T) {
 	ctx := context.Background()
 
@@ -184,20 +184,20 @@ func TestGetLastParsedAt(t *testing.T) {
 
 func TestCursorHelpers(t *testing.T) {
 	t.Run("file path prefers explicit path then code block", func(t *testing.T) {
-		assert.Equal(t, "/tmp/main.go", cursorFilePath("/tmp/main.go", nil))
-		assert.Equal(t, "/tmp/from-block.go", cursorFilePath("", []cursorCodeBlock{{
+		assert.Equal(t, "/tmp/main.go", Cursor{}.filePath("/tmp/main.go", nil))
+		assert.Equal(t, "/tmp/from-block.go", Cursor{}.filePath("", []cursorCodeBlock{{
 			URI: &cursorURI{FSPath: "/tmp/from-block.go"},
 		}}))
-		assert.Equal(t, "", cursorFilePath("", nil))
+		assert.Equal(t, "", Cursor{}.filePath("", nil))
 	})
 
 	t.Run("line changes detect text and unified diff", func(t *testing.T) {
-		assert.Equal(t, 0, cursorLineChanges(" \n\t "))
-		assert.Equal(t, 2, cursorLineChanges("first\n\nsecond"))
-		assert.True(t, cursorLooksLikeUnifiedDiff("--- a/main.go\n+++ b/main.go"))
-		assert.True(t, cursorLooksLikeUnifiedDiff("prefix\n@@ -1 +1 @@"))
-		assert.False(t, cursorLooksLikeUnifiedDiff("plain text"))
-		assert.Equal(t, 1, cursorLineChangesFromDiff("--- a\n+++ b\n-old\n+new\n+extra"))
+		assert.Equal(t, 0, Cursor{}.lineChanges(" \n\t "))
+		assert.Equal(t, 2, Cursor{}.lineChanges("first\n\nsecond"))
+		assert.True(t, Cursor{}.looksLikeUnifiedDiff("--- a/main.go\n+++ b/main.go"))
+		assert.True(t, Cursor{}.looksLikeUnifiedDiff("prefix\n@@ -1 +1 @@"))
+		assert.False(t, Cursor{}.looksLikeUnifiedDiff("plain text"))
+		assert.Equal(t, 1, Cursor{}.lineChangesFromDiff("--- a\n+++ b\n-old\n+new\n+extra"))
 	})
 }
 
@@ -214,7 +214,7 @@ func TestCursorHeartbeatFallbacks(t *testing.T) {
 			RawArgs: `{"target_file":"/tmp/raw-edit.go","code_edit":"one\ntwo"}`,
 			Status:  "completed",
 		},
-	}, "")
+	}, "", heartbeat.AITokens{})
 	require.Len(t, editHeartbeats, 1)
 	edit := &editHeartbeats[0]
 	require.NotNil(t, edit)
@@ -236,7 +236,7 @@ func TestCursorHeartbeatFallbacks(t *testing.T) {
 		CodeBlocks: []cursorCodeBlock{{
 			URI: &cursorURI{FSPath: "/tmp/from-read-block.go"},
 		}},
-	}, "")
+	}, "", heartbeat.AITokens{})
 	require.Len(t, readHeartbeats, 1)
 	read := &readHeartbeats[0]
 	require.NotNil(t, read)
@@ -249,7 +249,7 @@ func TestCursorHeartbeatFallbacks(t *testing.T) {
 		CreatedAt: createdAt,
 		Type:      1,
 		Text:      "Please edit the file",
-	}, "/tmp")
+	}, "/tmp", heartbeat.AITokens{})
 	require.Len(t, appHeartbeats, 1)
 	assert.Equal(t, "Cursor composer-1", appHeartbeats[0].Entity)
 	assert.Equal(t, heartbeat.AppType, appHeartbeats[0].EntityType)
@@ -265,7 +265,7 @@ func TestCursorHeartbeatFallbacks(t *testing.T) {
 			Name:   "unknown_tool",
 			Status: "completed",
 		},
-	}))
+	}, "", nil))
 }
 
 func TestClaudeHelpers(t *testing.T) {
@@ -300,45 +300,47 @@ func TestClaudeHelpers(t *testing.T) {
 	})
 
 	t.Run("file path and line changes resolve expected sources", func(t *testing.T) {
-		assert.Equal(t, "/tmp/direct.go", getClaudeFilePath(toolUseResult{
+		parser := Claude{}
+
+		assert.Equal(t, "/tmp/direct.go", parser.getFilePath(toolUseResult{
 			FilePath: heartbeat.PointerTo("/tmp/direct.go"),
 		}))
-		assert.Equal(t, "/tmp/nested.go", getClaudeFilePath(toolUseResult{
+		assert.Equal(t, "/tmp/nested.go", parser.getFilePath(toolUseResult{
 			File: &toolUseResultFile{FilePath: heartbeat.PointerTo("/tmp/nested.go")},
 		}))
-		assert.Equal(t, "", getClaudeFilePath(toolUseResult{}))
-		assert.Equal(t, filepath.Dir("/tmp/direct.go"), claudeProjectPath(claudeLogLine{
+		assert.Equal(t, "", parser.getFilePath(toolUseResult{}))
+		assert.Equal(t, filepath.Dir("/tmp/direct.go"), parser.projectPath(claudeLogLine{
 			ToolUseResult: &toolUseResultValue{
 				Object: &toolUseResult{FilePath: heartbeat.PointerTo("/tmp/direct.go")},
 			},
 		}))
-		assert.Equal(t, "/workspace", claudeProjectPath(claudeLogLine{
+		assert.Equal(t, "/workspace", parser.projectPath(claudeLogLine{
 			Cwd: heartbeat.PointerTo("/workspace"),
 		}))
-		assert.Equal(t, "", claudeProjectPath(claudeLogLine{}))
+		assert.Equal(t, "", parser.projectPath(claudeLogLine{}))
 
-		assert.Equal(t, 1, claudeLineChanges(toolUseResult{
+		assert.Equal(t, 1, parser.lineChanges(toolUseResult{
 			StructuredPatch: &[]structuredPatch{{OldLines: 1, NewLines: 2}},
 		}))
-		assert.Equal(t, 2, claudeLineChanges(toolUseResult{
+		assert.Equal(t, 2, parser.lineChanges(toolUseResult{
 			Content: &contentValue{String: heartbeat.PointerTo("one\ntwo")},
 		}))
-		assert.Equal(t, 3, claudeLineChanges(toolUseResult{
+		assert.Equal(t, 3, parser.lineChanges(toolUseResult{
 			File: &toolUseResultFile{Content: &contentValue{String: heartbeat.PointerTo("one\ntwo\nthree")}},
 		}))
-		assert.Equal(t, 0, claudeLineChanges(toolUseResult{
+		assert.Equal(t, 0, parser.lineChanges(toolUseResult{
 			Content:      &contentValue{String: heartbeat.PointerTo("one")},
 			OriginalFile: heartbeat.PointerTo("before"),
 		}))
-		assert.Equal(t, 1, claudeAppLineChanges(&toolUseResultValue{
+		assert.Equal(t, 1, parser.appLineChanges(&toolUseResultValue{
 			String: heartbeat.PointerTo("summary"),
 		}))
-		assert.Equal(t, 2, claudeAppLineChanges(&toolUseResultValue{
+		assert.Equal(t, 2, parser.appLineChanges(&toolUseResultValue{
 			Object: &toolUseResult{
 				Content: &contentValue{String: heartbeat.PointerTo("one\ntwo")},
 			},
 		}))
-		assert.Equal(t, 0, claudeAppLineChanges(&toolUseResultValue{
+		assert.Equal(t, 0, parser.appLineChanges(&toolUseResultValue{
 			Object: &toolUseResult{
 				FilePath: heartbeat.PointerTo("/tmp/skip.go"),
 				Content:  &contentValue{String: heartbeat.PointerTo("one\ntwo")},
@@ -350,27 +352,40 @@ func TestClaudeHelpers(t *testing.T) {
 
 func TestCodexHelpers(t *testing.T) {
 	timestamp := time.Date(2026, 3, 28, 12, 0, 0, 0, time.UTC)
+	parser := Codex{}
 
-	assert.Nil(t, getCodexEntities(timestamp, "session.jsonl", "1.2.3", "/workspace", nil, "", codexPayload{}))
-	assert.Nil(t, getCodexEntities(timestamp, "session.jsonl", "1.2.3", "/workspace", nil, "", codexPayload{
-		Name:  heartbeat.PointerTo("not_apply_patch"),
-		Input: heartbeat.PointerTo("*** Update File: pkg/main.go\n+one"),
-	}))
-
-	userHeartbeats := getCodexEntities(
+	assert.Nil(t, parser.getHeartbeats(
 		timestamp,
 		"session.jsonl",
+		"session",
+		"1.2.3",
+		"/workspace",
+		nil,
+		"",
+		codexPayload{},
+		heartbeat.AITokens{},
+	))
+	assert.Nil(t, parser.getHeartbeats(timestamp, "session.jsonl", "session", "1.2.3", "/workspace", nil, "", codexPayload{
+		Name:  heartbeat.PointerTo("not_apply_patch"),
+		Input: heartbeat.PointerTo("*** Update File: pkg/main.go\n+one"),
+	}, heartbeat.AITokens{}))
+
+	userHeartbeats := parser.getHeartbeats(
+		timestamp,
+		"session.jsonl",
+		"session",
 		"1.2.3",
 		"/workspace",
 		nil,
 		"plugin/0.1.0",
 		codexPayload{
-			Type: "message",
+			Type: heartbeat.PointerTo("message"),
 			Role: heartbeat.PointerTo("user"),
 			Content: []codexContentItem{
 				{Type: "input_text", Text: "Please implement this"},
 			},
 		},
+		heartbeat.AITokens{},
 	)
 	require.Len(t, userHeartbeats, 1)
 	assert.Equal(t, "session.jsonl", userHeartbeats[0].Entity)
@@ -380,20 +395,22 @@ func TestCodexHelpers(t *testing.T) {
 	assert.False(t, *userHeartbeats[0].IsWrite)
 	assert.Contains(t, userHeartbeats[0].UserAgent, "Codex/1.2.3")
 
-	assistantHeartbeats := getCodexEntities(
+	assistantHeartbeats := parser.getHeartbeats(
 		timestamp,
 		"session.jsonl",
+		"session",
 		"1.2.3",
 		"/workspace",
 		nil,
 		"plugin/0.1.0",
 		codexPayload{
-			Type: "message",
+			Type: heartbeat.PointerTo("message"),
 			Role: heartbeat.PointerTo("assistant"),
 			Content: []codexContentItem{
 				{Type: "output_text", Text: "I am on it"},
 			},
 		},
+		heartbeat.AITokens{},
 	)
 	require.Len(t, assistantHeartbeats, 1)
 	assert.Equal(t, "session.jsonl", assistantHeartbeats[0].Entity)
@@ -402,9 +419,10 @@ func TestCodexHelpers(t *testing.T) {
 	require.NotNil(t, assistantHeartbeats[0].IsWrite)
 	assert.False(t, *assistantHeartbeats[0].IsWrite)
 
-	heartbeats := getCodexEntities(
+	heartbeats := parser.getHeartbeats(
 		timestamp,
 		"session.jsonl",
+		"session",
 		"1.2.3",
 		"/workspace",
 		nil,
@@ -415,6 +433,7 @@ func TestCodexHelpers(t *testing.T) {
 				"*** Update File: pkg/main.go\n+one\n-two\n*** Add File: /tmp/extra.go\n+alpha\n+beta",
 			),
 		},
+		heartbeat.AITokens{},
 	)
 	require.Len(t, heartbeats, 2)
 	assert.Equal(t, filepath.Join("/workspace", "pkg/main.go"), heartbeats[0].Entity)

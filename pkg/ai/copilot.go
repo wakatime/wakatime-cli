@@ -34,6 +34,8 @@ type (
 		Timestamp    int64                 `json:"timestamp"`
 		Agent        *copilotAgent         `json:"agent"`
 		Message      *copilotMessage       `json:"message"`
+		Usage        json.RawMessage       `json:"usage"`
+		Result       json.RawMessage       `json:"result"`
 		VariableData *copilotVariableData  `json:"variableData"`
 		Response     []copilotResponseItem `json:"response"`
 		ModelState   *copilotModelState    `json:"modelState"`
@@ -141,6 +143,7 @@ type (
 	copilotRequestMeta struct {
 		timestamp time.Time
 		plugin    string
+		sessionID string
 	}
 
 	copilotTimedHeartbeat struct {
@@ -212,7 +215,7 @@ func (g Copilot) Parse(ctx context.Context) (Heartbeats, error) {
 	}
 
 	logger := log.Extract(ctx)
-	logger.Debugf("Found %d Copilot workspace storage directories for %s", len(workspaces), g.ID())
+	logger.Debugf("Found %d Copilot workspace storage directories for %s", len(workspaces), g.Name())
 
 	var timed []copilotTimedHeartbeat
 
@@ -339,9 +342,9 @@ func (g Copilot) loadWorkspaceSessions(workspaceDir string) (map[string]*copilot
 
 		var session *copilotSession
 		if ext == ".json" {
-			session, err = parseCopilotJSONSession(path)
+			session, err = g.parseJSONSession(path)
 		} else {
-			session, err = parseCopilotJSONLSession(path)
+			session, err = g.parseJSONLSession(path)
 		}
 
 		if err != nil {
@@ -362,7 +365,7 @@ func (g Copilot) loadWorkspaceSessions(workspaceDir string) (map[string]*copilot
 	return sessions, nil
 }
 
-func parseCopilotJSONSession(path string) (*copilotSession, error) {
+func (Copilot) parseJSONSession(path string) (*copilotSession, error) {
 	//nolint:gosec
 	data, err := os.ReadFile(filepath.Clean(path))
 	if err != nil {
@@ -377,7 +380,7 @@ func parseCopilotJSONSession(path string) (*copilotSession, error) {
 	return &session, nil
 }
 
-func parseCopilotJSONLSession(path string) (*copilotSession, error) {
+func (g Copilot) parseJSONLSession(path string) (*copilotSession, error) {
 	//nolint:gosec
 	fh, err := os.Open(filepath.Clean(path))
 	if err != nil {
@@ -417,13 +420,13 @@ func parseCopilotJSONLSession(path string) (*copilotSession, error) {
 				continue
 			}
 
-			applyCopilotJSONLSet(session, patch)
+			g.applyJSONLSet(session, patch)
 		case 2:
 			if session == nil {
 				continue
 			}
 
-			applyCopilotJSONLInsert(session, patch)
+			g.applyJSONLInsert(session, patch)
 		}
 	}
 
@@ -434,12 +437,12 @@ func parseCopilotJSONLSession(path string) (*copilotSession, error) {
 	return session, nil
 }
 
-func applyCopilotJSONLSet(session *copilotSession, patch copilotJSONLPatch) {
+func (g Copilot) applyJSONLSet(session *copilotSession, patch copilotJSONLPatch) {
 	if len(patch.K) == 0 {
 		return
 	}
 
-	head, ok := parseJSONString(patch.K[0])
+	head, ok := g.parseJSONString(patch.K[0])
 	if !ok || head != "requests" {
 		return
 	}
@@ -448,12 +451,12 @@ func applyCopilotJSONLSet(session *copilotSession, patch copilotJSONLPatch) {
 		return
 	}
 
-	idx, ok := parseJSONInt(patch.K[1])
+	idx, ok := g.parseJSONInt(patch.K[1])
 	if !ok || idx < 0 || idx >= len(session.Requests) {
 		return
 	}
 
-	field, ok := parseJSONString(patch.K[2])
+	field, ok := g.parseJSONString(patch.K[2])
 	if !ok {
 		return
 	}
@@ -464,6 +467,8 @@ func applyCopilotJSONLSet(session *copilotSession, patch copilotJSONLPatch) {
 		if err := json.Unmarshal(patch.V, &state); err == nil {
 			session.Requests[idx].ModelState = &state
 		}
+	case "result":
+		session.Requests[idx].Result = append(session.Requests[idx].Result[:0], patch.V...)
 	case "response":
 		var items []copilotResponseItem
 		if err := json.Unmarshal(patch.V, &items); err == nil {
@@ -482,12 +487,12 @@ func applyCopilotJSONLSet(session *copilotSession, patch copilotJSONLPatch) {
 	}
 }
 
-func applyCopilotJSONLInsert(session *copilotSession, patch copilotJSONLPatch) {
+func (g Copilot) applyJSONLInsert(session *copilotSession, patch copilotJSONLPatch) {
 	if len(patch.K) == 0 {
 		return
 	}
 
-	head, ok := parseJSONString(patch.K[0])
+	head, ok := g.parseJSONString(patch.K[0])
 	if !ok || head != "requests" {
 		return
 	}
@@ -495,7 +500,7 @@ func applyCopilotJSONLInsert(session *copilotSession, patch copilotJSONLPatch) {
 	if len(patch.K) == 1 {
 		var requests []copilotRequest
 		if err := json.Unmarshal(patch.V, &requests); err == nil {
-			session.Requests = insertCopilotRequests(
+			session.Requests = g.insertRequests(
 				session.Requests,
 				patch.I,
 				requests,
@@ -506,19 +511,19 @@ func applyCopilotJSONLInsert(session *copilotSession, patch copilotJSONLPatch) {
 	}
 
 	if len(patch.K) == 3 {
-		idx, ok := parseJSONInt(patch.K[1])
+		idx, ok := g.parseJSONInt(patch.K[1])
 		if !ok || idx < 0 || idx >= len(session.Requests) {
 			return
 		}
 
-		field, ok := parseJSONString(patch.K[2])
+		field, ok := g.parseJSONString(patch.K[2])
 		if !ok || field != "response" {
 			return
 		}
 
 		var items []copilotResponseItem
 		if err := json.Unmarshal(patch.V, &items); err == nil {
-			session.Requests[idx].Response = insertCopilotResponses(
+			session.Requests[idx].Response = g.insertResponses(
 				session.Requests[idx].Response,
 				patch.I,
 				items,
@@ -527,7 +532,7 @@ func applyCopilotJSONLInsert(session *copilotSession, patch copilotJSONLPatch) {
 	}
 }
 
-func insertCopilotRequests(existing []copilotRequest, index int, incoming []copilotRequest) []copilotRequest {
+func (Copilot) insertRequests(existing []copilotRequest, index int, incoming []copilotRequest) []copilotRequest {
 	if index < 0 || index > len(existing) {
 		index = len(existing)
 	}
@@ -540,7 +545,7 @@ func insertCopilotRequests(existing []copilotRequest, index int, incoming []copi
 	return result
 }
 
-func insertCopilotResponses(
+func (Copilot) insertResponses(
 	existing []copilotResponseItem,
 	index int,
 	incoming []copilotResponseItem,
@@ -557,7 +562,7 @@ func insertCopilotResponses(
 	return result
 }
 
-func parseJSONString(raw json.RawMessage) (string, bool) {
+func (Copilot) parseJSONString(raw json.RawMessage) (string, bool) {
 	var value string
 	if err := json.Unmarshal(raw, &value); err != nil {
 		return "", false
@@ -566,7 +571,7 @@ func parseJSONString(raw json.RawMessage) (string, bool) {
 	return value, true
 }
 
-func parseJSONInt(raw json.RawMessage) (int, bool) {
+func (Copilot) parseJSONInt(raw json.RawMessage) (int, bool) {
 	var value int
 	if err := json.Unmarshal(raw, &value); err != nil {
 		return 0, false
@@ -593,24 +598,36 @@ func (g Copilot) sessionHeartbeats(
 		session := ws.sessions[sessionID]
 		sessionEntity := appHeartbeatEntity("Copilot", session.SessionID)
 
+		var tokens heartbeat.AITokens
+
 		for _, request := range session.Requests {
-			requestTime := copilotMillisTime(request.Timestamp)
+			requestTime := g.millisTime(request.Timestamp)
 			if requestTime.IsZero() {
 				continue
 			}
 
-			plugin := copilotPlugin(request.Agent)
+			plugin := aiPlugin(g, g.version(request.Agent))
 			requestMeta[request.RequestID] = copilotRequestMeta{
 				timestamp: requestTime,
 				plugin:    plugin,
+				sessionID: session.SessionID,
 			}
-			projectPath := copilotRequestProjectPath(request)
+			projectPath := g.requestProjectPath(request)
 
-			if strings.TrimSpace(copilotMessageText(request.Message)) != "" {
-				timed = append(timed, copilotTimedHeartbeat{
+			var requestTimed []copilotTimedHeartbeat
+
+			assignTokens := false
+
+			tokens = g.copilotTokenCounts(request, tokens)
+			assignTokens = g.hasTokenDelta(tokens)
+
+			if strings.TrimSpace(g.messageText(request.Message)) != "" {
+				requestTimed = append(requestTimed, copilotTimedHeartbeat{
 					timestamp: requestTime,
-					heartbeat: copilotAppHeartbeat(
+					heartbeat: g.appHeartbeat(
 						sessionEntity,
+						session.SessionID,
+						g.tokensForFirstHeartbeat(assignTokens, tokens),
 						requestTime,
 						projectPath,
 						g.UserAgents,
@@ -618,15 +635,18 @@ func (g Copilot) sessionHeartbeats(
 						plugin,
 					),
 				})
+				assignTokens = false
 			}
 
-			readFiles := copilotReadFiles(request)
+			readFiles := g.readFiles(request)
 			for i, path := range readFiles {
 				readTime := requestTime.Add(time.Duration(i+1) * time.Millisecond)
-				timed = append(timed, copilotTimedHeartbeat{
+				requestTimed = append(requestTimed, copilotTimedHeartbeat{
 					timestamp: readTime,
-					heartbeat: copilotFileHeartbeat(
+					heartbeat: g.fileHeartbeat(
 						path,
+						session.SessionID,
+						g.tokensForFirstHeartbeat(assignTokens, tokens),
 						readTime,
 						g.UserAgents,
 						g.FallbackUserAgent,
@@ -635,13 +655,16 @@ func (g Copilot) sessionHeartbeats(
 						nil,
 					),
 				})
+				assignTokens = false
 			}
 
-			if completedAt := copilotRequestCompletedAt(request); !completedAt.IsZero() {
-				timed = append(timed, copilotTimedHeartbeat{
+			if completedAt := g.requestCompletedAt(request); !completedAt.IsZero() {
+				requestTimed = append(requestTimed, copilotTimedHeartbeat{
 					timestamp: completedAt,
-					heartbeat: copilotAppHeartbeat(
+					heartbeat: g.appHeartbeat(
 						sessionEntity,
+						session.SessionID,
+						g.tokensForFirstHeartbeat(assignTokens, tokens),
 						completedAt,
 						projectPath,
 						g.UserAgents,
@@ -649,11 +672,163 @@ func (g Copilot) sessionHeartbeats(
 						plugin,
 					),
 				})
+				assignTokens = false
 			}
+
+			if len(requestTimed) == 0 {
+				continue
+			}
+
+			tokens = g.advanceTokens(tokens)
+
+			timed = append(timed, requestTimed...)
 		}
 	}
 
 	return timed, requestMeta
+}
+
+func (g Copilot) copilotTokenCounts(request copilotRequest, previous heartbeat.AITokens) heartbeat.AITokens {
+	input, output, cumulative := g.usageCounts(request)
+	if input == nil && output == nil {
+		return previous
+	}
+
+	current := previous
+
+	if cumulative {
+		if input != nil {
+			current.CurrentInput = int64(*input)
+		}
+
+		if output != nil {
+			current.CurrentOutput = int64(*output)
+		}
+
+		return current
+	}
+
+	if input != nil {
+		current.CurrentInput = previous.LastInput + int64(*input)
+	}
+
+	if output != nil {
+		current.CurrentOutput = previous.LastOutput + int64(*output)
+	}
+
+	return current
+}
+
+func (Copilot) tokenDelta(tokens heartbeat.AITokens) (int64, int64) {
+	input := tokens.CurrentInput - tokens.LastInput
+	if input < 0 {
+		input = 0
+	}
+
+	output := tokens.CurrentOutput - tokens.LastOutput
+	if output < 0 {
+		output = 0
+	}
+
+	return input, output
+}
+
+func (g Copilot) hasTokenDelta(tokens heartbeat.AITokens) bool {
+	input, output := g.tokenDelta(tokens)
+	return input > 0 || output > 0
+}
+
+func (Copilot) advanceTokens(tokens heartbeat.AITokens) heartbeat.AITokens {
+	tokens.LastInput = tokens.CurrentInput
+	tokens.LastOutput = tokens.CurrentOutput
+
+	return tokens
+}
+
+func (Copilot) tokensForFirstHeartbeat(assign bool, tokens heartbeat.AITokens) *heartbeat.AITokens {
+	if !assign {
+		return nil
+	}
+
+	copy := tokens
+
+	return &copy
+}
+
+func (g Copilot) usageCounts(request copilotRequest) (*int, *int, bool) {
+	if input, output := g.parseTokenCounts(request.Usage); input != nil || output != nil {
+		return input, output, true
+	}
+
+	if len(request.Result) == 0 || string(request.Result) == "null" {
+		return nil, nil, false
+	}
+
+	var result struct {
+		Metadata json.RawMessage `json:"metadata"`
+	}
+	if err := json.Unmarshal(request.Result, &result); err != nil || len(result.Metadata) == 0 {
+		return nil, nil, false
+	}
+
+	if input, output := g.parseResultMetadataTokenCounts(result.Metadata); input != nil || output != nil {
+		return input, output, false
+	}
+
+	return nil, nil, false
+}
+
+func (Copilot) parseTokenCounts(raw json.RawMessage) (*int, *int) {
+	if len(raw) == 0 || string(raw) == "null" {
+		return nil, nil
+	}
+
+	var usage struct {
+		InputTokens      *int `json:"inputTokens"`
+		OutputTokens     *int `json:"outputTokens"`
+		TotalTokens      *int `json:"totalTokens"`
+		PromptTokens     *int `json:"promptTokens"`
+		CompletionTokens *int `json:"completionTokens"`
+	}
+	if err := json.Unmarshal(raw, &usage); err != nil {
+		return nil, nil
+	}
+
+	input := usage.PromptTokens
+	if input == nil {
+		input = usage.InputTokens // fallback in case they rename the attribute
+	}
+
+	output := usage.OutputTokens
+	if output == nil {
+		output = usage.CompletionTokens
+	}
+
+	if output == nil {
+		output = usage.TotalTokens
+	}
+
+	return input, output
+}
+
+func (g Copilot) parseResultMetadataTokenCounts(raw json.RawMessage) (*int, *int) {
+	if len(raw) == 0 || string(raw) == "null" {
+		return nil, nil
+	}
+
+	input, output := g.parseTokenCounts(raw)
+	if input != nil || output != nil {
+		return input, output
+	}
+
+	var metadata struct {
+		Usage json.RawMessage `json:"usage"`
+	}
+	if err := json.Unmarshal(raw, &metadata); err != nil {
+		return nil, nil
+	}
+
+	return g.parseTokenCounts(metadata.Usage)
 }
 
 func (g Copilot) editHeartbeats(
@@ -679,7 +854,7 @@ func (g Copilot) editHeartbeats(
 		}
 
 		statePath := filepath.Join(editSessionsDir, entry.Name(), "state.json")
-		if !copilotFileModifiedAfter(statePath, g.After) {
+		if !g.fileModifiedAfter(statePath, g.After) {
 			continue
 		}
 
@@ -694,7 +869,7 @@ func (g Copilot) editHeartbeats(
 	return timed, nil
 }
 
-func copilotFileModifiedAfter(path string, after time.Time) bool {
+func (Copilot) fileModifiedAfter(path string, after time.Time) bool {
 	info, err := os.Stat(path)
 	if err != nil {
 		return false
@@ -771,30 +946,32 @@ func (g Copilot) parseEditState(
 		if !found {
 			if baseline, ok := baselines["file://"+op.URI.FSPath+"::"+op.RequestID]; ok {
 				content = baseline
-			} else if baseline, ok := baselines[uriPathToFileURI(op.URI.FSPath)+"::"+op.RequestID]; ok {
+			} else if baseline, ok := baselines[g.pathToFileURI(op.URI.FSPath)+"::"+op.RequestID]; ok {
 				content = baseline
 			} else {
 				content = ""
 			}
 		}
 
-		oldLineCount := copilotLineCount(content)
+		oldLineCount := g.lineCount(content)
 
 		updatedContent := content
 		for _, edit := range op.Edits {
-			updatedContent = applyCopilotTextEdit(updatedContent, edit)
+			updatedContent = g.applyTextEdit(updatedContent, edit)
 		}
 
 		currentContent[key] = updatedContent
 
-		delta := copilotLineCount(updatedContent) - oldLineCount
+		delta := g.lineCount(updatedContent) - oldLineCount
 		timestamp := meta.timestamp.Add(100*time.Millisecond + time.Duration(opIndex)*time.Millisecond)
 		lineChanges := heartbeat.PointerTo(delta)
 
 		timed = append(timed, copilotTimedHeartbeat{
 			timestamp: timestamp,
-			heartbeat: copilotFileHeartbeat(
+			heartbeat: g.fileHeartbeat(
 				op.URI.FSPath,
+				meta.sessionID,
+				nil,
 				timestamp,
 				g.UserAgents,
 				g.FallbackUserAgent,
@@ -808,7 +985,7 @@ func (g Copilot) parseEditState(
 	return timed, nil
 }
 
-func uriPathToFileURI(path string) string {
+func (Copilot) pathToFileURI(path string) string {
 	if path == "" {
 		return ""
 	}
@@ -818,7 +995,7 @@ func uriPathToFileURI(path string) string {
 	return u.String()
 }
 
-func copilotMessageText(message *copilotMessage) string {
+func (Copilot) messageText(message *copilotMessage) string {
 	if message == nil {
 		return ""
 	}
@@ -826,15 +1003,15 @@ func copilotMessageText(message *copilotMessage) string {
 	return message.Text
 }
 
-func copilotPlugin(agent *copilotAgent) string {
-	if agent == nil || agent.ExtensionVersion == "" {
-		return "GitHubCopilot"
+func (Copilot) version(agent *copilotAgent) string {
+	if agent == nil {
+		return ""
 	}
 
-	return "GitHubCopilot/" + agent.ExtensionVersion
+	return agent.ExtensionVersion
 }
 
-func copilotMillisTime(value int64) time.Time {
+func (Copilot) millisTime(value int64) time.Time {
 	if value <= 0 {
 		return time.Time{}
 	}
@@ -842,19 +1019,19 @@ func copilotMillisTime(value int64) time.Time {
 	return time.UnixMilli(value)
 }
 
-func copilotRequestCompletedAt(request copilotRequest) time.Time {
+func (g Copilot) requestCompletedAt(request copilotRequest) time.Time {
 	if request.ModelState != nil && request.ModelState.CompletedAt > 0 {
-		return copilotMillisTime(request.ModelState.CompletedAt)
+		return g.millisTime(request.ModelState.CompletedAt)
 	}
 
-	if copilotResponseHasActivity(request.Response) {
-		return copilotMillisTime(request.Timestamp).Add(time.Second)
+	if g.responseHasActivity(request.Response) {
+		return g.millisTime(request.Timestamp).Add(time.Second)
 	}
 
 	return time.Time{}
 }
 
-func copilotResponseHasActivity(response []copilotResponseItem) bool {
+func (Copilot) responseHasActivity(response []copilotResponseItem) bool {
 	for _, item := range response {
 		switch item.Kind {
 		case "thinking", "markdown", "toolInvocationSerialized", "prepareToolInvocation", "textEditGroup", "inlineReference":
@@ -865,8 +1042,8 @@ func copilotResponseHasActivity(response []copilotResponseItem) bool {
 	return false
 }
 
-func copilotRequestProjectPath(request copilotRequest) string {
-	for _, path := range copilotReadFiles(request) {
+func (g Copilot) requestProjectPath(request copilotRequest) string {
+	for _, path := range g.readFiles(request) {
 		if info, err := os.Stat(path); err == nil && info.IsDir() {
 			return path
 		}
@@ -878,7 +1055,7 @@ func copilotRequestProjectPath(request copilotRequest) string {
 
 	if request.VariableData != nil {
 		for _, variable := range request.VariableData.Variables {
-			if path := copilotVariablePath(variable); path != "" {
+			if path := g.variablePath(variable); path != "" {
 				return filepath.Dir(path)
 			}
 		}
@@ -887,14 +1064,14 @@ func copilotRequestProjectPath(request copilotRequest) string {
 	return ""
 }
 
-func copilotReadFiles(request copilotRequest) []string {
+func (g Copilot) readFiles(request copilotRequest) []string {
 	seen := make(map[string]struct{})
 
 	var files []string
 
 	if request.VariableData != nil {
 		for _, variable := range request.VariableData.Variables {
-			if path := copilotVariablePath(variable); path != "" && copilotShouldTrackReadPath(path) {
+			if path := g.variablePath(variable); path != "" && g.shouldTrackReadPath(path) {
 				if _, found := seen[path]; !found {
 					seen[path] = struct{}{}
 					files = append(files, path)
@@ -904,8 +1081,8 @@ func copilotReadFiles(request copilotRequest) []string {
 	}
 
 	for _, item := range request.Response {
-		for _, path := range copilotResponsePaths(item) {
-			if !copilotShouldTrackReadPath(path) {
+		for _, path := range g.responsePaths(item) {
+			if !g.shouldTrackReadPath(path) {
 				continue
 			}
 
@@ -919,7 +1096,7 @@ func copilotReadFiles(request copilotRequest) []string {
 	return files
 }
 
-func copilotVariablePath(variable copilotVariable) string {
+func (g Copilot) variablePath(variable copilotVariable) string {
 	if variable.Value != nil {
 		if variable.Value.URI != nil && variable.Value.URI.FSPath != "" {
 			return variable.Value.URI.FSPath
@@ -931,7 +1108,7 @@ func copilotVariablePath(variable copilotVariable) string {
 	}
 
 	if strings.HasPrefix(variable.ID, "file://") {
-		if path, err := fileURIToPath(variable.ID); err == nil {
+		if path, err := g.fileURIToPath(variable.ID); err == nil {
 			return path
 		}
 	}
@@ -939,7 +1116,7 @@ func copilotVariablePath(variable copilotVariable) string {
 	return ""
 }
 
-func copilotResponsePaths(item copilotResponseItem) []string {
+func (g Copilot) responsePaths(item copilotResponseItem) []string {
 	var files []string
 
 	collect := func(message *copilotMessageWithURIs) {
@@ -954,7 +1131,7 @@ func copilotResponsePaths(item copilotResponseItem) []string {
 			}
 
 			if path == "" && strings.HasPrefix(key, "file://") {
-				if parsed, err := fileURIToPath(key); err == nil {
+				if parsed, err := g.fileURIToPath(key); err == nil {
 					path = parsed
 				}
 			}
@@ -979,7 +1156,7 @@ func copilotResponsePaths(item copilotResponseItem) []string {
 	return files
 }
 
-func fileURIToPath(raw string) (string, error) {
+func (Copilot) fileURIToPath(raw string) (string, error) {
 	parsed, err := url.Parse(raw)
 	if err != nil {
 		return "", err
@@ -988,7 +1165,7 @@ func fileURIToPath(raw string) (string, error) {
 	return parsed.Path, nil
 }
 
-func copilotShouldTrackReadPath(path string) bool {
+func (Copilot) shouldTrackReadPath(path string) bool {
 	if path == "" {
 		return false
 	}
@@ -1001,15 +1178,44 @@ func copilotShouldTrackReadPath(path string) bool {
 	return !info.IsDir()
 }
 
-func copilotAppHeartbeat(
+func (Copilot) appHeartbeat(
 	entity string,
+	sessionID string,
+	aiTokens *heartbeat.AITokens,
 	timestamp time.Time,
 	projectPath string,
 	userAgents map[string]string,
 	fallbackUserAgent string,
 	plugin string,
 ) heartbeat.Heartbeat {
-	return heartbeat.New(
+	if aiTokens != nil {
+		return heartbeat.NewWithAITokens(
+			nil,
+			sessionID,
+			*aiTokens,
+			"",
+			heartbeat.AICodingCategory.String(),
+			nil,
+			entity,
+			heartbeat.AppType,
+			nil,
+			false,
+			heartbeat.PointerTo(false),
+			nil,
+			"",
+			nil,
+			nil,
+			"",
+			"",
+			false,
+			"",
+			projectPath,
+			float64(timestamp.UnixMilli())/1000,
+			aiUserAgent(entity, userAgents, fallbackUserAgent, plugin),
+		)
+	}
+
+	h := heartbeat.New(
 		nil,
 		"",
 		heartbeat.AICodingCategory.String(),
@@ -1031,10 +1237,15 @@ func copilotAppHeartbeat(
 		float64(timestamp.UnixMilli())/1000,
 		aiUserAgent(entity, userAgents, fallbackUserAgent, plugin),
 	)
+	h.AISession = sessionID
+
+	return h
 }
 
-func copilotFileHeartbeat(
+func (Copilot) fileHeartbeat(
 	path string,
+	sessionID string,
+	aiTokens *heartbeat.AITokens,
 	timestamp time.Time,
 	userAgents map[string]string,
 	fallbackUserAgent string,
@@ -1042,7 +1253,34 @@ func copilotFileHeartbeat(
 	isWrite bool,
 	lineChanges *int,
 ) heartbeat.Heartbeat {
-	return heartbeat.New(
+	if aiTokens != nil {
+		return heartbeat.NewWithAITokens(
+			lineChanges,
+			sessionID,
+			*aiTokens,
+			"",
+			heartbeat.AICodingCategory.String(),
+			nil,
+			path,
+			heartbeat.FileType,
+			nil,
+			false,
+			heartbeat.PointerTo(isWrite),
+			nil,
+			"",
+			nil,
+			nil,
+			"",
+			"",
+			false,
+			"",
+			"",
+			float64(timestamp.UnixMilli())/1000,
+			aiUserAgent(path, userAgents, fallbackUserAgent, plugin),
+		)
+	}
+
+	h := heartbeat.New(
 		lineChanges,
 		"",
 		heartbeat.AICodingCategory.String(),
@@ -1064,9 +1302,12 @@ func copilotFileHeartbeat(
 		float64(timestamp.UnixMilli())/1000,
 		aiUserAgent(path, userAgents, fallbackUserAgent, plugin),
 	)
+	h.AISession = sessionID
+
+	return h
 }
 
-func copilotLineCount(content string) int {
+func (Copilot) lineCount(content string) int {
 	if content == "" {
 		return 0
 	}
@@ -1074,14 +1315,14 @@ func copilotLineCount(content string) int {
 	return countStringLines(content)
 }
 
-func applyCopilotTextEdit(content string, edit copilotTextEdit) string {
+func (g Copilot) applyTextEdit(content string, edit copilotTextEdit) string {
 	if edit.Range == nil {
 		return edit.Text
 	}
 
-	start := copilotOffset(content, edit.Range.StartLineNumber, edit.Range.StartColumn)
+	start := g.offset(content, edit.Range.StartLineNumber, edit.Range.StartColumn)
 
-	end := copilotOffset(content, edit.Range.EndLineNumber, edit.Range.EndColumn)
+	end := g.offset(content, edit.Range.EndLineNumber, edit.Range.EndColumn)
 	if start > end {
 		start, end = end, start
 	}
@@ -1097,7 +1338,7 @@ func applyCopilotTextEdit(content string, edit copilotTextEdit) string {
 	return content[:start] + edit.Text + content[end:]
 }
 
-func copilotOffset(content string, line int, column int) int {
+func (Copilot) offset(content string, line int, column int) int {
 	if line <= 1 && column <= 1 {
 		return 0
 	}
@@ -1121,7 +1362,7 @@ func copilotOffset(content string, line int, column int) int {
 	return len(content)
 }
 
-// ID returns its id.
-func (Copilot) ID() ParserID {
-	return CopilotParser
+// Name returns its name.
+func (Copilot) Name() string {
+	return "Copilot"
 }
