@@ -115,7 +115,7 @@ func (g Cursor) Parse(ctx context.Context) (Heartbeats, error) {
 			continue
 		}
 
-		parsed := g.cursorHeartbeats(ctx, logLine, bubbleCWDs[logLine.BubbleID])
+		parsed := g.cursorHeartbeats(logLine, bubbleCWDs[logLine.BubbleID])
 		if len(parsed) == 0 {
 			continue
 		}
@@ -222,10 +222,10 @@ ORDER BY json_extract(CAST(value AS TEXT), '$.createdAt') ASC;
 	return results, nil
 }
 
-func (g Cursor) cursorHeartbeats(ctx context.Context, logLine cursorLogLine, cwd string) Heartbeats {
+func (g Cursor) cursorHeartbeats(logLine cursorLogLine, cwd string) Heartbeats {
 	var heartbeats Heartbeats
 
-	if heartbeat := g.cursorAppHeartbeat(ctx, logLine, cwd); heartbeat != nil {
+	if heartbeat := g.cursorAppHeartbeat(logLine, cwd); heartbeat != nil {
 		heartbeats = append(heartbeats, *heartbeat)
 	}
 
@@ -233,14 +233,14 @@ func (g Cursor) cursorHeartbeats(ctx context.Context, logLine cursorLogLine, cwd
 		return heartbeats
 	}
 
-	if heartbeat := g.cursorFileHeartbeat(ctx, logLine); heartbeat != nil {
+	if heartbeat := g.cursorFileHeartbeat(logLine); heartbeat != nil {
 		heartbeats = append(heartbeats, *heartbeat)
 	}
 
 	return heartbeats
 }
 
-func (g Cursor) cursorAppHeartbeat(ctx context.Context, logLine cursorLogLine, cwd string) *heartbeat.Heartbeat {
+func (g Cursor) cursorAppHeartbeat(logLine cursorLogLine, cwd string) *heartbeat.Heartbeat {
 	if strings.TrimSpace(logLine.Text) == "" {
 		return nil
 	}
@@ -271,13 +271,13 @@ func (g Cursor) cursorAppHeartbeat(ctx context.Context, logLine cursorLogLine, c
 		"",
 		cwd,
 		float64(logLine.CreatedAt.Unix()),
-		aiUserAgent(ctx, entity, g.UserAgents, g.FallbackUserAgent, cursorPlugin()),
+		aiUserAgent(entity, g.UserAgents, g.FallbackUserAgent, cursorPlugin()),
 	)
 
 	return &h
 }
 
-func (g Cursor) cursorFileHeartbeat(ctx context.Context, logLine cursorLogLine) *heartbeat.Heartbeat {
+func (g Cursor) cursorFileHeartbeat(logLine cursorLogLine) *heartbeat.Heartbeat {
 	switch logLine.ToolFormerData.Name {
 	case "edit_file_v2":
 		var params cursorEditParams
@@ -311,7 +311,7 @@ func (g Cursor) cursorFileHeartbeat(ctx context.Context, logLine cursorLogLine) 
 			"",
 			"",
 			float64(logLine.CreatedAt.Unix()),
-			aiUserAgent(ctx, filePath, g.UserAgents, g.FallbackUserAgent, cursorPlugin()),
+			aiUserAgent(filePath, g.UserAgents, g.FallbackUserAgent, cursorPlugin()),
 		)
 
 		return &h
@@ -359,7 +359,7 @@ func (g Cursor) cursorFileHeartbeat(ctx context.Context, logLine cursorLogLine) 
 			"",
 			"",
 			float64(logLine.CreatedAt.Unix()),
-			aiUserAgent(ctx, filePath, g.UserAgents, g.FallbackUserAgent, cursorPlugin()),
+			aiUserAgent(filePath, g.UserAgents, g.FallbackUserAgent, cursorPlugin()),
 		)
 
 		return &h
@@ -417,7 +417,7 @@ func (g Cursor) cursorFileHeartbeat(ctx context.Context, logLine cursorLogLine) 
 			"",
 			"",
 			float64(logLine.CreatedAt.Unix()),
-			aiUserAgent(ctx, filePath, g.UserAgents, g.FallbackUserAgent, cursorPlugin()),
+			aiUserAgent(filePath, g.UserAgents, g.FallbackUserAgent, cursorPlugin()),
 		)
 
 		return &h

@@ -217,10 +217,10 @@ func (g Copilot) Parse(ctx context.Context) (Heartbeats, error) {
 	var timed []copilotTimedHeartbeat
 
 	for _, ws := range workspaces {
-		sessionHeartbeats, requestMeta := g.sessionHeartbeats(ctx, ws)
+		sessionHeartbeats, requestMeta := g.sessionHeartbeats(ws)
 		timed = append(timed, sessionHeartbeats...)
 
-		editHeartbeats, err := g.editHeartbeats(ctx, ws.workspaceDir, requestMeta)
+		editHeartbeats, err := g.editHeartbeats(ws.workspaceDir, requestMeta)
 		if err != nil {
 			return nil, err
 		}
@@ -576,7 +576,6 @@ func parseJSONInt(raw json.RawMessage) (int, bool) {
 }
 
 func (g Copilot) sessionHeartbeats(
-	ctx context.Context,
 	ws copilotWorkspaceState,
 ) ([]copilotTimedHeartbeat, map[string]copilotRequestMeta) {
 	var timed []copilotTimedHeartbeat
@@ -611,7 +610,6 @@ func (g Copilot) sessionHeartbeats(
 				timed = append(timed, copilotTimedHeartbeat{
 					timestamp: requestTime,
 					heartbeat: copilotAppHeartbeat(
-						ctx,
 						sessionEntity,
 						requestTime,
 						projectPath,
@@ -628,7 +626,6 @@ func (g Copilot) sessionHeartbeats(
 				timed = append(timed, copilotTimedHeartbeat{
 					timestamp: readTime,
 					heartbeat: copilotFileHeartbeat(
-						ctx,
 						path,
 						readTime,
 						g.UserAgents,
@@ -644,7 +641,6 @@ func (g Copilot) sessionHeartbeats(
 				timed = append(timed, copilotTimedHeartbeat{
 					timestamp: completedAt,
 					heartbeat: copilotAppHeartbeat(
-						ctx,
 						sessionEntity,
 						completedAt,
 						projectPath,
@@ -661,7 +657,6 @@ func (g Copilot) sessionHeartbeats(
 }
 
 func (g Copilot) editHeartbeats(
-	ctx context.Context,
 	workspaceDir string,
 	requestMeta map[string]copilotRequestMeta,
 ) ([]copilotTimedHeartbeat, error) {
@@ -688,7 +683,7 @@ func (g Copilot) editHeartbeats(
 			continue
 		}
 
-		sessionTimed, err := g.parseEditState(ctx, statePath, requestMeta)
+		sessionTimed, err := g.parseEditState(statePath, requestMeta)
 		if err != nil {
 			return nil, err
 		}
@@ -709,7 +704,6 @@ func copilotFileModifiedAfter(path string, after time.Time) bool {
 }
 
 func (g Copilot) parseEditState(
-	ctx context.Context,
 	statePath string,
 	requestMeta map[string]copilotRequestMeta,
 ) ([]copilotTimedHeartbeat, error) {
@@ -800,7 +794,6 @@ func (g Copilot) parseEditState(
 		timed = append(timed, copilotTimedHeartbeat{
 			timestamp: timestamp,
 			heartbeat: copilotFileHeartbeat(
-				ctx,
 				op.URI.FSPath,
 				timestamp,
 				g.UserAgents,
@@ -1009,7 +1002,6 @@ func copilotShouldTrackReadPath(path string) bool {
 }
 
 func copilotAppHeartbeat(
-	ctx context.Context,
 	entity string,
 	timestamp time.Time,
 	projectPath string,
@@ -1037,12 +1029,11 @@ func copilotAppHeartbeat(
 		"",
 		projectPath,
 		float64(timestamp.UnixMilli())/1000,
-		aiUserAgent(ctx, entity, userAgents, fallbackUserAgent, plugin),
+		aiUserAgent(entity, userAgents, fallbackUserAgent, plugin),
 	)
 }
 
 func copilotFileHeartbeat(
-	ctx context.Context,
 	path string,
 	timestamp time.Time,
 	userAgents map[string]string,
@@ -1071,7 +1062,7 @@ func copilotFileHeartbeat(
 		"",
 		"",
 		float64(timestamp.UnixMilli())/1000,
-		aiUserAgent(ctx, path, userAgents, fallbackUserAgent, plugin),
+		aiUserAgent(path, userAgents, fallbackUserAgent, plugin),
 	)
 }
 

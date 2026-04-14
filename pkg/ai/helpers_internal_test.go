@@ -45,18 +45,30 @@ func TestEntityUserAgentsAndAIUserAgent(t *testing.T) {
 	assert.Equal(t, map[string]string{"/tmp/main.go": "editor/1.0.0"}, userAgents)
 	assert.Equal(
 		t,
-		heartbeat.UserAgent(ctx, cursorPlugin()+" "+"editor/1.0.0"),
-		aiUserAgent(ctx, "/tmp/main.go", userAgents, "plugin/0.1.0", cursorPlugin()),
+		cursorPlugin()+" "+"editor/1.0.0",
+		aiUserAgent("/tmp/main.go", userAgents, "plugin/0.1.0", cursorPlugin()),
 	)
 	assert.Equal(
 		t,
-		heartbeat.UserAgent(ctx, cursorPlugin()+" "+"plugin/0.1.0"),
-		aiUserAgent(ctx, "/tmp/other.go", userAgents, "plugin/0.1.0", cursorPlugin()),
+		cursorPlugin()+" "+"plugin/0.1.0",
+		aiUserAgent("/tmp/other.go", userAgents, "plugin/0.1.0", cursorPlugin()),
 	)
 	assert.Equal(
 		t,
-		heartbeat.UserAgent(ctx, cursorPlugin()),
-		aiUserAgent(ctx, "/tmp/other.go", userAgents, "", cursorPlugin()),
+		cursorPlugin()+" "+heartbeat.UserAgent(ctx, "editor/1.0.0"),
+		aiUserAgent(
+			"/tmp/rendered.go",
+			map[string]string{
+				"/tmp/rendered.go": heartbeat.UserAgent(ctx, "editor/1.0.0"),
+			},
+			"plugin/0.1.0",
+			cursorPlugin(),
+		),
+	)
+	assert.Equal(
+		t,
+		cursorPlugin(),
+		aiUserAgent("/tmp/other.go", userAgents, "", cursorPlugin()),
 	)
 }
 
@@ -190,11 +202,10 @@ func TestCursorHelpers(t *testing.T) {
 }
 
 func TestCursorHeartbeatFallbacks(t *testing.T) {
-	ctx := context.Background()
 	parser := Cursor{FallbackUserAgent: "plugin/0.1.0"}
 	createdAt := time.Date(2026, 3, 20, 12, 0, 0, 0, time.UTC)
 
-	editHeartbeats := parser.cursorHeartbeats(ctx, cursorLogLine{
+	editHeartbeats := parser.cursorHeartbeats(cursorLogLine{
 		CreatedAt: createdAt,
 		Type:      2,
 		ToolFormerData: &cursorToolFormerData{
@@ -213,7 +224,7 @@ func TestCursorHeartbeatFallbacks(t *testing.T) {
 	require.NotNil(t, edit.IsWrite)
 	assert.True(t, *edit.IsWrite)
 
-	readHeartbeats := parser.cursorHeartbeats(ctx, cursorLogLine{
+	readHeartbeats := parser.cursorHeartbeats(cursorLogLine{
 		CreatedAt: createdAt,
 		Type:      2,
 		ToolFormerData: &cursorToolFormerData{
@@ -233,7 +244,7 @@ func TestCursorHeartbeatFallbacks(t *testing.T) {
 	require.NotNil(t, read.IsWrite)
 	assert.False(t, *read.IsWrite)
 
-	appHeartbeats := parser.cursorHeartbeats(ctx, cursorLogLine{
+	appHeartbeats := parser.cursorHeartbeats(cursorLogLine{
 		BubbleID:  "composer-1",
 		CreatedAt: createdAt,
 		Type:      1,
@@ -247,7 +258,7 @@ func TestCursorHeartbeatFallbacks(t *testing.T) {
 	require.NotNil(t, appHeartbeats[0].IsWrite)
 	assert.False(t, *appHeartbeats[0].IsWrite)
 
-	assert.Nil(t, parser.cursorFileHeartbeat(ctx, cursorLogLine{
+	assert.Nil(t, parser.cursorFileHeartbeat(cursorLogLine{
 		CreatedAt: createdAt,
 		Type:      2,
 		ToolFormerData: &cursorToolFormerData{
@@ -338,17 +349,15 @@ func TestClaudeHelpers(t *testing.T) {
 }
 
 func TestCodexHelpers(t *testing.T) {
-	ctx := context.Background()
 	timestamp := time.Date(2026, 3, 28, 12, 0, 0, 0, time.UTC)
 
-	assert.Nil(t, getCodexEntities(ctx, timestamp, "session.jsonl", "1.2.3", "/workspace", nil, "", codexPayload{}))
-	assert.Nil(t, getCodexEntities(ctx, timestamp, "session.jsonl", "1.2.3", "/workspace", nil, "", codexPayload{
+	assert.Nil(t, getCodexEntities(timestamp, "session.jsonl", "1.2.3", "/workspace", nil, "", codexPayload{}))
+	assert.Nil(t, getCodexEntities(timestamp, "session.jsonl", "1.2.3", "/workspace", nil, "", codexPayload{
 		Name:  heartbeat.PointerTo("not_apply_patch"),
 		Input: heartbeat.PointerTo("*** Update File: pkg/main.go\n+one"),
 	}))
 
 	userHeartbeats := getCodexEntities(
-		ctx,
 		timestamp,
 		"session.jsonl",
 		"1.2.3",
@@ -372,7 +381,6 @@ func TestCodexHelpers(t *testing.T) {
 	assert.Contains(t, userHeartbeats[0].UserAgent, "Codex/1.2.3")
 
 	assistantHeartbeats := getCodexEntities(
-		ctx,
 		timestamp,
 		"session.jsonl",
 		"1.2.3",
@@ -395,7 +403,6 @@ func TestCodexHelpers(t *testing.T) {
 	assert.False(t, *assistantHeartbeats[0].IsWrite)
 
 	heartbeats := getCodexEntities(
-		ctx,
 		timestamp,
 		"session.jsonl",
 		"1.2.3",

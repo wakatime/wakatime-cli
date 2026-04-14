@@ -427,15 +427,15 @@ func entityUserAgents(hh []heartbeat.Heartbeat) map[string]string {
 	return userAgents
 }
 
-func aiUserAgent(ctx context.Context, entity string, userAgents map[string]string, fallback string, parser string) string {
+func aiUserAgent(entity string, userAgents map[string]string, fallback string, parser string) string {
 	existing := fallback
 	if fromHeartbeat, found := userAgents[entity]; found && fromHeartbeat != "" {
 		existing = fromHeartbeat
 	}
 
 	if existing != "" {
-		return heartbeat.UserAgent(ctx, parser+" "+existing)
+		return parser + " " + existing
 	}
 
-	return heartbeat.UserAgent(ctx, parser)
+	return parser
 }
