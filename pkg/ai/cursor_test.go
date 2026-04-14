@@ -31,6 +31,14 @@ func TestCursorParse(t *testing.T) {
 	require.NoError(t, os.MkdirAll(dbDir, 0o755))
 
 	dbPath := filepath.Join(dbDir, "state.vscdb")
+	testDir := filepath.Join(home, "cursor-test")
+	skipPath := filepath.Join(testDir, "skip.js")
+	editedPath := filepath.Join(testDir, "edited.js")
+	readPath := filepath.Join(testDir, "read.go")
+	diffPath := filepath.Join(testDir, "diff.go")
+	pendingPath := filepath.Join(testDir, "pending.js")
+	legacyPath := filepath.Join(testDir, "legacy.py")
+	legacyRelativePath := filepath.Join("legacy", "relative.py")
 	diffContent := strings.Join([]string{
 		"@@ -1,2 +1,2 @@",
 		"-old",
@@ -53,10 +61,14 @@ func TestCursorParse(t *testing.T) {
 				"_v":        3,
 				"type":      2,
 				"createdAt": "2026-03-15T23:33:59Z",
+				"tokenCount": map[string]any{
+					"inputTokens":  3,
+					"outputTokens": 1,
+				},
 				"toolFormerData": map[string]any{
 					"status": "completed",
 					"name":   "edit_file_v2",
-					"params": `{"relativeWorkspacePath":"/tmp/skip.js","streamingContent":"skip"}`,
+					"params": fmt.Sprintf(`{"relativeWorkspacePath":%q,"streamingContent":"skip"}`, skipPath),
 				},
 			},
 		},
@@ -66,10 +78,17 @@ func TestCursorParse(t *testing.T) {
 				"_v":        3,
 				"type":      2,
 				"createdAt": "2026-03-15T23:34:39Z",
+				"tokenCount": map[string]any{
+					"inputTokens":  8,
+					"outputTokens": 5,
+				},
 				"toolFormerData": map[string]any{
 					"status": "completed",
 					"name":   "edit_file_v2",
-					"params": `{"relativeWorkspacePath":"/tmp/edited.js","streamingContent":"first\nsecond\n\nthird"}`,
+					"params": fmt.Sprintf(
+						`{"relativeWorkspacePath":%q,"streamingContent":"first\nsecond\n\nthird"}`,
+						editedPath,
+					),
 				},
 			},
 		},
@@ -82,7 +101,7 @@ func TestCursorParse(t *testing.T) {
 				"toolFormerData": map[string]any{
 					"status": "completed",
 					"name":   "read_file_v2",
-					"params": `{"targetFile":"/tmp/read.go","effectiveUri":"/tmp/read.go"}`,
+					"params": fmt.Sprintf(`{"targetFile":%q,"effectiveUri":%q}`, readPath, readPath),
 				},
 			},
 		},
@@ -105,7 +124,8 @@ func TestCursorParse(t *testing.T) {
 					"status": "completed",
 					"name":   "edit_file_v2",
 					"params": fmt.Sprintf(
-						`{"relativeWorkspacePath":"/tmp/diff.go","streamingContent":%q}`,
+						`{"relativeWorkspacePath":%q,"streamingContent":%q}`,
+						diffPath,
 						diffContent,
 					),
 				},
@@ -120,13 +140,13 @@ func TestCursorParse(t *testing.T) {
 				"toolFormerData": map[string]any{
 					"status":  "completed",
 					"name":    "edit_file",
-					"params":  `{"relativeWorkspacePath":"legacy/relative.py"}`,
-					"rawArgs": `{"target_file":"legacy/relative.py","code_edit":"alpha\nbeta"}`,
+					"params":  fmt.Sprintf(`{"relativeWorkspacePath":%q}`, legacyRelativePath),
+					"rawArgs": fmt.Sprintf(`{"target_file":%q,"code_edit":"alpha\nbeta"}`, legacyRelativePath),
 				},
 				"codeBlocks": []map[string]any{
 					{
 						"uri": map[string]any{
-							"_fsPath": "/tmp/legacy.py",
+							"_fsPath": legacyPath,
 						},
 					},
 				},
@@ -141,7 +161,7 @@ func TestCursorParse(t *testing.T) {
 				"toolFormerData": map[string]any{
 					"status": "pending",
 					"name":   "edit_file_v2",
-					"params": `{"relativeWorkspacePath":"/tmp/pending.js","streamingContent":"pending"}`,
+					"params": fmt.Sprintf(`{"relativeWorkspacePath":%q,"streamingContent":"pending"}`, pendingPath),
 				},
 			},
 		},
@@ -151,7 +171,7 @@ func TestCursorParse(t *testing.T) {
 		After:             time.Date(2026, 3, 15, 23, 34, 0, 0, time.UTC),
 		FallbackUserAgent: "plugin/0.0.1",
 		UserAgents: map[string]string{
-			"/tmp/edited.js": heartbeat.UserAgent(ctx, "editor/1.2.3"),
+			editedPath: heartbeat.UserAgent(ctx, "editor/1.2.3"),
 		},
 	}
 
@@ -160,10 +180,11 @@ func TestCursorParse(t *testing.T) {
 	require.Len(t, got, 6)
 
 	assert.Equal(t, "Cursor composer-1", got[0].Entity)
+	assert.Equal(t, "composer-1", got[0].AISession)
 	assert.Equal(t, heartbeat.AppType, got[0].EntityType)
 	assert.Equal(t, heartbeat.AICodingCategory.String(), got[0].Category)
 	assert.Nil(t, got[0].AILineChanges)
-	assert.Equal(t, "", got[0].ProjectPathOverride)
+	assert.Equal(t, testDir, got[0].ProjectPathOverride)
 	require.NotNil(t, got[0].IsWrite)
 	assert.False(t, *got[0].IsWrite)
 	assert.Equal(t, float64(time.Date(2026, 3, 15, 23, 34, 10, 0, time.UTC).Unix()), got[0].Time)
@@ -171,11 +192,14 @@ func TestCursorParse(t *testing.T) {
 	assert.True(t, strings.Index(got[0].UserAgent, "Cursor") < strings.Index(got[0].UserAgent, "plugin/0.0.1"))
 	assert.Contains(t, got[0].UserAgent, "plugin/0.0.1")
 
-	assert.Equal(t, "/tmp/edited.js", got[1].Entity)
+	assert.Equal(t, editedPath, got[1].Entity)
+	assert.Equal(t, "composer-1", got[1].AISession)
 	assert.Equal(t, heartbeat.FileType, got[1].EntityType)
 	assert.Equal(t, heartbeat.AICodingCategory.String(), got[1].Category)
 	require.NotNil(t, got[1].AILineChanges)
 	assert.Equal(t, 3, *got[1].AILineChanges)
+	assert.Equal(t, int64(8), got[1].AIInputTokens)
+	assert.Equal(t, int64(5), got[1].AIOutputTokens)
 	require.NotNil(t, got[1].IsWrite)
 	assert.True(t, *got[1].IsWrite)
 	assert.Equal(t, float64(time.Date(2026, 3, 15, 23, 34, 39, 0, time.UTC).Unix()), got[1].Time)
@@ -183,7 +207,8 @@ func TestCursorParse(t *testing.T) {
 	assert.True(t, strings.Index(got[1].UserAgent, "Cursor") < strings.Index(got[1].UserAgent, "editor/1.2.3"))
 	assert.Contains(t, got[1].UserAgent, "editor/1.2.3")
 
-	assert.Equal(t, "/tmp/read.go", got[2].Entity)
+	assert.Equal(t, readPath, got[2].Entity)
+	assert.Equal(t, "composer-1", got[2].AISession)
 	require.NotNil(t, got[2].AILineChanges)
 	assert.Equal(t, 0, *got[2].AILineChanges)
 	require.NotNil(t, got[2].IsWrite)
@@ -192,20 +217,23 @@ func TestCursorParse(t *testing.T) {
 	assert.Contains(t, got[2].UserAgent, "Cursor")
 
 	assert.Equal(t, "Cursor composer-1", got[3].Entity)
+	assert.Equal(t, "composer-1", got[3].AISession)
 	assert.Equal(t, heartbeat.AppType, got[3].EntityType)
 	assert.Nil(t, got[3].AILineChanges)
-	assert.Equal(t, filepath.Dir("/tmp/diff.go"), got[3].ProjectPathOverride)
+	assert.Equal(t, filepath.Dir(diffPath), got[3].ProjectPathOverride)
 	require.NotNil(t, got[3].IsWrite)
 	assert.False(t, *got[3].IsWrite)
 	assert.Equal(t, float64(time.Date(2026, 3, 15, 23, 35, 30, 0, time.UTC).Unix()), got[3].Time)
 
-	assert.Equal(t, "/tmp/diff.go", got[4].Entity)
+	assert.Equal(t, diffPath, got[4].Entity)
+	assert.Equal(t, "composer-1", got[4].AISession)
 	require.NotNil(t, got[4].AILineChanges)
 	assert.Equal(t, 0, *got[4].AILineChanges)
 	require.NotNil(t, got[4].IsWrite)
 	assert.True(t, *got[4].IsWrite)
 
-	assert.Equal(t, "legacy/relative.py", got[5].Entity)
+	assert.Equal(t, legacyRelativePath, got[5].Entity)
+	assert.Equal(t, "composer-1", got[5].AISession)
 	require.NotNil(t, got[5].AILineChanges)
 	assert.Equal(t, 2, *got[5].AILineChanges)
 }
@@ -233,6 +261,7 @@ func TestCursorParse_SkipsStaleCursorStateDB(t *testing.T) {
 	require.NoError(t, os.MkdirAll(dbDir, 0o755))
 
 	dbPath := filepath.Join(dbDir, "state.vscdb")
+	staleEditedPath := filepath.Join(home, "cursor-test", "edited.js")
 	createCursorDB(t, dbPath, []cursorTestRow{
 		{
 			Key: "bubbleId:composer-1:edit",
@@ -243,7 +272,10 @@ func TestCursorParse_SkipsStaleCursorStateDB(t *testing.T) {
 				"toolFormerData": map[string]any{
 					"status": "completed",
 					"name":   "edit_file_v2",
-					"params": `{"relativeWorkspacePath":"/tmp/edited.js","streamingContent":"first"}`,
+					"params": fmt.Sprintf(
+						`{"relativeWorkspacePath":%q,"streamingContent":"first"}`,
+						staleEditedPath,
+					),
 				},
 			},
 		},

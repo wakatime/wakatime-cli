@@ -39,14 +39,11 @@ type ParserConfig struct {
 	ProjectInfo       ProjectInfo
 }
 
-// ParserID represents an AI Parser ID.
-type ParserID int
-
 const maxTranscriptLineSize = 10 * 1024 * 1024
 
 const (
 	// UnknownParser is the parser ID used when not detected.
-	UnknownParser ParserID = iota
+	UnknownParser int = iota
 	// ClaudeParser is the parser ID for Claude Code.
 	ClaudeParser
 	// CodexParser is the parser ID for Codex.
@@ -57,57 +54,16 @@ const (
 	CursorParser
 )
 
-const (
-	claudeParserString  = "claude-parser"
-	codexParserString   = "codex-parser"
-	copilotParserString = "copilot-parser"
-	cursorParserString  = "cursor-parser"
-)
-
-// String implements fmt.Stringer interface.
-func (d ParserID) String() string {
-	switch d {
-	case ClaudeParser:
-		return claudeParserString
-	case CodexParser:
-		return codexParserString
-	case CopilotParser:
-		return copilotParserString
-	case CursorParser:
-		return cursorParserString
-	case UnknownParser:
-		fallthrough
-	default:
-		return ""
-	}
-}
-
 type (
 	// Parser is a common interface for AI.
 	Parser interface {
 		Parse(context.Context) (Heartbeats, error)
-		ID() ParserID
+		Name() string
 	}
 
 	// Heartbeats contains the parsed ai heartbeats from Parse().
 	Heartbeats []heartbeat.Heartbeat
 )
-
-func appHeartbeatEntity(parserName string, rawEntity string) string {
-	entity := strings.TrimSpace(rawEntity)
-	if entity == "" {
-		return parserName
-	}
-
-	entity = filepath.Base(entity)
-
-	entity = strings.TrimSuffix(entity, filepath.Ext(entity))
-	if entity == "" || strings.EqualFold(entity, parserName) {
-		return parserName
-	}
-
-	return parserName + " " + entity
-}
 
 // WithAISync initializes and returns a heartbeat handle option, which
 // can be used in a heartbeat processing pipeline to add heartbeats
@@ -209,11 +165,11 @@ func parseAIHeartbeats(
 	var aiHeartbeats Heartbeats
 
 	for _, p := range parsers {
-		logger.Debugf("execute %s", p.ID().String())
+		logger.Debugf("execute %s", p.Name())
 
 		heartbeats, err := p.Parse(ctx)
 		if err != nil {
-			logger.Errorf("unexpected error occurred at %q: %s", p.ID().String(), err)
+			logger.Errorf("unexpected error occurred at %q: %s", p.Name(), err)
 			continue
 		}
 
@@ -427,15 +383,51 @@ func entityUserAgents(hh []heartbeat.Heartbeat) map[string]string {
 	return userAgents
 }
 
-func aiUserAgent(ctx context.Context, entity string, userAgents map[string]string, fallback string, parser string) string {
+func aiPlugin(plugin Parser, version string) string {
+	if version == "" {
+		return plugin.Name()
+	}
+
+	return plugin.Name() + "/" + version
+}
+
+func aiUserAgent(entity string, userAgents map[string]string, fallback string, parser string) string {
 	existing := fallback
 	if fromHeartbeat, found := userAgents[entity]; found && fromHeartbeat != "" {
 		existing = fromHeartbeat
 	}
 
 	if existing != "" {
-		return heartbeat.UserAgent(ctx, parser+" "+existing)
+		return parser + " " + existing
 	}
 
-	return heartbeat.UserAgent(ctx, parser)
+	return parser
+}
+
+func appHeartbeatEntity(parserName string, rawEntity string) string {
+	entity := strings.TrimSpace(rawEntity)
+	if entity == "" {
+		return parserName
+	}
+
+	entity = filepath.Base(entity)
+
+	entity = strings.TrimSuffix(entity, filepath.Ext(entity))
+	if entity == "" || strings.EqualFold(entity, parserName) {
+		return parserName
+	}
+
+	return parserName + " " + entity
+}
+
+func countStringLines(content string) int {
+	lineChanges := 1
+
+	for _, char := range content {
+		if char == '\n' {
+			lineChanges++
+		}
+	}
+
+	return lineChanges
 }

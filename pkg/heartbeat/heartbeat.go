@@ -21,6 +21,9 @@ var remoteAddressRegex = regexp.MustCompile(`(?i)^((ssh|sftp)://)+(?P<credential
 // Heartbeat is a structure representing activity for a user on a some entity.
 type Heartbeat struct {
 	AILineChanges         *int       `json:"ai_line_changes,omitempty"`
+	AISession             string     `json:"ai_session,omitempty"`
+	AIInputTokens         int64      `json:"ai_input_tokens,omitempty"`
+	AIOutputTokens        int64      `json:"ai_output_tokens,omitempty"`
 	APIKey                string     `json:"-"`
 	APIURL                string     `json:"-"`
 	Branch                *string    `json:"branch,omitempty"`
@@ -50,6 +53,15 @@ type Heartbeat struct {
 	UserAgent             string     `json:"user_agent"`
 }
 
+// AITokens contains the previous and current token counts for calculating the delta input and output AI tokens used
+// since the last heartbeat.
+type AITokens struct {
+	LastInput     int64
+	LastOutput    int64
+	CurrentInput  int64
+	CurrentOutput int64
+}
+
 // New creates a new instance of Heartbeat with formatted entity
 // and local file paths for file type heartbeats.
 func New(
@@ -76,6 +88,69 @@ func New(
 ) Heartbeat {
 	return Heartbeat{
 		AILineChanges:        aiLineChanges,
+		BranchAlternate:      branchAlternate,
+		Category:             category,
+		CursorPosition:       cursorPosition,
+		Entity:               entity,
+		EntityType:           entityType,
+		HumanLineChanges:     humanLineChanges,
+		IsUnsavedEntity:      isUnsavedEntity,
+		IsWrite:              isWrite,
+		Language:             language,
+		LanguageAlternate:    languageAlternate,
+		LineNumber:           lineNumber,
+		Lines:                lines,
+		LocalFile:            localFile,
+		ProjectAlternate:     projectAlternate,
+		ProjectFromGitRemote: projectFromGitRemote,
+		ProjectOverride:      projectOverride,
+		ProjectPathOverride:  projectPathOverride,
+		Time:                 time,
+		UserAgent:            userAgent,
+	}
+}
+
+// NewWithAITokens creates a new instance of Heartbeat with formatted entity
+// and local file paths for file type heartbeats.
+func NewWithAITokens(
+	aiLineChanges *int,
+	aiSession string,
+	aiTokens AITokens,
+	branchAlternate string,
+	category string,
+	cursorPosition *int,
+	entity string,
+	entityType EntityType,
+	humanLineChanges *int,
+	isUnsavedEntity bool,
+	isWrite *bool,
+	language *string,
+	languageAlternate string,
+	lineNumber *int,
+	lines *int,
+	localFile string,
+	projectAlternate string,
+	projectFromGitRemote bool,
+	projectOverride string,
+	projectPathOverride string,
+	time float64,
+	userAgent string,
+) Heartbeat {
+	inputTokens := aiTokens.CurrentInput - aiTokens.LastInput
+	if inputTokens < 0 {
+		inputTokens = 0
+	}
+
+	outputTokens := aiTokens.CurrentOutput - aiTokens.LastOutput
+	if outputTokens < 0 {
+		outputTokens = 0
+	}
+
+	return Heartbeat{
+		AILineChanges:        aiLineChanges,
+		AISession:            aiSession,
+		AIInputTokens:        inputTokens,
+		AIOutputTokens:       outputTokens,
 		BranchAlternate:      branchAlternate,
 		Category:             category,
 		CursorPosition:       cursorPosition,

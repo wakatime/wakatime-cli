@@ -41,7 +41,7 @@ func Run(ctx context.Context, v *viper.Viper) (int, error) {
 	if err != nil {
 		logger.Errorf("sending heartbeats failed: %s", err)
 
-		if errSave := offlinecmd.SaveHeartbeats(ctx, v, queueFilepath, heartbeats); errSave != nil {
+		if errSave := offlinecmd.SaveHeartbeats(ctx, v, queueFilepath, renderUserAgents(ctx, heartbeats)); errSave != nil {
 			return exitcode.ErrConfigFileParse, fmt.Errorf("failed to save heartbeats to offline queue: %s", errSave)
 		}
 
@@ -55,7 +55,7 @@ func Run(ctx context.Context, v *viper.Viper) (int, error) {
 		// api.ErrAuth represents an error when parsing api key or timeout.
 		// Save heartbeats to offline db when api.ErrAuth as it avoids losing heartbeats.
 		if errors.As(err, &errauth) {
-			if err := offlinecmd.SaveHeartbeats(ctx, v, queueFilepath, heartbeats); err != nil {
+			if err := offlinecmd.SaveHeartbeats(ctx, v, queueFilepath, renderUserAgents(ctx, heartbeats)); err != nil {
 				logger.Errorf("failed to save heartbeats to offline queue: %s", err)
 			}
 
@@ -155,8 +155,6 @@ func buildHandle(ctx context.Context, v *viper.Viper, params params.Params, queu
 
 // BuildHeartbeats builds the command line heartbeat then appends any extra stdin heartbeats.
 func BuildHeartbeats(ctx context.Context, plugin string, heartbeatParams params.Heartbeat) []heartbeat.Heartbeat {
-	userAgent := heartbeat.UserAgent(ctx, plugin)
-
 	var heartbeats = make([]heartbeat.Heartbeat, 0, 1+len(heartbeatParams.ExtraHeartbeats))
 
 	heartbeats = append(heartbeats, heartbeat.New(
@@ -179,7 +177,7 @@ func BuildHeartbeats(ctx context.Context, plugin string, heartbeatParams params.
 		heartbeatParams.Project.Override,
 		heartbeatParams.Sanitize.ProjectPathOverride,
 		heartbeatParams.Time,
-		userAgent,
+		plugin,
 	))
 
 	if len(heartbeatParams.ExtraHeartbeats) > 0 {
@@ -187,10 +185,18 @@ func BuildHeartbeats(ctx context.Context, plugin string, heartbeatParams params.
 		logger.Debugf("include %d extra heartbeat(s) from stdin", len(heartbeatParams.ExtraHeartbeats))
 
 		for _, h := range heartbeatParams.ExtraHeartbeats {
-			h.UserAgent = userAgent
+			h.UserAgent = plugin
 
 			heartbeats = append(heartbeats, h)
 		}
+	}
+
+	return heartbeats
+}
+
+func renderUserAgents(ctx context.Context, heartbeats []heartbeat.Heartbeat) []heartbeat.Heartbeat {
+	for i := range heartbeats {
+		heartbeats[i].UserAgent = heartbeat.UserAgent(ctx, heartbeats[i].UserAgent)
 	}
 
 	return heartbeats
@@ -258,6 +264,8 @@ func sendPreparedHeartbeats(
 	withProjectConfig bool,
 ) error {
 	logger := log.Extract(ctx)
+
+	heartbeats = renderUserAgents(ctx, heartbeats)
 
 	setLogFields(ctx, params)
 	logger.Debugf("params: %s", params)

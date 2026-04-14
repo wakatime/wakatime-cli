@@ -47,6 +47,12 @@ func TestCopilotParseJSONSessionAndEditState(t *testing.T) {
 				"message": map[string]any{
 					"text": "Update the file and explain what changed",
 				},
+				"result": map[string]any{
+					"metadata": map[string]any{
+						"promptTokens": 9,
+						"outputTokens": 4,
+					},
+				},
 				"modelState": map[string]any{
 					"value":       1,
 					"completedAt": int64(1770000009000),
@@ -132,29 +138,36 @@ func TestCopilotParseJSONSessionAndEditState(t *testing.T) {
 	require.Len(t, got, 5)
 
 	assert.Equal(t, "Copilot session-1", got[0].Entity)
+	assert.Equal(t, "session-1", got[0].AISession)
 	assert.Equal(t, heartbeat.AppType, got[0].EntityType)
+	assert.Equal(t, int64(9), got[0].AIInputTokens)
+	assert.Equal(t, int64(4), got[0].AIOutputTokens)
 	require.NotNil(t, got[0].IsWrite)
 	assert.False(t, *got[0].IsWrite)
 	assert.Equal(t, filepath.Dir(mainFile), got[0].ProjectPathOverride)
-	assert.Contains(t, got[0].UserAgent, "GitHubCopilot/0.42.3")
+	assert.Contains(t, got[0].UserAgent, "Copilot/0.42.3")
 
 	assert.Equal(t, mainFile, got[1].Entity)
+	assert.Equal(t, "session-1", got[1].AISession)
 	assert.Equal(t, heartbeat.FileType, got[1].EntityType)
 	require.NotNil(t, got[1].IsWrite)
 	assert.False(t, *got[1].IsWrite)
 
 	assert.Equal(t, secondFile, got[2].Entity)
+	assert.Equal(t, "session-1", got[2].AISession)
 	require.NotNil(t, got[2].IsWrite)
 	assert.False(t, *got[2].IsWrite)
 
 	assert.Equal(t, mainFile, got[3].Entity)
+	assert.Equal(t, "session-1", got[3].AISession)
 	require.NotNil(t, got[3].AILineChanges)
 	assert.Equal(t, 2, *got[3].AILineChanges)
 	require.NotNil(t, got[3].IsWrite)
 	assert.True(t, *got[3].IsWrite)
-	assert.Contains(t, got[3].UserAgent, "GitHubCopilot/0.42.3")
+	assert.Contains(t, got[3].UserAgent, "Copilot/0.42.3")
 
 	assert.Equal(t, "Copilot session-1", got[4].Entity)
+	assert.Equal(t, "session-1", got[4].AISession)
 	assert.Equal(t, heartbeat.AppType, got[4].EntityType)
 }
 
@@ -185,6 +198,7 @@ func TestCopilotParseJSONLSession(t *testing.T) {
 		`"timestamp":1771000005000,`,
 		`"agent":{"extensionVersion":"0.42.3"},`,
 		`"message":{"text":"Please inspect the Astro page"},`,
+		`"result":{"metadata":{"usage":{"promptTokens":12,"completionTokens":5}}},`,
 		`"modelState":{"value":1,"completedAt":1771000009000},`,
 		`"response":[]}],"i":0}`,
 	}, "")
@@ -213,12 +227,17 @@ func TestCopilotParseJSONLSession(t *testing.T) {
 	require.Len(t, got, 3)
 
 	assert.Equal(t, "Copilot session-2", got[0].Entity)
+	assert.Equal(t, "session-2", got[0].AISession)
 	assert.Equal(t, heartbeat.AppType, got[0].EntityType)
+	assert.Equal(t, int64(12), got[0].AIInputTokens)
+	assert.Equal(t, int64(5), got[0].AIOutputTokens)
 	assert.Equal(t, readFile, got[1].Entity)
+	assert.Equal(t, "session-2", got[1].AISession)
 	assert.Equal(t, heartbeat.FileType, got[1].EntityType)
 	require.NotNil(t, got[1].IsWrite)
 	assert.False(t, *got[1].IsWrite)
 	assert.Equal(t, "Copilot session-2", got[2].Entity)
+	assert.Equal(t, "session-2", got[2].AISession)
 	assert.Equal(t, heartbeat.AppType, got[2].EntityType)
 }
 
@@ -254,7 +273,9 @@ func TestCopilotParseJSONLSession_IgnoresStringVariableValues(t *testing.T) {
 	require.Len(t, got, 2)
 
 	assert.Equal(t, "Copilot session-3", got[0].Entity)
+	assert.Equal(t, "session-3", got[0].AISession)
 	assert.Equal(t, heartbeat.AppType, got[0].EntityType)
 	assert.Equal(t, "Copilot session-3", got[1].Entity)
+	assert.Equal(t, "session-3", got[1].AISession)
 	assert.Equal(t, heartbeat.AppType, got[1].EntityType)
 }
