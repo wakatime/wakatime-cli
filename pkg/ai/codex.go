@@ -210,7 +210,6 @@ func (g Codex) parseTranscript(ctx context.Context, transcript string) (Heartbea
 		}
 
 		entities := getCodexEntities(
-			ctx,
 			logLine.Timestamp,
 			sessionEntity,
 			version,
@@ -250,7 +249,6 @@ func codexSessionInfo(cwd string, version string, sessionMeta *codexSessionMeta)
 }
 
 func getCodexEntities(
-	ctx context.Context,
 	timestamp time.Time,
 	sessionEntity string,
 	version string,
@@ -261,7 +259,6 @@ func getCodexEntities(
 ) Heartbeats {
 	if payload.Type == "message" && payload.Role != nil {
 		if heartbeat := codexMessageHeartbeat(
-			ctx,
 			timestamp,
 			sessionEntity,
 			version,
@@ -278,11 +275,10 @@ func getCodexEntities(
 		return nil
 	}
 
-	return codexPatchHeartbeats(ctx, timestamp, version, cwd, userAgents, fallbackUserAgent, *payload.Input)
+	return codexPatchHeartbeats(timestamp, version, cwd, userAgents, fallbackUserAgent, *payload.Input)
 }
 
 func codexPatchHeartbeats(
-	ctx context.Context,
 	timestamp time.Time,
 	version string,
 	cwd string,
@@ -308,7 +304,6 @@ func codexPatchHeartbeats(
 		if strings.HasPrefix(line, "*** ") {
 			if currentFile != "" {
 				heartbeats = append(heartbeats, codexHeartbeat(
-					ctx,
 					currentFile,
 					timestamp,
 					version,
@@ -333,7 +328,6 @@ func codexPatchHeartbeats(
 
 	if currentFile != "" {
 		heartbeats = append(heartbeats, codexHeartbeat(
-			ctx,
 			currentFile,
 			timestamp,
 			version,
@@ -348,7 +342,6 @@ func codexPatchHeartbeats(
 }
 
 func codexMessageHeartbeat(
-	ctx context.Context,
 	timestamp time.Time,
 	sessionEntity string,
 	version string,
@@ -404,7 +397,7 @@ func codexMessageHeartbeat(
 		"",
 		cwd,
 		float64(timestamp.Unix()),
-		aiUserAgent(ctx, entity, userAgents, fallbackUserAgent, codexPlugin(version)),
+		aiUserAgent(entity, userAgents, fallbackUserAgent, codexPlugin(version)),
 	)
 
 	return &h
@@ -430,7 +423,6 @@ func codexFilePath(cwd string, line string) string {
 }
 
 func codexHeartbeat(
-	ctx context.Context,
 	currentFile string,
 	timestamp time.Time,
 	version string,
@@ -459,7 +451,7 @@ func codexHeartbeat(
 		"",
 		"",
 		float64(timestamp.Unix()),
-		aiUserAgent(ctx, currentFile, userAgents, fallbackUserAgent, codexPlugin(version)),
+		aiUserAgent(currentFile, userAgents, fallbackUserAgent, codexPlugin(version)),
 	)
 }
 

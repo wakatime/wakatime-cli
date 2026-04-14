@@ -72,7 +72,11 @@ func TestClaudeParse(t *testing.T) {
 	require.NotNil(t, got[0].IsWrite)
 	assert.True(t, *got[0].IsWrite)
 	assert.Equal(t, float64(time.Date(2026, 3, 18, 12, 0, 0, 0, time.UTC).Unix()), got[0].Time)
-	assert.Contains(t, got[0].UserAgent, heartbeat.UserAgent(ctx, "editor/1.2.3"))
+	assert.Equal(
+		t,
+		"ClaudeCode/2.1.45 "+heartbeat.UserAgent(ctx, "editor/1.2.3"),
+		got[0].UserAgent,
+	)
 	assert.Contains(t, got[0].UserAgent, "ClaudeCode/2.1.45")
 
 	assert.Equal(t, "Claude session", got[1].Entity)
