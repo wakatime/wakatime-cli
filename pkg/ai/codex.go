@@ -225,6 +225,9 @@ func (g Codex) parseTranscript(ctx context.Context, transcript string) (Heartbea
 		tokens = g.codexTokenCounts(logLine, tokens)
 
 		if logLine.Timestamp.IsZero() || logLine.Timestamp.Before(g.After) {
+			tokens.LastInput = tokens.CurrentInput
+			tokens.LastOutput = tokens.CurrentOutput
+
 			continue
 		}
 
