@@ -19,6 +19,16 @@ import (
 type Claude ParserConfig
 
 type (
+	claudeUsage struct {
+		InputTokens  *int `json:"input_tokens"`
+		OutputTokens *int `json:"output_tokens"`
+		TotalTokens  *int `json:"total_tokens"`
+	}
+
+	claudeMessage struct {
+		Usage *claudeUsage `json:"usage"`
+	}
+
 	structuredPatch struct {
 		NewLines int `json:"newLines"`
 		OldLines int `json:"oldLines"`
@@ -50,8 +60,11 @@ type (
 
 	claudeLogLine struct {
 		Timestamp     time.Time           `json:"timestamp"`
+		SessionID     string              `json:"sessionId"`
 		Version       string              `json:"version"`
 		ToolUseResult *toolUseResultValue `json:"toolUseResult"`
+		Usage         *claudeUsage        `json:"usage"`
+		Message       *claudeMessage      `json:"message"`
 		IsSideChain   *bool               `json:"isSidechain"`
 		PromptID      *string             `json:"promptId"`
 		Type          *string             `json:"type"`
@@ -150,7 +163,7 @@ func (g Claude) Parse(ctx context.Context) (Heartbeats, error) {
 		return Heartbeats{}, nil
 	}
 
-	logger.Debugf("Found %d transcript logs modified after %s for %s", len(transcripts), g.After, g.ID())
+	logger.Debugf("Found %d transcript logs modified after %s for %s", len(transcripts), g.After, g.Name())
 
 	var heartbeats Heartbeats
 
@@ -174,7 +187,7 @@ func (g Claude) transcriptPaths(ctx context.Context) ([]string, error) {
 
 	claudeProjectsDir := filepath.Join(home, ".claude", "projects")
 
-	projects, err := os.ReadDir(claudeProjectsDir)
+	info, err := os.Stat(claudeProjectsDir)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, nil
@@ -183,30 +196,32 @@ func (g Claude) transcriptPaths(ctx context.Context) ([]string, error) {
 		return nil, fmt.Errorf("failed to read .claude projects directory: %s", err)
 	}
 
+	if !info.IsDir() {
+		return nil, nil
+	}
+
 	var transcripts []string
 
-	for _, project := range projects {
-		if !project.IsDir() {
-			continue
+	err = filepath.WalkDir(claudeProjectsDir, func(path string, d os.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return nil
 		}
 
-		files, err := os.ReadDir(filepath.Join(claudeProjectsDir, project.Name()))
-		if err != nil {
-			continue
+		if d.IsDir() || filepath.Ext(d.Name()) != ".jsonl" {
+			return nil
 		}
 
-		for _, file := range files {
-			if file.IsDir() || filepath.Ext(file.Name()) != ".jsonl" {
-				continue
-			}
-
-			info, err := file.Info()
-			if err != nil || info.ModTime().Before(g.After) {
-				continue
-			}
-
-			transcripts = append(transcripts, filepath.Join(claudeProjectsDir, project.Name(), file.Name()))
+		info, err := d.Info()
+		if err != nil || info.ModTime().Before(g.After) {
+			return nil
 		}
+
+		transcripts = append(transcripts, path)
+
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed walking .claude projects directory: %s", err)
 	}
 
 	return transcripts, nil
@@ -248,10 +263,14 @@ func (g Claude) parseTranscript(ctx context.Context, transcript string) (Heartbe
 		}
 	}
 
-	var heartbeats Heartbeats
+	var (
+		heartbeats Heartbeats
+		tokens     heartbeat.AITokens
+	)
 
 	claudeVersion := ""
 	cwd := ""
+	sessionID := g.sessionIDFromPath(transcript)
 	sessionEntity := appHeartbeatEntity("Claude", transcript)
 
 	for scanner.Scan() {
@@ -276,19 +295,29 @@ func (g Claude) parseTranscript(ctx context.Context, transcript string) (Heartbe
 			claudeVersion = logLine.Version
 		}
 
-		if lineCwd := claudeProjectPath(logLine); lineCwd != "" {
+		if logLine.SessionID != "" {
+			sessionID = logLine.SessionID
+		}
+
+		if lineCwd := g.projectPath(logLine); lineCwd != "" {
 			cwd = lineCwd
 		}
 
+		tokens = g.claudeTokenCounts(logLine, tokens)
+
 		if logLine.Timestamp.IsZero() || logLine.Timestamp.Before(g.After) {
+			tokens = g.advanceTokens(tokens)
 			continue
 		}
 
-		if logLine.ToolUseResult == nil {
+		parsed := g.claudeHeartbeats(logLine, sessionEntity, sessionID, claudeVersion, cwd, tokens)
+		if len(parsed) == 0 {
 			continue
 		}
 
-		heartbeats = append(heartbeats, g.claudeHeartbeats(logLine, sessionEntity, claudeVersion, cwd)...)
+		tokens = g.advanceTokens(tokens)
+
+		heartbeats = append(heartbeats, parsed...)
 	}
 
 	if err := scanner.Err(); err != nil {
@@ -298,19 +327,80 @@ func (g Claude) parseTranscript(ctx context.Context, transcript string) (Heartbe
 	return heartbeats, nil
 }
 
+func (g Claude) claudeTokenCounts(line claudeLogLine, previous heartbeat.AITokens) heartbeat.AITokens {
+	if line.Message != nil && line.Message.Usage != nil {
+		return g.messageTokenCounts(*line.Message.Usage, previous)
+	}
+
+	if line.Usage == nil {
+		return previous
+	}
+
+	current := previous
+
+	if line.Usage.InputTokens != nil {
+		current.CurrentInput = int64(*line.Usage.InputTokens)
+	}
+
+	switch {
+	case line.Usage.OutputTokens != nil:
+		current.CurrentOutput = int64(*line.Usage.OutputTokens)
+	case line.Usage.TotalTokens != nil:
+		current.CurrentOutput = int64(*line.Usage.TotalTokens)
+	}
+
+	return current
+}
+
+func (Claude) messageTokenCounts(usage claudeUsage, previous heartbeat.AITokens) heartbeat.AITokens {
+	current := previous
+
+	if usage.InputTokens != nil {
+		current.CurrentInput = previous.LastInput + int64(*usage.InputTokens)
+	}
+
+	switch {
+	case usage.OutputTokens != nil:
+		current.CurrentOutput = previous.LastOutput + int64(*usage.OutputTokens)
+	case usage.TotalTokens != nil:
+		current.CurrentOutput = previous.LastOutput + int64(*usage.TotalTokens)
+	}
+
+	return current
+}
+
 func (g Claude) claudeHeartbeats(
 	logLine claudeLogLine,
 	sessionEntity string,
+	sessionID string,
 	version string,
 	cwd string,
+	tokens heartbeat.AITokens,
 ) Heartbeats {
 	var heartbeats Heartbeats
 
-	if heartbeat := g.claudeAppHeartbeat(logLine, sessionEntity, version, cwd); heartbeat != nil {
+	assignTokens := g.hasTokenDelta(tokens)
+
+	appTokens := g.tokensForFirstHeartbeat(assignTokens, tokens)
+	if heartbeat := g.claudeAppHeartbeat(
+		logLine,
+		sessionEntity,
+		sessionID,
+		version,
+		cwd,
+		appTokens,
+	); heartbeat != nil {
 		heartbeats = append(heartbeats, *heartbeat)
+		assignTokens = false
 	}
 
-	if heartbeat := g.claudeFileHeartbeat(logLine, version); heartbeat != nil {
+	fileTokens := g.tokensForFirstHeartbeat(assignTokens, tokens)
+	if heartbeat := g.claudeFileHeartbeat(
+		logLine,
+		sessionID,
+		version,
+		fileTokens,
+	); heartbeat != nil {
 		heartbeats = append(heartbeats, *heartbeat)
 	}
 
@@ -320,80 +410,166 @@ func (g Claude) claudeHeartbeats(
 func (g Claude) claudeAppHeartbeat(
 	logLine claudeLogLine,
 	sessionEntity string,
+	sessionID string,
 	version string,
 	cwd string,
+	tokens *heartbeat.AITokens,
 ) *heartbeat.Heartbeat {
-	lineChanges := claudeAppLineChanges(logLine.ToolUseResult)
+	lineChanges := g.appLineChanges(logLine.ToolUseResult)
 	if lineChanges == 0 {
 		return nil
 	}
 
-	h := heartbeat.New(
+	h := g.newHeartbeat(
 		nil,
-		"",
-		heartbeat.AICodingCategory.String(),
-		nil,
+		sessionID,
+		tokens,
 		sessionEntity,
 		heartbeat.AppType,
-		nil,
-		false,
 		heartbeat.PointerTo(false),
-		nil,
-		"",
-		nil,
-		nil,
-		"",
-		"",
-		false,
-		"",
 		cwd,
 		float64(logLine.Timestamp.Unix()),
-		aiUserAgent(sessionEntity, g.UserAgents, g.FallbackUserAgent, claudePlugin(version)),
+		aiUserAgent(sessionEntity, g.UserAgents, g.FallbackUserAgent, aiPlugin(g, version)),
 	)
 
 	return &h
 }
 
-func (g Claude) claudeFileHeartbeat(logLine claudeLogLine, version string) *heartbeat.Heartbeat {
+func (g Claude) claudeFileHeartbeat(
+	logLine claudeLogLine,
+	sessionID string,
+	version string,
+	tokens *heartbeat.AITokens,
+) *heartbeat.Heartbeat {
 	if logLine.ToolUseResult == nil || logLine.ToolUseResult.Object == nil {
 		return nil
 	}
 
-	filePath := getClaudeFilePath(*logLine.ToolUseResult.Object)
+	filePath := g.getFilePath(*logLine.ToolUseResult.Object)
 	if filePath == "" {
 		return nil
 	}
 
-	lineChanges := claudeLineChanges(*logLine.ToolUseResult.Object)
+	lineChanges := g.lineChanges(*logLine.ToolUseResult.Object)
 	isWrite := lineChanges != 0
 
-	h := heartbeat.New(
+	h := g.newHeartbeat(
 		heartbeat.PointerTo(lineChanges),
-		"",
-		heartbeat.AICodingCategory.String(),
-		nil,
+		sessionID,
+		tokens,
 		filePath,
 		heartbeat.FileType,
-		nil,
-		false,
 		heartbeat.PointerTo(isWrite),
-		nil,
-		"",
-		nil,
-		nil,
-		"",
-		"",
-		false,
-		"",
 		"",
 		float64(logLine.Timestamp.Unix()),
-		aiUserAgent(filePath, g.UserAgents, g.FallbackUserAgent, claudePlugin(version)),
+		aiUserAgent(filePath, g.UserAgents, g.FallbackUserAgent, aiPlugin(g, version)),
 	)
 
 	return &h
 }
 
-func getClaudeFilePath(result toolUseResult) string {
+func (Claude) tokenDelta(tokens heartbeat.AITokens) (int64, int64) {
+	input := tokens.CurrentInput - tokens.LastInput
+	if input < 0 {
+		input = 0
+	}
+
+	output := tokens.CurrentOutput - tokens.LastOutput
+	if output < 0 {
+		output = 0
+	}
+
+	return input, output
+}
+
+func (g Claude) hasTokenDelta(tokens heartbeat.AITokens) bool {
+	input, output := g.tokenDelta(tokens)
+	return input > 0 || output > 0
+}
+
+func (Claude) advanceTokens(tokens heartbeat.AITokens) heartbeat.AITokens {
+	tokens.LastInput = tokens.CurrentInput
+	tokens.LastOutput = tokens.CurrentOutput
+
+	return tokens
+}
+
+func (Claude) tokensForFirstHeartbeat(assign bool, tokens heartbeat.AITokens) *heartbeat.AITokens {
+	if !assign {
+		return nil
+	}
+
+	copy := tokens
+
+	return &copy
+}
+
+func (Claude) newHeartbeat(
+	aiLineChanges *int,
+	aiSession string,
+	aiTokens *heartbeat.AITokens,
+	entity string,
+	entityType heartbeat.EntityType,
+	isWrite *bool,
+	projectPathOverride string,
+	timestamp float64,
+	userAgent string,
+) heartbeat.Heartbeat {
+	if aiTokens != nil {
+		return heartbeat.NewWithAITokens(
+			aiLineChanges,
+			aiSession,
+			*aiTokens,
+			"",
+			heartbeat.AICodingCategory.String(),
+			nil,
+			entity,
+			entityType,
+			nil,
+			false,
+			isWrite,
+			nil,
+			"",
+			nil,
+			nil,
+			"",
+			"",
+			false,
+			"",
+			projectPathOverride,
+			timestamp,
+			userAgent,
+		)
+	}
+
+	h := heartbeat.New(
+		aiLineChanges,
+		"",
+		heartbeat.AICodingCategory.String(),
+		nil,
+		entity,
+		entityType,
+		nil,
+		false,
+		isWrite,
+		nil,
+		"",
+		nil,
+		nil,
+		"",
+		"",
+		false,
+		"",
+		projectPathOverride,
+		timestamp,
+		userAgent,
+	)
+	h.AISession = aiSession
+
+	return h
+}
+
+func (Claude) getFilePath(result toolUseResult) string {
 	if result.FilePath != nil {
 		return *result.FilePath
 	}
@@ -405,7 +581,7 @@ func getClaudeFilePath(result toolUseResult) string {
 	return ""
 }
 
-func claudeProjectPath(logLine claudeLogLine) string {
+func (g Claude) projectPath(logLine claudeLogLine) string {
 	if logLine.Cwd != nil && *logLine.Cwd != "" {
 		return *logLine.Cwd
 	}
@@ -416,7 +592,7 @@ func claudeProjectPath(logLine claudeLogLine) string {
 		return ""
 	}
 
-	filePath := getClaudeFilePath(*result.Object)
+	filePath := g.getFilePath(*result.Object)
 	if filePath == "" {
 		return ""
 	}
@@ -424,7 +600,7 @@ func claudeProjectPath(logLine claudeLogLine) string {
 	return filepath.Dir(filePath)
 }
 
-func claudeLineChanges(result toolUseResult) int {
+func (Claude) lineChanges(result toolUseResult) int {
 	if result.StructuredPatch != nil && len(*result.StructuredPatch) > 0 {
 		lineChanges := 0
 		for _, patch := range *result.StructuredPatch {
@@ -447,7 +623,7 @@ func claudeLineChanges(result toolUseResult) int {
 	return 0
 }
 
-func claudeAppLineChanges(result *toolUseResultValue) int {
+func (g Claude) appLineChanges(result *toolUseResultValue) int {
 	if result == nil {
 		return 0
 	}
@@ -460,7 +636,7 @@ func claudeAppLineChanges(result *toolUseResultValue) int {
 		return 0
 	}
 
-	if getClaudeFilePath(*result.Object) != "" {
+	if g.getFilePath(*result.Object) != "" {
 		return 0
 	}
 
@@ -475,27 +651,12 @@ func claudeAppLineChanges(result *toolUseResultValue) int {
 	return 0
 }
 
-func countStringLines(content string) int {
-	lineChanges := 1
-
-	for _, char := range content {
-		if char == '\n' {
-			lineChanges++
-		}
-	}
-
-	return lineChanges
+func (Claude) sessionIDFromPath(path string) string {
+	base := filepath.Base(path)
+	return strings.TrimSuffix(base, filepath.Ext(base))
 }
 
-func claudePlugin(version string) string {
-	if version == "" {
-		return "ClaudeCode"
-	}
-
-	return "ClaudeCode/" + version
-}
-
-// ID returns its id.
-func (Claude) ID() ParserID {
-	return ClaudeParser
+// Name returns its name.
+func (Claude) Name() string {
+	return "Claude"
 }
