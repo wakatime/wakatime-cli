@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/spf13/viper"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
@@ -434,6 +435,14 @@ func countStringLines(content string) int {
 	return lineChanges
 }
 
+func promptLength(text string) int {
+	if strings.TrimSpace(text) == "" {
+		return 0
+	}
+
+	return utf8.RuneCountInString(text)
+}
+
 func replaceAppHeartbeats(heartbeats []heartbeat.Heartbeat) []heartbeat.Heartbeat {
 	var entity string
 
@@ -487,8 +496,10 @@ func sameHeartbeat(a, b heartbeat.Heartbeat) bool {
 func mergeHeartbeatCounts(dst *heartbeat.Heartbeat, src heartbeat.Heartbeat) {
 	dst.AILineChanges = addIntPointers(dst.AILineChanges, src.AILineChanges)
 	dst.HumanLineChanges = addIntPointers(dst.HumanLineChanges, src.HumanLineChanges)
+	dst.AIPromptLength += src.AIPromptLength
 	dst.AIInputTokens += src.AIInputTokens
 	dst.AIOutputTokens += src.AIOutputTokens
+	dst.AIPromptLength += src.AIPromptLength
 }
 
 func addIntPointers(dst *int, src *int) *int {

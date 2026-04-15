@@ -1534,6 +1534,7 @@ func TestQueue_PushMany_PreservesAITokensAndSession(t *testing.T) {
 		Entity:         "Claude session",
 		EntityType:     heartbeat.AppType,
 		IsWrite:        heartbeat.PointerTo(false),
+		AIPromptLength: 42,
 		Time:           1770000000,
 		UserAgent:      "Claude/2.1.45 plugin/0.0.1",
 	}

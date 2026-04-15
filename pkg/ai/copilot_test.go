@@ -142,6 +142,7 @@ func TestCopilotParseJSONSessionAndEditState(t *testing.T) {
 	assert.Equal(t, heartbeat.AppType, got[0].EntityType)
 	assert.Equal(t, int64(9), got[0].AIInputTokens)
 	assert.Equal(t, int64(4), got[0].AIOutputTokens)
+	assert.Equal(t, len([]rune("Update the file and explain what changed")), got[0].AIPromptLength)
 	require.NotNil(t, got[0].IsWrite)
 	assert.False(t, *got[0].IsWrite)
 	assert.Equal(t, filepath.Dir(mainFile), got[0].ProjectPathOverride)
@@ -169,6 +170,7 @@ func TestCopilotParseJSONSessionAndEditState(t *testing.T) {
 	assert.Equal(t, "Copilot session-1", got[4].Entity)
 	assert.Equal(t, "session-1", got[4].AISession)
 	assert.Equal(t, heartbeat.AppType, got[4].EntityType)
+	assert.Zero(t, got[4].AIPromptLength)
 }
 
 func TestCopilotParseJSONLSession(t *testing.T) {
@@ -231,6 +233,7 @@ func TestCopilotParseJSONLSession(t *testing.T) {
 	assert.Equal(t, heartbeat.AppType, got[0].EntityType)
 	assert.Equal(t, int64(12), got[0].AIInputTokens)
 	assert.Equal(t, int64(5), got[0].AIOutputTokens)
+	assert.Equal(t, len([]rune("Please inspect the Astro page")), got[0].AIPromptLength)
 	assert.Equal(t, readFile, got[1].Entity)
 	assert.Equal(t, "session-2", got[1].AISession)
 	assert.Equal(t, heartbeat.FileType, got[1].EntityType)
@@ -239,6 +242,7 @@ func TestCopilotParseJSONLSession(t *testing.T) {
 	assert.Equal(t, "Copilot session-2", got[2].Entity)
 	assert.Equal(t, "session-2", got[2].AISession)
 	assert.Equal(t, heartbeat.AppType, got[2].EntityType)
+	assert.Zero(t, got[2].AIPromptLength)
 }
 
 func TestCopilotParseJSONLSession_IgnoresStringVariableValues(t *testing.T) {
@@ -275,7 +279,9 @@ func TestCopilotParseJSONLSession_IgnoresStringVariableValues(t *testing.T) {
 	assert.Equal(t, "Copilot session-3", got[0].Entity)
 	assert.Equal(t, "session-3", got[0].AISession)
 	assert.Equal(t, heartbeat.AppType, got[0].EntityType)
+	assert.Equal(t, len([]rune("Find bugs in this repo")), got[0].AIPromptLength)
 	assert.Equal(t, "Copilot session-3", got[1].Entity)
 	assert.Equal(t, "session-3", got[1].AISession)
 	assert.Equal(t, heartbeat.AppType, got[1].EntityType)
+	assert.Zero(t, got[1].AIPromptLength)
 }

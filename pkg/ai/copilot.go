@@ -628,6 +628,7 @@ func (g Copilot) sessionHeartbeats(
 						sessionEntity,
 						session.SessionID,
 						g.tokensForFirstHeartbeat(assignTokens, tokens),
+						promptLength(g.messageText(request.Message)),
 						requestTime,
 						projectPath,
 						g.UserAgents,
@@ -665,6 +666,7 @@ func (g Copilot) sessionHeartbeats(
 						sessionEntity,
 						session.SessionID,
 						g.tokensForFirstHeartbeat(assignTokens, tokens),
+						0,
 						completedAt,
 						projectPath,
 						g.UserAgents,
@@ -1182,6 +1184,7 @@ func (Copilot) appHeartbeat(
 	entity string,
 	sessionID string,
 	aiTokens *heartbeat.AITokens,
+	promptLength int,
 	timestamp time.Time,
 	projectPath string,
 	userAgents map[string]string,
@@ -1189,7 +1192,7 @@ func (Copilot) appHeartbeat(
 	plugin string,
 ) heartbeat.Heartbeat {
 	if aiTokens != nil {
-		return heartbeat.NewWithAITokens(
+		h := heartbeat.NewWithAITokens(
 			nil,
 			sessionID,
 			*aiTokens,
@@ -1213,6 +1216,10 @@ func (Copilot) appHeartbeat(
 			float64(timestamp.UnixMilli())/1000,
 			aiUserAgent(entity, userAgents, fallbackUserAgent, plugin),
 		)
+
+		h.AIPromptLength = promptLength
+
+		return h
 	}
 
 	h := heartbeat.New(
@@ -1238,6 +1245,7 @@ func (Copilot) appHeartbeat(
 		aiUserAgent(entity, userAgents, fallbackUserAgent, plugin),
 	)
 	h.AISession = sessionID
+	h.AIPromptLength = promptLength
 
 	return h
 }

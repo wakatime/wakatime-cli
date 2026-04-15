@@ -316,7 +316,8 @@ func (g Cursor) cursorAppHeartbeat(
 	sessionID string,
 	tokens *heartbeat.AITokens,
 ) *heartbeat.Heartbeat {
-	if strings.TrimSpace(logLine.Text) == "" {
+	text := strings.TrimSpace(logLine.Text)
+	if text == "" {
 		return nil
 	}
 
@@ -337,6 +338,9 @@ func (g Cursor) cursorAppHeartbeat(
 		float64(logLine.CreatedAt.Unix()),
 		aiUserAgent(entity, g.UserAgents, g.FallbackUserAgent, aiPlugin(g, "")),
 	)
+	if logLine.Type == 1 {
+		h.AIPromptLength = promptLength(logLine.Text)
+	}
 
 	return &h
 }
