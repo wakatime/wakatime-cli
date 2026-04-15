@@ -99,6 +99,8 @@ func WithAISync(config Config) heartbeat.HandleOption {
 
 			minAIHeartbeatTime, maxAIHeartbeatTime := minMaxAIHeartbeatTimes(heartbeats)
 
+			heartbeats = replaceAppHeartbeats(heartbeats)
+
 			heartbeats, firstHumanEdit := preserveHumanAttributes(heartbeats, hh, config, maxAIHeartbeatTime)
 
 			entities := entityToTimeMap(heartbeats)
@@ -430,4 +432,82 @@ func countStringLines(content string) int {
 	}
 
 	return lineChanges
+}
+
+func replaceAppHeartbeats(heartbeats []heartbeat.Heartbeat) []heartbeat.Heartbeat {
+	var entity string
+
+	for _, h := range heartbeats {
+		if h.EntityType == heartbeat.FileType && h.Entity != "" {
+			entity = h.Entity
+			break
+		}
+	}
+
+	if entity == "" {
+		return heartbeats
+	}
+
+	deduped := make([]heartbeat.Heartbeat, 0, len(heartbeats))
+
+	for i, h := range heartbeats {
+		if h.EntityType == heartbeat.FileType && h.Entity != "" {
+			entity = h.Entity
+		}
+
+		if h.EntityType == heartbeat.AppType {
+			h.EntityType = heartbeat.FileType
+			h.Entity = entity
+
+			if i > 0 && i+1 < len(heartbeats) && sameHeartbeat(h, heartbeats[i+1]) {
+				mergeHeartbeatCounts(&heartbeats[i+1], h)
+				continue
+			}
+
+			if i > 0 && len(deduped) > 0 && sameHeartbeat(h, deduped[len(deduped)-1]) {
+				mergeHeartbeatCounts(&deduped[len(deduped)-1], h)
+				continue
+			}
+		}
+
+		deduped = append(deduped, h)
+	}
+
+	return deduped
+}
+
+func sameHeartbeat(a, b heartbeat.Heartbeat) bool {
+	return a.AISession == b.AISession &&
+		a.Category == b.Category &&
+		a.Entity == b.Entity &&
+		a.EntityType == b.EntityType &&
+		absFloat64(a.Time-b.Time) < 60
+}
+
+func mergeHeartbeatCounts(dst *heartbeat.Heartbeat, src heartbeat.Heartbeat) {
+	dst.AILineChanges = addIntPointers(dst.AILineChanges, src.AILineChanges)
+	dst.HumanLineChanges = addIntPointers(dst.HumanLineChanges, src.HumanLineChanges)
+	dst.AIInputTokens += src.AIInputTokens
+	dst.AIOutputTokens += src.AIOutputTokens
+}
+
+func addIntPointers(dst *int, src *int) *int {
+	switch {
+	case dst == nil:
+		return src
+	case src == nil:
+		return dst
+	default:
+		sum := *dst + *src
+
+		return &sum
+	}
+}
+
+func absFloat64(v float64) float64 {
+	if v < 0 {
+		return -v
+	}
+
+	return v
 }
