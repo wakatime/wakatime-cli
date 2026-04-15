@@ -105,8 +105,7 @@ func WithAISync(config Config) heartbeat.HandleOption {
 
 			entities := entityToTimeMap(heartbeats)
 
-			// Add back Human heartbeats unless they look like duplicate IDE heartbeats
-			// caused by the same AI edit on the same entity and timestamp.
+			// Add back Human heartbeats unless they look like duplicate AI heartbeats
 			for _, h := range hh {
 				if sameEntityAIHeartbeatWithinWindow(h, entities, 5) && (firstHumanEdit == nil || h.Time < *firstHumanEdit) {
 					continue
@@ -120,7 +119,8 @@ func WithAISync(config Config) heartbeat.HandleOption {
 					return h.Time > minAIHeartbeatTime-windowSeconds && h.Time < maxAIHeartbeatTime+windowSeconds
 				}
 
-				if inRange(2) || ((firstHumanEdit == nil || h.Time < *firstHumanEdit) && inRange(30)) {
+				if (inRange(2) && (h.HumanLineChanges == nil || *h.HumanLineChanges == 0)) ||
+					((firstHumanEdit == nil || h.Time < *firstHumanEdit) && inRange(30)) {
 					h.Category = "ai coding"
 				}
 
