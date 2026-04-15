@@ -406,6 +406,7 @@ func (g Codex) messageHeartbeat(
 		entity       = sessionEntity
 		expectedType string
 		lineChanges  int
+		promptChars  int
 	)
 
 	switch *payload.Role {
@@ -420,6 +421,14 @@ func (g Codex) messageHeartbeat(
 	for _, item := range payload.Content {
 		if item.Type != expectedType || strings.TrimSpace(item.Text) == "" {
 			continue
+		}
+
+		if *payload.Role == "user" {
+			if strings.HasPrefix(strings.TrimSpace(item.Text), "<") {
+				continue
+			}
+
+			promptChars += len([]rune(item.Text))
 		}
 
 		lineChanges += countStringLines(item.Text)
@@ -453,6 +462,9 @@ func (g Codex) messageHeartbeat(
 		float64(timestamp.Unix()),
 		aiUserAgent(entity, userAgents, fallbackUserAgent, aiPlugin(g, version)),
 	)
+	if *payload.Role == "user" && promptChars > 0 {
+		h.AIPromptLength = promptChars
+	}
 
 	return &h
 }

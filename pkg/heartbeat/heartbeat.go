@@ -24,6 +24,7 @@ type Heartbeat struct {
 	AISession             string     `json:"ai_session,omitempty"`
 	AIInputTokens         int64      `json:"ai_input_tokens,omitempty"`
 	AIOutputTokens        int64      `json:"ai_output_tokens,omitempty"`
+	AIPromptLength        int        `json:"ai_prompt_length,omitempty"`
 	APIKey                string     `json:"-"`
 	APIURL                string     `json:"-"`
 	Branch                *string    `json:"branch,omitempty"`

@@ -17,6 +17,7 @@ func TestRemoveNoopHeartbeatsReplacesAppHeartbeatsAndMergesDuplicates(t *testing
 			AILineChanges:  heartbeat.PointerTo(2),
 			AIInputTokens:  10,
 			AIOutputTokens: 4,
+			AIPromptLength: 20,
 			Category:       "ai coding",
 			Time:           100,
 			UserAgent:      "Codex/1.0.0",
@@ -62,6 +63,7 @@ func TestRemoveNoopHeartbeatsReplacesAppHeartbeatsAndMergesDuplicates(t *testing
 	require.NotNil(t, got[0].AILineChanges)
 	assert.Equal(t, 2, *got[0].AILineChanges)
 	assert.Nil(t, got[0].HumanLineChanges)
+	assert.Equal(t, 20, got[0].AIPromptLength)
 	assert.Equal(t, int64(10), got[0].AIInputTokens)
 	assert.Equal(t, int64(4), got[0].AIOutputTokens)
 	assert.Equal(t, float64(100), got[0].Time)

@@ -28,8 +28,15 @@ type (
 	}
 
 	claudeMessage struct {
-		ID    string       `json:"id"`
-		Usage *claudeUsage `json:"usage"`
+		ID      string                 `json:"id"`
+		Role    string                 `json:"role"`
+		Usage   *claudeUsage           `json:"usage"`
+		Content []claudeMessageContent `json:"content"`
+	}
+
+	claudeMessageContent struct {
+		Type string `json:"type"`
+		Text string `json:"text"`
 	}
 
 	structuredPatch struct {
@@ -464,7 +471,9 @@ func (g Claude) claudeAppHeartbeat(
 	tokens *heartbeat.AITokens,
 ) *heartbeat.Heartbeat {
 	lineChanges := g.appLineChanges(logLine.ToolUseResult)
-	if lineChanges == 0 {
+
+	promptLength := claudePromptLength(logLine)
+	if lineChanges == 0 && promptLength == 0 {
 		return nil
 	}
 
@@ -479,6 +488,7 @@ func (g Claude) claudeAppHeartbeat(
 		float64(logLine.Timestamp.Unix()),
 		aiUserAgent(sessionEntity, g.UserAgents, g.FallbackUserAgent, aiPlugin(g, version)),
 	)
+	h.AIPromptLength = promptLength
 
 	return &h
 }
@@ -701,6 +711,37 @@ func (g Claude) appLineChanges(result *toolUseResultValue) int {
 	}
 
 	return 0
+}
+
+func claudePromptLength(logLine claudeLogLine) int {
+	if logLine.IsSideChain != nil && *logLine.IsSideChain {
+		return 0
+	}
+
+	if logLine.Type == nil || *logLine.Type != "user" || logLine.Message == nil {
+		return 0
+	}
+
+	if !strings.EqualFold(logLine.Message.Role, "user") {
+		return 0
+	}
+
+	total := 0
+
+	for _, item := range logLine.Message.Content {
+		if item.Type != "text" {
+			continue
+		}
+
+		text := strings.TrimSpace(item.Text)
+		if text == "" || strings.HasPrefix(text, "<") {
+			continue
+		}
+
+		total += promptLength(item.Text)
+	}
+
+	return total
 }
 
 func (Claude) sessionIDFromPath(path string) string {
