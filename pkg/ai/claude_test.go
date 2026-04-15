@@ -16,6 +16,8 @@ import (
 
 func TestClaudeParse(t *testing.T) {
 	ctx := context.Background()
+	expectedPrompt := "look for any bugs in the AI parsers. " +
+		"Feel free to read local jsonl log files to make sure schemas are as expected"
 
 	home := t.TempDir()
 	t.Setenv("HOME", home)
@@ -31,6 +33,19 @@ func TestClaudeParse(t *testing.T) {
 			"\"structuredPatch\":[{\"oldLines\":1,\"newLines\":2}]},\"usage\":{\"total_tokens\":5}}",
 		"not json",
 		"{\"timestamp\":\"2026-03-18T11:30:00Z\"}",
+		strings.Join([]string{
+			`{"timestamp":"2026-03-18T11:45:00Z","sessionId":"claude-session","version":"2.1.45",`,
+			`"cwd":"/tmp","isSidechain":false,"type":"user","message":{"role":"user","content":[`,
+			`{"type":"text","text":"<ide_opened_file>ignore this harness text</ide_opened_file>"},`,
+			`{"type":"text","text":"` + expectedPrompt + `"}`,
+			`]}}`,
+		}, ""),
+		strings.Join([]string{
+			`{"timestamp":"2026-03-18T11:50:00Z","sessionId":"claude-session","version":"2.1.45",`,
+			`"cwd":"/tmp","isSidechain":true,"type":"user","message":{"role":"user","content":[`,
+			`{"type":"text","text":"this sidechain prompt should not be counted"}`,
+			`]}}`,
+		}, ""),
 		"{\"timestamp\":\"2026-03-18T12:00:00Z\",\"sessionId\":\"claude-session\",\"version\":\"2.1.45\"," +
 			"\"toolUseResult\":{\"filePath\":\"/tmp/edited.go\"," +
 			"\"structuredPatch\":[{\"oldLines\":3,\"newLines\":5}," +
@@ -73,79 +88,100 @@ func TestClaudeParse(t *testing.T) {
 
 	got, err := parser.Parse(ctx)
 	require.NoError(t, err)
-	require.Len(t, got, 7)
+	require.Len(t, got, 8)
 
-	assert.Equal(t, "/tmp/edited.go", got[0].Entity)
+	assert.Equal(t, "Claude agent-worker", got[0].Entity)
 	assert.Equal(t, "claude-session", got[0].AISession)
-	assert.Equal(t, heartbeat.FileType, got[0].EntityType)
-	assert.Equal(t, heartbeat.AICodingCategory.String(), got[0].Category)
-	require.NotNil(t, got[0].AILineChanges)
-	assert.Equal(t, -1, *got[0].AILineChanges)
-	assert.Equal(t, int64(11), got[0].AIInputTokens)
-	assert.Equal(t, int64(12), got[0].AIOutputTokens)
+	assert.Equal(t, heartbeat.AppType, got[0].EntityType)
+	assert.Nil(t, got[0].AILineChanges)
+	assert.Equal(t, len([]rune(expectedPrompt)), got[0].AIPromptLength)
+	assert.Equal(t, "/tmp", got[0].ProjectPathOverride)
+	assert.Zero(t, got[0].AIInputTokens)
+	assert.Zero(t, got[0].AIOutputTokens)
 	require.NotNil(t, got[0].IsWrite)
-	assert.True(t, *got[0].IsWrite)
-	assert.Equal(t, float64(time.Date(2026, 3, 18, 12, 0, 0, 0, time.UTC).Unix()), got[0].Time)
+	assert.False(t, *got[0].IsWrite)
+	assert.Equal(t, float64(time.Date(2026, 3, 18, 11, 45, 0, 0, time.UTC).Unix()), got[0].Time)
 	assert.Equal(
 		t,
-		"Claude/2.1.45 "+heartbeat.UserAgent(ctx, "editor/1.2.3"),
+		"Claude/2.1.45 plugin/0.0.1",
 		got[0].UserAgent,
 	)
 	assert.Contains(t, got[0].UserAgent, "Claude/2.1.45")
 
-	assert.Equal(t, "Claude agent-worker", got[1].Entity)
+	assert.Equal(t, "/tmp/edited.go", got[1].Entity)
 	assert.Equal(t, "claude-session", got[1].AISession)
-	assert.Equal(t, heartbeat.AppType, got[1].EntityType)
-	assert.Nil(t, got[1].AILineChanges)
-	assert.Equal(t, filepath.Dir("/tmp/edited.go"), got[1].ProjectPathOverride)
-	assert.Zero(t, got[1].AIInputTokens)
-	assert.Zero(t, got[1].AIOutputTokens)
+	assert.Equal(t, heartbeat.FileType, got[1].EntityType)
+	assert.Equal(t, heartbeat.AICodingCategory.String(), got[1].Category)
+	require.NotNil(t, got[1].AILineChanges)
+	assert.Equal(t, -1, *got[1].AILineChanges)
+	assert.Zero(t, got[1].AIPromptLength)
+	assert.Equal(t, int64(11), got[1].AIInputTokens)
+	assert.Equal(t, int64(12), got[1].AIOutputTokens)
 	require.NotNil(t, got[1].IsWrite)
-	assert.False(t, *got[1].IsWrite)
-	assert.Contains(t, got[1].UserAgent, "plugin/0.0.1")
+	assert.True(t, *got[1].IsWrite)
+	assert.Equal(t, float64(time.Date(2026, 3, 18, 12, 0, 0, 0, time.UTC).Unix()), got[1].Time)
+	assert.Equal(
+		t,
+		"Claude/2.1.45 "+heartbeat.UserAgent(ctx, "editor/1.2.3"),
+		got[1].UserAgent,
+	)
 	assert.Contains(t, got[1].UserAgent, "Claude/2.1.45")
 
 	assert.Equal(t, "Claude agent-worker", got[2].Entity)
 	assert.Equal(t, "claude-session", got[2].AISession)
 	assert.Equal(t, heartbeat.AppType, got[2].EntityType)
 	assert.Nil(t, got[2].AILineChanges)
+	assert.Zero(t, got[2].AIPromptLength)
 	assert.Equal(t, filepath.Dir("/tmp/array.go"), got[2].ProjectPathOverride)
-	assert.Equal(t, int64(4), got[2].AIInputTokens)
-	assert.Equal(t, int64(1), got[2].AIOutputTokens)
+	assert.Zero(t, got[2].AIInputTokens)
+	assert.Zero(t, got[2].AIOutputTokens)
 	require.NotNil(t, got[2].IsWrite)
 	assert.False(t, *got[2].IsWrite)
 
-	assert.Equal(t, "/tmp/array.go", got[3].Entity)
+	assert.Equal(t, "Claude agent-worker", got[3].Entity)
 	assert.Equal(t, "claude-session", got[3].AISession)
-	require.NotNil(t, got[3].AILineChanges)
-	assert.Equal(t, 3, *got[3].AILineChanges)
-	assert.Equal(t, int64(5), got[3].AIInputTokens)
-	assert.Equal(t, int64(3), got[3].AIOutputTokens)
+	assert.Equal(t, heartbeat.AppType, got[3].EntityType)
+	assert.Nil(t, got[3].AILineChanges)
+	assert.Zero(t, got[3].AIPromptLength)
+	assert.Equal(t, filepath.Dir("/tmp/array.go"), got[3].ProjectPathOverride)
+	assert.Equal(t, int64(4), got[3].AIInputTokens)
+	assert.Equal(t, int64(1), got[3].AIOutputTokens)
 	require.NotNil(t, got[3].IsWrite)
-	assert.True(t, *got[3].IsWrite)
-	assert.Contains(t, got[3].UserAgent, "plugin/0.0.1")
-	assert.Contains(t, got[3].UserAgent, "Claude/2.1.45")
+	assert.False(t, *got[3].IsWrite)
 
-	assert.Equal(t, "/tmp/new.go", got[4].Entity)
+	assert.Equal(t, "/tmp/array.go", got[4].Entity)
 	assert.Equal(t, "claude-session", got[4].AISession)
 	require.NotNil(t, got[4].AILineChanges)
 	assert.Equal(t, 3, *got[4].AILineChanges)
-	assert.Equal(t, int64(6), got[4].AIInputTokens)
+	assert.Zero(t, got[4].AIPromptLength)
+	assert.Equal(t, int64(5), got[4].AIInputTokens)
 	assert.Equal(t, int64(3), got[4].AIOutputTokens)
+	require.NotNil(t, got[4].IsWrite)
+	assert.True(t, *got[4].IsWrite)
 
-	assert.Equal(t, "/tmp/read.go", got[5].Entity)
+	assert.Equal(t, "/tmp/new.go", got[5].Entity)
 	assert.Equal(t, "claude-session", got[5].AISession)
 	require.NotNil(t, got[5].AILineChanges)
-	assert.Equal(t, 0, *got[5].AILineChanges)
-	assert.Equal(t, int64(2), got[5].AIInputTokens)
-	assert.Equal(t, int64(1), got[5].AIOutputTokens)
+	assert.Equal(t, 3, *got[5].AILineChanges)
+	assert.Zero(t, got[5].AIPromptLength)
+	assert.Equal(t, int64(6), got[5].AIInputTokens)
+	assert.Equal(t, int64(3), got[5].AIOutputTokens)
 
-	assert.Equal(t, "/tmp/empty.go", got[6].Entity)
+	assert.Equal(t, "/tmp/read.go", got[6].Entity)
 	assert.Equal(t, "claude-session", got[6].AISession)
 	require.NotNil(t, got[6].AILineChanges)
 	assert.Equal(t, 0, *got[6].AILineChanges)
-	assert.Equal(t, int64(1), got[6].AIInputTokens)
+	assert.Zero(t, got[6].AIPromptLength)
+	assert.Equal(t, int64(2), got[6].AIInputTokens)
 	assert.Equal(t, int64(1), got[6].AIOutputTokens)
+
+	assert.Equal(t, "/tmp/empty.go", got[7].Entity)
+	assert.Equal(t, "claude-session", got[7].AISession)
+	require.NotNil(t, got[7].AILineChanges)
+	assert.Equal(t, 0, *got[7].AILineChanges)
+	assert.Zero(t, got[7].AIPromptLength)
+	assert.Equal(t, int64(1), got[7].AIInputTokens)
+	assert.Equal(t, int64(1), got[7].AIOutputTokens)
 }
 
 func TestClaudeParse_NoClaudeProjectsDir(t *testing.T) {

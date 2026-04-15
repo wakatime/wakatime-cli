@@ -45,6 +45,7 @@ func TestCodexParse(t *testing.T) {
 	assert.Equal(t, heartbeat.AppType, got[0].EntityType)
 	assert.Equal(t, heartbeat.AICodingCategory.String(), got[0].Category)
 	assert.Nil(t, got[0].AILineChanges)
+	assert.Equal(t, len([]rune("Please implement the code as described by the comment.")), got[0].AIPromptLength)
 	assert.Equal(t, "/root/wakatime-cli", got[0].ProjectPathOverride)
 	require.NotNil(t, got[0].IsWrite)
 	assert.False(t, *got[0].IsWrite)
@@ -61,6 +62,7 @@ func TestCodexParse(t *testing.T) {
 	assert.Equal(t, heartbeat.AppType, got[1].EntityType)
 	assert.Equal(t, "019d3438-39ae-7fb2-8526-d6c02ba3577c", got[1].AISession)
 	assert.Nil(t, got[1].AILineChanges)
+	assert.Zero(t, got[1].AIPromptLength)
 	assert.Equal(t, "/root/wakatime-cli", got[1].ProjectPathOverride)
 	require.NotNil(t, got[1].IsWrite)
 	assert.False(t, *got[1].IsWrite)
@@ -81,6 +83,7 @@ func TestCodexParse(t *testing.T) {
 	assert.Equal(t, heartbeat.AICodingCategory.String(), got[2].Category)
 	require.NotNil(t, got[2].AILineChanges)
 	assert.Equal(t, 20, *got[2].AILineChanges)
+	assert.Zero(t, got[2].AIPromptLength)
 	require.NotNil(t, got[2].IsWrite)
 	assert.True(t, *got[2].IsWrite)
 	assert.Equal(t, float64(time.Date(2026, 3, 28, 11, 33, 34, 952, time.UTC).Unix()), got[2].Time)
@@ -164,6 +167,50 @@ func TestCodexParse_RetainsCwdFromSkippedSessionMetaLine(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, got, 1)
 	assert.Equal(t, heartbeat.AppType, got[0].EntityType)
+	assert.Equal(t, "/workspace/project", got[0].ProjectPathOverride)
+}
+
+func TestCodexParse_SkipsHarnessInputWhenCalculatingPromptLength(t *testing.T) {
+	ctx := context.Background()
+
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	now := time.Now()
+	transcriptDir := filepath.Join(home, ".codex", "sessions", now.Format("2006"), now.Format("01"), now.Format("02"))
+	require.NoError(t, os.MkdirAll(transcriptDir, 0o755))
+
+	transcriptPath := filepath.Join(transcriptDir, "session.jsonl")
+	transcript := strings.Join([]string{
+		strings.Join([]string{
+			`{"timestamp":"2026-04-15T04:14:05Z","type":"session_meta",`,
+			`"payload":{"cwd":"/workspace/project","cli_version":"0.119.0-alpha.28"}}`,
+		}, ""),
+		strings.Join([]string{
+			`{"timestamp":"2026-04-15T04:14:05Z","type":"response_item",`,
+			`"payload":{"type":"message","role":"user","content":[`,
+			`{"type":"input_text","text":"<environment_context>\n  <cwd>/workspace/project</cwd>\n</environment_context>"}`,
+			`]}}`,
+		}, ""),
+		strings.Join([]string{
+			`{"timestamp":"2026-04-15T04:14:06Z","type":"response_item",`,
+			`"payload":{"type":"message","role":"user","content":[`,
+			`{"type":"input_text","text":"Add a unit test for this line"}`,
+			`]}}`,
+		}, ""),
+	}, "\n") + "\n"
+	require.NoError(t, os.WriteFile(transcriptPath, []byte(transcript), 0o644))
+
+	parser := ai.Codex{
+		After: time.Date(2026, 4, 15, 4, 0, 0, 0, time.UTC),
+	}
+
+	got, err := parser.Parse(ctx)
+	require.NoError(t, err)
+	require.Len(t, got, 1)
+	assert.Equal(t, heartbeat.AppType, got[0].EntityType)
+	assert.Equal(t, len([]rune("Add a unit test for this line")), got[0].AIPromptLength)
 	assert.Equal(t, "/workspace/project", got[0].ProjectPathOverride)
 }
 
