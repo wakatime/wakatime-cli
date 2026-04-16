@@ -652,6 +652,87 @@ func TestWithAISyncSkipsTwoMinuteAICodingForHumanEditsWithChanges(t *testing.T) 
 	assert.Equal(t, "ai coding", categoriesByEntity[humanWithinTwoMinutesNoChanges])
 }
 
+func TestWithAISync_ProducesExpectedHeartbeats(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	now := time.Now()
+	transcriptDir := filepath.Join(home, ".codex", "sessions", now.Format("2026"), now.Format("04"), now.Format("15"))
+	require.NoError(t, os.MkdirAll(transcriptDir, 0o755))
+
+	transcript := "rollout-2026-04-15T18-46-36-019d9353-333c-7c41-a909-26f5c6221a5a.jsonl"
+	transcriptPath := filepath.Join(transcriptDir, transcript)
+	copyFile(t, filepath.Join("testdata", transcript), transcriptPath)
+
+	after := time.Date(2026, 4, 16, 0, 0, 0, 0, time.UTC)
+
+	tmpInternal, err := os.CreateTemp(t.TempDir(), "wakatime-internal")
+	require.NoError(t, err)
+
+	defer tmpInternal.Close()
+
+	v := viper.New()
+	v.Set("internal-config", tmpInternal.Name())
+	v.Set("internal.ai_heartbeats_last_parsed_at", after.Format(ini.DateFormat))
+
+	handle := ai.WithAISync(ai.Config{
+		Plugin: "plugin/0.0.1",
+		V:      v,
+	})(func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		results := make([]heartbeat.Result, len(hh))
+		for i := range hh {
+			results[i] = heartbeat.Result{Heartbeat: hh[i]}
+		}
+
+		return results, nil
+	})
+
+	heartbeats, err := handle(t.Context(), []heartbeat.Heartbeat{})
+	require.NoError(t, err)
+
+	require.Len(t, heartbeats, 3)
+
+	h := heartbeats[0].Heartbeat
+	assert.Equal(t, float64(1776297745), h.Time)
+	assert.Equal(t, heartbeat.FileType, h.EntityType)
+	assert.Equal(t, "/Users/user/git/wakatime-cli/templates/index.html", h.Entity)
+	assert.Equal(t, "ai coding", h.Category)
+	assert.False(t, *h.IsWrite)
+	assert.Equal(t, int64(105134), h.AIInputTokens)
+	assert.Equal(t, int64(479), h.AIOutputTokens)
+	assert.Equal(t, 29, h.AIPromptLength)
+	assert.Nil(t, h.AILineChanges)
+	assert.Equal(t, "/Users/user/git/wakatime-cli", h.ProjectPathOverride)
+	assert.Equal(t, "019d9353-333c-7c41-a909-26f5c6221a5a", h.AISession)
+
+	h = heartbeats[1].Heartbeat
+	assert.Equal(t, float64(1776297784), h.Time)
+	assert.Equal(t, heartbeat.FileType, h.EntityType)
+	assert.Equal(t, "/Users/user/git/wakatime-cli/templates/index.html", h.Entity)
+	assert.Equal(t, "ai coding", h.Category)
+	assert.True(t, *h.IsWrite)
+	assert.Equal(t, int64(326506), h.AIInputTokens)
+	assert.Equal(t, int64(1442), h.AIOutputTokens)
+	assert.Equal(t, 10, h.AIPromptLength)
+	assert.Equal(t, -1, *h.AILineChanges)
+	assert.Equal(t, "/Users/user/git/wakatime-cli", h.ProjectPathOverride)
+	assert.Equal(t, "019d9353-333c-7c41-a909-26f5c6221a5a", h.AISession)
+
+	h = heartbeats[2].Heartbeat
+	assert.Equal(t, float64(1776297789), h.Time)
+	assert.Equal(t, heartbeat.FileType, h.EntityType)
+	assert.Equal(t, "/Users/user/git/wakatime-cli/static/css/index.less", h.Entity)
+	assert.Equal(t, "ai coding", h.Category)
+	assert.True(t, *h.IsWrite)
+	assert.Equal(t, int64(110200), h.AIInputTokens)
+	assert.Equal(t, int64(223), h.AIOutputTokens)
+	assert.Zero(t, h.AIPromptLength)
+	assert.Equal(t, 23, *h.AILineChanges)
+	assert.Equal(t, "/Users/user/git/wakatime-cli", h.ProjectPathOverride)
+	assert.Equal(t, "019d9353-333c-7c41-a909-26f5c6221a5a", h.AISession)
+}
+
 func resetSingleton(t *testing.T) {
 	t.Helper()
 

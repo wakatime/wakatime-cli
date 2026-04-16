@@ -20,6 +20,19 @@ import (
 type Codex ParserConfig
 
 type (
+	codexSessionState struct {
+		cwd     string
+		entity  string
+		id      string
+		version string
+	}
+
+	codexParseState struct {
+		heartbeats               Heartbeats
+		tokens                   heartbeat.AITokens
+		lastResponseItemUserTime time.Time
+	}
+
 	codexSessionMeta struct {
 		Type    string `json:"type"`
 		Payload *struct {
@@ -33,6 +46,7 @@ type (
 		Type    *string                     `json:"type"`
 		Name    *string                     `json:"name"`
 		Input   *string                     `json:"input"`
+		Message *string                     `json:"message"`
 		Role    *string                     `json:"role"`
 		Status  *string                     `json:"status"`
 		Content []codexContentItem          `json:"content"`
@@ -42,7 +56,6 @@ type (
 
 	codexPayloadTokenCountInfo struct {
 		TotalTokenUsage    *codexPayloadTokenCountInfoUsage `json:"total_token_usage"`
-		LastTokenUsage     *codexPayloadTokenCountInfoUsage `json:"last_token_usage"`
 		ModelContextWindow *int                             `json:"model_context_window"`
 		TotalTokens        *int                             `json:"total_tokens"`
 	}
@@ -148,31 +161,63 @@ func (g Codex) parseTranscript(ctx context.Context, transcript string) (Heartbea
 	}
 	defer fh.Close() // nolint:errcheck,gosec
 
+	session, err := g.readSessionState(logger, fh, transcript)
+	if err != nil {
+		return nil, err
+	}
+
+	scanner, err := codexScanner(fh, transcript)
+	if err != nil {
+		return nil, err
+	}
+
+	state := codexParseState{}
+
+	for scanner.Scan() {
+		if ctx.Err() != nil {
+			return nil, ctx.Err()
+		}
+
+		g.handleTranscriptLine(logger, transcript, scanner.Bytes(), session, &state)
+	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf("failed reading codex transcript %q: %s", transcript, err)
+	}
+
+	return state.heartbeats, nil
+}
+
+func (g Codex) readSessionState(logger *log.Logger, fh *os.File, transcript string) (codexSessionState, error) {
 	reader := bufio.NewReader(fh)
 
 	firstLine, err := reader.ReadBytes('\n')
 	if err != nil && err != io.EOF {
-		return nil, fmt.Errorf("failed to read codex transcript %q: %s", transcript, err)
+		return codexSessionState{}, fmt.Errorf("failed to read codex transcript %q: %s", transcript, err)
 	}
 
-	cwd := ""
-	sessionEntity := appHeartbeatEntity("Codex", transcript)
-	sessionID := g.sessionIDFromPath(transcript)
-	version := ""
+	state := codexSessionState{
+		entity: appHeartbeatEntity("Codex", transcript),
+		id:     g.sessionIDFromPath(transcript),
+	}
 
 	if len(firstLine) > 0 {
 		var sessionMeta *codexSessionMeta
 		if err := json.Unmarshal(firstLine, &sessionMeta); err != nil {
 			logger.Debugf("failed parsing codex session metadata from %q: %s", transcript, err)
 		} else {
-			cwd, version, sessionID = g.sessionInfo(cwd, version, sessionID, sessionMeta)
+			state.cwd, state.version, state.id = g.sessionInfo(state.cwd, state.version, state.id, sessionMeta)
 		}
 	}
 
 	if _, err := fh.Seek(0, 0); err != nil {
-		return nil, fmt.Errorf("failed to rewind codex transcript %q: %s", transcript, err)
+		return codexSessionState{}, fmt.Errorf("failed to rewind codex transcript %q: %s", transcript, err)
 	}
 
+	return state, nil
+}
+
+func codexScanner(fh *os.File, transcript string) (*bufio.Scanner, error) {
 	info, err := fh.Stat()
 	if err != nil {
 		return nil, fmt.Errorf("failed to stat codex transcript %q: %s", transcript, err)
@@ -199,68 +244,69 @@ func (g Codex) parseTranscript(ctx context.Context, transcript string) (Heartbea
 		}
 	}
 
-	var (
-		heartbeats Heartbeats
-		tokens     heartbeat.AITokens
+	return scanner, nil
+}
+
+func (g Codex) handleTranscriptLine(
+	logger *log.Logger,
+	transcript string,
+	line []byte,
+	session codexSessionState,
+	state *codexParseState,
+) {
+	if len(line) == 0 {
+		return
+	}
+
+	var logLine codexLogLine
+	if err := json.Unmarshal(line, &logLine); err != nil {
+		logger.Warnf("failed parsing codex transcript line from %q: %s", transcript, err)
+		logger.Debugf("failed parsing codex transcript line: %s", line)
+
+		return
+	}
+
+	state.tokens = g.codexTokenCounts(logLine, state.tokens, g.After)
+	state.trackUserMessage(logLine)
+
+	if logLine.Timestamp.IsZero() || logLine.Timestamp.Before(g.After) || state.shouldSkipUserMessage(logLine) {
+		return
+	}
+
+	if logLine.Payload == nil {
+		return
+	}
+
+	aiHeartbeats := g.getHeartbeats(
+		logLine.Timestamp,
+		session.entity,
+		session.id,
+		session.version,
+		session.cwd,
+		g.UserAgents,
+		g.FallbackUserAgent,
+		*logLine.Payload,
+		state.tokens,
 	)
-
-	for scanner.Scan() {
-		if ctx.Err() != nil {
-			return nil, ctx.Err()
-		}
-
-		line := scanner.Bytes()
-		if len(line) == 0 {
-			continue
-		}
-
-		var logLine codexLogLine
-		if err := json.Unmarshal(line, &logLine); err != nil {
-			logger.Warnf("failed parsing codex transcript line from %q: %s", transcript, err)
-			logger.Debugf("failed parsing codex transcript line: %s", line)
-
-			continue
-		}
-
-		tokens = g.codexTokenCounts(logLine, tokens)
-
-		if logLine.Timestamp.IsZero() || logLine.Timestamp.Before(g.After) {
-			tokens.LastInput = tokens.CurrentInput
-			tokens.LastOutput = tokens.CurrentOutput
-
-			continue
-		}
-
-		var aiHeartbeats Heartbeats
-		if logLine.Payload != nil {
-			aiHeartbeats = g.getHeartbeats(
-				logLine.Timestamp,
-				sessionEntity,
-				sessionID,
-				version,
-				cwd,
-				g.UserAgents,
-				g.FallbackUserAgent,
-				*logLine.Payload,
-				tokens,
-			)
-		}
-
-		if len(aiHeartbeats) == 0 {
-			continue
-		}
-
-		tokens.LastInput = tokens.CurrentInput
-		tokens.LastOutput = tokens.CurrentOutput
-
-		heartbeats = append(heartbeats, aiHeartbeats...)
+	if len(aiHeartbeats) == 0 {
+		return
 	}
 
-	if err := scanner.Err(); err != nil {
-		return nil, fmt.Errorf("failed reading codex transcript %q: %s", transcript, err)
-	}
+	state.tokens.LastInput = state.tokens.CurrentInput
+	state.tokens.LastOutput = state.tokens.CurrentOutput
+	state.heartbeats = append(state.heartbeats, aiHeartbeats...)
+}
 
-	return heartbeats, nil
+func (s *codexParseState) trackUserMessage(logLine codexLogLine) {
+	if logLine.Payload != nil && logLine.Payload.Type != nil && *logLine.Payload.Type == "message" &&
+		logLine.Payload.Role != nil && *logLine.Payload.Role == "user" {
+		s.lastResponseItemUserTime = logLine.Timestamp
+	}
+}
+
+func (s codexParseState) shouldSkipUserMessage(logLine codexLogLine) bool {
+	return logLine.Payload != nil && logLine.Payload.Type != nil && *logLine.Payload.Type == "user_message" &&
+		!s.lastResponseItemUserTime.IsZero() && logLine.Timestamp.Sub(s.lastResponseItemUserTime) <= time.Second
 }
 
 func (Codex) sessionInfo(
@@ -309,6 +355,22 @@ func (g Codex) getHeartbeats(
 			userAgents,
 			fallbackUserAgent,
 			payload,
+			tokens,
+		); heartbeat != nil {
+			return Heartbeats{*heartbeat}
+		}
+	}
+
+	if payload.Type != nil && *payload.Type == "user_message" && payload.Message != nil {
+		if heartbeat := g.userMessageHeartbeat(
+			timestamp,
+			sessionEntity,
+			sessionID,
+			version,
+			cwd,
+			userAgents,
+			fallbackUserAgent,
+			*payload.Message,
 			tokens,
 		); heartbeat != nil {
 			return Heartbeats{*heartbeat}
@@ -419,19 +481,20 @@ func (g Codex) messageHeartbeat(
 	}
 
 	for _, item := range payload.Content {
-		if item.Type != expectedType || strings.TrimSpace(item.Text) == "" {
+		text := item.Text
+		if *payload.Role == "user" {
+			text = codexUserMessageText(text)
+		}
+
+		if item.Type != expectedType || strings.TrimSpace(text) == "" {
 			continue
 		}
 
 		if *payload.Role == "user" {
-			if strings.HasPrefix(strings.TrimSpace(item.Text), "<") {
-				continue
-			}
-
-			promptChars += len([]rune(item.Text))
+			promptChars += len([]rune(text))
 		}
 
-		lineChanges += countStringLines(item.Text)
+		lineChanges += countStringLines(text)
 	}
 
 	if lineChanges == 0 {
@@ -467,6 +530,71 @@ func (g Codex) messageHeartbeat(
 	}
 
 	return &h
+}
+
+func (g Codex) userMessageHeartbeat(
+	timestamp time.Time,
+	sessionEntity string,
+	sessionID string,
+	version string,
+	cwd string,
+	userAgents map[string]string,
+	fallbackUserAgent string,
+	message string,
+	tokens heartbeat.AITokens,
+) *heartbeat.Heartbeat {
+	text := codexUserMessageText(message)
+	if strings.TrimSpace(text) == "" {
+		return nil
+	}
+
+	h := heartbeat.NewWithAITokens(
+		nil,
+		sessionID,
+		tokens,
+		"",
+		heartbeat.AICodingCategory.String(),
+		nil,
+		sessionEntity,
+		heartbeat.AppType,
+		nil,
+		false,
+		heartbeat.PointerTo(false),
+		nil,
+		"",
+		nil,
+		nil,
+		"",
+		"",
+		false,
+		"",
+		cwd,
+		float64(timestamp.Unix()),
+		aiUserAgent(sessionEntity, userAgents, fallbackUserAgent, aiPlugin(g, version)),
+	)
+	h.AIPromptLength = len([]rune(text))
+
+	return &h
+}
+
+func codexUserMessageText(text string) string {
+	trimmed := strings.TrimSpace(text)
+	if trimmed == "" {
+		return ""
+	}
+
+	if strings.HasPrefix(trimmed, "<") {
+		return ""
+	}
+
+	const requestPrefix = "## My request for Codex:"
+	if strings.Contains(trimmed, "# Context from my IDE setup:") {
+		if _, request, ok := strings.Cut(trimmed, requestPrefix); ok {
+			return strings.TrimSpace(request)
+		}
+	}
+
+	return trimmed
 }
 
 func codexFilePath(cwd string, line string) string {
@@ -525,47 +653,28 @@ func (g Codex) heartbeat(
 	)
 }
 
-func (Codex) codexTokenCounts(line codexLogLine, previous heartbeat.AITokens) heartbeat.AITokens {
+func (Codex) codexTokenCounts(line codexLogLine, tokens heartbeat.AITokens, after time.Time) heartbeat.AITokens {
 	if line.Payload == nil {
-		return previous
+		return tokens
 	}
 
 	payload := *line.Payload
 	if payload.Type == nil || *payload.Type != "token_count" || payload.Info == nil {
-		return previous
+		return tokens
 	}
 
 	info := *payload.Info
-
-	lastInput := previous.LastInput
-	lastOutput := previous.LastOutput
-
-	var (
-		currentInput  int64
-		currentOutput int64
-	)
-
-	if lastInput == 0 && lastOutput == 0 &&
-		info.LastTokenUsage != nil &&
-		info.LastTokenUsage.InputTokens != nil &&
-		info.LastTokenUsage.OutputTokens != nil {
-		lastInput = int64(*info.LastTokenUsage.InputTokens)
-		lastOutput = int64(*info.LastTokenUsage.OutputTokens)
-	}
-
 	if info.TotalTokenUsage != nil && info.TotalTokenUsage.InputTokens != nil && info.TotalTokenUsage.OutputTokens != nil {
-		currentInput = int64(*info.TotalTokenUsage.InputTokens)
-		currentOutput = int64(*info.TotalTokenUsage.OutputTokens)
-	} else if info.TotalTokens != nil {
-		currentOutput = int64(*info.TotalTokens)
+		tokens.CurrentInput = int64(*info.TotalTokenUsage.InputTokens)
+		tokens.CurrentOutput = int64(*info.TotalTokenUsage.OutputTokens)
 	}
 
-	return heartbeat.AITokens{
-		LastInput:     lastInput,
-		LastOutput:    lastOutput,
-		CurrentInput:  currentInput,
-		CurrentOutput: currentOutput,
+	if line.Timestamp.IsZero() || line.Timestamp.Before(after) {
+		tokens.LastInput = tokens.CurrentInput
+		tokens.LastOutput = tokens.CurrentOutput
 	}
+
+	return tokens
 }
 
 func (Codex) sessionIDFromPath(path string) string {

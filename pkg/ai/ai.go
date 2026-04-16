@@ -498,8 +498,43 @@ func mergeHeartbeatCounts(dst *heartbeat.Heartbeat, src heartbeat.Heartbeat) {
 	dst.HumanLineChanges = addIntPointers(dst.HumanLineChanges, src.HumanLineChanges)
 	dst.AIPromptLength += src.AIPromptLength
 	dst.AIInputTokens += src.AIInputTokens
+
 	dst.AIOutputTokens += src.AIOutputTokens
-	dst.AIPromptLength += src.AIPromptLength
+	if dst.Project == nil || *dst.Project == "" {
+		dst.Project = src.Project
+	}
+
+	if dst.ProjectAlternate == "" {
+		dst.ProjectAlternate = src.ProjectAlternate
+	}
+
+	if dst.Branch == nil || *dst.Branch == "" {
+		dst.Branch = src.Branch
+	}
+
+	if dst.BranchAlternate == "" {
+		dst.BranchAlternate = src.BranchAlternate
+	}
+
+	if dst.Language == nil || *dst.Language == "" {
+		dst.Language = src.Language
+	}
+
+	if dst.LanguageAlternate == "" {
+		dst.LanguageAlternate = src.LanguageAlternate
+	}
+
+	if dst.ProjectOverride == "" {
+		dst.ProjectOverride = src.ProjectOverride
+	}
+
+	if dst.ProjectPath == "" {
+		dst.ProjectPath = src.ProjectPath
+	}
+
+	if dst.ProjectPathOverride == "" {
+		dst.ProjectPathOverride = src.ProjectPathOverride
+	}
 }
 
 func addIntPointers(dst *int, src *int) *int {
