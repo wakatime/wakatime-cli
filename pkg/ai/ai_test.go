@@ -652,6 +652,263 @@ func TestWithAISyncSkipsTwoMinuteAICodingForHumanEditsWithChanges(t *testing.T) 
 	assert.Equal(t, "ai coding", categoriesByEntity[humanWithinTwoMinutesNoChanges])
 }
 
+func TestWithAISync_ProducesExpectedHeartbeats(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	now := time.Now()
+	transcriptDir := filepath.Join(home, ".codex", "sessions", now.Format("2026"), now.Format("04"), now.Format("15"))
+	require.NoError(t, os.MkdirAll(transcriptDir, 0o755))
+
+	transcript := "rollout-2026-04-15T18-46-36-019d9353-333c-7c41-a909-26f5c6221a5a.jsonl"
+	transcriptPath := filepath.Join(transcriptDir, transcript)
+	copyFile(t, filepath.Join("testdata", transcript), transcriptPath)
+
+	after := time.Date(2026, 4, 16, 0, 0, 0, 0, time.UTC)
+
+	tmpInternal, err := os.CreateTemp(t.TempDir(), "wakatime-internal")
+	require.NoError(t, err)
+
+	defer tmpInternal.Close()
+
+	v := viper.New()
+	v.Set("internal-config", tmpInternal.Name())
+	v.Set("internal.ai_heartbeats_last_parsed_at", after.Format(ini.DateFormat))
+
+	handle := ai.WithAISync(ai.Config{
+		Plugin: "plugin/0.0.1",
+		V:      v,
+	})(func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		results := make([]heartbeat.Result, len(hh))
+		for i := range hh {
+			results[i] = heartbeat.Result{Heartbeat: hh[i]}
+		}
+
+		return results, nil
+	})
+
+	heartbeats, err := handle(t.Context(), []heartbeat.Heartbeat{})
+	require.NoError(t, err)
+
+	require.Len(t, heartbeats, 3)
+
+	h := heartbeats[0].Heartbeat
+	assert.Equal(t, float64(1776297745), h.Time)
+	assert.Equal(t, heartbeat.FileType, h.EntityType)
+	assert.Equal(t, "/Users/user/git/wakatime-cli/templates/index.html", h.Entity)
+	assert.Equal(t, "ai coding", h.Category)
+	assert.False(t, *h.IsWrite)
+	assert.Equal(t, int64(105134), h.AIInputTokens)
+	assert.Equal(t, int64(479), h.AIOutputTokens)
+	assert.Equal(t, 29, h.AIPromptLength)
+	assert.Nil(t, h.AILineChanges)
+	assert.Equal(t, "/Users/user/git/wakatime-cli", h.ProjectPathOverride)
+	assert.Equal(t, "019d9353-333c-7c41-a909-26f5c6221a5a", h.AISession)
+
+	h = heartbeats[1].Heartbeat
+	assert.Equal(t, float64(1776297784), h.Time)
+	assert.Equal(t, heartbeat.FileType, h.EntityType)
+	assert.Equal(t, "/Users/user/git/wakatime-cli/templates/index.html", h.Entity)
+	assert.Equal(t, "ai coding", h.Category)
+	assert.True(t, *h.IsWrite)
+	assert.Equal(t, int64(326506), h.AIInputTokens)
+	assert.Equal(t, int64(1442), h.AIOutputTokens)
+	assert.Equal(t, 10, h.AIPromptLength)
+	assert.Equal(t, -1, *h.AILineChanges)
+	assert.Equal(t, "/Users/user/git/wakatime-cli", h.ProjectPathOverride)
+	assert.Equal(t, "019d9353-333c-7c41-a909-26f5c6221a5a", h.AISession)
+
+	h = heartbeats[2].Heartbeat
+	assert.Equal(t, float64(1776297789), h.Time)
+	assert.Equal(t, heartbeat.FileType, h.EntityType)
+	assert.Equal(t, "/Users/user/git/wakatime-cli/static/css/index.less", h.Entity)
+	assert.Equal(t, "ai coding", h.Category)
+	assert.True(t, *h.IsWrite)
+	assert.Equal(t, int64(110200), h.AIInputTokens)
+	assert.Equal(t, int64(223), h.AIOutputTokens)
+	assert.Zero(t, h.AIPromptLength)
+	assert.Equal(t, 23, *h.AILineChanges)
+	assert.Equal(t, "/Users/user/git/wakatime-cli", h.ProjectPathOverride)
+	assert.Equal(t, "019d9353-333c-7c41-a909-26f5c6221a5a", h.AISession)
+}
+
+func TestWithAISync_PreservesCopilotTokensAfterMergingAppHeartbeat(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	workspaceDir := filepath.Join(home, "Library", "Application Support", "Code", "User", "workspaceStorage", "workspace-1")
+	require.NoError(t, os.MkdirAll(filepath.Join(workspaceDir, "chatSessions"), 0o755))
+	require.NoError(t, os.MkdirAll(filepath.Join(workspaceDir, "chatEditingSessions", "session-1"), 0o755))
+
+	mainFile := filepath.Join(home, "project", "main.go")
+	secondFile := filepath.Join(home, "project", "util.go")
+
+	require.NoError(t, os.MkdirAll(filepath.Dir(mainFile), 0o755))
+	require.NoError(t, os.WriteFile(mainFile, []byte("package main\n"), 0o644))
+	require.NoError(t, os.WriteFile(secondFile, []byte("package main\nfunc util() {}\n"), 0o644))
+
+	sessionPath := filepath.Join(workspaceDir, "chatSessions", "session-1.json")
+	session := map[string]any{
+		"version":         3,
+		"creationDate":    int64(1770000000000),
+		"lastMessageDate": int64(1770000100000),
+		"sessionId":       "session-1",
+		"requests": []any{
+			map[string]any{
+				"requestId": "request-1",
+				"timestamp": int64(1770000001000),
+				"agent": map[string]any{
+					"extensionVersion": "0.42.3",
+				},
+				"message": map[string]any{
+					"text": "Update the file and explain what changed",
+				},
+				"result": map[string]any{
+					"metadata": map[string]any{
+						"promptTokens": 9,
+						"outputTokens": 4,
+					},
+				},
+				"modelState": map[string]any{
+					"value":       1,
+					"completedAt": int64(1770000009000),
+				},
+				"variableData": map[string]any{
+					"variables": []any{
+						map[string]any{
+							"kind": "file",
+							"id":   "file://" + strings.ReplaceAll(mainFile, " ", "%20"),
+							"value": map[string]any{
+								"fsPath": mainFile,
+							},
+						},
+					},
+				},
+				"response": []any{
+					map[string]any{
+						"kind": "toolInvocationSerialized",
+						"invocationMessage": map[string]any{
+							"value": "Reading files",
+							"uris": map[string]any{
+								"file://" + strings.ReplaceAll(secondFile, " ", "%20"): map[string]any{
+									"fsPath": secondFile,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	data, err := json.Marshal(session)
+	require.NoError(t, err)
+	require.NoError(t, os.WriteFile(sessionPath, data, 0o644))
+
+	statePath := filepath.Join(workspaceDir, "chatEditingSessions", "session-1", "state.json")
+	state := map[string]any{
+		"version": 2,
+		"timeline": map[string]any{
+			"fileBaselines": []any{
+				[]any{
+					"file://" + mainFile + "::request-1",
+					map[string]any{
+						"content": "package main\n",
+					},
+				},
+			},
+			"operations": []any{
+				map[string]any{
+					"type":      "textEdit",
+					"requestId": "request-1",
+					"uri": map[string]any{
+						"fsPath": mainFile,
+					},
+					"epoch": 1,
+					"edits": []any{
+						map[string]any{
+							"text": "package main\n\nfunc main() {}\n",
+							"range": map[string]any{
+								"startLineNumber": 1,
+								"startColumn":     1,
+								"endLineNumber":   2,
+								"endColumn":       1,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	data, err = json.Marshal(state)
+	require.NoError(t, err)
+	require.NoError(t, os.WriteFile(statePath, data, 0o644))
+
+	after := time.Unix(1769999990, 0)
+	tmpInternal, err := os.CreateTemp(t.TempDir(), "wakatime-internal")
+	require.NoError(t, err)
+
+	defer tmpInternal.Close()
+
+	v := viper.New()
+	v.Set("internal-config", tmpInternal.Name())
+	v.Set("internal.ai_heartbeats_last_parsed_at", after.Format(ini.DateFormat))
+
+	handle := ai.WithAISync(ai.Config{
+		Plugin: "editor/1.0.0",
+		V:      v,
+	})(func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		results := make([]heartbeat.Result, len(hh))
+		for i := range hh {
+			results[i] = heartbeat.Result{Heartbeat: hh[i]}
+		}
+
+		return results, nil
+	})
+
+	results, err := handle(t.Context(), []heartbeat.Heartbeat{})
+	require.NoError(t, err)
+	require.Len(t, results, 4)
+
+	var (
+		mergedRead heartbeat.Heartbeat
+		writeEdit  heartbeat.Heartbeat
+		foundRead  bool
+		foundEdit  bool
+	)
+
+	for _, result := range results {
+		h := result.Heartbeat
+		if h.Entity == mainFile && h.IsWrite != nil && !*h.IsWrite && h.AIPromptLength > 0 {
+			mergedRead = h
+			foundRead = true
+		}
+
+		if h.Entity == mainFile && h.IsWrite != nil && *h.IsWrite {
+			writeEdit = h
+			foundEdit = true
+		}
+	}
+
+	require.True(t, foundRead)
+	assert.Equal(t, heartbeat.FileType, mergedRead.EntityType)
+	assert.Equal(t, int64(9), mergedRead.AIInputTokens)
+	assert.Equal(t, int64(4), mergedRead.AIOutputTokens)
+	assert.Equal(t, len([]rune("Update the file and explain what changed")), mergedRead.AIPromptLength)
+	assert.Equal(t, filepath.Dir(mainFile), mergedRead.ProjectPathOverride)
+	assert.Equal(t, "session-1", mergedRead.AISession)
+
+	require.True(t, foundEdit)
+	require.NotNil(t, writeEdit.AILineChanges)
+	assert.Equal(t, 2, *writeEdit.AILineChanges)
+	assert.Zero(t, writeEdit.AIInputTokens)
+	assert.Zero(t, writeEdit.AIOutputTokens)
+	assert.Zero(t, writeEdit.AIPromptLength)
+	assert.Equal(t, filepath.Dir(mainFile), writeEdit.ProjectPathOverride)
+	assert.Equal(t, "session-1", writeEdit.AISession)
+}
+
 func resetSingleton(t *testing.T) {
 	t.Helper()
 
