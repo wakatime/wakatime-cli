@@ -19,3 +19,8 @@ vendor/
 
 .DS_Store
 .vscode/launch.json
+
+.cache/
+.gocache/
+.golangci-lint-cache/
+.gopath/
