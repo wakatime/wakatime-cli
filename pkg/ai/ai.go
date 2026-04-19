@@ -53,6 +53,8 @@ const (
 	CopilotParser
 	// CursorParser is the parser ID for Cursor.
 	CursorParser
+	// PiParser is the parser ID for Pi.
+	PiParser
 )
 
 type (
@@ -159,6 +161,11 @@ func parseAIHeartbeats(
 			FallbackUserAgent: fallbackUserAgent,
 		},
 		Cursor{
+			After:             after,
+			UserAgents:        userAgents,
+			FallbackUserAgent: fallbackUserAgent,
+		},
+		Pi{
 			After:             after,
 			UserAgents:        userAgents,
 			FallbackUserAgent: fallbackUserAgent,
