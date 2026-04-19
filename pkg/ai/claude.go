@@ -223,7 +223,7 @@ func (g Claude) transcriptPaths(ctx context.Context) ([]string, error) {
 
 	err = filepath.WalkDir(claudeProjectsDir, func(path string, d os.DirEntry, walkErr error) error {
 		if walkErr != nil {
-			return nil
+			return walkErr
 		}
 
 		if d.IsDir() || filepath.Ext(d.Name()) != ".jsonl" {
