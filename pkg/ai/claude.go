@@ -290,6 +290,7 @@ func (g Claude) parseTranscript(ctx context.Context, transcript string) (Heartbe
 
 	claudeVersion := ""
 	cwd := ""
+	ideSession := false
 	sessionID := g.sessionIDFromPath(transcript)
 	sessionEntity := appHeartbeatEntity("Claude", transcript)
 
@@ -323,6 +324,10 @@ func (g Claude) parseTranscript(ctx context.Context, transcript string) (Heartbe
 			cwd = lineCwd
 		}
 
+		if claudeHasIDEContext(logLine) {
+			ideSession = true
+		}
+
 		tokens = g.claudeTokenCounts(logLine, tokens, &lastMsg)
 
 		if logLine.Timestamp.IsZero() || logLine.Timestamp.Before(g.After) {
@@ -330,7 +335,7 @@ func (g Claude) parseTranscript(ctx context.Context, transcript string) (Heartbe
 			continue
 		}
 
-		parsed := g.claudeHeartbeats(logLine, sessionEntity, sessionID, claudeVersion, cwd, tokens)
+		parsed := g.claudeHeartbeats(logLine, sessionEntity, sessionID, claudeVersion, cwd, ideSession, tokens)
 		if len(parsed) == 0 {
 			continue
 		}
@@ -430,6 +435,7 @@ func (g Claude) claudeHeartbeats(
 	sessionID string,
 	version string,
 	cwd string,
+	ideSession bool,
 	tokens heartbeat.AITokens,
 ) Heartbeats {
 	var heartbeats Heartbeats
@@ -443,6 +449,7 @@ func (g Claude) claudeHeartbeats(
 		sessionID,
 		version,
 		cwd,
+		ideSession,
 		appTokens,
 	); heartbeat != nil {
 		heartbeats = append(heartbeats, *heartbeat)
@@ -454,6 +461,7 @@ func (g Claude) claudeHeartbeats(
 		logLine,
 		sessionID,
 		version,
+		ideSession,
 		fileTokens,
 	); heartbeat != nil {
 		heartbeats = append(heartbeats, *heartbeat)
@@ -468,6 +476,7 @@ func (g Claude) claudeAppHeartbeat(
 	sessionID string,
 	version string,
 	cwd string,
+	ideSession bool,
 	tokens *heartbeat.AITokens,
 ) *heartbeat.Heartbeat {
 	lineChanges := g.appLineChanges(logLine.ToolUseResult)
@@ -486,7 +495,7 @@ func (g Claude) claudeAppHeartbeat(
 		heartbeat.PointerTo(false),
 		cwd,
 		float64(logLine.Timestamp.Unix()),
-		aiUserAgent(sessionEntity, g.UserAgents, g.FallbackUserAgent, aiPlugin(g, version)),
+		g.userAgent(sessionEntity, version, ideSession),
 	)
 	h.AIPromptLength = promptLength
 
@@ -497,6 +506,7 @@ func (g Claude) claudeFileHeartbeat(
 	logLine claudeLogLine,
 	sessionID string,
 	version string,
+	ideSession bool,
 	tokens *heartbeat.AITokens,
 ) *heartbeat.Heartbeat {
 	if logLine.ToolUseResult == nil || logLine.ToolUseResult.Object == nil {
@@ -520,10 +530,18 @@ func (g Claude) claudeFileHeartbeat(
 		heartbeat.PointerTo(isWrite),
 		"",
 		float64(logLine.Timestamp.Unix()),
-		aiUserAgent(filePath, g.UserAgents, g.FallbackUserAgent, aiPlugin(g, version)),
+		g.userAgent(filePath, version, ideSession),
 	)
 
 	return &h
+}
+
+func (g Claude) userAgent(entity string, version string, ideSession bool) string {
+	if !ideSession {
+		return aiPlugin(g, version)
+	}
+
+	return aiUserAgent(entity, g.UserAgents, g.FallbackUserAgent, aiPlugin(g, version))
 }
 
 func (Claude) tokenDelta(tokens heartbeat.AITokens) (int64, int64) {
@@ -742,6 +760,24 @@ func claudePromptLength(logLine claudeLogLine) int {
 	}
 
 	return total
+}
+
+func claudeHasIDEContext(logLine claudeLogLine) bool {
+	if logLine.Message == nil {
+		return false
+	}
+
+	for _, item := range logLine.Message.Content {
+		if item.Type != "text" {
+			continue
+		}
+
+		if strings.Contains(item.Text, "<ide_") {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (Claude) sessionIDFromPath(path string) string {
