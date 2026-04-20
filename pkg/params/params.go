@@ -69,8 +69,20 @@ const (
 // nolint:gochecknoglobals
 var (
 	apiKeyOrder = map[FlagReadOrder][]string{
-		FlagReadOrderFlagPrecedence:          {"key", "settings.api_key", "settings.apikey"},
-		FlagReadOrderProjectConfigPrecedence: {"settings.api_key", "key", "settings.apikey"},
+		FlagReadOrderFlagPrecedence: {
+			"key",
+			"settings.api_key",
+			"api_key",
+			"settings.apikey",
+			"apikey",
+		},
+		FlagReadOrderProjectConfigPrecedence: {
+			"settings.api_key",
+			"api_key",
+			"key",
+			"settings.apikey",
+			"apikey",
+		},
 	}
 	guessLanguageOrder = map[FlagReadOrder][]string{
 		FlagReadOrderFlagPrecedence:          {"guess-language", "settings.guess_language"},
