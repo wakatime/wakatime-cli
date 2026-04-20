@@ -1,6 +1,7 @@
 package ini
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -142,10 +143,62 @@ func ReadInConfig(v *viper.Viper, configFilePath string) error {
 	v.SetConfigFile(configFilePath)
 
 	if err := v.MergeInConfig(); err != nil {
-		return fmt.Errorf("failed to merge config file: %s", err)
+		if salvageErr := salvageConfig(v, configFilePath); salvageErr != nil {
+			return fmt.Errorf("failed to merge config file: %s", err)
+		}
 	}
 
 	return nil
+}
+
+func salvageConfig(v *viper.Viper, configFilePath string) error {
+	contents, err := os.ReadFile(configFilePath) // nolint:gosec // configFilePath is the same local config file path already selected for MergeInConfig.
+	if err != nil {
+		return err
+	}
+
+	contents = bytes.ReplaceAll(contents, []byte{0}, nil)
+	contents = sanitizeMalformedSections(contents)
+
+	cfg, err := ini.LoadSources(ini.LoadOptions{
+		AllowPythonMultilineValues: true,
+		SkipUnrecognizableLines:    true,
+	}, contents)
+	if err != nil {
+		return err
+	}
+
+	for _, section := range cfg.Sections() {
+		for _, key := range section.Keys() {
+			v.Set(sectionKey(section.Name(), key.Name()), key.Value())
+		}
+	}
+
+	return nil
+}
+
+func sectionKey(section, key string) string {
+	if section == ini.DefaultSection {
+		return key
+	}
+
+	return fmt.Sprintf("%s.%s", section, key)
+}
+
+func sanitizeMalformedSections(contents []byte) []byte {
+	lines := strings.Split(string(contents), "\n")
+	sanitized := make([]string, 0, len(lines))
+
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, "[") && !strings.Contains(trimmed, "]") {
+			continue
+		}
+
+		sanitized = append(sanitized, line)
+	}
+
+	return []byte(strings.Join(sanitized, "\n"))
 }
 
 // FilePath returns the path for wakatime config file.
