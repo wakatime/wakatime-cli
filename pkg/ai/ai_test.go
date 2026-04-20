@@ -145,10 +145,11 @@ func TestSendHeartbeats_WithAIParsing(t *testing.T) {
 		assert.Greater(t, *entities[0].ProjectRootCount, 1)
 		assert.Equal(
 			t,
-			heartbeat.UserAgent(t.Context(), "Claude/2.1.45 "+plugin),
+			heartbeat.UserAgent(t.Context(), "Claude/2.1.45"),
 			entities[0].UserAgent,
 		)
 		assert.Contains(t, entities[0].UserAgent, "Claude/2.1.45")
+		assert.NotContains(t, entities[0].UserAgent, plugin)
 		assert.Equal(t, local, entities[1].Entity)
 
 		// send response
