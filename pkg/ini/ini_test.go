@@ -110,7 +110,34 @@ func TestReadInConfig_Malformed(t *testing.T) {
 	require.NoError(t, err)
 
 	err = ini.ReadInConfig(v, filePath)
-	require.Error(t, err)
+	require.NoError(t, err)
+
+	assert.Equal(t, "true", vipertools.GetString(v, "debug"))
+	assert.Equal(t, "that", vipertools.GetString(v, "test.this"))
+}
+
+func TestReadInConfig_NullBytes(t *testing.T) {
+	v := vipertools.MustNew()
+
+	tmpFile, err := os.CreateTemp(t.TempDir(), "null-bytes-*.cfg")
+	require.NoError(t, err)
+
+	_, err = tmpFile.WriteString("[settings]\ndebug = true\n")
+	require.NoError(t, err)
+
+	_, err = tmpFile.Write([]byte{0, 0, 0, 0, 0})
+	require.NoError(t, err)
+
+	_, err = tmpFile.WriteString("\n[other]\ncountry = us\n")
+	require.NoError(t, err)
+
+	require.NoError(t, tmpFile.Close())
+
+	err = ini.ReadInConfig(v, tmpFile.Name())
+	require.NoError(t, err)
+
+	assert.Equal(t, "true", vipertools.GetString(v, "settings.debug"))
+	assert.Equal(t, "us", vipertools.GetString(v, "other.country"))
 }
 
 func TestFilePath(t *testing.T) {
