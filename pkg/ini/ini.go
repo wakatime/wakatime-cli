@@ -152,7 +152,8 @@ func ReadInConfig(v *viper.Viper, configFilePath string) error {
 }
 
 func salvageConfig(v *viper.Viper, configFilePath string) error {
-	contents, err := os.ReadFile(configFilePath) // nolint:gosec // configFilePath is the same local config file path already selected for MergeInConfig.
+	// nolint:gosec // Reuses the trusted local config path already passed to MergeInConfig.
+	contents, err := os.ReadFile(configFilePath)
 	if err != nil {
 		return err
 	}
