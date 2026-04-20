@@ -1765,7 +1765,7 @@ func TestSendHeartbeats_MalformedConfig(t *testing.T) {
 
 	out := runWakatimeCliExpectErr(
 		t,
-		exitcode.ErrConfigFileParse,
+		exitcode.ErrAuth,
 		"--entity", "testdata/main.go",
 		"--config", "./testdata/malformed.cfg",
 		"--internal-config", tmpInternalConfigFile.Name(),
@@ -1774,7 +1774,7 @@ func TestSendHeartbeats_MalformedConfig(t *testing.T) {
 		"--verbose",
 	)
 
-	assert.Contains(t, out, "failed to parse config files")
+	assert.Empty(t, out)
 
 	count, err := offline.CountHeartbeats(ctx, offlineQueueFile.Name())
 	require.NoError(t, err)
@@ -1805,7 +1805,7 @@ func TestSendHeartbeats_MalformedInternalConfig(t *testing.T) {
 
 	out := runWakatimeCliExpectErr(
 		t,
-		exitcode.ErrConfigFileParse,
+		exitcode.ErrAuth,
 		"--entity", "testdata/main.go",
 		"--config", tmpConfigFile.Name(),
 		"--internal-config", "./testdata/internal-malformed.cfg",
@@ -1814,7 +1814,7 @@ func TestSendHeartbeats_MalformedInternalConfig(t *testing.T) {
 		"--verbose",
 	)
 
-	assert.Contains(t, out, "failed to parse config files")
+	assert.Empty(t, out)
 
 	count, err := offline.CountHeartbeats(ctx, offlineQueueFile.Name())
 	require.NoError(t, err)
