@@ -2163,6 +2163,18 @@ func TestLoadAPIParams_APIKey_FromConfig(t *testing.T) {
 	assert.Equal(t, "10000000-0000-4000-8000-000000000000", params.Key)
 }
 
+func TestLoadAPIParams_APIKey_FromTopLevelConfig(t *testing.T) {
+	ctx := t.Context()
+
+	v := vipertools.MustNew()
+	v.Set("api_key", "30000000-0000-4000-8000-000000000000")
+
+	params, err := paramspkg.LoadAPIParams(ctx, v, paramspkg.FlagReadOrderFlagPrecedence)
+	require.NoError(t, err)
+
+	assert.Equal(t, "30000000-0000-4000-8000-000000000000", params.Key)
+}
+
 func TestLoadAPIParams_APIKey_ConfigDeprecatedTakesPrecedence(t *testing.T) {
 	ctx := t.Context()
 
@@ -2173,6 +2185,18 @@ func TestLoadAPIParams_APIKey_ConfigDeprecatedTakesPrecedence(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, "20000000-0000-4000-8000-000000000000", params.Key)
+}
+
+func TestLoadAPIParams_APIKey_TopLevelDeprecatedTakesPrecedence(t *testing.T) {
+	ctx := t.Context()
+
+	v := vipertools.MustNew()
+	v.Set("apikey", "40000000-0000-4000-8000-000000000000")
+
+	params, err := paramspkg.LoadAPIParams(ctx, v, paramspkg.FlagReadOrderFlagPrecedence)
+	require.NoError(t, err)
+
+	assert.Equal(t, "40000000-0000-4000-8000-000000000000", params.Key)
 }
 
 func TestLoadAPIParams_APIKeyUnset(t *testing.T) {
