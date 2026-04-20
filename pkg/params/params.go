@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -1008,16 +1009,16 @@ func readAPIKeyFromCommand(cmdStr string) (string, error) {
 		return "", nil
 	}
 
-	cmdParts := strings.Split(cmdStr, " ")
-	if len(cmdParts) == 0 {
-		return "", nil
-	}
-
-	cmdName := cmdParts[0]
-	cmdArgs := cmdParts[1:]
-
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
+
+	cmdName := "sh"
+	cmdArgs := []string{"-c", cmdStr}
+
+	if runtime.GOOS == "windows" {
+		cmdName = "cmd"
+		cmdArgs = []string{"/C", cmdStr}
+	}
 
 	cmd := exec.CommandContext(ctx, cmdName, cmdArgs...) // nolint:gosec
 	cmd.Stderr = os.Stderr
