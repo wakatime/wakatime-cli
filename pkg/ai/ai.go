@@ -51,6 +51,8 @@ const (
 	CodexParser
 	// RooParser is the parser ID for Roo Code.
 	RooParser
+	// OpenCodeParser is the parser ID for OpenCode.
+	OpenCodeParser
 	// CopilotParser is the parser ID for GitHub Copilot Chat.
 	CopilotParser
 	// CursorParser is the parser ID for Cursor.
@@ -158,6 +160,11 @@ func parseAIHeartbeats(
 			FallbackUserAgent: fallbackUserAgent,
 		},
 		RooCode{
+			After:             after,
+			UserAgents:        userAgents,
+			FallbackUserAgent: fallbackUserAgent,
+		},
+		OpenCode{
 			After:             after,
 			UserAgents:        userAgents,
 			FallbackUserAgent: fallbackUserAgent,
