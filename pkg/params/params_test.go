@@ -2884,10 +2884,19 @@ func TestLoadOfflineParams_SyncMax_NonIntegerValue(t *testing.T) {
 	assert.Equal(t, math.MaxInt32, params.SyncMax)
 }
 
+func TestLoadStatusBarParams_HideCategories_Default(t *testing.T) {
+	v := vipertools.MustNew()
+
+	params, err := paramspkg.LoadStatusBarParams(v, paramspkg.FlagReadOrderFlagPrecedence)
+	require.NoError(t, err)
+
+	assert.True(t, params.HideCategories)
+}
+
 func TestLoadStatusBarParams_HideCategories_FlagTakesPrecedence(t *testing.T) {
 	v := vipertools.MustNew()
 	v.Set("today-hide-categories", false)
-	v.Set("settings.status_bar_hide_categories", true)
+	v.Set("settings.status_bar_show_categories", false)
 
 	params, err := paramspkg.LoadStatusBarParams(v, paramspkg.FlagReadOrderFlagPrecedence)
 	require.NoError(t, err)
@@ -2897,12 +2906,37 @@ func TestLoadStatusBarParams_HideCategories_FlagTakesPrecedence(t *testing.T) {
 
 func TestLoadStatusBarParams_HideCategories_ConfigTakesPrecedence(t *testing.T) {
 	v := vipertools.MustNew()
-	v.Set("settings.status_bar_hide_categories", true)
+	v.Set("today-hide-categories", false)
+	v.Set("settings.status_bar_show_categories", false)
+
+	params, err := paramspkg.LoadStatusBarParams(v, paramspkg.FlagReadOrderProjectConfigPrecedence)
+	require.NoError(t, err)
+
+	assert.True(t, params.HideCategories)
+}
+
+func TestLoadStatusBarParams_HideCategories_ShowCategoriesEnabled(t *testing.T) {
+	v := vipertools.MustNew()
+	v.Set("settings.status_bar_show_categories", true)
 
 	params, err := paramspkg.LoadStatusBarParams(v, paramspkg.FlagReadOrderFlagPrecedence)
 	require.NoError(t, err)
 
-	assert.True(t, params.HideCategories)
+	assert.False(t, params.HideCategories)
+}
+
+func TestLoadStatusBarParams_HideCategories_ShowCategoriesInvalid(t *testing.T) {
+	v := vipertools.MustNew()
+	v.Set("settings.status_bar_show_categories", "invalid")
+
+	_, err := paramspkg.LoadStatusBarParams(v, paramspkg.FlagReadOrderFlagPrecedence)
+	require.Error(t, err)
+
+	assert.Equal(
+		t,
+		"failed to parse status_bar_show_categories: strconv.ParseBool: parsing \"invalid\": invalid syntax",
+		err.Error(),
+	)
 }
 
 func TestLoadStatusBarParams_Output(t *testing.T) {

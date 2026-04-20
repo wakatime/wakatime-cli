@@ -158,9 +158,9 @@ var (
 		FlagReadOrderFlagPrecedence:          {"heartbeat-rate-limit-seconds", "settings.heartbeat_rate_limit_seconds"},
 		FlagReadOrderProjectConfigPrecedence: {"settings.heartbeat_rate_limit_seconds", "heartbeat-rate-limit-seconds"},
 	}
-	todayHideCategoriesOrder = map[FlagReadOrder][]string{
-		FlagReadOrderFlagPrecedence:          {"today-hide-categories", "settings.status_bar_hide_categories"},
-		FlagReadOrderProjectConfigPrecedence: {"settings.status_bar_hide_categories", "today-hide-categories"},
+	todayCategoriesOrder = map[FlagReadOrder][]string{
+		FlagReadOrderFlagPrecedence:          {"today-hide-categories", "settings.status_bar_show_categories"},
+		FlagReadOrderProjectConfigPrecedence: {"settings.status_bar_show_categories", "today-hide-categories"},
 	}
 	todayMaxCategoriesOrder = map[FlagReadOrder][]string{
 		FlagReadOrderFlagPrecedence:          {"today-max-categories", "settings.status_bar_max_categories"},
@@ -955,15 +955,30 @@ func LoadOfflineParams(ctx context.Context, v *viper.Viper, order FlagReadOrder)
 
 // LoadStatusBarParams loads status bar params from viper.Viper instance.
 func LoadStatusBarParams(v *viper.Viper, order FlagReadOrder) (StatusBar, error) {
-	var hideCategories bool
+	hideCategories := true
 
-	if hideCategoriesStr := vipertools.FirstNonEmptyString(v, todayHideCategoriesOrder[order]...); hideCategoriesStr != "" {
-		val, err := strconv.ParseBool(hideCategoriesStr)
+	for _, key := range todayCategoriesOrder[order] {
+		valStr := vipertools.GetString(v, key)
+		if valStr == "" {
+			continue
+		}
+
+		val, err := strconv.ParseBool(valStr)
 		if err != nil {
+			if key == "settings.status_bar_show_categories" {
+				return StatusBar{}, fmt.Errorf("failed to parse status_bar_show_categories: %s", err)
+			}
+
 			return StatusBar{}, fmt.Errorf("failed to parse today-hide-categories: %s", err)
 		}
 
-		hideCategories = val
+		if key == "settings.status_bar_show_categories" {
+			hideCategories = !val
+		} else {
+			hideCategories = val
+		}
+
+		break
 	}
 
 	maxCategories := 2
