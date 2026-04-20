@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -117,7 +118,66 @@ func WithProxy(proxyURL string) (Option, error) {
 		transport := LazyCreateNewTransport(c)
 		transport.Proxy = http.ProxyURL(u)
 		c.client.Transport = transport
+
+		if !strings.EqualFold(u.Scheme, "https") {
+			return
+		}
+
+		httpProxyURL := *u
+		httpProxyURL.Scheme = "http"
+
+		next := c.doFunc
+		c.doFunc = func(c *Client, req *http.Request) (*http.Response, error) {
+			resp, err := next(c, req)
+			if err == nil || !shouldRetryProxyWithHTTP(err) {
+				return resp, err
+			}
+
+			reqRetry, retryErr := cloneRequest(req)
+			if retryErr != nil {
+				return nil, err
+			}
+
+			transport := LazyCreateNewTransport(c)
+			transport.Proxy = http.ProxyURL(&httpProxyURL)
+
+			previousTransport := c.client.Transport
+			c.client.Transport = transport
+
+			defer func() {
+				c.client.Transport = previousTransport
+			}()
+
+			return next(c, reqRetry)
+		}
 	}, nil
+}
+
+func shouldRetryProxyWithHTTP(err error) bool {
+	msg := err.Error()
+
+	return strings.Contains(msg, "proxyconnect tcp:") ||
+		strings.Contains(msg, "server gave HTTP response to HTTPS client")
+}
+
+func cloneRequest(req *http.Request) (*http.Request, error) {
+	reqRetry := req.Clone(req.Context())
+	if req.Body == nil {
+		return reqRetry, nil
+	}
+
+	if req.GetBody == nil {
+		return nil, errors.New("request body is not replayable")
+	}
+
+	body, err := req.GetBody()
+	if err != nil {
+		return nil, err
+	}
+
+	reqRetry.Body = body
+
+	return reqRetry, nil
 }
 
 // WithSSLCertFile overrides the default CA certs file to trust specified cert file.

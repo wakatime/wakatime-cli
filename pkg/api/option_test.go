@@ -277,6 +277,32 @@ func TestOption_WithProxy(t *testing.T) {
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
 
+func TestOption_WithProxy_HTTPSFallbackToHTTP(t *testing.T) {
+	url, router, tearDown := setupTestServer()
+	defer tearDown()
+
+	var numCalls int
+
+	router.HandleFunc("/", func(_ http.ResponseWriter, _ *http.Request) {
+		numCalls++
+	})
+
+	withProxy, err := api.WithProxy(strings.Replace(url, "http://", "https://", 1))
+	require.NoError(t, err)
+
+	req, err := http.NewRequest(http.MethodGet, "http://example.org", nil)
+	require.NoError(t, err)
+
+	c := api.NewClient("", []api.Option{withProxy}...)
+
+	resp, err := c.Do(t.Context(), req)
+	require.NoError(t, err)
+
+	defer resp.Body.Close()
+
+	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+}
+
 func TestOption_WithUserAgent(t *testing.T) {
 	url, router, tearDown := setupTestServer()
 	defer tearDown()
