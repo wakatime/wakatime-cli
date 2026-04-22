@@ -238,10 +238,6 @@ func (g OpenCode) parseLegacySession(sessionPath string) (Heartbeats, error) {
 			return nil, err
 		}
 
-		if message.Time.Created == 0 || time.UnixMilli(message.Time.Created).Before(g.After) {
-			continue
-		}
-
 		parts, err := g.readParts(baseStorageDir, message.ID)
 		if err != nil {
 			return nil, err
@@ -408,7 +404,88 @@ ORDER BY time_created ASC, id ASC;
 		return nil, nil, fmt.Errorf("failed reading OpenCode sqlite messages %q: %s", dbPath, err)
 	}
 
+	if !g.After.IsZero() {
+		if err := g.querySQLiteSeedMessages(ctx, db, dbPath, messagesBySession); err != nil {
+			return nil, nil, err
+		}
+	}
+
 	return messagesBySession, messageIDs, nil
+}
+
+func (g OpenCode) querySQLiteSeedMessages(
+	ctx context.Context,
+	db *sql.DB,
+	dbPath string,
+	messagesBySession map[string][]openCodeMessageWithParts,
+) error {
+	if len(messagesBySession) == 0 {
+		return nil
+	}
+
+	rows, err := db.QueryContext(ctx, `
+SELECT id, session_id, CAST(data AS TEXT), time_created
+FROM message
+WHERE time_created < ?
+ORDER BY time_created DESC, id DESC;
+`, g.afterUnixMilli())
+	if err != nil {
+		return fmt.Errorf("failed querying OpenCode sqlite seed messages %q: %s", dbPath, err)
+	}
+	defer rows.Close() // nolint:errcheck
+
+	remaining := make(map[string]struct{}, len(messagesBySession))
+	for sessionID := range messagesBySession {
+		remaining[sessionID] = struct{}{}
+	}
+
+	for rows.Next() {
+		if len(remaining) == 0 {
+			break
+		}
+
+		var (
+			id        string
+			sessionID string
+			data      string
+			createdAt int64
+		)
+
+		if err := rows.Scan(&id, &sessionID, &data, &createdAt); err != nil {
+			return fmt.Errorf("failed scanning OpenCode sqlite seed message row: %s", err)
+		}
+
+		if _, ok := remaining[sessionID]; !ok {
+			continue
+		}
+
+		var message openCodeMessageInfo
+		if err := json.Unmarshal([]byte(strings.TrimSpace(data)), &message); err != nil {
+			continue
+		}
+
+		message.ID = firstNonEmptyString(message.ID, id)
+
+		message.SessionID = firstNonEmptyString(message.SessionID, sessionID)
+		if message.Time.Created == 0 {
+			message.Time.Created = createdAt
+		}
+
+		if message.SessionID == "" || message.Time.Created == 0 {
+			continue
+		}
+
+		messagesBySession[message.SessionID] = append(messagesBySession[message.SessionID], openCodeMessageWithParts{
+			info: message,
+		})
+		delete(remaining, message.SessionID)
+	}
+
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("failed reading OpenCode sqlite seed messages %q: %s", dbPath, err)
+	}
+
+	return nil
 }
 
 func queryOpenCodeSQLiteParts(
@@ -488,21 +565,38 @@ func (g OpenCode) sessionHeartbeats(
 	sessionEntity := appHeartbeatEntity(g.Name(), session.ID)
 	sessionCwd := session.Directory
 
-	var heartbeats Heartbeats
+	var (
+		heartbeats Heartbeats
+		tokens     heartbeat.AITokens
+	)
 
 	for _, message := range messages {
+		messageTime := time.UnixMilli(message.info.Time.Created)
+
 		cwd := sessionCwd
 		if message.info.Path != nil {
 			cwd = firstNonEmptyString(message.info.Path.Cwd, message.info.Path.Root, sessionCwd)
 		}
 
+		if message.info.Tokens != nil {
+			tokens.CurrentInput = message.info.Tokens.Input
+			tokens.CurrentOutput = message.info.Tokens.Output
+		}
+
+		if message.info.Time.Created == 0 || (!g.After.IsZero() && messageTime.Before(g.After)) {
+			tokens.LastInput = tokens.CurrentInput
+			tokens.LastOutput = tokens.CurrentOutput
+
+			continue
+		}
+
 		switch message.info.Role {
 		case "user":
-			if hb := g.userHeartbeat(sessionEntity, session.Version, session.ID, cwd, message); hb != nil {
+			if hb := g.userHeartbeat(sessionEntity, session.Version, session.ID, cwd, message, tokens); hb != nil {
 				heartbeats = append(heartbeats, *hb)
 			}
 		case "assistant":
-			if hb := g.assistantHeartbeat(sessionEntity, session.Version, session.ID, cwd, message); hb != nil {
+			if hb := g.assistantHeartbeat(sessionEntity, session.Version, session.ID, cwd, message, tokens); hb != nil {
 				heartbeats = append(heartbeats, *hb)
 			}
 
@@ -511,7 +605,7 @@ func (g OpenCode) sessionHeartbeats(
 					session.Version,
 					session.ID,
 					cwd,
-					time.UnixMilli(message.info.Time.Created),
+					messageTime,
 					part,
 				)
 				if len(hbs) > 0 {
@@ -519,6 +613,9 @@ func (g OpenCode) sessionHeartbeats(
 				}
 			}
 		}
+
+		tokens.LastInput = tokens.CurrentInput
+		tokens.LastOutput = tokens.CurrentOutput
 	}
 
 	return heartbeats
@@ -660,6 +757,7 @@ func (g OpenCode) userHeartbeat(
 	sessionID string,
 	cwd string,
 	message openCodeMessageWithParts,
+	tokens heartbeat.AITokens,
 ) *heartbeat.Heartbeat {
 	prompt := 0
 
@@ -678,7 +776,7 @@ func (g OpenCode) userHeartbeat(
 	h := heartbeat.NewWithAITokens(
 		nil,
 		sessionID,
-		heartbeat.AITokens{},
+		tokens,
 		"",
 		heartbeat.AICodingCategory.String(),
 		nil,
@@ -710,6 +808,7 @@ func (g OpenCode) assistantHeartbeat(
 	sessionID string,
 	cwd string,
 	message openCodeMessageWithParts,
+	tokens heartbeat.AITokens,
 ) *heartbeat.Heartbeat {
 	hasSignal := false
 
@@ -726,12 +825,6 @@ func (g OpenCode) assistantHeartbeat(
 
 	if !hasSignal && message.info.Tokens == nil {
 		return nil
-	}
-
-	tokens := heartbeat.AITokens{}
-	if message.info.Tokens != nil {
-		tokens.CurrentInput = message.info.Tokens.Input
-		tokens.CurrentOutput = message.info.Tokens.Output
 	}
 
 	h := heartbeat.NewWithAITokens(

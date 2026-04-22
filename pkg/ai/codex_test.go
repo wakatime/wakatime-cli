@@ -2,6 +2,7 @@ package ai_test
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -214,6 +215,68 @@ func TestCodexParse_SkipsHarnessInputWhenCalculatingPromptLength(t *testing.T) {
 	assert.Equal(t, "/workspace/project", got[0].ProjectPathOverride)
 }
 
+func TestCodexParse_StripsBundledHarnessPrefixBeforeCountingPromptLength(t *testing.T) {
+	ctx := context.Background()
+
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	now := time.Now()
+	transcriptDir := filepath.Join(home, ".codex", "sessions", now.Format("2006"), now.Format("01"), now.Format("02"))
+	require.NoError(t, os.MkdirAll(transcriptDir, 0o755))
+
+	transcriptPath := filepath.Join(transcriptDir, "session.jsonl")
+	userPrompt := strings.Join([]string{
+		"<environment_context>",
+		"  <cwd>/Users/user/git/vim-wakatime</cwd>",
+		"</environment_context>",
+		"# Context from my IDE setup:",
+		"",
+		"## Active file: lua/wakatime/init.lua",
+		"",
+		"## Open tabs:",
+		"- init.lua: lua/wakatime/init.lua",
+		"",
+		"## My request for Codex:",
+		"look for any divergences in the new Lua plugin vs the old VimL plugin, " +
+			"or any bugs in the Lua plugin since it's not as tested as the older plugin.",
+		"",
+	}, "\n")
+	expectedPrompt := "look for any divergences in the new Lua plugin vs the old VimL plugin, " +
+		"or any bugs in the Lua plugin since it's not as tested as the older plugin."
+	transcript := strings.Join([]string{
+		strings.Join([]string{
+			`{"timestamp":"2026-04-21T10:57:40Z","type":"session_meta",`,
+			`"payload":{"cwd":"/Users/user/git/vim-wakatime","cli_version":"0.120.0-alpha.1"}}`,
+		}, ""),
+		strings.Join([]string{
+			`{"timestamp":"2026-04-21T10:57:40Z","type":"response_item",`,
+			`"payload":{"type":"message","role":"developer","content":[`,
+			`{"type":"input_text","text":"<permissions instructions>\nblocked\n</permissions instructions>"}`,
+			`]}}`,
+		}, ""),
+		strings.Join([]string{
+			`{"timestamp":"2026-04-21T10:57:40Z","type":"response_item",`,
+			`"payload":{"type":"message","role":"user","content":[`,
+			`{"type":"input_text","text":` + jsonString(userPrompt) + `}`,
+			`]}}`,
+		}, ""),
+	}, "\n") + "\n"
+	require.NoError(t, os.WriteFile(transcriptPath, []byte(transcript), 0o644))
+
+	parser := ai.Codex{
+		After: time.Date(2026, 4, 21, 10, 0, 0, 0, time.UTC),
+	}
+
+	got, err := parser.Parse(ctx)
+	require.NoError(t, err)
+	require.Len(t, got, 1)
+	assert.Equal(t, heartbeat.AppType, got[0].EntityType)
+	assert.Equal(t, len([]rune(expectedPrompt)), got[0].AIPromptLength)
+	assert.Equal(t, "/Users/user/git/vim-wakatime", got[0].ProjectPathOverride)
+}
+
 func TestCodexParse_StripsVSCodePrefixFromUserMessage(t *testing.T) {
 	ctx := context.Background()
 
@@ -405,4 +468,13 @@ func copyFile(t *testing.T, source, destination string) {
 
 	err = os.WriteFile(destination, input, 0600)
 	require.NoError(t, err)
+}
+
+func jsonString(value string) string {
+	encoded, err := json.Marshal(value)
+	if err != nil {
+		panic(err)
+	}
+
+	return string(encoded)
 }
