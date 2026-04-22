@@ -57,8 +57,16 @@ const (
 	CopilotParser
 	// CursorParser is the parser ID for Cursor.
 	CursorParser
+	// WindsurfParser is the parser ID for Windsurf.
+	WindsurfParser
+	// ClineParser is the parser ID for Cline.
+	ClineParser
+	// GeminiParser is the parser ID for Gemini.
+	GeminiParser
 	// PiParser is the parser ID for Pi.
 	PiParser
+	// GooseParser is the parser ID for Goose.
+	GooseParser
 )
 
 type (
@@ -179,7 +187,27 @@ func parseAIHeartbeats(
 			UserAgents:        userAgents,
 			FallbackUserAgent: fallbackUserAgent,
 		},
+		Windsurf{
+			After:             after,
+			UserAgents:        userAgents,
+			FallbackUserAgent: fallbackUserAgent,
+		},
+		Cline{
+			After:             after,
+			UserAgents:        userAgents,
+			FallbackUserAgent: fallbackUserAgent,
+		},
+		Gemini{
+			After:             after,
+			UserAgents:        userAgents,
+			FallbackUserAgent: fallbackUserAgent,
+		},
 		Pi{
+			After:             after,
+			UserAgents:        userAgents,
+			FallbackUserAgent: fallbackUserAgent,
+		},
+		Goose{
 			After:             after,
 			UserAgents:        userAgents,
 			FallbackUserAgent: fallbackUserAgent,
