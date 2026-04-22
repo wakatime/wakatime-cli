@@ -270,6 +270,165 @@ func TestOpenCodeParse_SQLiteFallback(t *testing.T) {
 	assert.Contains(t, got[2].UserAgent, "editor/1.2.3")
 }
 
+func TestOpenCodeParse_LegacyStorage_AfterUsesSeedTokens(t *testing.T) {
+	ctx := context.Background()
+
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	baseDir := filepath.Join(home, ".local", "share", "opencode", "storage")
+	sessionDir := filepath.Join(baseDir, "session", "proj_1")
+	messageDir := filepath.Join(baseDir, "message", "ses_456")
+	partDirBefore := filepath.Join(baseDir, "part", "msg_before")
+	partDirAfter := filepath.Join(baseDir, "part", "msg_after")
+
+	require.NoError(t, os.MkdirAll(sessionDir, 0o755))
+	require.NoError(t, os.MkdirAll(messageDir, 0o755))
+	require.NoError(t, os.MkdirAll(partDirBefore, 0o755))
+	require.NoError(t, os.MkdirAll(partDirAfter, 0o755))
+
+	require.NoError(t, os.WriteFile(filepath.Join(sessionDir, "ses_456.json"), []byte(`{
+  "id": "ses_456",
+  "directory": "/workspace/project",
+  "version": "1.4.4",
+  "time": { "created": 1740000000000, "updated": 1740000005000 }
+}`), 0o600))
+
+	require.NoError(t, os.WriteFile(filepath.Join(messageDir, "msg_before.json"), []byte(`{
+  "id": "msg_before",
+  "sessionID": "ses_456",
+  "role": "assistant",
+  "path": { "cwd": "/workspace/project", "root": "/workspace/project" },
+  "tokens": { "input": 100, "output": 20 },
+  "time": { "created": 1740000001000 }
+}`), 0o600))
+	require.NoError(t, os.WriteFile(filepath.Join(partDirBefore, "part_before_text.json"), []byte(`{
+  "id": "part_before_text",
+  "messageID": "msg_before",
+  "sessionID": "ses_456",
+  "type": "text",
+  "text": "Earlier response"
+}`), 0o600))
+
+	require.NoError(t, os.WriteFile(filepath.Join(messageDir, "msg_after.json"), []byte(`{
+  "id": "msg_after",
+  "sessionID": "ses_456",
+  "role": "assistant",
+  "path": { "cwd": "/workspace/project", "root": "/workspace/project" },
+  "tokens": { "input": 130, "output": 27 },
+  "time": { "created": 1740000003000 }
+}`), 0o600))
+	require.NoError(t, os.WriteFile(filepath.Join(partDirAfter, "part_after_text.json"), []byte(`{
+  "id": "part_after_text",
+  "messageID": "msg_after",
+  "sessionID": "ses_456",
+  "type": "text",
+  "text": "Later response"
+}`), 0o600))
+
+	parser := ai.OpenCode{
+		After:             time.UnixMilli(1740000002000),
+		FallbackUserAgent: "plugin/0.0.1",
+	}
+
+	got, err := parser.Parse(ctx)
+	require.NoError(t, err)
+	require.Len(t, got, 1)
+
+	assert.Equal(t, "OpenCode ses_456", got[0].Entity)
+	assert.EqualValues(t, 30, got[0].AIInputTokens)
+	assert.EqualValues(t, 7, got[0].AIOutputTokens)
+}
+
+func TestOpenCodeParse_SQLiteFallback_AfterUsesSeedTokens(t *testing.T) {
+	ctx := context.Background()
+
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	baseDir := filepath.Join(home, ".local", "share", "opencode")
+	dbPath := filepath.Join(baseDir, "opencode.db")
+
+	require.NoError(t, os.MkdirAll(baseDir, 0o755))
+
+	createOpenCodeDB(t, dbPath, openCodeDBFixture{
+		Sessions: []openCodeDBSession{
+			{
+				ID:        "ses_seed",
+				Directory: "/workspace/project",
+				Version:   "1.4.4",
+			},
+		},
+		Messages: []openCodeDBMessage{
+			{
+				ID:        "msg_before",
+				SessionID: "ses_seed",
+				CreatedAt: 1740000001000,
+				Data: map[string]any{
+					"role": "assistant",
+					"path": map[string]any{
+						"cwd":  "/workspace/project",
+						"root": "/workspace/project",
+					},
+					"tokens": map[string]any{
+						"input":  100,
+						"output": 20,
+					},
+					"time": map[string]any{
+						"created": 1740000001000,
+					},
+				},
+			},
+			{
+				ID:        "msg_after",
+				SessionID: "ses_seed",
+				CreatedAt: 1740000003000,
+				Data: map[string]any{
+					"role": "assistant",
+					"path": map[string]any{
+						"cwd":  "/workspace/project",
+						"root": "/workspace/project",
+					},
+					"tokens": map[string]any{
+						"input":  130,
+						"output": 27,
+					},
+					"time": map[string]any{
+						"created": 1740000003000,
+					},
+				},
+			},
+		},
+		Parts: []openCodeDBPart{
+			{
+				ID:        "part_after",
+				MessageID: "msg_after",
+				SessionID: "ses_seed",
+				CreatedAt: 1740000003001,
+				Data: map[string]any{
+					"type": "text",
+					"text": "Later response",
+				},
+			},
+		},
+	})
+
+	parser := ai.OpenCode{
+		After:             time.UnixMilli(1740000002000),
+		FallbackUserAgent: "plugin/0.0.1",
+	}
+
+	got, err := parser.Parse(ctx)
+	require.NoError(t, err)
+	require.Len(t, got, 1)
+
+	assert.Equal(t, "OpenCode ses_seed", got[0].Entity)
+	assert.EqualValues(t, 30, got[0].AIInputTokens)
+	assert.EqualValues(t, 7, got[0].AIOutputTokens)
+}
+
 func TestOpenCodeParse_NoStorageDir(t *testing.T) {
 	ctx := context.Background()
 

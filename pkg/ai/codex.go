@@ -578,12 +578,8 @@ func (g Codex) userMessageHeartbeat(
 }
 
 func codexUserMessageText(text string) string {
-	trimmed := strings.TrimSpace(text)
+	trimmed := codexStripHarnessPrefix(text)
 	if trimmed == "" {
-		return ""
-	}
-
-	if strings.HasPrefix(trimmed, "<") {
 		return ""
 	}
 
@@ -592,6 +588,36 @@ func codexUserMessageText(text string) string {
 		if _, request, ok := strings.Cut(trimmed, requestPrefix); ok {
 			return strings.TrimSpace(request)
 		}
+	}
+
+	return trimmed
+}
+
+func codexStripHarnessPrefix(text string) string {
+	trimmed := strings.TrimSpace(text)
+	if trimmed == "" {
+		return ""
+	}
+
+	for strings.HasPrefix(trimmed, "<") {
+		closeIndex := strings.Index(trimmed, ">")
+		if closeIndex <= 1 {
+			return ""
+		}
+
+		openTag := trimmed[1:closeIndex]
+		if strings.HasPrefix(openTag, "/") {
+			return ""
+		}
+
+		closeTag := "</" + openTag + ">"
+
+		blockEnd := strings.Index(trimmed, closeTag)
+		if blockEnd < 0 {
+			return ""
+		}
+
+		trimmed = strings.TrimSpace(trimmed[blockEnd+len(closeTag):])
 	}
 
 	return trimmed
