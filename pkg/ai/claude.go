@@ -28,16 +28,18 @@ type (
 	}
 
 	claudeMessage struct {
-		ID      string                 `json:"id"`
-		Role    string                 `json:"role"`
-		Usage   *claudeUsage           `json:"usage"`
-		Content []claudeMessageContent `json:"content"`
+		ID      string                   `json:"id"`
+		Role    string                   `json:"role"`
+		Usage   *claudeUsage             `json:"usage"`
+		Content claudeMessageContentList `json:"content"`
 	}
 
 	claudeMessageContent struct {
 		Type string `json:"type"`
 		Text string `json:"text"`
 	}
+
+	claudeMessageContentList []claudeMessageContent
 
 	structuredPatch struct {
 		NewLines int `json:"newLines"`
@@ -133,6 +135,28 @@ func (v *toolUseResultValue) UnmarshalJSON(data []byte) error {
 	}
 
 	return fmt.Errorf("unsupported toolUseResult type")
+}
+
+func (c *claudeMessageContentList) UnmarshalJSON(data []byte) error {
+	if data == nil || string(data) == "null" {
+		return nil
+	}
+
+	var arr []claudeMessageContent
+	if err := json.Unmarshal(data, &arr); err == nil {
+		*c = arr
+
+		return nil
+	}
+
+	var str string
+	if err := json.Unmarshal(data, &str); err == nil {
+		*c = claudeMessageContentList{{Type: "text", Text: str}}
+
+		return nil
+	}
+
+	return fmt.Errorf("unsupported message content type")
 }
 
 func (v *contentValue) lineChanges() int {
