@@ -22,5 +22,5 @@ func detectFSharpFromContents(text string) (heartbeat.Language, float32, bool) {
 		weight = 1
 	}
 
-	return heartbeat.LanguageUnknown, weight, weight > 0
+	return heartbeat.LanguageFSharp, weight, weight > 0
 }
