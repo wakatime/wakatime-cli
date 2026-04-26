@@ -72,6 +72,10 @@ func TestClaudeParse(t *testing.T) {
 		"{\"timestamp\":\"2026-03-18T13:30:00Z\",\"sessionId\":\"claude-session\",\"toolUseResult\":{" +
 			"\"filePath\":\"/tmp/empty.go\",\"structuredPatch\":[]}," +
 			"\"message\":{\"usage\":{\"input_tokens\":1,\"output_tokens\":1}}}",
+		"{\"timestamp\":\"2026-03-18T13:45:00Z\",\"sessionId\":\"claude-session\",\"toolUseResult\":{" +
+			"\"filePath\":\"/tmp/same-lines.go\",\"oldString\":\"before\",\"newString\":\"after\"," +
+			"\"originalFile\":\"before\",\"structuredPatch\":[{\"oldLines\":1,\"newLines\":1}]}," +
+			"\"message\":{\"usage\":{\"input_tokens\":3,\"output_tokens\":2}}}",
 		"{\"timestamp\":\"2026-03-18T14:00:00Z\",\"sessionId\":\"claude-session\",\"toolUseResult\":{" +
 			"\"structuredPatch\":[{\"oldLines\":1,\"newLines\":1}]}," +
 			"\"message\":{\"usage\":{\"input_tokens\":8,\"output_tokens\":2}}}",
@@ -88,7 +92,7 @@ func TestClaudeParse(t *testing.T) {
 
 	got, err := parser.Parse(ctx)
 	require.NoError(t, err)
-	require.Len(t, got, 8)
+	require.Len(t, got, 9)
 
 	assert.Equal(t, "Claude agent-worker", got[0].Entity)
 	assert.Equal(t, "claude-session", got[0].AISession)
@@ -182,6 +186,16 @@ func TestClaudeParse(t *testing.T) {
 	assert.Zero(t, got[7].AIPromptLength)
 	assert.Equal(t, int64(1), got[7].AIInputTokens)
 	assert.Equal(t, int64(1), got[7].AIOutputTokens)
+
+	assert.Equal(t, "/tmp/same-lines.go", got[8].Entity)
+	assert.Equal(t, "claude-session", got[8].AISession)
+	require.NotNil(t, got[8].AILineChanges)
+	assert.Equal(t, 0, *got[8].AILineChanges)
+	assert.Zero(t, got[8].AIPromptLength)
+	assert.Equal(t, int64(3), got[8].AIInputTokens)
+	assert.Equal(t, int64(2), got[8].AIOutputTokens)
+	require.NotNil(t, got[8].IsWrite)
+	assert.True(t, *got[8].IsWrite)
 }
 
 func TestClaudeParse_NoClaudeProjectsDir(t *testing.T) {
@@ -303,4 +317,72 @@ func TestClaudeParse_UserMessageContentAsPlainString(t *testing.T) {
 	assert.Equal(t, heartbeat.AppType, got[0].EntityType)
 	assert.Equal(t, "claude-session", got[0].AISession)
 	assert.Equal(t, len([]rune(expectedPrompt)), got[0].AIPromptLength)
+}
+
+func TestClaudeParse_UserMessageContentAsPlainStringWithIDEContext(t *testing.T) {
+	ctx := context.Background()
+	expectedPrompt := "please continue from the selected file"
+
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	transcriptDir := filepath.Join(home, ".claude", "projects", "sample-project")
+	require.NoError(t, os.MkdirAll(transcriptDir, 0o755))
+
+	transcriptPath := filepath.Join(transcriptDir, "session.jsonl")
+	content := `<ide_opened_file><path>/tmp/main.go</path></ide_opened_file>\n\n` + expectedPrompt
+	transcript := strings.Join([]string{
+		strings.Join([]string{
+			`{"timestamp":"2026-03-18T11:45:00Z","sessionId":"claude-session","version":"2.1.45",`,
+			`"cwd":"/tmp","isSidechain":false,"type":"user",`,
+			`"message":{"role":"user","content":"` + content + `"}}`,
+		}, ""),
+	}, "\n") + "\n"
+	require.NoError(t, os.WriteFile(transcriptPath, []byte(transcript), 0o644))
+
+	parser := ai.Claude{
+		After:             time.Date(2026, 3, 18, 11, 0, 0, 0, time.UTC),
+		FallbackUserAgent: "plugin/0.0.1",
+	}
+
+	got, err := parser.Parse(ctx)
+	require.NoError(t, err)
+	require.Len(t, got, 1)
+
+	assert.Equal(t, heartbeat.AppType, got[0].EntityType)
+	assert.Equal(t, "claude-session", got[0].AISession)
+	assert.Equal(t, len([]rune(expectedPrompt)), got[0].AIPromptLength)
+	assert.Equal(t, "Claude/2.1.45 plugin/0.0.1", got[0].UserAgent)
+}
+
+func TestClaudeParse_UserMessageContentAsPlainStringSystemReminder(t *testing.T) {
+	ctx := context.Background()
+
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	transcriptDir := filepath.Join(home, ".claude", "projects", "sample-project")
+	require.NoError(t, os.MkdirAll(transcriptDir, 0o755))
+
+	transcriptPath := filepath.Join(transcriptDir, "session.jsonl")
+	content := `<system-reminder>\nThis is metadata.\n\nDo not count this as a user prompt.\n</system-reminder>`
+	transcript := strings.Join([]string{
+		strings.Join([]string{
+			`{"timestamp":"2026-03-18T11:45:00Z","sessionId":"claude-session","version":"2.1.45",`,
+			`"cwd":"/tmp","isSidechain":false,"type":"user",`,
+			`"message":{"role":"user","content":"` + content + `"}}`,
+		}, ""),
+	}, "\n") + "\n"
+	require.NoError(t, os.WriteFile(transcriptPath, []byte(transcript), 0o644))
+
+	parser := ai.Claude{
+		After:             time.Date(2026, 3, 18, 11, 0, 0, 0, time.UTC),
+		FallbackUserAgent: "plugin/0.0.1",
+	}
+
+	got, err := parser.Parse(ctx)
+	require.NoError(t, err)
+	assert.Empty(t, got)
 }

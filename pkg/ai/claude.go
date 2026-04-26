@@ -543,7 +543,7 @@ func (g Claude) claudeFileHeartbeat(
 	}
 
 	lineChanges := g.lineChanges(*logLine.ToolUseResult.Object)
-	isWrite := lineChanges != 0
+	isWrite := g.isWrite(*logLine.ToolUseResult.Object)
 
 	h := g.newHeartbeat(
 		heartbeat.PointerTo(lineChanges),
@@ -727,6 +727,25 @@ func (Claude) lineChanges(result toolUseResult) int {
 	return 0
 }
 
+func (Claude) isWrite(result toolUseResult) bool {
+	if result.StructuredPatch != nil && len(*result.StructuredPatch) > 0 {
+		return true
+	}
+
+	if result.Type != nil {
+		switch *result.Type {
+		case "create", "update", "delete":
+			return true
+		}
+	}
+
+	if result.OriginalFile != nil && *result.OriginalFile != "" {
+		return false
+	}
+
+	return result.Content.lineChanges() != 0
+}
+
 func (g Claude) appLineChanges(result *toolUseResultValue) int {
 	if result == nil {
 		return 0
@@ -775,15 +794,56 @@ func claudePromptLength(logLine claudeLogLine) int {
 			continue
 		}
 
-		text := strings.TrimSpace(item.Text)
-		if text == "" || strings.HasPrefix(text, "<") {
-			continue
-		}
-
-		total += promptLength(item.Text)
+		total += claudePromptTextLength(item.Text)
 	}
 
 	return total
+}
+
+func claudePromptTextLength(text string) int {
+	trimmed := strings.TrimSpace(text)
+	if trimmed == "" {
+		return 0
+	}
+
+	if !strings.HasPrefix(trimmed, "<") {
+		return promptLength(text)
+	}
+
+	for strings.HasPrefix(trimmed, "<") {
+		closeOpenTag := strings.Index(trimmed, ">")
+		if closeOpenTag < 2 {
+			return 0
+		}
+
+		tag := strings.TrimSpace(trimmed[1:closeOpenTag])
+		if tag == "" || strings.HasPrefix(tag, "/") {
+			return 0
+		}
+
+		tagName := strings.Fields(tag)[0]
+
+		tagName = strings.TrimSuffix(tagName, "/")
+		if tagName == "" {
+			return 0
+		}
+
+		if strings.HasSuffix(tag, "/") {
+			trimmed = strings.TrimSpace(trimmed[closeOpenTag+1:])
+			continue
+		}
+
+		closeTag := "</" + tagName + ">"
+
+		closeTagIndex := strings.Index(trimmed, closeTag)
+		if closeTagIndex == -1 {
+			return 0
+		}
+
+		trimmed = strings.TrimSpace(trimmed[closeTagIndex+len(closeTag):])
+	}
+
+	return promptLength(trimmed)
 }
 
 func claudeHasIDEContext(logLine claudeLogLine) bool {
