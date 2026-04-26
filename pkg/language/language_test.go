@@ -603,8 +603,11 @@ func TestDetect_ChromaTopLanguagesRetrofit(t *testing.T) {
 			Expected: heartbeat.LanguageOCaml,
 		},
 		"pawn": {
-			Filepaths: []string{"path/to/file.pwn"},
-			Expected:  heartbeat.LanguagePawn,
+			Filepaths: []string{
+				"path/to/file.pwn",
+				"path/to/file.inc",
+			},
+			Expected: heartbeat.LanguagePawn,
 		},
 		"perl not prolog": {
 			Filepaths: []string{

@@ -9,6 +9,9 @@ func priority(lang string) (float32, bool) {
 		"INI": 0.1,
 		// TASM uses the same file endings, but TASM is not as common as NASM, so we prioritize NASM higher by default.
 		"NASM": 0.1,
+		// Chroma gives PHP high priority for .inc files, but .inc is commonly
+		// used for Pawn include files.
+		"Pawn": 3.01,
 		"Perl": 0.01,
 		// Higher priority than Rebol
 		"R": 0.1,
