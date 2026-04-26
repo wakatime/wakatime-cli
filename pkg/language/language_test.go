@@ -257,6 +257,13 @@ func TestDetect_FSharp_Over_Forth(t *testing.T) {
 	assert.Equal(t, heartbeat.LanguageFSharp, lang)
 }
 
+func TestDetect_Forth_Over_FSharp(t *testing.T) {
+	lang, err := language.Detect(t.Context(), "testdata/codefiles/forth.fs", false)
+	require.NoError(t, err)
+
+	assert.Equal(t, heartbeat.LanguageForth, lang)
+}
+
 func TestDetect_Delphi_FMX_FileInFolder(t *testing.T) {
 	lang, err := language.Detect(t.Context(), "testdata/codefiles/pas_with_fmx_file/delphi.pas", false)
 	require.NoError(t, err)
