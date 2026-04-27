@@ -27,6 +27,8 @@ func TestParserIDStringAndPlugins(t *testing.T) {
 	assert.Equal(t, "Copilot/0.42.3", aiPlugin(Copilot{}, Copilot{}.version(&copilotAgent{ExtensionVersion: "0.42.3"})))
 	assert.Equal(t, "Cursor", aiPlugin(Cursor{}, ""))
 	assert.Equal(t, "Windsurf", aiPlugin(Windsurf{}, ""))
+	assert.Equal(t, "Qoder", aiPlugin(Qoder{}, ""))
+	assert.Equal(t, "Kiro", aiPlugin(Kiro{}, ""))
 	assert.Equal(t, "Cline", aiPlugin(Cline{}, ""))
 	assert.Equal(t, "Gemini", aiPlugin(Gemini{}, ""))
 	assert.Equal(t, "Pi", aiPlugin(Pi{}, ""))

@@ -59,6 +59,10 @@ const (
 	CursorParser
 	// WindsurfParser is the parser ID for Windsurf.
 	WindsurfParser
+	// QoderParser is the parser ID for Qoder.
+	QoderParser
+	// KiroParser is the parser ID for Kiro.
+	KiroParser
 	// ClineParser is the parser ID for Cline.
 	ClineParser
 	// GeminiParser is the parser ID for Gemini.
@@ -188,6 +192,16 @@ func parseAIHeartbeats(
 			FallbackUserAgent: fallbackUserAgent,
 		},
 		Windsurf{
+			After:             after,
+			UserAgents:        userAgents,
+			FallbackUserAgent: fallbackUserAgent,
+		},
+		Qoder{
+			After:             after,
+			UserAgents:        userAgents,
+			FallbackUserAgent: fallbackUserAgent,
+		},
+		Kiro{
 			After:             after,
 			UserAgents:        userAgents,
 			FallbackUserAgent: fallbackUserAgent,
