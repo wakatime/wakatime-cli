@@ -91,6 +91,29 @@ func TestGooseParse_NoSessionDB(t *testing.T) {
 	assert.Empty(t, got)
 }
 
+func TestGooseParse_SkipsStaleSessionDB(t *testing.T) {
+	ctx := context.Background()
+
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	dbDir := filepath.Join(home, ".local", "share", "goose", "sessions")
+	require.NoError(t, os.MkdirAll(dbDir, 0o755))
+
+	dbPath := filepath.Join(dbDir, "sessions.db")
+	require.NoError(t, os.WriteFile(dbPath, []byte("not sqlite"), 0o600))
+
+	staleTime := time.Date(2026, 4, 20, 12, 0, 0, 0, time.UTC)
+	require.NoError(t, os.Chtimes(dbPath, staleTime, staleTime))
+
+	got, err := ai.Goose{
+		After: staleTime.Add(time.Second),
+	}.Parse(ctx)
+	require.NoError(t, err)
+	assert.Empty(t, got)
+}
+
 func createGooseDB(t *testing.T, dbPath string) {
 	t.Helper()
 

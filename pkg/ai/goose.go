@@ -45,6 +45,10 @@ func (g Goose) Parse(ctx context.Context) (Heartbeats, error) {
 		return Heartbeats{}, nil
 	}
 
+	if !g.dbModifiedAfter(dbPath, g.After) {
+		return Heartbeats{}, nil
+	}
+
 	rows, err := g.queryRows(ctx, dbPath)
 	if err != nil {
 		return nil, err
@@ -110,6 +114,19 @@ func (Goose) dbPath(ctx context.Context) (string, error) {
 	}
 
 	return "", nil
+}
+
+func (Goose) dbModifiedAfter(dbPath string, after time.Time) bool {
+	if after.IsZero() {
+		return true
+	}
+
+	info, err := os.Stat(dbPath)
+	if err != nil {
+		return false
+	}
+
+	return info.ModTime().After(after)
 }
 
 func (g Goose) queryRows(ctx context.Context, dbPath string) ([]gooseSessionRow, error) {
