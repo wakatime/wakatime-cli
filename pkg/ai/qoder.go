@@ -100,6 +100,10 @@ func (g Qoder) Parse(ctx context.Context) (Heartbeats, error) {
 		return Heartbeats{}, nil
 	}
 
+	if !g.localDBModifiedAfter(dbPath, g.After) {
+		return Heartbeats{}, nil
+	}
+
 	rows, err := g.queryRows(ctx, dbPath)
 	if err != nil {
 		return nil, err
@@ -160,6 +164,19 @@ func (Qoder) localDBPath(ctx context.Context) (string, error) {
 	}
 
 	return "", nil
+}
+
+func (Qoder) localDBModifiedAfter(dbPath string, after time.Time) bool {
+	if after.IsZero() {
+		return true
+	}
+
+	info, err := os.Stat(dbPath)
+	if err != nil {
+		return false
+	}
+
+	return info.ModTime().After(after)
 }
 
 func (Qoder) queryRows(ctx context.Context, dbPath string) ([]qoderMessageRow, error) {
