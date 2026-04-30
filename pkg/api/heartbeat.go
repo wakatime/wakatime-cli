@@ -50,6 +50,14 @@ func (c *Client) SendHeartbeats(ctx context.Context, heartbeats []heartbeat.Hear
 			return nil, err
 		}
 
+		for i := range res {
+			if i >= len(hh) {
+				break
+			}
+
+			res[i].Heartbeat = hh[i]
+		}
+
 		results = append(results, res...)
 	}
 
