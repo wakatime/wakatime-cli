@@ -141,11 +141,15 @@ func (g Goose) queryRows(ctx context.Context, dbPath string) ([]gooseSessionRow,
 		return nil, err
 	}
 
-	required := []string{"id", "name", "working_dir", "updated_at"}
+	required := []string{"id", "working_dir", "updated_at"}
 	for _, column := range required {
 		if !slices.Contains(columns, column) {
 			return nil, fmt.Errorf("missing goose sessions column %q in %q", column, dbPath)
 		}
+	}
+
+	if !slices.Contains(columns, "description") && !slices.Contains(columns, "name") {
+		return nil, fmt.Errorf("missing goose sessions description column in %q", dbPath)
 	}
 
 	query, selectColumns, err := gooseSessionsQuery(columns)
@@ -235,6 +239,8 @@ func (Goose) rowFromValues(columns []string, raw []sql.NullString) (gooseSession
 			row.ID = value
 		case "name":
 			row.Name = value
+		case "description":
+			row.Name = value
 		case "working_dir":
 			row.WorkingDir = value
 		case "provider_name":
@@ -306,19 +312,24 @@ func gooseSessionsQuery(columns []string) (string, []string, error) {
 	inputColumn := ""
 
 	switch {
-	case slices.Contains(columns, "accumulated_input_tokens"):
-		inputColumn = "accumulated_input_tokens"
 	case slices.Contains(columns, "input_tokens"):
 		inputColumn = "input_tokens"
+	case slices.Contains(columns, "accumulated_input_tokens"):
+		inputColumn = "accumulated_input_tokens"
 	}
 
 	outputColumn := ""
 
 	switch {
-	case slices.Contains(columns, "accumulated_output_tokens"):
-		outputColumn = "accumulated_output_tokens"
 	case slices.Contains(columns, "output_tokens"):
 		outputColumn = "output_tokens"
+	case slices.Contains(columns, "accumulated_output_tokens"):
+		outputColumn = "accumulated_output_tokens"
+	}
+
+	titleColumn := "description"
+	if !slices.Contains(columns, titleColumn) {
+		titleColumn = "name"
 	}
 
 	type queryOption struct {
@@ -335,28 +346,28 @@ func gooseSessionsQuery(columns []string) (string, []string, error) {
 			hasSessionType: false,
 			inputColumn:    "",
 			outputColumn:   "",
-			columns:        []string{"id", "name", "working_dir", "updated_at"},
+			columns:        []string{"id", titleColumn, "working_dir", "updated_at"},
 		},
 		{
 			hasProvider:    true,
 			hasSessionType: false,
 			inputColumn:    "",
 			outputColumn:   "",
-			columns:        []string{"id", "name", "working_dir", "updated_at", "provider_name"},
+			columns:        []string{"id", titleColumn, "working_dir", "updated_at", "provider_name"},
 		},
 		{
 			hasProvider:    false,
 			hasSessionType: true,
 			inputColumn:    "",
 			outputColumn:   "",
-			columns:        []string{"id", "name", "working_dir", "updated_at", "session_type"},
+			columns:        []string{"id", titleColumn, "working_dir", "updated_at", "session_type"},
 		},
 		{
 			hasProvider:    true,
 			hasSessionType: true,
 			inputColumn:    "",
 			outputColumn:   "",
-			columns:        []string{"id", "name", "working_dir", "updated_at", "provider_name", "session_type"},
+			columns:        []string{"id", titleColumn, "working_dir", "updated_at", "provider_name", "session_type"},
 		},
 	}
 

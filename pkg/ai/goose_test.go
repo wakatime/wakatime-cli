@@ -79,6 +79,38 @@ func TestGooseParse_PlainTokenColumns(t *testing.T) {
 	assert.EqualValues(t, 8, got[0].AIOutputTokens)
 }
 
+func TestGooseParse_ActualSQLiteSchema(t *testing.T) {
+	ctx := context.Background()
+
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	dbDir := filepath.Join(home, ".local", "share", "goose", "sessions")
+	require.NoError(t, os.MkdirAll(dbDir, 0o755))
+
+	dbPath := filepath.Join(dbDir, "sessions.db")
+	createGooseDBWithActualSchema(t, dbPath)
+
+	parser := ai.Goose{
+		After:             time.Date(2026, 4, 20, 11, 59, 0, 0, time.UTC),
+		FallbackUserAgent: "plugin/0.0.1",
+	}
+
+	got, err := parser.Parse(ctx)
+	require.NoError(t, err)
+	require.Len(t, got, 1)
+
+	assert.Equal(t, "Goose 20260420_1", got[0].Entity)
+	assert.Equal(t, "20260420_1", got[0].AISession)
+	assert.Equal(t, "/workspace/goose", got[0].ProjectPathOverride)
+	assert.Equal(t, len([]rune("Investigate the failing tests")), got[0].AIPromptLength)
+	assert.EqualValues(t, 13, got[0].AIInputTokens)
+	assert.EqualValues(t, 8, got[0].AIOutputTokens)
+	assert.Equal(t, float64(time.Date(2026, 4, 20, 12, 0, 0, 0, time.UTC).Unix()), got[0].Time)
+	assert.Contains(t, got[0].UserAgent, "Goose")
+}
+
 func TestGooseParse_NoSessionDB(t *testing.T) {
 	ctx := context.Background()
 
@@ -197,6 +229,92 @@ INSERT INTO sessions (
 	13,
 	8
 );
+`)
+	require.NoError(t, err)
+}
+
+func createGooseDBWithActualSchema(t *testing.T, dbPath string) {
+	t.Helper()
+
+	db, err := sql.Open("sqlite", dbPath)
+	require.NoError(t, err)
+
+	defer db.Close() // nolint:errcheck
+
+	_, err = db.Exec(`
+CREATE TABLE schema_version (
+	version INTEGER PRIMARY KEY,
+	applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE sessions (
+	id TEXT PRIMARY KEY,
+	description TEXT NOT NULL DEFAULT '',
+	working_dir TEXT NOT NULL,
+	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	extension_data TEXT DEFAULT '{}',
+	total_tokens INTEGER,
+	input_tokens INTEGER,
+	output_tokens INTEGER,
+	accumulated_total_tokens INTEGER,
+	accumulated_input_tokens INTEGER,
+	accumulated_output_tokens INTEGER,
+	schedule_id TEXT,
+	recipe_json TEXT,
+	user_recipe_values_json TEXT
+);
+CREATE TABLE messages (
+	id INTEGER PRIMARY KEY AUTOINCREMENT,
+	session_id TEXT NOT NULL REFERENCES sessions(id),
+	role TEXT NOT NULL,
+	content_json TEXT NOT NULL,
+	created_timestamp INTEGER NOT NULL,
+	timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	tokens INTEGER,
+	metadata_json TEXT
+);
+CREATE INDEX idx_messages_session ON messages(session_id);
+CREATE INDEX idx_messages_timestamp ON messages(timestamp);
+CREATE INDEX idx_sessions_updated ON sessions(updated_at DESC);
+INSERT INTO sessions (
+	id,
+	description,
+	working_dir,
+	updated_at,
+	extension_data,
+	total_tokens,
+	input_tokens,
+	output_tokens,
+	accumulated_total_tokens,
+	accumulated_input_tokens,
+	accumulated_output_tokens
+) VALUES
+	(
+		'20260419_1',
+		'Old session',
+		'/workspace/old',
+		'2026-04-19 12:00:00',
+		'{}',
+		15,
+		10,
+		5,
+		150,
+		100,
+		50
+	),
+	(
+		'20260420_1',
+		'Investigate the failing tests',
+		'/workspace/goose',
+		'2026-04-20 12:00:00',
+		'{"enabled_extensions.v0":{"extensions":[]}}',
+		21,
+		13,
+		8,
+		210,
+		130,
+		80
+	);
 `)
 	require.NoError(t, err)
 }
