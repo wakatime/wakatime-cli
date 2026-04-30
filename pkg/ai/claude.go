@@ -142,9 +142,18 @@ func (c *claudeMessageContentList) UnmarshalJSON(data []byte) error {
 		return nil
 	}
 
-	var arr []claudeMessageContent
-	if err := json.Unmarshal(data, &arr); err == nil {
-		*c = arr
+	var rawItems []json.RawMessage
+	if err := json.Unmarshal(data, &rawItems); err == nil {
+		items := make([]claudeMessageContent, 0, len(rawItems))
+
+		for _, raw := range rawItems {
+			content, ok := parseClaudeMessageContent(raw)
+			if ok {
+				items = append(items, content)
+			}
+		}
+
+		*c = items
 
 		return nil
 	}
@@ -157,6 +166,30 @@ func (c *claudeMessageContentList) UnmarshalJSON(data []byte) error {
 	}
 
 	return fmt.Errorf("unsupported message content type")
+}
+
+func parseClaudeMessageContent(raw json.RawMessage) (claudeMessageContent, bool) {
+	var str string
+	if err := json.Unmarshal(raw, &str); err == nil {
+		return claudeMessageContent{Type: "text", Text: str}, true
+	}
+
+	var block struct {
+		Type string          `json:"type"`
+		Text json.RawMessage `json:"text"`
+	}
+	if err := json.Unmarshal(raw, &block); err != nil {
+		return claudeMessageContent{}, false
+	}
+
+	content := claudeMessageContent{Type: block.Type}
+
+	var text string
+	if err := json.Unmarshal(block.Text, &text); err == nil {
+		content.Text = text
+	}
+
+	return content, true
 }
 
 func (v *contentValue) lineChanges() int {
