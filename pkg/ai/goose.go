@@ -5,6 +5,7 @@ package ai
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -15,6 +16,7 @@ import (
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/ini"
+	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	// Register the pure-Go SQLite driver used to read Goose session databases.
 	_ "modernc.org/sqlite"
@@ -32,6 +34,13 @@ type gooseSessionRow struct {
 	Input             int64
 	Output            int64
 	UsesSummaryTokens bool
+	ThreadID          string
+	Prompt            string
+}
+
+type gooseMessageContent struct {
+	Type string `json:"type"`
+	Text string `json:"text"`
 }
 
 // Parse parses the Goose SQLite session db for ai heartbeats.
@@ -42,6 +51,10 @@ func (g Goose) Parse(ctx context.Context) (Heartbeats, error) {
 	}
 
 	if dbPath == "" {
+		return Heartbeats{}, nil
+	}
+
+	if !g.dbModifiedAfter(dbPath, g.After) {
 		return Heartbeats{}, nil
 	}
 
@@ -84,7 +97,13 @@ func (g Goose) Parse(ctx context.Context) (Heartbeats, error) {
 			float64(row.UpdatedAt.Unix()),
 			aiUserAgent(entity, g.UserAgents, g.FallbackUserAgent, aiPlugin(g, row.Provider)),
 		)
-		h.AIPromptLength = promptLength(row.Name)
+
+		prompt := row.Prompt
+		if prompt == "" {
+			prompt = row.Name
+		}
+
+		h.AIPromptLength = promptLength(prompt)
 
 		heartbeats = append(heartbeats, h)
 	}
@@ -112,7 +131,22 @@ func (Goose) dbPath(ctx context.Context) (string, error) {
 	return "", nil
 }
 
+func (Goose) dbModifiedAfter(dbPath string, after time.Time) bool {
+	if after.IsZero() {
+		return true
+	}
+
+	info, err := os.Stat(dbPath)
+	if err != nil {
+		return false
+	}
+
+	return info.ModTime().After(after)
+}
+
 func (g Goose) queryRows(ctx context.Context, dbPath string) ([]gooseSessionRow, error) {
+	logger := log.Extract(ctx)
+
 	db, err := sql.Open("sqlite", dbPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed opening goose sqlite db %q: %s", dbPath, err)
@@ -124,16 +158,29 @@ func (g Goose) queryRows(ctx context.Context, dbPath string) ([]gooseSessionRow,
 		return nil, err
 	}
 
-	required := []string{"id", "name", "working_dir", "updated_at"}
-	for _, column := range required {
+	minimum := []string{"id", "updated_at"}
+	for _, column := range minimum {
 		if !slices.Contains(columns, column) {
-			return nil, fmt.Errorf("missing goose sessions column %q in %q", column, dbPath)
+			logger.Warnf("skipping goose sqlite db %q: missing sessions column %q", dbPath, column)
+
+			return []gooseSessionRow{}, nil
 		}
+	}
+
+	if !slices.Contains(columns, "working_dir") {
+		logger.Warnf("goose sqlite db %q is missing sessions column %q; project path will be empty", dbPath, "working_dir")
+	}
+
+	tables, err := g.tables(ctx, db)
+	if err != nil {
+		logger.Warnf("%s", err)
 	}
 
 	query, selectColumns, err := gooseSessionsQuery(columns)
 	if err != nil {
-		return nil, err
+		logger.Warnf("skipping goose sqlite db %q: %s", dbPath, err)
+
+		return []gooseSessionRow{}, nil
 	}
 
 	rows, err := db.QueryContext(ctx, query)
@@ -161,6 +208,8 @@ func (g Goose) queryRows(ctx context.Context, dbPath string) ([]gooseSessionRow,
 			continue
 		}
 
+		row.Prompt = g.sessionPrompt(ctx, db, tables, row)
+
 		result = append(result, row)
 	}
 
@@ -169,6 +218,31 @@ func (g Goose) queryRows(ctx context.Context, dbPath string) ([]gooseSessionRow,
 	}
 
 	return result, nil
+}
+
+func (Goose) tables(ctx context.Context, db *sql.DB) ([]string, error) {
+	rows, err := db.QueryContext(ctx, "SELECT name FROM sqlite_master WHERE type = 'table'")
+	if err != nil {
+		return nil, fmt.Errorf("failed reading goose sqlite tables: %s", err)
+	}
+	defer rows.Close() // nolint:errcheck
+
+	var tables []string
+
+	for rows.Next() {
+		var table string
+		if err := rows.Scan(&table); err != nil {
+			return nil, fmt.Errorf("failed scanning goose sqlite table row: %s", err)
+		}
+
+		tables = append(tables, table)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed reading goose sqlite table rows: %s", err)
+	}
+
+	return tables, nil
 }
 
 func (Goose) sessionColumns(ctx context.Context, db *sql.DB) ([]string, error) {
@@ -217,7 +291,13 @@ func (Goose) rowFromValues(columns []string, raw []sql.NullString) (gooseSession
 		case "id":
 			row.ID = value
 		case "name":
-			row.Name = value
+			if value != "" {
+				row.Name = value
+			}
+		case "description":
+			if row.Name == "" {
+				row.Name = value
+			}
 		case "working_dir":
 			row.WorkingDir = value
 		case "provider_name":
@@ -234,6 +314,8 @@ func (Goose) rowFromValues(columns []string, raw []sql.NullString) (gooseSession
 		case "accumulated_output_tokens":
 			row.Output = parseGooseInt(value)
 			row.UsesSummaryTokens = true
+		case "thread_id":
+			row.ThreadID = value
 		}
 	}
 
@@ -242,6 +324,89 @@ func (Goose) rowFromValues(columns []string, raw []sql.NullString) (gooseSession
 	}
 
 	return row, true
+}
+
+func (Goose) sessionPrompt(ctx context.Context, db *sql.DB, tables []string, row gooseSessionRow) string {
+	if slices.Contains(tables, "messages") {
+		prompt := gooseQueryLatestPrompt(
+			ctx,
+			db,
+			`SELECT content_json
+			 FROM messages
+			 WHERE session_id = ? AND role = 'user'
+			 ORDER BY created_timestamp DESC
+			 LIMIT 20`,
+			row.ID,
+		)
+		if prompt != "" {
+			return prompt
+		}
+	}
+
+	if row.ThreadID != "" && slices.Contains(tables, "thread_messages") {
+		prompt := gooseQueryLatestPrompt(
+			ctx,
+			db,
+			`SELECT content_json
+			 FROM thread_messages
+			 WHERE thread_id = ? AND role = 'user'
+			 ORDER BY created_timestamp DESC
+			 LIMIT 20`,
+			row.ThreadID,
+		)
+		if prompt != "" {
+			return prompt
+		}
+	}
+
+	return ""
+}
+
+func gooseQueryLatestPrompt(ctx context.Context, db *sql.DB, query, id string) string {
+	rows, err := db.QueryContext(ctx, query, id)
+	if err != nil {
+		return ""
+	}
+	defer rows.Close() // nolint:errcheck
+
+	for rows.Next() {
+		var raw sql.NullString
+		if err := rows.Scan(&raw); err != nil || !raw.Valid {
+			continue
+		}
+
+		if prompt := goosePromptFromContent(raw.String); prompt != "" {
+			return prompt
+		}
+	}
+
+	return ""
+}
+
+func goosePromptFromContent(raw string) string {
+	if raw == "" {
+		return ""
+	}
+
+	var text string
+	if err := json.Unmarshal([]byte(raw), &text); err == nil {
+		return text
+	}
+
+	var items []gooseMessageContent
+	if err := json.Unmarshal([]byte(raw), &items); err != nil {
+		return ""
+	}
+
+	var parts []string
+
+	for _, item := range items {
+		if item.Type == "text" && item.Text != "" {
+			parts = append(parts, item.Text)
+		}
+	}
+
+	return strings.Join(parts, "\n")
 }
 
 func parseGooseTime(value string) time.Time {
@@ -283,119 +448,67 @@ func parseGooseInt(value string) int64 {
 }
 
 func gooseSessionsQuery(columns []string) (string, []string, error) {
-	hasProvider := slices.Contains(columns, "provider_name")
 	hasSessionType := slices.Contains(columns, "session_type")
+
+	if !slices.Contains(columns, "id") || !slices.Contains(columns, "updated_at") {
+		return "", nil, fmt.Errorf("missing minimum sessions columns")
+	}
 
 	inputColumn := ""
 
 	switch {
-	case slices.Contains(columns, "accumulated_input_tokens"):
-		inputColumn = "accumulated_input_tokens"
 	case slices.Contains(columns, "input_tokens"):
 		inputColumn = "input_tokens"
+	case slices.Contains(columns, "accumulated_input_tokens"):
+		inputColumn = "accumulated_input_tokens"
 	}
 
 	outputColumn := ""
 
 	switch {
-	case slices.Contains(columns, "accumulated_output_tokens"):
-		outputColumn = "accumulated_output_tokens"
 	case slices.Contains(columns, "output_tokens"):
 		outputColumn = "output_tokens"
+	case slices.Contains(columns, "accumulated_output_tokens"):
+		outputColumn = "accumulated_output_tokens"
 	}
 
-	type queryOption struct {
-		hasProvider    bool
-		hasSessionType bool
-		inputColumn    string
-		outputColumn   string
-		columns        []string
-	}
+	titleColumns := []string{}
 
-	options := []queryOption{
-		{
-			hasProvider:    false,
-			hasSessionType: false,
-			inputColumn:    "",
-			outputColumn:   "",
-			columns:        []string{"id", "name", "working_dir", "updated_at"},
-		},
-		{
-			hasProvider:    true,
-			hasSessionType: false,
-			inputColumn:    "",
-			outputColumn:   "",
-			columns:        []string{"id", "name", "working_dir", "updated_at", "provider_name"},
-		},
-		{
-			hasProvider:    false,
-			hasSessionType: true,
-			inputColumn:    "",
-			outputColumn:   "",
-			columns:        []string{"id", "name", "working_dir", "updated_at", "session_type"},
-		},
-		{
-			hasProvider:    true,
-			hasSessionType: true,
-			inputColumn:    "",
-			outputColumn:   "",
-			columns:        []string{"id", "name", "working_dir", "updated_at", "provider_name", "session_type"},
-		},
-	}
-
-	baseOptions := append([]queryOption(nil), options...)
-	for _, option := range baseOptions {
-		for _, inColumn := range []string{"", inputColumn} {
-			if inColumn == "" && inputColumn != "" {
-				continue
-			}
-
-			for _, outColumn := range []string{"", outputColumn} {
-				if outColumn == "" && outputColumn != "" {
-					continue
-				}
-
-				if inColumn == "" && outColumn == "" {
-					continue
-				}
-
-				cols := append([]string(nil), option.columns...)
-				if inColumn != "" {
-					cols = append(cols, inColumn)
-				}
-
-				if outColumn != "" {
-					cols = append(cols, outColumn)
-				}
-
-				options = append(options, queryOption{
-					hasProvider:    option.hasProvider,
-					hasSessionType: option.hasSessionType,
-					inputColumn:    inColumn,
-					outputColumn:   outColumn,
-					columns:        cols,
-				})
-			}
+	for _, column := range []string{"name", "description"} {
+		if slices.Contains(columns, column) {
+			titleColumns = append(titleColumns, column)
 		}
 	}
 
-	for _, option := range options {
-		if option.hasProvider == hasProvider &&
-			option.hasSessionType == hasSessionType &&
-			option.inputColumn == inputColumn &&
-			option.outputColumn == outputColumn {
-			query := "SELECT " + strings.Join(option.columns, ", ") + " FROM sessions"
-			if option.hasSessionType {
-				query += " WHERE session_type != 'Hidden'"
-			}
+	if slices.Contains(columns, "thread_id") {
+		titleColumns = append(titleColumns, "thread_id")
+	}
 
-			query += " ORDER BY updated_at ASC"
+	selectColumns := []string{"id"}
+	selectColumns = append(selectColumns, titleColumns...)
 
-			return query, option.columns, nil
+	for _, column := range []string{"working_dir", "updated_at", "provider_name"} {
+		if slices.Contains(columns, column) {
+			selectColumns = append(selectColumns, column)
 		}
 	}
 
-	return "", nil, fmt.Errorf("unsupported goose sessions schema")
+	if inputColumn != "" {
+		selectColumns = append(selectColumns, inputColumn)
+	}
+
+	if outputColumn != "" {
+		selectColumns = append(selectColumns, outputColumn)
+	}
+
+	query := "SELECT " + strings.Join(selectColumns, ", ") + " FROM sessions"
+	if hasSessionType {
+		query += " WHERE LOWER(session_type) != 'hidden'"
+	}
+
+	query += " ORDER BY updated_at ASC"
+
+	return query, selectColumns, nil
 }
 
 // Name returns its name.

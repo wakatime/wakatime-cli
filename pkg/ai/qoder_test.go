@@ -92,6 +92,35 @@ func TestQoderParse_NoDB(t *testing.T) {
 	assert.Empty(t, got)
 }
 
+func TestQoderParse_SkipsStaleLocalDB(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	dbDir := filepath.Join(
+		home,
+		"Library",
+		"Application Support",
+		"Qoder",
+		"SharedClientCache",
+		"cache",
+		"db",
+	)
+	require.NoError(t, os.MkdirAll(dbDir, 0o755))
+
+	dbPath := filepath.Join(dbDir, "local.db")
+	require.NoError(t, os.WriteFile(dbPath, []byte("not sqlite"), 0o600))
+
+	staleTime := time.UnixMilli(1777301083000)
+	require.NoError(t, os.Chtimes(dbPath, staleTime, staleTime))
+
+	got, err := ai.Qoder{
+		After: staleTime.Add(time.Millisecond),
+	}.Parse(context.Background())
+	require.NoError(t, err)
+	assert.Empty(t, got)
+}
+
 func createQoderDB(t *testing.T, dbPath string) {
 	t.Helper()
 
