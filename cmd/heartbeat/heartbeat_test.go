@@ -1474,6 +1474,12 @@ func testLoadParamsAndHeartbeats(
 	ctx context.Context,
 	v *viper.Viper,
 ) (params.Params, []heartbeat.Heartbeat, error) {
+	if !v.IsSet("sync-ai-disable") &&
+		!v.IsSet("sync-ai-disabled") &&
+		!v.IsSet("settings.sync_ai_disabled") {
+		v.Set("sync-ai-disabled", true)
+	}
+
 	apiParams, err := params.LoadAPIParams(ctx, v, params.FlagReadOrderFlagPrecedence)
 	if err != nil {
 		return params.Params{}, nil, fmt.Errorf("failed to load API parameters: %w", err)
