@@ -319,6 +319,44 @@ func TestClaudeParse_UserMessageContentAsPlainString(t *testing.T) {
 	assert.Equal(t, len([]rune(expectedPrompt)), got[0].AIPromptLength)
 }
 
+func TestClaudeParse_UserMessageContentArrayWithUnknownBlocks(t *testing.T) {
+	ctx := context.Background()
+	expectedPrompt := "please continue"
+
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	transcriptDir := filepath.Join(home, ".claude", "projects", "sample-project")
+	require.NoError(t, os.MkdirAll(transcriptDir, 0o755))
+
+	transcriptPath := filepath.Join(transcriptDir, "session.jsonl")
+	transcript := strings.Join([]string{
+		strings.Join([]string{
+			`{"timestamp":"2026-03-18T11:45:00Z","sessionId":"claude-session","version":"2.1.45",`,
+			`"cwd":"/tmp","isSidechain":false,"type":"user","message":{"role":"user","content":[`,
+			`{"type":"tool_result","content":[{"type":"text","text":"ignore nested result"}]},`,
+			`{"type":"text","text":{"unexpected":"shape"}},`,
+			`{"type":"text","text":"` + expectedPrompt + `"}`,
+			`]}}`,
+		}, ""),
+	}, "\n") + "\n"
+	require.NoError(t, os.WriteFile(transcriptPath, []byte(transcript), 0o644))
+
+	parser := ai.Claude{
+		After:             time.Date(2026, 3, 18, 11, 0, 0, 0, time.UTC),
+		FallbackUserAgent: "plugin/0.0.1",
+	}
+
+	got, err := parser.Parse(ctx)
+	require.NoError(t, err)
+	require.Len(t, got, 1)
+
+	assert.Equal(t, heartbeat.AppType, got[0].EntityType)
+	assert.Equal(t, "claude-session", got[0].AISession)
+	assert.Equal(t, len([]rune(expectedPrompt)), got[0].AIPromptLength)
+}
+
 func TestClaudeParse_UserMessageContentAsPlainStringWithIDEContext(t *testing.T) {
 	ctx := context.Background()
 	expectedPrompt := "please continue from the selected file"
