@@ -23,6 +23,8 @@ func TestParserIDStringAndPlugins(t *testing.T) {
 	assert.Equal(t, "Codex/1.2.3", aiPlugin(Codex{}, "1.2.3"))
 	assert.Equal(t, "Continue", aiPlugin(Continue{}, ""))
 	assert.Equal(t, "Continue/gpt-5.2", aiPlugin(Continue{}, "gpt-5.2"))
+	assert.Equal(t, "Cody", aiPlugin(Cody{}, ""))
+	assert.Equal(t, "Cody/claude-3.5", aiPlugin(Cody{}, "claude-3.5"))
 	assert.Equal(t, "Roo Code", aiPlugin(RooCode{}, ""))
 	assert.Equal(t, "OpenCode", aiPlugin(OpenCode{}, ""))
 	assert.Equal(t, "Copilot", aiPlugin(Copilot{}, Copilot{}.version(nil)))
