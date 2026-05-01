@@ -1178,6 +1178,73 @@ func TestSync_DeletesDuplicates(t *testing.T) {
 	assert.Zero(t, count)
 }
 
+func TestSync_RequeuesHeartbeatMissingResultByAssociation(t *testing.T) {
+	f, err := os.CreateTemp(t.TempDir(), "")
+	require.NoError(t, err)
+
+	defer f.Close()
+
+	db, err := bolt.Open(f.Name(), 0600, nil)
+	require.NoError(t, err)
+
+	tx, err := db.Begin(true)
+	require.NoError(t, err)
+
+	hh := []heartbeat.Heartbeat{
+		{
+			Entity:     "/tmp/a.go",
+			EntityType: heartbeat.FileType,
+			Time:       1000,
+			UserAgent:  "wakatime/test",
+		},
+		{
+			Entity:     "/tmp/b.go",
+			EntityType: heartbeat.FileType,
+			Time:       2000,
+			UserAgent:  "wakatime/test",
+		},
+		{
+			Entity:     "/tmp/c.go",
+			EntityType: heartbeat.FileType,
+			Time:       3000,
+			UserAgent:  "wakatime/test",
+		},
+	}
+
+	q := offline.NewQueue(tx)
+	require.NoError(t, q.PushMany(hh))
+	require.NoError(t, tx.Commit())
+	require.NoError(t, db.Close())
+
+	syncFn := offline.Sync(t.Context(), f.Name(), 3)
+
+	var sent []heartbeat.Heartbeat
+
+	err = syncFn(func(_ context.Context, batch []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		require.Len(t, batch, 3)
+		sent = append([]heartbeat.Heartbeat(nil), batch...)
+
+		return []heartbeat.Result{
+			{
+				Status:    http.StatusCreated,
+				ID:        "id-0",
+				Heartbeat: batch[0],
+			},
+			{
+				Status:    http.StatusCreated,
+				ID:        "id-2",
+				Heartbeat: batch[2],
+			},
+		}, nil
+	})
+	require.NoError(t, err)
+
+	stored, err := offline.ReadHeartbeats(t.Context(), f.Name(), 10)
+	require.NoError(t, err)
+	require.Len(t, stored, 1)
+	assert.Equal(t, sent[1].ID(), stored[0].ID())
+}
+
 func TestCountHeartbeats(t *testing.T) {
 	// setup
 	f, err := os.CreateTemp(t.TempDir(), "")

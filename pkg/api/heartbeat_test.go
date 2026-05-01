@@ -57,19 +57,22 @@ func TestClient_SendHeartbeats(t *testing.T) {
 			})
 
 			c := api.NewClient(url)
-			results, err := c.SendHeartbeats(t.Context(), testHeartbeats())
+			heartbeats := testHeartbeats()
+			results, err := c.SendHeartbeats(t.Context(), heartbeats)
 			require.NoError(t, err)
 
 			// check via assert.Equal on complete slice here, to assert exact order of results,
 			// which is assumed to exactly match the request order
 			assert.Equal(t, []heartbeat.Result{
 				{
-					Status: http.StatusCreated,
-					ID:     "3F39FF6A-20A2-413E-8621-54AC80C3B5A2",
+					Status:    http.StatusCreated,
+					ID:        "3F39FF6A-20A2-413E-8621-54AC80C3B5A2",
+					Heartbeat: heartbeats[0],
 				},
 				{
-					Status: http.StatusCreated,
-					ID:     "FD2F9CCA-6AE0-4ECB-A246-4AF8832F614C",
+					Status:    http.StatusCreated,
+					ID:        "FD2F9CCA-6AE0-4ECB-A246-4AF8832F614C",
+					Heartbeat: heartbeats[1],
 				},
 			}, results)
 

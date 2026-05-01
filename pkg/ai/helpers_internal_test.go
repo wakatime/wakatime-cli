@@ -21,6 +21,10 @@ func TestParserIDStringAndPlugins(t *testing.T) {
 	assert.Equal(t, "Claude/1.2.3", aiPlugin(Claude{}, "1.2.3"))
 	assert.Equal(t, "Codex", aiPlugin(Codex{}, ""))
 	assert.Equal(t, "Codex/1.2.3", aiPlugin(Codex{}, "1.2.3"))
+	assert.Equal(t, "Continue", aiPlugin(Continue{}, ""))
+	assert.Equal(t, "Continue/gpt-5.2", aiPlugin(Continue{}, "gpt-5.2"))
+	assert.Equal(t, "Cody", aiPlugin(Cody{}, ""))
+	assert.Equal(t, "Cody/claude-3.5", aiPlugin(Cody{}, "claude-3.5"))
 	assert.Equal(t, "Roo Code", aiPlugin(RooCode{}, ""))
 	assert.Equal(t, "OpenCode", aiPlugin(OpenCode{}, ""))
 	assert.Equal(t, "Copilot", aiPlugin(Copilot{}, Copilot{}.version(nil)))
@@ -151,6 +155,11 @@ func TestCodexSessionIDFromPath(t *testing.T) {
 		Codex{}.sessionIDFromPath("/tmp/rollout-2026-04-02T11-15-29-019d4ec3-83f2-77b2-805a-3a1461effcc7.jsonl"))
 	assert.Equal(t, "session",
 		Codex{}.sessionIDFromPath("/tmp/session.jsonl"))
+}
+
+func TestContinueFilePathHandlesWindowsFileURI(t *testing.T) {
+	assert.Equal(t, `C:\Users\runner\project`, Continue{}.filePath(`file://C:\Users\runner\project`))
+	assert.Equal(t, filepath.FromSlash(`C:/Users/runner/project`), Continue{}.filePath(`file:///C:/Users/runner/project`))
 }
 
 func TestGetLastParsedAt(t *testing.T) {

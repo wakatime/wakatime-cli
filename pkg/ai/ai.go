@@ -49,6 +49,10 @@ const (
 	ClaudeParser
 	// CodexParser is the parser ID for Codex.
 	CodexParser
+	// ContinueParser is the parser ID for Continue.
+	ContinueParser
+	// CodyParser is the parser ID for Cody by Sourcegraph.
+	CodyParser
 	// RooParser is the parser ID for Roo Code.
 	RooParser
 	// OpenCodeParser is the parser ID for OpenCode.
@@ -167,6 +171,16 @@ func parseAIHeartbeats(
 			FallbackUserAgent: fallbackUserAgent,
 		},
 		Codex{
+			After:             after,
+			UserAgents:        userAgents,
+			FallbackUserAgent: fallbackUserAgent,
+		},
+		Continue{
+			After:             after,
+			UserAgents:        userAgents,
+			FallbackUserAgent: fallbackUserAgent,
+		},
+		Cody{
 			After:             after,
 			UserAgents:        userAgents,
 			FallbackUserAgent: fallbackUserAgent,

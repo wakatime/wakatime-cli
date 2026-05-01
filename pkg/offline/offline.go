@@ -203,25 +203,30 @@ func handleResults(
 
 	logger := log.Extract(ctx)
 
-	if len(results) != len(hh) {
+	if len(results) < len(hh) {
 		logger.Warnf("expected %d results from api but received %d", len(hh), len(results))
 	}
 
+	handled := make(map[string]int, len(results))
+
 	// push heartbeats with invalid result status codes to queue
 	for n, result := range results {
-		if n >= len(hh) {
+		h, ok := resultHeartbeat(result, hh, n)
+		if !ok {
 			stopSending = true
 
 			break
 		}
 
+		handled[h.ID()]++
+
 		if result.Status == http.StatusBadRequest {
-			serialized, jsonErr := json.Marshal(hh[n])
+			serialized, jsonErr := json.Marshal(h)
 			if jsonErr != nil {
 				logger.Warnf(
 					"failed to json marshal heartbeat: %s. heartbeat: %#v",
 					jsonErr,
-					hh[n],
+					h,
 				)
 			}
 
@@ -231,7 +236,8 @@ func handleResults(
 		}
 
 		if result.Status < http.StatusOK || result.Status > 299 {
-			withInvalidStatus = append(withInvalidStatus, hh[n])
+			withInvalidStatus = append(withInvalidStatus, h)
+
 			logger.Debugf("heartbeat %d has invalid status code %d: %s", n, result.Status, strings.Join(result.Errors, ", "))
 		}
 	}
@@ -248,19 +254,45 @@ func handleResults(
 	}
 
 	// handle leftover heartbeats
-	leftovers := len(hh) - len(results)
-	if leftovers > 0 {
-		logger.Warnf("missing %d results from api.", leftovers)
+	leftovers := missingResultHeartbeats(hh, handled)
+	if len(leftovers) > 0 {
+		logger.Warnf("missing %d results from api.", len(leftovers))
 
-		start := len(hh) - leftovers
-
-		err = pushHeartbeatsWithRetry(ctx, filepath, hh[start:])
+		err = pushHeartbeatsWithRetry(ctx, filepath, leftovers)
 		if err != nil {
 			logger.Warnf("failed to push leftover heartbeats to queue: %s", err)
 		}
 	}
 
 	return err != nil && !stopSending, err
+}
+
+func resultHeartbeat(result heartbeat.Result, hh []heartbeat.Heartbeat, n int) (heartbeat.Heartbeat, bool) {
+	if result.Heartbeat.Entity != "" || result.Heartbeat.Time != 0 {
+		return result.Heartbeat, true
+	}
+
+	if n >= len(hh) {
+		return heartbeat.Heartbeat{}, false
+	}
+
+	return hh[n], true
+}
+
+func missingResultHeartbeats(hh []heartbeat.Heartbeat, handled map[string]int) []heartbeat.Heartbeat {
+	var missing []heartbeat.Heartbeat
+
+	for _, h := range hh {
+		id := h.ID()
+		if handled[id] > 0 {
+			handled[id]--
+			continue
+		}
+
+		missing = append(missing, h)
+	}
+
+	return missing
 }
 
 func popHeartbeats(ctx context.Context, filepath string, limit int) ([]heartbeat.Heartbeat, error) {
