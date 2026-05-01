@@ -157,7 +157,7 @@ func TestCodexSessionIDFromPath(t *testing.T) {
 
 func TestContinueFilePathHandlesWindowsFileURI(t *testing.T) {
 	assert.Equal(t, `C:\Users\runner\project`, Continue{}.filePath(`file://C:\Users\runner\project`))
-	assert.Equal(t, `C:/Users/runner/project`, Continue{}.filePath(`file:///C:/Users/runner/project`))
+	assert.Equal(t, filepath.FromSlash(`C:/Users/runner/project`), Continue{}.filePath(`file:///C:/Users/runner/project`))
 }
 
 func TestGetLastParsedAt(t *testing.T) {
