@@ -62,7 +62,10 @@ type (
 		Content         *contentValue      `json:"content"`
 		FilePath        *string            `json:"filePath"`
 		OriginalFile    *string            `json:"originalFile"`
+		OldString       *string            `json:"oldString"`
+		NewString       *string            `json:"newString"`
 		StructuredPatch *[]structuredPatch `json:"structuredPatch"`
+		Raw             map[string]json.RawMessage
 	}
 
 	toolUseResultValue struct {
@@ -112,7 +115,26 @@ func (v *contentValue) UnmarshalJSON(data []byte) error {
 		return nil
 	}
 
-	return fmt.Errorf("unsupported content type")
+	return nil
+}
+
+func (r *toolUseResult) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+
+	type alias toolUseResult
+
+	var decoded alias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return nil
+	}
+
+	*r = toolUseResult(decoded)
+	r.Raw = raw
+
+	return nil
 }
 
 func (v *toolUseResultValue) UnmarshalJSON(data []byte) error {
@@ -134,7 +156,12 @@ func (v *toolUseResultValue) UnmarshalJSON(data []byte) error {
 		return nil
 	}
 
-	return fmt.Errorf("unsupported toolUseResult type")
+	var arr []toolUseResult
+	if err := json.Unmarshal(data, &arr); err == nil {
+		return nil
+	}
+
+	return nil
 }
 
 func (c *claudeMessageContentList) UnmarshalJSON(data []byte) error {
@@ -246,7 +273,8 @@ func (g Claude) Parse(ctx context.Context) (Heartbeats, error) {
 	for _, transcript := range transcripts {
 		parsed, err := g.parseTranscript(ctx, transcript)
 		if err != nil {
-			return nil, err
+			logger.Warnf("failed parsing claude transcript %q: %s", transcript, err)
+			continue
 		}
 
 		heartbeats = append(heartbeats, parsed...)
@@ -394,6 +422,10 @@ func (g Claude) parseTranscript(ctx context.Context, transcript string) (Heartbe
 
 		parsed := g.claudeHeartbeats(logLine, sessionEntity, sessionID, claudeVersion, cwd, ideSession, tokens)
 		if len(parsed) == 0 {
+			if g.shouldAdvanceTokensForNoopToolResult(logLine.ToolUseResult) {
+				tokens = g.advanceTokens(tokens)
+			}
+
 			continue
 		}
 
@@ -407,6 +439,14 @@ func (g Claude) parseTranscript(ctx context.Context, transcript string) (Heartbe
 	}
 
 	return heartbeats, nil
+}
+
+func (Claude) shouldAdvanceTokensForNoopToolResult(result *toolUseResultValue) bool {
+	if result == nil || result.String != nil {
+		return false
+	}
+
+	return true
 }
 
 func (g Claude) claudeTokenCounts(
@@ -743,6 +783,15 @@ func (Claude) lineChanges(result toolUseResult) int {
 		return lineChanges
 	}
 
+	if result.NewString != nil {
+		newLines := countStringLines(*result.NewString)
+		if result.OldString != nil {
+			return newLines - countStringLines(*result.OldString)
+		}
+
+		return newLines
+	}
+
 	// originalFile with content means this is a read/verify, not a write.
 	// An empty string (from creates where no original existed) is not a read.
 	if result.OriginalFile != nil && *result.OriginalFile != "" {
@@ -772,6 +821,10 @@ func (Claude) isWrite(result toolUseResult) bool {
 		}
 	}
 
+	if result.NewString != nil || result.OldString != nil {
+		return true
+	}
+
 	if result.OriginalFile != nil && *result.OriginalFile != "" {
 		return false
 	}
@@ -792,6 +845,10 @@ func (g Claude) appLineChanges(result *toolUseResultValue) int {
 		return 0
 	}
 
+	if result.Object.isAgenticOnly() {
+		return 0
+	}
+
 	if g.getFilePath(*result.Object) != "" {
 		return 0
 	}
@@ -805,6 +862,31 @@ func (g Claude) appLineChanges(result *toolUseResultValue) int {
 	}
 
 	return 0
+}
+
+func (r toolUseResult) isAgenticOnly() bool {
+	if r.Type != nil || r.File != nil || r.FilePath != nil || r.OriginalFile != nil ||
+		r.OldString != nil || r.NewString != nil || r.StructuredPatch != nil {
+		return false
+	}
+
+	for _, key := range []string{
+		"agentId",
+		"agentType",
+		"matches",
+		"query",
+		"results",
+		"statusChange",
+		"task",
+		"taskId",
+		"total_deferred_tools",
+	} {
+		if _, ok := r.Raw[key]; ok {
+			return true
+		}
+	}
+
+	return false
 }
 
 func claudePromptLength(logLine claudeLogLine) int {

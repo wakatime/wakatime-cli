@@ -14,6 +14,7 @@ import (
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/ini"
+	"github.com/wakatime/wakatime-cli/pkg/log"
 )
 
 // Continue contains params for detecting heartbeats from Continue transcripts.
@@ -101,9 +102,10 @@ func (g Continue) Parse(ctx context.Context) (Heartbeats, error) {
 		return Heartbeats{}, nil
 	}
 
+	logger := log.Extract(ctx)
 	workspaces := g.sessionWorkspaces(filepath.Join(root, "sessions", "sessions.json"))
 
-	events, err := g.events(filepath.Join(root, "dev_data"), workspaces)
+	events, err := g.events(logger, filepath.Join(root, "dev_data"), workspaces)
 	if err != nil {
 		return nil, err
 	}
@@ -129,7 +131,7 @@ func (Continue) root(ctx context.Context) (string, error) {
 	return "", nil
 }
 
-func (g Continue) events(devDataDir string, workspaces map[string]string) ([]continueEvent, error) {
+func (g Continue) events(logger *log.Logger, devDataDir string, workspaces map[string]string) ([]continueEvent, error) {
 	var events []continueEvent
 
 	entries, err := os.ReadDir(devDataDir)
@@ -153,9 +155,12 @@ func (g Continue) events(devDataDir string, workspaces map[string]string) ([]con
 			"toolUsage.jsonl",
 			"editOutcome.jsonl",
 		} {
-			parsed, err := g.eventsFromFile(filepath.Join(schemaDir, filename), workspaces)
+			path := filepath.Join(schemaDir, filename)
+
+			parsed, err := g.eventsFromFile(path, workspaces)
 			if err != nil {
-				return nil, err
+				logger.Warnf("failed parsing continue log %q: %s", path, err)
+				continue
 			}
 
 			events = append(events, parsed...)
