@@ -60,6 +60,10 @@ type (
 		Type            *string            `json:"type"`
 		File            *toolUseResultFile `json:"file"`
 		Content         *contentValue      `json:"content"`
+		Stdout          *contentValue      `json:"stdout"`
+		Stderr          *contentValue      `json:"stderr"`
+		Result          *contentValue      `json:"result"`
+		CodeText        *contentValue      `json:"codeText"`
 		FilePath        *string            `json:"filePath"`
 		OriginalFile    *string            `json:"originalFile"`
 		OldString       *string            `json:"oldString"`
@@ -71,6 +75,7 @@ type (
 	toolUseResultValue struct {
 		Object *toolUseResult
 		String *string
+		Array  *contentValue
 	}
 
 	claudeLogLine struct {
@@ -156,8 +161,10 @@ func (v *toolUseResultValue) UnmarshalJSON(data []byte) error {
 		return nil
 	}
 
-	var arr []toolUseResult
+	var arr []json.RawMessage
 	if err := json.Unmarshal(data, &arr); err == nil {
+		v.Array = &contentValue{Array: &arr}
+
 		return nil
 	}
 
@@ -841,6 +848,10 @@ func (g Claude) appLineChanges(result *toolUseResultValue) int {
 		return countStringLines(*result.String)
 	}
 
+	if result.Array != nil {
+		return result.Array.lineChanges()
+	}
+
 	if result.Object == nil {
 		return 0
 	}
@@ -853,20 +864,13 @@ func (g Claude) appLineChanges(result *toolUseResultValue) int {
 		return 0
 	}
 
-	if lineChanges := result.Object.Content.lineChanges(); lineChanges != 0 {
-		return lineChanges
-	}
-
-	if result.Object.File != nil {
-		return result.Object.File.Content.lineChanges()
-	}
-
-	return 0
+	return result.Object.appLineChanges()
 }
 
 func (r toolUseResult) isAgenticOnly() bool {
 	if r.Type != nil || r.File != nil || r.FilePath != nil || r.OriginalFile != nil ||
-		r.OldString != nil || r.NewString != nil || r.StructuredPatch != nil {
+		r.OldString != nil || r.NewString != nil || r.StructuredPatch != nil ||
+		r.Stdout != nil || r.Stderr != nil || r.Result != nil || r.CodeText != nil {
 		return false
 	}
 
@@ -880,6 +884,8 @@ func (r toolUseResult) isAgenticOnly() bool {
 		"task",
 		"taskId",
 		"total_deferred_tools",
+		"updatedFields",
+		"verificationNudgeNeeded",
 	} {
 		if _, ok := r.Raw[key]; ok {
 			return true
@@ -887,6 +893,26 @@ func (r toolUseResult) isAgenticOnly() bool {
 	}
 
 	return false
+}
+
+func (r toolUseResult) appLineChanges() int {
+	lineChanges := 0
+
+	for _, value := range []*contentValue{
+		r.Content,
+		r.Stdout,
+		r.Stderr,
+		r.Result,
+		r.CodeText,
+	} {
+		lineChanges += value.lineChanges()
+	}
+
+	if r.File != nil {
+		lineChanges += r.File.Content.lineChanges()
+	}
+
+	return lineChanges
 }
 
 func claudePromptLength(logLine claudeLogLine) int {
