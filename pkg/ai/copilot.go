@@ -253,10 +253,12 @@ func (g Copilot) workspaceStates(ctx context.Context) ([]copilotWorkspaceState, 
 		return nil, err
 	}
 
+	logger := log.Extract(ctx)
+
 	var workspaces []copilotWorkspaceState
 
 	for _, dir := range dirs {
-		sessions, err := g.loadWorkspaceSessions(dir)
+		sessions, err := g.loadWorkspaceSessions(logger, dir)
 		if err != nil {
 			return nil, err
 		}
@@ -309,7 +311,7 @@ func workspaceStorageDirs(ctx context.Context) ([]string, error) {
 	return nil, nil
 }
 
-func (g Copilot) loadWorkspaceSessions(workspaceDir string) (map[string]*copilotSession, error) {
+func (g Copilot) loadWorkspaceSessions(logger *log.Logger, workspaceDir string) (map[string]*copilotSession, error) {
 	sessionDir := filepath.Join(workspaceDir, "chatSessions")
 
 	entries, err := os.ReadDir(sessionDir)
@@ -348,7 +350,8 @@ func (g Copilot) loadWorkspaceSessions(workspaceDir string) (map[string]*copilot
 		}
 
 		if err != nil {
-			return nil, err
+			logger.Warnf("failed parsing copilot session %q: %s", path, err)
+			continue
 		}
 
 		if session == nil {
@@ -410,7 +413,7 @@ func (g Copilot) parseJSONLSession(path string) (*copilotSession, error) {
 				V copilotSession `json:"v"`
 			}
 			if err := json.Unmarshal(line, &root); err != nil {
-				return nil, fmt.Errorf("failed parsing initial copilot jsonl state %q: %s", path, err)
+				continue
 			}
 
 			copy := root.V

@@ -20,10 +20,7 @@ GOTEST=$(GOCMD) test
 GOGET=$(GOCMD) get
 
 # linting
-define get_latest_lint_release
-	curl -s "https://api.github.com/repos/golangci/golangci-lint/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/'
-endef
-LATEST_LINT_VERSION=$(shell $(call get_latest_lint_release))
+GOLANGCI_LINT_VERSION?=v2.11.0
 INSTALLED_LINT_VERSION=$(shell golangci-lint --version 2>/dev/null | awk '{print "v"$$4}')
 
 # get GOPATH, GOOS and GOARCH according to OS
@@ -139,9 +136,9 @@ install: install-go-modules install-linter
 
 .PHONY: install-linter
 install-linter:
-ifneq "$(INSTALLED_LINT_VERSION)" "$(LATEST_LINT_VERSION)"
-	@echo "new golangci-lint version found:" $(LATEST_LINT_VERSION)
-	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(GOPATH)/bin latest
+ifneq "$(INSTALLED_LINT_VERSION)" "$(GOLANGCI_LINT_VERSION)"
+	@echo "installing golangci-lint version:" $(GOLANGCI_LINT_VERSION)
+	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(GOPATH)/bin $(GOLANGCI_LINT_VERSION)
 endif
 
 .PHONY: install-go-modules

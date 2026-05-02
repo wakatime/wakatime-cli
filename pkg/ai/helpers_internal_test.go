@@ -211,12 +211,12 @@ func TestClaudeHelpers(t *testing.T) {
 		assert.Equal(t, 3, arr.lineChanges())
 
 		var unsupported contentValue
-		require.Error(t, json.Unmarshal([]byte(`{"bad":true}`), &unsupported))
+		require.NoError(t, json.Unmarshal([]byte(`{"bad":true}`), &unsupported))
 		assert.Equal(t, 0, ((*contentValue)(nil)).lineChanges())
 		assert.Equal(t, 0, (&contentValue{}).lineChanges())
 	})
 
-	t.Run("tool use result supports object and string", func(t *testing.T) {
+	t.Run("tool use result supports object string and unknown shapes", func(t *testing.T) {
 		var object toolUseResultValue
 		require.NoError(t, json.Unmarshal([]byte(`{"filePath":"/tmp/main.go"}`), &object))
 		require.NotNil(t, object.Object)
@@ -228,7 +228,14 @@ func TestClaudeHelpers(t *testing.T) {
 		assert.Equal(t, "plain string result", *str.String)
 
 		var unsupported toolUseResultValue
-		require.Error(t, json.Unmarshal([]byte(`123`), &unsupported))
+		require.NoError(t, json.Unmarshal([]byte(`123`), &unsupported))
+		assert.Nil(t, unsupported.Object)
+		assert.Nil(t, unsupported.String)
+
+		var list toolUseResultValue
+		require.NoError(t, json.Unmarshal([]byte(`[{"type":"text","text":"ok"}]`), &list))
+		assert.Nil(t, list.Object)
+		assert.Nil(t, list.String)
 	})
 
 	t.Run("file path and line changes resolve expected sources", func(t *testing.T) {
@@ -253,6 +260,10 @@ func TestClaudeHelpers(t *testing.T) {
 
 		assert.Equal(t, 1, parser.lineChanges(toolUseResult{
 			StructuredPatch: &[]structuredPatch{{OldLines: 1, NewLines: 2}},
+		}))
+		assert.Equal(t, 1, parser.lineChanges(toolUseResult{
+			OldString: heartbeat.PointerTo("one"),
+			NewString: heartbeat.PointerTo("one\ntwo"),
 		}))
 		assert.Equal(t, 2, parser.lineChanges(toolUseResult{
 			Content: &contentValue{String: heartbeat.PointerTo("one\ntwo")},
