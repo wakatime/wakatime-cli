@@ -60,14 +60,22 @@ type (
 		Type            *string            `json:"type"`
 		File            *toolUseResultFile `json:"file"`
 		Content         *contentValue      `json:"content"`
+		Stdout          *contentValue      `json:"stdout"`
+		Stderr          *contentValue      `json:"stderr"`
+		Result          *contentValue      `json:"result"`
+		CodeText        *contentValue      `json:"codeText"`
 		FilePath        *string            `json:"filePath"`
 		OriginalFile    *string            `json:"originalFile"`
+		OldString       *string            `json:"oldString"`
+		NewString       *string            `json:"newString"`
 		StructuredPatch *[]structuredPatch `json:"structuredPatch"`
+		Raw             map[string]json.RawMessage
 	}
 
 	toolUseResultValue struct {
 		Object *toolUseResult
 		String *string
+		Array  *contentValue
 	}
 
 	claudeLogLine struct {
@@ -112,7 +120,26 @@ func (v *contentValue) UnmarshalJSON(data []byte) error {
 		return nil
 	}
 
-	return fmt.Errorf("unsupported content type")
+	return nil
+}
+
+func (r *toolUseResult) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+
+	type alias toolUseResult
+
+	var decoded alias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return nil
+	}
+
+	*r = toolUseResult(decoded)
+	r.Raw = raw
+
+	return nil
 }
 
 func (v *toolUseResultValue) UnmarshalJSON(data []byte) error {
@@ -134,7 +161,14 @@ func (v *toolUseResultValue) UnmarshalJSON(data []byte) error {
 		return nil
 	}
 
-	return fmt.Errorf("unsupported toolUseResult type")
+	var arr []json.RawMessage
+	if err := json.Unmarshal(data, &arr); err == nil {
+		v.Array = &contentValue{Array: &arr}
+
+		return nil
+	}
+
+	return nil
 }
 
 func (c *claudeMessageContentList) UnmarshalJSON(data []byte) error {
@@ -246,7 +280,8 @@ func (g Claude) Parse(ctx context.Context) (Heartbeats, error) {
 	for _, transcript := range transcripts {
 		parsed, err := g.parseTranscript(ctx, transcript)
 		if err != nil {
-			return nil, err
+			logger.Warnf("failed parsing claude transcript %q: %s", transcript, err)
+			continue
 		}
 
 		heartbeats = append(heartbeats, parsed...)
@@ -394,6 +429,10 @@ func (g Claude) parseTranscript(ctx context.Context, transcript string) (Heartbe
 
 		parsed := g.claudeHeartbeats(logLine, sessionEntity, sessionID, claudeVersion, cwd, ideSession, tokens)
 		if len(parsed) == 0 {
+			if g.shouldAdvanceTokensForNoopToolResult(logLine.ToolUseResult) {
+				tokens = g.advanceTokens(tokens)
+			}
+
 			continue
 		}
 
@@ -407,6 +446,14 @@ func (g Claude) parseTranscript(ctx context.Context, transcript string) (Heartbe
 	}
 
 	return heartbeats, nil
+}
+
+func (Claude) shouldAdvanceTokensForNoopToolResult(result *toolUseResultValue) bool {
+	if result == nil || result.String != nil {
+		return false
+	}
+
+	return true
 }
 
 func (g Claude) claudeTokenCounts(
@@ -743,6 +790,15 @@ func (Claude) lineChanges(result toolUseResult) int {
 		return lineChanges
 	}
 
+	if result.NewString != nil {
+		newLines := countStringLines(*result.NewString)
+		if result.OldString != nil {
+			return newLines - countStringLines(*result.OldString)
+		}
+
+		return newLines
+	}
+
 	// originalFile with content means this is a read/verify, not a write.
 	// An empty string (from creates where no original existed) is not a read.
 	if result.OriginalFile != nil && *result.OriginalFile != "" {
@@ -772,6 +828,10 @@ func (Claude) isWrite(result toolUseResult) bool {
 		}
 	}
 
+	if result.NewString != nil || result.OldString != nil {
+		return true
+	}
+
 	if result.OriginalFile != nil && *result.OriginalFile != "" {
 		return false
 	}
@@ -788,7 +848,15 @@ func (g Claude) appLineChanges(result *toolUseResultValue) int {
 		return countStringLines(*result.String)
 	}
 
+	if result.Array != nil {
+		return result.Array.lineChanges()
+	}
+
 	if result.Object == nil {
+		return 0
+	}
+
+	if result.Object.isAgenticOnly() {
 		return 0
 	}
 
@@ -796,15 +864,55 @@ func (g Claude) appLineChanges(result *toolUseResultValue) int {
 		return 0
 	}
 
-	if lineChanges := result.Object.Content.lineChanges(); lineChanges != 0 {
-		return lineChanges
+	return result.Object.appLineChanges()
+}
+
+func (r toolUseResult) isAgenticOnly() bool {
+	if r.Type != nil || r.File != nil || r.FilePath != nil || r.OriginalFile != nil ||
+		r.OldString != nil || r.NewString != nil || r.StructuredPatch != nil ||
+		r.Stdout != nil || r.Stderr != nil || r.Result != nil || r.CodeText != nil {
+		return false
 	}
 
-	if result.Object.File != nil {
-		return result.Object.File.Content.lineChanges()
+	for _, key := range []string{
+		"agentId",
+		"agentType",
+		"matches",
+		"query",
+		"results",
+		"statusChange",
+		"task",
+		"taskId",
+		"total_deferred_tools",
+		"updatedFields",
+		"verificationNudgeNeeded",
+	} {
+		if _, ok := r.Raw[key]; ok {
+			return true
+		}
 	}
 
-	return 0
+	return false
+}
+
+func (r toolUseResult) appLineChanges() int {
+	lineChanges := 0
+
+	for _, value := range []*contentValue{
+		r.Content,
+		r.Stdout,
+		r.Stderr,
+		r.Result,
+		r.CodeText,
+	} {
+		lineChanges += value.lineChanges()
+	}
+
+	if r.File != nil {
+		lineChanges += r.File.Content.lineChanges()
+	}
+
+	return lineChanges
 }
 
 func claudePromptLength(logLine claudeLogLine) int {

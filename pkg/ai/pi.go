@@ -104,7 +104,8 @@ func (g Pi) Parse(ctx context.Context) (Heartbeats, error) {
 	for _, transcript := range transcripts {
 		parsed, err := g.parseTranscript(ctx, transcript)
 		if err != nil {
-			return nil, err
+			logger.Warnf("failed parsing pi transcript %q: %s", transcript, err)
+			continue
 		}
 
 		heartbeats = append(heartbeats, parsed...)
