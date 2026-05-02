@@ -94,7 +94,7 @@ func TestClaudeParse(t *testing.T) {
 
 	got, err := parser.Parse(ctx)
 	require.NoError(t, err)
-	require.Len(t, got, 8)
+	require.Len(t, got, 9)
 
 	assert.Equal(t, "Claude agent-worker", got[0].Entity)
 	assert.Equal(t, "claude-session", got[0].AISession)
@@ -144,49 +144,138 @@ func TestClaudeParse(t *testing.T) {
 	require.NotNil(t, got[2].IsWrite)
 	assert.False(t, *got[2].IsWrite)
 
-	assert.Equal(t, "/tmp/array.go", got[3].Entity)
+	assert.Equal(t, "Claude agent-worker", got[3].Entity)
 	assert.Equal(t, "claude-session", got[3].AISession)
-	require.NotNil(t, got[3].AILineChanges)
-	assert.Equal(t, 3, *got[3].AILineChanges)
+	assert.Equal(t, heartbeat.AppType, got[3].EntityType)
+	assert.Nil(t, got[3].AILineChanges)
 	assert.Zero(t, got[3].AIPromptLength)
-	assert.Equal(t, int64(5), got[3].AIInputTokens)
-	assert.Equal(t, int64(3), got[3].AIOutputTokens)
+	assert.Equal(t, filepath.Dir("/tmp/array.go"), got[3].ProjectPathOverride)
+	assert.Zero(t, got[3].AIInputTokens)
+	assert.Zero(t, got[3].AIOutputTokens)
 	require.NotNil(t, got[3].IsWrite)
-	assert.True(t, *got[3].IsWrite)
+	assert.False(t, *got[3].IsWrite)
 
-	assert.Equal(t, "/tmp/new.go", got[4].Entity)
+	assert.Equal(t, "/tmp/array.go", got[4].Entity)
 	assert.Equal(t, "claude-session", got[4].AISession)
 	require.NotNil(t, got[4].AILineChanges)
 	assert.Equal(t, 3, *got[4].AILineChanges)
 	assert.Zero(t, got[4].AIPromptLength)
-	assert.Equal(t, int64(6), got[4].AIInputTokens)
+	assert.Equal(t, int64(5), got[4].AIInputTokens)
 	assert.Equal(t, int64(3), got[4].AIOutputTokens)
+	require.NotNil(t, got[4].IsWrite)
+	assert.True(t, *got[4].IsWrite)
 
-	assert.Equal(t, "/tmp/read.go", got[5].Entity)
+	assert.Equal(t, "/tmp/new.go", got[5].Entity)
 	assert.Equal(t, "claude-session", got[5].AISession)
 	require.NotNil(t, got[5].AILineChanges)
-	assert.Equal(t, 0, *got[5].AILineChanges)
+	assert.Equal(t, 3, *got[5].AILineChanges)
 	assert.Zero(t, got[5].AIPromptLength)
-	assert.Equal(t, int64(2), got[5].AIInputTokens)
-	assert.Equal(t, int64(1), got[5].AIOutputTokens)
+	assert.Equal(t, int64(6), got[5].AIInputTokens)
+	assert.Equal(t, int64(3), got[5].AIOutputTokens)
 
-	assert.Equal(t, "/tmp/empty.go", got[6].Entity)
+	assert.Equal(t, "/tmp/read.go", got[6].Entity)
 	assert.Equal(t, "claude-session", got[6].AISession)
 	require.NotNil(t, got[6].AILineChanges)
 	assert.Equal(t, 0, *got[6].AILineChanges)
 	assert.Zero(t, got[6].AIPromptLength)
-	assert.Equal(t, int64(1), got[6].AIInputTokens)
+	assert.Equal(t, int64(2), got[6].AIInputTokens)
 	assert.Equal(t, int64(1), got[6].AIOutputTokens)
 
-	assert.Equal(t, "/tmp/same-lines.go", got[7].Entity)
+	assert.Equal(t, "/tmp/empty.go", got[7].Entity)
 	assert.Equal(t, "claude-session", got[7].AISession)
 	require.NotNil(t, got[7].AILineChanges)
 	assert.Equal(t, 0, *got[7].AILineChanges)
 	assert.Zero(t, got[7].AIPromptLength)
-	assert.Equal(t, int64(3), got[7].AIInputTokens)
-	assert.Equal(t, int64(2), got[7].AIOutputTokens)
+	assert.Equal(t, int64(1), got[7].AIInputTokens)
+	assert.Equal(t, int64(1), got[7].AIOutputTokens)
 	require.NotNil(t, got[7].IsWrite)
-	assert.True(t, *got[7].IsWrite)
+	assert.False(t, *got[7].IsWrite)
+
+	assert.Equal(t, "/tmp/same-lines.go", got[8].Entity)
+	assert.Equal(t, "claude-session", got[8].AISession)
+	require.NotNil(t, got[8].AILineChanges)
+	assert.Equal(t, 0, *got[8].AILineChanges)
+	assert.Zero(t, got[8].AIPromptLength)
+	assert.Equal(t, int64(3), got[8].AIInputTokens)
+	assert.Equal(t, int64(2), got[8].AIOutputTokens)
+	require.NotNil(t, got[8].IsWrite)
+	assert.True(t, *got[8].IsWrite)
+}
+
+func TestClaudeParse_NewToolUseResultShapes(t *testing.T) {
+	ctx := context.Background()
+
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	transcriptDir := filepath.Join(home, ".claude", "projects", "sample-project")
+	require.NoError(t, os.MkdirAll(transcriptDir, 0o755))
+
+	transcriptPath := filepath.Join(transcriptDir, "session.jsonl")
+	transcript := strings.Join([]string{
+		strings.Join([]string{
+			`{"timestamp":"2026-05-02T12:00:00Z","sessionId":"claude-session","version":"2.1.119",`,
+			`"cwd":"/workspace","toolUseResult":{"taskId":"task-1","statusChange":"done",`,
+			`"updatedFields":["status"],"verificationNudgeNeeded":false},`,
+			`"message":{"usage":{"input_tokens":10,"output_tokens":5}}}`,
+		}, ""),
+		strings.Join([]string{
+			`{"timestamp":"2026-05-02T12:01:00Z","sessionId":"claude-session","version":"2.1.119",`,
+			`"toolUseResult":{"interrupted":false,"isImage":false,"noOutputExpected":false,`,
+			`"stdout":"first\nsecond","stderr":"warning"},`,
+			`"message":{"usage":{"input_tokens":3,"output_tokens":2}}}`,
+		}, ""),
+		strings.Join([]string{
+			`{"timestamp":"2026-05-02T12:02:00Z","sessionId":"claude-session","version":"2.1.119",`,
+			`"toolUseResult":{"durationSeconds":1,"query":"wakatime","results":[{"title":"ignore"}]},`,
+			`"message":{"usage":{"input_tokens":9,"output_tokens":9}}}`,
+		}, ""),
+		strings.Join([]string{
+			`{"timestamp":"2026-05-02T12:03:00Z","sessionId":"claude-session","version":"2.1.119",`,
+			`"toolUseResult":{"bytes":128,"codeText":"document.title\nlocation.href","durationMs":5,`,
+			`"result":"ok"},"message":{"usage":{"input_tokens":4,"output_tokens":1}}}`,
+		}, ""),
+		strings.Join([]string{
+			`{"timestamp":"2026-05-02T12:04:00Z","sessionId":"claude-session","version":"2.1.119",`,
+			`"toolUseResult":{"filePath":"/workspace/main.go","oldString":"package main\n",`,
+			`"newString":"package main\n\nfunc main() {}\n","originalFile":"package main\n",`,
+			`"replaceAll":false},"message":{"usage":{"input_tokens":5,"output_tokens":2}}}`,
+		}, ""),
+	}, "\n") + "\n"
+	require.NoError(t, os.WriteFile(transcriptPath, []byte(transcript), 0o644))
+
+	parser := ai.Claude{
+		After:             time.Date(2026, 5, 2, 0, 0, 0, 0, time.UTC),
+		FallbackUserAgent: "plugin/0.0.1",
+	}
+
+	got, err := parser.Parse(ctx)
+	require.NoError(t, err)
+	require.Len(t, got, 3)
+
+	assert.Equal(t, "Claude session", got[0].Entity)
+	assert.Equal(t, heartbeat.AppType, got[0].EntityType)
+	assert.Equal(t, "claude-session", got[0].AISession)
+	assert.Equal(t, "/workspace", got[0].ProjectPathOverride)
+	assert.Equal(t, int64(3), got[0].AIInputTokens)
+	assert.Equal(t, int64(2), got[0].AIOutputTokens)
+	require.NotNil(t, got[0].IsWrite)
+	assert.False(t, *got[0].IsWrite)
+
+	assert.Equal(t, "Claude session", got[1].Entity)
+	assert.Equal(t, heartbeat.AppType, got[1].EntityType)
+	assert.Equal(t, int64(4), got[1].AIInputTokens)
+	assert.Equal(t, int64(1), got[1].AIOutputTokens)
+
+	assert.Equal(t, "/workspace/main.go", got[2].Entity)
+	assert.Equal(t, heartbeat.FileType, got[2].EntityType)
+	require.NotNil(t, got[2].AILineChanges)
+	assert.Equal(t, 2, *got[2].AILineChanges)
+	assert.Equal(t, int64(5), got[2].AIInputTokens)
+	assert.Equal(t, int64(2), got[2].AIOutputTokens)
+	require.NotNil(t, got[2].IsWrite)
+	assert.True(t, *got[2].IsWrite)
 }
 
 func TestClaudeParse_NoClaudeProjectsDir(t *testing.T) {

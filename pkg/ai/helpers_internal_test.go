@@ -236,6 +236,8 @@ func TestClaudeHelpers(t *testing.T) {
 		require.NoError(t, json.Unmarshal([]byte(`[{"type":"text","text":"ok"}]`), &list))
 		assert.Nil(t, list.Object)
 		assert.Nil(t, list.String)
+		require.NotNil(t, list.Array)
+		assert.Equal(t, 1, list.Array.lineChanges())
 	})
 
 	t.Run("file path and line changes resolve expected sources", func(t *testing.T) {
@@ -287,6 +289,12 @@ func TestClaudeHelpers(t *testing.T) {
 		assert.Equal(t, 2, parser.appLineChanges(&toolUseResultValue{
 			Object: &toolUseResult{
 				Content: &contentValue{String: heartbeat.PointerTo("one\ntwo")},
+			},
+		}))
+		assert.Equal(t, 3, parser.appLineChanges(&toolUseResultValue{
+			Object: &toolUseResult{
+				Stdout:   &contentValue{String: heartbeat.PointerTo("one\ntwo")},
+				CodeText: &contentValue{String: heartbeat.PointerTo("three")},
 			},
 		}))
 		assert.Equal(t, 0, parser.appLineChanges(&toolUseResultValue{
