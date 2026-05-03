@@ -641,11 +641,21 @@ func (g Claude) claudeFileHeartbeat(
 }
 
 func (g Claude) userAgent(entity string, version string, ideSession bool) string {
-	if !ideSession {
-		return aiPlugin(g, version)
+	plugin := claudePlugin(version)
+
+	if !ideSession && len(g.UserAgents) > 0 {
+		return plugin
 	}
 
-	return aiUserAgent(entity, g.UserAgents, g.FallbackUserAgent, aiPlugin(g, version))
+	return aiUserAgent(entity, g.UserAgents, g.FallbackUserAgent, plugin)
+}
+
+func claudePlugin(version string) string {
+	if version == "" {
+		return "ClaudeCode"
+	}
+
+	return "ClaudeCode/" + version
 }
 
 func (Claude) tokenDelta(tokens heartbeat.AITokens) (int64, int64) {

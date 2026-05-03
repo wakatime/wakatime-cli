@@ -91,8 +91,8 @@ func TestRunAISyncActivity_SendsAIHeartbeatsWithoutEntity(t *testing.T) {
 		assert.Equal(t, -1, *entities[0].AILineChange)
 		assert.Zero(t, entities[0].AIInputTokens)
 		assert.Equal(t, int64(7), entities[0].AIOutputTokens)
-		assert.Contains(t, entities[0].UserAgent, "Claude/2.1.45")
-		assert.NotContains(t, entities[0].UserAgent, "plugin/0.0.1")
+		assert.Contains(t, entities[0].UserAgent, "ClaudeCode/2.1.45")
+		assert.Contains(t, entities[0].UserAgent, "plugin/0.0.1")
 
 		w.WriteHeader(http.StatusCreated)
 
