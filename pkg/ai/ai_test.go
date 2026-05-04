@@ -706,6 +706,7 @@ func TestWithAISync_ProducesExpectedHeartbeats(t *testing.T) {
 	assert.Nil(t, h.AILineChanges)
 	assert.Equal(t, "/Users/user/git/wakatime-cli", h.ProjectPathOverride)
 	assert.Equal(t, "019d9353-333c-7c41-a909-26f5c6221a5a", h.AISession)
+	assert.Equal(t, "plus", h.AISubscriptionPlan)
 
 	h = heartbeats[1].Heartbeat
 	assert.Equal(t, float64(1776297784), h.Time)
@@ -719,6 +720,7 @@ func TestWithAISync_ProducesExpectedHeartbeats(t *testing.T) {
 	assert.Equal(t, -1, *h.AILineChanges)
 	assert.Equal(t, "/Users/user/git/wakatime-cli", h.ProjectPathOverride)
 	assert.Equal(t, "019d9353-333c-7c41-a909-26f5c6221a5a", h.AISession)
+	assert.Equal(t, "plus", h.AISubscriptionPlan)
 
 	h = heartbeats[2].Heartbeat
 	assert.Equal(t, float64(1776297789), h.Time)
@@ -732,6 +734,7 @@ func TestWithAISync_ProducesExpectedHeartbeats(t *testing.T) {
 	assert.Equal(t, 23, *h.AILineChanges)
 	assert.Equal(t, "/Users/user/git/wakatime-cli", h.ProjectPathOverride)
 	assert.Equal(t, "019d9353-333c-7c41-a909-26f5c6221a5a", h.AISession)
+	assert.Equal(t, "plus", h.AISubscriptionPlan)
 }
 
 func TestWithAISync_PreservesCopilotTokensAfterMergingAppHeartbeat(t *testing.T) {

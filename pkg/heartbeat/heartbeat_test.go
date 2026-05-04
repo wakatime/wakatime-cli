@@ -91,21 +91,22 @@ func TestHeartbeat_ID_NilFields(t *testing.T) {
 
 func TestHeartbeat_JSON(t *testing.T) {
 	h := heartbeat.Heartbeat{
-		AILineChanges:    heartbeat.PointerTo(5),
-		Branch:           heartbeat.PointerTo("heartbeat"),
-		Category:         heartbeat.DebuggingCategory.String(),
-		CursorPosition:   heartbeat.PointerTo(12),
-		Dependencies:     []string{"dep1", "dep2"},
-		Entity:           "/tmp/main.go",
-		EntityType:       heartbeat.FileType,
-		HumanLineChanges: heartbeat.PointerTo(2),
-		IsWrite:          heartbeat.PointerTo(true),
-		Language:         heartbeat.PointerTo("Go"),
-		LineNumber:       heartbeat.PointerTo(42),
-		Lines:            heartbeat.PointerTo(100),
-		Project:          heartbeat.PointerTo("wakatime"),
-		Time:             1585598060.1,
-		UserAgent:        "wakatime/13.0.7",
+		AILineChanges:      heartbeat.PointerTo(5),
+		AISubscriptionPlan: "plus",
+		Branch:             heartbeat.PointerTo("heartbeat"),
+		Category:           heartbeat.DebuggingCategory.String(),
+		CursorPosition:     heartbeat.PointerTo(12),
+		Dependencies:       []string{"dep1", "dep2"},
+		Entity:             "/tmp/main.go",
+		EntityType:         heartbeat.FileType,
+		HumanLineChanges:   heartbeat.PointerTo(2),
+		IsWrite:            heartbeat.PointerTo(true),
+		Language:           heartbeat.PointerTo("Go"),
+		LineNumber:         heartbeat.PointerTo(42),
+		Lines:              heartbeat.PointerTo(100),
+		Project:            heartbeat.PointerTo("wakatime"),
+		Time:               1585598060.1,
+		UserAgent:          "wakatime/13.0.7",
 	}
 
 	jsonEncoded, err := json.Marshal(h)

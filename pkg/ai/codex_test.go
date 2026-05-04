@@ -41,6 +41,10 @@ func TestCodexParse(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, got, 3)
 
+	for _, h := range got {
+		assert.Equal(t, "plus", h.AISubscriptionPlan)
+	}
+
 	assert.Equal(t, "Codex rollout-2026-03-28T07-33-13-019d3438-39ae-7fb2-8526-d6c02ba3577c", got[0].Entity)
 	assert.Equal(t, "019d3438-39ae-7fb2-8526-d6c02ba3577c", got[0].AISession)
 	assert.Equal(t, heartbeat.AppType, got[0].EntityType)
@@ -339,6 +343,10 @@ func TestCodexParse_RolloutFixtureIncludesExpectedHeartbeatAttributes(t *testing
 	heartbeats, err := parser.Parse(ctx)
 	require.NoError(t, err)
 	require.Len(t, heartbeats, 9)
+
+	for _, h := range heartbeats {
+		assert.Equal(t, "plus", h.AISubscriptionPlan)
+	}
 
 	i := 0
 	assert.EqualValues(t, 1776297745, heartbeats[i].Time)

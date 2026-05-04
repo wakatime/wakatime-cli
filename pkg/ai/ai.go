@@ -577,6 +577,10 @@ func mergeHeartbeatCounts(dst *heartbeat.Heartbeat, src heartbeat.Heartbeat) {
 	dst.AIInputTokens += src.AIInputTokens
 
 	dst.AIOutputTokens += src.AIOutputTokens
+	if dst.AISubscriptionPlan == "" {
+		dst.AISubscriptionPlan = src.AISubscriptionPlan
+	}
+
 	if dst.Project == nil || *dst.Project == "" {
 		dst.Project = src.Project
 	}
