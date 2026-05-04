@@ -91,6 +91,15 @@ type (
 		Cwd           *string             `json:"cwd"`
 	}
 
+	claudeConfig struct {
+		OAuthAccount *claudeOAuthAccount `json:"oauthAccount"`
+	}
+
+	claudeOAuthAccount struct {
+		OrganizationType string `json:"organizationType"`
+		SubscriptionType string `json:"subscriptionType"`
+	}
+
 	// claudeLastMessage tracks the most recent message's token contribution
 	// so that streaming duplicates (same message.id logged multiple times)
 	// replace rather than accumulate.
@@ -275,6 +284,8 @@ func (g Claude) Parse(ctx context.Context) (Heartbeats, error) {
 
 	logger.Debugf("Found %d transcript logs modified after %s for %s", len(transcripts), g.After, g.Name())
 
+	subscriptionPlan := g.subscriptionPlan(ctx)
+
 	var heartbeats Heartbeats
 
 	for _, transcript := range transcripts {
@@ -287,7 +298,7 @@ func (g Claude) Parse(ctx context.Context) (Heartbeats, error) {
 		heartbeats = append(heartbeats, parsed...)
 	}
 
-	return heartbeats, nil
+	return claudeApplySubscriptionPlan(heartbeats, subscriptionPlan), nil
 }
 
 func (g Claude) transcriptPaths(ctx context.Context) ([]string, error) {
@@ -336,6 +347,81 @@ func (g Claude) transcriptPaths(ctx context.Context) ([]string, error) {
 	}
 
 	return transcripts, nil
+}
+
+func (g Claude) subscriptionPlan(ctx context.Context) string {
+	logger := log.Extract(ctx)
+
+	paths, err := g.configPaths(ctx)
+	if err != nil {
+		logger.Debugf("failed finding claude config files: %s", err)
+
+		return ""
+	}
+
+	for _, path := range paths {
+		plan, err := g.subscriptionPlanFromConfig(path)
+		if err != nil {
+			logger.Debugf("failed reading claude subscription plan from %q: %s", path, err)
+
+			continue
+		}
+
+		if plan != "" {
+			return plan
+		}
+	}
+
+	return ""
+}
+
+func (Claude) configPaths(ctx context.Context) ([]string, error) {
+	home, err := ini.UserHomeDir(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find user home dir: %s", err)
+	}
+
+	paths := []string{filepath.Join(home, ".claude.json")}
+
+	backups, err := filepath.Glob(filepath.Join(home, ".claude", "backups", ".claude.json.backup.*"))
+	if err != nil {
+		return nil, err
+	}
+
+	for i, j := 0, len(backups)-1; i < j; i, j = i+1, j-1 {
+		backups[i], backups[j] = backups[j], backups[i]
+	}
+
+	paths = append(paths, backups...)
+
+	return paths, nil
+}
+
+func (Claude) subscriptionPlanFromConfig(path string) (string, error) {
+	//nolint:gosec
+	data, err := os.ReadFile(filepath.Clean(path))
+	if err != nil {
+		if os.IsNotExist(err) {
+			return "", nil
+		}
+
+		return "", err
+	}
+
+	var config claudeConfig
+	if err := json.Unmarshal(data, &config); err != nil {
+		return "", err
+	}
+
+	if config.OAuthAccount == nil {
+		return "", nil
+	}
+
+	if plan := claudeNormalizeSubscriptionPlan(config.OAuthAccount.SubscriptionType); plan != "" {
+		return plan, nil
+	}
+
+	return claudeNormalizeSubscriptionPlan(config.OAuthAccount.OrganizationType), nil
 }
 
 func (g Claude) parseTranscript(ctx context.Context, transcript string) (Heartbeats, error) {
@@ -446,6 +532,34 @@ func (g Claude) parseTranscript(ctx context.Context, transcript string) (Heartbe
 	}
 
 	return heartbeats, nil
+}
+
+func claudeNormalizeSubscriptionPlan(value string) string {
+	plan := strings.ToLower(strings.TrimSpace(value))
+	plan = strings.ReplaceAll(plan, "-", "_")
+	plan = strings.TrimPrefix(plan, "claude_")
+	plan = strings.TrimPrefix(plan, "claude ")
+
+	switch {
+	case plan == "pro" || strings.HasPrefix(plan, "pro_"):
+		return "pro"
+	case plan == "max" || strings.HasPrefix(plan, "max_"):
+		return "max"
+	default:
+		return ""
+	}
+}
+
+func claudeApplySubscriptionPlan(heartbeats Heartbeats, subscriptionPlan string) Heartbeats {
+	if subscriptionPlan == "" {
+		return heartbeats
+	}
+
+	for i := range heartbeats {
+		heartbeats[i].AISubscriptionPlan = subscriptionPlan
+	}
+
+	return heartbeats
 }
 
 func (Claude) shouldAdvanceTokensForNoopToolResult(result *toolUseResultValue) bool {

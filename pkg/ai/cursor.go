@@ -6,6 +6,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -14,6 +15,7 @@ import (
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/ini"
+	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	// Register the pure-Go SQLite driver used to read Cursor state.vscdb files.
 	_ "modernc.org/sqlite"
@@ -91,6 +93,8 @@ type (
 
 // Parse parses the Cursor SQLite state db for ai heartbeats.
 func (g Cursor) Parse(ctx context.Context) (Heartbeats, error) {
+	logger := log.Extract(ctx)
+
 	dbPath, err := g.stateDBPath(ctx)
 	if err != nil {
 		return nil, err
@@ -102,6 +106,13 @@ func (g Cursor) Parse(ctx context.Context) (Heartbeats, error) {
 
 	if !g.stateDBModifiedAfter(dbPath, g.After) {
 		return Heartbeats{}, nil
+	}
+
+	subscriptionPlan, err := g.querySubscriptionPlan(ctx, dbPath)
+	if err != nil {
+		logger.Debugf("failed reading cursor subscription plan from %q: %s", dbPath, err)
+
+		subscriptionPlan = ""
 	}
 
 	rows, err := g.queryRows(ctx, dbPath)
@@ -144,7 +155,7 @@ func (g Cursor) Parse(ctx context.Context) (Heartbeats, error) {
 		heartbeats = append(heartbeats, parsed...)
 	}
 
-	return heartbeats, nil
+	return cursorApplySubscriptionPlan(heartbeats, subscriptionPlan), nil
 }
 
 func (Cursor) cursorTokenCounts(line cursorLogLine, previous heartbeat.AITokens) heartbeat.AITokens {
@@ -276,6 +287,64 @@ ORDER BY json_extract(CAST(value AS TEXT), '$.createdAt') ASC;
 	}
 
 	return results, nil
+}
+
+func (Cursor) querySubscriptionPlan(ctx context.Context, dbPath string) (string, error) {
+	db, err := sql.Open("sqlite", dbPath)
+	if err != nil {
+		return "", fmt.Errorf("failed opening cursor sqlite db %q: %s", dbPath, err)
+	}
+	defer db.Close() // nolint:errcheck
+
+	var tableName string
+
+	err = db.QueryRowContext(ctx, `
+SELECT name
+FROM sqlite_master
+WHERE type = 'table' AND name = 'ItemTable';
+`).Scan(&tableName)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", nil
+	}
+
+	if err != nil {
+		return "", fmt.Errorf("failed checking cursor sqlite metadata table %q: %s", dbPath, err)
+	}
+
+	var plan string
+
+	err = db.QueryRowContext(ctx, `
+SELECT CAST(value AS TEXT)
+FROM ItemTable
+WHERE key = 'cursorAuth/stripeMembershipType'
+LIMIT 1;
+`).Scan(&plan)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", nil
+	}
+
+	if err != nil {
+		return "", fmt.Errorf("failed querying cursor subscription plan from sqlite db %q: %s", dbPath, err)
+	}
+
+	plan = strings.TrimSpace(strings.Trim(plan, `"`))
+	if plan == "" {
+		return "", nil
+	}
+
+	return plan, nil
+}
+
+func cursorApplySubscriptionPlan(heartbeats Heartbeats, plan string) Heartbeats {
+	if plan == "" {
+		return heartbeats
+	}
+
+	for i := range heartbeats {
+		heartbeats[i].AISubscriptionPlan = plan
+	}
+
+	return heartbeats
 }
 
 func (g Cursor) cursorHeartbeats(logLine cursorLogLine, cwd string, tokens heartbeat.AITokens) Heartbeats {

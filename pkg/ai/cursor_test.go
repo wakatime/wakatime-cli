@@ -3,6 +3,7 @@
 package ai_test
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"encoding/json"
@@ -17,6 +18,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/wakatime/wakatime-cli/pkg/ai"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/log"
 	_ "modernc.org/sqlite"
 )
 
@@ -179,6 +181,10 @@ func TestCursorParse(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, got, 6)
 
+	for _, h := range got {
+		assert.Equal(t, "pro", h.AISubscriptionPlan)
+	}
+
 	assert.Equal(t, "Cursor composer-1", got[0].Entity)
 	assert.Equal(t, "composer-1", got[0].AISession)
 	assert.Equal(t, heartbeat.AppType, got[0].EntityType)
@@ -253,6 +259,52 @@ func TestCursorParse_NoCursorStateDB(t *testing.T) {
 	assert.Empty(t, got)
 }
 
+func TestCursorParse_SubscriptionPlanErrorLogsAndDoesNotBlockHeartbeats(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	dbDir := filepath.Join(home, "Library", "Application Support", "Cursor", "User", "globalStorage")
+	require.NoError(t, os.MkdirAll(dbDir, 0o755))
+
+	dbPath := filepath.Join(dbDir, "state.vscdb")
+
+	db, err := sql.Open("sqlite", dbPath)
+	require.NoError(t, err)
+
+	_, err = db.Exec(`CREATE TABLE cursorDiskKV (key TEXT UNIQUE ON CONFLICT REPLACE, value BLOB);`)
+	require.NoError(t, err)
+	_, err = db.Exec(`CREATE TABLE ItemTable (unexpected TEXT);`)
+	require.NoError(t, err)
+
+	value, err := json.Marshal(map[string]any{
+		"_v":        3,
+		"type":      1,
+		"text":      "Please update the file",
+		"createdAt": "2026-03-15T23:34:10Z",
+	})
+	require.NoError(t, err)
+
+	_, err = db.Exec(`INSERT INTO cursorDiskKV(key, value) VALUES(?, ?)`, "bubbleId:composer-1:user", string(value))
+	require.NoError(t, err)
+	require.NoError(t, db.Close())
+
+	var logs bytes.Buffer
+
+	ctx := log.ToContext(context.Background(), log.New(&logs, log.WithVerbose(true)))
+
+	got, err := ai.Cursor{
+		After:             time.Date(2026, 3, 15, 23, 34, 0, 0, time.UTC),
+		FallbackUserAgent: "plugin/0.0.1",
+	}.Parse(ctx)
+	require.NoError(t, err)
+	require.Len(t, got, 1)
+
+	assert.Empty(t, got[0].AISubscriptionPlan)
+	assert.Contains(t, logs.String(), `"level":"debug"`)
+	assert.Contains(t, logs.String(), "failed reading cursor subscription plan")
+}
+
 func TestCursorParse_SkipsStaleCursorStateDB(t *testing.T) {
 	ctx := context.Background()
 
@@ -309,6 +361,10 @@ func createCursorDB(t *testing.T, dbPath string, rows []cursorTestRow) {
 	defer db.Close() // nolint:errcheck
 
 	_, err = db.Exec(`CREATE TABLE cursorDiskKV (key TEXT UNIQUE ON CONFLICT REPLACE, value BLOB);`)
+	require.NoError(t, err)
+	_, err = db.Exec(`CREATE TABLE ItemTable (key TEXT UNIQUE ON CONFLICT REPLACE, value BLOB);`)
+	require.NoError(t, err)
+	_, err = db.Exec(`INSERT INTO ItemTable(key, value) VALUES('cursorAuth/stripeMembershipType', 'pro')`)
 	require.NoError(t, err)
 
 	for _, row := range rows {
