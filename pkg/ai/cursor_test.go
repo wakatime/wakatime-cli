@@ -179,6 +179,10 @@ func TestCursorParse(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, got, 6)
 
+	for _, h := range got {
+		assert.Equal(t, "pro", h.AISubscriptionPlan)
+	}
+
 	assert.Equal(t, "Cursor composer-1", got[0].Entity)
 	assert.Equal(t, "composer-1", got[0].AISession)
 	assert.Equal(t, heartbeat.AppType, got[0].EntityType)
@@ -309,6 +313,10 @@ func createCursorDB(t *testing.T, dbPath string, rows []cursorTestRow) {
 	defer db.Close() // nolint:errcheck
 
 	_, err = db.Exec(`CREATE TABLE cursorDiskKV (key TEXT UNIQUE ON CONFLICT REPLACE, value BLOB);`)
+	require.NoError(t, err)
+	_, err = db.Exec(`CREATE TABLE ItemTable (key TEXT UNIQUE ON CONFLICT REPLACE, value BLOB);`)
+	require.NoError(t, err)
+	_, err = db.Exec(`INSERT INTO ItemTable(key, value) VALUES('cursorAuth/stripeMembershipType', 'pro')`)
 	require.NoError(t, err)
 
 	for _, row := range rows {

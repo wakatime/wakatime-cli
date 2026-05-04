@@ -1,5 +1,6 @@
 {
   "ai_line_changes": 5,
+  "ai_subscription_plan": "plus",
   "branch": "heartbeat",
   "category": "debugging",
   "cursorpos": 12,

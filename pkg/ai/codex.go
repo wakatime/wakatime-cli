@@ -30,6 +30,7 @@ type (
 	codexParseState struct {
 		heartbeats               Heartbeats
 		tokens                   heartbeat.AITokens
+		subscriptionPlan         string
 		lastResponseItemUserTime time.Time
 	}
 
@@ -52,6 +53,11 @@ type (
 		Content []codexContentItem          `json:"content"`
 		Cwd     *string                     `json:"cwd"`
 		Info    *codexPayloadTokenCountInfo `json:"info"`
+		Limits  *codexPayloadRateLimits     `json:"rate_limits"`
+	}
+
+	codexPayloadRateLimits struct {
+		PlanType *string `json:"plan_type"`
 	}
 
 	codexPayloadTokenCountInfo struct {
@@ -186,6 +192,8 @@ func (g Codex) parseTranscript(ctx context.Context, transcript string) (Heartbea
 		return nil, fmt.Errorf("failed reading codex transcript %q: %s", transcript, err)
 	}
 
+	state.applySubscriptionPlan()
+
 	return state.heartbeats, nil
 }
 
@@ -268,6 +276,7 @@ func (g Codex) handleTranscriptLine(
 	}
 
 	state.tokens = g.codexTokenCounts(logLine, state.tokens, g.After)
+	state.trackSubscriptionPlan(logLine)
 	state.trackUserMessage(logLine)
 
 	if logLine.Timestamp.IsZero() || logLine.Timestamp.Before(g.After) || state.shouldSkipUserMessage(logLine) {
@@ -296,6 +305,26 @@ func (g Codex) handleTranscriptLine(
 	state.tokens.LastInput = state.tokens.CurrentInput
 	state.tokens.LastOutput = state.tokens.CurrentOutput
 	state.heartbeats = append(state.heartbeats, aiHeartbeats...)
+}
+
+func (s *codexParseState) trackSubscriptionPlan(logLine codexLogLine) {
+	if logLine.Payload == nil || logLine.Payload.Type == nil || *logLine.Payload.Type != "token_count" ||
+		logLine.Payload.Limits == nil || logLine.Payload.Limits.PlanType == nil ||
+		strings.TrimSpace(*logLine.Payload.Limits.PlanType) == "" {
+		return
+	}
+
+	s.subscriptionPlan = strings.TrimSpace(*logLine.Payload.Limits.PlanType)
+}
+
+func (s *codexParseState) applySubscriptionPlan() {
+	if s.subscriptionPlan == "" {
+		return
+	}
+
+	for i := range s.heartbeats {
+		s.heartbeats[i].AISubscriptionPlan = s.subscriptionPlan
+	}
 }
 
 func (s *codexParseState) trackUserMessage(logLine codexLogLine) {

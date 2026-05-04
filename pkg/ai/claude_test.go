@@ -22,6 +22,11 @@ func TestClaudeParse(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
+	require.NoError(t, os.WriteFile(
+		filepath.Join(home, ".claude.json"),
+		[]byte(`{"oauthAccount":{"organizationType":"claude_pro"}}`),
+		0o644,
+	))
 
 	transcriptDir := filepath.Join(home, ".claude", "projects", "sample-project", "subagents")
 	require.NoError(t, os.MkdirAll(transcriptDir, 0o755))
@@ -95,6 +100,10 @@ func TestClaudeParse(t *testing.T) {
 	got, err := parser.Parse(ctx)
 	require.NoError(t, err)
 	require.Len(t, got, 9)
+
+	for _, heartbeat := range got {
+		assert.Equal(t, "pro", heartbeat.AISubscriptionPlan)
+	}
 
 	assert.Equal(t, "Claude agent-worker", got[0].Entity)
 	assert.Equal(t, "claude-session", got[0].AISession)
@@ -200,6 +209,111 @@ func TestClaudeParse(t *testing.T) {
 	assert.Equal(t, int64(2), got[8].AIOutputTokens)
 	require.NotNil(t, got[8].IsWrite)
 	assert.True(t, *got[8].IsWrite)
+}
+
+func TestClaudeParse_SubscriptionPlanFromConfig(t *testing.T) {
+	ctx := context.Background()
+
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+	require.NoError(t, os.WriteFile(
+		filepath.Join(home, ".claude.json"),
+		[]byte(`{"oauthAccount":{"organizationType":"claude_max_20x"}}`),
+		0o644,
+	))
+
+	transcriptDir := filepath.Join(home, ".claude", "projects", "sample-project")
+	require.NoError(t, os.MkdirAll(transcriptDir, 0o755))
+
+	transcriptPath := filepath.Join(transcriptDir, "session.jsonl")
+	transcript := strings.Join([]string{
+		strings.Join([]string{
+			`{"timestamp":"2026-03-18T11:45:00Z","sessionId":"claude-session","version":"2.1.45",`,
+			`"cwd":"/tmp","isSidechain":false,"type":"user",`,
+			`"message":{"role":"user","content":"please continue"}}`,
+		}, ""),
+	}, "\n") + "\n"
+	require.NoError(t, os.WriteFile(transcriptPath, []byte(transcript), 0o644))
+
+	got, err := ai.Claude{
+		After: time.Date(2026, 3, 18, 11, 0, 0, 0, time.UTC),
+	}.Parse(ctx)
+	require.NoError(t, err)
+	require.Len(t, got, 1)
+
+	assert.Equal(t, "max", got[0].AISubscriptionPlan)
+}
+
+func TestClaudeParse_SubscriptionPlanFromBackupConfig(t *testing.T) {
+	ctx := context.Background()
+
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	backupDir := filepath.Join(home, ".claude", "backups")
+	require.NoError(t, os.MkdirAll(backupDir, 0o755))
+	require.NoError(t, os.WriteFile(
+		filepath.Join(backupDir, ".claude.json.backup.1"),
+		[]byte(`{"oauthAccount":{"organizationType":"claude_pro"}}`),
+		0o644,
+	))
+
+	transcriptDir := filepath.Join(home, ".claude", "projects", "sample-project")
+	require.NoError(t, os.MkdirAll(transcriptDir, 0o755))
+
+	transcriptPath := filepath.Join(transcriptDir, "session.jsonl")
+	transcript := strings.Join([]string{
+		strings.Join([]string{
+			`{"timestamp":"2026-03-18T11:45:00Z","sessionId":"claude-session","version":"2.1.45",`,
+			`"cwd":"/tmp","isSidechain":false,"type":"user",`,
+			`"message":{"role":"user","content":"please continue"}}`,
+		}, ""),
+	}, "\n") + "\n"
+	require.NoError(t, os.WriteFile(transcriptPath, []byte(transcript), 0o644))
+
+	got, err := ai.Claude{
+		After: time.Date(2026, 3, 18, 11, 0, 0, 0, time.UTC),
+	}.Parse(ctx)
+	require.NoError(t, err)
+	require.Len(t, got, 1)
+
+	assert.Equal(t, "pro", got[0].AISubscriptionPlan)
+}
+
+func TestClaudeParse_ServiceTierIsNotSubscriptionPlan(t *testing.T) {
+	ctx := context.Background()
+
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	transcriptDir := filepath.Join(home, ".claude", "projects", "sample-project")
+	require.NoError(t, os.MkdirAll(transcriptDir, 0o755))
+
+	transcriptPath := filepath.Join(transcriptDir, "session.jsonl")
+	transcript := strings.Join([]string{
+		strings.Join([]string{
+			`{"timestamp":"2026-03-18T11:45:00Z","sessionId":"claude-session","version":"2.1.45",`,
+			`"cwd":"/tmp","isSidechain":false,"type":"user",`,
+			`"message":{"role":"user","content":"please continue"}}`,
+		}, ""),
+		strings.Join([]string{
+			`{"timestamp":"2026-03-18T11:46:00Z","sessionId":"claude-session","version":"2.1.45",`,
+			`"type":"assistant","message":{"role":"assistant",`,
+			`"usage":{"input_tokens":1,"output_tokens":1,"service_tier":"standard"}}}`,
+		}, ""),
+	}, "\n") + "\n"
+	require.NoError(t, os.WriteFile(transcriptPath, []byte(transcript), 0o644))
+
+	got, err := ai.Claude{
+		After: time.Date(2026, 3, 18, 11, 0, 0, 0, time.UTC),
+	}.Parse(ctx)
+	require.NoError(t, err)
+	require.Len(t, got, 1)
+
+	assert.Empty(t, got[0].AISubscriptionPlan)
 }
 
 func TestClaudeParse_NewToolUseResultShapes(t *testing.T) {
