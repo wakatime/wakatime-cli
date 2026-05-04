@@ -15,6 +15,7 @@ import (
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/ini"
+	"github.com/wakatime/wakatime-cli/pkg/log"
 
 	// Register the pure-Go SQLite driver used to read Cursor state.vscdb files.
 	_ "modernc.org/sqlite"
@@ -92,6 +93,8 @@ type (
 
 // Parse parses the Cursor SQLite state db for ai heartbeats.
 func (g Cursor) Parse(ctx context.Context) (Heartbeats, error) {
+	logger := log.Extract(ctx)
+
 	dbPath, err := g.stateDBPath(ctx)
 	if err != nil {
 		return nil, err
@@ -101,13 +104,15 @@ func (g Cursor) Parse(ctx context.Context) (Heartbeats, error) {
 		return Heartbeats{}, nil
 	}
 
-	subscriptionPlan, err := g.querySubscriptionPlan(ctx, dbPath)
-	if err != nil {
-		return nil, err
-	}
-
 	if !g.stateDBModifiedAfter(dbPath, g.After) {
 		return Heartbeats{}, nil
+	}
+
+	subscriptionPlan, err := g.querySubscriptionPlan(ctx, dbPath)
+	if err != nil {
+		logger.Debugf("failed reading cursor subscription plan from %q: %s", dbPath, err)
+
+		subscriptionPlan = ""
 	}
 
 	rows, err := g.queryRows(ctx, dbPath)
