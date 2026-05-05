@@ -262,13 +262,15 @@ func parseAIHeartbeats(
 }
 
 func getLastParsedAt(ctx context.Context, v *viper.Viper) (time.Time, error) {
-	lastParsedAt := time.Now().Add(-1 * time.Minute)
+	lastParsedAt := time.Now().Add(-2 * time.Minute)
 
 	if v == nil {
 		return lastParsedAt, fmt.Errorf("missing viper instance")
 	}
 
 	logger := log.Extract(ctx)
+
+	var hasExisting bool
 
 	lastParsedAtStr := vipertools.GetString(v, "internal.ai_heartbeats_last_parsed_at")
 	if lastParsedAtStr != "" {
@@ -278,8 +280,10 @@ func getLastParsedAt(ctx context.Context, v *viper.Viper) (time.Time, error) {
 			logger.Warnf("failed to parse ai_heartbeats_last_parsed_at: %s", err)
 		} else if parsed.After(time.Now()) {
 			lastParsedAt = time.Now()
+			hasExisting = true
 		} else {
 			lastParsedAt = parsed
+			hasExisting = true
 		}
 	}
 
@@ -294,6 +298,10 @@ func getLastParsedAt(ctx context.Context, v *viper.Viper) (time.Time, error) {
 
 	if err := w.Write(ctx, "internal", keyValue); err != nil {
 		return lastParsedAt, fmt.Errorf("failed to write to internal config file: %s", err)
+	}
+
+	if !hasExisting {
+		lastParsedAt = time.Date(2025, time.February, 24, 0, 0, 0, 0, time.UTC)
 	}
 
 	return lastParsedAt, nil
