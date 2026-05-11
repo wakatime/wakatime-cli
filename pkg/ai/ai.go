@@ -301,7 +301,7 @@ func getLastParsedAt(ctx context.Context, v *viper.Viper) (time.Time, error) {
 	}
 
 	if !hasExisting {
-		lastParsedAt = time.Date(2025, time.February, 24, 0, 0, 0, 0, time.UTC)
+		lastParsedAt = time.Date(2025, time.May, 1, 0, 0, 0, 0, time.UTC)
 	}
 
 	return lastParsedAt, nil
