@@ -28,10 +28,12 @@ type (
 	}
 
 	codexParseState struct {
-		heartbeats               Heartbeats
-		tokens                   heartbeat.AITokens
-		subscriptionPlan         string
-		lastResponseItemUserTime time.Time
+		heartbeats                    Heartbeats
+		tokens                        heartbeat.AITokens
+		subscriptionPlan              string
+		lastAgentMessageTime          time.Time
+		lastResponseItemAssistantTime time.Time
+		lastResponseItemUserTime      time.Time
 	}
 
 	codexSessionMeta struct {
@@ -279,7 +281,11 @@ func (g Codex) handleTranscriptLine(
 	state.trackSubscriptionPlan(logLine)
 	state.trackUserMessage(logLine)
 
-	if logLine.Timestamp.IsZero() || logLine.Timestamp.Before(g.After) || state.shouldSkipUserMessage(logLine) {
+	if logLine.Timestamp.IsZero() ||
+		logLine.Timestamp.Before(g.After) ||
+		state.shouldSkipAgentMessage(logLine) ||
+		state.shouldSkipAssistantMessage(logLine) ||
+		state.shouldSkipUserMessage(logLine) {
 		return
 	}
 
@@ -305,6 +311,8 @@ func (g Codex) handleTranscriptLine(
 	state.tokens.LastInput = state.tokens.CurrentInput
 	state.tokens.LastOutput = state.tokens.CurrentOutput
 	state.heartbeats = append(state.heartbeats, aiHeartbeats...)
+	state.trackAgentMessage(logLine)
+	state.trackAssistantMessage(logLine)
 }
 
 func (s *codexParseState) trackSubscriptionPlan(logLine codexLogLine) {
@@ -334,9 +342,37 @@ func (s *codexParseState) trackUserMessage(logLine codexLogLine) {
 	}
 }
 
+func (s *codexParseState) trackAssistantMessage(logLine codexLogLine) {
+	if logLine.Payload != nil && logLine.Payload.Type != nil && *logLine.Payload.Type == "message" &&
+		logLine.Payload.Role != nil && *logLine.Payload.Role == "assistant" {
+		s.lastResponseItemAssistantTime = logLine.Timestamp
+	}
+}
+
+func (s *codexParseState) trackAgentMessage(logLine codexLogLine) {
+	if logLine.Payload != nil && logLine.Payload.Type != nil && *logLine.Payload.Type == "agent_message" {
+		s.lastAgentMessageTime = logLine.Timestamp
+	}
+}
+
 func (s codexParseState) shouldSkipUserMessage(logLine codexLogLine) bool {
 	return logLine.Payload != nil && logLine.Payload.Type != nil && *logLine.Payload.Type == "user_message" &&
-		!s.lastResponseItemUserTime.IsZero() && logLine.Timestamp.Sub(s.lastResponseItemUserTime) <= time.Second
+		withinOneSecondAfter(logLine.Timestamp, s.lastResponseItemUserTime)
+}
+
+func (s codexParseState) shouldSkipAssistantMessage(logLine codexLogLine) bool {
+	return logLine.Payload != nil && logLine.Payload.Type != nil && *logLine.Payload.Type == "message" &&
+		logLine.Payload.Role != nil && *logLine.Payload.Role == "assistant" &&
+		withinOneSecondAfter(logLine.Timestamp, s.lastAgentMessageTime)
+}
+
+func (s codexParseState) shouldSkipAgentMessage(logLine codexLogLine) bool {
+	return logLine.Payload != nil && logLine.Payload.Type != nil && *logLine.Payload.Type == "agent_message" &&
+		withinOneSecondAfter(logLine.Timestamp, s.lastResponseItemAssistantTime)
+}
+
+func withinOneSecondAfter(timestamp time.Time, previous time.Time) bool {
+	return !previous.IsZero() && !timestamp.Before(previous) && timestamp.Sub(previous) <= time.Second
 }
 
 func (Codex) sessionInfo(
@@ -393,6 +429,22 @@ func (g Codex) getHeartbeats(
 
 	if payload.Type != nil && *payload.Type == "user_message" && payload.Message != nil {
 		if heartbeat := g.userMessageHeartbeat(
+			timestamp,
+			sessionEntity,
+			sessionID,
+			version,
+			cwd,
+			userAgents,
+			fallbackUserAgent,
+			*payload.Message,
+			tokens,
+		); heartbeat != nil {
+			return Heartbeats{*heartbeat}
+		}
+	}
+
+	if payload.Type != nil && *payload.Type == "agent_message" && payload.Message != nil {
+		if heartbeat := g.agentMessageHeartbeat(
 			timestamp,
 			sessionEntity,
 			sessionID,
@@ -560,6 +612,40 @@ func (g Codex) messageHeartbeat(
 	}
 
 	return &h
+}
+
+func (g Codex) agentMessageHeartbeat(
+	timestamp time.Time,
+	sessionEntity string,
+	sessionID string,
+	version string,
+	cwd string,
+	userAgents map[string]string,
+	fallbackUserAgent string,
+	message string,
+	tokens heartbeat.AITokens,
+) *heartbeat.Heartbeat {
+	role := "assistant"
+
+	return g.messageHeartbeat(
+		timestamp,
+		sessionEntity,
+		sessionID,
+		version,
+		cwd,
+		userAgents,
+		fallbackUserAgent,
+		codexPayload{
+			Role: &role,
+			Content: []codexContentItem{
+				{
+					Type: "output_text",
+					Text: message,
+				},
+			},
+		},
+		tokens,
+	)
 }
 
 func (g Codex) userMessageHeartbeat(

@@ -320,6 +320,52 @@ func TestCodexParse_StripsVSCodePrefixFromUserMessage(t *testing.T) {
 	assert.Equal(t, "/workspace/project", got[0].ProjectPathOverride)
 }
 
+func TestCodexParse_ParsesLegacyAgentMessage(t *testing.T) {
+	ctx := context.Background()
+
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	transcriptDir := filepath.Join(home, ".codex", "sessions", "2025", "11", "17")
+	require.NoError(t, os.MkdirAll(transcriptDir, 0o755))
+
+	transcriptPath := filepath.Join(transcriptDir, "rollout-2025-11-17T08-27-28-019a91c8-d06a-7a80-9417-51ed9fef0508.jsonl")
+	transcript := strings.Join([]string{
+		strings.Join([]string{
+			`{"timestamp":"2025-11-17T12:27:28.000Z","type":"session_meta",`,
+			`"payload":{"id":"019a91c8-d06a-7a80-9417-51ed9fef0508",`,
+			`"cwd":"/workspace/project","cli_version":"0.50.0"}}`,
+		}, ""),
+		strings.Join([]string{
+			`{"timestamp":"2025-11-17T12:27:30.000Z","type":"event_msg",`,
+			`"payload":{"type":"agent_message","message":"I will inspect the code and make the change."}}`,
+		}, ""),
+	}, "\n") + "\n"
+	require.NoError(t, os.WriteFile(transcriptPath, []byte(transcript), 0o644))
+
+	parser := ai.Codex{
+		After:             time.Date(2025, 2, 24, 0, 0, 0, 0, time.UTC),
+		FallbackUserAgent: "plugin/0.0.1",
+	}
+
+	got, err := parser.Parse(ctx)
+	require.NoError(t, err)
+	require.Len(t, got, 1)
+	assert.Equal(t, "Codex rollout-2025-11-17T08-27-28-019a91c8-d06a-7a80-9417-51ed9fef0508", got[0].Entity)
+	assert.Equal(t, heartbeat.AppType, got[0].EntityType)
+	assert.Equal(t, "019a91c8-d06a-7a80-9417-51ed9fef0508", got[0].AISession)
+	assert.Equal(t, heartbeat.AICodingCategory.String(), got[0].Category)
+	assert.Nil(t, got[0].AILineChanges)
+	assert.Zero(t, got[0].AIPromptLength)
+	assert.Equal(t, "/workspace/project", got[0].ProjectPathOverride)
+	require.NotNil(t, got[0].IsWrite)
+	assert.False(t, *got[0].IsWrite)
+	assert.Equal(t, float64(time.Date(2025, 11, 17, 12, 27, 30, 0, time.UTC).Unix()), got[0].Time)
+	assert.Contains(t, got[0].UserAgent, "Codex/0.50.0")
+	assert.Contains(t, got[0].UserAgent, "plugin/0.0.1")
+}
+
 func TestCodexParse_RolloutFixtureIncludesExpectedHeartbeatAttributes(t *testing.T) {
 	ctx := context.Background()
 

@@ -180,7 +180,7 @@ func TestGetLastParsedAt(t *testing.T) {
 
 		v := viper.New()
 		v.Set("internal-config", tmpInternal.Name())
-		v.Set("internal.ai_heartbeats_last_parsed_at", time.Now().Add(time.Hour).Format(ini.DateFormat))
+		v.Set("internal.ai_logs_last_parsed_at", time.Now().Add(time.Hour).Format(ini.DateFormat))
 
 		before := time.Now()
 		parsed, err := getLastParsedAt(ctx, v)
@@ -194,7 +194,7 @@ func TestGetLastParsedAt(t *testing.T) {
 		require.NoError(t, err)
 		require.NoError(t, writer.File.Reload())
 
-		written, err := writer.File.Section("internal").Key("ai_heartbeats_last_parsed_at").TimeFormat(ini.DateFormat)
+		written, err := writer.File.Section("internal").Key("ai_logs_last_parsed_at").TimeFormat(ini.DateFormat)
 		require.NoError(t, err)
 		assert.WithinDuration(t, time.Now(), written, 2*time.Second)
 	})
