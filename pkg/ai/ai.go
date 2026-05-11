@@ -272,12 +272,12 @@ func getLastParsedAt(ctx context.Context, v *viper.Viper) (time.Time, error) {
 
 	var hasExisting bool
 
-	lastParsedAtStr := vipertools.GetString(v, "internal.ai_heartbeats_last_parsed_at")
+	lastParsedAtStr := vipertools.GetString(v, "internal.ai_logs_last_parsed_at")
 	if lastParsedAtStr != "" {
 		parsed, err := vipertools.SafeTimeParse(ini.DateFormat, lastParsedAtStr)
 		// nolint:gocritic
 		if err != nil {
-			logger.Warnf("failed to parse ai_heartbeats_last_parsed_at: %s", err)
+			logger.Warnf("failed to parse ai_logs_last_parsed_at: %s", err)
 		} else if parsed.After(time.Now()) {
 			lastParsedAt = time.Now()
 			hasExisting = true
@@ -293,7 +293,7 @@ func getLastParsedAt(ctx context.Context, v *viper.Viper) (time.Time, error) {
 	}
 
 	keyValue := map[string]string{
-		"ai_heartbeats_last_parsed_at": time.Now().Format(ini.DateFormat),
+		"ai_logs_last_parsed_at": time.Now().Format(ini.DateFormat),
 	}
 
 	if err := w.Write(ctx, "internal", keyValue); err != nil {
