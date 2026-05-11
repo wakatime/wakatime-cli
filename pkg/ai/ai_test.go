@@ -53,7 +53,7 @@ func TestWithAISyncUpdatesLastParsedAtBeforeParsing(t *testing.T) {
 	err = writer.File.Reload()
 	require.NoError(t, err)
 
-	lastParsedAt, err := writer.File.Section("internal").Key("ai_heartbeats_last_parsed_at").TimeFormat(ini.DateFormat)
+	lastParsedAt, err := writer.File.Section("internal").Key("ai_logs_last_parsed_at").TimeFormat(ini.DateFormat)
 	require.NoError(t, err)
 
 	assert.WithinDuration(t, time.Now(), lastParsedAt, 2*time.Second)
@@ -182,7 +182,7 @@ func TestSendHeartbeats_WithAIParsing(t *testing.T) {
 	v.Set("time", 1773835200.1)
 	v.Set("timeout", 5)
 	v.Set("write", true)
-	v.Set("internal.ai_heartbeats_last_parsed_at", time.Date(2026, 3, 18, 11, 0, 0, 0, time.UTC).Format(ini.DateFormat))
+	v.Set("internal.ai_logs_last_parsed_at", time.Date(2026, 3, 18, 11, 0, 0, 0, time.UTC).Format(ini.DateFormat))
 
 	offlineQueueFile, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)
@@ -306,7 +306,7 @@ func TestSendHeartbeats_WithAIParsingDisabled(t *testing.T) {
 	v.Set("time", 1773835200.1)
 	v.Set("timeout", 5)
 	v.Set("write", true)
-	v.Set("internal.ai_heartbeats_last_parsed_at", time.Date(2026, 3, 18, 11, 0, 0, 0, time.UTC).Format(ini.DateFormat))
+	v.Set("internal.ai_logs_last_parsed_at", time.Date(2026, 3, 18, 11, 0, 0, 0, time.UTC).Format(ini.DateFormat))
 	v.Set("sync-ai-disabled", true)
 
 	offlineQueueFile, err := os.CreateTemp(t.TempDir(), "")
@@ -414,7 +414,7 @@ func TestSendHeartbeats_WithAIParsingBatchAppliedOnce(t *testing.T) {
 	v.Set("time", 1773835200.1)
 	v.Set("timeout", 5)
 	v.Set("write", true)
-	v.Set("internal.ai_heartbeats_last_parsed_at", time.Date(2026, 3, 18, 11, 0, 0, 0, time.UTC).Format(ini.DateFormat))
+	v.Set("internal.ai_logs_last_parsed_at", time.Date(2026, 3, 18, 11, 0, 0, 0, time.UTC).Format(ini.DateFormat))
 
 	params, heartbeats, err := testLoadParamsAndHeartbeats(t.Context(), v)
 	require.NoError(t, err)
@@ -472,7 +472,7 @@ func TestWithAISyncMarksHumanHeartbeatsAsAICoding(t *testing.T) {
 
 	v := viper.New()
 	v.Set("internal-config", tmpInternal.Name())
-	v.Set("internal.ai_heartbeats_last_parsed_at", time.Date(2026, 3, 18, 11, 0, 0, 0, time.UTC).Format(ini.DateFormat))
+	v.Set("internal.ai_logs_last_parsed_at", time.Date(2026, 3, 18, 11, 0, 0, 0, time.UTC).Format(ini.DateFormat))
 
 	handle := ai.WithAISync(ai.Config{
 		Plugin: "plugin/0.0.1",
@@ -607,7 +607,7 @@ func TestWithAISyncSkipsTwoMinuteAICodingForHumanEditsWithChanges(t *testing.T) 
 
 	v := viper.New()
 	v.Set("internal-config", tmpInternal.Name())
-	v.Set("internal.ai_heartbeats_last_parsed_at", time.Date(2026, 3, 18, 11, 0, 0, 0, time.UTC).Format(ini.DateFormat))
+	v.Set("internal.ai_logs_last_parsed_at", time.Date(2026, 3, 18, 11, 0, 0, 0, time.UTC).Format(ini.DateFormat))
 
 	handle := ai.WithAISync(ai.Config{
 		Plugin: "plugin/0.0.1",
@@ -675,7 +675,7 @@ func TestWithAISync_ProducesExpectedHeartbeats(t *testing.T) {
 
 	v := viper.New()
 	v.Set("internal-config", tmpInternal.Name())
-	v.Set("internal.ai_heartbeats_last_parsed_at", after.Format(ini.DateFormat))
+	v.Set("internal.ai_logs_last_parsed_at", after.Format(ini.DateFormat))
 
 	handle := ai.WithAISync(ai.Config{
 		Plugin: "plugin/0.0.1",
@@ -857,7 +857,7 @@ func TestWithAISync_PreservesCopilotTokensAfterMergingAppHeartbeat(t *testing.T)
 
 	v := viper.New()
 	v.Set("internal-config", tmpInternal.Name())
-	v.Set("internal.ai_heartbeats_last_parsed_at", after.Format(ini.DateFormat))
+	v.Set("internal.ai_logs_last_parsed_at", after.Format(ini.DateFormat))
 
 	handle := ai.WithAISync(ai.Config{
 		Plugin: "editor/1.0.0",

@@ -119,7 +119,7 @@ func TestRunAISyncActivity_SendsAIHeartbeatsWithoutEntity(t *testing.T) {
 	v.Set("project", "myproject")
 	v.Set("project-folder", "/path/to/project")
 	v.Set("timeout", 5)
-	v.Set("internal.ai_heartbeats_last_parsed_at", time.Date(2026, 3, 18, 11, 0, 0, 0, time.UTC).Format(ini.DateFormat))
+	v.Set("internal.ai_logs_last_parsed_at", time.Date(2026, 3, 18, 11, 0, 0, 0, time.UTC).Format(ini.DateFormat))
 
 	code, err := cmdheartbeat.RunAISyncActivity(t.Context(), v)
 	require.NoError(t, err)
@@ -200,7 +200,7 @@ func TestRunAISyncActivity_SendsAIPromptLengthToAPI(t *testing.T) {
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("plugin", "plugin/0.0.1")
 	v.Set("timeout", 5)
-	v.Set("internal.ai_heartbeats_last_parsed_at", time.Date(2026, 3, 28, 11, 0, 0, 0, time.UTC).Format(ini.DateFormat))
+	v.Set("internal.ai_logs_last_parsed_at", time.Date(2026, 3, 28, 11, 0, 0, 0, time.UTC).Format(ini.DateFormat))
 
 	code, err := cmdheartbeat.RunAISyncActivity(t.Context(), v)
 	require.NoError(t, err)
@@ -293,7 +293,7 @@ func TestRunAISyncActivity_UsesAlternateProject(t *testing.T) {
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("plugin", "plugin/0.0.1")
 	v.Set("timeout", 5)
-	v.Set("internal.ai_heartbeats_last_parsed_at", time.Date(2026, 3, 18, 11, 0, 0, 0, time.UTC).Format(ini.DateFormat))
+	v.Set("internal.ai_logs_last_parsed_at", time.Date(2026, 3, 18, 11, 0, 0, 0, time.UTC).Format(ini.DateFormat))
 
 	code, err := cmdheartbeat.RunAISyncActivity(t.Context(), v)
 	require.NoError(t, err)
@@ -345,7 +345,7 @@ func TestRunAISyncActivity_RateLimitedWithoutEntity_SavesOffline(t *testing.T) {
 	v.Set("heartbeat-rate-limit-seconds", 120)
 	v.Set("internal-config", tmpInternalFile.Name())
 	v.Set("internal.heartbeats_last_sent_at", time.Now().Format(ini.DateFormat))
-	v.Set("internal.ai_heartbeats_last_parsed_at", time.Date(2026, 3, 18, 11, 0, 0, 0, time.UTC).Format(ini.DateFormat))
+	v.Set("internal.ai_logs_last_parsed_at", time.Date(2026, 3, 18, 11, 0, 0, 0, time.UTC).Format(ini.DateFormat))
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
 	v.Set("offline-queue-file", offlineQueueFile.Name())
 	v.Set("plugin", "plugin/0.0.1")
