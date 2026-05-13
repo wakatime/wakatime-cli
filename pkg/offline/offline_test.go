@@ -473,7 +473,9 @@ func TestSync_MultipleRequests(t *testing.T) {
 	db, err := bolt.Open(f.Name(), 0600, nil)
 	require.NoError(t, err)
 
-	for i := 0; i < 26; i++ {
+	const totalHeartbeats = 26
+
+	for i := 0; i < totalHeartbeats; i++ {
 		h := heartbeat.Heartbeat{
 			Entity:     fmt.Sprintf("/tmp/main-%02d.go", i),
 			EntityType: heartbeat.FileType,
@@ -500,33 +502,19 @@ func TestSync_MultipleRequests(t *testing.T) {
 	err = syncFn(func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		numCalls++
 
-		// first request
-		if numCalls == 1 {
-			assert.Len(t, hh, 25)
-
-			result := heartbeat.Result{
-				Status: http.StatusCreated,
-				ID:     "B8C9D0E1-F2A3-4456-B890-123456HIJKLM",
-			}
-
-			return []heartbeat.Result{
-				result, result, result, result, result,
-				result, result, result, result, result,
-				result, result, result, result, result,
-				result, result, result, result, result,
-				result, result, result, result, result,
-				result, result,
-			}, nil
+		expectedLen := totalHeartbeats - ((numCalls - 1) * offline.SendLimit)
+		if expectedLen > offline.SendLimit {
+			expectedLen = offline.SendLimit
 		}
 
-		// second request
-		assert.Len(t, hh, 1)
+		assert.Len(t, hh, expectedLen)
 
-		results := []heartbeat.Result{
-			{
+		results := make([]heartbeat.Result, len(hh))
+		for i := range hh {
+			results[i] = heartbeat.Result{
 				Status: http.StatusCreated,
 				ID:     "C9D0E1F2-A3B4-4567-C901-234567IJKLMN",
-			},
+			}
 		}
 
 		return results, nil
@@ -558,7 +546,9 @@ func TestSync_MultipleRequests(t *testing.T) {
 
 	require.Len(t, stored, 0)
 
-	assert.Eventually(t, func() bool { return numCalls == 2 }, time.Second, 50*time.Millisecond)
+	expectedCalls := int(math.Ceil(float64(totalHeartbeats) / float64(offline.SendLimit)))
+
+	assert.Eventually(t, func() bool { return numCalls == expectedCalls }, time.Second, 50*time.Millisecond)
 }
 
 func TestSync_APIError(t *testing.T) {
@@ -591,7 +581,7 @@ func TestSync_APIError(t *testing.T) {
 	err = db.Close()
 	require.NoError(t, err)
 
-	syncFn := offline.Sync(t.Context(), f.Name(), 10)
+	syncFn := offline.Sync(t.Context(), f.Name(), 3)
 
 	var numCalls int
 
@@ -679,7 +669,7 @@ func TestSync_APIErrorBulkNested(t *testing.T) {
 	err = db.Close()
 	require.NoError(t, err)
 
-	syncFn := offline.Sync(t.Context(), f.Name(), 10)
+	syncFn := offline.Sync(t.Context(), f.Name(), 3)
 
 	var numCalls int
 
@@ -973,13 +963,15 @@ func TestSync_SyncLimitAcrossMultipleBatches(t *testing.T) {
 
 	err = syncFn(func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		numCalls++
+		previouslySent := sent
 		sent += len(hh)
 
-		if numCalls == 1 {
-			assert.Len(t, hh, 25)
-		} else {
-			assert.Len(t, hh, 5)
+		expectedLen := offline.SendLimit
+		if remaining := 30 - previouslySent; remaining < expectedLen {
+			expectedLen = remaining
 		}
+
+		assert.Len(t, hh, expectedLen)
 
 		results := make([]heartbeat.Result, len(hh))
 		for i := range hh {
@@ -989,7 +981,7 @@ func TestSync_SyncLimitAcrossMultipleBatches(t *testing.T) {
 		return results, nil
 	})
 	require.NoError(t, err)
-	assert.Equal(t, 2, numCalls)
+	assert.Equal(t, int(math.Ceil(float64(30)/float64(offline.SendLimit))), numCalls)
 	assert.Equal(t, 30, sent)
 
 	db, err = bolt.Open(f.Name(), 0600, nil)

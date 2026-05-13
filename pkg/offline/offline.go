@@ -35,7 +35,7 @@ const (
 	RateLimitDefaultSeconds = 120
 	// SendLimit is the maximum number of heartbeats, which will be sent at once
 	// to the WakaTime API.
-	SendLimit = 25
+	SendLimit = 10
 	// SyncMaxDefault is the default maximum number of heartbeats from the
 	// offline queue, which will be synced upon sending heartbeats to the API.
 	SyncMaxDefault = 1000

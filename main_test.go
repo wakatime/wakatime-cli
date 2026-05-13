@@ -149,6 +149,7 @@ func testSendHeartbeats(t *testing.T, projectFolder, entity, prj string) {
 		"--project-folder", projectFolder,
 		"--write",
 		"--verbose",
+		"--sync-ai-disabled",
 	)
 
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
@@ -243,6 +244,7 @@ func TestSendHeartbeats_SecondaryApiKey(t *testing.T) {
 		"--project", "wakatime-cli",
 		"--write",
 		"--verbose",
+		"--sync-ai-disabled",
 	)
 
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
@@ -372,6 +374,7 @@ func TestSendHeartbeats_MultipleAPIURLs(t *testing.T) {
 		"--heartbeat-rate-limit-seconds", "0",
 		"--write",
 		"--verbose",
+		"--sync-ai-disabled",
 	)
 
 	// Work file goes to BOTH APIs: default (always) + custom (pattern match)
@@ -400,6 +403,7 @@ func TestSendHeartbeats_MultipleAPIURLs(t *testing.T) {
 		"--heartbeat-rate-limit-seconds", "0",
 		"--write",
 		"--verbose",
+		"--sync-ai-disabled",
 	)
 
 	assert.Eventually(t, func() bool { return defaultAPICalls == 1 }, time.Second, 50*time.Millisecond)
@@ -534,6 +538,7 @@ func TestSendHeartbeats_MultipleAPIURLs_ExtraHeartbeats(t *testing.T) {
 		"--heartbeat-rate-limit-seconds", "0",
 		"--write",
 		"--verbose",
+		"--sync-ai-disabled",
 	)
 
 	// Both APIs should receive calls - work files go to custom, personal files go to default
@@ -715,6 +720,7 @@ func TestSendHeartbeats_MultipleAPIURLs_BothServers(t *testing.T) {
 		"--heartbeat-rate-limit-seconds", "0",
 		"--write",
 		"--verbose",
+		"--sync-ai-disabled",
 	)
 
 	// Verify both APIs received calls
@@ -873,6 +879,7 @@ func TestSendHeartbeats_WakatimeProjectFile(t *testing.T) {
 		"--hide-branch-names", ".*",
 		"--write",
 		"--verbose",
+		"--sync-ai-disabled",
 	)
 
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
@@ -956,6 +963,7 @@ func TestSendHeartbeats_Timeout(t *testing.T) {
 		"--timeout", "1", // very short timeout to force a timeout error
 		"--write",
 		"--verbose",
+		"--sync-ai-disabled",
 	)
 
 	assert.Empty(t, out)
@@ -1002,7 +1010,7 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 
 		switch numCalls {
 		case 1:
-			// 1st request sends the main heartbeat + 24 extra heartbeats
+			// 1st request sends the main heartbeat + 9 extra heartbeats
 			filename = "testdata/api_heartbeats_response_extra_heartbeats.json"
 
 			// check body
@@ -1011,21 +1019,6 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 
 			expectedBody := fmt.Sprintf(
 				string(expectedBodyTpl),
-				entityPath, subfolders, userAgent,
-				entityPath, subfolders, userAgent,
-				entityPath, subfolders, userAgent,
-				entityPath, subfolders, userAgent,
-				entityPath, subfolders, userAgent,
-				entityPath, subfolders, userAgent,
-				entityPath, subfolders, userAgent,
-				entityPath, subfolders, userAgent,
-				entityPath, subfolders, userAgent,
-				entityPath, subfolders, userAgent,
-				entityPath, subfolders, userAgent,
-				entityPath, subfolders, userAgent,
-				entityPath, subfolders, userAgent,
-				entityPath, subfolders, userAgent,
-				entityPath, subfolders, userAgent,
 				entityPath, subfolders, userAgent,
 				entityPath, subfolders, userAgent,
 				entityPath, subfolders, userAgent,
@@ -1120,6 +1113,7 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 		"--project-folder", projectFolder,
 		"--write",
 		"--verbose",
+		"--sync-ai-disabled",
 	)
 
 	offlineCount, err := offline.CountHeartbeats(ctx, offlineQueueFile.Name())
@@ -1234,6 +1228,7 @@ func TestSendHeartbeats_ExtraHeartbeats_ProjectConfigFile(t *testing.T) {
 		"--hide-branch-names", ".*",
 		"--write",
 		"--verbose",
+		"--sync-ai-disabled",
 	)
 
 	offlineCount, err := offline.CountHeartbeats(ctx, offlineQueueFile.Name())
@@ -1359,6 +1354,7 @@ func TestSendHeartbeats_ExtraHeartbeats_SyncLegacyOfflineActivity(t *testing.T) 
 		"--hide-branch-names", ".*",
 		"--write",
 		"--verbose",
+		"--sync-ai-disabled",
 	)
 
 	assert.NoFileExists(t, offlineQueueFileLegacy.Name())
@@ -1463,6 +1459,7 @@ func TestSendHeartbeats_SyncOfflineActivity(t *testing.T) {
 		"--offline-queue-file", offlineQueueFile.Name(),
 		"--offline-queue-file-legacy", offlineQueueFileLegacy.Name(),
 		"--verbose",
+		"--sync-ai-disabled",
 	)
 
 	assert.NoFileExists(t, offlineQueueFileLegacy.Name())
@@ -1567,6 +1564,7 @@ func TestSendHeartbeats_SyncOfflineActivityError(t *testing.T) {
 		"--offline-queue-file", offlineQueueFile.Name(),
 		"--offline-queue-file-legacy", offlineQueueFileLegacy.Name(),
 		"--verbose",
+		"--sync-ai-disabled",
 	)
 
 	assert.NoFileExists(t, offlineQueueFileLegacy.Name())
@@ -1670,6 +1668,7 @@ func TestSendHeartbeats_Err(t *testing.T) {
 		"--project", "wakatime-cli",
 		"--write",
 		"--verbose",
+		"--sync-ai-disabled",
 	)
 
 	assert.Empty(t, out)
@@ -1730,6 +1729,7 @@ func TestSendHeartbeats_ErrAuth_InvalidAPIKEY(t *testing.T) {
 		"--project", "wakatime-cli",
 		"--write",
 		"--verbose",
+		"--sync-ai-disabled",
 	)
 
 	assert.Empty(t, out)
@@ -1772,6 +1772,7 @@ func TestSendHeartbeats_MalformedConfig(t *testing.T) {
 		"--offline-queue-file", offlineQueueFile.Name(),
 		"--offline-queue-file-legacy", offlineQueueFileLegacy.Name(),
 		"--verbose",
+		"--sync-ai-disabled",
 	)
 
 	assert.Empty(t, out)
@@ -1812,6 +1813,7 @@ func TestSendHeartbeats_MalformedInternalConfig(t *testing.T) {
 		"--offline-queue-file", offlineQueueFile.Name(),
 		"--offline-queue-file-legacy", offlineQueueFileLegacy.Name(),
 		"--verbose",
+		"--sync-ai-disabled",
 	)
 
 	assert.Empty(t, out)
@@ -1889,6 +1891,7 @@ func TestSendHeartbeats_OmitEmptyCategory(t *testing.T) {
 		"--hide-branch-names", ".*",
 		"--write",
 		"--verbose",
+		"--sync-ai-disabled",
 	)
 
 	offlineCount, err := offline.CountHeartbeats(ctx, offlineQueueFile.Name())
@@ -1974,6 +1977,7 @@ func TestFileExperts(t *testing.T) {
 		"--entity", "testdata/main.go",
 		"--file-experts",
 		"--verbose",
+		"--sync-ai-disabled",
 	)
 
 	assert.Equal(t, "You: 4 hrs 15 mins | Steve: 22 mins\n", out)
@@ -2029,6 +2033,7 @@ func TestTodayGoal(t *testing.T) {
 		"--internal-config", tmpInternalConfigFile.Name(),
 		"--today-goal", "11111111-1111-4111-8111-111111111111",
 		"--verbose",
+		"--sync-ai-disabled",
 	)
 
 	assert.Equal(t, "3 hrs 23 mins\n", out)
@@ -2083,6 +2088,7 @@ func TestTodaySummary(t *testing.T) {
 		"--internal-config", tmpInternalConfigFile.Name(),
 		"--today",
 		"--verbose",
+		"--sync-ai-disabled",
 	)
 
 	assert.Equal(t, "20 secs\n", out)
@@ -2139,6 +2145,7 @@ func TestOfflineCount(t *testing.T) {
 		"--hide-branch-names", ".*",
 		"--write",
 		"--verbose",
+		"--sync-ai-disabled",
 	)
 
 	assert.Empty(t, out)
@@ -2153,6 +2160,7 @@ func TestOfflineCount(t *testing.T) {
 		"--offline-queue-file-legacy", offlineQueueFileLegacy.Name(),
 		"--offline-count",
 		"--verbose",
+		"--sync-ai-disabled",
 	)
 
 	assert.Equal(t, "1\n", out)
@@ -2179,6 +2187,7 @@ func TestOfflineCountEmpty(t *testing.T) {
 		"--offline-queue-file-legacy", offlineQueueFileLegacy.Name(),
 		"--offline-count",
 		"--verbose",
+		"--sync-ai-disabled",
 	)
 
 	assert.Equal(t, "0\n", out)
@@ -2237,6 +2246,7 @@ func TestPrintOfflineHeartbeats(t *testing.T) {
 		"--project", "wakatime-cli",
 		"--write",
 		"--verbose",
+		"--sync-ai-disabled",
 	)
 
 	assert.Empty(t, out)
@@ -2249,6 +2259,7 @@ func TestPrintOfflineHeartbeats(t *testing.T) {
 		"--offline-queue-file-legacy", offlineQueueFileLegacy.Name(),
 		"--print-offline-heartbeats", "10",
 		"--verbose",
+		"--sync-ai-disabled",
 	)
 
 	entity, err := filepath.Abs("testdata/main.go")
