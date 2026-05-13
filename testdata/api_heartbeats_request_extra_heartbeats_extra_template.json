@@ -1,6 +1,6 @@
 [
 	{
-		"cursorpos": 25,
+		"cursorpos": 10,
 		"dependencies": [
 			"os"
 		],
@@ -18,7 +18,7 @@
 		"user_agent": "%s"
 	},
 	{
-		"cursorpos": 26,
+		"cursorpos": 11,
 		"dependencies": [
 			"os"
 		],
