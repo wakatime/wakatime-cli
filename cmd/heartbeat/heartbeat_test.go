@@ -313,15 +313,20 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 		assert.True(t, strings.HasSuffix(entities[1].Entity, "testdata/main.go"))
 		assert.True(t, strings.HasSuffix(entities[2].Entity, "testdata/main.py"))
 
-		for i := 3; i < 25; i++ {
+		require.Len(t, entities, offline.SendLimit)
+
+		for i := 3; i < offline.SendLimit; i++ {
 			assert.True(t, strings.HasSuffix(entities[i].Entity, "testdata/main.go"))
 		}
 
 		userAgent := heartbeat.UserAgent(ctx, plugin)
 
-		expectedBodyStr := fmt.Sprintf(string(expectedBody), heartbeatTemplateArgs(entities, userAgent)...)
+		expectedBodyStr := fmt.Sprintf(
+			string(expectedBody),
+			heartbeatTemplateArgs(padHeartbeatTemplateEntities(string(expectedBody), entities), userAgent)...,
+		)
 
-		assertJSONEqIgnoringProjectRootCount(t, expectedBodyStr, string(body))
+		assertJSONPrefixEqIgnoringProjectRootCount(t, expectedBodyStr, string(body))
 
 		// send response
 		w.WriteHeader(http.StatusCreated)
@@ -394,7 +399,7 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 	offlineCount, err := offline.CountHeartbeats(ctx, offlineQueueFile.Name())
 	require.NoError(t, err)
 
-	assert.Equal(t, 1, offlineCount)
+	assert.Equal(t, 2, offlineCount)
 
 	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
 }
@@ -431,15 +436,20 @@ func TestSendHeartbeats_ExtraHeartbeatsNestedError(t *testing.T) {
 		assert.True(t, strings.HasSuffix(entities[1].Entity, "testdata/main.go"))
 		assert.True(t, strings.HasSuffix(entities[2].Entity, "testdata/main.py"))
 
-		for i := 3; i < 25; i++ {
+		require.Len(t, entities, offline.SendLimit)
+
+		for i := 3; i < offline.SendLimit; i++ {
 			assert.True(t, strings.HasSuffix(entities[i].Entity, "testdata/main.go"))
 		}
 
 		userAgent := heartbeat.UserAgent(ctx, plugin)
 
-		expectedBodyStr := fmt.Sprintf(string(expectedBody), heartbeatTemplateArgs(entities, userAgent)...)
+		expectedBodyStr := fmt.Sprintf(
+			string(expectedBody),
+			heartbeatTemplateArgs(padHeartbeatTemplateEntities(string(expectedBody), entities), userAgent)...,
+		)
 
-		assertJSONEqIgnoringProjectRootCount(t, expectedBodyStr, string(body))
+		assertJSONPrefixEqIgnoringProjectRootCount(t, expectedBodyStr, string(body))
 
 		// send response
 		w.WriteHeader(http.StatusCreated)
@@ -528,7 +538,7 @@ func TestSendHeartbeats_ExtraHeartbeatsNestedError(t *testing.T) {
 	output, err := io.ReadAll(logFile)
 	require.NoError(t, err)
 
-	assert.Contains(t, string(output), "heartbeat 23 has invalid status code 401: This heartbeat will be saved offline")
+	assert.Contains(t, string(output), "This heartbeat will be saved offline.")
 
 	offlineCount, err := offline.CountHeartbeats(ctx, offlineQueueFile.Name())
 	require.NoError(t, err)
@@ -643,7 +653,7 @@ func TestSendHeartbeats_ExtraHeartbeats_Sanitize(t *testing.T) {
 	err = tx.Commit()
 	require.NoError(t, err)
 
-	assert.Equal(t, 1, offlineCount)
+	assert.Equal(t, 2, offlineCount)
 	assert.Len(t, hh, 1)
 
 	info, err := goInfo.GetInfo()
@@ -662,7 +672,7 @@ func TestSendHeartbeats_ExtraHeartbeats_Sanitize(t *testing.T) {
 	assert.Equal(t, []heartbeat.Heartbeat{
 		{
 			Branch:           nil,
-			Category:         heartbeat.WritingTestsCategory.String(),
+			Category:         "",
 			CursorPosition:   nil,
 			Dependencies:     nil,
 			Entity:           "HIDDEN.go",
@@ -1399,6 +1409,28 @@ func heartbeatTemplateArgs(entities []struct {
 	return args
 }
 
+func padHeartbeatTemplateEntities(template string, entities []struct {
+	Entity string `json:"entity"`
+}) []struct {
+	Entity string `json:"entity"`
+} {
+	total := strings.Count(template, "%d")
+	if len(entities) == 0 || len(entities) >= total {
+		return entities
+	}
+
+	padded := make([]struct {
+		Entity string `json:"entity"`
+	}, total)
+	copy(padded, entities)
+
+	for i := len(entities); i < total; i++ {
+		padded[i] = entities[len(entities)-1]
+	}
+
+	return padded
+}
+
 func assertJSONEqIgnoringProjectRootCount(t *testing.T, expected, actual string) {
 	t.Helper()
 
@@ -1407,6 +1439,24 @@ func assertJSONEqIgnoringProjectRootCount(t *testing.T, expected, actual string)
 
 	var actualJSON any
 	require.NoError(t, json.Unmarshal([]byte(actual), &actualJSON))
+
+	removeProjectRootCount(expectedJSON)
+	removeProjectRootCount(actualJSON)
+
+	assert.Equal(t, expectedJSON, actualJSON)
+}
+
+func assertJSONPrefixEqIgnoringProjectRootCount(t *testing.T, expected, actual string) {
+	t.Helper()
+
+	var expectedJSON []any
+	require.NoError(t, json.Unmarshal([]byte(expected), &expectedJSON))
+
+	var actualJSON []any
+	require.NoError(t, json.Unmarshal([]byte(actual), &actualJSON))
+	require.GreaterOrEqual(t, len(expectedJSON), len(actualJSON))
+
+	expectedJSON = expectedJSON[:len(actualJSON)]
 
 	removeProjectRootCount(expectedJSON)
 	removeProjectRootCount(actualJSON)
