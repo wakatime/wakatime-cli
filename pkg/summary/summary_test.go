@@ -15,6 +15,7 @@ import (
 func TestRenderToday(t *testing.T) {
 	tests := map[string]struct {
 		Output        output.Output
+		HideMinutes   bool
 		MaxCategories int
 		Expected      string
 	}{
@@ -58,12 +59,18 @@ func TestRenderToday(t *testing.T) {
 			MaxCategories: 1,
 			Expected:      readFile(t, "testdata/statusbar_today.json"),
 		},
+		"text output with minutes hidden": {
+			Output:        output.TextOutput,
+			HideMinutes:   true,
+			MaxCategories: 0,
+			Expected:      "2 hrs Coding, 7 secs Debugging, 6 secs AI Coding",
+		},
 	}
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			s := testSummary()
-			rendered, err := summary.RenderToday(s, false, test.MaxCategories, test.Output)
+			rendered, err := summary.RenderToday(s, false, test.HideMinutes, test.MaxCategories, test.Output)
 			require.NoError(t, err)
 
 			assert.Equal(t, test.Expected, rendered)
@@ -75,7 +82,7 @@ func TestRenderToday_OneCategory(t *testing.T) {
 	s := testSummary()
 	s.Data.Categories = s.Data.Categories[:1]
 
-	rendered, err := summary.RenderToday(s, false, 1, output.TextOutput)
+	rendered, err := summary.RenderToday(s, false, false, 1, output.TextOutput)
 	require.NoError(t, err)
 
 	assert.Equal(t, "2 hrs 17 mins", rendered)
@@ -84,7 +91,7 @@ func TestRenderToday_OneCategory(t *testing.T) {
 func TestRenderToday_OneCategoryTruncated(t *testing.T) {
 	s := testSummary()
 
-	rendered, err := summary.RenderToday(s, false, 1, output.TextOutput)
+	rendered, err := summary.RenderToday(s, false, false, 1, output.TextOutput)
 	require.NoError(t, err)
 
 	assert.Equal(t, "2 hrs 17 mins Coding", rendered)
@@ -93,17 +100,36 @@ func TestRenderToday_OneCategoryTruncated(t *testing.T) {
 func TestRenderToday_Truncated(t *testing.T) {
 	s := testSummary()
 
-	rendered, err := summary.RenderToday(s, false, 2, output.TextOutput)
+	rendered, err := summary.RenderToday(s, false, false, 2, output.TextOutput)
 	require.NoError(t, err)
 
 	assert.Equal(t, "2 hrs 17 mins Coding, 7 secs Debugging...", rendered)
 }
 
 func TestRenderToday_MultipleCategoriesHidden(t *testing.T) {
-	rendered, err := summary.RenderToday(testSummary(), true, 0, output.TextOutput)
+	rendered, err := summary.RenderToday(testSummary(), true, false, 0, output.TextOutput)
 	require.NoError(t, err)
 
 	assert.Equal(t, "2 hrs 17 mins", rendered)
+}
+
+func TestRenderToday_MultipleCategoriesHiddenAndMinutesHidden(t *testing.T) {
+	rendered, err := summary.RenderToday(testSummary(), true, true, 0, output.TextOutput)
+	require.NoError(t, err)
+
+	assert.Equal(t, "2 hrs", rendered)
+}
+
+func TestRenderToday_MinutesOnlyPreservedWhenMinutesHidden(t *testing.T) {
+	s := testSummary()
+	s.Data.GrandTotal.Hours = 0
+	s.Data.GrandTotal.Minutes = 57
+	s.Data.GrandTotal.Text = "57 mins"
+
+	rendered, err := summary.RenderToday(s, true, true, 0, output.TextOutput)
+	require.NoError(t, err)
+
+	assert.Equal(t, "57 mins", rendered)
 }
 
 func readFile(t *testing.T, fp string) string {

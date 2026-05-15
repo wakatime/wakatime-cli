@@ -158,7 +158,13 @@ type (
 // RenderToday generates a text representation from summary of the current day.
 // If out is set to output.RawJSONOutput or output.JSONOutput, the summary will be marshaled to JSON.
 // Expects exactly one summary for the current day. Will return an error otherwise.
-func RenderToday(summary *Summary, hideCategories bool, maxCategories int, out output.Output) (string, error) {
+func RenderToday(
+	summary *Summary,
+	hideCategories bool,
+	hideMinutes bool,
+	maxCategories int,
+	out output.Output,
+) (string, error) {
 	if summary == nil {
 		return "", errors.New("no summary found for the current day")
 	}
@@ -179,7 +185,7 @@ func RenderToday(summary *Summary, hideCategories bool, maxCategories int, out o
 		}
 
 		s := simplified{
-			Text:            getText(summary, hideCategories, maxCategories),
+			Text:            getText(summary, hideCategories, hideMinutes, maxCategories),
 			HasTeamFeatures: summary.HasTeamFeatures,
 		}
 
@@ -191,12 +197,12 @@ func RenderToday(summary *Summary, hideCategories bool, maxCategories int, out o
 		return string(data), nil
 	}
 
-	return getText(summary, hideCategories, maxCategories), nil
+	return getText(summary, hideCategories, hideMinutes, maxCategories), nil
 }
 
-func getText(summary *Summary, hideCategories bool, maxCategories int) string {
+func getText(summary *Summary, hideCategories bool, hideMinutes bool, maxCategories int) string {
 	if len(summary.Data.Categories) < 2 || hideCategories {
-		return summary.Data.GrandTotal.Text
+		return durationText(summary.Data.GrandTotal.Hours, summary.Data.GrandTotal.Text, hideMinutes)
 	}
 
 	var outputs []string
@@ -208,7 +214,8 @@ func getText(summary *Summary, hideCategories bool, maxCategories int) string {
 	}
 
 	for _, category := range categories {
-		outputs = append(outputs, fmt.Sprintf("%s %s", category.Text, category.Name))
+		text := durationText(category.Hours, category.Text, hideMinutes)
+		outputs = append(outputs, fmt.Sprintf("%s %s", text, category.Name))
 	}
 
 	result := strings.Join(outputs, ", ")
@@ -218,4 +225,16 @@ func getText(summary *Summary, hideCategories bool, maxCategories int) string {
 	}
 
 	return result
+}
+
+func durationText(hours int, text string, hideMinutes bool) string {
+	if !hideMinutes || hours == 0 {
+		return text
+	}
+
+	if hours == 1 {
+		return "1 hr"
+	}
+
+	return fmt.Sprintf("%d hrs", hours)
 }
