@@ -2939,6 +2939,39 @@ func TestLoadStatusBarParams_HideCategories_ShowCategoriesInvalid(t *testing.T) 
 	)
 }
 
+func TestLoadStatusBarParams_HideMinutes(t *testing.T) {
+	v := vipertools.MustNew()
+	v.Set("settings.status_bar_hide_minutes", true)
+
+	params, err := paramspkg.LoadStatusBarParams(v, paramspkg.FlagReadOrderFlagPrecedence)
+	require.NoError(t, err)
+
+	assert.True(t, params.HideMinutes)
+}
+
+func TestLoadStatusBarParams_HideMinutesDefault(t *testing.T) {
+	v := vipertools.MustNew()
+
+	params, err := paramspkg.LoadStatusBarParams(v, paramspkg.FlagReadOrderFlagPrecedence)
+	require.NoError(t, err)
+
+	assert.False(t, params.HideMinutes)
+}
+
+func TestLoadStatusBarParams_HideMinutesInvalid(t *testing.T) {
+	v := vipertools.MustNew()
+	v.Set("settings.status_bar_hide_minutes", "invalid")
+
+	_, err := paramspkg.LoadStatusBarParams(v, paramspkg.FlagReadOrderFlagPrecedence)
+	require.Error(t, err)
+
+	assert.Equal(
+		t,
+		"failed to parse status_bar_hide_minutes: strconv.ParseBool: parsing \"invalid\": invalid syntax",
+		err.Error(),
+	)
+}
+
 func TestLoadStatusBarParams_Output(t *testing.T) {
 	tests := map[string]output.Output{
 		"text": output.TextOutput,
