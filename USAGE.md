@@ -33,6 +33,7 @@ exclude_unknown_project = false
 status_bar_enabled = true
 status_bar_coding_activity = true
 status_bar_show_categories = false
+status_bar_hide_minutes = false
 status_bar_max_categories = 0
 offline = true
 proxy = https://user:pass@localhost:8080
@@ -105,6 +106,7 @@ Notice how you have to include the exclude patterns from your main `~/.wakatime.
 | status_bar_enabled             | Turns on wakatime status bar for certain editors.                                                                                                                                                                                                                      | _bool_        | `true`                            |
 | status_bar_coding_activity     | Enables displaying Today's code stats in the status bar of some editors. When false, only the WakaTime icon is displayed in the status bar.                                                                                                                            | _bool_        | `true`                            |
 | status_bar_show_categories     | When `true`, --today displays category breakdowns in the status bar output.                                                                                                                                                                                             | _bool_        | `false`                           |
+| status_bar_hide_minutes        | When `true`, --today hides minutes from durations that include hours. For example, `3 hrs 57 mins` displays as `3 hrs`, while `57 mins` stays unchanged.                                                                                                                | _bool_        | `false`                           |
 | status_bar_max_categories      | When greater than zero, limits the number of categories displayed in the status bar.                                                                                                                                                                                   | _int_         | `0`                               |
 | offline                        | Enables saving code stats locally to ~/.wakatime/offline_heartbeats.bdb when offline, and syncing to the dashboard later when back online.                                                                                                                             | _bool_        | `true`                            |
 | proxy                          | Optional proxy configuration. Supports HTTPS, SOCKS and NTLM proxies. For ex: `https://user:pass@host:port`, `socks5://user:pass@host:port`, `domain\\user:pass`                                                                                                       | _string_      |                                   |

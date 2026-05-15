@@ -286,6 +286,7 @@ type (
 	// StatusBar contains status bar related parameters.
 	StatusBar struct {
 		HideCategories bool
+		HideMinutes    bool
 		MaxCategories  int
 		Output         output.Output
 	}
@@ -981,6 +982,17 @@ func LoadStatusBarParams(v *viper.Viper, order FlagReadOrder) (StatusBar, error)
 		break
 	}
 
+	hideMinutes := false
+
+	if hideMinutesStr := vipertools.GetString(v, "settings.status_bar_hide_minutes"); hideMinutesStr != "" {
+		val, err := strconv.ParseBool(hideMinutesStr)
+		if err != nil {
+			return StatusBar{}, fmt.Errorf("failed to parse status_bar_hide_minutes: %s", err)
+		}
+
+		hideMinutes = val
+	}
+
 	maxCategories := 2
 
 	if maxCategoriesStr := vipertools.FirstNonEmptyString(v, todayMaxCategoriesOrder[order]...); maxCategoriesStr != "" {
@@ -1009,6 +1021,7 @@ func LoadStatusBarParams(v *viper.Viper, order FlagReadOrder) (StatusBar, error)
 
 	return StatusBar{
 		HideCategories: hideCategories,
+		HideMinutes:    hideMinutes,
 		MaxCategories:  maxCategories,
 		Output:         out,
 	}, nil
