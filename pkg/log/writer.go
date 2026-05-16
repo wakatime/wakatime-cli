@@ -14,16 +14,16 @@ type DynamicWriteSyncer struct {
 
 // Write writes the log entry to the current writer.
 func (d *DynamicWriteSyncer) Write(p []byte) (n int, err error) {
-	d.mu.RLock()
-	defer d.mu.RUnlock()
+	d.mu.Lock()
+	defer d.mu.Unlock()
 
 	return d.writer.Write(p)
 }
 
 // Sync calls Sync on the current writer.
 func (d *DynamicWriteSyncer) Sync() error {
-	d.mu.RLock()
-	defer d.mu.RUnlock()
+	d.mu.Lock()
+	defer d.mu.Unlock()
 
 	return d.writer.Sync()
 }

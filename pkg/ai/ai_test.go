@@ -25,6 +25,10 @@ import (
 )
 
 func TestWithAISyncUpdatesLastParsedAtBeforeParsing(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
 	tmpInternal, err := os.CreateTemp(t.TempDir(), "wakatime-internal")
 	require.NoError(t, err)
 
