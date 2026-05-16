@@ -678,6 +678,43 @@ func LoadHeartbeatParams(ctx context.Context, v *viper.Viper, order FlagReadOrde
 		timeSecs = float64(time.Now().UnixNano()) / 1000000000
 	}
 
+	processingParams, err := LoadHeartbeatProcessingParams(ctx, v, order)
+	if err != nil {
+		return Heartbeat{}, err
+	}
+
+	var language *string
+	if l := vipertools.GetString(v, "language"); l != "" {
+		language = &l
+	}
+
+	return Heartbeat{
+		AIParams:          processingParams.AIParams,
+		AILineChanges:     aiLineChanges,
+		Category:          category,
+		CursorPosition:    cursorPosition,
+		Entity:            entity,
+		ExtraHeartbeats:   extraHeartbeats,
+		EntityType:        entityType,
+		GuessLanguage:     processingParams.GuessLanguage,
+		HumanLineChanges:  humanLineChanges,
+		IsUnsavedEntity:   v.GetBool("is-unsaved-entity"),
+		IsWrite:           isWrite,
+		Language:          language,
+		LanguageAlternate: vipertools.GetString(v, "alternate-language"),
+		LineNumber:        lineNumber,
+		LinesInFile:       linesInFile,
+		LocalFile:         vipertools.GetString(v, "local-file"),
+		Time:              timeSecs,
+		Filter:            processingParams.Filter,
+		Project:           processingParams.Project,
+		Sanitize:          processingParams.Sanitize,
+	}, nil
+}
+
+// LoadHeartbeatProcessingParams loads the heartbeat params needed by the preprocessing pipeline
+// without requiring a command-line heartbeat entity.
+func LoadHeartbeatProcessingParams(ctx context.Context, v *viper.Viper, order FlagReadOrder) (Heartbeat, error) {
 	filterParams, err := loadFilterParams(ctx, v, order)
 	if err != nil {
 		return Heartbeat{}, fmt.Errorf("failed to load filter params: %s", err)
@@ -698,32 +735,12 @@ func LoadHeartbeatParams(ctx context.Context, v *viper.Viper, order FlagReadOrde
 		return Heartbeat{}, fmt.Errorf("failed to load ai params: %s", err)
 	}
 
-	var language *string
-	if l := vipertools.GetString(v, "language"); l != "" {
-		language = &l
-	}
-
 	return Heartbeat{
-		AIParams:          aiParams,
-		AILineChanges:     aiLineChanges,
-		Category:          category,
-		CursorPosition:    cursorPosition,
-		Entity:            entity,
-		ExtraHeartbeats:   extraHeartbeats,
-		EntityType:        entityType,
-		GuessLanguage:     vipertools.FirstNonEmptyBool(v, guessLanguageOrder[order]...),
-		HumanLineChanges:  humanLineChanges,
-		IsUnsavedEntity:   v.GetBool("is-unsaved-entity"),
-		IsWrite:           isWrite,
-		Language:          language,
-		LanguageAlternate: vipertools.GetString(v, "alternate-language"),
-		LineNumber:        lineNumber,
-		LinesInFile:       linesInFile,
-		LocalFile:         vipertools.GetString(v, "local-file"),
-		Time:              timeSecs,
-		Filter:            filterParams,
-		Project:           projectParams,
-		Sanitize:          sanitizeParams,
+		AIParams:      aiParams,
+		GuessLanguage: vipertools.FirstNonEmptyBool(v, guessLanguageOrder[order]...),
+		Filter:        filterParams,
+		Project:       projectParams,
+		Sanitize:      sanitizeParams,
 	}, nil
 }
 
