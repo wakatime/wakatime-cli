@@ -313,6 +313,7 @@ func TestRunCmd_BackoffLoggedWithVerbose(t *testing.T) {
 	v.Set("offline-queue-file", offlineQueueFile.Name())
 	v.Set("internal.backoff_at", time.Now().Add(10*time.Minute).Format(ini.DateFormat))
 	v.Set("internal.backoff_retries", "1")
+	v.Set("sync-ai-disabled", true)
 	v.Set("verbose", verbose)
 
 	logger, err := setup.Logging(ctx, v)
@@ -377,6 +378,7 @@ func TestRunCmd_BackoffNotLogged(t *testing.T) {
 	v.Set("offline-queue-file", offlineQueueFile.Name())
 	v.Set("internal.backoff_at", time.Now().Add(10*time.Minute).Format(ini.DateFormat))
 	v.Set("internal.backoff_retries", "1")
+	v.Set("sync-ai-disabled", true)
 	v.Set("verbose", verbose)
 
 	logger, err := setup.Logging(ctx, v)
