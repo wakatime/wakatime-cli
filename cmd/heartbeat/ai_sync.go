@@ -9,7 +9,6 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/offline"
 	"github.com/wakatime/wakatime-cli/pkg/params"
-	"github.com/wakatime/wakatime-cli/pkg/vipertools"
 	"github.com/wakatime/wakatime-cli/pkg/wakaerror"
 
 	"github.com/spf13/viper"
@@ -25,31 +24,9 @@ func RunAISyncActivity(ctx context.Context, v *viper.Viper) (int, error) {
 		logger.Warnf("failed to load offline queue filepath: %s", err)
 	}
 
-	aiParams, err := params.LoadAIParams(ctx, v, params.FlagReadOrderFlagPrecedence)
+	loadedParams, err := loadAISyncParams(ctx, v, params.FlagReadOrderFlagPrecedence)
 	if err != nil {
-		return exitcode.ErrAuth, fmt.Errorf("failed to load ai params: %w", err)
-	}
-
-	apiParams, err := params.LoadAPIParams(ctx, v, params.FlagReadOrderFlagPrecedence)
-	if err != nil {
-		return exitcode.ErrAuth, fmt.Errorf("failed to load API params: %w", err)
-	}
-
-	projectParams, err := params.LoadProjectParams(ctx, v)
-	if err != nil {
-		return exitcode.ErrAuth, fmt.Errorf("failed to load project params: %w", err)
-	}
-
-	loadedParams := params.Params{
-		AI:  aiParams,
-		API: apiParams,
-		Heartbeat: params.Heartbeat{
-			Project: projectParams,
-			Sanitize: params.SanitizeParams{
-				ProjectPathOverride: vipertools.GetString(v, "project-folder"),
-			},
-		},
-		Offline: params.LoadOfflineParams(ctx, v, params.FlagReadOrderFlagPrecedence),
+		return exitcode.ErrAuth, fmt.Errorf("failed to load command params: %w", err)
 	}
 
 	heartbeats, err := applyAIParsing(ctx, v, loadedParams, []heartbeat.Heartbeat{})
@@ -76,6 +53,7 @@ func RunAISyncActivity(ctx context.Context, v *viper.Viper) (int, error) {
 		queueFilepath,
 		heartbeats,
 		useProjectConfig,
+		loadAISyncParams,
 	); err != nil {
 		if errwaka, ok := err.(wakaerror.Error); ok {
 			return errwaka.ExitCode(), fmt.Errorf("sending ai activity failed: %w", errwaka)
@@ -87,4 +65,32 @@ func RunAISyncActivity(ctx context.Context, v *viper.Viper) (int, error) {
 	logger.Debugln("successfully synced ai activity")
 
 	return exitcode.Success, nil
+}
+
+func loadAISyncParams(
+	ctx context.Context,
+	v *viper.Viper,
+	order params.FlagReadOrder,
+) (params.Params, error) {
+	aiParams, err := params.LoadAIParams(ctx, v, order)
+	if err != nil {
+		return params.Params{}, fmt.Errorf("failed to load ai params: %w", err)
+	}
+
+	apiParams, err := params.LoadAPIParams(ctx, v, order)
+	if err != nil {
+		return params.Params{}, fmt.Errorf("failed to load API params: %w", err)
+	}
+
+	heartbeatParams, err := params.LoadHeartbeatProcessingParams(ctx, v, order)
+	if err != nil {
+		return params.Params{}, fmt.Errorf("failed to load heartbeat processing params: %w", err)
+	}
+
+	return params.Params{
+		AI:        aiParams,
+		API:       apiParams,
+		Heartbeat: heartbeatParams,
+		Offline:   params.LoadOfflineParams(ctx, v, order),
+	}, nil
 }

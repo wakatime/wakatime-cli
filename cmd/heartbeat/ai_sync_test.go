@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -118,6 +119,159 @@ func TestRunAISyncActivity_SendsAIHeartbeatsWithoutEntity(t *testing.T) {
 	v.Set("plugin", "plugin/0.0.1")
 	v.Set("project", "myproject")
 	v.Set("project-folder", "/path/to/project")
+	v.Set("timeout", 5)
+	v.Set("internal.ai_logs_last_parsed_at", time.Date(2026, 3, 18, 11, 0, 0, 0, time.UTC).Format(ini.DateFormat))
+
+	code, err := cmdheartbeat.RunAISyncActivity(t.Context(), v)
+	require.NoError(t, err)
+	assert.Equal(t, 0, code)
+	assert.Equal(t, 1, numCalls)
+}
+
+func TestRunAISyncActivity_FiltersExcludedAIHeartbeats(t *testing.T) {
+	resetSingleton(t)
+
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	tmpDir := t.TempDir()
+
+	tmpDir, err := realpath.Realpath(tmpDir)
+	require.NoError(t, err)
+
+	copyFile(t, "testdata/main.go", filepath.Join(tmpDir, "main.go"))
+
+	entity, err := filepath.Abs(filepath.Join(tmpDir, "main.go"))
+	require.NoError(t, err)
+
+	entity = strings.ReplaceAll(entity, "\\", "/")
+
+	transcriptDir := filepath.Join(home, ".claude", "projects", "sample-project")
+	require.NoError(t, os.MkdirAll(transcriptDir, 0o755))
+
+	transcriptPath := filepath.Join(transcriptDir, "session.jsonl")
+	transcript := strings.Join([]string{
+		"{\"timestamp\":\"2026-03-18T12:00:00Z\",\"version\":\"2.1.45\"," +
+			"\"toolUseResult\":{\"filePath\":\"" + entity + "\"," +
+			"\"structuredPatch\":[{\"oldLines\":3,\"newLines\":5}," +
+			"{\"oldLines\":4,\"newLines\":1}]},\"usage\":{\"total_tokens\":7}}",
+	}, "\n") + "\n"
+	require.NoError(t, os.WriteFile(transcriptPath, []byte(transcript), 0o644))
+
+	testServerURL, router, tearDown := setupTestServer()
+	defer tearDown()
+
+	var numCalls int
+
+	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, _ *http.Request) {
+		numCalls++
+
+		w.WriteHeader(http.StatusInternalServerError)
+	})
+
+	tmpInternalFile, err := os.CreateTemp(t.TempDir(), "wakatime-internal-config")
+	require.NoError(t, err)
+
+	defer tmpInternalFile.Close()
+
+	v := viper.New()
+	v.Set("api-url", testServerURL)
+	v.Set("exclude", regexp.QuoteMeta(entity))
+	v.Set("internal-config", tmpInternalFile.Name())
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("plugin", "plugin/0.0.1")
+	v.Set("timeout", 5)
+	v.Set("internal.ai_logs_last_parsed_at", time.Date(2026, 3, 18, 11, 0, 0, 0, time.UTC).Format(ini.DateFormat))
+
+	code, err := cmdheartbeat.RunAISyncActivity(t.Context(), v)
+	require.NoError(t, err)
+	assert.Equal(t, 0, code)
+	assert.Equal(t, 0, numCalls)
+}
+
+func TestRunAISyncActivity_IncludeOverridesExcludeForAIHeartbeats(t *testing.T) {
+	resetSingleton(t)
+
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	includedDir, err := realpath.Realpath(t.TempDir())
+	require.NoError(t, err)
+
+	excludedDir, err := realpath.Realpath(t.TempDir())
+	require.NoError(t, err)
+
+	copyFile(t, "testdata/main.go", filepath.Join(includedDir, "included.go"))
+	copyFile(t, "testdata/main.go", filepath.Join(excludedDir, "excluded.go"))
+
+	includedEntity, err := filepath.Abs(filepath.Join(includedDir, "included.go"))
+	require.NoError(t, err)
+
+	excludedEntity, err := filepath.Abs(filepath.Join(excludedDir, "excluded.go"))
+	require.NoError(t, err)
+
+	includedEntity = strings.ReplaceAll(includedEntity, "\\", "/")
+	excludedEntity = strings.ReplaceAll(excludedEntity, "\\", "/")
+	includedDir = strings.ReplaceAll(includedDir, "\\", "/")
+
+	transcriptDir := filepath.Join(home, ".claude", "projects", "sample-project")
+	require.NoError(t, os.MkdirAll(transcriptDir, 0o755))
+
+	transcriptPath := filepath.Join(transcriptDir, "session.jsonl")
+	transcript := strings.Join([]string{
+		"{\"timestamp\":\"2026-03-18T12:00:00Z\",\"version\":\"2.1.45\"," +
+			"\"toolUseResult\":{\"filePath\":\"" + includedEntity + "\"," +
+			"\"structuredPatch\":[{\"oldLines\":3,\"newLines\":5}]}}",
+		"{\"timestamp\":\"2026-03-18T12:01:00Z\",\"version\":\"2.1.45\"," +
+			"\"toolUseResult\":{\"filePath\":\"" + excludedEntity + "\"," +
+			"\"structuredPatch\":[{\"oldLines\":3,\"newLines\":5}]}}",
+	}, "\n") + "\n"
+	require.NoError(t, os.WriteFile(transcriptPath, []byte(transcript), 0o644))
+
+	testServerURL, router, tearDown := setupTestServer()
+	defer tearDown()
+
+	var numCalls int
+
+	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
+		numCalls++
+
+		body, err := io.ReadAll(req.Body)
+		require.NoError(t, err)
+
+		var entities []struct {
+			Entity string `json:"entity"`
+		}
+
+		require.NoError(t, json.Unmarshal(body, &entities))
+		require.Len(t, entities, 1)
+		assert.Equal(t, includedEntity, entities[0].Entity)
+
+		w.WriteHeader(http.StatusCreated)
+
+		f, err := os.Open("testdata/api_heartbeats_response.json")
+		require.NoError(t, err)
+
+		defer f.Close()
+
+		_, err = io.Copy(w, f)
+		require.NoError(t, err)
+	})
+
+	tmpInternalFile, err := os.CreateTemp(t.TempDir(), "wakatime-internal-config")
+	require.NoError(t, err)
+
+	defer tmpInternalFile.Close()
+
+	v := viper.New()
+	v.Set("api-url", testServerURL)
+	v.Set("exclude", `.*`)
+	v.Set("include", "^"+regexp.QuoteMeta(includedDir)+"/.*")
+	v.Set("internal-config", tmpInternalFile.Name())
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("plugin", "plugin/0.0.1")
 	v.Set("timeout", 5)
 	v.Set("internal.ai_logs_last_parsed_at", time.Date(2026, 3, 18, 11, 0, 0, 0, time.UTC).Format(ini.DateFormat))
 
