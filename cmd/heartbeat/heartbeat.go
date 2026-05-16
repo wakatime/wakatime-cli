@@ -97,7 +97,7 @@ func SendHeartbeats(
 		return err
 	}
 
-	return sendPreparedHeartbeats(ctx, v, params, queueFilepath, heartbeats, true)
+	return sendPreparedHeartbeats(ctx, v, params, queueFilepath, heartbeats, true, loadParams)
 }
 
 func loadParams(
@@ -262,6 +262,7 @@ func sendPreparedHeartbeats(
 	queueFilepath string,
 	heartbeats []heartbeat.Heartbeat,
 	withProjectConfig bool,
+	paramsLoader func(context.Context, *viper.Viper, params.FlagReadOrder) (params.Params, error),
 ) error {
 	logger := log.Extract(ctx)
 
@@ -321,7 +322,7 @@ func sendPreparedHeartbeats(
 	if withProjectConfig {
 		handle = handler.New(v, handler.Config{
 			Params:       params,
-			ParamsLoader: loadParams,
+			ParamsLoader: paramsLoader,
 			Opts:         opts,
 		})(sender)
 	} else {
