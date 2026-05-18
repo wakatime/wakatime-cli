@@ -223,6 +223,26 @@ func TestUserAgent(t *testing.T) {
 	assert.Equal(t, expected, heartbeat.UserAgent(t.Context(), "testplugin"))
 }
 
+func TestUserAgentMissingPluginVersion(t *testing.T) {
+	info, err := goInfo.GetInfo()
+	require.NoError(t, err)
+
+	expected := fmt.Sprintf(
+		"wakatime/%s (%s-%s-%s) %s Claude/unknown macos-wakatime/5.28.3",
+		version.Version,
+		runtime.GOOS,
+		info.Core,
+		info.Platform,
+		runtime.Version(),
+	)
+
+	assert.Equal(
+		t,
+		expected,
+		heartbeat.UserAgent(t.Context(), "Claude/ macos-wakatime/5.28.3"),
+	)
+}
+
 func TestRemoteAddressRegex(t *testing.T) {
 	tests := map[string]struct {
 		Heartbeat heartbeat.Heartbeat

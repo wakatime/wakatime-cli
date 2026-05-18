@@ -286,6 +286,8 @@ func UserAgent(ctx context.Context, plugin string) (userAgent string) {
 		plugin = "Unknown/0"
 	}
 
+	plugin = normalizePluginVersions(plugin)
+
 	info, err := goInfo.GetInfo()
 	if err != nil {
 		logger.Debugf("goInfo.GetInfo error: %s", err)
@@ -302,6 +304,27 @@ func UserAgent(ctx context.Context, plugin string) (userAgent string) {
 	)
 
 	return userAgent
+}
+
+// normalizePluginVersions replaces empty product versions with "unknown".
+// Product tokens in user agents are space-separated, so `Claude/` becomes
+// `Claude/unknown` while already-populated tokens are left unchanged.
+func normalizePluginVersions(plugin string) string {
+	fields := strings.Fields(plugin)
+	changed := false
+
+	for i, field := range fields {
+		if strings.HasSuffix(field, "/") {
+			fields[i] = field + "unknown"
+			changed = true
+		}
+	}
+
+	if !changed {
+		return strings.TrimSpace(plugin)
+	}
+
+	return strings.Join(fields, " ")
 }
 
 // PointerTo returns a pointer to the value passed in.
