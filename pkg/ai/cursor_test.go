@@ -247,6 +247,115 @@ func TestCursorParse(t *testing.T) {
 	assert.Equal(t, 2, *got[5].AILineChanges)
 }
 
+func TestCursorParse_UnicodePathsAndText(t *testing.T) {
+	ctx := context.Background()
+
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	dbDir := filepath.Join(home, "Library", "Application Support", "Cursor", "User", "globalStorage")
+	require.NoError(t, os.MkdirAll(dbDir, 0o755))
+
+	dbPath := filepath.Join(dbDir, "state.vscdb")
+	editedPath := filepath.Join(home, "项目", "文件.go")
+	prompt := "请更新这个文件"
+
+	createCursorDB(t, dbPath, []cursorTestRow{
+		{
+			Key: "bubbleId:composer-zh:old-read",
+			Value: map[string]any{
+				"_v":        3,
+				"type":      2,
+				"createdAt": "2026-03-15T23:33:59Z",
+				"toolFormerData": map[string]any{
+					"status": "completed",
+					"name":   "read_file_v2",
+					"params": fmt.Sprintf(`{"targetFile":%q}`, editedPath),
+				},
+			},
+		},
+		{
+			Key: "bubbleId:composer-zh:user",
+			Value: map[string]any{
+				"_v":        3,
+				"type":      1,
+				"text":      prompt,
+				"createdAt": "2026-03-15T23:34:10Z",
+			},
+		},
+		{
+			Key: "bubbleId:composer-zh:edit",
+			Value: map[string]any{
+				"_v":        3,
+				"type":      2,
+				"createdAt": "2026-03-15T23:34:39Z",
+				"toolFormerData": map[string]any{
+					"status": "completed",
+					"name":   "edit_file_v2",
+					"params": fmt.Sprintf(
+						`{"relativeWorkspacePath":%q,"streamingContent":"第一行\n第二行"}`,
+						editedPath,
+					),
+				},
+			},
+		},
+	})
+
+	got, err := ai.Cursor{
+		After:             time.Date(2026, 3, 15, 23, 34, 0, 0, time.UTC),
+		FallbackUserAgent: "plugin/0.0.1",
+	}.Parse(ctx)
+	require.NoError(t, err)
+	require.Len(t, got, 2)
+
+	assert.Equal(t, "Cursor composer-zh", got[0].Entity)
+	assert.Equal(t, len([]rune(prompt)), got[0].AIPromptLength)
+	assert.Equal(t, filepath.Dir(editedPath), got[0].ProjectPathOverride)
+
+	assert.Equal(t, editedPath, got[1].Entity)
+	require.NotNil(t, got[1].AILineChanges)
+	assert.Equal(t, 2, *got[1].AILineChanges)
+}
+
+func TestCursorParse_SkipsMalformedSQLiteRows(t *testing.T) {
+	ctx := context.Background()
+
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	dbDir := filepath.Join(home, "Library", "Application Support", "Cursor", "User", "globalStorage")
+	require.NoError(t, os.MkdirAll(dbDir, 0o755))
+
+	dbPath := filepath.Join(dbDir, "state.vscdb")
+	createCursorDB(t, dbPath, []cursorTestRow{
+		{
+			Key: "bubbleId:composer-1:user",
+			Value: map[string]any{
+				"_v":        3,
+				"type":      1,
+				"text":      "Please update the file",
+				"createdAt": "2026-03-15T23:34:10Z",
+			},
+		},
+	})
+
+	db, err := sql.Open("sqlite", dbPath)
+	require.NoError(t, err)
+	_, err = db.Exec(`INSERT INTO cursorDiskKV(key, value) VALUES(?, ?)`, "bubbleId:composer-1:bad", "{")
+	require.NoError(t, err)
+	require.NoError(t, db.Close())
+
+	got, err := ai.Cursor{
+		After:             time.Date(2026, 3, 15, 23, 34, 0, 0, time.UTC),
+		FallbackUserAgent: "plugin/0.0.1",
+	}.Parse(ctx)
+	require.NoError(t, err)
+	require.Len(t, got, 1)
+	assert.Equal(t, "Cursor composer-1", got[0].Entity)
+}
+
 func TestCursorParse_NoCursorStateDB(t *testing.T) {
 	ctx := context.Background()
 

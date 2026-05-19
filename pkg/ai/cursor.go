@@ -24,6 +24,8 @@ import (
 // Cursor contains params for detecting heartbeats from Cursor transcripts.
 type Cursor ParserConfig
 
+const cursorRecentBubbleRowLimit = 5000
+
 type (
 	cursorTokenCount struct {
 		InputTokens  *int `json:"inputTokens"`
@@ -237,21 +239,28 @@ func (Cursor) queryRows(ctx context.Context, dbPath string) ([]cursorLogRow, err
 	defer db.Close() // nolint:errcheck
 
 	rows, err := db.QueryContext(ctx, `
-SELECT key, CAST(value AS TEXT)
-FROM cursorDiskKV
-WHERE key LIKE 'bubbleId:%'
+WITH recentCursorRows AS (
+	SELECT key, CAST(value AS TEXT) AS value
+	FROM cursorDiskKV
+	WHERE key LIKE 'bubbleId:%'
+	ORDER BY rowid DESC
+	LIMIT ?
+)
+SELECT key, value
+FROM recentCursorRows
+WHERE json_valid(value)
   AND (
     (
-      json_extract(CAST(value AS TEXT), '$.toolFormerData.status') = 'completed'
+      json_extract(value, '$.toolFormerData.status') = 'completed'
       AND json_extract(
-        CAST(value AS TEXT),
+        value,
         '$.toolFormerData.name'
       ) IN ('edit_file', 'edit_file_v2', 'read_file', 'read_file_v2')
     )
-    OR json_extract(CAST(value AS TEXT), '$.text') IS NOT NULL
+    OR json_extract(value, '$.text') IS NOT NULL
   )
-ORDER BY json_extract(CAST(value AS TEXT), '$.createdAt') ASC;
-`)
+ORDER BY json_extract(value, '$.createdAt') ASC;
+`, cursorRecentBubbleRowLimit)
 	if err != nil {
 		return nil, fmt.Errorf("failed querying cursor sqlite db %q: %s", dbPath, err)
 	}
