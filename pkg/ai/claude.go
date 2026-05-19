@@ -468,6 +468,7 @@ func (g Claude) parseTranscript(ctx context.Context, transcript string) (Heartbe
 
 	claudeVersion := ""
 	cwd := ""
+	cwdFromTranscript := false
 	ideSession := false
 	sessionID := g.sessionIDFromPath(transcript)
 	sessionEntity := appHeartbeatEntity("Claude", transcript)
@@ -498,8 +499,9 @@ func (g Claude) parseTranscript(ctx context.Context, transcript string) (Heartbe
 			sessionID = logLine.SessionID
 		}
 
-		if lineCwd := g.projectPath(logLine); lineCwd != "" {
+		if lineCwd := g.projectPath(logLine, !cwdFromTranscript); lineCwd != "" {
 			cwd = lineCwd
+			cwdFromTranscript = logLine.Cwd != nil && *logLine.Cwd != ""
 		}
 
 		if claudeHasIDEContext(logLine) {
@@ -679,6 +681,7 @@ func (g Claude) claudeHeartbeats(
 		logLine,
 		sessionID,
 		version,
+		cwd,
 		ideSession,
 		fileTokens,
 	); heartbeat != nil {
@@ -724,6 +727,7 @@ func (g Claude) claudeFileHeartbeat(
 	logLine claudeLogLine,
 	sessionID string,
 	version string,
+	cwd string,
 	ideSession bool,
 	tokens *heartbeat.AITokens,
 ) *heartbeat.Heartbeat {
@@ -746,7 +750,7 @@ func (g Claude) claudeFileHeartbeat(
 		filePath,
 		heartbeat.FileType,
 		heartbeat.PointerTo(isWrite),
-		"",
+		cwd,
 		float64(logLine.Timestamp.Unix()),
 		g.userAgent(filePath, version, ideSession),
 	)
@@ -885,9 +889,13 @@ func (Claude) getFilePath(result toolUseResult) string {
 	return ""
 }
 
-func (g Claude) projectPath(logLine claudeLogLine) string {
+func (g Claude) projectPath(logLine claudeLogLine, fallbackToFilePath bool) string {
 	if logLine.Cwd != nil && *logLine.Cwd != "" {
 		return *logLine.Cwd
+	}
+
+	if !fallbackToFilePath {
+		return ""
 	}
 
 	result := logLine.ToolUseResult
