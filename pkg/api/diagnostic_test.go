@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"os"
 	"testing"
-	"time"
 
 	"github.com/wakatime/wakatime-cli/pkg/api"
 	"github.com/wakatime/wakatime-cli/pkg/diagnostic"
@@ -78,5 +77,5 @@ func TestClient_SendDiagnostics(t *testing.T) {
 	err := c.SendDiagnostics(t.Context(), "vim", false, diagnostics...)
 	require.NoError(t, err)
 
-	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+	assert.Equal(t, 1, numCalls)
 }

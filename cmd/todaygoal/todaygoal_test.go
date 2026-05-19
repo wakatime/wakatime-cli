@@ -9,7 +9,6 @@ import (
 	"os"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/wakatime/wakatime-cli/cmd/todaygoal"
 	"github.com/wakatime/wakatime-cli/pkg/api"
@@ -67,7 +66,7 @@ func TestGoal(t *testing.T) {
 
 	assert.Equal(t, "3 hrs 23 mins", output)
 
-	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+	assert.Equal(t, 1, numCalls)
 }
 
 func TestGoal_ErrApi(t *testing.T) {
@@ -103,7 +102,7 @@ func TestGoal_ErrApi(t *testing.T) {
 		testServerURL,
 	)
 	assert.Equal(t, expectedMsg, err.Error())
-	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+	assert.Equal(t, 1, numCalls)
 }
 
 func TestGoal_ErrAuth(t *testing.T) {
@@ -139,7 +138,7 @@ func TestGoal_ErrAuth(t *testing.T) {
 	)
 	assert.EqualError(t, err, expectedMsg)
 
-	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+	assert.Equal(t, 1, numCalls)
 }
 
 func TestGoal_ErrBadRequest(t *testing.T) {
@@ -174,7 +173,7 @@ func TestGoal_ErrBadRequest(t *testing.T) {
 		testServerURL,
 	)
 	assert.Equal(t, expectedMsg, err.Error())
-	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+	assert.Equal(t, 1, numCalls)
 }
 
 func TestGoal_ErrAuth_UnsetAPIKey(t *testing.T) {

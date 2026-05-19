@@ -46,7 +46,7 @@ func TestClient_Goal(t *testing.T) {
 
 	assert.Equal(t, "3 hrs 23 mins", goal.Data.ChartData[len(goal.Data.ChartData)-1].ActualSecondsText)
 
-	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+	assert.Equal(t, 1, numCalls)
 }
 
 func TestClient_GoalWithTimeout(t *testing.T) {
@@ -105,7 +105,7 @@ func TestClient_Goal_Err(t *testing.T) {
 	var apierr api.Err
 
 	assert.True(t, errors.As(err, &apierr))
-	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+	assert.Equal(t, 1, numCalls)
 }
 
 func TestClient_Goal_ErrAuth(t *testing.T) {
@@ -129,7 +129,7 @@ func TestClient_Goal_ErrAuth(t *testing.T) {
 
 	assert.ErrorAs(t, err, &errauth)
 
-	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+	assert.Equal(t, 1, numCalls)
 }
 
 func TestClient_Goal_ErrBadRequest(t *testing.T) {
@@ -152,7 +152,7 @@ func TestClient_Goal_ErrBadRequest(t *testing.T) {
 	var errbadRequest api.ErrBadRequest
 
 	assert.True(t, errors.As(err, &errbadRequest))
-	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+	assert.Equal(t, 1, numCalls)
 }
 
 func TestClient_Goal_ErrInvalidUrl(t *testing.T) {

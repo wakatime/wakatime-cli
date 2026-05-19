@@ -46,7 +46,7 @@ func TestClient_StatusBar(t *testing.T) {
 
 	assert.Equal(t, s, testSummary())
 
-	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+	assert.Equal(t, 1, numCalls)
 }
 
 func TestClient_StatusBarWithTimeout(t *testing.T) {
@@ -102,7 +102,7 @@ func TestClient_StatusBar_Err(t *testing.T) {
 	var apierr api.Err
 
 	assert.True(t, errors.As(err, &apierr))
-	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+	assert.Equal(t, 1, numCalls)
 }
 
 func TestClient_StatusBar_ErrAuth(t *testing.T) {
@@ -125,7 +125,7 @@ func TestClient_StatusBar_ErrAuth(t *testing.T) {
 
 	assert.ErrorAs(t, err, &errauth)
 
-	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+	assert.Equal(t, 1, numCalls)
 }
 
 func TestClient_StatusBar_ErrBadRequest(t *testing.T) {
@@ -147,7 +147,7 @@ func TestClient_StatusBar_ErrBadRequest(t *testing.T) {
 	var errbadRequest api.ErrBadRequest
 
 	assert.True(t, errors.As(err, &errbadRequest))
-	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+	assert.Equal(t, 1, numCalls)
 }
 
 func TestClient_StatusBar_InvalidUrl(t *testing.T) {

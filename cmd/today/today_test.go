@@ -9,7 +9,6 @@ import (
 	"os"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/wakatime/wakatime-cli/cmd/today"
 	"github.com/wakatime/wakatime-cli/pkg/api"
@@ -64,7 +63,7 @@ func TestToday(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, "10 secs", output)
-	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+	assert.Equal(t, 1, numCalls)
 }
 
 func TestToday_ErrApi(t *testing.T) {
@@ -97,7 +96,7 @@ func TestToday_ErrApi(t *testing.T) {
 		testServerURL,
 	)
 	assert.Equal(t, expectedMsg, err.Error())
-	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+	assert.Equal(t, 1, numCalls)
 }
 
 func TestToday_ErrAuth(t *testing.T) {
@@ -131,7 +130,7 @@ func TestToday_ErrAuth(t *testing.T) {
 	)
 	assert.Equal(t, expectedMsg, err.Error())
 
-	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+	assert.Equal(t, 1, numCalls)
 }
 
 func TestToday_ErrBadRequest(t *testing.T) {
@@ -164,7 +163,7 @@ func TestToday_ErrBadRequest(t *testing.T) {
 		testServerURL,
 	)
 	assert.Equal(t, expectedMsg, err.Error())
-	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+	assert.Equal(t, 1, numCalls)
 }
 
 func TestToday_ErrAuth_UnsetAPIKey(t *testing.T) {

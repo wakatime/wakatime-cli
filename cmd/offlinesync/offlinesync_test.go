@@ -113,7 +113,7 @@ func TestRunWithRateLimiting(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, exitcode.Success, code)
-	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+	assert.Equal(t, 1, numCalls)
 }
 
 func TestRunWithoutRateLimiting(t *testing.T) {
@@ -206,7 +206,7 @@ func TestRunWithoutRateLimiting(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, exitcode.Success, code)
-	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+	assert.Equal(t, 1, numCalls)
 }
 
 func TestRunWithRateLimiting_RateLimited(t *testing.T) {
@@ -311,7 +311,7 @@ func TestSyncOfflineActivity(t *testing.T) {
 	err = offlinesync.SyncOfflineActivity(t.Context(), v, f.Name())
 	require.NoError(t, err)
 
-	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+	assert.Equal(t, 1, numCalls)
 }
 
 func TestSyncOfflineActivity_MultipleApiKey(t *testing.T) {
@@ -403,7 +403,7 @@ func TestSyncOfflineActivity_MultipleApiKey(t *testing.T) {
 	err = offlinesync.SyncOfflineActivity(t.Context(), v, f.Name())
 	require.NoError(t, err)
 
-	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+	assert.Equal(t, 1, numCalls)
 }
 
 func TestSyncOfflineActivity_MultipleAPIURLs(t *testing.T) {
@@ -542,13 +542,13 @@ func TestSyncOfflineActivity_MultipleAPIURLs(t *testing.T) {
 	err = offlinesync.SyncOfflineActivity(t.Context(), v, f.Name())
 	require.NoError(t, err)
 
-	// Verify both servers received calls
-	assert.Eventually(t, func() bool {
-		mu.Lock()
-		defer mu.Unlock()
+	mu.Lock()
+	defaultCalls := defaultServerCalls
+	customCalls := customServerCalls
+	mu.Unlock()
 
-		return defaultServerCalls >= 1 && customServerCalls >= 1
-	}, time.Second, 50*time.Millisecond)
+	assert.GreaterOrEqual(t, defaultCalls, 1)
+	assert.GreaterOrEqual(t, customCalls, 1)
 }
 
 func setupTestServer() (string, *http.ServeMux, func()) {

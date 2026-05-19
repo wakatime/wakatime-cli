@@ -346,7 +346,7 @@ func TestRunCmd_SendDiagnostics_Err(t *testing.T) {
 
 	assert.Equal(t, 42, err.(exitcode.Err).Code)
 	assert.Equal(t, 1, cmdNumCalls)
-	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+	assert.Equal(t, 1, numCalls)
 }
 
 func TestRunCmd_SendDiagnostics_Panic(t *testing.T) {
@@ -437,7 +437,7 @@ func TestRunCmd_SendDiagnostics_Panic(t *testing.T) {
 
 	assert.Equal(t, exitcode.ErrGeneric, err.(exitcode.Err).Code)
 	assert.Equal(t, 1, cmdNumCalls)
-	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+	assert.Equal(t, 1, numCalls)
 }
 
 func TestRunCmd_SendDiagnostics_NoLogs_Panic(t *testing.T) {
@@ -526,7 +526,7 @@ func TestRunCmd_SendDiagnostics_NoLogs_Panic(t *testing.T) {
 
 	assert.Equal(t, exitcode.ErrGeneric, err.(exitcode.Err).Code)
 	assert.Equal(t, 1, cmdNumCalls)
-	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+	assert.Equal(t, 1, numCalls)
 }
 
 func TestRunCmd_SendDiagnostics_WakaError(t *testing.T) {
@@ -615,7 +615,7 @@ func TestRunCmd_SendDiagnostics_WakaError(t *testing.T) {
 
 	assert.Equal(t, 42, err.(exitcode.Err).Code)
 	assert.Equal(t, 1, cmdNumCalls)
-	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+	assert.Equal(t, 1, numCalls)
 }
 
 func TestRunCmdWithOfflineSync(t *testing.T) {
@@ -729,7 +729,7 @@ func TestRunCmdWithOfflineSync(t *testing.T) {
 
 	assert.Len(t, stored, 0)
 
-	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+	assert.Equal(t, 1, numCalls)
 }
 
 func jsonEscape(t *testing.T, i string) string {

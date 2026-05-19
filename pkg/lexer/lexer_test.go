@@ -300,6 +300,8 @@ func TestChromaLanguagesRegister(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
 			language := test.StringChroma()
 			require.NotEqual(t, heartbeat.LanguageUnknown.String(), language)
 
