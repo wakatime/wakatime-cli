@@ -308,11 +308,16 @@ func TestClaudeHelpers(t *testing.T) {
 			ToolUseResult: &toolUseResultValue{
 				Object: &toolUseResult{FilePath: heartbeat.PointerTo("/tmp/direct.go")},
 			},
-		}))
+		}, true))
+		assert.Equal(t, "", parser.projectPath(claudeLogLine{
+			ToolUseResult: &toolUseResultValue{
+				Object: &toolUseResult{FilePath: heartbeat.PointerTo("/tmp/direct.go")},
+			},
+		}, false))
 		assert.Equal(t, "/workspace", parser.projectPath(claudeLogLine{
 			Cwd: heartbeat.PointerTo("/workspace"),
-		}))
-		assert.Equal(t, "", parser.projectPath(claudeLogLine{}))
+		}, false))
+		assert.Equal(t, "", parser.projectPath(claudeLogLine{}, true))
 
 		assert.Equal(t, 1, parser.lineChanges(toolUseResult{
 			StructuredPatch: &[]structuredPatch{{OldLines: 1, NewLines: 2}},

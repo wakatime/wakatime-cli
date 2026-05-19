@@ -147,7 +147,7 @@ func TestClaudeParse(t *testing.T) {
 	assert.Equal(t, heartbeat.AppType, got[2].EntityType)
 	assert.Nil(t, got[2].AILineChanges)
 	assert.Zero(t, got[2].AIPromptLength)
-	assert.Equal(t, filepath.Dir("/tmp/array.go"), got[2].ProjectPathOverride)
+	assert.Equal(t, "/tmp", got[2].ProjectPathOverride)
 	assert.Zero(t, got[2].AIInputTokens)
 	assert.Zero(t, got[2].AIOutputTokens)
 	require.NotNil(t, got[2].IsWrite)
@@ -158,7 +158,7 @@ func TestClaudeParse(t *testing.T) {
 	assert.Equal(t, heartbeat.AppType, got[3].EntityType)
 	assert.Nil(t, got[3].AILineChanges)
 	assert.Zero(t, got[3].AIPromptLength)
-	assert.Equal(t, filepath.Dir("/tmp/array.go"), got[3].ProjectPathOverride)
+	assert.Equal(t, "/tmp", got[3].ProjectPathOverride)
 	assert.Zero(t, got[3].AIInputTokens)
 	assert.Zero(t, got[3].AIOutputTokens)
 	require.NotNil(t, got[3].IsWrite)
@@ -390,6 +390,53 @@ func TestClaudeParse_NewToolUseResultShapes(t *testing.T) {
 	assert.Equal(t, int64(2), got[2].AIOutputTokens)
 	require.NotNil(t, got[2].IsWrite)
 	assert.True(t, *got[2].IsWrite)
+}
+
+func TestClaudeParse_FileHeartbeatUsesCwdProjectPathOverrideForOutOfTreeFile(t *testing.T) {
+	ctx := context.Background()
+
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	projectDir := filepath.Join(home, "Projects", "web", "hppmonitor-backend")
+	plansDir := filepath.Join(home, ".claude", "plans")
+	transcriptDir := filepath.Join(home, ".claude", "projects", "sample-project")
+
+	require.NoError(t, os.MkdirAll(projectDir, 0o755))
+	require.NoError(t, os.MkdirAll(plansDir, 0o755))
+	require.NoError(t, os.MkdirAll(transcriptDir, 0o755))
+
+	planPath := filepath.Join(plansDir, "make-a-resource-for-humble-kettle.md")
+	require.NoError(t, os.WriteFile(planPath, []byte("plan"), 0o644))
+
+	transcriptPath := filepath.Join(transcriptDir, "session.jsonl")
+	transcript := strings.Join([]string{
+		strings.Join([]string{
+			`{"timestamp":"2026-05-02T12:00:00Z","sessionId":"claude-session","version":"2.1.143",`,
+			`"cwd":` + jsonString(projectDir) + `,"type":"user",`,
+			`"message":{"role":"user","content":"please plan this change"}}`,
+		}, ""),
+		strings.Join([]string{
+			`{"timestamp":"2026-05-02T12:01:00Z","sessionId":"claude-session","version":"2.1.143",`,
+			`"toolUseResult":{"filePath":` + jsonString(planPath) + `,"content":"updated plan"},`,
+			`"message":{"usage":{"input_tokens":10,"output_tokens":5}}}`,
+		}, ""),
+	}, "\n") + "\n"
+	require.NoError(t, os.WriteFile(transcriptPath, []byte(transcript), 0o644))
+
+	got, err := ai.Claude{
+		After: time.Date(2026, 5, 2, 0, 0, 0, 0, time.UTC),
+	}.Parse(ctx)
+	require.NoError(t, err)
+	require.Len(t, got, 2)
+
+	assert.Equal(t, heartbeat.AppType, got[0].EntityType)
+	assert.Equal(t, projectDir, got[0].ProjectPathOverride)
+
+	assert.Equal(t, heartbeat.FileType, got[1].EntityType)
+	assert.Equal(t, planPath, got[1].Entity)
+	assert.Equal(t, projectDir, got[1].ProjectPathOverride)
 }
 
 func TestClaudeParse_NoClaudeProjectsDir(t *testing.T) {
