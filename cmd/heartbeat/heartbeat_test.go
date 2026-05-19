@@ -132,7 +132,7 @@ func TestSendHeartbeats(t *testing.T) {
 	err = cmdheartbeat.SendHeartbeats(t.Context(), v, params, offlineQueueFile.Name(), heartbeats)
 	require.NoError(t, err)
 
-	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+	assert.Equal(t, 1, numCalls)
 }
 
 func TestSendHeartbeats_RateLimited(t *testing.T) {
@@ -401,7 +401,7 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 
 	assert.Equal(t, 2, offlineCount)
 
-	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+	assert.Equal(t, 1, numCalls)
 }
 
 func TestSendHeartbeats_ExtraHeartbeatsNestedError(t *testing.T) {
@@ -545,7 +545,7 @@ func TestSendHeartbeats_ExtraHeartbeatsNestedError(t *testing.T) {
 
 	assert.Equal(t, 2, offlineCount)
 
-	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+	assert.Equal(t, 1, numCalls)
 }
 
 func TestSendHeartbeats_ExtraHeartbeats_Sanitize(t *testing.T) {
@@ -687,7 +687,7 @@ func TestSendHeartbeats_ExtraHeartbeats_Sanitize(t *testing.T) {
 			UserAgent:        userAgent,
 		}}, hh)
 
-	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+	assert.Equal(t, 1, numCalls)
 }
 
 func TestSendHeartbeats_NonExistingEntity(t *testing.T) {
@@ -1288,7 +1288,7 @@ func TestSendHeartbeats_ObfuscateProject(t *testing.T) {
 	err = cmdheartbeat.SendHeartbeats(ctx, v, params, offlineQueueFile.Name(), heartbeats)
 	require.NoError(t, err)
 
-	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+	assert.Equal(t, 1, numCalls)
 }
 
 func TestSendHeartbeats_ObfuscateProjectNotBranch(t *testing.T) {
@@ -1383,7 +1383,7 @@ func TestSendHeartbeats_ObfuscateProjectNotBranch(t *testing.T) {
 	err = cmdheartbeat.SendHeartbeats(ctx, v, params, offlineQueueFile.Name(), heartbeats)
 	require.NoError(t, err)
 
-	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+	assert.Equal(t, 1, numCalls)
 }
 
 func setupTestServer() (string, *http.ServeMux, func()) {

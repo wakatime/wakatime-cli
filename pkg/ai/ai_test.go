@@ -199,7 +199,7 @@ func TestSendHeartbeats_WithAIParsing(t *testing.T) {
 	err = cmdheartbeat.SendHeartbeats(t.Context(), v, params, offlineQueueFile.Name(), heartbeats)
 	require.NoError(t, err)
 
-	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+	assert.Equal(t, 1, numCalls)
 }
 
 func TestSendHeartbeats_WithAIParsingDisabled(t *testing.T) {
@@ -324,7 +324,7 @@ func TestSendHeartbeats_WithAIParsingDisabled(t *testing.T) {
 	err = cmdheartbeat.SendHeartbeats(t.Context(), v, params, offlineQueueFile.Name(), heartbeats)
 	require.NoError(t, err)
 
-	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+	assert.Equal(t, 1, numCalls)
 }
 
 func TestSendHeartbeats_WithAIParsingBatchAppliedOnce(t *testing.T) {
@@ -438,7 +438,7 @@ func TestSendHeartbeats_WithAIParsingBatchAppliedOnce(t *testing.T) {
 	err = cmdheartbeat.SendHeartbeats(t.Context(), v, params, offlineQueueFile.Name(), heartbeats)
 	require.NoError(t, err)
 
-	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+	assert.Equal(t, 1, numCalls)
 }
 
 func TestWithAISyncMarksHumanHeartbeatsAsAICoding(t *testing.T) {

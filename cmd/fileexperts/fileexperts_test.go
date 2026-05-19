@@ -10,7 +10,6 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/wakatime/wakatime-cli/cmd/fileexperts"
 	"github.com/wakatime/wakatime-cli/pkg/api"
@@ -92,7 +91,7 @@ func TestFileExperts(t *testing.T) {
 
 	assert.Equal(t, "You: 40 mins | Karl: 21 mins", output)
 
-	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+	assert.Equal(t, 1, numCalls)
 }
 
 func TestFileExperts_NonExistingEntity(t *testing.T) {
@@ -158,7 +157,7 @@ func TestFileExperts_ErrApi(t *testing.T) {
 
 	assert.EqualError(t, err, expectedMsg)
 
-	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+	assert.Equal(t, 1, numCalls)
 }
 
 func TestFileExperts_ErrAuth(t *testing.T) {
@@ -192,7 +191,7 @@ func TestFileExperts_ErrAuth(t *testing.T) {
 	)
 	assert.EqualError(t, err, expectedMsg)
 
-	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+	assert.Equal(t, 1, numCalls)
 }
 
 func TestFileExperts_ErrBadRequest(t *testing.T) {
@@ -227,7 +226,7 @@ func TestFileExperts_ErrBadRequest(t *testing.T) {
 
 	assert.EqualError(t, err, expectedMsg)
 
-	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+	assert.Equal(t, 1, numCalls)
 }
 
 func setupTestServer() (string, *http.ServeMux, func()) {

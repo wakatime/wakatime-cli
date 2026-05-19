@@ -8,7 +8,6 @@ import (
 	"os"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
@@ -107,7 +106,7 @@ func TestSyncOfflineActivityLegacy(t *testing.T) {
 
 	assert.NoFileExists(t, f.Name())
 
-	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+	assert.Equal(t, 1, numCalls)
 }
 
 func setupTestServer() (string, *http.ServeMux, func()) {

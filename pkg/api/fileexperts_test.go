@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"os"
 	"testing"
-	"time"
 
 	"github.com/wakatime/wakatime-cli/pkg/api"
 	"github.com/wakatime/wakatime-cli/pkg/fileexperts"
@@ -115,7 +114,7 @@ func TestClient_FileExperts(t *testing.T) {
 				},
 			}, results[0].FileExpert)
 
-			assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+			assert.Equal(t, 1, numCalls)
 		})
 	}
 }
@@ -146,7 +145,7 @@ func TestClient_FileExperts_Err(t *testing.T) {
 
 	assert.True(t, errors.As(err, &errapi))
 
-	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+	assert.Equal(t, 1, numCalls)
 }
 
 func TestClient_FileExperts_ErrAuth(t *testing.T) {
@@ -175,7 +174,7 @@ func TestClient_FileExperts_ErrAuth(t *testing.T) {
 
 	assert.ErrorAs(t, err, &errauth)
 
-	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+	assert.Equal(t, 1, numCalls)
 }
 
 func TestClient_FileExperts_ErrBadRequest(t *testing.T) {
@@ -204,7 +203,7 @@ func TestClient_FileExperts_ErrBadRequest(t *testing.T) {
 
 	assert.True(t, errors.As(err, &errbadRequest))
 
-	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+	assert.Equal(t, 1, numCalls)
 }
 
 func TestClient_FileExperts_InvalidUrl(t *testing.T) {

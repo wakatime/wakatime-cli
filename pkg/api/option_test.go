@@ -7,7 +7,6 @@ import (
 	"runtime"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/wakatime/wakatime-cli/pkg/api"
 	"github.com/wakatime/wakatime-cli/pkg/version"
@@ -63,7 +62,7 @@ func TestOption_WithAuth(t *testing.T) {
 
 			defer resp.Body.Close()
 
-			assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+			assert.Equal(t, 1, numCalls)
 		})
 	}
 }
@@ -92,7 +91,7 @@ func TestOption_WithHostname(t *testing.T) {
 
 	defer resp.Body.Close()
 
-	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+	assert.Equal(t, 1, numCalls)
 }
 
 func TestOption_WithInvalidHostname(t *testing.T) {
@@ -119,7 +118,7 @@ func TestOption_WithInvalidHostname(t *testing.T) {
 
 	defer resp.Body.Close()
 
-	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+	assert.Equal(t, 1, numCalls)
 }
 
 func TestOption_WithNTLM(t *testing.T) {
@@ -178,7 +177,7 @@ func TestOption_WithNTLM(t *testing.T) {
 
 			defer resp.Body.Close()
 
-			assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+			assert.Equal(t, 1, numCalls)
 		})
 	}
 }
@@ -246,7 +245,7 @@ func TestOption_WithNTLMRequestRetry(t *testing.T) {
 
 	defer resp.Body.Close()
 
-	assert.Eventually(t, func() bool { return numCalls == 2 }, time.Second, 50*time.Millisecond)
+	assert.Equal(t, 2, numCalls)
 }
 
 func TestOption_WithProxy(t *testing.T) {
@@ -274,7 +273,7 @@ func TestOption_WithProxy(t *testing.T) {
 
 	defer resp.Body.Close()
 
-	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+	assert.Equal(t, 1, numCalls)
 }
 
 func TestOption_WithProxy_HTTPSFallbackToHTTP(t *testing.T) {
@@ -300,7 +299,7 @@ func TestOption_WithProxy_HTTPSFallbackToHTTP(t *testing.T) {
 
 	defer resp.Body.Close()
 
-	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+	assert.Equal(t, 1, numCalls)
 }
 
 func TestOption_WithUserAgent(t *testing.T) {
@@ -340,7 +339,7 @@ func TestOption_WithUserAgent(t *testing.T) {
 
 	defer resp.Body.Close()
 
-	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+	assert.Equal(t, 1, numCalls)
 }
 
 func TestOption_WithUserAgentUnknownPlugin(t *testing.T) {
@@ -380,7 +379,7 @@ func TestOption_WithUserAgentUnknownPlugin(t *testing.T) {
 
 	defer resp.Body.Close()
 
-	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+	assert.Equal(t, 1, numCalls)
 }
 
 func TestOption_WithTimezone(t *testing.T) {
@@ -407,5 +406,5 @@ func TestOption_WithTimezone(t *testing.T) {
 
 	defer resp.Body.Close()
 
-	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+	assert.Equal(t, 1, numCalls)
 }
