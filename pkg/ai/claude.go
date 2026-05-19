@@ -515,7 +515,16 @@ func (g Claude) parseTranscript(ctx context.Context, transcript string) (Heartbe
 			continue
 		}
 
-		parsed := g.claudeHeartbeats(logLine, sessionEntity, sessionID, claudeVersion, cwd, ideSession, tokens)
+		parsed := g.claudeHeartbeats(
+			logLine,
+			sessionEntity,
+			sessionID,
+			claudeVersion,
+			cwd,
+			cwdFromTranscript,
+			ideSession,
+			tokens,
+		)
 		if len(parsed) == 0 {
 			if g.shouldAdvanceTokensForNoopToolResult(logLine.ToolUseResult) {
 				tokens = g.advanceTokens(tokens)
@@ -655,6 +664,7 @@ func (g Claude) claudeHeartbeats(
 	sessionID string,
 	version string,
 	cwd string,
+	cwdFromTranscript bool,
 	ideSession bool,
 	tokens heartbeat.AITokens,
 ) Heartbeats {
@@ -682,6 +692,7 @@ func (g Claude) claudeHeartbeats(
 		sessionID,
 		version,
 		cwd,
+		cwdFromTranscript,
 		ideSession,
 		fileTokens,
 	); heartbeat != nil {
@@ -728,6 +739,7 @@ func (g Claude) claudeFileHeartbeat(
 	sessionID string,
 	version string,
 	cwd string,
+	cwdFromTranscript bool,
 	ideSession bool,
 	tokens *heartbeat.AITokens,
 ) *heartbeat.Heartbeat {
@@ -743,6 +755,11 @@ func (g Claude) claudeFileHeartbeat(
 	lineChanges := g.lineChanges(*logLine.ToolUseResult.Object)
 	isWrite := g.isWrite(*logLine.ToolUseResult.Object)
 
+	projectPathOverride := ""
+	if cwdFromTranscript {
+		projectPathOverride = cwd
+	}
+
 	h := g.newHeartbeat(
 		heartbeat.PointerTo(lineChanges),
 		sessionID,
@@ -750,7 +767,7 @@ func (g Claude) claudeFileHeartbeat(
 		filePath,
 		heartbeat.FileType,
 		heartbeat.PointerTo(isWrite),
-		cwd,
+		projectPathOverride,
 		float64(logLine.Timestamp.Unix()),
 		g.userAgent(filePath, version, ideSession),
 	)
