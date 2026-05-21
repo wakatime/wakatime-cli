@@ -270,6 +270,137 @@ func TestOpenCodeParse_SQLiteFallback(t *testing.T) {
 	assert.Contains(t, got[2].UserAgent, "editor/1.2.3")
 }
 
+func TestOpenCodeParse_SQLiteFallback_UnicodeAndMalformedRows(t *testing.T) {
+	ctx := context.Background()
+
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	baseDir := filepath.Join(home, ".local", "share", "opencode")
+	dbPath := filepath.Join(baseDir, "opencode.db")
+	editedPath := "/workspace/项目/文件.go"
+	prompt := "请更新这个文件"
+
+	require.NoError(t, os.MkdirAll(baseDir, 0o755))
+
+	createOpenCodeDB(t, dbPath, openCodeDBFixture{
+		Sessions: []openCodeDBSession{
+			{
+				ID:        "ses_unicode",
+				Directory: "/workspace/项目",
+				Version:   "1.15.3",
+			},
+		},
+		Messages: []openCodeDBMessage{
+			{
+				ID:        "msg_user",
+				SessionID: "ses_unicode",
+				CreatedAt: 1740000003000,
+				Data: map[string]any{
+					"role": "user",
+					"time": map[string]any{
+						"created": 1740000003000,
+					},
+				},
+			},
+			{
+				ID:        "msg_assistant",
+				SessionID: "ses_unicode",
+				CreatedAt: 1740000004000,
+				Data: map[string]any{
+					"role": "assistant",
+					"path": map[string]any{
+						"cwd":  "/workspace/项目",
+						"root": "/workspace/项目",
+					},
+					"tokens": map[string]any{
+						"input":  50,
+						"output": 20,
+					},
+					"time": map[string]any{
+						"created": 1740000004000,
+					},
+				},
+			},
+		},
+		Parts: []openCodeDBPart{
+			{
+				ID:        "part_user",
+				MessageID: "msg_user",
+				SessionID: "ses_unicode",
+				CreatedAt: 1740000003001,
+				Data: map[string]any{
+					"type": "text",
+					"text": prompt,
+				},
+			},
+			{
+				ID:        "part_apply_patch",
+				MessageID: "msg_assistant",
+				SessionID: "ses_unicode",
+				CreatedAt: 1740000004001,
+				Data: map[string]any{
+					"type": "tool",
+					"tool": "apply_patch",
+					"state": map[string]any{
+						"status": "completed",
+						"metadata": map[string]any{
+							"files": []map[string]any{
+								{
+									"filePath":  editedPath,
+									"additions": 2,
+									"deletions": 1,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+
+	db, err := sql.Open("sqlite", dbPath)
+	require.NoError(t, err)
+	_, err = db.Exec(
+		`INSERT INTO message(id, session_id, data, time_created) VALUES(?, ?, ?, ?)`,
+		"msg_bad",
+		"ses_unicode",
+		"{",
+		1740000005000,
+	)
+	require.NoError(t, err)
+	_, err = db.Exec(
+		`INSERT INTO part(id, message_id, session_id, data, time_created) VALUES(?, ?, ?, ?, ?)`,
+		"part_bad",
+		"msg_assistant",
+		"ses_unicode",
+		"{",
+		1740000005001,
+	)
+	require.NoError(t, err)
+	require.NoError(t, db.Close())
+
+	got, err := ai.OpenCode{
+		After:             time.Date(2025, 2, 19, 17, 20, 2, 0, time.UTC),
+		FallbackUserAgent: "plugin/0.0.1",
+	}.Parse(ctx)
+	require.NoError(t, err)
+	require.Len(t, got, 3)
+
+	assert.Equal(t, "OpenCode ses_unicode", got[0].Entity)
+	assert.Equal(t, len([]rune(prompt)), got[0].AIPromptLength)
+	assert.Equal(t, "/workspace/项目", got[0].ProjectPathOverride)
+
+	assert.Equal(t, "OpenCode ses_unicode", got[1].Entity)
+	assert.EqualValues(t, 50, got[1].AIInputTokens)
+	assert.EqualValues(t, 20, got[1].AIOutputTokens)
+
+	assert.Equal(t, editedPath, got[2].Entity)
+	require.NotNil(t, got[2].AILineChanges)
+	assert.Equal(t, 1, *got[2].AILineChanges)
+}
+
 func TestOpenCodeParse_LegacyStorage_AfterUsesSeedTokens(t *testing.T) {
 	ctx := context.Background()
 

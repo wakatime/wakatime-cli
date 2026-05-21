@@ -20,6 +20,11 @@ import (
 // Qoder contains params for detecting heartbeats from Qoder local activity.
 type Qoder ParserConfig
 
+const (
+	qoderRecentMessageRowLimit = 5000
+	qoderRecentPromptRowLimit  = 5000
+)
+
 type (
 	qoderMessageRow struct {
 		SessionID   string
@@ -179,7 +184,15 @@ func (Qoder) localDBModifiedAfter(dbPath string, after time.Time) bool {
 	return info.ModTime().After(after)
 }
 
-func (Qoder) queryRows(ctx context.Context, dbPath string) ([]qoderMessageRow, error) {
+func (g Qoder) afterUnixMilli() int64 {
+	if g.After.IsZero() {
+		return 0
+	}
+
+	return g.After.UnixMilli()
+}
+
+func (g Qoder) queryRows(ctx context.Context, dbPath string) ([]qoderMessageRow, error) {
 	db, err := sql.Open("sqlite", dbPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed opening qoder sqlite db %q: %s", dbPath, err)
@@ -187,6 +200,12 @@ func (Qoder) queryRows(ctx context.Context, dbPath string) ([]qoderMessageRow, e
 	defer db.Close() // nolint:errcheck
 
 	rows, err := db.QueryContext(ctx, `
+WITH recentQoderMessages AS (
+  SELECT rowid, session_id, request_id, role, tool_result, token_info, gmt_create
+  FROM chat_message
+  ORDER BY rowid DESC
+  LIMIT ?
+)
 SELECT
   m.session_id,
   COALESCE(s.project_uri, ''),
@@ -195,11 +214,12 @@ SELECT
   COALESCE(m.tool_result, ''),
   COALESCE(m.token_info, ''),
   COALESCE(m.gmt_create, 0)
-FROM chat_message m
+FROM recentQoderMessages m
 LEFT JOIN chat_session s ON s.session_id = m.session_id
 WHERE m.role IN ('assistant', 'tool')
+  AND COALESCE(m.gmt_create, 0) >= ?
 ORDER BY m.gmt_create ASC;
-`)
+`, qoderRecentMessageRowLimit, g.afterUnixMilli())
 	if err != nil {
 		return nil, fmt.Errorf("failed querying qoder sqlite db %q: %s", dbPath, err)
 	}
@@ -239,15 +259,21 @@ func (Qoder) queryPromptRows(ctx context.Context, dbPath string) ([]qoderPromptR
 	defer db.Close() // nolint:errcheck
 
 	rows, err := db.QueryContext(ctx, `
+WITH recentQoderPromptMessages AS (
+  SELECT rowid, session_id, gmt_create, role
+  FROM chat_message
+  ORDER BY rowid DESC
+  LIMIT ?
+)
 SELECT
   m.session_id,
   COALESCE(s.project_uri, ''),
   COALESCE(m.gmt_create, 0)
-FROM chat_message m
+FROM recentQoderPromptMessages m
 LEFT JOIN chat_session s ON s.session_id = m.session_id
 WHERE m.role = 'user'
 ORDER BY m.session_id ASC, m.gmt_create ASC;
-`)
+`, qoderRecentPromptRowLimit)
 	if err != nil {
 		return nil, fmt.Errorf("failed querying qoder prompt rows from sqlite db %q: %s", dbPath, err)
 	}

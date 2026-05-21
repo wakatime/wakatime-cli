@@ -19,6 +19,8 @@ import (
 // Windsurf contains params for detecting heartbeats from Windsurf transcripts.
 type Windsurf ParserConfig
 
+const windsurfRecentBubbleRowLimit = 5000
+
 type (
 	windsurfTokenCount struct {
 		InputTokens  *int `json:"inputTokens"`
@@ -227,21 +229,28 @@ func (Windsurf) queryRows(ctx context.Context, dbPath string) ([]windsurfLogRow,
 	defer db.Close() // nolint:errcheck
 
 	rows, err := db.QueryContext(ctx, `
-SELECT key, CAST(value AS TEXT)
-FROM cursorDiskKV
-WHERE key LIKE 'bubbleId:%'
+WITH recentWindsurfRows AS (
+	SELECT key, CAST(value AS TEXT) AS value
+	FROM cursorDiskKV
+	WHERE key LIKE 'bubbleId:%'
+	ORDER BY rowid DESC
+	LIMIT ?
+)
+SELECT key, value
+FROM recentWindsurfRows
+WHERE json_valid(value)
   AND (
     (
-      json_extract(CAST(value AS TEXT), '$.toolFormerData.status') = 'completed'
+      json_extract(value, '$.toolFormerData.status') = 'completed'
       AND json_extract(
-        CAST(value AS TEXT),
+        value,
         '$.toolFormerData.name'
       ) IN ('edit_file', 'edit_file_v2', 'read_file', 'read_file_v2')
     )
-    OR json_extract(CAST(value AS TEXT), '$.text') IS NOT NULL
+    OR json_extract(value, '$.text') IS NOT NULL
   )
-ORDER BY json_extract(CAST(value AS TEXT), '$.createdAt') ASC;
-`)
+ORDER BY json_extract(value, '$.createdAt') ASC;
+`, windsurfRecentBubbleRowLimit)
 	if err != nil {
 		return nil, fmt.Errorf("failed querying windsurf sqlite db %q: %s", dbPath, err)
 	}

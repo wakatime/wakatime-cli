@@ -108,6 +108,44 @@ func TestWindsurfParse_NoStateDB(t *testing.T) {
 	assert.Empty(t, got)
 }
 
+func TestWindsurfParse_SkipsMalformedSQLiteRows(t *testing.T) {
+	ctx := context.Background()
+
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	dbDir := filepath.Join(home, "Library", "Application Support", "Windsurf", "User", "globalStorage")
+	require.NoError(t, os.MkdirAll(dbDir, 0o755))
+
+	dbPath := filepath.Join(dbDir, "state.vscdb")
+	createWindsurfDB(t, dbPath, []windsurfTestRow{
+		{
+			Key: "bubbleId:cascade-1:user",
+			Value: map[string]any{
+				"_v":        3,
+				"type":      1,
+				"text":      "Refactor this file",
+				"createdAt": "2026-04-20T12:00:00Z",
+			},
+		},
+	})
+
+	db, err := sql.Open("sqlite", dbPath)
+	require.NoError(t, err)
+	_, err = db.Exec(`INSERT INTO cursorDiskKV(key, value) VALUES(?, ?)`, "bubbleId:cascade-1:bad", "{")
+	require.NoError(t, err)
+	require.NoError(t, db.Close())
+
+	got, err := ai.Windsurf{
+		After:             time.Date(2026, 4, 20, 11, 59, 0, 0, time.UTC),
+		FallbackUserAgent: "plugin/0.0.1",
+	}.Parse(ctx)
+	require.NoError(t, err)
+	require.Len(t, got, 1)
+	assert.Equal(t, "Windsurf cascade-1", got[0].Entity)
+}
+
 type windsurfTestRow struct {
 	Key   string
 	Value map[string]any
