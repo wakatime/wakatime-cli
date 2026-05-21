@@ -25,6 +25,8 @@ import (
 // Goose contains params for detecting heartbeats from Goose SQLite session logs.
 type Goose ParserConfig
 
+const gooseRecentSessionRowLimit = 5000
+
 type gooseSessionRow struct {
 	ID                string
 	Name              string
@@ -183,7 +185,7 @@ func (g Goose) queryRows(ctx context.Context, dbPath string) ([]gooseSessionRow,
 		return []gooseSessionRow{}, nil
 	}
 
-	rows, err := db.QueryContext(ctx, query)
+	rows, err := db.QueryContext(ctx, query, gooseRecentSessionRowLimit)
 	if err != nil {
 		return nil, fmt.Errorf("failed querying goose sqlite db %q: %s", dbPath, err)
 	}
@@ -501,12 +503,14 @@ func gooseSessionsQuery(columns []string) (string, []string, error) {
 		selectColumns = append(selectColumns, outputColumn)
 	}
 
-	query := "SELECT " + strings.Join(selectColumns, ", ") + " FROM sessions"
+	joinedColumns := strings.Join(selectColumns, ", ")
+
+	query := "WITH recentGooseSessions AS (SELECT " + joinedColumns + " FROM sessions"
 	if hasSessionType {
 		query += " WHERE LOWER(session_type) != 'hidden'"
 	}
 
-	query += " ORDER BY updated_at ASC"
+	query += " ORDER BY rowid DESC LIMIT ?) SELECT " + joinedColumns + " FROM recentGooseSessions ORDER BY updated_at ASC"
 
 	return query, selectColumns, nil
 }

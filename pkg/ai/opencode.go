@@ -24,6 +24,11 @@ import (
 // OpenCode contains params for detecting heartbeats from OpenCode session logs.
 type OpenCode ParserConfig
 
+const (
+	openCodeRecentMessageRowLimit = 5000
+	openCodeRecentPartRowLimit    = 5000
+)
+
 type (
 	openCodeSessionInfo struct {
 		ID        string `json:"id"`
@@ -353,11 +358,18 @@ func (g OpenCode) querySQLiteMessages(
 	dbPath string,
 ) (map[string][]openCodeMessageWithParts, map[string]string, error) {
 	rows, err := db.QueryContext(ctx, `
-SELECT id, session_id, CAST(data AS TEXT), time_created
-FROM message
+WITH recentOpenCodeMessages AS (
+	SELECT id, session_id, CAST(data AS TEXT) AS data, time_created
+	FROM message
+	ORDER BY rowid DESC
+	LIMIT ?
+)
+SELECT id, session_id, data, time_created
+FROM recentOpenCodeMessages
 WHERE time_created >= ?
+  AND json_valid(data)
 ORDER BY time_created ASC, id ASC;
-`, g.afterUnixMilli())
+`, openCodeRecentMessageRowLimit, g.afterUnixMilli())
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed querying OpenCode sqlite messages %q: %s", dbPath, err)
 	}
@@ -424,11 +436,18 @@ func (g OpenCode) querySQLiteSeedMessages(
 	}
 
 	rows, err := db.QueryContext(ctx, `
-SELECT id, session_id, CAST(data AS TEXT), time_created
-FROM message
+WITH recentOpenCodeSeedMessages AS (
+	SELECT id, session_id, CAST(data AS TEXT) AS data, time_created
+	FROM message
+	ORDER BY rowid DESC
+	LIMIT ?
+)
+SELECT id, session_id, data, time_created
+FROM recentOpenCodeSeedMessages
 WHERE time_created < ?
+  AND json_valid(data)
 ORDER BY time_created DESC, id DESC;
-`, g.afterUnixMilli())
+`, openCodeRecentMessageRowLimit, g.afterUnixMilli())
 	if err != nil {
 		return fmt.Errorf("failed querying OpenCode sqlite seed messages %q: %s", dbPath, err)
 	}
@@ -496,10 +515,17 @@ func queryOpenCodeSQLiteParts(
 	messageIDs map[string]string,
 ) error {
 	rows, err := db.QueryContext(ctx, `
-SELECT id, message_id, session_id, CAST(data AS TEXT)
-FROM part
+WITH recentOpenCodeParts AS (
+	SELECT id, message_id, session_id, CAST(data AS TEXT) AS data, time_created
+	FROM part
+	ORDER BY rowid DESC
+	LIMIT ?
+)
+SELECT id, message_id, session_id, data
+FROM recentOpenCodeParts
+WHERE json_valid(data)
 ORDER BY time_created ASC, id ASC;
-`)
+`, openCodeRecentPartRowLimit)
 	if err != nil {
 		return fmt.Errorf("failed querying OpenCode sqlite parts %q: %s", dbPath, err)
 	}

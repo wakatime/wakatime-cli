@@ -80,9 +80,11 @@ func WithDetection() heartbeat.HandleOption {
 				if err != nil {
 					logger.Errorf("failed to download file to temporary folder: %s", err)
 
-					err = c.DownloadFileFallback(ctx, tmpFile.Name())
-					if err != nil {
-						logger.Errorf("failed to download remote file using fallback option: %s", err)
+					if shouldDownloadFileFallback(err) {
+						err = c.DownloadFileFallback(ctx, tmpFile.Name())
+						if err != nil {
+							logger.Errorf("failed to download remote file using fallback option: %s", err)
+						}
 					}
 
 					deleteLocalFile(ctx, tmpFile.Name())
@@ -99,6 +101,10 @@ func WithDetection() heartbeat.HandleOption {
 			return next(ctx, filtered)
 		}
 	}
+}
+
+func shouldDownloadFileFallback(err error) bool {
+	return !strings.Contains(err.Error(), "host key mismatch")
 }
 
 // WithCleanup initializes and returns a heartbeat handle option, which
@@ -234,7 +240,7 @@ func (c Client) DownloadFile(ctx context.Context, localFile string) error {
 func (c Client) DownloadFileFallback(ctx context.Context, localFile string) error {
 	logger := log.Extract(ctx)
 
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeoutSecs*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, defaultTimeoutSecs*time.Second)
 	defer cancel()
 
 	logger.Debugln("downloading remote file using fallback option")

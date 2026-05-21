@@ -76,7 +76,7 @@ func TestClient_SendHeartbeats(t *testing.T) {
 				},
 			}, results)
 
-			assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+			assert.Equal(t, 1, numCalls)
 		})
 	}
 }
@@ -115,7 +115,7 @@ func TestClient_SendHeartbeats_MultipleApiKey(t *testing.T) {
 	_, err := c.SendHeartbeats(t.Context(), hh)
 	require.NoError(t, err)
 
-	assert.Eventually(t, func() bool { return numCalls == 2 }, time.Second, 50*time.Millisecond)
+	assert.Equal(t, 2, numCalls)
 }
 
 func TestClient_SendHeartbeats_Timeout(t *testing.T) {
@@ -134,7 +134,7 @@ func TestClient_SendHeartbeats_Timeout(t *testing.T) {
 
 			numCalls++
 
-			time.Sleep(1010 * time.Millisecond) // simulate a slow server to force a timeout
+			time.Sleep(200 * time.Millisecond) // simulate a slow server to force a timeout
 
 			// write response
 			f, err := os.Open("testdata/api_heartbeats_response.json")
@@ -146,7 +146,7 @@ func TestClient_SendHeartbeats_Timeout(t *testing.T) {
 		})
 	}()
 
-	c := api.NewClient(url, api.WithTimeout(time.Second)) // very short timeout to force a timeout error
+	c := api.NewClient(url, api.WithTimeout(100*time.Millisecond)) // very short timeout to force a timeout error
 	results, err := c.SendHeartbeats(t.Context(), testHeartbeats())
 
 	var errtimeout api.ErrTimeout
@@ -158,7 +158,7 @@ func TestClient_SendHeartbeats_Timeout(t *testing.T) {
 
 	wg.Wait()
 
-	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+	assert.Equal(t, 1, numCalls)
 }
 
 func TestClient_SendHeartbeats_Err(t *testing.T) {
@@ -181,7 +181,7 @@ func TestClient_SendHeartbeats_Err(t *testing.T) {
 
 	assert.True(t, errors.As(err, &errapi))
 
-	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+	assert.Equal(t, 1, numCalls)
 }
 
 func TestClient_SendHeartbeats_ErrAuth(t *testing.T) {
@@ -204,7 +204,7 @@ func TestClient_SendHeartbeats_ErrAuth(t *testing.T) {
 
 	assert.ErrorAs(t, err, &errauth)
 
-	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+	assert.Equal(t, 1, numCalls)
 }
 
 func TestClient_SendHeartbeats_ErrBadRequest(t *testing.T) {
@@ -227,7 +227,7 @@ func TestClient_SendHeartbeats_ErrBadRequest(t *testing.T) {
 
 	assert.True(t, errors.As(err, &errbadRequest))
 
-	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+	assert.Equal(t, 1, numCalls)
 }
 
 func TestClient_SendHeartbeats_InvalidUrl(t *testing.T) {

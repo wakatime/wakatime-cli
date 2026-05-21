@@ -10,7 +10,6 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
-	"time"
 
 	"github.com/spf13/viper"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
@@ -548,7 +547,7 @@ func TestSync_MultipleRequests(t *testing.T) {
 
 	expectedCalls := int(math.Ceil(float64(totalHeartbeats) / float64(offline.SendLimit)))
 
-	assert.Eventually(t, func() bool { return numCalls == expectedCalls }, time.Second, 50*time.Millisecond)
+	assert.Equal(t, expectedCalls, numCalls)
 }
 
 func TestSync_APIError(t *testing.T) {
@@ -629,7 +628,7 @@ func TestSync_APIError(t *testing.T) {
 	assert.Equal(t, "1592868386.079084-13-file-debugging-wakatime-summary-/tmp/main.py-false", stored[1].ID)
 	assert.JSONEq(t, string(dataPy), stored[1].Heartbeat)
 
-	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+	assert.Equal(t, 1, numCalls)
 }
 
 func TestSync_APIErrorBulkNested(t *testing.T) {
@@ -728,7 +727,7 @@ func TestSync_APIErrorBulkNested(t *testing.T) {
 	assert.Equal(t, "1592868386.079084-13-file-debugging-wakatime-summary-/tmp/main.py-false", stored[0].ID)
 	assert.JSONEq(t, string(dataPy), stored[0].Heartbeat)
 
-	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+	assert.Equal(t, 1, numCalls)
 }
 
 func TestSync_InvalidResults(t *testing.T) {
@@ -844,7 +843,7 @@ func TestSync_InvalidResults(t *testing.T) {
 
 	require.Len(t, stored, 0)
 
-	assert.Eventually(t, func() bool { return numCalls == 2 }, time.Second, 50*time.Millisecond)
+	assert.Equal(t, 2, numCalls)
 }
 
 func TestSync_SyncLimit(t *testing.T) {
@@ -924,7 +923,7 @@ func TestSync_SyncLimit(t *testing.T) {
 	assert.Equal(t, "1592868386.079084-file-debugging-wakatime-summary-/tmp/main.py-false", stored[0].ID)
 	assert.JSONEq(t, string(dataPy), stored[0].Heartbeat)
 
-	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+	assert.Equal(t, 1, numCalls)
 }
 
 func TestSync_SyncLimitAcrossMultipleBatches(t *testing.T) {
@@ -1085,7 +1084,7 @@ func TestSync_SyncUnlimited(t *testing.T) {
 
 	require.Len(t, stored, 0)
 
-	assert.Eventually(t, func() bool { return numCalls == 1 }, time.Second, 50*time.Millisecond)
+	assert.Equal(t, 1, numCalls)
 }
 
 func TestSync_DeletesDuplicates(t *testing.T) {
