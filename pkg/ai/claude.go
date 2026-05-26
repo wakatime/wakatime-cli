@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -14,6 +15,13 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/ini"
 	"github.com/wakatime/wakatime-cli/pkg/log"
 )
+
+// claudeTaskOutputPathPattern matches Claude Code's per-session sub-agent task
+// output files, e.g. /private/tmp/claude-501/-Users-foo-bar/<session-uuid>/tasks/<id>.output.
+// These are internal scratch artifacts produced by the Task tool, not user code,
+// so we ignore them when emitting file heartbeats. Paths are normalized to forward
+// slashes before matching so the same pattern works on Windows.
+var claudeTaskOutputPathPattern = regexp.MustCompile(`(?:^|/)claude-\d+/(?:[^/]+/)+tasks/[^/]+\.output$`)
 
 // Claude contains params for detecting heartbeats from Claude transcripts.
 type Claude ParserConfig
@@ -752,6 +760,10 @@ func (g Claude) claudeFileHeartbeat(
 		return nil
 	}
 
+	if isClaudeTaskOutputFilePath(filePath) {
+		return nil
+	}
+
 	lineChanges := g.lineChanges(*logLine.ToolUseResult.Object)
 	isWrite := g.isWrite(*logLine.ToolUseResult.Object)
 
@@ -926,7 +938,25 @@ func (g Claude) projectPath(logLine claudeLogLine, fallbackToFilePath bool) stri
 		return ""
 	}
 
+	if isClaudeTaskOutputFilePath(filePath) {
+		return ""
+	}
+
 	return filepath.Dir(filePath)
+}
+
+// isClaudeTaskOutputFilePath reports whether path points at a Claude Code
+// sub-agent task output artifact under /tmp/claude-<uid>/.../tasks/*.output.
+func isClaudeTaskOutputFilePath(path string) bool {
+	if path == "" {
+		return false
+	}
+
+	// Normalize backslashes from Windows-style paths so the pattern matches
+	// regardless of the host OS the CLI is running on.
+	normalized := strings.ReplaceAll(filepath.ToSlash(path), `\`, "/")
+
+	return claudeTaskOutputPathPattern.MatchString(normalized)
 }
 
 func (Claude) lineChanges(result toolUseResult) int {
