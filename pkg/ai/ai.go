@@ -496,6 +496,43 @@ func aiUserAgent(entity string, userAgents map[string]string, fallback string, p
 	return parser
 }
 
+func aiUserAgentWithEditor(
+	entity string,
+	userAgents map[string]string,
+	fallback string,
+	parser string,
+	editor string,
+) string {
+	existing := fallback
+	if fromHeartbeat, found := userAgents[entity]; found && fromHeartbeat != "" {
+		existing = fromHeartbeat
+	}
+
+	existing = userAgentWithPrependedEditor(existing, editor)
+
+	if isNativeAIAgentUserAgent(existing) {
+		existing = ""
+	}
+
+	if existing != "" {
+		return parser + " " + existing
+	}
+
+	return parser
+}
+
+func userAgentWithPrependedEditor(userAgent string, editor string) string {
+	if editor == "" {
+		return userAgent
+	}
+
+	if userAgentHasProduct(userAgent, userAgentProduct(editor)) && !isNativeAIAgentUserAgent(userAgent) {
+		return userAgent
+	}
+
+	return strings.TrimSpace(editor + " " + userAgent)
+}
+
 // isNativeAIAgentUserAgent returns true for integrations that already represent
 // standalone AI tools instead of a host editor. Those suffixes should not be
 // appended to parsed AI heartbeats, or a sync run from one AI app can fabricate
@@ -526,6 +563,43 @@ func isNativeAIAgentUserAgent(userAgent string) bool {
 	default:
 		return false
 	}
+}
+
+func userAgentHasProduct(userAgent string, product string) bool {
+	if userAgent == "" || product == "" {
+		return false
+	}
+
+	for _, field := range userAgentProductFields(userAgent) {
+		if strings.EqualFold(userAgentProduct(field), product) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func userAgentProduct(token string) string {
+	product, _, _ := strings.Cut(token, "/")
+
+	return product
+}
+
+func userAgentProductFields(userAgent string) []string {
+	fields := strings.Fields(userAgent)
+	if len(fields) == 0 {
+		return nil
+	}
+
+	if strings.HasPrefix(fields[0], "wakatime/") {
+		if len(fields) < 4 {
+			return nil
+		}
+
+		fields = fields[3:]
+	}
+
+	return fields
 }
 
 func appHeartbeatEntity(parserName string, rawEntity string) string {

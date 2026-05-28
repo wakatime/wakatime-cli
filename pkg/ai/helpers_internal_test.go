@@ -375,22 +375,35 @@ func TestCodexHelpers(t *testing.T) {
 		"session.jsonl",
 		"session",
 		"1.2.3",
+		"",
 		"/workspace",
 		nil,
 		"",
 		codexPayload{},
 		heartbeat.AITokens{},
 	))
-	assert.Nil(t, parser.getHeartbeats(timestamp, "session.jsonl", "session", "1.2.3", "/workspace", nil, "", codexPayload{
-		Name:  heartbeat.PointerTo("not_apply_patch"),
-		Input: heartbeat.PointerTo("*** Update File: pkg/main.go\n+one"),
-	}, heartbeat.AITokens{}))
+	assert.Nil(t, parser.getHeartbeats(
+		timestamp,
+		"session.jsonl",
+		"session",
+		"1.2.3",
+		"",
+		"/workspace",
+		nil,
+		"",
+		codexPayload{
+			Name:  heartbeat.PointerTo("not_apply_patch"),
+			Input: heartbeat.PointerTo("*** Update File: pkg/main.go\n+one"),
+		},
+		heartbeat.AITokens{},
+	))
 
 	userHeartbeats := parser.getHeartbeats(
 		timestamp,
 		"session.jsonl",
 		"session",
 		"1.2.3",
+		"",
 		"/workspace",
 		nil,
 		"plugin/0.1.0",
@@ -416,6 +429,7 @@ func TestCodexHelpers(t *testing.T) {
 		"session.jsonl",
 		"session",
 		"1.2.3",
+		"",
 		"/workspace",
 		nil,
 		"plugin/0.1.0",
@@ -440,6 +454,7 @@ func TestCodexHelpers(t *testing.T) {
 		"session.jsonl",
 		"session",
 		"1.2.3",
+		"",
 		"/workspace",
 		nil,
 		"plugin/0.1.0",
