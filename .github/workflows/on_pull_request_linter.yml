@@ -3,11 +3,11 @@ name: Tests
 on: pull_request
 
 jobs:
-  lint:
+  branch:
     runs-on: ubuntu-latest
     steps:
       -
-        name: Lint allowed branch names
+        name: Check allowed branch names
         uses: lekterable/branchlint-action@1.2.0
         with:
           allowed: |

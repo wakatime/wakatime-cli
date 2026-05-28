@@ -24,6 +24,7 @@ type (
 		cwd     string
 		entity  string
 		id      string
+		source  string
 		version string
 	}
 
@@ -41,6 +42,7 @@ type (
 		Payload *struct {
 			ID      *string `json:"id"`
 			Cwd     *string `json:"cwd"`
+			Source  *string `json:"source"`
 			Version *string `json:"cli_version"`
 		} `json:"payload"`
 	}
@@ -217,7 +219,7 @@ func (g Codex) readSessionState(logger *log.Logger, fh *os.File, transcript stri
 		if err := json.Unmarshal(firstLine, &sessionMeta); err != nil {
 			logger.Debugf("failed parsing codex session metadata from %q: %s", transcript, err)
 		} else {
-			state.cwd, state.version, state.id = g.sessionInfo(state.cwd, state.version, state.id, sessionMeta)
+			g.updateSessionInfo(&state, sessionMeta)
 		}
 	}
 
@@ -298,6 +300,7 @@ func (g Codex) handleTranscriptLine(
 		session.entity,
 		session.id,
 		session.version,
+		session.source,
 		session.cwd,
 		g.UserAgents,
 		g.FallbackUserAgent,
@@ -375,29 +378,26 @@ func withinOneSecondAfter(timestamp time.Time, previous time.Time) bool {
 	return !previous.IsZero() && !timestamp.Before(previous) && timestamp.Sub(previous) <= time.Second
 }
 
-func (Codex) sessionInfo(
-	cwd string,
-	version string,
-	sessionID string,
-	sessionMeta *codexSessionMeta,
-) (string, string, string) {
+func (Codex) updateSessionInfo(state *codexSessionState, sessionMeta *codexSessionMeta) {
 	if sessionMeta == nil || sessionMeta.Type != "session_meta" || sessionMeta.Payload == nil {
-		return cwd, version, sessionID
+		return
 	}
 
 	if sessionMeta.Payload.ID != nil && *sessionMeta.Payload.ID != "" {
-		sessionID = *sessionMeta.Payload.ID
+		state.id = *sessionMeta.Payload.ID
 	}
 
 	if sessionMeta.Payload.Cwd != nil && *sessionMeta.Payload.Cwd != "" {
-		cwd = *sessionMeta.Payload.Cwd
+		state.cwd = *sessionMeta.Payload.Cwd
 	}
 
 	if sessionMeta.Payload.Version != nil && *sessionMeta.Payload.Version != "" {
-		version = *sessionMeta.Payload.Version
+		state.version = *sessionMeta.Payload.Version
 	}
 
-	return cwd, version, sessionID
+	if sessionMeta.Payload.Source != nil && *sessionMeta.Payload.Source != "" {
+		state.source = *sessionMeta.Payload.Source
+	}
 }
 
 func (g Codex) getHeartbeats(
@@ -405,6 +405,7 @@ func (g Codex) getHeartbeats(
 	sessionEntity string,
 	sessionID string,
 	version string,
+	source string,
 	cwd string,
 	userAgents map[string]string,
 	fallbackUserAgent string,
@@ -417,6 +418,7 @@ func (g Codex) getHeartbeats(
 			sessionEntity,
 			sessionID,
 			version,
+			source,
 			cwd,
 			userAgents,
 			fallbackUserAgent,
@@ -433,6 +435,7 @@ func (g Codex) getHeartbeats(
 			sessionEntity,
 			sessionID,
 			version,
+			source,
 			cwd,
 			userAgents,
 			fallbackUserAgent,
@@ -449,6 +452,7 @@ func (g Codex) getHeartbeats(
 			sessionEntity,
 			sessionID,
 			version,
+			source,
 			cwd,
 			userAgents,
 			fallbackUserAgent,
@@ -463,12 +467,23 @@ func (g Codex) getHeartbeats(
 		return nil
 	}
 
-	return g.patchHeartbeats(timestamp, version, cwd, userAgents, fallbackUserAgent, *payload.Input, sessionID, tokens)
+	return g.patchHeartbeats(
+		timestamp,
+		version,
+		source,
+		cwd,
+		userAgents,
+		fallbackUserAgent,
+		*payload.Input,
+		sessionID,
+		tokens,
+	)
 }
 
 func (g Codex) patchHeartbeats(
 	timestamp time.Time,
 	version string,
+	source string,
 	cwd string,
 	userAgents map[string]string,
 	fallbackUserAgent string,
@@ -498,6 +513,7 @@ func (g Codex) patchHeartbeats(
 					sessionID,
 					timestamp,
 					version,
+					source,
 					userAgents,
 					fallbackUserAgent,
 					additions,
@@ -524,6 +540,7 @@ func (g Codex) patchHeartbeats(
 			sessionID,
 			timestamp,
 			version,
+			source,
 			userAgents,
 			fallbackUserAgent,
 			additions,
@@ -540,6 +557,7 @@ func (g Codex) messageHeartbeat(
 	sessionEntity string,
 	sessionID string,
 	version string,
+	source string,
 	cwd string,
 	userAgents map[string]string,
 	fallbackUserAgent string,
@@ -605,7 +623,7 @@ func (g Codex) messageHeartbeat(
 		"",
 		cwd,
 		float64(timestamp.Unix()),
-		aiUserAgent(entity, userAgents, fallbackUserAgent, aiPlugin(g, version)),
+		g.userAgent(entity, version, source, userAgents, fallbackUserAgent),
 	)
 	if *payload.Role == "user" && promptChars > 0 {
 		h.AIPromptLength = promptChars
@@ -619,6 +637,7 @@ func (g Codex) agentMessageHeartbeat(
 	sessionEntity string,
 	sessionID string,
 	version string,
+	source string,
 	cwd string,
 	userAgents map[string]string,
 	fallbackUserAgent string,
@@ -632,6 +651,7 @@ func (g Codex) agentMessageHeartbeat(
 		sessionEntity,
 		sessionID,
 		version,
+		source,
 		cwd,
 		userAgents,
 		fallbackUserAgent,
@@ -653,6 +673,7 @@ func (g Codex) userMessageHeartbeat(
 	sessionEntity string,
 	sessionID string,
 	version string,
+	source string,
 	cwd string,
 	userAgents map[string]string,
 	fallbackUserAgent string,
@@ -686,7 +707,7 @@ func (g Codex) userMessageHeartbeat(
 		"",
 		cwd,
 		float64(timestamp.Unix()),
-		aiUserAgent(sessionEntity, userAgents, fallbackUserAgent, aiPlugin(g, version)),
+		g.userAgent(sessionEntity, version, source, userAgents, fallbackUserAgent),
 	)
 	h.AIPromptLength = len([]rune(text))
 
@@ -758,11 +779,59 @@ func codexFilePath(cwd string, line string) string {
 	return ""
 }
 
+func (g Codex) userAgent(
+	entity string,
+	version string,
+	source string,
+	userAgents map[string]string,
+	fallbackUserAgent string,
+) string {
+	return aiUserAgentWithEditor(
+		entity,
+		userAgents,
+		fallbackUserAgent,
+		aiPlugin(g, version),
+		codexSourceEditor(source, version),
+	)
+}
+
+func codexSourceEditor(source string, version string) string {
+	source = strings.TrimSpace(strings.ToLower(source))
+	if source == "" {
+		return ""
+	}
+
+	switch source {
+	case "cli":
+		if version == "" {
+			version = "unknown"
+		}
+
+		return "codex-cli/" + version
+	default:
+		product := codexSourceProduct(source)
+		if product == "" {
+			return ""
+		}
+
+		return product + "-wakatime/unknown"
+	}
+}
+
+func codexSourceProduct(source string) string {
+	source = strings.TrimSpace(strings.ToLower(source))
+	source = strings.NewReplacer("/", "-", "\\", "-", " ", "-").Replace(source)
+	source = strings.Trim(source, "-")
+
+	return source
+}
+
 func (g Codex) heartbeat(
 	currentFile string,
 	sessionID string,
 	timestamp time.Time,
 	version string,
+	source string,
 	userAgents map[string]string,
 	fallbackUserAgent string,
 	additions int,
@@ -791,7 +860,7 @@ func (g Codex) heartbeat(
 		"",
 		"",
 		float64(timestamp.Unix()),
-		aiUserAgent(currentFile, userAgents, fallbackUserAgent, aiPlugin(g, version)),
+		g.userAgent(currentFile, version, source, userAgents, fallbackUserAgent),
 	)
 }
 
