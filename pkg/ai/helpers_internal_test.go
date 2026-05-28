@@ -201,14 +201,8 @@ func TestGetLastParsedAt(t *testing.T) {
 		assert.WithinDuration(t, time.Now().Add(-2*time.Minute), parsed, 2*time.Second)
 	})
 
-	t.Run("clamps future timestamp and writes updated value", func(t *testing.T) {
-		tmpInternal, err := os.CreateTemp(t.TempDir(), "wakatime-internal")
-		require.NoError(t, err)
-
-		defer tmpInternal.Close()
-
+	t.Run("clamps future timestamp", func(t *testing.T) {
 		v := viper.New()
-		v.Set("internal-config", tmpInternal.Name())
 		v.Set("internal.ai_logs_last_parsed_at", time.Now().Add(time.Hour).Format(ini.DateFormat))
 
 		before := time.Now()
@@ -218,40 +212,74 @@ func TestGetLastParsedAt(t *testing.T) {
 		require.NoError(t, err)
 		assert.False(t, parsed.Before(before))
 		assert.False(t, parsed.After(after))
-
-		writer, err := ini.NewWriter(ctx, v, ini.InternalFilePath)
-		require.NoError(t, err)
-		require.NoError(t, writer.File.Reload())
-
-		written, err := writer.File.Section("internal").Key("ai_logs_last_parsed_at").TimeFormat(ini.DateFormat)
-		require.NoError(t, err)
-		assert.WithinDuration(t, time.Now(), written, 2*time.Second)
 	})
 
-	t.Run("defaults to Claude Code release date when value is unset and write succeeds", func(t *testing.T) {
-		tmpInternal, err := os.CreateTemp(t.TempDir(), "wakatime-internal")
-		require.NoError(t, err)
-
-		defer tmpInternal.Close()
-
+	t.Run("defaults to Claude Code release date when value is unset", func(t *testing.T) {
 		v := viper.New()
-		v.Set("internal-config", tmpInternal.Name())
 
 		parsed, err := getLastParsedAt(ctx, v)
 		require.NoError(t, err)
 
 		assert.Equal(t, time.Date(2025, time.February, 24, 0, 0, 0, 0, time.UTC), parsed)
 	})
+}
 
-	t.Run("defaults to two minutes ago when value is unset and write fails", func(t *testing.T) {
+func TestUpdateLastParsedAt(t *testing.T) {
+	ctx := context.Background()
+
+	tmpInternal, err := os.CreateTemp(t.TempDir(), "wakatime-internal")
+	require.NoError(t, err)
+
+	defer tmpInternal.Close()
+
+	v := viper.New()
+	v.Set("internal-config", tmpInternal.Name())
+
+	expected := time.Date(2026, time.March, 18, 12, 30, 0, 0, time.UTC)
+
+	require.NoError(t, UpdateLastParsedAt(ctx, v, expected))
+
+	writer, err := ini.NewWriter(ctx, v, ini.InternalFilePath)
+	require.NoError(t, err)
+	require.NoError(t, writer.File.Reload())
+
+	written, err := writer.File.Section("internal").Key("ai_logs_last_parsed_at").TimeFormat(ini.DateFormat)
+	require.NoError(t, err)
+	assert.Equal(t, expected, written)
+
+	t.Run("preserves fractional seconds", func(t *testing.T) {
+		expected := time.Date(2026, time.March, 18, 12, 30, 0, int(500*time.Millisecond), time.UTC)
+
+		require.NoError(t, UpdateLastParsedAt(ctx, v, expected))
+		require.NoError(t, writer.File.Reload())
+
+		written, err := writer.File.Section("internal").Key("ai_logs_last_parsed_at").TimeFormat(ini.DateFormat)
+		require.NoError(t, err)
+		assert.Equal(t, expected, written)
+	})
+
+	t.Run("errors when viper is missing", func(t *testing.T) {
+		err := UpdateLastParsedAt(ctx, nil, expected)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "missing viper instance")
+	})
+
+	t.Run("errors when write fails", func(t *testing.T) {
 		v := viper.New()
 		v.Set("internal-config", filepath.Join(t.TempDir(), "missing-dir", "wakatime-internal"))
 
-		parsed, err := getLastParsedAt(ctx, v)
+		err := UpdateLastParsedAt(ctx, v, expected)
 		require.Error(t, err)
-
-		assert.WithinDuration(t, time.Now().Add(-2*time.Minute), parsed, 2*time.Second)
+		assert.Contains(t, err.Error(), "failed to parse internal config file")
 	})
+}
+
+func TestHeartbeatTime(t *testing.T) {
+	expected := time.Date(2026, time.March, 18, 12, 30, 0, int(500*time.Millisecond), time.UTC)
+
+	got := heartbeatTime(float64(expected.Unix()) + 0.5)
+
+	assert.Equal(t, expected, got)
 }
 
 func TestClaudeHelpers(t *testing.T) {
