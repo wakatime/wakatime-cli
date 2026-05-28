@@ -3,6 +3,7 @@ package ai
 import (
 	"context"
 	"fmt"
+	"math"
 	"path/filepath"
 	"strings"
 	"time"
@@ -102,9 +103,30 @@ func WithAISync(config Config) heartbeat.HandleOption {
 				return next(ctx, hh)
 			}
 
+			lock, err := AcquireSyncLock(ctx, config.V, SyncLockTimeout)
+			if err != nil {
+				if IsSyncLockBusy(err) {
+					logger.Debugln("skipping ai sync because another wakatime-cli process is already syncing ai activity")
+				} else {
+					logger.Warnf("skipping ai sync because failed to acquire ai sync lock: %s", err)
+				}
+
+				return next(ctx, hh)
+			}
+
+			releaseLock := func() {
+				if lock != nil {
+					lock.Release()
+					lock = nil
+				}
+			}
+			defer releaseLock()
+
 			lastParsedAt, err := getLastParsedAt(ctx, config.V)
 			if err != nil {
 				logger.Debugf("failed ai last parsed: %s", err)
+				releaseLock()
+
 				return next(ctx, hh)
 			}
 
@@ -113,14 +135,24 @@ func WithAISync(config Config) heartbeat.HandleOption {
 			heartbeats, err := parseAIHeartbeats(ctx, lastParsedAt, userAgents, config.Plugin)
 			if err != nil {
 				logger.Errorf("failed to parse ai heartbeats: %s", err)
+				releaseLock()
+
 				return next(ctx, hh)
 			}
 
 			if len(heartbeats) == 0 {
+				releaseLock()
 				return next(ctx, hh)
 			}
 
 			minAIHeartbeatTime, maxAIHeartbeatTime := minMaxAIHeartbeatTimes(heartbeats)
+
+			parsedAt := heartbeatTime(maxAIHeartbeatTime)
+			if err := UpdateLastParsedAt(ctx, config.V, parsedAt); err != nil {
+				log.Extract(ctx).Warnf("failed to update ai_logs_last_parsed_at: %s", err)
+			}
+
+			releaseLock()
 
 			heartbeats = replaceAppHeartbeats(heartbeats)
 
@@ -270,8 +302,6 @@ func getLastParsedAt(ctx context.Context, v *viper.Viper) (time.Time, error) {
 
 	logger := log.Extract(ctx)
 
-	var hasExisting bool
-
 	lastParsedAtStr := vipertools.GetString(v, "internal.ai_logs_last_parsed_at")
 	if lastParsedAtStr != "" {
 		parsed, err := vipertools.SafeTimeParse(ini.DateFormat, lastParsedAtStr)
@@ -280,31 +310,37 @@ func getLastParsedAt(ctx context.Context, v *viper.Viper) (time.Time, error) {
 			logger.Warnf("failed to parse ai_logs_last_parsed_at: %s", err)
 		} else if parsed.After(time.Now()) {
 			lastParsedAt = time.Now()
-			hasExisting = true
 		} else {
 			lastParsedAt = parsed
-			hasExisting = true
 		}
-	}
-
-	w, err := ini.NewWriter(ctx, v, ini.InternalFilePath)
-	if err != nil {
-		return lastParsedAt, fmt.Errorf("failed to parse internal config file: %s", err)
-	}
-
-	keyValue := map[string]string{
-		"ai_logs_last_parsed_at": time.Now().Format(ini.DateFormat),
-	}
-
-	if err := w.Write(ctx, "internal", keyValue); err != nil {
-		return lastParsedAt, fmt.Errorf("failed to write to internal config file: %s", err)
-	}
-
-	if !hasExisting {
+	} else {
 		lastParsedAt = time.Date(2025, time.February, 24, 0, 0, 0, 0, time.UTC)
 	}
 
 	return lastParsedAt, nil
+}
+
+// UpdateLastParsedAt stores the latest AI transcript timestamp covered by
+// generated AI heartbeats.
+func UpdateLastParsedAt(ctx context.Context, v *viper.Viper, parsedAt time.Time) error {
+	if v == nil {
+		return fmt.Errorf("missing viper instance")
+	}
+
+	w, err := ini.NewWriter(ctx, v, ini.InternalFilePath)
+	if err != nil {
+		return fmt.Errorf("failed to parse internal config file: %s", err)
+	}
+
+	keyValue := map[string]string{
+		"ai_logs_last_parsed_at": parsedAt.Format(time.RFC3339Nano),
+	}
+
+	if err := w.Write(ctx, "internal", keyValue); err != nil {
+		return fmt.Errorf("failed to write to internal config file: %s", err)
+	}
+
+	return nil
 }
 
 // preserveHumanAttributes mutates aiHeartbeats pulling in the attributes from
@@ -384,6 +420,23 @@ func minMaxAIHeartbeatTimes(aiHeartbeats []heartbeat.Heartbeat) (float64, float6
 	}
 
 	return minHeartbeatTime, maxHeartbeatTime
+}
+
+func heartbeatTime(timestamp float64) time.Time {
+	if math.IsNaN(timestamp) || math.IsInf(timestamp, 0) {
+		return time.Time{}
+	}
+
+	seconds, fraction := math.Modf(timestamp)
+	sec := int64(seconds)
+
+	nsec := int64(math.Round(fraction * float64(time.Second)))
+	if nsec >= int64(time.Second) {
+		sec++
+		nsec -= int64(time.Second)
+	}
+
+	return time.Unix(sec, nsec).UTC()
 }
 
 func entityToTimeMap(aiHeartbeats []heartbeat.Heartbeat) map[string][]float64 {
