@@ -178,10 +178,10 @@ func TestCodexParse_UserAgentUsesTranscriptSource(t *testing.T) {
 			ExpectedUserAgent: "Codex/0.134.0 codex-cli/0.134.0 " +
 				"claude-code/2.1.142 claude-code-wakatime/3.1.6",
 		},
-		"empty source keeps native ai fallback stripped": {
+		"empty source preserves codex fallback": {
 			Version:           "0.134.0",
-			FallbackUserAgent: "claude-code/2.1.142 claude-code-wakatime/3.1.6",
-			ExpectedUserAgent: "Codex/0.134.0",
+			FallbackUserAgent: "codex/0.134.0 codex-wakatime/1.0.0",
+			ExpectedUserAgent: "codex/0.134.0 codex-wakatime/1.0.0",
 		},
 	}
 

@@ -799,10 +799,10 @@ func (g Claude) userAgent(entity string, version string, ideSession bool) string
 
 func claudePlugin(version string) string {
 	if version == "" {
-		return "ClaudeCode"
+		return "Claude"
 	}
 
-	return "ClaudeCode/" + version
+	return "Claude/" + version
 }
 
 func (Claude) tokenDelta(tokens heartbeat.AITokens) (int64, int64) {
