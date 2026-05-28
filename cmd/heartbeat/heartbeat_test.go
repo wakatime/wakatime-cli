@@ -36,6 +36,25 @@ import (
 	bolt "go.etcd.io/bbolt"
 )
 
+func TestMain(m *testing.M) {
+	home, err := os.MkdirTemp("", "wakatime-cli-cmd-heartbeat-test-home")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to create test home: %s\n", err)
+		os.Exit(1)
+	}
+
+	_ = os.Setenv("HOME", home)
+	_ = os.Setenv("USERPROFILE", home)
+	_ = os.Setenv("WAKATIME_HOME", home)
+	_ = os.Unsetenv("WAKATIME_API_KEY")
+
+	code := m.Run()
+
+	_ = os.RemoveAll(home)
+
+	os.Exit(code)
+}
+
 func TestSendHeartbeats(t *testing.T) {
 	resetSingleton(t)
 
@@ -995,6 +1014,11 @@ func TestSendHeartbeats_NonExistingExtraHeartbeatsEntity(t *testing.T) {
 func TestSendHeartbeats_MissingHeartbeatEntity(t *testing.T) {
 	resetSingleton(t)
 
+	offlineQueueFile, err := os.CreateTemp(t.TempDir(), "")
+	require.NoError(t, err)
+
+	defer offlineQueueFile.Close()
+
 	_, router, tearDown := setupTestServer()
 	defer tearDown()
 
@@ -1007,8 +1031,9 @@ func TestSendHeartbeats_MissingHeartbeatEntity(t *testing.T) {
 	})
 
 	v := viper.New()
+	v.Set("offline-queue-file", offlineQueueFile.Name())
 
-	_, err := cmdheartbeat.Run(t.Context(), v)
+	_, err = cmdheartbeat.Run(t.Context(), v)
 	require.Error(t, err)
 
 	assert.EqualError(
@@ -1023,6 +1048,11 @@ func TestSendHeartbeats_MissingHeartbeatEntity(t *testing.T) {
 
 func TestSendHeartbeats_ErrAuth_UnsetAPIKey(t *testing.T) {
 	resetSingleton(t)
+	t.Setenv("WAKATIME_API_KEY", "")
+
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
 
 	_, router, tearDown := setupTestServer()
 	defer tearDown()
@@ -1042,6 +1072,11 @@ func TestSendHeartbeats_ErrAuth_UnsetAPIKey(t *testing.T) {
 
 	defer logFile.Close()
 
+	offlineQueueFile, err := os.CreateTemp(tmpDir, "")
+	require.NoError(t, err)
+
+	defer offlineQueueFile.Close()
+
 	v := viper.New()
 	v.Set("internal.backoff_at", time.Now().Add(10*time.Minute).Format(ini.DateFormat))
 	v.Set("internal.backoff_retries", "1")
@@ -1049,6 +1084,7 @@ func TestSendHeartbeats_ErrAuth_UnsetAPIKey(t *testing.T) {
 	v.Set("entity", "testdata/main.go")
 	v.Set("entity-type", "file")
 	v.Set("log-file", logFile.Name())
+	v.Set("offline-queue-file", offlineQueueFile.Name())
 
 	_, err = cmdheartbeat.Run(t.Context(), v)
 	require.Error(t, err)
