@@ -538,12 +538,8 @@ func aiUserAgent(entity string, userAgents map[string]string, fallback string, p
 		existing = fromHeartbeat
 	}
 
-	if isNativeAIAgentUserAgent(existing) {
-		existing = ""
-	}
-
 	if existing != "" {
-		return parser + " " + existing
+		return userAgentWithPrependedParser(existing, parser)
 	}
 
 	return parser
@@ -563,15 +559,19 @@ func aiUserAgentWithEditor(
 
 	existing = userAgentWithPrependedEditor(existing, editor)
 
-	if isNativeAIAgentUserAgent(existing) {
-		existing = ""
-	}
-
 	if existing != "" {
-		return parser + " " + existing
+		return userAgentWithPrependedParser(existing, parser)
 	}
 
 	return parser
+}
+
+func userAgentWithPrependedParser(userAgent string, parser string) string {
+	if userAgentHasProduct(userAgent, userAgentProduct(parser)) {
+		return userAgent
+	}
+
+	return strings.TrimSpace(parser + " " + userAgent)
 }
 
 func userAgentWithPrependedEditor(userAgent string, editor string) string {
@@ -579,43 +579,11 @@ func userAgentWithPrependedEditor(userAgent string, editor string) string {
 		return userAgent
 	}
 
-	if userAgentHasProduct(userAgent, userAgentProduct(editor)) && !isNativeAIAgentUserAgent(userAgent) {
+	if userAgentHasProduct(userAgent, userAgentProduct(editor)) {
 		return userAgent
 	}
 
 	return strings.TrimSpace(editor + " " + userAgent)
-}
-
-// isNativeAIAgentUserAgent returns true for integrations that already represent
-// standalone AI tools instead of a host editor. Those suffixes should not be
-// appended to parsed AI heartbeats, or a sync run from one AI app can fabricate
-// combinations like `Codex/... Claude/... macos-wakatime/...`.
-func isNativeAIAgentUserAgent(userAgent string) bool {
-	fields := strings.Fields(userAgent)
-	if len(fields) == 0 {
-		return false
-	}
-
-	// Rendered user agents start with the CLI prefix before the plugin suffix.
-	if strings.HasPrefix(fields[0], "wakatime/") {
-		if len(fields) < 4 {
-			return false
-		}
-
-		fields = fields[3:]
-	}
-
-	product, _, found := strings.Cut(fields[0], "/")
-	if !found {
-		return false
-	}
-
-	switch strings.ToLower(product) {
-	case "claude", "claude-code", "claudecode", "codex":
-		return true
-	default:
-		return false
-	}
 }
 
 func userAgentHasProduct(userAgent string, product string) bool {
