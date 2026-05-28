@@ -24,7 +24,7 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/params"
 )
 
-func TestWithAISyncUpdatesLastParsedAtBeforeParsing(t *testing.T) {
+func TestWithAISyncDoesNotUpdateLastParsedAtBeforeParsing(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
@@ -57,10 +57,155 @@ func TestWithAISyncUpdatesLastParsedAtBeforeParsing(t *testing.T) {
 	err = writer.File.Reload()
 	require.NoError(t, err)
 
+	assert.False(t, writer.File.Section("internal").HasKey("ai_logs_last_parsed_at"))
+}
+
+func TestWithAISyncUpdatesLastParsedAtBeforeNext(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	entity, err := filepath.Abs("testdata/main.go")
+	require.NoError(t, err)
+
+	entity = strings.ReplaceAll(entity, "\\", "/")
+
+	transcriptDir := filepath.Join(home, ".claude", "projects", "sample-project")
+	require.NoError(t, os.MkdirAll(transcriptDir, 0o755))
+
+	transcriptPath := filepath.Join(transcriptDir, "session.jsonl")
+	transcript := strings.Join([]string{
+		"{\"timestamp\":\"2026-03-18T12:00:00Z\",\"version\":\"2.1.45\"," +
+			"\"toolUseResult\":{\"filePath\":\"" + entity + "\"," +
+			"\"structuredPatch\":[{\"oldLines\":3,\"newLines\":5}]}}",
+		"{\"timestamp\":\"2026-03-18T12:30:00Z\",\"toolUseResult\":{" +
+			"\"filePath\":\"" + entity + "\",\"content\":\"first\\nsecond\\nthird\"}}",
+	}, "\n") + "\n"
+	require.NoError(t, os.WriteFile(transcriptPath, []byte(transcript), 0o644))
+
+	tmpInternal, err := os.CreateTemp(t.TempDir(), "wakatime-internal")
+	require.NoError(t, err)
+
+	defer tmpInternal.Close()
+
+	v := viper.New()
+	v.Set("internal-config", tmpInternal.Name())
+	v.Set("internal.ai_logs_last_parsed_at", time.Date(2026, 3, 18, 11, 0, 0, 0, time.UTC).Format(ini.DateFormat))
+
+	var (
+		nextCalled     bool
+		lockReleasedAt bool
+	)
+
+	handle := ai.WithAISync(ai.Config{
+		V: v,
+	})(func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		nextCalled = true
+
+		require.NotEmpty(t, hh)
+
+		lock, err := ai.AcquireSyncLock(t.Context(), v, time.Second)
+		require.NoError(t, err)
+
+		lockReleasedAt = true
+
+		lock.Release()
+
+		return nil, assert.AnError
+	})
+
+	_, err = handle(t.Context(), []heartbeat.Heartbeat{
+		{
+			Entity:     entity,
+			EntityType: heartbeat.FileType,
+			Time:       float64(time.Date(2026, 3, 18, 14, 0, 0, 0, time.UTC).Unix()),
+		},
+	})
+
+	require.ErrorIs(t, err, assert.AnError)
+	require.True(t, nextCalled)
+	require.True(t, lockReleasedAt)
+
+	writer, err := ini.NewWriter(t.Context(), v, ini.InternalFilePath)
+	require.NoError(t, err)
+	require.NoError(t, writer.File.Reload())
+
 	lastParsedAt, err := writer.File.Section("internal").Key("ai_logs_last_parsed_at").TimeFormat(ini.DateFormat)
 	require.NoError(t, err)
 
-	assert.WithinDuration(t, time.Now(), lastParsedAt, 2*time.Second)
+	assert.Equal(t, time.Date(2026, 3, 18, 12, 30, 0, 0, time.UTC), lastParsedAt)
+}
+
+func TestWithAISyncReleasesLockOnRecoveredPanic(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	entity, err := filepath.Abs("testdata/main.go")
+	require.NoError(t, err)
+
+	entity = strings.ReplaceAll(entity, "\\", "/")
+
+	transcriptDir := filepath.Join(home, ".claude", "projects", "sample-project")
+	require.NoError(t, os.MkdirAll(transcriptDir, 0o755))
+
+	transcriptPath := filepath.Join(transcriptDir, "session.jsonl")
+	transcript := "{\"timestamp\":\"2026-03-18T12:00:00Z\",\"version\":\"2.1.45\"," +
+		"\"toolUseResult\":{\"filePath\":\"" + entity + "\"," +
+		"\"structuredPatch\":[{\"oldLines\":3,\"newLines\":5}]}}\n"
+	require.NoError(t, os.WriteFile(transcriptPath, []byte(transcript), 0o644))
+
+	tmpInternal, err := os.CreateTemp(t.TempDir(), "wakatime-internal")
+	require.NoError(t, err)
+
+	defer tmpInternal.Close()
+
+	v := viper.New()
+	v.Set("internal-config", tmpInternal.Name())
+	v.Set("internal.ai_logs_last_parsed_at", time.Date(2026, 3, 18, 11, 0, 0, 0, time.UTC).Format(ini.DateFormat))
+
+	handle := ai.WithAISync(ai.Config{
+		V: v,
+	})(func(_ context.Context, _ []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		panic("send panic")
+	})
+
+	func() {
+		defer func() {
+			require.Equal(t, "send panic", recover())
+		}()
+
+		_, _ = handle(t.Context(), nil)
+	}()
+
+	lock, err := ai.AcquireSyncLock(t.Context(), v, time.Second)
+	require.NoError(t, err)
+
+	lock.Release()
+}
+
+func TestWithAISyncPassesThroughWhenViperMissing(t *testing.T) {
+	input := []heartbeat.Heartbeat{
+		{
+			Entity:     "/tmp/main.go",
+			EntityType: heartbeat.FileType,
+			Time:       1773835200,
+		},
+	}
+
+	handle := ai.WithAISync(ai.Config{})(func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		results := make([]heartbeat.Result, len(hh))
+		for i := range hh {
+			results[i] = heartbeat.Result{Heartbeat: hh[i]}
+		}
+
+		return results, nil
+	})
+
+	results, err := handle(t.Context(), input)
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+	assert.Equal(t, input[0], results[0].Heartbeat)
 }
 
 func TestSendHeartbeats_WithAIParsing(t *testing.T) {
@@ -197,6 +342,109 @@ func TestSendHeartbeats_WithAIParsing(t *testing.T) {
 	require.NoError(t, err)
 
 	err = cmdheartbeat.SendHeartbeats(t.Context(), v, params, offlineQueueFile.Name(), heartbeats)
+	require.NoError(t, err)
+
+	assert.Equal(t, 1, numCalls)
+}
+
+func TestSendHeartbeats_SkipsAIParsingWhenSyncLockBusy(t *testing.T) {
+	resetSingleton(t)
+
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	entity, err := filepath.Abs("testdata/main.go")
+	require.NoError(t, err)
+
+	entity = strings.ReplaceAll(entity, "\\", "/")
+
+	aiEntity, err := filepath.Abs("testdata/localfile.go")
+	require.NoError(t, err)
+
+	aiEntity = strings.ReplaceAll(aiEntity, "\\", "/")
+
+	transcriptDir := filepath.Join(home, ".claude", "projects", "sample-project")
+	require.NoError(t, os.MkdirAll(transcriptDir, 0o755))
+
+	transcriptPath := filepath.Join(transcriptDir, "session.jsonl")
+	transcript := strings.Join([]string{
+		"{\"timestamp\":\"2026-03-18T12:00:00Z\",\"version\":\"2.1.45\"," +
+			"\"toolUseResult\":{\"filePath\":\"" + aiEntity + "\"," +
+			"\"content\":\"first\\nsecond\\nthird\"}}",
+	}, "\n") + "\n"
+	require.NoError(t, os.WriteFile(transcriptPath, []byte(transcript), 0o644))
+
+	testServerURL, router, tearDown := setupTestServer()
+	defer tearDown()
+
+	var numCalls int
+
+	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
+		numCalls++
+
+		body, err := io.ReadAll(req.Body)
+		require.NoError(t, err)
+
+		var entities []struct {
+			Entity   string `json:"entity"`
+			Category string `json:"category"`
+		}
+
+		require.NoError(t, json.Unmarshal(body, &entities))
+		require.Len(t, entities, 1)
+		assert.Equal(t, entity, entities[0].Entity)
+		assert.NotEqual(t, heartbeat.AICodingCategory.String(), entities[0].Category)
+
+		w.WriteHeader(http.StatusCreated)
+
+		f, err := os.Open("testdata/api_heartbeats_response.json")
+		require.NoError(t, err)
+
+		defer f.Close()
+
+		_, err = io.Copy(w, f)
+		require.NoError(t, err)
+	})
+
+	tmpFile, err := os.CreateTemp(t.TempDir(), "wakatime-config")
+	require.NoError(t, err)
+
+	defer tmpFile.Close()
+
+	tmpInternalFile, err := os.CreateTemp(t.TempDir(), "wakatime-internal-config")
+	require.NoError(t, err)
+
+	defer tmpInternalFile.Close()
+
+	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
+	v.Set("api-url", testServerURL)
+	v.Set("config", tmpFile.Name())
+	v.Set("internal-config", tmpInternalFile.Name())
+	v.Set("entity", entity)
+	v.Set("entity-type", "file")
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("plugin", "plugin/0.0.1")
+	v.Set("time", 1773835200.1)
+	v.Set("timeout", 5)
+	v.Set("write", true)
+	v.Set("internal.ai_logs_last_parsed_at", time.Date(2026, 3, 18, 11, 0, 0, 0, time.UTC).Format(ini.DateFormat))
+
+	lock, err := ai.AcquireSyncLock(t.Context(), v, time.Second)
+	require.NoError(t, err)
+
+	defer lock.Release()
+
+	params, heartbeats, err := testLoadParamsAndHeartbeats(t.Context(), v)
+	require.NoError(t, err)
+
+	queueFile, err := os.CreateTemp(t.TempDir(), "")
+	require.NoError(t, err)
+
+	defer queueFile.Close()
+
+	err = cmdheartbeat.SendHeartbeats(t.Context(), v, params, queueFile.Name(), heartbeats)
 	require.NoError(t, err)
 
 	assert.Equal(t, 1, numCalls)
