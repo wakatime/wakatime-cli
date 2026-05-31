@@ -35,6 +35,7 @@ func TestParserIDStringAndPlugins(t *testing.T) {
 	assert.Equal(t, "Kiro", aiPlugin(Kiro{}, ""))
 	assert.Equal(t, "Cline", aiPlugin(Cline{}, ""))
 	assert.Equal(t, "Gemini", aiPlugin(Gemini{}, ""))
+	assert.Equal(t, "Qwen Code/1.2.3", aiPlugin(QwenCode{}, "1.2.3"))
 	assert.Equal(t, "Pi", aiPlugin(Pi{}, ""))
 	assert.Equal(t, "Goose", aiPlugin(Goose{}, ""))
 }

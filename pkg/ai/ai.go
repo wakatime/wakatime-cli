@@ -72,6 +72,8 @@ const (
 	ClineParser
 	// GeminiParser is the parser ID for Gemini.
 	GeminiParser
+	// QwenCodeParser is the parser ID for Qwen Code.
+	QwenCodeParser
 	// PiParser is the parser ID for Pi.
 	PiParser
 	// GooseParser is the parser ID for Goose.
@@ -258,6 +260,11 @@ func parseAIHeartbeats(
 			FallbackUserAgent: fallbackUserAgent,
 		},
 		Gemini{
+			After:             after,
+			UserAgents:        userAgents,
+			FallbackUserAgent: fallbackUserAgent,
+		},
+		QwenCode{
 			After:             after,
 			UserAgents:        userAgents,
 			FallbackUserAgent: fallbackUserAgent,
