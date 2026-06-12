@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime/debug"
 	"strings"
 
 	"github.com/wakatime/wakatime-cli/pkg/file"
@@ -71,6 +72,8 @@ func detectLanguage(ctx context.Context, detect detector, fp string, guessLangua
 	language heartbeat.Language, err error) {
 	defer func() {
 		if r := recover(); r != nil {
+			log.Extract(ctx).Errorf("panicked: %v. Stack: %s", r, string(debug.Stack()))
+
 			language = heartbeat.LanguageUnknown
 			err = fmt.Errorf("panicked: %v", r)
 		}
