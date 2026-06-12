@@ -110,14 +110,20 @@ func (g Cursor) Parse(ctx context.Context) (Heartbeats, error) {
 		return Heartbeats{}, nil
 	}
 
-	subscriptionPlan, err := g.querySubscriptionPlan(ctx, dbPath)
+	db, err := g.openDB(dbPath)
+	if err != nil {
+		return nil, err
+	}
+	defer db.Close() // nolint:errcheck
+
+	subscriptionPlan, err := g.querySubscriptionPlan(ctx, db, dbPath)
 	if err != nil {
 		logger.Debugf("failed reading cursor subscription plan from %q: %s", dbPath, err)
 
 		subscriptionPlan = ""
 	}
 
-	rows, err := g.queryRows(ctx, dbPath)
+	rows, err := g.queryRows(ctx, db, dbPath)
 	if err != nil {
 		return nil, err
 	}
@@ -231,13 +237,20 @@ func (Cursor) stateDBPath(ctx context.Context) (string, error) {
 	return "", nil
 }
 
-func (Cursor) queryRows(ctx context.Context, dbPath string) ([]cursorLogRow, error) {
+func (Cursor) openDB(dbPath string) (*sql.DB, error) {
 	db, err := sql.Open("sqlite", dbPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed opening cursor sqlite db %q: %s", dbPath, err)
 	}
-	defer db.Close() // nolint:errcheck
 
+	// limit to a single connection, so the pure-Go sqlite driver only
+	// allocates memory for one connection
+	db.SetMaxOpenConns(1)
+
+	return db, nil
+}
+
+func (Cursor) queryRows(ctx context.Context, db *sql.DB, dbPath string) ([]cursorLogRow, error) {
 	rows, err := db.QueryContext(ctx, `
 WITH recentCursorRows AS (
 	SELECT key, CAST(value AS TEXT) AS value
@@ -298,16 +311,10 @@ ORDER BY json_extract(value, '$.createdAt') ASC;
 	return results, nil
 }
 
-func (Cursor) querySubscriptionPlan(ctx context.Context, dbPath string) (string, error) {
-	db, err := sql.Open("sqlite", dbPath)
-	if err != nil {
-		return "", fmt.Errorf("failed opening cursor sqlite db %q: %s", dbPath, err)
-	}
-	defer db.Close() // nolint:errcheck
-
+func (Cursor) querySubscriptionPlan(ctx context.Context, db *sql.DB, dbPath string) (string, error) {
 	var tableName string
 
-	err = db.QueryRowContext(ctx, `
+	err := db.QueryRowContext(ctx, `
 SELECT name
 FROM sqlite_master
 WHERE type = 'table' AND name = 'ItemTable';
