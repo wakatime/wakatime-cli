@@ -109,12 +109,18 @@ func (g Qoder) Parse(ctx context.Context) (Heartbeats, error) {
 		return Heartbeats{}, nil
 	}
 
-	rows, err := g.queryRows(ctx, dbPath)
+	db, err := g.openDB(dbPath)
+	if err != nil {
+		return nil, err
+	}
+	defer db.Close() // nolint:errcheck
+
+	rows, err := g.queryRows(ctx, db, dbPath)
 	if err != nil {
 		return nil, err
 	}
 
-	promptRows, err := g.queryPromptRows(ctx, dbPath)
+	promptRows, err := g.queryPromptRows(ctx, db, dbPath)
 	if err != nil {
 		return nil, err
 	}
@@ -192,13 +198,20 @@ func (g Qoder) afterUnixMilli() int64 {
 	return g.After.UnixMilli()
 }
 
-func (g Qoder) queryRows(ctx context.Context, dbPath string) ([]qoderMessageRow, error) {
+func (Qoder) openDB(dbPath string) (*sql.DB, error) {
 	db, err := sql.Open("sqlite", dbPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed opening qoder sqlite db %q: %s", dbPath, err)
 	}
-	defer db.Close() // nolint:errcheck
 
+	// limit to a single connection, so the pure-Go sqlite driver only
+	// allocates memory for one connection
+	db.SetMaxOpenConns(1)
+
+	return db, nil
+}
+
+func (g Qoder) queryRows(ctx context.Context, db *sql.DB, dbPath string) ([]qoderMessageRow, error) {
 	rows, err := db.QueryContext(ctx, `
 WITH recentQoderMessages AS (
   SELECT rowid, session_id, request_id, role, tool_result, token_info, gmt_create
@@ -251,13 +264,7 @@ ORDER BY m.gmt_create ASC;
 	return results, nil
 }
 
-func (Qoder) queryPromptRows(ctx context.Context, dbPath string) ([]qoderPromptRow, error) {
-	db, err := sql.Open("sqlite", dbPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed opening qoder sqlite db %q: %s", dbPath, err)
-	}
-	defer db.Close() // nolint:errcheck
-
+func (Qoder) queryPromptRows(ctx context.Context, db *sql.DB, dbPath string) ([]qoderPromptRow, error) {
 	rows, err := db.QueryContext(ctx, `
 WITH recentQoderPromptMessages AS (
   SELECT rowid, session_id, gmt_create, role
