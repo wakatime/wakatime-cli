@@ -3,6 +3,7 @@ package deps
 import (
 	"context"
 	"fmt"
+	"runtime/debug"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/log"
@@ -144,6 +145,8 @@ func Detect(ctx context.Context, filepath string, language heartbeat.Language) (
 func parseDependencies(ctx context.Context, parser DependencyParser, filepath string) (deps []string, err error) {
 	defer func() {
 		if r := recover(); r != nil {
+			log.Extract(ctx).Errorf("panicked: %v. Stack: %s", r, string(debug.Stack()))
+
 			err = fmt.Errorf("panicked: %v", r)
 		}
 	}()

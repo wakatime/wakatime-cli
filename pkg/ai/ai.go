@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"path/filepath"
+	"runtime/debug"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -286,7 +287,7 @@ func parseAIHeartbeats(
 	for _, p := range parsers {
 		logger.Debugf("execute %s", p.Name())
 
-		heartbeats, err := p.Parse(ctx)
+		heartbeats, err := parseHeartbeats(ctx, p)
 		if err != nil {
 			logger.Errorf("unexpected error occurred at %q: %s", p.Name(), err)
 			continue
@@ -298,6 +299,19 @@ func parseAIHeartbeats(
 	}
 
 	return aiHeartbeats, nil
+}
+
+func parseHeartbeats(ctx context.Context, parser Parser) (heartbeats Heartbeats, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Extract(ctx).Errorf("panicked: %v. Stack: %s", r, string(debug.Stack()))
+
+			heartbeats = nil
+			err = fmt.Errorf("panicked: %v", r)
+		}
+	}()
+
+	return parser.Parse(ctx)
 }
 
 func getLastParsedAt(ctx context.Context, v *viper.Viper) (time.Time, error) {
