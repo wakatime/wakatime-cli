@@ -28,6 +28,8 @@ func TestRunAISyncActivity_SendsAIHeartbeatsWithoutEntity(t *testing.T) {
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
 
+	transcriptModifiedAt := time.Date(2026, 3, 18, 12, 0, 0, 0, time.UTC)
+
 	tmpDir := t.TempDir()
 
 	tmpDir, err := realpath.Realpath(tmpDir)
@@ -51,6 +53,7 @@ func TestRunAISyncActivity_SendsAIHeartbeatsWithoutEntity(t *testing.T) {
 			"{\"oldLines\":4,\"newLines\":1}]},\"usage\":{\"total_tokens\":7}}",
 	}, "\n") + "\n"
 	require.NoError(t, os.WriteFile(transcriptPath, []byte(transcript), 0o644))
+	require.NoError(t, os.Chtimes(transcriptPath, transcriptModifiedAt, transcriptModifiedAt))
 
 	testServerURL, router, tearDown := setupTestServer()
 	defer tearDown()
@@ -108,8 +111,7 @@ func TestRunAISyncActivity_SendsAIHeartbeatsWithoutEntity(t *testing.T) {
 
 	tmpInternalFile, err := os.CreateTemp(t.TempDir(), "wakatime-internal-config")
 	require.NoError(t, err)
-
-	defer tmpInternalFile.Close()
+	require.NoError(t, tmpInternalFile.Close())
 
 	v := viper.New()
 	v.Set("api-url", testServerURL)
@@ -136,6 +138,8 @@ func TestRunAISyncActivity_FiltersExcludedAIHeartbeats(t *testing.T) {
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
 
+	transcriptModifiedAt := time.Date(2026, 3, 18, 12, 0, 0, 0, time.UTC)
+
 	tmpDir := t.TempDir()
 
 	tmpDir, err := realpath.Realpath(tmpDir)
@@ -159,6 +163,7 @@ func TestRunAISyncActivity_FiltersExcludedAIHeartbeats(t *testing.T) {
 			"{\"oldLines\":4,\"newLines\":1}]},\"usage\":{\"total_tokens\":7}}",
 	}, "\n") + "\n"
 	require.NoError(t, os.WriteFile(transcriptPath, []byte(transcript), 0o644))
+	require.NoError(t, os.Chtimes(transcriptPath, transcriptModifiedAt, transcriptModifiedAt))
 
 	testServerURL, router, tearDown := setupTestServer()
 	defer tearDown()
@@ -173,8 +178,7 @@ func TestRunAISyncActivity_FiltersExcludedAIHeartbeats(t *testing.T) {
 
 	tmpInternalFile, err := os.CreateTemp(t.TempDir(), "wakatime-internal-config")
 	require.NoError(t, err)
-
-	defer tmpInternalFile.Close()
+	require.NoError(t, tmpInternalFile.Close())
 
 	v := viper.New()
 	v.Set("api-url", testServerURL)
@@ -197,6 +201,8 @@ func TestRunAISyncActivity_IncludeOverridesExcludeForAIHeartbeats(t *testing.T) 
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
+
+	transcriptModifiedAt := time.Date(2026, 3, 18, 12, 1, 0, 0, time.UTC)
 
 	includedDir, err := realpath.Realpath(t.TempDir())
 	require.NoError(t, err)
@@ -230,6 +236,7 @@ func TestRunAISyncActivity_IncludeOverridesExcludeForAIHeartbeats(t *testing.T) 
 			"\"structuredPatch\":[{\"oldLines\":3,\"newLines\":5}]}}",
 	}, "\n") + "\n"
 	require.NoError(t, os.WriteFile(transcriptPath, []byte(transcript), 0o644))
+	require.NoError(t, os.Chtimes(transcriptPath, transcriptModifiedAt, transcriptModifiedAt))
 
 	testServerURL, router, tearDown := setupTestServer()
 	defer tearDown()
@@ -263,8 +270,7 @@ func TestRunAISyncActivity_IncludeOverridesExcludeForAIHeartbeats(t *testing.T) 
 
 	tmpInternalFile, err := os.CreateTemp(t.TempDir(), "wakatime-internal-config")
 	require.NoError(t, err)
-
-	defer tmpInternalFile.Close()
+	require.NoError(t, tmpInternalFile.Close())
 
 	v := viper.New()
 	v.Set("api-url", testServerURL)
@@ -289,6 +295,8 @@ func TestRunAISyncActivity_SendsAIPromptLengthToAPI(t *testing.T) {
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
 
+	transcriptModifiedAt := time.Date(2026, 3, 28, 11, 33, 14, 0, time.UTC)
+
 	now := time.Now()
 	transcriptDir := filepath.Join(home, ".codex", "sessions", now.Format("2006"), now.Format("01"), now.Format("02"))
 	require.NoError(t, os.MkdirAll(transcriptDir, 0o755))
@@ -308,6 +316,7 @@ func TestRunAISyncActivity_SendsAIPromptLengthToAPI(t *testing.T) {
 		}, ""),
 	}, "\n") + "\n"
 	require.NoError(t, os.WriteFile(transcriptPath, []byte(transcript), 0o644))
+	require.NoError(t, os.Chtimes(transcriptPath, transcriptModifiedAt, transcriptModifiedAt))
 
 	testServerURL, router, tearDown := setupTestServer()
 	defer tearDown()
@@ -346,8 +355,7 @@ func TestRunAISyncActivity_SendsAIPromptLengthToAPI(t *testing.T) {
 
 	tmpInternalFile, err := os.CreateTemp(t.TempDir(), "wakatime-internal-config")
 	require.NoError(t, err)
-
-	defer tmpInternalFile.Close()
+	require.NoError(t, tmpInternalFile.Close())
 
 	v := viper.New()
 	v.Set("api-url", testServerURL)
@@ -369,6 +377,8 @@ func TestRunAISyncActivity_UsesAlternateProject(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
+
+	transcriptModifiedAt := time.Date(2026, 3, 18, 12, 0, 0, 0, time.UTC)
 
 	tmpDir := t.TempDir()
 
@@ -393,6 +403,7 @@ func TestRunAISyncActivity_UsesAlternateProject(t *testing.T) {
 			"{\"oldLines\":4,\"newLines\":1}]},\"usage\":{\"total_tokens\":7}}",
 	}, "\n") + "\n"
 	require.NoError(t, os.WriteFile(transcriptPath, []byte(transcript), 0o644))
+	require.NoError(t, os.Chtimes(transcriptPath, transcriptModifiedAt, transcriptModifiedAt))
 
 	testServerURL, router, tearDown := setupTestServer()
 	defer tearDown()
@@ -438,8 +449,7 @@ func TestRunAISyncActivity_UsesAlternateProject(t *testing.T) {
 
 	tmpInternalFile, err := os.CreateTemp(t.TempDir(), "wakatime-internal-config")
 	require.NoError(t, err)
-
-	defer tmpInternalFile.Close()
+	require.NoError(t, tmpInternalFile.Close())
 
 	v := viper.New()
 	v.Set("api-url", testServerURL)
@@ -464,6 +474,8 @@ func TestRunAISyncActivity_RateLimitedWithoutEntity_SavesOffline(t *testing.T) {
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
 
+	transcriptModifiedAt := time.Date(2026, 3, 18, 12, 0, 0, 0, time.UTC)
+
 	tmpDir := t.TempDir()
 
 	tmpDir, err := realpath.Realpath(tmpDir)
@@ -486,11 +498,11 @@ func TestRunAISyncActivity_RateLimitedWithoutEntity_SavesOffline(t *testing.T) {
 			"\"structuredPatch\":[{\"oldLines\":3,\"newLines\":5},{\"oldLines\":4,\"newLines\":1}]}}",
 	}, "\n") + "\n"
 	require.NoError(t, os.WriteFile(transcriptPath, []byte(transcript), 0o644))
+	require.NoError(t, os.Chtimes(transcriptPath, transcriptModifiedAt, transcriptModifiedAt))
 
 	tmpInternalFile, err := os.CreateTemp(t.TempDir(), "wakatime-internal-config")
 	require.NoError(t, err)
-
-	defer tmpInternalFile.Close()
+	require.NoError(t, tmpInternalFile.Close())
 
 	offlineQueueFile, err := os.CreateTemp(t.TempDir(), "offline-queue-file")
 	require.NoError(t, err)
