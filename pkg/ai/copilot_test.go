@@ -285,3 +285,436 @@ func TestCopilotParseJSONLSession_IgnoresStringVariableValues(t *testing.T) {
 	assert.Equal(t, heartbeat.AppType, got[1].EntityType)
 	assert.Zero(t, got[1].AIPromptLength)
 }
+
+func TestCopilotParseCLISessionEvents(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	sessionID := "cli-session-1"
+	projectDir := filepath.Join(home, "project")
+	readmePath := filepath.Join(projectDir, "README.md")
+	planPath := filepath.Join(home, ".copilot", "session-state", "other-session", "plan.md")
+	windowsPlanPath := `C:\Users\user\.copilot\session-state\windows-session\plan.md`
+	eventsPath := filepath.Join(home, ".copilot", "session-state", sessionID, "events.jsonl")
+
+	require.NoError(t, os.MkdirAll(filepath.Dir(readmePath), 0o755))
+	require.NoError(t, os.WriteFile(readmePath, []byte("# Project\n"), 0o644))
+	require.NoError(t, os.MkdirAll(filepath.Dir(eventsPath), 0o755))
+
+	writeCopilotCLIEvents(t, eventsPath, []map[string]any{
+		{
+			"type":      "session.start",
+			"timestamp": "2026-06-14T12:00:00Z",
+			"data": map[string]any{
+				"sessionId":      sessionID,
+				"copilotVersion": "1.0.62",
+				"context": map[string]any{
+					"cwd":     projectDir,
+					"gitRoot": projectDir,
+				},
+			},
+		},
+		{
+			"type":      "session.model_change",
+			"timestamp": "2026-06-14T12:00:00.500Z",
+			"data": map[string]any{
+				"newModel": "gpt-5.4",
+			},
+		},
+		{
+			"type":      "user.message",
+			"timestamp": "2026-06-14T12:00:01Z",
+			"data": map[string]any{
+				"content": "Update README",
+			},
+		},
+		{
+			"type":      "assistant.message",
+			"timestamp": "2026-06-14T12:00:02Z",
+			"data": map[string]any{
+				"model":        "gpt-5.4",
+				"outputTokens": 9,
+			},
+		},
+		{
+			"type":      "tool.execution_start",
+			"timestamp": "2026-06-14T12:00:02.100Z",
+			"data": map[string]any{
+				"toolCallId": "tool-1",
+				"toolName":   "apply_patch",
+			},
+		},
+		{
+			"type":      "tool.execution_complete",
+			"timestamp": "2026-06-14T12:00:03Z",
+			"data": map[string]any{
+				"toolCallId": "tool-1",
+				"success":    true,
+				"toolTelemetry": map[string]any{
+					"properties": map[string]any{
+						"codeBlocks": jsonEncodedString(t, []map[string]any{
+							{
+								"fileExt":      ".md",
+								"languageId":   "markdown",
+								"linesAdded":   1,
+								"linesRemoved": 1,
+							},
+						}),
+					},
+					"restrictedProperties": map[string]any{
+						"filePaths":    jsonEncodedString(t, []string{readmePath}),
+						"addedPaths":   jsonEncodedString(t, []string{}),
+						"deletedPaths": jsonEncodedString(t, []string{}),
+					},
+					"metrics": map[string]any{
+						"linesAdded":   1,
+						"linesRemoved": 1,
+					},
+				},
+			},
+		},
+		{
+			"type":      "tool.execution_start",
+			"timestamp": "2026-06-14T12:00:03.100Z",
+			"data": map[string]any{
+				"toolCallId": "tool-plan",
+				"toolName":   "apply_patch",
+			},
+		},
+		{
+			"type":      "tool.execution_complete",
+			"timestamp": "2026-06-14T12:00:03.200Z",
+			"data": map[string]any{
+				"toolCallId": "tool-plan",
+				"success":    true,
+				"toolTelemetry": map[string]any{
+					"restrictedProperties": map[string]any{
+						"filePaths": jsonEncodedString(t, []string{planPath, windowsPlanPath}),
+					},
+					"metrics": map[string]any{
+						"linesAdded":   4,
+						"linesRemoved": 0,
+					},
+				},
+			},
+		},
+		{
+			"type":      "session.shutdown",
+			"timestamp": "2026-06-14T12:00:04Z",
+			"data": map[string]any{
+				"currentModel": "gpt-5.4",
+				"tokenDetails": map[string]any{
+					"input": map[string]any{
+						"tokenCount": 17,
+					},
+					"output": map[string]any{
+						"tokenCount": 11,
+					},
+				},
+				"codeChanges": map[string]any{
+					"linesAdded":    5,
+					"linesRemoved":  1,
+					"filesModified": []string{readmePath, planPath},
+				},
+			},
+		},
+	})
+
+	got, err := ai.Copilot{
+		After:             time.Date(2026, time.June, 14, 11, 59, 0, 0, time.UTC),
+		FallbackUserAgent: "editor/1.2.3",
+	}.Parse(t.Context())
+	require.NoError(t, err)
+	require.Len(t, got, 4)
+
+	assert.Equal(t, "Copilot "+sessionID, got[0].Entity)
+	assert.Equal(t, sessionID, got[0].AISession)
+	assert.Equal(t, heartbeat.AppType, got[0].EntityType)
+	assert.Equal(t, len([]rune("Update README")), got[0].AIPromptLength)
+	assert.Equal(t, projectDir, got[0].ProjectPathOverride)
+	require.NotNil(t, got[0].IsWrite)
+	assert.False(t, *got[0].IsWrite)
+	assert.Contains(t, got[0].UserAgent, "Copilot/gpt-5.4")
+	assert.Contains(t, got[0].UserAgent, "github-copilot-cli/1.0.62 copilot/1.0.62")
+	assert.Contains(t, got[0].UserAgent, "editor/1.2.3")
+
+	assert.Equal(t, "Copilot "+sessionID, got[1].Entity)
+	assert.Equal(t, heartbeat.AppType, got[1].EntityType)
+	assert.Equal(t, int64(0), got[1].AIInputTokens)
+	assert.Equal(t, int64(9), got[1].AIOutputTokens)
+
+	assert.Equal(t, readmePath, got[2].Entity)
+	assert.Equal(t, sessionID, got[2].AISession)
+	assert.Equal(t, heartbeat.FileType, got[2].EntityType)
+	require.NotNil(t, got[2].IsWrite)
+	assert.True(t, *got[2].IsWrite)
+	require.NotNil(t, got[2].AILineChanges)
+	assert.Equal(t, 0, *got[2].AILineChanges)
+	assert.Contains(t, got[2].UserAgent, "github-copilot-cli/1.0.62 copilot/1.0.62")
+
+	assert.Equal(t, "Copilot "+sessionID, got[3].Entity)
+	assert.Equal(t, heartbeat.AppType, got[3].EntityType)
+	assert.Equal(t, int64(17), got[3].AIInputTokens)
+	assert.Equal(t, int64(2), got[3].AIOutputTokens)
+
+	for _, h := range got {
+		assert.NotEqual(t, planPath, h.Entity)
+		assert.NotEqual(t, windowsPlanPath, h.Entity)
+	}
+}
+
+func TestCopilotParseCLISessionEvents_IgnoresSessionWithoutEvents(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	sessionDir := filepath.Join(home, ".copilot", "session-state", "cli-session-empty")
+	require.NoError(t, os.MkdirAll(sessionDir, 0o755))
+	require.NoError(t, os.WriteFile(filepath.Join(sessionDir, "workspace.yaml"), []byte("id: cli-session-empty\n"), 0o644))
+
+	got, err := ai.Copilot{
+		After:             time.Date(2026, time.June, 14, 11, 59, 0, 0, time.UTC),
+		FallbackUserAgent: "editor/1.2.3",
+	}.Parse(t.Context())
+	require.NoError(t, err)
+	assert.Empty(t, got)
+}
+
+func TestCopilotParseCLISessionEvents_IgnoresNoopTranscript(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	sessionID := "cli-session-noop"
+	eventsPath := filepath.Join(home, ".copilot", "session-state", sessionID, "events.jsonl")
+	require.NoError(t, os.MkdirAll(filepath.Dir(eventsPath), 0o755))
+
+	writeCopilotCLIEvents(t, eventsPath, []map[string]any{
+		{
+			"type":      "session.start",
+			"timestamp": "2026-06-14T12:00:00Z",
+			"data": map[string]any{
+				"sessionId":      sessionID,
+				"copilotVersion": "1.0.62",
+			},
+		},
+		{
+			"type":      "session.shutdown",
+			"timestamp": "2026-06-14T12:00:01Z",
+			"data": map[string]any{
+				"currentModel": "gpt-5.4",
+			},
+		},
+	})
+
+	got, err := ai.Copilot{
+		After:             time.Date(2026, time.June, 14, 11, 59, 0, 0, time.UTC),
+		FallbackUserAgent: "editor/1.2.3",
+	}.Parse(t.Context())
+	require.NoError(t, err)
+	assert.Empty(t, got)
+}
+
+func TestCopilotParseCLISessionEvents_IgnoresPreCutoffActivityWithoutShutdownDelta(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	sessionID := "cli-session-before-cutoff"
+	eventsPath := filepath.Join(home, ".copilot", "session-state", sessionID, "events.jsonl")
+	require.NoError(t, os.MkdirAll(filepath.Dir(eventsPath), 0o755))
+
+	writeCopilotCLIEvents(t, eventsPath, []map[string]any{
+		{
+			"type":      "session.start",
+			"timestamp": "2026-06-14T12:00:00Z",
+			"data": map[string]any{
+				"sessionId":      sessionID,
+				"copilotVersion": "1.0.62",
+			},
+		},
+		{
+			"type":      "user.message",
+			"timestamp": "2026-06-14T12:00:01Z",
+			"data": map[string]any{
+				"content": "Update README",
+			},
+		},
+		{
+			"type":      "assistant.message",
+			"timestamp": "2026-06-14T12:00:02Z",
+			"data": map[string]any{
+				"model":        "gpt-5.4",
+				"outputTokens": 9,
+			},
+		},
+		{
+			"type":      "session.shutdown",
+			"timestamp": "2026-06-14T12:00:04Z",
+			"data": map[string]any{
+				"currentModel": "gpt-5.4",
+				"tokenDetails": map[string]any{
+					"output": map[string]any{
+						"tokenCount": 9,
+					},
+				},
+			},
+		},
+	})
+
+	got, err := ai.Copilot{
+		After:             time.Date(2026, time.June, 14, 12, 0, 3, 0, time.UTC),
+		FallbackUserAgent: "editor/1.2.3",
+	}.Parse(t.Context())
+	require.NoError(t, err)
+	assert.Empty(t, got)
+}
+
+func TestCopilotParseCLISessionEvents_DoesNotFallbackWriteForPreCutoffTool(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	sessionID := "cli-session-pre-cutoff-tool"
+	eventsPath := filepath.Join(home, ".copilot", "session-state", sessionID, "events.jsonl")
+	require.NoError(t, os.MkdirAll(filepath.Dir(eventsPath), 0o755))
+
+	writeCopilotCLIEvents(t, eventsPath, []map[string]any{
+		{
+			"type":      "session.start",
+			"timestamp": "2026-06-14T12:00:00Z",
+			"data": map[string]any{
+				"sessionId":      sessionID,
+				"copilotVersion": "1.0.62",
+			},
+		},
+		{
+			"type":      "tool.execution_start",
+			"timestamp": "2026-06-14T12:00:01Z",
+			"data": map[string]any{
+				"toolCallId": "tool-1",
+				"toolName":   "apply_patch",
+			},
+		},
+		{
+			"type":      "tool.execution_complete",
+			"timestamp": "2026-06-14T12:00:02Z",
+			"data": map[string]any{
+				"toolCallId": "tool-1",
+				"success":    true,
+				"toolTelemetry": map[string]any{
+					"restrictedProperties": map[string]any{
+						"filePaths": jsonEncodedString(t, []string{`C:\project\README.md`}),
+					},
+					"metrics": map[string]any{
+						"linesAdded":   1,
+						"linesRemoved": 0,
+					},
+				},
+			},
+		},
+		{
+			"type":      "session.shutdown",
+			"timestamp": "2026-06-14T12:00:04Z",
+			"data": map[string]any{
+				"currentModel": "gpt-5.4",
+				"codeChanges": map[string]any{
+					"linesAdded":    1,
+					"linesRemoved":  0,
+					"filesModified": []string{"C:/project/README.md"},
+				},
+			},
+		},
+	})
+
+	got, err := ai.Copilot{
+		After:             time.Date(2026, time.June, 14, 12, 0, 3, 0, time.UTC),
+		FallbackUserAgent: "editor/1.2.3",
+	}.Parse(t.Context())
+	require.NoError(t, err)
+	require.Len(t, got, 1)
+	assert.Equal(t, heartbeat.AppType, got[0].EntityType)
+}
+
+func TestCopilotParseCLISessionEvents_TailScannerKeepsStartMetadata(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	sessionID := "cli-session-large"
+	projectDir := filepath.Join(home, "project")
+	eventsPath := filepath.Join(home, ".copilot", "session-state", sessionID, "events.jsonl")
+	require.NoError(t, os.MkdirAll(filepath.Dir(eventsPath), 0o755))
+
+	start, err := json.Marshal(map[string]any{
+		"type":      "session.start",
+		"timestamp": "2026-06-14T12:00:00Z",
+		"data": map[string]any{
+			"sessionId":      sessionID,
+			"copilotVersion": "1.0.62",
+			"context": map[string]any{
+				"cwd":     projectDir,
+				"gitRoot": projectDir,
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	message, err := json.Marshal(map[string]any{
+		"type":      "user.message",
+		"timestamp": "2026-06-14T12:00:01Z",
+		"data": map[string]any{
+			"content": "Update README",
+		},
+	})
+	require.NoError(t, err)
+
+	filler := `{"type":"noop","timestamp":"2026-06-14T12:00:00Z","data":{"message":"` +
+		strings.Repeat("x", 900) + `"}}` + "\n"
+
+	var transcript strings.Builder
+	transcript.Write(start)
+	transcript.WriteByte('\n')
+
+	for transcript.Len() <= 11*1024*1024 {
+		transcript.WriteString(filler)
+	}
+
+	transcript.Write(message)
+	transcript.WriteByte('\n')
+	require.NoError(t, os.WriteFile(eventsPath, []byte(transcript.String()), 0o644))
+
+	got, err := ai.Copilot{
+		After:             time.Date(2026, time.June, 14, 12, 0, 0, 0, time.UTC),
+		FallbackUserAgent: "editor/1.2.3",
+	}.Parse(t.Context())
+	require.NoError(t, err)
+	require.Len(t, got, 1)
+	assert.Equal(t, projectDir, got[0].ProjectPathOverride)
+	assert.Contains(t, got[0].UserAgent, "github-copilot-cli/1.0.62 copilot/1.0.62")
+}
+
+func writeCopilotCLIEvents(t *testing.T, path string, events []map[string]any) {
+	t.Helper()
+
+	var lines []string
+
+	for _, event := range events {
+		data, err := json.Marshal(event)
+		require.NoError(t, err)
+
+		lines = append(lines, string(data))
+	}
+
+	require.NoError(t, os.WriteFile(path, []byte(strings.Join(lines, "\n")+"\n"), 0o644))
+}
+
+func jsonEncodedString(t *testing.T, value any) string {
+	t.Helper()
+
+	data, err := json.Marshal(value)
+	require.NoError(t, err)
+
+	return string(data)
+}
