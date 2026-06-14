@@ -65,6 +65,9 @@ func TestWithAISyncUpdatesLastParsedAtBeforeNext(t *testing.T) {
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
 
+	initialLastParsedAt := time.Date(2026, 3, 18, 11, 0, 0, 0, time.UTC)
+	expectedLastParsedAt := time.Date(2026, 3, 18, 12, 30, 0, 0, time.UTC)
+
 	entity, err := filepath.Abs("testdata/main.go")
 	require.NoError(t, err)
 
@@ -82,15 +85,15 @@ func TestWithAISyncUpdatesLastParsedAtBeforeNext(t *testing.T) {
 			"\"filePath\":\"" + entity + "\",\"content\":\"first\\nsecond\\nthird\"}}",
 	}, "\n") + "\n"
 	require.NoError(t, os.WriteFile(transcriptPath, []byte(transcript), 0o644))
+	require.NoError(t, os.Chtimes(transcriptPath, expectedLastParsedAt, expectedLastParsedAt))
 
 	tmpInternal, err := os.CreateTemp(t.TempDir(), "wakatime-internal")
 	require.NoError(t, err)
-
-	defer tmpInternal.Close()
+	require.NoError(t, tmpInternal.Close())
 
 	v := viper.New()
 	v.Set("internal-config", tmpInternal.Name())
-	v.Set("internal.ai_logs_last_parsed_at", time.Date(2026, 3, 18, 11, 0, 0, 0, time.UTC).Format(ini.DateFormat))
+	v.Set("internal.ai_logs_last_parsed_at", initialLastParsedAt.Format(ini.DateFormat))
 
 	var (
 		nextCalled     bool
@@ -103,6 +106,17 @@ func TestWithAISyncUpdatesLastParsedAtBeforeNext(t *testing.T) {
 		nextCalled = true
 
 		require.NotEmpty(t, hh)
+
+		var parsedAIHeartbeat bool
+
+		for _, h := range hh {
+			if h.Category == heartbeat.AICodingCategory.String() && h.Time == float64(expectedLastParsedAt.Unix()) {
+				parsedAIHeartbeat = true
+				break
+			}
+		}
+
+		require.True(t, parsedAIHeartbeat, "expected WithAISync to pass parsed AI heartbeat to next handler")
 
 		lock, err := ai.AcquireSyncLock(t.Context(), v, time.Second)
 		require.NoError(t, err)
@@ -130,10 +144,16 @@ func TestWithAISyncUpdatesLastParsedAtBeforeNext(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, writer.File.Reload())
 
+	require.True(
+		t,
+		writer.File.Section("internal").HasKey("ai_logs_last_parsed_at"),
+		"expected ai_logs_last_parsed_at to be written",
+	)
+
 	lastParsedAt, err := writer.File.Section("internal").Key("ai_logs_last_parsed_at").TimeFormat(ini.DateFormat)
 	require.NoError(t, err)
 
-	assert.Equal(t, time.Date(2026, 3, 18, 12, 30, 0, 0, time.UTC), lastParsedAt)
+	assert.Equal(t, expectedLastParsedAt, lastParsedAt)
 }
 
 func TestWithAISyncReleasesLockOnRecoveredPanic(t *testing.T) {
