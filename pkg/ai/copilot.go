@@ -203,21 +203,20 @@ func (m *copilotMessageWithURIs) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// Parse parses VS Code GitHub Copilot Chat sessions for ai heartbeats.
+// Parse parses VS Code GitHub Copilot Chat sessions and Copilot CLI event.jsonl transcripts for ai heartbeats.
 func (g Copilot) Parse(ctx context.Context) (Heartbeats, error) {
 	workspaces, err := g.workspaceStates(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(workspaces) == 0 {
-		return Heartbeats{}, nil
-	}
-
 	logger := log.Extract(ctx)
-	logger.Debugf("Found %d Copilot workspace storage directories for %s", len(workspaces), g.Name())
 
 	var timed []copilotTimedHeartbeat
+
+	if len(workspaces) > 0 {
+		logger.Debugf("Found %d Copilot workspace storage directories for %s", len(workspaces), g.Name())
+	}
 
 	for _, ws := range workspaces {
 		sessionHeartbeats, requestMeta := g.sessionHeartbeats(ws)
@@ -229,6 +228,17 @@ func (g Copilot) Parse(ctx context.Context) (Heartbeats, error) {
 		}
 
 		timed = append(timed, editHeartbeats...)
+	}
+
+	cliHeartbeats, err := g.cliHeartbeats(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	timed = append(timed, cliHeartbeats...)
+
+	if len(timed) == 0 {
+		return Heartbeats{}, nil
 	}
 
 	sort.SliceStable(timed, func(i, j int) bool {
