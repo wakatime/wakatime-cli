@@ -412,14 +412,12 @@ func (Continue) tokensForEvent(event continueEvent, tokens *continueEvent) *hear
 }
 
 func (g Continue) userAgent(event continueEvent, entity string) string {
-	parser := aiPlugin(g, event.Model)
-
 	fallback := event.UserAgent
 	if fallback == "" {
 		fallback = g.FallbackUserAgent
 	}
 
-	return aiUserAgent(entity, g.UserAgents, fallback, parser)
+	return aiUserAgentWithAgentPrefix(entity, g.UserAgents, fallback, aiPlugin(g, ""), event.Model)
 }
 
 func (Continue) promptLength(prompt string) int {

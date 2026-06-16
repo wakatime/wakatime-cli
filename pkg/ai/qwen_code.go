@@ -25,6 +25,7 @@ type (
 		cwd        string
 		heartbeats Heartbeats
 		sessionID  string
+		model      string
 		tokens     heartbeat.AITokens
 		toolCalls  map[string]qwenCodeToolCall
 		toolQueue  []qwenCodeToolCall
@@ -409,7 +410,8 @@ func (g QwenCode) handleTranscriptLine(
 func (g QwenCode) handleTranscriptRecord(record qwenCodeRecord, state *qwenCodeParseState) {
 	state.cwd = firstNonEmptyString(record.CWD, state.cwd)
 	state.sessionID = firstNonEmptyString(record.SessionID, state.sessionID)
-	state.version = firstNonEmptyString(record.Version, state.version, record.Model)
+	state.model = firstNonEmptyString(record.Model, state.model)
+	state.version = firstNonEmptyString(record.Version, state.version)
 
 	if record.ForkedFrom != nil {
 		return
@@ -517,7 +519,7 @@ func (g QwenCode) messageHeartbeat(record qwenCodeRecord, state qwenCodeParseSta
 		"",
 		state.cwd,
 		float64(record.Timestamp.UnixMilli())/1000,
-		aiUserAgent(entity, g.UserAgents, g.FallbackUserAgent, aiPlugin(g, state.version)),
+		aiUserAgentWithAgentPrefix(entity, g.UserAgents, g.FallbackUserAgent, aiPlugin(g, state.version), state.model),
 	)
 	if record.Type == "user" {
 		h.AIPromptLength = promptLength(content)
@@ -573,7 +575,7 @@ func (g QwenCode) toolResultHeartbeat(record qwenCodeRecord, state *qwenCodePars
 		"",
 		"",
 		float64(record.Timestamp.UnixMilli())/1000,
-		aiUserAgent(filePath, g.UserAgents, g.FallbackUserAgent, aiPlugin(g, state.version)),
+		aiUserAgentWithAgentPrefix(filePath, g.UserAgents, g.FallbackUserAgent, aiPlugin(g, state.version), state.model),
 	)
 
 	return &h

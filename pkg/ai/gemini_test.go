@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -226,7 +227,9 @@ func TestGeminiParse(t *testing.T) {
 	assert.EqualValues(t, 100, got[1].AIInputTokens)
 	assert.EqualValues(t, 20, got[1].AIOutputTokens)
 	assert.Equal(t, projectDir, got[1].ProjectPathOverride)
-	assert.Contains(t, got[1].UserAgent, "Gemini/gemini-3-flash-preview")
+	assert.Contains(t, got[1].UserAgent, "gemini/3-flash-preview")
+	assert.Contains(t, got[1].UserAgent, "Gemini")
+	assert.True(t, strings.Index(got[1].UserAgent, "gemini/3-flash-preview") < strings.Index(got[1].UserAgent, "Gemini"))
 
 	assert.Equal(t, "Gemini gem-session-1", got[2].Entity)
 	assert.Equal(t, heartbeat.AppType, got[2].EntityType)
@@ -242,7 +245,9 @@ func TestGeminiParse(t *testing.T) {
 	assert.True(t, *got[3].IsWrite)
 	assert.Zero(t, got[3].AIInputTokens)
 	assert.Zero(t, got[3].AIOutputTokens)
-	assert.Contains(t, got[3].UserAgent, "Gemini/gemini-3-flash-preview")
+	assert.Contains(t, got[3].UserAgent, "gemini/3-flash-preview")
+	assert.Contains(t, got[3].UserAgent, "Gemini")
+	assert.True(t, strings.Index(got[3].UserAgent, "gemini/3-flash-preview") < strings.Index(got[3].UserAgent, "Gemini"))
 	assert.Contains(t, got[3].UserAgent, "editor/1.2.3")
 
 	assert.Equal(t, "Gemini gem-session-1", got[4].Entity)

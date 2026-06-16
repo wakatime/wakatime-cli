@@ -932,8 +932,7 @@ func (g Copilot) cliFileHeartbeat(
 }
 
 func (g Copilot) cliUserAgent(entity string, model string, cliVersion string, agentVersion string) string {
-	pluginVersion := firstNonEmptyString(model, agentVersion)
-	parser := aiPlugin(g, pluginVersion)
+	parser := aiPlugin(g, "")
 
 	existing := g.FallbackUserAgent
 	if fromHeartbeat, found := g.UserAgents[entity]; found && fromHeartbeat != "" {
@@ -941,29 +940,11 @@ func (g Copilot) cliUserAgent(entity string, model string, cliVersion string, ag
 	}
 
 	existing = userAgentWithPrependedEditor(existing, copilotCLIHarnessUserAgent(cliVersion, agentVersion))
-	if existing == "" {
-		return parser
-	}
 
-	if copilotCLIUserAgentHasToken(existing, parser) {
-		return existing
-	}
-
-	return strings.TrimSpace(parser + " " + existing)
-}
-
-func copilotCLIUserAgentHasToken(userAgent string, token string) bool {
-	if token == "" {
-		return false
-	}
-
-	for _, field := range userAgentProductFields(userAgent) {
-		if strings.EqualFold(field, token) {
-			return true
-		}
-	}
-
-	return false
+	return userAgentWithPrependedAgent(
+		userAgentWithPrependedParser(existing, parser),
+		aiAgentUserAgentToken(model),
+	)
 }
 
 func copilotCLIHarnessUserAgent(cliVersion string, agentVersion string) string {

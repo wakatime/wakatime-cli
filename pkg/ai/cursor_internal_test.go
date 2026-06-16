@@ -3,6 +3,7 @@
 package ai
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -43,11 +44,13 @@ func TestCursorHeartbeatFallbacks(t *testing.T) {
 			RawArgs: `{"target_file":"/tmp/raw-edit.go","code_edit":"one\ntwo"}`,
 			Status:  "completed",
 		},
-	}, "", heartbeat.AITokens{})
+	}, "", "composer-2.5", heartbeat.AITokens{})
 	require.Len(t, editHeartbeats, 1)
 	edit := &editHeartbeats[0]
 	require.NotNil(t, edit)
 	assert.Equal(t, "/tmp/raw-edit.go", edit.Entity)
+	assert.Contains(t, edit.UserAgent, "Cursor")
+	assert.Contains(t, edit.UserAgent, "composer/2.5")
 	require.NotNil(t, edit.AILineChanges)
 	assert.Equal(t, 2, *edit.AILineChanges)
 	require.NotNil(t, edit.IsWrite)
@@ -65,7 +68,7 @@ func TestCursorHeartbeatFallbacks(t *testing.T) {
 		CodeBlocks: []cursorCodeBlock{{
 			URI: &cursorURI{FSPath: "/tmp/from-read-block.go"},
 		}},
-	}, "", heartbeat.AITokens{})
+	}, "", "", heartbeat.AITokens{})
 	require.Len(t, readHeartbeats, 1)
 	read := &readHeartbeats[0]
 	require.NotNil(t, read)
@@ -78,7 +81,7 @@ func TestCursorHeartbeatFallbacks(t *testing.T) {
 		CreatedAt: createdAt,
 		Type:      1,
 		Text:      "Please edit the file",
-	}, "/tmp", heartbeat.AITokens{})
+	}, "/tmp", "", heartbeat.AITokens{})
 	require.Len(t, appHeartbeats, 1)
 	assert.Equal(t, "Cursor composer-1", appHeartbeats[0].Entity)
 	assert.Equal(t, heartbeat.AppType, appHeartbeats[0].EntityType)
@@ -94,5 +97,62 @@ func TestCursorHeartbeatFallbacks(t *testing.T) {
 			Name:   "unknown_tool",
 			Status: "completed",
 		},
-	}, "", nil))
+	}, "", "", nil))
+}
+
+func TestCursorModelName(t *testing.T) {
+	tests := map[string]string{
+		`{"modelName":"claude-3.7-sonnet"}`:                                "claude-3.7-sonnet",
+		`{"selectedModel":{"name":"gpt-5 high"}}`:                          "gpt-5-high",
+		`{"modelDetails":{"model_id":"anthropic/claude-sonnet-4.5"}}`:      "anthropic/claude-sonnet-4.5",
+		`{"nestedModelConfig":{"value":{"slug":"gemini-3-pro-preview"}}}`:  "gemini-3-pro-preview",
+		`{"modelName":"` + strings.Repeat("x", 129) + `"}`:                 "",
+		`{"toolFormerData":{"name":"edit_file_v2"},"model_added_lines":3}`: "",
+	}
+
+	for raw, expected := range tests {
+		assert.Equal(t, expected, Cursor{}.modelName([]byte(raw)))
+	}
+}
+
+func TestCursorModelUserAgentToken(t *testing.T) {
+	tests := map[string]string{
+		"composer-2.5":                "composer/2.5",
+		"composer/2.5":                "composer/2.5",
+		"claude-3.7-sonnet":           "claude/3.7-sonnet",
+		"gpt 5 high":                  "gpt/5-high",
+		"anthropic/claude-sonnet-4.5": "anthropic/claude-sonnet-4.5",
+		"":                            "",
+		"/":                           "",
+	}
+
+	for raw, expected := range tests {
+		assert.Equal(t, expected, cursorModelUserAgentToken(raw))
+	}
+}
+
+func TestCursorUserAgentWithModel(t *testing.T) {
+	assert.Equal(
+		t,
+		"composer/2.5 Cursor/1.105.1",
+		cursorUserAgentWithModel("Cursor/1.105.1", "composer/2.5"),
+	)
+	assert.Equal(
+		t,
+		"composer/2.5 wakatime/13.0.7 (macOS-arm64-arm64) go1.26 Cursor/1.105.1",
+		cursorUserAgentWithModel(
+			"wakatime/13.0.7 (macOS-arm64-arm64) go1.26 Cursor/1.105.1",
+			"composer/2.5",
+		),
+	)
+	assert.Equal(
+		t,
+		"composer/2.5 Cursor plugin/0.1.0",
+		cursorUserAgentWithModel("Cursor plugin/0.1.0", "composer/2.5"),
+	)
+	assert.Equal(
+		t,
+		"composer/2.5 Cursor/1.105.1",
+		cursorUserAgentWithModel("composer/2.5 Cursor/1.105.1", "composer/2.5"),
+	)
 }

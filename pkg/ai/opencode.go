@@ -62,18 +62,20 @@ type (
 	}
 
 	openCodePart struct {
-		ID        string `json:"id"`
-		MessageID string `json:"messageID"`
-		SessionID string `json:"sessionID"`
-		Type      string `json:"type"`
-		Text      string `json:"text"`
-		Ignored   bool   `json:"ignored"`
-		Tool      string `json:"tool"`
-		State     *struct {
-			Status   string          `json:"status"`
-			Input    json.RawMessage `json:"input"`
-			Metadata json.RawMessage `json:"metadata"`
-		} `json:"state"`
+		ID        string             `json:"id"`
+		MessageID string             `json:"messageID"`
+		SessionID string             `json:"sessionID"`
+		Type      string             `json:"type"`
+		Text      string             `json:"text"`
+		Ignored   bool               `json:"ignored"`
+		Tool      string             `json:"tool"`
+		State     *openCodeToolState `json:"state"`
+	}
+
+	openCodeToolState struct {
+		Status   string          `json:"status"`
+		Input    json.RawMessage `json:"input"`
+		Metadata json.RawMessage `json:"metadata"`
 	}
 
 	openCodeMessageWithParts struct {
@@ -618,17 +620,34 @@ func (g OpenCode) sessionHeartbeats(
 
 		switch message.info.Role {
 		case "user":
-			if hb := g.userHeartbeat(sessionEntity, session.Version, session.ID, cwd, message, tokens); hb != nil {
+			if hb := g.userHeartbeat(
+				sessionEntity,
+				session.Version,
+				message.info.ModelID,
+				session.ID,
+				cwd,
+				message,
+				tokens,
+			); hb != nil {
 				heartbeats = append(heartbeats, *hb)
 			}
 		case "assistant":
-			if hb := g.assistantHeartbeat(sessionEntity, session.Version, session.ID, cwd, message, tokens); hb != nil {
+			if hb := g.assistantHeartbeat(
+				sessionEntity,
+				session.Version,
+				message.info.ModelID,
+				session.ID,
+				cwd,
+				message,
+				tokens,
+			); hb != nil {
 				heartbeats = append(heartbeats, *hb)
 			}
 
 			for _, part := range message.parts {
 				hbs := g.toolHeartbeats(
 					session.Version,
+					message.info.ModelID,
 					session.ID,
 					cwd,
 					messageTime,
@@ -780,6 +799,7 @@ func (OpenCode) readParts(baseStorageDir string, messageID string) ([]openCodePa
 func (g OpenCode) userHeartbeat(
 	entity string,
 	version string,
+	model string,
 	sessionID string,
 	cwd string,
 	message openCodeMessageWithParts,
@@ -821,7 +841,7 @@ func (g OpenCode) userHeartbeat(
 		"",
 		cwd,
 		float64(time.UnixMilli(message.info.Time.Created).Unix()),
-		aiUserAgent(entity, g.UserAgents, g.FallbackUserAgent, aiPlugin(g, version)),
+		aiUserAgentWithAgentPrefix(entity, g.UserAgents, g.FallbackUserAgent, aiPlugin(g, version), model),
 	)
 	h.AIPromptLength = prompt
 
@@ -831,6 +851,7 @@ func (g OpenCode) userHeartbeat(
 func (g OpenCode) assistantHeartbeat(
 	entity string,
 	version string,
+	model string,
 	sessionID string,
 	cwd string,
 	message openCodeMessageWithParts,
@@ -875,7 +896,7 @@ func (g OpenCode) assistantHeartbeat(
 		"",
 		cwd,
 		float64(time.UnixMilli(message.info.Time.Created).Unix()),
-		aiUserAgent(entity, g.UserAgents, g.FallbackUserAgent, aiPlugin(g, version)),
+		aiUserAgentWithAgentPrefix(entity, g.UserAgents, g.FallbackUserAgent, aiPlugin(g, version), model),
 	)
 
 	return &h
@@ -883,6 +904,7 @@ func (g OpenCode) assistantHeartbeat(
 
 func (g OpenCode) toolHeartbeats(
 	version string,
+	model string,
 	sessionID string,
 	cwd string,
 	timestamp time.Time,
@@ -894,21 +916,24 @@ func (g OpenCode) toolHeartbeats(
 
 	switch part.Tool {
 	case "edit":
-		return g.editHeartbeats(version, sessionID, cwd, timestamp, *part.State)
+		return g.editHeartbeats(version, model, sessionID, cwd, timestamp, *part.State)
 	case "write":
-		return g.writeHeartbeats(version, sessionID, cwd, timestamp, *part.State)
+		return g.writeHeartbeats(version, model, sessionID, cwd, timestamp, *part.State)
 	case "apply_patch":
-		return g.applyPatchHeartbeats(version, sessionID, cwd, timestamp, *part.State)
+		return g.applyPatchHeartbeats(version, model, sessionID, cwd, timestamp, *part.State)
 	default:
 		return nil
 	}
 }
 
-func (g OpenCode) editHeartbeats(version string, sessionID string, cwd string, timestamp time.Time, state struct {
-	Status   string          `json:"status"`
-	Input    json.RawMessage `json:"input"`
-	Metadata json.RawMessage `json:"metadata"`
-}) Heartbeats {
+func (g OpenCode) editHeartbeats(
+	version string,
+	model string,
+	sessionID string,
+	cwd string,
+	timestamp time.Time,
+	state openCodeToolState,
+) Heartbeats {
 	var input openCodeEditInput
 	if err := json.Unmarshal(state.Input, &input); err != nil {
 		return nil
@@ -931,14 +956,17 @@ func (g OpenCode) editHeartbeats(version string, sessionID string, cwd string, t
 		)
 	}
 
-	return Heartbeats{g.fileHeartbeat(version, sessionID, filePath, lineChanges, timestamp)}
+	return Heartbeats{g.fileHeartbeat(version, model, sessionID, filePath, lineChanges, timestamp)}
 }
 
-func (g OpenCode) writeHeartbeats(version string, sessionID string, cwd string, timestamp time.Time, state struct {
-	Status   string          `json:"status"`
-	Input    json.RawMessage `json:"input"`
-	Metadata json.RawMessage `json:"metadata"`
-}) Heartbeats {
+func (g OpenCode) writeHeartbeats(
+	version string,
+	model string,
+	sessionID string,
+	cwd string,
+	timestamp time.Time,
+	state openCodeToolState,
+) Heartbeats {
 	var input openCodeWriteInput
 	if err := json.Unmarshal(state.Input, &input); err != nil {
 		return nil
@@ -953,14 +981,17 @@ func (g OpenCode) writeHeartbeats(version string, sessionID string, cwd string, 
 		lineChanges = countStringLines(input.Content)
 	}
 
-	return Heartbeats{g.fileHeartbeat(version, sessionID, filePath, lineChanges, timestamp)}
+	return Heartbeats{g.fileHeartbeat(version, model, sessionID, filePath, lineChanges, timestamp)}
 }
 
-func (g OpenCode) applyPatchHeartbeats(version string, sessionID string, cwd string, timestamp time.Time, state struct {
-	Status   string          `json:"status"`
-	Input    json.RawMessage `json:"input"`
-	Metadata json.RawMessage `json:"metadata"`
-}) Heartbeats {
+func (g OpenCode) applyPatchHeartbeats(
+	version string,
+	model string,
+	sessionID string,
+	cwd string,
+	timestamp time.Time,
+	state openCodeToolState,
+) Heartbeats {
 	var metadata openCodeApplyPatchMetadata
 	if err := json.Unmarshal(state.Metadata, &metadata); err == nil && len(metadata.Files) > 0 {
 		var heartbeats Heartbeats
@@ -969,6 +1000,7 @@ func (g OpenCode) applyPatchHeartbeats(version string, sessionID string, cwd str
 			filePath := openCodeResolvePath(cwd, file.FilePath)
 			heartbeats = append(heartbeats, g.fileHeartbeat(
 				version,
+				model,
 				sessionID,
 				filePath,
 				file.Additions-file.Deletions,
@@ -984,11 +1016,12 @@ func (g OpenCode) applyPatchHeartbeats(version string, sessionID string, cwd str
 		return nil
 	}
 
-	return g.patchHeartbeats(version, sessionID, cwd, input.PatchText, timestamp)
+	return g.patchHeartbeats(version, model, sessionID, cwd, input.PatchText, timestamp)
 }
 
 func (g OpenCode) patchHeartbeats(
 	version string,
+	model string,
 	sessionID string,
 	cwd string,
 	patchText string,
@@ -1011,6 +1044,7 @@ func (g OpenCode) patchHeartbeats(
 			if currentFile != "" {
 				heartbeats = append(heartbeats, g.fileHeartbeat(
 					version,
+					model,
 					sessionID,
 					currentFile,
 					additions-deletions,
@@ -1031,6 +1065,7 @@ func (g OpenCode) patchHeartbeats(
 	if currentFile != "" {
 		heartbeats = append(heartbeats, g.fileHeartbeat(
 			version,
+			model,
 			sessionID,
 			currentFile,
 			additions-deletions,
@@ -1043,6 +1078,7 @@ func (g OpenCode) patchHeartbeats(
 
 func (g OpenCode) fileHeartbeat(
 	version string,
+	model string,
 	sessionID string,
 	filePath string,
 	lineChanges int,
@@ -1070,7 +1106,7 @@ func (g OpenCode) fileHeartbeat(
 		"",
 		"",
 		float64(timestamp.Unix()),
-		aiUserAgent(filePath, g.UserAgents, g.FallbackUserAgent, aiPlugin(g, version)),
+		aiUserAgentWithAgentPrefix(filePath, g.UserAgents, g.FallbackUserAgent, aiPlugin(g, version), model),
 	)
 }
 
