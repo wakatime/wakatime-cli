@@ -55,6 +55,7 @@ func TestCursorParse(t *testing.T) {
 				"type":      1,
 				"text":      "Please update the file",
 				"createdAt": "2026-03-15T23:34:10Z",
+				"modelName": "composer-2.5",
 			},
 		},
 		{
@@ -171,9 +172,9 @@ func TestCursorParse(t *testing.T) {
 
 	parser := ai.Cursor{
 		After:             time.Date(2026, 3, 15, 23, 34, 0, 0, time.UTC),
-		FallbackUserAgent: "plugin/0.0.1",
+		FallbackUserAgent: "Cursor/1.105.1",
 		UserAgents: map[string]string{
-			editedPath: heartbeat.UserAgent(ctx, "editor/1.2.3"),
+			editedPath: heartbeat.UserAgent(ctx, "Cursor/1.105.1"),
 		},
 	}
 
@@ -195,9 +196,7 @@ func TestCursorParse(t *testing.T) {
 	require.NotNil(t, got[0].IsWrite)
 	assert.False(t, *got[0].IsWrite)
 	assert.Equal(t, float64(time.Date(2026, 3, 15, 23, 34, 10, 0, time.UTC).Unix()), got[0].Time)
-	assert.Contains(t, got[0].UserAgent, "Cursor")
-	assert.True(t, strings.Index(got[0].UserAgent, "Cursor") < strings.Index(got[0].UserAgent, "plugin/0.0.1"))
-	assert.Contains(t, got[0].UserAgent, "plugin/0.0.1")
+	assert.Equal(t, "composer/2.5 Cursor/1.105.1", got[0].UserAgent)
 
 	assert.Equal(t, editedPath, got[1].Entity)
 	assert.Equal(t, "composer-1", got[1].AISession)
@@ -211,9 +210,9 @@ func TestCursorParse(t *testing.T) {
 	require.NotNil(t, got[1].IsWrite)
 	assert.True(t, *got[1].IsWrite)
 	assert.Equal(t, float64(time.Date(2026, 3, 15, 23, 34, 39, 0, time.UTC).Unix()), got[1].Time)
-	assert.Contains(t, got[1].UserAgent, "Cursor")
-	assert.True(t, strings.Index(got[1].UserAgent, "Cursor") < strings.Index(got[1].UserAgent, "editor/1.2.3"))
-	assert.Contains(t, got[1].UserAgent, "editor/1.2.3")
+	assert.Contains(t, got[1].UserAgent, "Cursor/1.105.1")
+	assert.Contains(t, got[1].UserAgent, "composer/2.5")
+	assert.True(t, strings.Index(got[1].UserAgent, "composer/2.5") < strings.Index(got[1].UserAgent, "Cursor/1.105.1"))
 
 	assert.Equal(t, readPath, got[2].Entity)
 	assert.Equal(t, "composer-1", got[2].AISession)
@@ -221,8 +220,7 @@ func TestCursorParse(t *testing.T) {
 	assert.Equal(t, 0, *got[2].AILineChanges)
 	require.NotNil(t, got[2].IsWrite)
 	assert.False(t, *got[2].IsWrite)
-	assert.Contains(t, got[2].UserAgent, "plugin/0.0.1")
-	assert.Contains(t, got[2].UserAgent, "Cursor")
+	assert.Equal(t, "composer/2.5 Cursor/1.105.1", got[2].UserAgent)
 
 	assert.Equal(t, "Cursor composer-1", got[3].Entity)
 	assert.Equal(t, "composer-1", got[3].AISession)
