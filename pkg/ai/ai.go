@@ -633,6 +633,7 @@ func userAgentWithPrependedEditor(userAgent string, editor string) string {
 
 func aiAgentUserAgentToken(agent string) string {
 	agent = strings.Join(strings.Fields(strings.TrimSpace(agent)), "-")
+
 	agent = strings.Trim(agent, "/")
 	if agent == "" {
 		return ""
@@ -641,6 +642,7 @@ func aiAgentUserAgentToken(agent string) string {
 	product, version, found := strings.Cut(agent, "/")
 	if found {
 		product = strings.Trim(product, "-_.")
+
 		version = strings.Trim(version, "-_.")
 		if product == "" || version == "" {
 			return ""
@@ -660,6 +662,7 @@ func aiAgentUserAgentToken(agent string) string {
 		}
 
 		product = strings.Trim(agent[:i-1], "-_.")
+
 		version = strings.Trim(agent[i:], "-_.")
 		if product == "" || version == "" {
 			return ""
