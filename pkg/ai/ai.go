@@ -566,6 +566,18 @@ func aiUserAgent(entity string, userAgents map[string]string, fallback string, p
 	return parser
 }
 
+func aiUserAgentWithAgentPrefix(
+	entity string,
+	userAgents map[string]string,
+	fallback string,
+	parser string,
+	agent string,
+) string {
+	userAgent := aiUserAgent(entity, userAgents, fallback, parser)
+
+	return userAgentWithPrependedAgent(userAgent, aiAgentUserAgentToken(agent))
+}
+
 func aiUserAgentWithEditor(
 	entity string,
 	userAgents map[string]string,
@@ -585,6 +597,18 @@ func aiUserAgentWithEditor(
 	}
 
 	return parser
+}
+
+func userAgentWithPrependedAgent(userAgent string, agent string) string {
+	if userAgent == "" {
+		return agent
+	}
+
+	if agent == "" || userAgentHasToken(userAgent, agent) {
+		return userAgent
+	}
+
+	return strings.TrimSpace(agent + " " + userAgent)
 }
 
 func userAgentWithPrependedParser(userAgent string, parser string) string {
@@ -607,6 +631,46 @@ func userAgentWithPrependedEditor(userAgent string, editor string) string {
 	return strings.TrimSpace(editor + " " + userAgent)
 }
 
+func aiAgentUserAgentToken(agent string) string {
+	agent = strings.Join(strings.Fields(strings.TrimSpace(agent)), "-")
+	agent = strings.Trim(agent, "/")
+	if agent == "" {
+		return ""
+	}
+
+	product, version, found := strings.Cut(agent, "/")
+	if found {
+		product = strings.Trim(product, "-_.")
+		version = strings.Trim(version, "-_.")
+		if product == "" || version == "" {
+			return ""
+		}
+
+		return product + "/" + version
+	}
+
+	for i, r := range agent {
+		if i == 0 || (r < '0' || r > '9') {
+			continue
+		}
+
+		separator := agent[i-1]
+		if separator != '-' && separator != '_' {
+			continue
+		}
+
+		product = strings.Trim(agent[:i-1], "-_.")
+		version = strings.Trim(agent[i:], "-_.")
+		if product == "" || version == "" {
+			return ""
+		}
+
+		return product + "/" + version
+	}
+
+	return agent
+}
+
 func userAgentHasProduct(userAgent string, product string) bool {
 	if userAgent == "" || product == "" {
 		return false
@@ -614,6 +678,20 @@ func userAgentHasProduct(userAgent string, product string) bool {
 
 	for _, field := range userAgentProductFields(userAgent) {
 		if strings.EqualFold(userAgentProduct(field), product) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func userAgentHasToken(userAgent string, token string) bool {
+	if userAgent == "" || token == "" {
+		return false
+	}
+
+	for _, field := range userAgentProductFields(userAgent) {
+		if strings.EqualFold(field, token) {
 			return true
 		}
 	}

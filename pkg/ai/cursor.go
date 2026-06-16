@@ -570,73 +570,15 @@ func (g Cursor) cursorFileHeartbeat(
 }
 
 func (g Cursor) userAgent(entity string, model string) string {
-	if model == "" {
-		return aiUserAgent(entity, g.UserAgents, g.FallbackUserAgent, aiPlugin(g, ""))
-	}
-
-	existing := g.FallbackUserAgent
-	if fromHeartbeat, found := g.UserAgents[entity]; found && fromHeartbeat != "" {
-		existing = fromHeartbeat
-	}
-
-	userAgent := userAgentWithPrependedParser(existing, aiPlugin(g, ""))
-
-	return cursorUserAgentWithModel(userAgent, cursorModelUserAgentToken(model))
+	return aiUserAgentWithAgentPrefix(entity, g.UserAgents, g.FallbackUserAgent, aiPlugin(g, ""), model)
 }
 
 func cursorUserAgentWithModel(userAgent string, modelToken string) string {
-	if userAgent == "" {
-		return modelToken
-	}
-
-	if modelToken == "" || userAgentHasProduct(userAgent, userAgentProduct(modelToken)) {
-		return userAgent
-	}
-
-	return strings.TrimSpace(modelToken + " " + userAgent)
+	return userAgentWithPrependedAgent(userAgent, modelToken)
 }
 
 func cursorModelUserAgentToken(model string) string {
-	model = strings.Join(strings.Fields(strings.TrimSpace(model)), "-")
-
-	model = strings.Trim(model, "/")
-	if model == "" {
-		return ""
-	}
-
-	product, version, found := strings.Cut(model, "/")
-	if found {
-		product = strings.Trim(product, "-_.")
-
-		version = strings.Trim(version, "-_.")
-		if product == "" || version == "" {
-			return ""
-		}
-
-		return product + "/" + version
-	}
-
-	for i, r := range model {
-		if i == 0 || (r < '0' || r > '9') {
-			continue
-		}
-
-		separator := model[i-1]
-		if separator != '-' && separator != '_' {
-			continue
-		}
-
-		product = strings.Trim(model[:i-1], "-_.")
-
-		version = strings.Trim(model[i:], "-_.")
-		if product == "" || version == "" {
-			return ""
-		}
-
-		return product + "/" + version
-	}
-
-	return model
+	return aiAgentUserAgentToken(model)
 }
 
 func (Cursor) modelName(raw []byte) string {

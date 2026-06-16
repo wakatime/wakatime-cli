@@ -267,7 +267,7 @@ func (g Cody) interactionHeartbeats(
 		heartbeat.PointerTo(false),
 		"",
 		float64(timestamp.Unix()),
-		aiUserAgent(entity, g.UserAgents, g.FallbackUserAgent, aiPlugin(g, model)),
+		aiUserAgentWithAgentPrefix(entity, g.UserAgents, g.FallbackUserAgent, aiPlugin(g, ""), model),
 	)
 	appHeartbeat.AIPromptLength = promptLength(interaction.HumanMessage.Text)
 	heartbeats = append(heartbeats, appHeartbeat)
@@ -348,7 +348,7 @@ func (g Cody) fileHeartbeat(
 		heartbeat.PointerTo(isWrite),
 		"",
 		float64(timestamp.Unix()),
-		aiUserAgent(filePath, g.UserAgents, g.FallbackUserAgent, aiPlugin(g, model)),
+		aiUserAgentWithAgentPrefix(filePath, g.UserAgents, g.FallbackUserAgent, aiPlugin(g, ""), model),
 	)
 
 	return &h

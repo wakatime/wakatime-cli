@@ -204,7 +204,9 @@ func TestPiParse(t *testing.T) {
 	assert.Equal(t, int64(20), got[1].AIOutputTokens)
 	require.NotNil(t, got[1].IsWrite)
 	assert.False(t, *got[1].IsWrite)
-	assert.Contains(t, got[1].UserAgent, "Pi/claude-opus-4-5")
+	assert.Contains(t, got[1].UserAgent, "claude-opus/4-5")
+	assert.Contains(t, got[1].UserAgent, "Pi")
+	assert.True(t, strings.Index(got[1].UserAgent, "claude-opus/4-5") < strings.Index(got[1].UserAgent, "Pi"))
 
 	assert.Equal(t, editFile, got[2].Entity)
 	require.NotNil(t, got[2].AILineChanges)
@@ -213,7 +215,9 @@ func TestPiParse(t *testing.T) {
 	assert.Equal(t, int64(11), got[2].AIOutputTokens)
 	require.NotNil(t, got[2].IsWrite)
 	assert.True(t, *got[2].IsWrite)
-	assert.Contains(t, got[2].UserAgent, "Pi/claude-opus-4-5")
+	assert.Contains(t, got[2].UserAgent, "claude-opus/4-5")
+	assert.Contains(t, got[2].UserAgent, "Pi")
+	assert.True(t, strings.Index(got[2].UserAgent, "claude-opus/4-5") < strings.Index(got[2].UserAgent, "Pi"))
 	assert.Contains(t, got[2].UserAgent, "editor/1.2.3")
 
 	assert.Equal(t, noteFile, got[3].Entity)

@@ -414,7 +414,7 @@ func (g Gemini) appHeartbeat(
 		"",
 		projectPath,
 		float64(timestamp.Unix()),
-		aiUserAgent(entity, g.UserAgents, g.FallbackUserAgent, aiPlugin(g, message.Model)),
+		aiUserAgentWithAgentPrefix(entity, g.UserAgents, g.FallbackUserAgent, aiPlugin(g, ""), message.Model),
 	)
 	if role == "user" {
 		h.AIPromptLength = promptLength(text)
@@ -483,7 +483,7 @@ func (g Gemini) toolHeartbeat(
 			"",
 			"",
 			float64(timestamp.Unix()),
-			aiUserAgent(filePath, g.UserAgents, g.FallbackUserAgent, aiPlugin(g, model)),
+			aiUserAgentWithAgentPrefix(filePath, g.UserAgents, g.FallbackUserAgent, aiPlugin(g, ""), model),
 		), true
 	case "edit", "replace":
 		var args geminiReplaceArgs
@@ -516,7 +516,7 @@ func (g Gemini) toolHeartbeat(
 			"",
 			"",
 			float64(timestamp.Unix()),
-			aiUserAgent(filePath, g.UserAgents, g.FallbackUserAgent, aiPlugin(g, model)),
+			aiUserAgentWithAgentPrefix(filePath, g.UserAgents, g.FallbackUserAgent, aiPlugin(g, ""), model),
 		), true
 	default:
 		return heartbeat.Heartbeat{}, false
