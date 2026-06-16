@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -63,6 +64,7 @@ func TestOpenCodeParse_LegacyStorage(t *testing.T) {
   "id": "msg_assistant",
   "sessionID": "ses_123",
   "role": "assistant",
+  "modelID": "claude-3.5",
   "path": { "cwd": "/workspace/project", "root": "/workspace/project" },
   "tokens": { "input": 120, "output": 30 },
   "time": { "created": 1740000002000 }
@@ -139,6 +141,9 @@ func TestOpenCodeParse_LegacyStorage(t *testing.T) {
 	assert.EqualValues(t, 120, got[1].AIInputTokens)
 	assert.EqualValues(t, 30, got[1].AIOutputTokens)
 	assert.Equal(t, "/workspace/project", got[1].ProjectPathOverride)
+	assert.Contains(t, got[1].UserAgent, "claude/3.5")
+	assert.Contains(t, got[1].UserAgent, "OpenCode/1.4.4")
+	assert.True(t, strings.Index(got[1].UserAgent, "claude/3.5") < strings.Index(got[1].UserAgent, "OpenCode/1.4.4"))
 
 	assert.Equal(t, "/workspace/project/main.go", got[2].Entity)
 	assert.Equal(t, heartbeat.FileType, got[2].EntityType)
@@ -147,7 +152,9 @@ func TestOpenCodeParse_LegacyStorage(t *testing.T) {
 	assert.Equal(t, 1, *got[2].AILineChanges)
 	require.NotNil(t, got[2].IsWrite)
 	assert.True(t, *got[2].IsWrite)
+	assert.Contains(t, got[2].UserAgent, "claude/3.5")
 	assert.Contains(t, got[2].UserAgent, "OpenCode/1.4.4")
+	assert.True(t, strings.Index(got[2].UserAgent, "claude/3.5") < strings.Index(got[2].UserAgent, "OpenCode/1.4.4"))
 	assert.Contains(t, got[2].UserAgent, "editor/1.2.3")
 
 	assert.Equal(t, "/workspace/project/existing.go", got[3].Entity)

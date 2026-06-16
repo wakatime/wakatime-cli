@@ -461,7 +461,7 @@ func (g Pi) messageHeartbeat(
 		"",
 		cwd,
 		float64(timestamp.UnixMilli())/1000,
-		aiUserAgent(sessionEntity, userAgents, fallbackUserAgent, aiPlugin(g, version)),
+		aiUserAgentWithAgentPrefix(sessionEntity, userAgents, fallbackUserAgent, aiPlugin(g, ""), version),
 	)
 	if msg.Role == "user" && promptChars > 0 {
 		h.AIPromptLength = promptChars
@@ -519,7 +519,7 @@ func (g Pi) toolResultHeartbeat(
 		"",
 		"",
 		float64(timestamp.UnixMilli())/1000,
-		aiUserAgent(filePath, userAgents, fallbackUserAgent, aiPlugin(g, version)),
+		aiUserAgentWithAgentPrefix(filePath, userAgents, fallbackUserAgent, aiPlugin(g, ""), version),
 	)
 
 	return &h

@@ -435,7 +435,8 @@ func TestCopilotParseCLISessionEvents(t *testing.T) {
 	assert.Equal(t, projectDir, got[0].ProjectPathOverride)
 	require.NotNil(t, got[0].IsWrite)
 	assert.False(t, *got[0].IsWrite)
-	assert.Contains(t, got[0].UserAgent, "Copilot/gpt-5.4")
+	assert.Contains(t, got[0].UserAgent, "gpt/5.4")
+	assert.True(t, strings.Index(got[0].UserAgent, "gpt/5.4") < strings.Index(got[0].UserAgent, "github-copilot-cli/1.0.62"))
 	assert.Contains(t, got[0].UserAgent, "github-copilot-cli/1.0.62 copilot/1.0.62")
 	assert.Contains(t, got[0].UserAgent, "editor/1.2.3")
 
