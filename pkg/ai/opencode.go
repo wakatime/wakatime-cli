@@ -62,18 +62,20 @@ type (
 	}
 
 	openCodePart struct {
-		ID        string `json:"id"`
-		MessageID string `json:"messageID"`
-		SessionID string `json:"sessionID"`
-		Type      string `json:"type"`
-		Text      string `json:"text"`
-		Ignored   bool   `json:"ignored"`
-		Tool      string `json:"tool"`
-		State     *struct {
-			Status   string          `json:"status"`
-			Input    json.RawMessage `json:"input"`
-			Metadata json.RawMessage `json:"metadata"`
-		} `json:"state"`
+		ID        string             `json:"id"`
+		MessageID string             `json:"messageID"`
+		SessionID string             `json:"sessionID"`
+		Type      string             `json:"type"`
+		Text      string             `json:"text"`
+		Ignored   bool               `json:"ignored"`
+		Tool      string             `json:"tool"`
+		State     *openCodeToolState `json:"state"`
+	}
+
+	openCodeToolState struct {
+		Status   string          `json:"status"`
+		Input    json.RawMessage `json:"input"`
+		Metadata json.RawMessage `json:"metadata"`
 	}
 
 	openCodeMessageWithParts struct {
@@ -618,11 +620,27 @@ func (g OpenCode) sessionHeartbeats(
 
 		switch message.info.Role {
 		case "user":
-			if hb := g.userHeartbeat(sessionEntity, session.Version, message.info.ModelID, session.ID, cwd, message, tokens); hb != nil {
+			if hb := g.userHeartbeat(
+				sessionEntity,
+				session.Version,
+				message.info.ModelID,
+				session.ID,
+				cwd,
+				message,
+				tokens,
+			); hb != nil {
 				heartbeats = append(heartbeats, *hb)
 			}
 		case "assistant":
-			if hb := g.assistantHeartbeat(sessionEntity, session.Version, message.info.ModelID, session.ID, cwd, message, tokens); hb != nil {
+			if hb := g.assistantHeartbeat(
+				sessionEntity,
+				session.Version,
+				message.info.ModelID,
+				session.ID,
+				cwd,
+				message,
+				tokens,
+			); hb != nil {
 				heartbeats = append(heartbeats, *hb)
 			}
 
@@ -908,11 +926,14 @@ func (g OpenCode) toolHeartbeats(
 	}
 }
 
-func (g OpenCode) editHeartbeats(version string, model string, sessionID string, cwd string, timestamp time.Time, state struct {
-	Status   string          `json:"status"`
-	Input    json.RawMessage `json:"input"`
-	Metadata json.RawMessage `json:"metadata"`
-}) Heartbeats {
+func (g OpenCode) editHeartbeats(
+	version string,
+	model string,
+	sessionID string,
+	cwd string,
+	timestamp time.Time,
+	state openCodeToolState,
+) Heartbeats {
 	var input openCodeEditInput
 	if err := json.Unmarshal(state.Input, &input); err != nil {
 		return nil
@@ -938,11 +959,14 @@ func (g OpenCode) editHeartbeats(version string, model string, sessionID string,
 	return Heartbeats{g.fileHeartbeat(version, model, sessionID, filePath, lineChanges, timestamp)}
 }
 
-func (g OpenCode) writeHeartbeats(version string, model string, sessionID string, cwd string, timestamp time.Time, state struct {
-	Status   string          `json:"status"`
-	Input    json.RawMessage `json:"input"`
-	Metadata json.RawMessage `json:"metadata"`
-}) Heartbeats {
+func (g OpenCode) writeHeartbeats(
+	version string,
+	model string,
+	sessionID string,
+	cwd string,
+	timestamp time.Time,
+	state openCodeToolState,
+) Heartbeats {
 	var input openCodeWriteInput
 	if err := json.Unmarshal(state.Input, &input); err != nil {
 		return nil
@@ -960,11 +984,14 @@ func (g OpenCode) writeHeartbeats(version string, model string, sessionID string
 	return Heartbeats{g.fileHeartbeat(version, model, sessionID, filePath, lineChanges, timestamp)}
 }
 
-func (g OpenCode) applyPatchHeartbeats(version string, model string, sessionID string, cwd string, timestamp time.Time, state struct {
-	Status   string          `json:"status"`
-	Input    json.RawMessage `json:"input"`
-	Metadata json.RawMessage `json:"metadata"`
-}) Heartbeats {
+func (g OpenCode) applyPatchHeartbeats(
+	version string,
+	model string,
+	sessionID string,
+	cwd string,
+	timestamp time.Time,
+	state openCodeToolState,
+) Heartbeats {
 	var metadata openCodeApplyPatchMetadata
 	if err := json.Unmarshal(state.Metadata, &metadata); err == nil && len(metadata.Files) > 0 {
 		var heartbeats Heartbeats
