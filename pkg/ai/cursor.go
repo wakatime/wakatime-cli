@@ -131,6 +131,7 @@ func (g Cursor) Parse(ctx context.Context) (Heartbeats, error) {
 	var heartbeats Heartbeats
 
 	bubbleCWDs := make(map[string]string)
+	bubbleModels := make(map[string]string)
 	bubbleTokens := make(map[string]heartbeat.AITokens)
 
 	for _, row := range rows {
@@ -140,6 +141,10 @@ func (g Cursor) Parse(ctx context.Context) (Heartbeats, error) {
 		}
 
 		logLine.BubbleID = row.BubbleID
+
+		if model := g.modelName([]byte(row.Value)); model != "" && logLine.BubbleID != "" {
+			bubbleModels[logLine.BubbleID] = model
+		}
 
 		if cwd := g.projectPath(logLine); cwd != "" && logLine.BubbleID != "" {
 			bubbleCWDs[logLine.BubbleID] = cwd
@@ -152,7 +157,7 @@ func (g Cursor) Parse(ctx context.Context) (Heartbeats, error) {
 			continue
 		}
 
-		parsed := g.cursorHeartbeats(logLine, bubbleCWDs[logLine.BubbleID], tokens)
+		parsed := g.cursorHeartbeats(logLine, bubbleCWDs[logLine.BubbleID], bubbleModels[logLine.BubbleID], tokens)
 		if len(parsed) == 0 {
 			bubbleTokens[logLine.BubbleID] = tokens
 			continue
@@ -271,6 +276,16 @@ WHERE json_valid(value)
       ) IN ('edit_file', 'edit_file_v2', 'read_file', 'read_file_v2')
     )
     OR json_extract(value, '$.text') IS NOT NULL
+    OR json_extract(value, '$.model') IS NOT NULL
+    OR json_extract(value, '$.modelName') IS NOT NULL
+    OR json_extract(value, '$.modelId') IS NOT NULL
+    OR json_extract(value, '$.modelID') IS NOT NULL
+    OR json_extract(value, '$.model_id') IS NOT NULL
+    OR json_extract(value, '$.modelSlug') IS NOT NULL
+    OR json_extract(value, '$.modelDetails') IS NOT NULL
+    OR json_extract(value, '$.modelConfig') IS NOT NULL
+    OR json_extract(value, '$.selectedModel') IS NOT NULL
+    OR json_extract(value, '$.selectedChatModel') IS NOT NULL
   )
 ORDER BY json_extract(value, '$.createdAt') ASC;
 `, cursorRecentBubbleRowLimit)
@@ -363,7 +378,7 @@ func cursorApplySubscriptionPlan(heartbeats Heartbeats, plan string) Heartbeats 
 	return heartbeats
 }
 
-func (g Cursor) cursorHeartbeats(logLine cursorLogLine, cwd string, tokens heartbeat.AITokens) Heartbeats {
+func (g Cursor) cursorHeartbeats(logLine cursorLogLine, cwd string, model string, tokens heartbeat.AITokens) Heartbeats {
 	var heartbeats Heartbeats
 
 	assignTokens := g.hasTokenDelta(tokens)
@@ -372,6 +387,7 @@ func (g Cursor) cursorHeartbeats(logLine cursorLogLine, cwd string, tokens heart
 	if heartbeat := g.cursorAppHeartbeat(
 		logLine,
 		cwd,
+		model,
 		logLine.BubbleID,
 		appTokens,
 	); heartbeat != nil {
@@ -386,6 +402,7 @@ func (g Cursor) cursorHeartbeats(logLine cursorLogLine, cwd string, tokens heart
 	fileTokens := g.tokensForFirstHeartbeat(assignTokens, tokens)
 	if heartbeat := g.cursorFileHeartbeat(
 		logLine,
+		model,
 		logLine.BubbleID,
 		fileTokens,
 	); heartbeat != nil {
@@ -398,6 +415,7 @@ func (g Cursor) cursorHeartbeats(logLine cursorLogLine, cwd string, tokens heart
 func (g Cursor) cursorAppHeartbeat(
 	logLine cursorLogLine,
 	cwd string,
+	model string,
 	sessionID string,
 	tokens *heartbeat.AITokens,
 ) *heartbeat.Heartbeat {
@@ -421,7 +439,7 @@ func (g Cursor) cursorAppHeartbeat(
 		heartbeat.PointerTo(false),
 		cwd,
 		float64(logLine.CreatedAt.Unix()),
-		aiUserAgent(entity, g.UserAgents, g.FallbackUserAgent, aiPlugin(g, "")),
+		g.userAgent(entity, model),
 	)
 	if logLine.Type == 1 {
 		h.AIPromptLength = promptLength(logLine.Text)
@@ -432,6 +450,7 @@ func (g Cursor) cursorAppHeartbeat(
 
 func (g Cursor) cursorFileHeartbeat(
 	logLine cursorLogLine,
+	model string,
 	sessionID string,
 	tokens *heartbeat.AITokens,
 ) *heartbeat.Heartbeat {
@@ -457,7 +476,7 @@ func (g Cursor) cursorFileHeartbeat(
 			heartbeat.PointerTo(true),
 			"",
 			float64(logLine.CreatedAt.Unix()),
-			aiUserAgent(filePath, g.UserAgents, g.FallbackUserAgent, aiPlugin(g, "")),
+			g.userAgent(filePath, model),
 		)
 
 		return &h
@@ -494,7 +513,7 @@ func (g Cursor) cursorFileHeartbeat(
 			heartbeat.PointerTo(true),
 			"",
 			float64(logLine.CreatedAt.Unix()),
-			aiUserAgent(filePath, g.UserAgents, g.FallbackUserAgent, aiPlugin(g, "")),
+			g.userAgent(filePath, model),
 		)
 
 		return &h
@@ -541,13 +560,180 @@ func (g Cursor) cursorFileHeartbeat(
 			heartbeat.PointerTo(false),
 			"",
 			float64(logLine.CreatedAt.Unix()),
-			aiUserAgent(filePath, g.UserAgents, g.FallbackUserAgent, aiPlugin(g, "")),
+			g.userAgent(filePath, model),
 		)
 
 		return &h
 	default:
 		return nil
 	}
+}
+
+func (g Cursor) userAgent(entity string, model string) string {
+	if model == "" {
+		return aiUserAgent(entity, g.UserAgents, g.FallbackUserAgent, aiPlugin(g, ""))
+	}
+
+	existing := g.FallbackUserAgent
+	if fromHeartbeat, found := g.UserAgents[entity]; found && fromHeartbeat != "" {
+		existing = fromHeartbeat
+	}
+
+	userAgent := userAgentWithPrependedParser(existing, aiPlugin(g, ""))
+
+	return cursorUserAgentWithModel(userAgent, cursorModelUserAgentToken(model))
+}
+
+func cursorUserAgentWithModel(userAgent string, modelToken string) string {
+	if userAgent == "" {
+		return modelToken
+	}
+
+	if modelToken == "" || userAgentHasProduct(userAgent, userAgentProduct(modelToken)) {
+		return userAgent
+	}
+
+	return strings.TrimSpace(modelToken + " " + userAgent)
+}
+
+func cursorModelUserAgentToken(model string) string {
+	model = strings.Join(strings.Fields(strings.TrimSpace(model)), "-")
+
+	model = strings.Trim(model, "/")
+	if model == "" {
+		return ""
+	}
+
+	product, version, found := strings.Cut(model, "/")
+	if found {
+		product = strings.Trim(product, "-_.")
+
+		version = strings.Trim(version, "-_.")
+		if product == "" || version == "" {
+			return ""
+		}
+
+		return product + "/" + version
+	}
+
+	for i, r := range model {
+		if i == 0 || (r < '0' || r > '9') {
+			continue
+		}
+
+		separator := model[i-1]
+		if separator != '-' && separator != '_' {
+			continue
+		}
+
+		product = strings.Trim(model[:i-1], "-_.")
+
+		version = strings.Trim(model[i:], "-_.")
+		if product == "" || version == "" {
+			return ""
+		}
+
+		return product + "/" + version
+	}
+
+	return model
+}
+
+func (Cursor) modelName(raw []byte) string {
+	var value any
+	if err := json.Unmarshal(raw, &value); err != nil {
+		return ""
+	}
+
+	return cursorModelNameFromValue(value)
+}
+
+func cursorModelNameFromValue(value any) string {
+	obj, ok := value.(map[string]any)
+	if !ok {
+		return cursorCleanModelName(value)
+	}
+
+	for _, key := range []string{
+		"modelName",
+		"model_name",
+		"modelId",
+		"modelID",
+		"model_id",
+		"modelSlug",
+		"model",
+		"selectedModel",
+		"selectedChatModel",
+	} {
+		if model := cursorCleanModelName(obj[key]); model != "" {
+			return model
+		}
+	}
+
+	for _, key := range []string{
+		"modelDetails",
+		"modelConfig",
+		"modelConfiguration",
+		"modelInfo",
+		"selectedModel",
+		"selectedChatModel",
+	} {
+		if model := cursorCleanModelName(obj[key]); model != "" {
+			return model
+		}
+
+		if model := cursorModelNameFromValue(obj[key]); model != "" {
+			return model
+		}
+	}
+
+	for key, nested := range obj {
+		if !strings.Contains(strings.ToLower(key), "model") {
+			continue
+		}
+
+		if model := cursorCleanModelName(nested); model != "" {
+			return model
+		}
+
+		if model := cursorModelNameFromValue(nested); model != "" {
+			return model
+		}
+	}
+
+	return ""
+}
+
+func cursorCleanModelName(value any) string {
+	switch v := value.(type) {
+	case string:
+		model := strings.Join(strings.Fields(strings.TrimSpace(v)), "-")
+
+		model = strings.Trim(model, "/")
+		if len(model) > 128 {
+			return ""
+		}
+
+		return model
+	case map[string]any:
+		for _, key := range []string{
+			"name",
+			"id",
+			"modelName",
+			"model_name",
+			"modelId",
+			"modelID",
+			"model_id",
+			"slug",
+			"value",
+		} {
+			if model := cursorCleanModelName(v[key]); model != "" {
+				return model
+			}
+		}
+	}
+
+	return ""
 }
 
 func (Cursor) tokenDelta(tokens heartbeat.AITokens) (int64, int64) {
