@@ -59,7 +59,7 @@ func TestPiParse(t *testing.T) {
 				"content": []map[string]interface{}{
 					{"type": "text", "text": "Inspect the project and fix main.go"},
 				},
-				"timestamp": 1776600001000,
+				"timestamp": int64(1776600001000),
 			},
 		}),
 		mustJSONLine(t, map[string]interface{}{
@@ -78,7 +78,7 @@ func TestPiParse(t *testing.T) {
 				"provider":  "anthropic",
 				"model":     "claude-opus-4-5",
 				"usage":     map[string]interface{}{"input": 10, "output": 20, "cacheRead": 3, "cacheWrite": 2},
-				"timestamp": 1776600002000,
+				"timestamp": int64(1776600002000),
 			},
 		}),
 		mustJSONLine(t, map[string]interface{}{
@@ -92,7 +92,7 @@ func TestPiParse(t *testing.T) {
 				"toolName":   "read",
 				"content":    []map[string]interface{}{{"type": "text", "text": "# Project\n"}},
 				"isError":    false,
-				"timestamp":  1776600003000,
+				"timestamp":  int64(1776600003000),
 			},
 		}),
 		mustJSONLine(t, map[string]interface{}{
@@ -114,7 +114,7 @@ func TestPiParse(t *testing.T) {
 				"provider":  "anthropic",
 				"model":     "claude-opus-4-5",
 				"usage":     map[string]interface{}{"input": 7, "output": 11, "cacheRead": 0, "cacheWrite": 0},
-				"timestamp": 1776600004000,
+				"timestamp": int64(1776600004000),
 			},
 		}),
 		mustJSONLine(t, map[string]interface{}{
@@ -131,7 +131,7 @@ func TestPiParse(t *testing.T) {
 				},
 				"details":   map[string]interface{}{"diff": "-old\n+new\n+more"},
 				"isError":   false,
-				"timestamp": 1776600005000,
+				"timestamp": int64(1776600005000),
 			},
 		}),
 		mustJSONLine(t, map[string]interface{}{
@@ -153,7 +153,7 @@ func TestPiParse(t *testing.T) {
 				"provider":  "anthropic",
 				"model":     "claude-opus-4-5",
 				"usage":     map[string]interface{}{"input": 5, "output": 9, "cacheRead": 0, "cacheWrite": 0},
-				"timestamp": 1776600006000,
+				"timestamp": int64(1776600006000),
 			},
 		}),
 		mustJSONLine(t, map[string]interface{}{
@@ -169,7 +169,7 @@ func TestPiParse(t *testing.T) {
 					{"type": "text", "text": "Successfully wrote 11 bytes to " + noteFile},
 				},
 				"isError":   false,
-				"timestamp": 1776600007000,
+				"timestamp": int64(1776600007000),
 			},
 		}),
 	}, "\n") + "\n"
