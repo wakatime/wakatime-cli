@@ -1,4 +1,4 @@
-//go:build !freebsd && !openbsd && !netbsd && !dragonfly
+//go:build (!freebsd && !openbsd && !netbsd && !dragonfly) || (freebsd && (amd64 || arm64)) || (openbsd && (amd64 || arm64))
 
 package ai_test
 
@@ -197,7 +197,7 @@ func TestOpenCodeParse_SQLiteFallback(t *testing.T) {
 				Data: map[string]any{
 					"role": "user",
 					"time": map[string]any{
-						"created": 1740000003000,
+						"created": int64(1740000003000),
 					},
 				},
 			},
@@ -216,7 +216,7 @@ func TestOpenCodeParse_SQLiteFallback(t *testing.T) {
 						"output": 50,
 					},
 					"time": map[string]any{
-						"created": 1740000004000,
+						"created": int64(1740000004000),
 					},
 				},
 			},
@@ -307,7 +307,7 @@ func TestOpenCodeParse_SQLiteFallback_UnicodeAndMalformedRows(t *testing.T) {
 				Data: map[string]any{
 					"role": "user",
 					"time": map[string]any{
-						"created": 1740000003000,
+						"created": int64(1740000003000),
 					},
 				},
 			},
@@ -326,7 +326,7 @@ func TestOpenCodeParse_SQLiteFallback_UnicodeAndMalformedRows(t *testing.T) {
 						"output": 20,
 					},
 					"time": map[string]any{
-						"created": 1740000004000,
+						"created": int64(1740000004000),
 					},
 				},
 			},
@@ -374,7 +374,7 @@ func TestOpenCodeParse_SQLiteFallback_UnicodeAndMalformedRows(t *testing.T) {
 		"msg_bad",
 		"ses_unicode",
 		"{",
-		1740000005000,
+		int64(1740000005000),
 	)
 	require.NoError(t, err)
 	_, err = db.Exec(
@@ -383,7 +383,7 @@ func TestOpenCodeParse_SQLiteFallback_UnicodeAndMalformedRows(t *testing.T) {
 		"msg_assistant",
 		"ses_unicode",
 		"{",
-		1740000005001,
+		int64(1740000005001),
 	)
 	require.NoError(t, err)
 	require.NoError(t, db.Close())
@@ -515,7 +515,7 @@ func TestOpenCodeParse_SQLiteFallback_AfterUsesSeedTokens(t *testing.T) {
 						"output": 20,
 					},
 					"time": map[string]any{
-						"created": 1740000001000,
+						"created": int64(1740000001000),
 					},
 				},
 			},
@@ -534,7 +534,7 @@ func TestOpenCodeParse_SQLiteFallback_AfterUsesSeedTokens(t *testing.T) {
 						"output": 27,
 					},
 					"time": map[string]any{
-						"created": 1740000003000,
+						"created": int64(1740000003000),
 					},
 				},
 			},
