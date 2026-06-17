@@ -40,22 +40,36 @@ func (errorParser) Name() string {
 }
 
 func TestParseHeartbeats_Panic(t *testing.T) {
-	heartbeats, err := parseHeartbeats(t.Context(), panicParser{})
+	heartbeats, err := parseHeartbeats(t.Context(), panicParser{}, nil)
 
 	require.Error(t, err)
 	assert.Nil(t, heartbeats)
 	assert.Contains(t, err.Error(), "panicked: OOM")
 }
 
+func TestParseHeartbeats_PanicReportsDiagnostic(t *testing.T) {
+	var report aiPanicReport
+
+	heartbeats, err := parseHeartbeats(t.Context(), panicParser{}, func(r aiPanicReport) {
+		report = r
+	})
+
+	require.Error(t, err)
+	assert.Nil(t, heartbeats)
+	assert.Equal(t, "panic", report.ParserName)
+	assert.Equal(t, "OOM", report.Recovered)
+	assert.Contains(t, report.Stack, "panicParser.Parse")
+}
+
 func TestParseHeartbeats_Success(t *testing.T) {
-	heartbeats, err := parseHeartbeats(t.Context(), heartbeatsParser{})
+	heartbeats, err := parseHeartbeats(t.Context(), heartbeatsParser{}, nil)
 
 	require.NoError(t, err)
 	assert.Len(t, heartbeats, 2)
 }
 
 func TestParseHeartbeats_Error(t *testing.T) {
-	heartbeats, err := parseHeartbeats(t.Context(), errorParser{})
+	heartbeats, err := parseHeartbeats(t.Context(), errorParser{}, nil)
 
 	require.EqualError(t, err, "failed")
 	assert.Nil(t, heartbeats)
