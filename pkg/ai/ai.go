@@ -1,8 +1,10 @@
 package ai
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"math"
 	"path/filepath"
 	"runtime/debug"
@@ -11,6 +13,8 @@ import (
 	"unicode/utf8"
 
 	"github.com/spf13/viper"
+	"github.com/wakatime/wakatime-cli/pkg/api"
+	"github.com/wakatime/wakatime-cli/pkg/diagnostic"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/ini"
 	"github.com/wakatime/wakatime-cli/pkg/log"
@@ -92,6 +96,13 @@ type (
 	Heartbeats []heartbeat.Heartbeat
 )
 
+type aiPanicReport struct {
+	Logs       string
+	ParserName string
+	Recovered  any
+	Stack      string
+}
+
 // WithAISync initializes and returns a heartbeat handle option, which
 // can be used in a heartbeat processing pipeline to add heartbeats
 // from AI tool transcript logs, and modify existing heartbeats to
@@ -135,7 +146,7 @@ func WithAISync(config Config) heartbeat.HandleOption {
 
 			userAgents := entityUserAgents(hh)
 
-			heartbeats, err := parseAIHeartbeats(ctx, lastParsedAt, userAgents, config.Plugin)
+			heartbeats, err := parseAIHeartbeats(ctx, lastParsedAt, userAgents, config)
 			if err != nil {
 				logger.Errorf("failed to parse ai heartbeats: %s", err)
 				releaseLock()
@@ -195,90 +206,93 @@ func parseAIHeartbeats(
 	ctx context.Context,
 	after time.Time,
 	userAgents map[string]string,
-	fallbackUserAgent string,
+	config Config,
 ) (Heartbeats, error) {
 	logger := log.Extract(ctx)
+
+	logs, resetLogs := captureAIParsingLogs(ctx)
+	defer resetLogs()
 
 	var parsers = []Parser{
 		Claude{
 			After:             after,
 			UserAgents:        userAgents,
-			FallbackUserAgent: fallbackUserAgent,
+			FallbackUserAgent: config.Plugin,
 		},
 		Codex{
 			After:             after,
 			UserAgents:        userAgents,
-			FallbackUserAgent: fallbackUserAgent,
+			FallbackUserAgent: config.Plugin,
 		},
 		Continue{
 			After:             after,
 			UserAgents:        userAgents,
-			FallbackUserAgent: fallbackUserAgent,
+			FallbackUserAgent: config.Plugin,
 		},
 		Cody{
 			After:             after,
 			UserAgents:        userAgents,
-			FallbackUserAgent: fallbackUserAgent,
+			FallbackUserAgent: config.Plugin,
 		},
 		RooCode{
 			After:             after,
 			UserAgents:        userAgents,
-			FallbackUserAgent: fallbackUserAgent,
+			FallbackUserAgent: config.Plugin,
 		},
 		OpenCode{
 			After:             after,
 			UserAgents:        userAgents,
-			FallbackUserAgent: fallbackUserAgent,
+			FallbackUserAgent: config.Plugin,
 		},
 		Copilot{
 			After:             after,
 			UserAgents:        userAgents,
-			FallbackUserAgent: fallbackUserAgent,
+			FallbackUserAgent: config.Plugin,
 		},
 		Cursor{
 			After:             after,
 			UserAgents:        userAgents,
-			FallbackUserAgent: fallbackUserAgent,
+			FallbackUserAgent: config.Plugin,
 		},
 		Windsurf{
 			After:             after,
 			UserAgents:        userAgents,
-			FallbackUserAgent: fallbackUserAgent,
+			FallbackUserAgent: config.Plugin,
 		},
 		Qoder{
 			After:             after,
 			UserAgents:        userAgents,
-			FallbackUserAgent: fallbackUserAgent,
+			FallbackUserAgent: config.Plugin,
 		},
 		Kiro{
 			After:             after,
 			UserAgents:        userAgents,
-			FallbackUserAgent: fallbackUserAgent,
+			FallbackUserAgent: config.Plugin,
 		},
 		Cline{
 			After:             after,
 			UserAgents:        userAgents,
-			FallbackUserAgent: fallbackUserAgent,
+			FallbackUserAgent: config.Plugin,
 		},
 		Gemini{
 			After:             after,
 			UserAgents:        userAgents,
-			FallbackUserAgent: fallbackUserAgent,
+			FallbackUserAgent: config.Plugin,
 		},
 		QwenCode{
 			After:             after,
 			UserAgents:        userAgents,
-			FallbackUserAgent: fallbackUserAgent,
+			FallbackUserAgent: config.Plugin,
 		},
 		Pi{
 			After:             after,
 			UserAgents:        userAgents,
-			FallbackUserAgent: fallbackUserAgent,
+			FallbackUserAgent: config.Plugin,
 		},
 		Goose{
 			After:             after,
 			UserAgents:        userAgents,
-			FallbackUserAgent: fallbackUserAgent,
+			FallbackUserAgent: config.Plugin,
 		},
 	}
 
@@ -287,7 +301,15 @@ func parseAIHeartbeats(
 	for _, p := range parsers {
 		logger.Debugf("execute %s", p.Name())
 
-		heartbeats, err := parseHeartbeats(ctx, p)
+		heartbeats, err := parseHeartbeats(ctx, p, func(report aiPanicReport) {
+			if logger.IsVerboseEnabled() {
+				report.Logs = logs.String()
+			}
+
+			if diagErr := sendAIPanicDiagnostics(ctx, config.V, report); diagErr != nil {
+				logger.Warnf("failed to send ai parser panic diagnostics: %s", diagErr)
+			}
+		})
 		if err != nil {
 			logger.Errorf("unexpected error occurred at %q: %s", p.Name(), err)
 			continue
@@ -301,10 +323,23 @@ func parseAIHeartbeats(
 	return aiHeartbeats, nil
 }
 
-func parseHeartbeats(ctx context.Context, parser Parser) (heartbeats Heartbeats, err error) {
+func parseHeartbeats(
+	ctx context.Context,
+	parser Parser,
+	reportPanic func(aiPanicReport),
+) (heartbeats Heartbeats, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			log.Extract(ctx).Errorf("panicked: %v. Stack: %s", r, string(debug.Stack()))
+			stack := string(debug.Stack())
+			log.Extract(ctx).Errorf("panicked: %v. Stack: %s", r, stack)
+
+			if reportPanic != nil {
+				reportPanic(aiPanicReport{
+					ParserName: parser.Name(),
+					Recovered:  r,
+					Stack:      stack,
+				})
+			}
 
 			heartbeats = nil
 			err = fmt.Errorf("panicked: %v", r)
@@ -312,6 +347,92 @@ func parseHeartbeats(ctx context.Context, parser Parser) (heartbeats Heartbeats,
 	}()
 
 	return parser.Parse(ctx)
+}
+
+func captureAIParsingLogs(ctx context.Context) (*bytes.Buffer, func()) {
+	logger := log.Extract(ctx)
+	logs := bytes.NewBuffer(nil)
+
+	if !logger.IsVerboseEnabled() {
+		return logs, func() {}
+	}
+
+	logOutput := logger.Output()
+	logger.SetOutput(io.MultiWriter(logOutput, logs))
+
+	return logs, func() {
+		logger.SetOutput(logOutput)
+	}
+}
+
+func sendAIPanicDiagnostics(ctx context.Context, v *viper.Viper, report aiPanicReport) error {
+	if v == nil {
+		return fmt.Errorf("missing viper instance")
+	}
+
+	paramAPI, err := params.LoadAPIParams(ctx, v, params.FlagReadOrderFlagPrecedence)
+	if err != nil {
+		return fmt.Errorf("failed to load API parameters: %s", err)
+	}
+
+	opts := []api.Option{
+		api.WithTimeout(paramAPI.Timeout),
+		api.WithHostname(strings.TrimSpace(paramAPI.Hostname)),
+		api.WithUserAgent(ctx, paramAPI.Plugin),
+	}
+
+	withAuth, err := api.WithAuth(api.BasicAuth{
+		Secret: paramAPI.Key,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to set up auth option on api client: %w", err)
+	}
+
+	opts = append(opts, withAuth)
+
+	if paramAPI.DisableSSLVerify {
+		opts = append(opts, api.WithDisableSSLVerify())
+	}
+
+	if !paramAPI.DisableSSLVerify && paramAPI.SSLCertFilepath != "" {
+		withSSLCert, err := api.WithSSLCertFile(ctx, paramAPI.SSLCertFilepath)
+		if err != nil {
+			return fmt.Errorf("failed to set up ssl cert file option on api client: %s", err)
+		}
+
+		opts = append(opts, withSSLCert)
+	} else if !paramAPI.DisableSSLVerify {
+		opts = append(opts, api.WithSSLCertPool(api.CACerts(ctx)))
+	}
+
+	if paramAPI.ProxyURL != "" {
+		withProxy, err := api.WithProxy(paramAPI.ProxyURL)
+		if err != nil {
+			return fmt.Errorf("failed to set up proxy option on api client: %w", err)
+		}
+
+		opts = append(opts, withProxy)
+
+		if strings.Contains(paramAPI.ProxyURL, `\\`) {
+			withNTLMRetry, err := api.WithNTLMRequestRetry(ctx, paramAPI.ProxyURL)
+			if err != nil {
+				return fmt.Errorf("failed to set up ntlm request retry option on api client: %w", err)
+			}
+
+			opts = append(opts, withNTLMRetry)
+		}
+	}
+
+	c := api.NewClient(paramAPI.URL, opts...)
+
+	return c.SendDiagnostics(
+		ctx,
+		paramAPI.Plugin,
+		true,
+		diagnostic.Error(fmt.Sprintf("ai parser %q panicked: %v", report.ParserName, report.Recovered)),
+		diagnostic.Logs(report.Logs),
+		diagnostic.Stack(report.Stack),
+	)
 }
 
 func getLastParsedAt(ctx context.Context, v *viper.Viper) (time.Time, error) {
