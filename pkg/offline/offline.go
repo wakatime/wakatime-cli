@@ -528,7 +528,7 @@ func (q *Queue) Count() (int, error) {
 	return b.Stats().KeyN, nil
 }
 
-// PopMany retrieves heartbeats with the specified ids from db.
+// PopMany retrieves and deletes up to limit heartbeats from db, newest first.
 func (q *Queue) PopMany(limit int) ([]heartbeat.Heartbeat, error) {
 	b, err := q.tx.CreateBucketIfNotExists([]byte(q.Bucket))
 	if err != nil {
@@ -543,7 +543,9 @@ func (q *Queue) PopMany(limit int) ([]heartbeat.Heartbeat, error) {
 	// load values
 	c := b.Cursor()
 
-	for key, value := c.First(); key != nil; key, value = c.Next() {
+	// Heartbeat ids are prefixed with their timestamp, so reverse key order is
+	// descending heartbeat timestamp order.
+	for key, value := c.Last(); key != nil; key, value = c.Prev() {
 		if len(heartbeats) >= limit {
 			break
 		}

@@ -589,8 +589,8 @@ func TestSync_APIError(t *testing.T) {
 		numCalls++
 
 		assert.Equal(t, []heartbeat.Heartbeat{
-			testHeartbeats()[0],
 			testHeartbeats()[1],
+			testHeartbeats()[0],
 		}, hh)
 
 		return nil, errors.New("failed")
@@ -677,9 +677,9 @@ func TestSync_APIErrorBulkNested(t *testing.T) {
 		numCalls++
 
 		assert.Equal(t, []heartbeat.Heartbeat{
-			testHeartbeats()[0],
-			testHeartbeats()[1],
 			testHeartbeats()[2],
+			testHeartbeats()[1],
+			testHeartbeats()[0],
 		}, hh)
 
 		return []heartbeat.Result{
@@ -779,9 +779,9 @@ func TestSync_InvalidResults(t *testing.T) {
 		if numCalls == 1 {
 			require.Len(t, hh, 3)
 			assert.Equal(t, []heartbeat.Heartbeat{
-				testHeartbeats()[0],
-				testHeartbeats()[1],
 				testHeartbeats()[2],
+				testHeartbeats()[1],
+				testHeartbeats()[0],
 			}, hh)
 
 			return []heartbeat.Result{
@@ -884,7 +884,7 @@ func TestSync_SyncLimit(t *testing.T) {
 	err = syncFn(func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		numCalls++
 
-		assert.Len(t, hh, 1)
+		assert.Equal(t, []heartbeat.Heartbeat{testHeartbeats()[1]}, hh)
 
 		return []heartbeat.Result{
 			{
@@ -920,8 +920,8 @@ func TestSync_SyncLimit(t *testing.T) {
 
 	require.Len(t, stored, 1)
 
-	assert.Equal(t, "1592868386.079084-file-debugging-wakatime-summary-/tmp/main.py-false", stored[0].ID)
-	assert.JSONEq(t, string(dataPy), stored[0].Heartbeat)
+	assert.Equal(t, "1592868367.219124-file-coding-wakatime-cli-heartbeat-/tmp/main.go-true", stored[0].ID)
+	assert.JSONEq(t, string(dataGo), stored[0].Heartbeat)
 
 	assert.Equal(t, 1, numCalls)
 }
@@ -1480,9 +1480,10 @@ func TestQueue_PopMany(t *testing.T) {
 	require.NoError(t, err)
 
 	// check
-	assert.Len(t, hh, 2)
-	assert.Contains(t, hh, testHeartbeats()[0])
-	assert.Contains(t, hh, testHeartbeats()[1])
+	assert.Equal(t, []heartbeat.Heartbeat{
+		testHeartbeats()[2],
+		testHeartbeats()[1],
+	}, hh)
 
 	var stored []heartbeatRecord
 
@@ -1501,8 +1502,8 @@ func TestQueue_PopMany(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Len(t, stored, 1)
-	assert.Equal(t, "1592868394.084354-file-building-wakatime-todaygoal-/tmp/main.js-false", stored[0].ID)
-	assert.JSONEq(t, string(dataJs), stored[0].Heartbeat)
+	assert.Equal(t, "1592868367.219124-file-coding-wakatime-cli-heartbeat-/tmp/main.go-true", stored[0].ID)
+	assert.JSONEq(t, string(dataGo), stored[0].Heartbeat)
 }
 
 func TestQueue_PushMany(t *testing.T) {
