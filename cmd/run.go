@@ -144,7 +144,7 @@ func RunE(cmd *cobra.Command, v *viper.Viper) error {
 		return RunCmd(ctx, v, logger.IsVerboseEnabled(), logger.SendDiagsOnErrors(), offlinesync.RunWithoutRateLimiting)
 	}
 
-	if v.GetBool("sync-ai-activity") {
+	if syncAIActivityEnabled(v) {
 		logger.Debugln("command: sync-ai-activity")
 
 		return RunCmd(ctx, v, logger.IsVerboseEnabled(), logger.SendDiagsOnErrors(), cmdheartbeat.RunAISyncActivity)
@@ -170,6 +170,7 @@ func RunE(cmd *cobra.Command, v *viper.Viper) error {
 		"--offline-count",
 		"--print-offline-heartbeats",
 		"--sync-ai-activity",
+		"--sync-ai-heartbeats",
 		"--sync-offline-activity",
 		"--today",
 		"--today-goal",
@@ -180,6 +181,10 @@ func RunE(cmd *cobra.Command, v *viper.Viper) error {
 	_ = cmd.Help()
 
 	return exitcode.Err{Code: exitcode.ErrGeneric}
+}
+
+func syncAIActivityEnabled(v *viper.Viper) bool {
+	return v.GetBool("sync-ai-activity") || v.GetBool("sync-ai-heartbeats")
 }
 
 func parseConfigFiles(ctx context.Context, v *viper.Viper) error {
