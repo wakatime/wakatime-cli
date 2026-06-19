@@ -14,7 +14,8 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/ini"
 )
 
-// Gemini contains params for detecting heartbeats from Gemini session JSON logs.
+// Gemini contains params for detecting heartbeats from Gemini and Antigravity
+// session logs.
 type Gemini ParserConfig
 
 type (
@@ -94,34 +95,39 @@ type (
 	}
 )
 
-// Parse parses the Gemini JSON session logs for ai heartbeats.
+// Parse parses Gemini and Antigravity session logs for ai heartbeats.
 func (g Gemini) Parse(ctx context.Context) (Heartbeats, error) {
 	transcripts, err := g.transcriptPaths(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(transcripts) == 0 {
-		return Heartbeats{}, nil
+	var heartbeats Heartbeats
+
+	if len(transcripts) > 0 {
+		projectPaths, err := g.projectPaths(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		for slug, sessionPaths := range transcripts {
+			for _, transcript := range sessionPaths {
+				parsed, err := g.parseTranscript(transcript, projectPaths.bySlug[slug])
+				if err != nil {
+					return nil, err
+				}
+
+				heartbeats = append(heartbeats, parsed...)
+			}
+		}
 	}
 
-	projectPaths, err := g.projectPaths(ctx)
+	antigravityHeartbeats, err := g.parseAntigravity(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	var heartbeats Heartbeats
-
-	for slug, sessionPaths := range transcripts {
-		for _, transcript := range sessionPaths {
-			parsed, err := g.parseTranscript(transcript, projectPaths.bySlug[slug])
-			if err != nil {
-				return nil, err
-			}
-
-			heartbeats = append(heartbeats, parsed...)
-		}
-	}
+	heartbeats = append(heartbeats, antigravityHeartbeats...)
 
 	return heartbeats, nil
 }
