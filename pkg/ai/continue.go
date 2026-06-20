@@ -298,17 +298,17 @@ func (g Continue) eventFromLine(line []byte, workspaces map[string]string) (cont
 func (g Continue) heartbeats(events []continueEvent) Heartbeats {
 	var heartbeats Heartbeats
 
+	tokenMatches := g.tokenMatches(events)
+
 	var (
 		currentSessionID string
 		currentWorkspace string
-		currentTokens    *continueEvent
 	)
 
-	for _, event := range events {
+	for i, event := range events {
 		switch event.Kind {
 		case continueEventTokens:
-			copy := event
-			currentTokens = &copy
+			continue
 		case continueEventChat:
 			if event.SessionID != "" {
 				currentSessionID = event.SessionID
@@ -322,15 +322,10 @@ func (g Continue) heartbeats(events []continueEvent) Heartbeats {
 				continue
 			}
 
-			tokens := g.tokensForEvent(event, currentTokens)
-			if tokens != nil {
-				currentTokens = nil
-			}
-
 			heartbeats = append(heartbeats, g.newHeartbeat(
 				nil,
 				currentSessionID,
-				tokens,
+				tokenMatches[i],
 				appHeartbeatEntity(g.Name(), currentSessionID),
 				heartbeat.AppType,
 				heartbeat.PointerTo(false),
@@ -382,6 +377,79 @@ func (g Continue) heartbeats(events []continueEvent) Heartbeats {
 	}
 
 	return heartbeats
+}
+
+func (g Continue) tokenMatches(events []continueEvent) map[int]*heartbeat.AITokens {
+	type candidate struct {
+		chatIndex  int
+		tokenIndex int
+		diff       time.Duration
+		tokens     heartbeat.AITokens
+	}
+
+	var tokenIndices []int
+
+	for i, event := range events {
+		if event.Kind == continueEventTokens {
+			tokenIndices = append(tokenIndices, i)
+		}
+	}
+
+	var candidates []candidate
+
+	for chatIndex, chat := range events {
+		if chat.Kind != continueEventChat {
+			continue
+		}
+
+		windowStart := chat.Timestamp.Add(-5 * time.Second)
+		start := sort.Search(len(tokenIndices), func(i int) bool {
+			return !events[tokenIndices[i]].Timestamp.Before(windowStart)
+		})
+
+		for _, tokenIndex := range tokenIndices[start:] {
+			token := events[tokenIndex]
+			if token.Timestamp.After(chat.Timestamp.Add(5 * time.Second)) {
+				break
+			}
+
+			matched := g.tokensForEvent(chat, &token)
+			if matched == nil {
+				continue
+			}
+
+			diff := chat.Timestamp.Sub(token.Timestamp)
+			if diff < 0 {
+				diff = -diff
+			}
+
+			candidates = append(candidates, candidate{
+				chatIndex:  chatIndex,
+				tokenIndex: tokenIndex,
+				diff:       diff,
+				tokens:     *matched,
+			})
+		}
+	}
+
+	sort.SliceStable(candidates, func(i, j int) bool {
+		return candidates[i].diff < candidates[j].diff
+	})
+
+	matches := make(map[int]*heartbeat.AITokens)
+
+	usedTokens := make(map[int]bool)
+	for _, candidate := range candidates {
+		if matches[candidate.chatIndex] != nil || usedTokens[candidate.tokenIndex] {
+			continue
+		}
+
+		tokens := candidate.tokens
+		matches[candidate.chatIndex] = &tokens
+		usedTokens[candidate.tokenIndex] = true
+	}
+
+	return matches
 }
 
 func (Continue) tokensForEvent(event continueEvent, tokens *continueEvent) *heartbeat.AITokens {

@@ -47,9 +47,10 @@ func TestQoderParse(t *testing.T) {
 		FallbackUserAgent: "plugin/0.0.1",
 	}.Parse(ctx)
 	require.NoError(t, err)
-	require.Len(t, got, 5)
+	require.Len(t, got, 6)
 
 	authorsPath := "/Users/user/git/wakatime-cli/AUTHORS"
+	contributorsPath := "/Users/user/git/wakatime-cli/CONTRIBUTORS"
 
 	assert.Equal(t, "Qoder 99947f30-f6f8-4323-a2c1-4970f5329d9c", got[0].Entity)
 	assert.Equal(t, heartbeat.AppType, got[0].EntityType)
@@ -78,8 +79,14 @@ func TestQoderParse(t *testing.T) {
 	assert.Equal(t, authorsPath, got[4].Entity)
 	assert.Equal(t, heartbeat.PointerTo(true), got[4].IsWrite)
 	require.NotNil(t, got[4].AILineChanges)
-	assert.Equal(t, -1, *got[4].AILineChanges)
+	assert.Zero(t, *got[4].AILineChanges)
 	assert.Zero(t, got[4].AIPromptLength)
+
+	assert.Equal(t, contributorsPath, got[5].Entity)
+	assert.Equal(t, heartbeat.PointerTo(true), got[5].IsWrite)
+	require.NotNil(t, got[5].AILineChanges)
+	assert.Equal(t, 3, *got[5].AILineChanges)
+	assert.Zero(t, got[5].AIPromptLength)
 }
 
 func TestQoderParse_NoDB(t *testing.T) {
@@ -223,10 +230,24 @@ CREATE TABLE chat_message (
 		sessionID,
 		secondRequestID,
 		"tool",
-		qoderToolResultJSON(t, sessionID, secondRequestID, projectPath, "search_replace", authorsPath, map[string]int{
-			"add":    1,
-			"delete": 2,
-		}),
+		qoderMultiToolResultJSON(
+			t,
+			sessionID,
+			secondRequestID,
+			projectPath,
+			"search_replace",
+			authorsPath,
+			[]map[string]any{
+				{
+					"path":     authorsPath,
+					"diffInfo": map[string]int{"add": 0, "delete": 0},
+				},
+				{
+					"path":     projectPath + "/CONTRIBUTORS",
+					"diffInfo": map[string]int{"add": 4, "delete": 1},
+				},
+			},
+		),
 		"",
 		1777301184268,
 	)
@@ -333,6 +354,32 @@ func qoderToolResultJSON(
 	}
 
 	raw, err := json.Marshal(result)
+	require.NoError(t, err)
+
+	return string(raw)
+}
+
+func qoderMultiToolResultJSON(
+	t *testing.T,
+	sessionID string,
+	requestID string,
+	projectPath string,
+	toolCallName string,
+	filePath string,
+	results []map[string]any,
+) string {
+	t.Helper()
+
+	raw, err := json.Marshal(map[string]any{
+		"sessionId":    sessionID,
+		"requestId":    requestID,
+		"projectPath":  projectPath,
+		"toolCallName": toolCallName,
+		"parameters": map[string]any{
+			"file_path": filePath,
+		},
+		"results": results,
+	})
 	require.NoError(t, err)
 
 	return string(raw)

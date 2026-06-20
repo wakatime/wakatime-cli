@@ -43,7 +43,7 @@ func TestContinueParse(t *testing.T) {
 
 	writeJSONL(t, filepath.Join(devDataDir, "tokensGenerated.jsonl"), []map[string]any{
 		{
-			"timestamp":       "2026-05-01T19:45:22.280Z",
+			"timestamp":       "2026-05-01T19:45:22.290Z",
 			"eventName":       "tokensGenerated",
 			"model":           "gpt-5.2",
 			"provider":        "openai",

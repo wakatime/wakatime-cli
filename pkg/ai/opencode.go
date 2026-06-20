@@ -1040,6 +1040,10 @@ func (g OpenCode) patchHeartbeats(
 	lines := strings.Split(patchText, "\n")
 	for _, line := range lines {
 		switch {
+		case strings.HasPrefix(line, "*** Move to: "):
+			if currentFile != "" {
+				currentFile = openCodeResolvePath(cwd, strings.TrimPrefix(line, "*** Move to: "))
+			}
 		case strings.HasPrefix(line, "*** Update File: "),
 			strings.HasPrefix(line, "*** Add File: "),
 			strings.HasPrefix(line, "*** Delete File: "):

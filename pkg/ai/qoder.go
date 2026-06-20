@@ -144,9 +144,7 @@ func (g Qoder) Parse(ctx context.Context) (Heartbeats, error) {
 				heartbeats = append(heartbeats, *heartbeat)
 			}
 		case "tool":
-			if heartbeat := g.qoderToolHeartbeat(row, timestamp); heartbeat != nil {
-				heartbeats = append(heartbeats, *heartbeat)
-			}
+			heartbeats = append(heartbeats, g.qoderToolHeartbeats(row, timestamp)...)
 		}
 	}
 
@@ -419,63 +417,72 @@ func (g Qoder) qoderPromptHeartbeat(prompt qoderPrompt) heartbeat.Heartbeat {
 	return h
 }
 
-func (g Qoder) qoderToolHeartbeat(row qoderMessageRow, timestamp time.Time) *heartbeat.Heartbeat {
+func (g Qoder) qoderToolHeartbeats(row qoderMessageRow, timestamp time.Time) Heartbeats {
 	var result qoderToolResult
 	if err := json.Unmarshal([]byte(row.ToolResult), &result); err != nil {
 		return nil
 	}
 
-	filePath := result.filePath()
-	if filePath == "" {
-		return nil
+	files := make([]qoderToolFile, 0, len(result.Results))
+	for _, file := range result.Results {
+		if file.Path != "" {
+			files = append(files, file)
+		}
+	}
+
+	if len(files) == 0 {
+		files = []qoderToolFile{{Path: result.parameterFilePath()}}
 	}
 
 	isWrite := !strings.HasPrefix(result.ToolCallName, "read")
-
-	var lineChanges *int
-	if isWrite {
-		lineChanges = heartbeat.PointerTo(result.lineChanges())
-	}
 
 	sessionID := result.SessionID
 	if sessionID == "" {
 		sessionID = row.SessionID
 	}
 
-	h := heartbeat.New(
-		lineChanges,
-		"",
-		heartbeat.AICodingCategory.String(),
-		nil,
-		filePath,
-		heartbeat.FileType,
-		nil,
-		false,
-		heartbeat.PointerTo(isWrite),
-		nil,
-		"",
-		nil,
-		nil,
-		"",
-		"",
-		false,
-		"",
-		"",
-		float64(timestamp.UnixMilli())/1000,
-		aiUserAgentWithModel(filePath, g.UserAgents, g.FallbackUserAgent, "", ""),
-	)
-	h.AISession = sessionID
+	var heartbeats Heartbeats
 
-	return &h
-}
-
-func (r qoderToolResult) filePath() string {
-	for _, file := range r.Results {
-		if file.Path != "" {
-			return file.Path
+	for _, file := range files {
+		if file.Path == "" {
+			continue
 		}
+
+		var lineChanges *int
+		if isWrite {
+			lineChanges = heartbeat.PointerTo(file.lineChanges())
+		}
+
+		h := heartbeat.New(
+			lineChanges,
+			"",
+			heartbeat.AICodingCategory.String(),
+			nil,
+			file.Path,
+			heartbeat.FileType,
+			nil,
+			false,
+			heartbeat.PointerTo(isWrite),
+			nil,
+			"",
+			nil,
+			nil,
+			"",
+			"",
+			false,
+			"",
+			"",
+			float64(timestamp.UnixMilli())/1000,
+			aiUserAgentWithModel(file.Path, g.UserAgents, g.FallbackUserAgent, "", ""),
+		)
+		h.AISession = sessionID
+		heartbeats = append(heartbeats, h)
 	}
 
+	return heartbeats
+}
+
+func (r qoderToolResult) parameterFilePath() string {
 	if r.Parameters.FilePath != "" {
 		return r.Parameters.FilePath
 	}
@@ -483,19 +490,13 @@ func (r qoderToolResult) filePath() string {
 	return r.Parameters.Path
 }
 
-func (r qoderToolResult) lineChanges() int {
-	for _, file := range r.Results {
-		diff := file.DiffInfo
-		if diff.Add == 0 && diff.Delete == 0 {
-			diff = file.LastDiffInfo
-		}
-
-		if diff.Add != 0 || diff.Delete != 0 {
-			return diff.Add - diff.Delete
-		}
+func (f qoderToolFile) lineChanges() int {
+	diff := f.DiffInfo
+	if diff.Add == 0 && diff.Delete == 0 {
+		diff = f.LastDiffInfo
 	}
 
-	return 0
+	return diff.Add - diff.Delete
 }
 
 func (Qoder) qoderPrompts(ctx context.Context, rows []qoderPromptRow) ([]qoderPrompt, error) {
