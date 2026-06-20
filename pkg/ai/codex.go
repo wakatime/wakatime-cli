@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -531,22 +532,81 @@ func (g Codex) getHeartbeats(
 		}
 	}
 
-	if payload.Name == nil || *payload.Name != "apply_patch" || payload.Input == nil {
+	var heartbeats Heartbeats
+	for _, input := range codexPatchInputs(payload) {
+		heartbeats = append(heartbeats, g.patchHeartbeats(
+			timestamp,
+			version,
+			agentVersion,
+			source,
+			cwd,
+			userAgents,
+			fallbackUserAgent,
+			input,
+			sessionID,
+			tokens,
+		)...)
+	}
+
+	return heartbeats
+}
+
+func codexPatchInputs(payload codexPayload) []string {
+	if payload.Name == nil || payload.Input == nil {
 		return nil
 	}
 
-	return g.patchHeartbeats(
-		timestamp,
-		version,
-		agentVersion,
-		source,
-		cwd,
-		userAgents,
-		fallbackUserAgent,
-		*payload.Input,
-		sessionID,
-		tokens,
+	switch *payload.Name {
+	case "apply_patch":
+		return []string{*payload.Input}
+	case "exec":
+		return codexExecPatchInputs(*payload.Input)
+	default:
+		return nil
+	}
+}
+
+func codexExecPatchInputs(input string) []string {
+	if !strings.Contains(input, "tools.apply_patch") {
+		return nil
+	}
+
+	const (
+		beginPatch = "*** Begin Patch"
+		endPatch   = "*** End Patch"
 	)
+
+	var patches []string
+
+	for {
+		begin := strings.Index(input, beginPatch)
+		if begin == -1 {
+			break
+		}
+
+		input = input[begin:]
+
+		end := strings.Index(input, endPatch)
+		if end == -1 {
+			break
+		}
+
+		end += len(endPatch)
+		encoded := input[:end]
+		input = input[end:]
+
+		if strings.Contains(encoded, "\n") {
+			patches = append(patches, encoded)
+			continue
+		}
+
+		decoded, err := strconv.Unquote(`"` + encoded + `"`)
+		if err == nil {
+			patches = append(patches, decoded)
+		}
+	}
+
+	return patches
 }
 
 func (g Codex) patchHeartbeats(
