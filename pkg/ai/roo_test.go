@@ -2,6 +2,7 @@ package ai_test
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
@@ -86,4 +87,81 @@ func TestRooCodeParse_NoTasksDir(t *testing.T) {
 	got, err := ai.RooCode{After: time.Now()}.Parse(ctx)
 	require.NoError(t, err)
 	assert.Empty(t, got)
+}
+
+func TestRooCodeParse_SkipsFailedTool(t *testing.T) {
+	ctx := context.Background()
+
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	taskDir := filepath.Join(
+		home,
+		".config",
+		"Code",
+		"User",
+		"globalStorage",
+		"RooVeterinaryInc.roo-cline",
+		"tasks",
+		"1736395424461",
+	)
+	require.NoError(t, os.MkdirAll(taskDir, 0o755))
+
+	textJSON := func(v any) *string {
+		contents, err := json.Marshal(v)
+		require.NoError(t, err)
+
+		value := string(contents)
+
+		return &value
+	}
+
+	sayAPIReqStarted := "api_req_started"
+	askTool := "tool"
+	uiMessages := []map[string]any{
+		{
+			"ts":   int64(1740000001000),
+			"type": "say",
+			"say":  &sayAPIReqStarted,
+			"text": textJSON(map[string]any{
+				"request":   "<task>Fix the file</task>\n# Current Working Directory (/workspace/project)",
+				"tokensIn":  90,
+				"tokensOut": 20,
+			}),
+		},
+		{
+			"ts":   int64(1740000002000),
+			"type": "ask",
+			"ask":  &askTool,
+			"text": textJSON(map[string]any{
+				"tool": "appliedDiff",
+				"path": "main.go",
+				"diff": "<<<<<<< SEARCH\nold\n=======\nnew\n>>>>>>> REPLACE",
+			}),
+		},
+		{
+			"ts":   int64(1740000003000),
+			"type": "say",
+			"say":  &sayAPIReqStarted,
+			"text": textJSON(map[string]any{
+				"request":   "[apply_diff for 'main.go'] Result:\n\nUnable to apply diff to file",
+				"tokensIn":  120,
+				"tokensOut": 30,
+			}),
+		},
+	}
+
+	contents, err := json.Marshal(uiMessages)
+	require.NoError(t, err)
+	require.NoError(t, os.WriteFile(filepath.Join(taskDir, "ui_messages.json"), contents, 0o600))
+
+	got, err := (ai.RooCode{
+		After:             time.Date(2025, 2, 19, 17, 20, 0, 0, time.UTC),
+		FallbackUserAgent: "plugin/0.0.1",
+	}).Parse(ctx)
+	require.NoError(t, err)
+	require.Len(t, got, 2)
+	assert.Equal(t, heartbeat.AppType, got[0].EntityType)
+	assert.Equal(t, heartbeat.AppType, got[1].EntityType)
 }

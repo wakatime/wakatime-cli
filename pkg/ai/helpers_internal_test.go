@@ -618,6 +618,47 @@ func TestCodexHelpers(t *testing.T) {
 	assert.Equal(t, filepath.Join("/workspace", "pkg/main.go"), codexMoveFilePath("/workspace", "*** Move to: pkg/main.go"))
 }
 
+func TestOpenCodePatchHeartbeats_Move(t *testing.T) {
+	workspace := t.TempDir()
+	newPath := filepath.Join(workspace, "pkg", "new.go")
+
+	got := (OpenCode{}).patchHeartbeats(
+		"1.2.3",
+		"gpt-5.2",
+		"session",
+		workspace,
+		"*** Update File: pkg/old.go\n*** Move to: pkg/new.go\n+one\n-two",
+		time.Unix(1740000000, 0),
+	)
+	require.Len(t, got, 1)
+	assert.Equal(t, newPath, got[0].Entity)
+	require.NotNil(t, got[0].AILineChanges)
+	assert.Zero(t, *got[0].AILineChanges)
+}
+
+func TestRooToolResultOutcome(t *testing.T) {
+	handled, succeeded := rooToolResultOutcome(
+		"[write_to_file for 'main.go'] Result:\n\nThe content was successfully saved to main.go.",
+		rooToolAsk{Tool: "writeToFile"},
+	)
+	assert.True(t, handled)
+	assert.True(t, succeeded)
+
+	handled, succeeded = rooToolResultOutcome(
+		"[apply_diff for 'main.go'] Result:\n\nUnable to apply diff to file",
+		rooToolAsk{Tool: "appliedDiff"},
+	)
+	assert.True(t, handled)
+	assert.False(t, succeeded)
+
+	handled, succeeded = rooToolResultOutcome(
+		"Unrelated API request",
+		rooToolAsk{Tool: "appliedDiff"},
+	)
+	assert.False(t, handled)
+	assert.False(t, succeeded)
+}
+
 func TestPreserveAttributesMutatesAIHeartbeats(t *testing.T) {
 	project := "sample-project"
 	branch := "main"

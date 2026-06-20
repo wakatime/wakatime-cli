@@ -38,6 +38,12 @@ type (
 		Diff    string `json:"diff"`
 		Content string `json:"content"`
 	}
+
+	rooPendingTool struct {
+		tool        rooToolAsk
+		filePath    string
+		lineChanges int
+	}
 )
 
 // Parse parses the Roo Code task logs for ai heartbeats.
@@ -165,7 +171,10 @@ func (g RooCode) parseTaskDir(taskDir string) (Heartbeats, error) {
 	sessionEntity := appHeartbeatEntity(g.Name(), sessionID)
 	cwd := ""
 
-	var heartbeats Heartbeats
+	var (
+		heartbeats  Heartbeats
+		pendingTool *rooPendingTool
+	)
 
 	for _, message := range messages {
 		timestamp := time.UnixMilli(message.Timestamp)
@@ -173,26 +182,17 @@ func (g RooCode) parseTaskDir(taskDir string) (Heartbeats, error) {
 			continue
 		}
 
-		if message.Say != nil && *message.Say == "api_req_started" && message.Text != nil {
-			request := rooAPIRequest{}
-			if err := json.Unmarshal([]byte(*message.Text), &request); err == nil {
-				if parsedCwd := rooCurrentWorkingDirectory(request.Request); parsedCwd != "" {
-					cwd = parsedCwd
-				}
+		var apiHeartbeats Heartbeats
 
-				heartbeats = append(heartbeats, g.appHeartbeat(
-					timestamp,
-					sessionEntity,
-					sessionID,
-					cwd,
-					rooTaskText(request.Request),
-					heartbeat.AITokens{
-						CurrentInput:  request.TokensIn,
-						CurrentOutput: request.TokensOut,
-					},
-				))
-			}
-		}
+		apiHeartbeats, cwd, pendingTool = g.rooAPIRequestHeartbeats(
+			message,
+			timestamp,
+			sessionEntity,
+			sessionID,
+			cwd,
+			pendingTool,
+		)
+		heartbeats = append(heartbeats, apiHeartbeats...)
 
 		if message.Ask != nil && *message.Ask == "tool" && message.Text != nil {
 			tool := rooToolAsk{}
@@ -205,11 +205,106 @@ func (g RooCode) parseTaskDir(taskDir string) (Heartbeats, error) {
 				continue
 			}
 
-			heartbeats = append(heartbeats, g.fileHeartbeat(timestamp, sessionID, filePath, lineChanges))
+			pendingTool = &rooPendingTool{
+				tool:        tool,
+				filePath:    filePath,
+				lineChanges: lineChanges,
+			}
 		}
 	}
 
 	return heartbeats, nil
+}
+
+func (g RooCode) rooAPIRequestHeartbeats(
+	message rooUIMessage,
+	timestamp time.Time,
+	sessionEntity string,
+	sessionID string,
+	cwd string,
+	pendingTool *rooPendingTool,
+) (Heartbeats, string, *rooPendingTool) {
+	if message.Say == nil || *message.Say != "api_req_started" || message.Text == nil {
+		return nil, cwd, pendingTool
+	}
+
+	request := rooAPIRequest{}
+	if err := json.Unmarshal([]byte(*message.Text), &request); err != nil {
+		return nil, cwd, pendingTool
+	}
+
+	var heartbeats Heartbeats
+
+	fileHeartbeat, handled := g.rooPendingToolResultHeartbeat(timestamp, sessionID, request.Request, pendingTool)
+	if fileHeartbeat != nil {
+		heartbeats = append(heartbeats, *fileHeartbeat)
+	}
+
+	if handled {
+		pendingTool = nil
+	}
+
+	if parsedCwd := rooCurrentWorkingDirectory(request.Request); parsedCwd != "" {
+		cwd = parsedCwd
+	}
+
+	heartbeats = append(heartbeats, g.appHeartbeat(
+		timestamp,
+		sessionEntity,
+		sessionID,
+		cwd,
+		rooTaskText(request.Request),
+		heartbeat.AITokens{
+			CurrentInput:  request.TokensIn,
+			CurrentOutput: request.TokensOut,
+		},
+	))
+
+	return heartbeats, cwd, pendingTool
+}
+
+func (g RooCode) rooPendingToolResultHeartbeat(
+	timestamp time.Time,
+	sessionID string,
+	request string,
+	pending *rooPendingTool,
+) (*heartbeat.Heartbeat, bool) {
+	if pending == nil {
+		return nil, false
+	}
+
+	handled, succeeded := rooToolResultOutcome(request, pending.tool)
+	if !succeeded {
+		return nil, handled
+	}
+
+	h := g.fileHeartbeat(timestamp, sessionID, pending.filePath, pending.lineChanges)
+
+	return &h, true
+}
+
+func rooToolResultOutcome(request string, tool rooToolAsk) (bool, bool) {
+	var (
+		resultPrefix string
+		successText  string
+	)
+
+	switch tool.Tool {
+	case "appliedDiff":
+		resultPrefix = "[apply_diff for "
+		successText = "Changes successfully applied"
+	case "writeToFile":
+		resultPrefix = "[write_to_file for "
+		successText = "The content was successfully saved"
+	default:
+		return false, false
+	}
+
+	if !strings.Contains(request, resultPrefix) {
+		return false, false
+	}
+
+	return true, strings.Contains(request, successText)
 }
 
 func (g RooCode) appHeartbeat(
