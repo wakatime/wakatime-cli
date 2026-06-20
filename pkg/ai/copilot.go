@@ -619,7 +619,7 @@ func (g Copilot) sessionHeartbeats(
 				continue
 			}
 
-			plugin := aiPlugin(g, g.version(request.Agent))
+			plugin := "github-copilot/" + unknownIfEmpty(g.version(request.Agent))
 			requestMeta[request.RequestID] = copilotRequestMeta{
 				timestamp: requestTime,
 				plugin:    plugin,

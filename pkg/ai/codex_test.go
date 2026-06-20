@@ -55,13 +55,8 @@ func TestCodexParse(t *testing.T) {
 	require.NotNil(t, got[0].IsWrite)
 	assert.False(t, *got[0].IsWrite)
 	assert.Equal(t, float64(time.Date(2026, 3, 28, 11, 33, 14, 289, time.UTC).Unix()), got[0].Time)
-	assert.Contains(t, got[0].UserAgent, "Codex/0.116.0-alpha.1")
+	assert.NotContains(t, got[0].UserAgent, "Codex/")
 	assert.Contains(t, got[0].UserAgent, "vscode-wakatime/unknown")
-	assert.True(
-		t,
-		strings.Index(got[0].UserAgent, "Codex/0.116.0-alpha.1") <
-			strings.Index(got[0].UserAgent, "vscode-wakatime/unknown"),
-	)
 	assert.True(
 		t,
 		strings.Index(got[0].UserAgent, "vscode-wakatime/unknown") <
@@ -80,13 +75,8 @@ func TestCodexParse(t *testing.T) {
 	assert.Zero(t, got[1].AIInputTokens)
 	assert.Zero(t, got[1].AIOutputTokens)
 	assert.Equal(t, float64(time.Date(2026, 3, 28, 11, 33, 18, 535000000, time.UTC).Unix()), got[1].Time)
-	assert.Contains(t, got[1].UserAgent, "Codex/0.116.0-alpha.10")
+	assert.NotContains(t, got[1].UserAgent, "Codex/")
 	assert.Contains(t, got[1].UserAgent, "vscode-wakatime/unknown")
-	assert.True(
-		t,
-		strings.Index(got[1].UserAgent, "Codex/0.116.0-alpha.10") <
-			strings.Index(got[1].UserAgent, "vscode-wakatime/unknown"),
-	)
 	assert.True(
 		t,
 		strings.Index(got[1].UserAgent, "vscode-wakatime/unknown") <
@@ -104,13 +94,8 @@ func TestCodexParse(t *testing.T) {
 	require.NotNil(t, got[2].IsWrite)
 	assert.True(t, *got[2].IsWrite)
 	assert.Equal(t, float64(time.Date(2026, 3, 28, 11, 33, 34, 952, time.UTC).Unix()), got[2].Time)
-	assert.Contains(t, got[2].UserAgent, "Codex/0.116.0-alpha.10")
+	assert.NotContains(t, got[2].UserAgent, "Codex/")
 	assert.Contains(t, got[2].UserAgent, "vscode-wakatime/unknown")
-	assert.True(
-		t,
-		strings.Index(got[2].UserAgent, "Codex/0.116.0-alpha.10") <
-			strings.Index(got[2].UserAgent, "vscode-wakatime/unknown"),
-	)
 	assert.True(
 		t,
 		strings.Index(got[2].UserAgent, "vscode-wakatime/unknown") <
@@ -168,14 +153,14 @@ func TestCodexParse_UserAgentUsesTranscriptSource(t *testing.T) {
 			Source:            "vscode",
 			Version:           "0.131.0-alpha.9",
 			FallbackUserAgent: "zoom.us/6.7.7(76486)-6.7.7.76486 macos-wakatime/5.28.4",
-			ExpectedUserAgent: "Codex/0.131.0-alpha.9 vscode-wakatime/unknown " +
+			ExpectedUserAgent: "vscode-wakatime/unknown " +
 				"zoom.us/6.7.7(76486)-6.7.7.76486 macos-wakatime/5.28.4",
 		},
 		"cli": {
 			Source:            "cli",
 			Version:           "0.134.0",
 			FallbackUserAgent: "claude-code/2.1.142 claude-code-wakatime/3.1.6",
-			ExpectedUserAgent: "Codex/0.134.0 codex-cli/0.134.0 " +
+			ExpectedUserAgent: "codex-cli/0.134.0 " +
 				"claude-code/2.1.142 claude-code-wakatime/3.1.6",
 		},
 		"empty source preserves codex fallback": {
@@ -235,6 +220,89 @@ func TestCodexParse_UserAgentUsesTranscriptSource(t *testing.T) {
 	}
 }
 
+func TestCodexParse_UserAgentUsesModelAndReasoningEffort(t *testing.T) {
+	ctx := context.Background()
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	transcriptDir := filepath.Join(home, ".codex", "sessions", "2026", "06", "19")
+	require.NoError(t, os.MkdirAll(transcriptDir, 0o755))
+	transcriptPath := filepath.Join(transcriptDir, "rollout-2026-06-19T19-32-45-session.jsonl")
+	transcript := strings.Join([]string{
+		strings.Join([]string{
+			`{"timestamp":"2026-06-19T23:33:06.518Z","type":"session_meta",`,
+			`"payload":{"id":"session","cwd":"/workspace/project",`,
+			`"cli_version":"0.141.0","source":"cli"}}`,
+		}, ""),
+		strings.Join([]string{
+			`{"timestamp":"2026-06-19T23:33:06.520Z","type":"turn_context",`,
+			`"payload":{"model":"gpt-5.5","collaboration_mode":{"settings":`,
+			`{"model":"gpt-5.5","reasoning_effort":"medium"}},"effort":"medium"}}`,
+		}, ""),
+		strings.Join([]string{
+			`{"timestamp":"2026-06-19T23:33:07.000Z","type":"event_msg",`,
+			`"payload":{"type":"agent_message","message":"I will make the change."}}`,
+		}, ""),
+	}, "\n") + "\n"
+	require.NoError(t, os.WriteFile(transcriptPath, []byte(transcript), 0o644))
+
+	parser := ai.Codex{
+		After:             time.Date(2026, 6, 19, 23, 33, 0, 0, time.UTC),
+		FallbackUserAgent: "antigravity-cli/1.0.10 antigravity-cli-wakatime/1.0.0",
+	}
+
+	got, err := parser.Parse(ctx)
+	require.NoError(t, err)
+	require.Len(t, got, 1)
+	assert.Equal(t,
+		"gpt/5.5-medium codex-cli/0.141.0 antigravity-cli/1.0.10 antigravity-cli-wakatime/1.0.0",
+		got[0].UserAgent,
+	)
+}
+
+func TestCodexParse_UpdatesReasoningEffortForFutureHeartbeats(t *testing.T) {
+	ctx := context.Background()
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	transcriptDir := filepath.Join(home, ".codex", "sessions", "2026", "06", "19")
+	require.NoError(t, os.MkdirAll(transcriptDir, 0o755))
+	transcriptPath := filepath.Join(transcriptDir, "session.jsonl")
+	turnContext := func(timestamp string, effort string) string {
+		return strings.Join([]string{
+			`{"timestamp":"` + timestamp + `","type":"turn_context",`,
+			`"payload":{"model":"gpt-5.5","collaboration_mode":{"settings":`,
+			`{"model":"gpt-5.5","reasoning_effort":"` + effort + `"}},`,
+			`"effort":"` + effort + `"}}`,
+		}, "")
+	}
+	transcript := strings.Join([]string{
+		strings.Join([]string{
+			`{"timestamp":"2026-06-20T00:34:30.000Z","type":"session_meta",`,
+			`"payload":{"id":"session","cwd":"/workspace/project",`,
+			`"cli_version":"0.141.0","source":"cli"}}`,
+		}, ""),
+		turnContext("2026-06-20T00:34:31.000Z", "high"),
+		`{"timestamp":"2026-06-20T00:34:32.000Z","type":"event_msg",` +
+			`"payload":{"type":"agent_message","message":"First response."}}`,
+		turnContext("2026-06-20T00:34:39.244Z", "medium"),
+		`{"timestamp":"2026-06-20T00:34:40.000Z","type":"event_msg",` +
+			`"payload":{"type":"agent_message","message":"Second response."}}`,
+	}, "\n") + "\n"
+	require.NoError(t, os.WriteFile(transcriptPath, []byte(transcript), 0o644))
+
+	got, err := (ai.Codex{
+		After:             time.Date(2026, 6, 20, 0, 34, 0, 0, time.UTC),
+		FallbackUserAgent: "plugin/0.0.1",
+	}).Parse(ctx)
+	require.NoError(t, err)
+	require.Len(t, got, 2)
+	assert.Equal(t, "gpt/5.5-high codex-cli/0.141.0 plugin/0.0.1", got[0].UserAgent)
+	assert.Equal(t, "gpt/5.5-medium codex-cli/0.141.0 plugin/0.0.1", got[1].UserAgent)
+}
+
 func TestCodexParse_UserAgentUsesSourceFromRealSessionMetaLines(t *testing.T) {
 	tests := map[string]struct {
 		SessionMeta       string
@@ -259,7 +327,7 @@ func TestCodexParse_UserAgentUsesSourceFromRealSessionMetaLines(t *testing.T) {
 				`"collaboration_mode_kind":"default"}}`,
 			}, ""),
 			FallbackUserAgent: "zoom.us/6.7.7(76486)-6.7.7.76486 macos-wakatime/5.28.4",
-			ExpectedUserAgent: "Codex/0.131.0-alpha.9 vscode-wakatime/unknown " +
+			ExpectedUserAgent: "vscode-wakatime/unknown " +
 				"zoom.us/6.7.7(76486)-6.7.7.76486 macos-wakatime/5.28.4",
 		},
 		"cli": {
@@ -279,7 +347,7 @@ func TestCodexParse_UserAgentUsesSourceFromRealSessionMetaLines(t *testing.T) {
 				`"collaboration_mode_kind":"default"}}`,
 			}, ""),
 			FallbackUserAgent: "claude-code/2.1.142 claude-code-wakatime/3.1.6",
-			ExpectedUserAgent: "Codex/0.134.0 codex-cli/0.134.0 " +
+			ExpectedUserAgent: "codex-cli/0.134.0 " +
 				"claude-code/2.1.142 claude-code-wakatime/3.1.6",
 		},
 	}
@@ -542,7 +610,7 @@ func TestCodexParse_ParsesLegacyAgentMessage(t *testing.T) {
 	require.NotNil(t, got[0].IsWrite)
 	assert.False(t, *got[0].IsWrite)
 	assert.Equal(t, float64(time.Date(2025, 11, 17, 12, 27, 30, 0, time.UTC).Unix()), got[0].Time)
-	assert.Contains(t, got[0].UserAgent, "Codex/0.50.0")
+	assert.NotContains(t, got[0].UserAgent, "Codex/")
 	assert.Contains(t, got[0].UserAgent, "plugin/0.0.1")
 }
 

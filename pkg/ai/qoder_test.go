@@ -58,7 +58,7 @@ func TestQoderParse(t *testing.T) {
 	assert.EqualValues(t, 129, got[0].AIOutputTokens)
 	assert.Equal(t, 45, got[0].AIPromptLength)
 	assert.Equal(t, "/Users/user/git/wakatime-cli", got[0].ProjectPathOverride)
-	assert.Contains(t, got[0].UserAgent, "Qoder")
+	assert.Equal(t, "plugin/0.0.1", got[0].UserAgent)
 
 	assert.Equal(t, "Qoder 99947f30-f6f8-4323-a2c1-4970f5329d9c", got[1].Entity)
 	assert.EqualValues(t, 19812, got[1].AIInputTokens)

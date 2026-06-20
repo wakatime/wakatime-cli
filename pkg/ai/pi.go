@@ -401,7 +401,7 @@ func (Pi) trackToolCalls(msg piMessage, toolCalls map[string]piToolCall) {
 	}
 }
 
-func (g Pi) messageHeartbeat(
+func (Pi) messageHeartbeat(
 	timestamp time.Time,
 	sessionEntity string,
 	sessionID string,
@@ -461,7 +461,7 @@ func (g Pi) messageHeartbeat(
 		"",
 		cwd,
 		float64(timestamp.UnixMilli())/1000,
-		aiUserAgentWithAgentPrefix(sessionEntity, userAgents, fallbackUserAgent, aiPlugin(g, ""), version),
+		aiUserAgentWithModel(sessionEntity, userAgents, fallbackUserAgent, version, ""),
 	)
 	if msg.Role == "user" && promptChars > 0 {
 		h.AIPromptLength = promptChars
@@ -519,7 +519,7 @@ func (g Pi) toolResultHeartbeat(
 		"",
 		"",
 		float64(timestamp.UnixMilli())/1000,
-		aiUserAgentWithAgentPrefix(filePath, userAgents, fallbackUserAgent, aiPlugin(g, ""), version),
+		aiUserAgentWithModel(filePath, userAgents, fallbackUserAgent, version, ""),
 	)
 
 	return &h

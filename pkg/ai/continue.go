@@ -417,7 +417,7 @@ func (g Continue) userAgent(event continueEvent, entity string) string {
 		fallback = g.FallbackUserAgent
 	}
 
-	return aiUserAgentWithAgentPrefix(entity, g.UserAgents, fallback, aiPlugin(g, ""), event.Model)
+	return aiUserAgentWithModel(entity, g.UserAgents, fallback, event.Model, "")
 }
 
 func (Continue) promptLength(prompt string) int {

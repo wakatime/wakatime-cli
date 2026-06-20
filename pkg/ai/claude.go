@@ -38,6 +38,8 @@ type (
 	claudeMessage struct {
 		ID      string                   `json:"id"`
 		Role    string                   `json:"role"`
+		Model   string                   `json:"model"`
+		Effort  string                   `json:"effort"`
 		Usage   *claudeUsage             `json:"usage"`
 		Content claudeMessageContentList `json:"content"`
 	}
@@ -475,6 +477,8 @@ func (g Claude) parseTranscript(ctx context.Context, transcript string) (Heartbe
 	)
 
 	claudeVersion := ""
+	model := ""
+	complexity := ""
 	cwd := ""
 	cwdFromTranscript := false
 	ideSession := false
@@ -503,6 +507,11 @@ func (g Claude) parseTranscript(ctx context.Context, transcript string) (Heartbe
 			claudeVersion = logLine.Version
 		}
 
+		if logLine.Message != nil {
+			model = firstNonEmptyString(logLine.Message.Model, model)
+			complexity = firstNonEmptyString(logLine.Message.Effort, complexity)
+		}
+
 		if logLine.SessionID != "" {
 			sessionID = logLine.SessionID
 		}
@@ -528,6 +537,8 @@ func (g Claude) parseTranscript(ctx context.Context, transcript string) (Heartbe
 			sessionEntity,
 			sessionID,
 			claudeVersion,
+			model,
+			complexity,
 			cwd,
 			cwdFromTranscript,
 			ideSession,
@@ -671,6 +682,8 @@ func (g Claude) claudeHeartbeats(
 	sessionEntity string,
 	sessionID string,
 	version string,
+	model string,
+	complexity string,
 	cwd string,
 	cwdFromTranscript bool,
 	ideSession bool,
@@ -686,6 +699,8 @@ func (g Claude) claudeHeartbeats(
 		sessionEntity,
 		sessionID,
 		version,
+		model,
+		complexity,
 		cwd,
 		ideSession,
 		appTokens,
@@ -699,6 +714,8 @@ func (g Claude) claudeHeartbeats(
 		logLine,
 		sessionID,
 		version,
+		model,
+		complexity,
 		cwd,
 		cwdFromTranscript,
 		ideSession,
@@ -715,6 +732,8 @@ func (g Claude) claudeAppHeartbeat(
 	sessionEntity string,
 	sessionID string,
 	version string,
+	model string,
+	complexity string,
 	cwd string,
 	ideSession bool,
 	tokens *heartbeat.AITokens,
@@ -735,7 +754,7 @@ func (g Claude) claudeAppHeartbeat(
 		heartbeat.PointerTo(false),
 		cwd,
 		float64(logLine.Timestamp.Unix()),
-		g.userAgent(sessionEntity, version, ideSession),
+		g.userAgent(sessionEntity, version, model, complexity, ideSession),
 	)
 	h.AIPromptLength = promptLength
 
@@ -746,6 +765,8 @@ func (g Claude) claudeFileHeartbeat(
 	logLine claudeLogLine,
 	sessionID string,
 	version string,
+	model string,
+	complexity string,
 	cwd string,
 	cwdFromTranscript bool,
 	ideSession bool,
@@ -781,28 +802,22 @@ func (g Claude) claudeFileHeartbeat(
 		heartbeat.PointerTo(isWrite),
 		projectPathOverride,
 		float64(logLine.Timestamp.Unix()),
-		g.userAgent(filePath, version, ideSession),
+		g.userAgent(filePath, version, model, complexity, ideSession),
 	)
 
 	return &h
 }
 
-func (g Claude) userAgent(entity string, version string, ideSession bool) string {
-	plugin := claudePlugin(version)
+func (g Claude) userAgent(entity string, version string, model string, complexity string, ideSession bool) string {
+	modelToken := aiModelUserAgentToken(model, complexity)
+	cli := "claude-code/" + unknownIfEmpty(version)
 
 	if !ideSession && len(g.UserAgents) > 0 {
-		return plugin
+		return strings.TrimSpace(modelToken + " " + cli)
 	}
 
-	return aiUserAgent(entity, g.UserAgents, g.FallbackUserAgent, plugin)
-}
-
-func claudePlugin(version string) string {
-	if version == "" {
-		return "Claude"
-	}
-
-	return "Claude/" + version
+	return aiUserAgentWithModelAndEditor(
+		entity, g.UserAgents, g.FallbackUserAgent, model, complexity, cli)
 }
 
 func (Claude) tokenDelta(tokens heartbeat.AITokens) (int64, int64) {

@@ -841,7 +841,8 @@ func (g OpenCode) userHeartbeat(
 		"",
 		cwd,
 		float64(time.UnixMilli(message.info.Time.Created).Unix()),
-		aiUserAgentWithAgentPrefix(entity, g.UserAgents, g.FallbackUserAgent, aiPlugin(g, version), model),
+		aiUserAgentWithModelAndEditor(
+			entity, g.UserAgents, g.FallbackUserAgent, model, "", "opencode-cli/"+unknownIfEmpty(version)),
 	)
 	h.AIPromptLength = prompt
 
@@ -896,7 +897,8 @@ func (g OpenCode) assistantHeartbeat(
 		"",
 		cwd,
 		float64(time.UnixMilli(message.info.Time.Created).Unix()),
-		aiUserAgentWithAgentPrefix(entity, g.UserAgents, g.FallbackUserAgent, aiPlugin(g, version), model),
+		aiUserAgentWithModelAndEditor(
+			entity, g.UserAgents, g.FallbackUserAgent, model, "", "opencode-cli/"+unknownIfEmpty(version)),
 	)
 
 	return &h
@@ -1106,7 +1108,8 @@ func (g OpenCode) fileHeartbeat(
 		"",
 		"",
 		float64(timestamp.Unix()),
-		aiUserAgentWithAgentPrefix(filePath, g.UserAgents, g.FallbackUserAgent, aiPlugin(g, version), model),
+		aiUserAgentWithModelAndEditor(
+			filePath, g.UserAgents, g.FallbackUserAgent, model, "", "opencode-cli/"+unknownIfEmpty(version)),
 	)
 }
 

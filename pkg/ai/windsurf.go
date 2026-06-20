@@ -111,6 +111,7 @@ func (g Windsurf) Parse(ctx context.Context) (Heartbeats, error) {
 	var heartbeats Heartbeats
 
 	bubbleCWDs := make(map[string]string)
+	bubbleModels := make(map[string]string)
 	bubbleTokens := make(map[string]heartbeat.AITokens)
 
 	for _, row := range rows {
@@ -120,6 +121,13 @@ func (g Windsurf) Parse(ctx context.Context) (Heartbeats, error) {
 		}
 
 		logLine.BubbleID = row.BubbleID
+
+		var value any
+		if json.Unmarshal([]byte(row.Value), &value) == nil && logLine.BubbleID != "" {
+			if model := cursorModelNameFromValue(value); model != "" {
+				bubbleModels[logLine.BubbleID] = model
+			}
+		}
 
 		if cwd := g.projectPath(logLine); cwd != "" && logLine.BubbleID != "" {
 			bubbleCWDs[logLine.BubbleID] = cwd
@@ -132,7 +140,8 @@ func (g Windsurf) Parse(ctx context.Context) (Heartbeats, error) {
 			continue
 		}
 
-		parsed := g.windsurfHeartbeats(logLine, bubbleCWDs[logLine.BubbleID], tokens)
+		parsed := g.windsurfHeartbeats(
+			logLine, bubbleCWDs[logLine.BubbleID], bubbleModels[logLine.BubbleID], tokens)
 		if len(parsed) == 0 {
 			bubbleTokens[logLine.BubbleID] = tokens
 			continue
@@ -247,7 +256,17 @@ WHERE json_valid(value)
         '$.toolFormerData.name'
       ) IN ('edit_file', 'edit_file_v2', 'read_file', 'read_file_v2')
     )
-    OR json_extract(value, '$.text') IS NOT NULL
+		OR json_extract(value, '$.text') IS NOT NULL
+		OR json_extract(value, '$.model') IS NOT NULL
+		OR json_extract(value, '$.modelName') IS NOT NULL
+		OR json_extract(value, '$.modelId') IS NOT NULL
+		OR json_extract(value, '$.modelID') IS NOT NULL
+		OR json_extract(value, '$.model_id') IS NOT NULL
+		OR json_extract(value, '$.modelSlug') IS NOT NULL
+		OR json_extract(value, '$.modelDetails') IS NOT NULL
+		OR json_extract(value, '$.modelConfig') IS NOT NULL
+		OR json_extract(value, '$.selectedModel') IS NOT NULL
+		OR json_extract(value, '$.selectedChatModel') IS NOT NULL
   )
 ORDER BY json_extract(value, '$.createdAt') ASC;
 `, windsurfRecentBubbleRowLimit)
@@ -288,7 +307,12 @@ ORDER BY json_extract(value, '$.createdAt') ASC;
 	return results, nil
 }
 
-func (g Windsurf) windsurfHeartbeats(logLine windsurfLogLine, cwd string, tokens heartbeat.AITokens) Heartbeats {
+func (g Windsurf) windsurfHeartbeats(
+	logLine windsurfLogLine,
+	cwd string,
+	model string,
+	tokens heartbeat.AITokens,
+) Heartbeats {
 	var heartbeats Heartbeats
 
 	assignTokens := g.hasTokenDelta(tokens)
@@ -298,6 +322,7 @@ func (g Windsurf) windsurfHeartbeats(logLine windsurfLogLine, cwd string, tokens
 		logLine,
 		cwd,
 		logLine.BubbleID,
+		model,
 		appTokens,
 	); heartbeat != nil {
 		heartbeats = append(heartbeats, *heartbeat)
@@ -312,6 +337,7 @@ func (g Windsurf) windsurfHeartbeats(logLine windsurfLogLine, cwd string, tokens
 	if heartbeat := g.windsurfFileHeartbeat(
 		logLine,
 		logLine.BubbleID,
+		model,
 		fileTokens,
 	); heartbeat != nil {
 		heartbeats = append(heartbeats, *heartbeat)
@@ -324,6 +350,7 @@ func (g Windsurf) windsurfAppHeartbeat(
 	logLine windsurfLogLine,
 	cwd string,
 	sessionID string,
+	model string,
 	tokens *heartbeat.AITokens,
 ) *heartbeat.Heartbeat {
 	text := strings.TrimSpace(logLine.Text)
@@ -346,7 +373,7 @@ func (g Windsurf) windsurfAppHeartbeat(
 		heartbeat.PointerTo(false),
 		cwd,
 		float64(logLine.CreatedAt.Unix()),
-		aiUserAgent(entity, g.UserAgents, g.FallbackUserAgent, aiPlugin(g, "")),
+		aiUserAgentWithModel(entity, g.UserAgents, g.FallbackUserAgent, model, ""),
 	)
 	if logLine.Type == 1 {
 		h.AIPromptLength = promptLength(logLine.Text)
@@ -358,6 +385,7 @@ func (g Windsurf) windsurfAppHeartbeat(
 func (g Windsurf) windsurfFileHeartbeat(
 	logLine windsurfLogLine,
 	sessionID string,
+	model string,
 	tokens *heartbeat.AITokens,
 ) *heartbeat.Heartbeat {
 	switch logLine.ToolFormerData.Name {
@@ -382,7 +410,7 @@ func (g Windsurf) windsurfFileHeartbeat(
 			heartbeat.PointerTo(true),
 			"",
 			float64(logLine.CreatedAt.Unix()),
-			aiUserAgent(filePath, g.UserAgents, g.FallbackUserAgent, aiPlugin(g, "")),
+			aiUserAgentWithModel(filePath, g.UserAgents, g.FallbackUserAgent, model, ""),
 		)
 
 		return &h
@@ -419,7 +447,7 @@ func (g Windsurf) windsurfFileHeartbeat(
 			heartbeat.PointerTo(true),
 			"",
 			float64(logLine.CreatedAt.Unix()),
-			aiUserAgent(filePath, g.UserAgents, g.FallbackUserAgent, aiPlugin(g, "")),
+			aiUserAgentWithModel(filePath, g.UserAgents, g.FallbackUserAgent, model, ""),
 		)
 
 		return &h
@@ -466,7 +494,7 @@ func (g Windsurf) windsurfFileHeartbeat(
 			heartbeat.PointerTo(false),
 			"",
 			float64(logLine.CreatedAt.Unix()),
-			aiUserAgent(filePath, g.UserAgents, g.FallbackUserAgent, aiPlugin(g, "")),
+			aiUserAgentWithModel(filePath, g.UserAgents, g.FallbackUserAgent, model, ""),
 		)
 
 		return &h

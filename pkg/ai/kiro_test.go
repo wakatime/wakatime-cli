@@ -47,7 +47,7 @@ func TestKiroParse(t *testing.T) {
 	assert.Equal(t, "c2618220-b591-4431-8f14-fcd7ae3e6f56", got[0].AISession)
 	assert.Equal(t, utf8.RuneCountInString(firstPrompt), got[0].AIPromptLength)
 	assert.Equal(t, projectPath, got[0].ProjectPathOverride)
-	assert.Contains(t, got[0].UserAgent, "Kiro")
+	assert.Equal(t, "plugin/0.0.1", got[0].UserAgent)
 
 	assert.Equal(t, authorsPath, got[1].Entity)
 	assert.Equal(t, heartbeat.FileType, got[1].EntityType)

@@ -21,6 +21,10 @@ func TestParserIDStringAndPlugins(t *testing.T) {
 	assert.Equal(t, "Claude/1.2.3", aiPlugin(Claude{}, "1.2.3"))
 	assert.Equal(t, "Codex", aiPlugin(Codex{}, ""))
 	assert.Equal(t, "Codex/1.2.3", aiPlugin(Codex{}, "1.2.3"))
+	assert.Equal(t, "opus/4.1-medium", aiModelUserAgentToken("claude-opus-4.1", "medium"))
+	assert.Equal(t, "gpt/5.2", aiModelUserAgentToken("gpt-5.2", ""))
+	assert.Equal(t, "qwen/3-coder-plus", aiModelUserAgentToken("qwen3-coder-plus", ""))
+	assert.Empty(t, aiModelUserAgentToken("", ""))
 	assert.Equal(t, "Continue", aiPlugin(Continue{}, ""))
 	assert.Equal(t, "Continue/gpt-5.2", aiPlugin(Continue{}, "gpt-5.2"))
 	assert.Equal(t, "Cody", aiPlugin(Cody{}, ""))
@@ -416,6 +420,7 @@ func TestCodexHelpers(t *testing.T) {
 		"session.jsonl",
 		"session",
 		"1.2.3",
+		"gpt-1.2.3",
 		"",
 		"/workspace",
 		nil,
@@ -428,6 +433,7 @@ func TestCodexHelpers(t *testing.T) {
 		"session.jsonl",
 		"session",
 		"1.2.3",
+		"gpt-1.2.3",
 		"",
 		"/workspace",
 		nil,
@@ -444,6 +450,7 @@ func TestCodexHelpers(t *testing.T) {
 		"session.jsonl",
 		"session",
 		"1.2.3",
+		"gpt-1.2.3",
 		"",
 		"/workspace",
 		nil,
@@ -463,13 +470,14 @@ func TestCodexHelpers(t *testing.T) {
 	assert.Nil(t, userHeartbeats[0].AILineChanges)
 	require.NotNil(t, userHeartbeats[0].IsWrite)
 	assert.False(t, *userHeartbeats[0].IsWrite)
-	assert.Contains(t, userHeartbeats[0].UserAgent, "Codex/1.2.3")
+	assert.Contains(t, userHeartbeats[0].UserAgent, "gpt/1.2.3")
 
 	assistantHeartbeats := parser.getHeartbeats(
 		timestamp,
 		"session.jsonl",
 		"session",
 		"1.2.3",
+		"gpt-1.2.3",
 		"",
 		"/workspace",
 		nil,
@@ -495,6 +503,7 @@ func TestCodexHelpers(t *testing.T) {
 		"session.jsonl",
 		"session",
 		"1.2.3",
+		"gpt-1.2.3",
 		"",
 		"/workspace",
 		nil,
@@ -511,7 +520,7 @@ func TestCodexHelpers(t *testing.T) {
 	assert.Equal(t, filepath.Join("/workspace", "pkg/main.go"), heartbeats[0].Entity)
 	require.NotNil(t, heartbeats[0].AILineChanges)
 	assert.Equal(t, 0, *heartbeats[0].AILineChanges)
-	assert.Contains(t, heartbeats[0].UserAgent, "Codex/1.2.3")
+	assert.Contains(t, heartbeats[0].UserAgent, "gpt/1.2.3")
 
 	assert.Equal(t, "/tmp/extra.go", heartbeats[1].Entity)
 	require.NotNil(t, heartbeats[1].AILineChanges)

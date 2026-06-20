@@ -242,7 +242,7 @@ func (g RooCode) appHeartbeat(
 		"",
 		cwd,
 		float64(timestamp.Unix()),
-		aiUserAgent(entity, g.UserAgents, g.FallbackUserAgent, aiPlugin(g, "")),
+		aiUserAgentWithModel(entity, g.UserAgents, g.FallbackUserAgent, "", ""),
 	)
 	h.AIPromptLength = promptLength(taskText)
 
@@ -277,7 +277,7 @@ func (g RooCode) fileHeartbeat(
 		"",
 		"",
 		float64(timestamp.Unix()),
-		aiUserAgent(filePath, g.UserAgents, g.FallbackUserAgent, aiPlugin(g, "")),
+		aiUserAgentWithModel(filePath, g.UserAgents, g.FallbackUserAgent, "", ""),
 	)
 }
 

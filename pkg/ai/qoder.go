@@ -341,7 +341,7 @@ func (g Qoder) qoderAppHeartbeat(row qoderMessageRow, timestamp time.Time) *hear
 		"",
 		row.ProjectURI,
 		float64(timestamp.UnixMilli())/1000,
-		aiUserAgent(entity, g.UserAgents, g.FallbackUserAgent, aiPlugin(g, "")),
+		aiUserAgentWithModel(entity, g.UserAgents, g.FallbackUserAgent, "", ""),
 	)
 
 	return &h
@@ -411,7 +411,7 @@ func (g Qoder) qoderPromptHeartbeat(prompt qoderPrompt) heartbeat.Heartbeat {
 		"",
 		prompt.ProjectURI,
 		float64(prompt.Timestamp.UnixMilli())/1000,
-		aiUserAgent(entity, g.UserAgents, g.FallbackUserAgent, aiPlugin(g, "")),
+		aiUserAgentWithModel(entity, g.UserAgents, g.FallbackUserAgent, "", ""),
 	)
 	h.AISession = prompt.SessionID
 	h.AIPromptLength = prompt.Length
@@ -462,7 +462,7 @@ func (g Qoder) qoderToolHeartbeat(row qoderMessageRow, timestamp time.Time) *hea
 		"",
 		"",
 		float64(timestamp.UnixMilli())/1000,
-		aiUserAgent(filePath, g.UserAgents, g.FallbackUserAgent, aiPlugin(g, "")),
+		aiUserAgentWithModel(filePath, g.UserAgents, g.FallbackUserAgent, "", ""),
 	)
 	h.AISession = sessionID
 

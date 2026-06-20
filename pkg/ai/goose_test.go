@@ -7,7 +7,6 @@ import (
 	"database/sql"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 	"time"
 
@@ -50,8 +49,7 @@ func TestGooseParse(t *testing.T) {
 	assert.Zero(t, got[0].AIInputTokens)
 	assert.Zero(t, got[0].AIOutputTokens)
 	assert.Equal(t, float64(time.Date(2026, 4, 20, 12, 0, 0, 0, time.UTC).Unix()), got[0].Time)
-	assert.Contains(t, got[0].UserAgent, "Goose/anthropic")
-	assert.True(t, strings.Index(got[0].UserAgent, "Goose/anthropic") < strings.Index(got[0].UserAgent, "plugin/0.0.1"))
+	assert.Equal(t, "plugin/0.0.1", got[0].UserAgent)
 }
 
 func TestGooseParse_PlainTokenColumns(t *testing.T) {
@@ -108,7 +106,7 @@ func TestGooseParse_ActualSQLiteSchema(t *testing.T) {
 	assert.EqualValues(t, 13, got[0].AIInputTokens)
 	assert.EqualValues(t, 8, got[0].AIOutputTokens)
 	assert.Equal(t, float64(time.Date(2026, 4, 20, 12, 0, 0, 0, time.UTC).Unix()), got[0].Time)
-	assert.Contains(t, got[0].UserAgent, "Goose")
+	assert.Contains(t, got[0].UserAgent, "gpt/4o")
 }
 
 func TestGooseParse_MissingOptionalColumnsKeepsParsing(t *testing.T) {

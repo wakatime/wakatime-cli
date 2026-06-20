@@ -146,7 +146,8 @@ func TestCopilotParseJSONSessionAndEditState(t *testing.T) {
 	require.NotNil(t, got[0].IsWrite)
 	assert.False(t, *got[0].IsWrite)
 	assert.Equal(t, filepath.Dir(mainFile), got[0].ProjectPathOverride)
-	assert.Contains(t, got[0].UserAgent, "Copilot/0.42.3")
+	assert.Contains(t, got[0].UserAgent, "github-copilot/0.42.3")
+	assert.NotContains(t, got[0].UserAgent, "Copilot/")
 
 	assert.Equal(t, mainFile, got[1].Entity)
 	assert.Equal(t, "session-1", got[1].AISession)
@@ -165,7 +166,8 @@ func TestCopilotParseJSONSessionAndEditState(t *testing.T) {
 	assert.Equal(t, 2, *got[3].AILineChanges)
 	require.NotNil(t, got[3].IsWrite)
 	assert.True(t, *got[3].IsWrite)
-	assert.Contains(t, got[3].UserAgent, "Copilot/0.42.3")
+	assert.Contains(t, got[3].UserAgent, "github-copilot/0.42.3")
+	assert.NotContains(t, got[3].UserAgent, "Copilot/")
 
 	assert.Equal(t, "Copilot session-1", got[4].Entity)
 	assert.Equal(t, "session-1", got[4].AISession)
@@ -436,7 +438,8 @@ func TestCopilotParseCLISessionEvents(t *testing.T) {
 	require.NotNil(t, got[0].IsWrite)
 	assert.False(t, *got[0].IsWrite)
 	assert.Contains(t, got[0].UserAgent, "gpt/5.4")
-	assert.True(t, strings.Index(got[0].UserAgent, "gpt/5.4") < strings.Index(got[0].UserAgent, "github-copilot-cli/1.0.62"))
+	assert.True(t, strings.Index(got[0].UserAgent, "gpt/5.4") <
+		strings.Index(got[0].UserAgent, "github-copilot-cli/1.0.62"))
 	assert.Contains(t, got[0].UserAgent, "github-copilot-cli/1.0.62 copilot/1.0.62")
 	assert.Contains(t, got[0].UserAgent, "editor/1.2.3")
 
