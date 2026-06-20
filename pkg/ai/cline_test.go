@@ -110,14 +110,14 @@ func TestClineParse(t *testing.T) {
 	assert.Equal(t, len([]rune("Fix the auth bug")), got[0].AIPromptLength)
 	assert.EqualValues(t, 90, got[0].AIInputTokens)
 	assert.EqualValues(t, 20, got[0].AIOutputTokens)
-	assert.Contains(t, got[0].UserAgent, "Cline")
+	assert.Equal(t, "plugin/0.0.1", got[0].UserAgent)
 
 	assert.Equal(t, "/workspace/project/main.go", got[1].Entity)
 	require.NotNil(t, got[1].AILineChanges)
 	assert.Equal(t, 0, *got[1].AILineChanges)
 	require.NotNil(t, got[1].IsWrite)
 	assert.True(t, *got[1].IsWrite)
-	assert.Contains(t, got[1].UserAgent, "Cline")
+	assert.NotContains(t, got[1].UserAgent, "Cline/")
 	assert.Contains(t, got[1].UserAgent, "editor/1.2.3")
 
 	assert.Equal(t, "/workspace/project/new.go", got[2].Entity)

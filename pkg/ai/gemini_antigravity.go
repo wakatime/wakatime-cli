@@ -446,12 +446,13 @@ func (g Gemini) antigravityAppHeartbeat(
 		"",
 		projectPath,
 		float64(timestamp.Unix()),
-		aiUserAgentWithAgentPrefix(
+		aiUserAgentWithModelAndEditor(
 			entity,
 			g.UserAgents,
 			g.FallbackUserAgent,
-			transcript.userAgentProduct,
 			line.Model,
+			"",
+			transcript.userAgentProduct,
 		),
 	)
 	if isPrompt {
@@ -499,12 +500,13 @@ func (g Gemini) antigravityFileHeartbeat(
 		"",
 		"",
 		float64(timestamp.Unix()),
-		aiUserAgentWithAgentPrefix(
+		aiUserAgentWithModelAndEditor(
 			filePath,
 			g.UserAgents,
 			g.FallbackUserAgent,
-			transcript.userAgentProduct,
 			line.Model,
+			"",
+			transcript.userAgentProduct,
 		),
 	)
 

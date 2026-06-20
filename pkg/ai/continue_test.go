@@ -111,8 +111,8 @@ func TestContinueParse(t *testing.T) {
 	require.NotNil(t, got[0].IsWrite)
 	assert.False(t, *got[0].IsWrite)
 	assert.Contains(t, got[0].UserAgent, "gpt/5.2")
-	assert.Contains(t, got[0].UserAgent, "Continue")
-	assert.True(t, strings.Index(got[0].UserAgent, "gpt/5.2") < strings.Index(got[0].UserAgent, "Continue"))
+	assert.True(t, strings.Index(got[0].UserAgent, "gpt/5.2") <
+		strings.Index(got[0].UserAgent, "Visual Studio Code/1.118.1"))
 	assert.Contains(t, got[0].UserAgent, "Visual Studio Code/1.118.1 (Continue/1.2.22)")
 
 	assert.Equal(t, readPath, got[1].Entity)
@@ -131,8 +131,8 @@ func TestContinueParse(t *testing.T) {
 	require.NotNil(t, got[2].IsWrite)
 	assert.True(t, *got[2].IsWrite)
 	assert.Contains(t, got[2].UserAgent, "gpt/5.2")
-	assert.Contains(t, got[2].UserAgent, "Continue")
-	assert.True(t, strings.Index(got[2].UserAgent, "gpt/5.2") < strings.Index(got[2].UserAgent, "Continue"))
+	assert.True(t, strings.Index(got[2].UserAgent, "gpt/5.2") <
+		strings.Index(got[2].UserAgent, "editor/1.2.3"))
 	assert.Contains(t, got[2].UserAgent, "editor/1.2.3")
 }
 

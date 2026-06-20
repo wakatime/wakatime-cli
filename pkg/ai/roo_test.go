@@ -56,7 +56,7 @@ func TestRooCodeParse(t *testing.T) {
 	assert.EqualValues(t, 30, got[0].AIOutputTokens)
 	require.NotNil(t, got[0].IsWrite)
 	assert.False(t, *got[0].IsWrite)
-	assert.Contains(t, got[0].UserAgent, "Roo Code")
+	assert.Equal(t, "plugin/0.0.1", got[0].UserAgent)
 
 	assert.Equal(t, "/workspace/project/main.go", got[1].Entity)
 	assert.Equal(t, heartbeat.FileType, got[1].EntityType)
@@ -65,7 +65,7 @@ func TestRooCodeParse(t *testing.T) {
 	assert.Equal(t, 1, *got[1].AILineChanges)
 	require.NotNil(t, got[1].IsWrite)
 	assert.True(t, *got[1].IsWrite)
-	assert.Contains(t, got[1].UserAgent, "Roo Code")
+	assert.NotContains(t, got[1].UserAgent, "Roo Code/")
 	assert.Contains(t, got[1].UserAgent, "editor/1.2.3")
 
 	assert.Equal(t, "Roo Code 1736395424460", got[2].Entity)

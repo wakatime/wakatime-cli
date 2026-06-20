@@ -49,7 +49,6 @@ func TestCursorHeartbeatFallbacks(t *testing.T) {
 	edit := &editHeartbeats[0]
 	require.NotNil(t, edit)
 	assert.Equal(t, "/tmp/raw-edit.go", edit.Entity)
-	assert.Contains(t, edit.UserAgent, "Cursor")
 	assert.Contains(t, edit.UserAgent, "composer/2.5")
 	require.NotNil(t, edit.AILineChanges)
 	assert.Equal(t, 2, *edit.AILineChanges)

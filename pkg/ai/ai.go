@@ -652,6 +652,15 @@ func firstNonEmptyString(values ...string) string {
 	return ""
 }
 
+func unknownIfEmpty(value string) string {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return "unknown"
+	}
+
+	return value
+}
+
 func entityUserAgents(hh []heartbeat.Heartbeat) map[string]string {
 	userAgents := make(map[string]string, len(hh))
 
@@ -674,6 +683,68 @@ func aiPlugin(plugin Parser, version string) string {
 	return plugin.Name() + "/" + version
 }
 
+func aiModelUserAgentToken(model string, complexity string) string {
+	model = strings.Join(strings.Fields(strings.TrimSpace(model)), "-")
+
+	model = strings.Trim(model, "/")
+	if model == "" {
+		return ""
+	}
+
+	complexity = strings.Join(strings.Fields(strings.TrimSpace(complexity)), "-")
+
+	complexity = strings.Trim(complexity, "-_/.")
+	if complexity != "" && !strings.HasSuffix(strings.ToLower(model), "-"+strings.ToLower(complexity)) {
+		model += "-" + complexity
+	}
+
+	if product, version, found := strings.Cut(model, "/"); found && product != "" && version != "" {
+		first := rune(version[0])
+		if first >= '0' && first <= '9' {
+			return product + "/" + version
+		}
+	}
+
+	if separator := strings.LastIndex(model, "/"); separator != -1 {
+		model = strings.Trim(model[separator+1:], "-_.")
+	}
+
+	parts := strings.FieldsFunc(model, func(r rune) bool {
+		return r == '-' || r == '_'
+	})
+	for i, part := range parts {
+		for j, r := range part {
+			if r < '0' || r > '9' {
+				continue
+			}
+
+			if j == 0 {
+				if i == 0 {
+					return ""
+				}
+
+				return parts[i-1] + "/" + strings.Join(parts[i:], "-")
+			}
+
+			if j > 0 {
+				product := part[:j]
+				if strings.EqualFold(product, "v") && i > 0 {
+					product = parts[i-1]
+				}
+
+				version := part[j:]
+				if i+1 < len(parts) {
+					version += "-" + strings.Join(parts[i+1:], "-")
+				}
+
+				return product + "/" + version
+			}
+		}
+	}
+
+	return ""
+}
+
 func aiUserAgent(entity string, userAgents map[string]string, fallback string, parser string) string {
 	existing := fallback
 	if fromHeartbeat, found := userAgents[entity]; found && fromHeartbeat != "" {
@@ -687,23 +758,27 @@ func aiUserAgent(entity string, userAgents map[string]string, fallback string, p
 	return parser
 }
 
-func aiUserAgentWithAgentPrefix(
+func aiUserAgentWithModel(
 	entity string,
 	userAgents map[string]string,
 	fallback string,
-	parser string,
-	agent string,
+	model string,
+	complexity string,
 ) string {
-	userAgent := aiUserAgent(entity, userAgents, fallback, parser)
+	existing := fallback
+	if fromHeartbeat, found := userAgents[entity]; found && fromHeartbeat != "" {
+		existing = fromHeartbeat
+	}
 
-	return userAgentWithPrependedAgent(userAgent, aiAgentUserAgentToken(agent))
+	return userAgentWithPrependedAgent(existing, aiModelUserAgentToken(model, complexity))
 }
 
-func aiUserAgentWithEditor(
+func aiUserAgentWithModelAndEditor(
 	entity string,
 	userAgents map[string]string,
 	fallback string,
-	parser string,
+	model string,
+	complexity string,
 	editor string,
 ) string {
 	existing := fallback
@@ -713,11 +788,7 @@ func aiUserAgentWithEditor(
 
 	existing = userAgentWithPrependedEditor(existing, editor)
 
-	if existing != "" {
-		return userAgentWithPrependedParser(existing, parser)
-	}
-
-	return parser
+	return userAgentWithPrependedAgent(existing, aiModelUserAgentToken(model, complexity))
 }
 
 func userAgentWithPrependedAgent(userAgent string, agent string) string {

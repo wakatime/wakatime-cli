@@ -219,7 +219,7 @@ func TestGeminiParse(t *testing.T) {
 	assert.Equal(t, len([]rune("look for bugs and fix any you find")), got[0].AIPromptLength)
 	assert.Zero(t, got[0].AIInputTokens)
 	assert.Zero(t, got[0].AIOutputTokens)
-	assert.Contains(t, got[0].UserAgent, "Gemini")
+	assert.Equal(t, "plugin/0.0.1", got[0].UserAgent)
 
 	assert.Equal(t, "Gemini gem-session-1", got[1].Entity)
 	assert.Equal(t, heartbeat.AppType, got[1].EntityType)
@@ -228,8 +228,7 @@ func TestGeminiParse(t *testing.T) {
 	assert.EqualValues(t, 20, got[1].AIOutputTokens)
 	assert.Equal(t, projectDir, got[1].ProjectPathOverride)
 	assert.Contains(t, got[1].UserAgent, "gemini/3-flash-preview")
-	assert.Contains(t, got[1].UserAgent, "Gemini")
-	assert.True(t, strings.Index(got[1].UserAgent, "gemini/3-flash-preview") < strings.Index(got[1].UserAgent, "Gemini"))
+	assert.NotContains(t, got[1].UserAgent, "Gemini/")
 
 	assert.Equal(t, "Gemini gem-session-1", got[2].Entity)
 	assert.Equal(t, heartbeat.AppType, got[2].EntityType)
@@ -246,8 +245,7 @@ func TestGeminiParse(t *testing.T) {
 	assert.Zero(t, got[3].AIInputTokens)
 	assert.Zero(t, got[3].AIOutputTokens)
 	assert.Contains(t, got[3].UserAgent, "gemini/3-flash-preview")
-	assert.Contains(t, got[3].UserAgent, "Gemini")
-	assert.True(t, strings.Index(got[3].UserAgent, "gemini/3-flash-preview") < strings.Index(got[3].UserAgent, "Gemini"))
+	assert.NotContains(t, got[3].UserAgent, "Gemini/")
 	assert.Contains(t, got[3].UserAgent, "editor/1.2.3")
 
 	assert.Equal(t, "Gemini gem-session-1", got[4].Entity)

@@ -32,6 +32,8 @@ type (
 		heartbeats                    Heartbeats
 		tokens                        heartbeat.AITokens
 		subscriptionPlan              string
+		model                         string
+		reasoningEffort               string
 		lastAgentMessageTime          time.Time
 		lastResponseItemAssistantTime time.Time
 		lastResponseItemUserTime      time.Time
@@ -48,16 +50,24 @@ type (
 	}
 
 	codexPayload struct {
-		Type    *string                     `json:"type"`
-		Name    *string                     `json:"name"`
-		Input   *string                     `json:"input"`
-		Message *string                     `json:"message"`
-		Role    *string                     `json:"role"`
-		Status  *string                     `json:"status"`
-		Content []codexContentItem          `json:"content"`
-		Cwd     *string                     `json:"cwd"`
-		Info    *codexPayloadTokenCountInfo `json:"info"`
-		Limits  *codexPayloadRateLimits     `json:"rate_limits"`
+		Type              *string                     `json:"type"`
+		Name              *string                     `json:"name"`
+		Input             *string                     `json:"input"`
+		Message           *string                     `json:"message"`
+		Role              *string                     `json:"role"`
+		Status            *string                     `json:"status"`
+		Content           []codexContentItem          `json:"content"`
+		Cwd               *string                     `json:"cwd"`
+		Info              *codexPayloadTokenCountInfo `json:"info"`
+		Limits            *codexPayloadRateLimits     `json:"rate_limits"`
+		Model             *string                     `json:"model"`
+		Effort            *string                     `json:"effort"`
+		CollaborationMode *struct {
+			Settings *struct {
+				Model           *string `json:"model"`
+				ReasoningEffort *string `json:"reasoning_effort"`
+			} `json:"settings"`
+		} `json:"collaboration_mode"`
 	}
 
 	codexPayloadRateLimits struct {
@@ -281,6 +291,7 @@ func (g Codex) handleTranscriptLine(
 
 	state.tokens = g.codexTokenCounts(logLine, state.tokens, g.After)
 	state.trackSubscriptionPlan(logLine)
+	state.trackModel(logLine)
 	state.trackUserMessage(logLine)
 
 	if logLine.Timestamp.IsZero() ||
@@ -300,6 +311,7 @@ func (g Codex) handleTranscriptLine(
 		session.entity,
 		session.id,
 		session.version,
+		codexAgentVersion(state.model, state.reasoningEffort),
 		session.source,
 		session.cwd,
 		g.UserAgents,
@@ -316,6 +328,58 @@ func (g Codex) handleTranscriptLine(
 	state.heartbeats = append(state.heartbeats, aiHeartbeats...)
 	state.trackAgentMessage(logLine)
 	state.trackAssistantMessage(logLine)
+}
+
+func (s *codexParseState) trackModel(logLine codexLogLine) {
+	if logLine.Type != "turn_context" || logLine.Payload == nil {
+		return
+	}
+
+	payload := logLine.Payload
+	model := ""
+	reasoningEffort := ""
+
+	if payload.Model != nil {
+		model = strings.TrimSpace(*payload.Model)
+	}
+
+	if payload.Effort != nil {
+		reasoningEffort = strings.TrimSpace(*payload.Effort)
+	}
+
+	if payload.CollaborationMode != nil && payload.CollaborationMode.Settings != nil {
+		settings := payload.CollaborationMode.Settings
+		if model == "" && settings.Model != nil {
+			model = strings.TrimSpace(*settings.Model)
+		}
+
+		if reasoningEffort == "" && settings.ReasoningEffort != nil {
+			reasoningEffort = strings.TrimSpace(*settings.ReasoningEffort)
+		}
+	}
+
+	if model != "" {
+		s.model = model
+	}
+
+	if reasoningEffort != "" {
+		s.reasoningEffort = reasoningEffort
+	}
+}
+
+func codexAgentVersion(model string, reasoningEffort string) string {
+	model = strings.TrimSpace(model)
+	reasoningEffort = strings.TrimSpace(reasoningEffort)
+
+	if model == "" {
+		return ""
+	}
+
+	if reasoningEffort == "" {
+		return model
+	}
+
+	return model + "-" + reasoningEffort
 }
 
 func (s *codexParseState) trackSubscriptionPlan(logLine codexLogLine) {
@@ -405,6 +469,7 @@ func (g Codex) getHeartbeats(
 	sessionEntity string,
 	sessionID string,
 	version string,
+	agentVersion string,
 	source string,
 	cwd string,
 	userAgents map[string]string,
@@ -418,6 +483,7 @@ func (g Codex) getHeartbeats(
 			sessionEntity,
 			sessionID,
 			version,
+			agentVersion,
 			source,
 			cwd,
 			userAgents,
@@ -435,6 +501,7 @@ func (g Codex) getHeartbeats(
 			sessionEntity,
 			sessionID,
 			version,
+			agentVersion,
 			source,
 			cwd,
 			userAgents,
@@ -452,6 +519,7 @@ func (g Codex) getHeartbeats(
 			sessionEntity,
 			sessionID,
 			version,
+			agentVersion,
 			source,
 			cwd,
 			userAgents,
@@ -470,6 +538,7 @@ func (g Codex) getHeartbeats(
 	return g.patchHeartbeats(
 		timestamp,
 		version,
+		agentVersion,
 		source,
 		cwd,
 		userAgents,
@@ -483,6 +552,7 @@ func (g Codex) getHeartbeats(
 func (g Codex) patchHeartbeats(
 	timestamp time.Time,
 	version string,
+	agentVersion string,
 	source string,
 	cwd string,
 	userAgents map[string]string,
@@ -513,6 +583,7 @@ func (g Codex) patchHeartbeats(
 					sessionID,
 					timestamp,
 					version,
+					agentVersion,
 					source,
 					userAgents,
 					fallbackUserAgent,
@@ -540,6 +611,7 @@ func (g Codex) patchHeartbeats(
 			sessionID,
 			timestamp,
 			version,
+			agentVersion,
 			source,
 			userAgents,
 			fallbackUserAgent,
@@ -557,6 +629,7 @@ func (g Codex) messageHeartbeat(
 	sessionEntity string,
 	sessionID string,
 	version string,
+	agentVersion string,
 	source string,
 	cwd string,
 	userAgents map[string]string,
@@ -623,7 +696,7 @@ func (g Codex) messageHeartbeat(
 		"",
 		cwd,
 		float64(timestamp.Unix()),
-		g.userAgent(entity, version, source, userAgents, fallbackUserAgent),
+		g.userAgent(entity, agentVersion, version, source, userAgents, fallbackUserAgent),
 	)
 	if *payload.Role == "user" && promptChars > 0 {
 		h.AIPromptLength = promptChars
@@ -637,6 +710,7 @@ func (g Codex) agentMessageHeartbeat(
 	sessionEntity string,
 	sessionID string,
 	version string,
+	agentVersion string,
 	source string,
 	cwd string,
 	userAgents map[string]string,
@@ -651,6 +725,7 @@ func (g Codex) agentMessageHeartbeat(
 		sessionEntity,
 		sessionID,
 		version,
+		agentVersion,
 		source,
 		cwd,
 		userAgents,
@@ -673,6 +748,7 @@ func (g Codex) userMessageHeartbeat(
 	sessionEntity string,
 	sessionID string,
 	version string,
+	agentVersion string,
 	source string,
 	cwd string,
 	userAgents map[string]string,
@@ -707,7 +783,7 @@ func (g Codex) userMessageHeartbeat(
 		"",
 		cwd,
 		float64(timestamp.Unix()),
-		g.userAgent(sessionEntity, version, source, userAgents, fallbackUserAgent),
+		g.userAgent(sessionEntity, agentVersion, version, source, userAgents, fallbackUserAgent),
 	)
 	h.AIPromptLength = len([]rune(text))
 
@@ -779,18 +855,20 @@ func codexFilePath(cwd string, line string) string {
 	return ""
 }
 
-func (g Codex) userAgent(
+func (Codex) userAgent(
 	entity string,
+	agentVersion string,
 	version string,
 	source string,
 	userAgents map[string]string,
 	fallbackUserAgent string,
 ) string {
-	return aiUserAgentWithEditor(
+	return aiUserAgentWithModelAndEditor(
 		entity,
 		userAgents,
 		fallbackUserAgent,
-		aiPlugin(g, version),
+		agentVersion,
+		"",
 		codexSourceEditor(source, version),
 	)
 }
@@ -831,6 +909,7 @@ func (g Codex) heartbeat(
 	sessionID string,
 	timestamp time.Time,
 	version string,
+	agentVersion string,
 	source string,
 	userAgents map[string]string,
 	fallbackUserAgent string,
@@ -860,7 +939,7 @@ func (g Codex) heartbeat(
 		"",
 		"",
 		float64(timestamp.Unix()),
-		g.userAgent(currentFile, version, source, userAgents, fallbackUserAgent),
+		g.userAgent(currentFile, agentVersion, version, source, userAgents, fallbackUserAgent),
 	)
 }
 

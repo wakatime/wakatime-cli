@@ -420,7 +420,7 @@ func (g Gemini) appHeartbeat(
 		"",
 		projectPath,
 		float64(timestamp.Unix()),
-		aiUserAgentWithAgentPrefix(entity, g.UserAgents, g.FallbackUserAgent, aiPlugin(g, ""), message.Model),
+		aiUserAgentWithModel(entity, g.UserAgents, g.FallbackUserAgent, message.Model, ""),
 	)
 	if role == "user" {
 		h.AIPromptLength = promptLength(text)
@@ -489,7 +489,7 @@ func (g Gemini) toolHeartbeat(
 			"",
 			"",
 			float64(timestamp.Unix()),
-			aiUserAgentWithAgentPrefix(filePath, g.UserAgents, g.FallbackUserAgent, aiPlugin(g, ""), model),
+			aiUserAgentWithModel(filePath, g.UserAgents, g.FallbackUserAgent, model, ""),
 		), true
 	case "edit", "replace":
 		var args geminiReplaceArgs
@@ -522,7 +522,7 @@ func (g Gemini) toolHeartbeat(
 			"",
 			"",
 			float64(timestamp.Unix()),
-			aiUserAgentWithAgentPrefix(filePath, g.UserAgents, g.FallbackUserAgent, aiPlugin(g, ""), model),
+			aiUserAgentWithModel(filePath, g.UserAgents, g.FallbackUserAgent, model, ""),
 		), true
 	default:
 		return heartbeat.Heartbeat{}, false
@@ -585,7 +585,7 @@ func (g Gemini) promptHeartbeatsFromLogs(
 			"",
 			projectPath,
 			float64(timestamp.Unix()),
-			aiUserAgent(sessionEntity, g.UserAgents, g.FallbackUserAgent, aiPlugin(g, "")),
+			aiUserAgentWithModel(sessionEntity, g.UserAgents, g.FallbackUserAgent, "", ""),
 		)
 		h.AIPromptLength = promptLength(entry.Message)
 		heartbeats = append(heartbeats, h)
