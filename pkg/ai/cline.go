@@ -220,7 +220,7 @@ func (g Cline) parseTaskDir(taskDir string) (Heartbeats, error) {
 			continue
 		}
 
-		if (message.Ask != nil && *message.Ask == "tool") || (message.Say != nil && *message.Say == "tool") {
+		if message.Say != nil && *message.Say == "tool" {
 			var tool clineToolMessage
 			if err := json.Unmarshal([]byte(*message.Text), &tool); err != nil {
 				continue

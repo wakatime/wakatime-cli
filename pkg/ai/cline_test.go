@@ -44,6 +44,7 @@ func TestClineParse(t *testing.T) {
 
 	sayAPIReqStarted := "api_req_started"
 	sayTool := "tool"
+	askTool := "tool"
 
 	uiMessages := []map[string]any{
 		{
@@ -54,6 +55,16 @@ func TestClineParse(t *testing.T) {
 				"request":   "<task>Fix the auth bug</task>\n# Current Working Directory (/workspace/project)",
 				"tokensIn":  90,
 				"tokensOut": 20,
+			}),
+		},
+		{
+			"ts":   int64(1740000001500),
+			"type": "ask",
+			"ask":  &askTool,
+			"text": textJSON(map[string]any{
+				"tool": "editedExistingFile",
+				"path": "/workspace/project/main.go",
+				"diff": "<<<<<<< SEARCH\nold\n=======\nnew\n>>>>>>> REPLACE",
 			}),
 		},
 		{
