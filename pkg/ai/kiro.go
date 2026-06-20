@@ -363,7 +363,7 @@ func (g Kiro) promptHeartbeat(prompt kiroPrompt, timestamp time.Time) heartbeat.
 		"",
 		prompt.Workspace,
 		float64(timestamp.UnixMilli())/1000,
-		aiUserAgent(entity, g.UserAgents, g.FallbackUserAgent, aiPlugin(g, "")),
+		aiUserAgentWithModel(entity, g.UserAgents, g.FallbackUserAgent, "", ""),
 	)
 	h.AISession = prompt.SessionID
 	h.AIPromptLength = prompt.Length
@@ -441,7 +441,7 @@ func (g Kiro) fileHeartbeat(
 		"",
 		"",
 		float64(timestamp.UnixMilli())/1000,
-		aiUserAgent(filePath, g.UserAgents, g.FallbackUserAgent, aiPlugin(g, "")),
+		aiUserAgentWithModel(filePath, g.UserAgents, g.FallbackUserAgent, "", ""),
 	)
 	h.AISession = session.SessionID
 

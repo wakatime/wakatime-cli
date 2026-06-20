@@ -42,6 +42,7 @@ func TestWindsurfParse(t *testing.T) {
 				"_v":        3,
 				"type":      1,
 				"text":      "Refactor this file",
+				"model":     "swe-1.5",
 				"createdAt": "2026-04-20T12:00:00Z",
 			},
 		},
@@ -81,7 +82,7 @@ func TestWindsurfParse(t *testing.T) {
 
 	assert.Equal(t, "Windsurf cascade-1", got[0].Entity)
 	assert.Equal(t, heartbeat.AppType, got[0].EntityType)
-	assert.Contains(t, got[0].UserAgent, "Windsurf")
+	assert.Contains(t, got[0].UserAgent, "swe/1.5")
 	assert.NotContains(t, got[0].UserAgent, "Cursor")
 	assert.True(t, strings.Index(got[0].UserAgent, "Windsurf") < strings.Index(got[0].UserAgent, "plugin/0.0.1"))
 
@@ -91,7 +92,7 @@ func TestWindsurfParse(t *testing.T) {
 	assert.Equal(t, 2, *got[1].AILineChanges)
 	assert.EqualValues(t, 5, got[1].AIInputTokens)
 	assert.EqualValues(t, 2, got[1].AIOutputTokens)
-	assert.Contains(t, got[1].UserAgent, "Windsurf")
+	assert.Contains(t, got[1].UserAgent, "swe/1.5")
 	assert.NotContains(t, got[1].UserAgent, "Cursor")
 	assert.True(t, strings.Index(got[1].UserAgent, "Windsurf") < strings.Index(got[1].UserAgent, "editor/1.2.3"))
 }

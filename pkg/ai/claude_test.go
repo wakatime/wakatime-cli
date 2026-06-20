@@ -118,10 +118,10 @@ func TestClaudeParse(t *testing.T) {
 	assert.Equal(t, float64(time.Date(2026, 3, 18, 11, 45, 0, 0, time.UTC).Unix()), got[0].Time)
 	assert.Equal(
 		t,
-		"Claude/2.1.45 plugin/0.0.1",
+		"claude-code/2.1.45 plugin/0.0.1",
 		got[0].UserAgent,
 	)
-	assert.Contains(t, got[0].UserAgent, "Claude/2.1.45")
+	assert.Contains(t, got[0].UserAgent, "claude-code/2.1.45")
 
 	assert.Equal(t, "/tmp/edited.go", got[1].Entity)
 	assert.Equal(t, "claude-session", got[1].AISession)
@@ -137,10 +137,10 @@ func TestClaudeParse(t *testing.T) {
 	assert.Equal(t, float64(time.Date(2026, 3, 18, 12, 0, 0, 0, time.UTC).Unix()), got[1].Time)
 	assert.Equal(
 		t,
-		"Claude/2.1.45 "+heartbeat.UserAgent(ctx, "editor/1.2.3"),
+		"claude-code/2.1.45 "+heartbeat.UserAgent(ctx, "editor/1.2.3"),
 		got[1].UserAgent,
 	)
-	assert.Contains(t, got[1].UserAgent, "Claude/2.1.45")
+	assert.Contains(t, got[1].UserAgent, "claude-code/2.1.45")
 
 	assert.Equal(t, "Claude agent-worker", got[2].Entity)
 	assert.Equal(t, "claude-session", got[2].AISession)
@@ -499,7 +499,8 @@ func TestClaudeParse_DoesNotUseEditorUserAgentWithoutIDEContext(t *testing.T) {
 	transcript := strings.Join([]string{
 		strings.Join([]string{
 			`{"timestamp":"2026-03-18T11:45:00Z","sessionId":"claude-session","version":"2.1.45",`,
-			`"cwd":"/tmp","type":"user","message":{"role":"user","content":[`,
+			`"cwd":"/tmp","type":"user","message":{"role":"user",`,
+			`"model":"claude-opus-4.1","effort":"medium","content":[`,
 			`{"type":"text","text":"please update the file"}`,
 			`]}}`,
 		}, ""),
@@ -521,8 +522,8 @@ func TestClaudeParse_DoesNotUseEditorUserAgentWithoutIDEContext(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, got, 2)
 
-	assert.Equal(t, "Claude/2.1.45", got[0].UserAgent)
-	assert.Equal(t, "Claude/2.1.45", got[1].UserAgent)
+	assert.Equal(t, "opus/4.1-medium claude-code/2.1.45", got[0].UserAgent)
+	assert.Equal(t, "opus/4.1-medium claude-code/2.1.45", got[1].UserAgent)
 }
 
 func TestClaudeParse_PreservesClaudeCodePluginUserAgent(t *testing.T) {
@@ -554,12 +555,12 @@ func TestClaudeParse_PreservesClaudeCodePluginUserAgent(t *testing.T) {
 
 	assert.Equal(
 		t,
-		"Claude/2.1.148 claude-code/2.1.148 claude-code-wakatime/3.1.6",
+		"claude-code/2.1.148 claude-code-wakatime/3.1.6",
 		got[0].UserAgent,
 	)
 	assert.Equal(
 		t,
-		heartbeat.UserAgent(ctx, "Claude/2.1.148 claude-code/2.1.148 claude-code-wakatime/3.1.6"),
+		heartbeat.UserAgent(ctx, "claude-code/2.1.148 claude-code-wakatime/3.1.6"),
 		heartbeat.UserAgent(ctx, got[0].UserAgent),
 	)
 }
@@ -671,7 +672,7 @@ func TestClaudeParse_UserMessageContentAsPlainStringWithIDEContext(t *testing.T)
 	assert.Equal(t, heartbeat.AppType, got[0].EntityType)
 	assert.Equal(t, "claude-session", got[0].AISession)
 	assert.Equal(t, len([]rune(expectedPrompt)), got[0].AIPromptLength)
-	assert.Equal(t, "Claude/2.1.45 plugin/0.0.1", got[0].UserAgent)
+	assert.Equal(t, "claude-code/2.1.45 plugin/0.0.1", got[0].UserAgent)
 }
 
 func TestClaudeParse_UserMessageContentAsPlainStringSystemReminder(t *testing.T) {

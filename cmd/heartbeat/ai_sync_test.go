@@ -95,7 +95,7 @@ func TestRunAISyncActivity_SendsAIHeartbeatsWithoutEntity(t *testing.T) {
 		assert.Equal(t, -1, *entities[0].AILineChange)
 		assert.Zero(t, entities[0].AIInputTokens)
 		assert.Equal(t, int64(7), entities[0].AIOutputTokens)
-		assert.Contains(t, entities[0].UserAgent, "Claude/2.1.45")
+		assert.Contains(t, entities[0].UserAgent, "claude-code/2.1.45")
 		assert.Contains(t, entities[0].UserAgent, "plugin/0.0.1")
 
 		w.WriteHeader(http.StatusCreated)
@@ -340,7 +340,7 @@ func TestRunAISyncActivity_SendsAIPromptLengthToAPI(t *testing.T) {
 		require.Len(t, entities, 1)
 		assert.Equal(t, "019d3438-39ae-7fb2-8526-d6c02ba3577c", entities[0].AISession)
 		assert.Equal(t, len([]rune("Please implement the code as described by the comment.")), entities[0].AIPromptLength)
-		assert.Contains(t, entities[0].UserAgent, "Codex/0.116.0-alpha.10")
+		assert.NotContains(t, entities[0].UserAgent, "Codex/")
 
 		w.WriteHeader(http.StatusCreated)
 

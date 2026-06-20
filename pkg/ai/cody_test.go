@@ -114,8 +114,8 @@ func TestCodyParse(t *testing.T) {
 	assert.False(t, *got[0].IsWrite)
 	assert.Equal(t, float64(time.Date(2026, 5, 1, 20, 0, 0, 0, time.UTC).Unix()), got[0].Time)
 	assert.Contains(t, got[0].UserAgent, "claude/3.5")
-	assert.Contains(t, got[0].UserAgent, "Cody")
-	assert.True(t, strings.Index(got[0].UserAgent, "claude/3.5") < strings.Index(got[0].UserAgent, "Cody"))
+	assert.True(t, strings.Index(got[0].UserAgent, "claude/3.5") <
+		strings.Index(got[0].UserAgent, "plugin/0.0.1"))
 	assert.Contains(t, got[0].UserAgent, "plugin/0.0.1")
 
 	assert.Equal(t, readPath, got[1].Entity)
@@ -126,8 +126,8 @@ func TestCodyParse(t *testing.T) {
 	require.NotNil(t, got[1].IsWrite)
 	assert.False(t, *got[1].IsWrite)
 	assert.Contains(t, got[1].UserAgent, "claude/3.5")
-	assert.Contains(t, got[1].UserAgent, "Cody")
-	assert.True(t, strings.Index(got[1].UserAgent, "claude/3.5") < strings.Index(got[1].UserAgent, "Cody"))
+	assert.True(t, strings.Index(got[1].UserAgent, "claude/3.5") <
+		strings.Index(got[1].UserAgent, "editor/1.2.3"))
 	assert.Contains(t, got[1].UserAgent, "editor/1.2.3")
 
 	assert.Equal(t, editPath, got[2].Entity)
@@ -137,7 +137,6 @@ func TestCodyParse(t *testing.T) {
 	require.NotNil(t, got[2].IsWrite)
 	assert.True(t, *got[2].IsWrite)
 	assert.Contains(t, got[2].UserAgent, "claude/3.5")
-	assert.Contains(t, got[2].UserAgent, "Cody")
 	assert.Contains(t, got[2].UserAgent, "plugin/0.0.1")
 }
 

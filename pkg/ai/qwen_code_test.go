@@ -284,7 +284,8 @@ func TestQwenCodeParse(t *testing.T) {
 	assert.Equal(t, 1, *got[0].AILineChanges)
 	assert.Zero(t, got[0].AIInputTokens)
 	assert.Zero(t, got[0].AIOutputTokens)
-	assert.Contains(t, got[0].UserAgent, "Qwen Code/0.17.0")
+	assert.Contains(t, got[0].UserAgent, "qwen-code-cli/0.17.0")
+	assert.NotContains(t, got[0].UserAgent, "Qwen Code/")
 
 	assert.Equal(t, "Qwen Code "+sessionID, got[1].Entity)
 	assert.Equal(t, heartbeat.AppType, got[1].EntityType)
@@ -295,9 +296,9 @@ func TestQwenCodeParse(t *testing.T) {
 	assert.Equal(t, "Qwen Code "+sessionID, got[2].Entity)
 	assert.EqualValues(t, 100, got[2].AIInputTokens)
 	assert.EqualValues(t, 20, got[2].AIOutputTokens)
-	assert.Contains(t, got[2].UserAgent, "qwen3-coder-plus")
-	assert.Contains(t, got[2].UserAgent, "Qwen Code/0.17.0")
-	assert.True(t, strings.Index(got[2].UserAgent, "qwen3-coder-plus") < strings.Index(got[2].UserAgent, "Qwen Code/0.17.0"))
+	assert.Contains(t, got[2].UserAgent, "qwen/3-coder-plus qwen-code-cli/0.17.0")
+	assert.True(t, strings.Index(got[2].UserAgent, "qwen/3-coder-plus") <
+		strings.Index(got[2].UserAgent, "qwen-code-cli/0.17.0"))
 
 	assert.Equal(t, notesFile, got[3].Entity)
 	require.NotNil(t, got[3].AILineChanges)
@@ -314,9 +315,9 @@ func TestQwenCodeParse(t *testing.T) {
 	assert.EqualValues(t, 5, got[4].AIOutputTokens)
 	require.NotNil(t, got[4].IsWrite)
 	assert.True(t, *got[4].IsWrite)
-	assert.Contains(t, got[4].UserAgent, "qwen3-coder-plus")
-	assert.Contains(t, got[4].UserAgent, "Qwen Code/0.17.0")
-	assert.True(t, strings.Index(got[4].UserAgent, "qwen3-coder-plus") < strings.Index(got[4].UserAgent, "Qwen Code/0.17.0"))
+	assert.Contains(t, got[4].UserAgent, "qwen/3-coder-plus qwen-code-cli/0.17.0")
+	assert.True(t, strings.Index(got[4].UserAgent, "qwen/3-coder-plus") <
+		strings.Index(got[4].UserAgent, "qwen-code-cli/0.17.0"))
 	assert.Contains(t, got[4].UserAgent, "editor/1.2.3")
 
 	assert.Equal(t, readmeFile, got[5].Entity)

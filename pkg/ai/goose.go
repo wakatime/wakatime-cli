@@ -32,6 +32,7 @@ type gooseSessionRow struct {
 	Name              string
 	WorkingDir        string
 	Provider          string
+	Model             string
 	UpdatedAt         time.Time
 	Input             int64
 	Output            int64
@@ -97,7 +98,7 @@ func (g Goose) Parse(ctx context.Context) (Heartbeats, error) {
 			"",
 			row.WorkingDir,
 			float64(row.UpdatedAt.Unix()),
-			aiUserAgent(entity, g.UserAgents, g.FallbackUserAgent, aiPlugin(g, row.Provider)),
+			aiUserAgentWithModel(entity, g.UserAgents, g.FallbackUserAgent, row.Model, ""),
 		)
 
 		prompt := row.Prompt
@@ -304,6 +305,13 @@ func (Goose) rowFromValues(columns []string, raw []sql.NullString) (gooseSession
 			row.WorkingDir = value
 		case "provider_name":
 			row.Provider = value
+		case "model_config_json":
+			var config struct {
+				Model string `json:"model_name"`
+			}
+			if json.Unmarshal([]byte(value), &config) == nil {
+				row.Model = config.Model
+			}
 		case "updated_at":
 			row.UpdatedAt = parseGooseTime(value)
 		case "input_tokens":
@@ -489,7 +497,7 @@ func gooseSessionsQuery(columns []string) (string, []string, error) {
 	selectColumns := []string{"id"}
 	selectColumns = append(selectColumns, titleColumns...)
 
-	for _, column := range []string{"working_dir", "updated_at", "provider_name"} {
+	for _, column := range []string{"working_dir", "updated_at", "provider_name", "model_config_json"} {
 		if slices.Contains(columns, column) {
 			selectColumns = append(selectColumns, column)
 		}

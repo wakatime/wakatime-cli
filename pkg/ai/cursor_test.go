@@ -212,7 +212,8 @@ func TestCursorParse(t *testing.T) {
 	assert.Equal(t, float64(time.Date(2026, 3, 15, 23, 34, 39, 0, time.UTC).Unix()), got[1].Time)
 	assert.Contains(t, got[1].UserAgent, "Cursor/1.105.1")
 	assert.Contains(t, got[1].UserAgent, "composer/2.5")
-	assert.True(t, strings.Index(got[1].UserAgent, "composer/2.5") < strings.Index(got[1].UserAgent, "Cursor/1.105.1"))
+	assert.True(t, strings.Index(got[1].UserAgent, "composer/2.5") <
+		strings.Index(got[1].UserAgent, "Cursor/1.105.1"))
 
 	assert.Equal(t, readPath, got[2].Entity)
 	assert.Equal(t, "composer-1", got[2].AISession)
