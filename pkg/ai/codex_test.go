@@ -39,7 +39,7 @@ func TestCodexParse(t *testing.T) {
 
 	got, err := parser.Parse(ctx)
 	require.NoError(t, err)
-	require.Len(t, got, 3)
+	require.Len(t, got, 2)
 
 	for _, h := range got {
 		assert.Equal(t, "plus", h.AISubscriptionPlan)
@@ -83,25 +83,6 @@ func TestCodexParse(t *testing.T) {
 			strings.Index(got[1].UserAgent, "plugin/0.0.1"),
 	)
 	assert.Contains(t, got[1].UserAgent, "plugin/0.0.1")
-
-	assert.Equal(t, "/home/user/projects/wakatime-cli/pkg/ai/claude.go", got[2].Entity)
-	assert.Equal(t, "019d3438-39ae-7fb2-8526-d6c02ba3577c", got[2].AISession)
-	assert.Equal(t, heartbeat.FileType, got[2].EntityType)
-	assert.Equal(t, heartbeat.AICodingCategory.String(), got[2].Category)
-	require.NotNil(t, got[2].AILineChanges)
-	assert.Equal(t, 20, *got[2].AILineChanges)
-	assert.Zero(t, got[2].AIPromptLength)
-	require.NotNil(t, got[2].IsWrite)
-	assert.True(t, *got[2].IsWrite)
-	assert.Equal(t, float64(time.Date(2026, 3, 28, 11, 33, 34, 952, time.UTC).Unix()), got[2].Time)
-	assert.NotContains(t, got[2].UserAgent, "Codex/")
-	assert.Contains(t, got[2].UserAgent, "vscode-wakatime/unknown")
-	assert.True(
-		t,
-		strings.Index(got[2].UserAgent, "vscode-wakatime/unknown") <
-			strings.Index(got[2].UserAgent, "editor/1.2.3"),
-	)
-	assert.Contains(t, got[2].UserAgent, "editor/1.2.3")
 }
 
 func TestCodexParse_ParsesTranscriptFromPreviousDayFolder(t *testing.T) {
@@ -126,8 +107,7 @@ func TestCodexParse_ParsesTranscriptFromPreviousDayFolder(t *testing.T) {
 
 	got, err := parser.Parse(ctx)
 	require.NoError(t, err)
-	require.Len(t, got, 3)
-	assert.Equal(t, "/home/user/projects/wakatime-cli/pkg/ai/claude.go", got[2].Entity)
+	require.Len(t, got, 2)
 }
 
 func TestCodexParse_NoCodexSessionsDir(t *testing.T) {
@@ -301,6 +281,85 @@ func TestCodexParse_UpdatesReasoningEffortForFutureHeartbeats(t *testing.T) {
 	require.Len(t, got, 2)
 	assert.Equal(t, "gpt/5.5-high codex-cli/0.141.0 plugin/0.0.1", got[0].UserAgent)
 	assert.Equal(t, "gpt/5.5-medium codex-cli/0.141.0 plugin/0.0.1", got[1].UserAgent)
+}
+
+func TestCodexParse_AttributesTokenCountsToPreviousHeartbeat(t *testing.T) {
+	ctx := context.Background()
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	transcriptDir := filepath.Join(home, ".codex", "sessions", "2026", "06", "20")
+	require.NoError(t, os.MkdirAll(transcriptDir, 0o755))
+	transcriptPath := filepath.Join(transcriptDir, "session.jsonl")
+	transcript := strings.Join([]string{
+		`{"timestamp":"2026-06-20T11:59:58Z","type":"session_meta",` +
+			`"payload":{"id":"session","cwd":"/workspace/project"}}`,
+		`{"timestamp":"2026-06-20T11:59:59Z","type":"event_msg",` +
+			`"payload":{"type":"token_count","info":{"total_token_usage":` +
+			`{"input_tokens":100,"output_tokens":10}}}}`,
+		`{"timestamp":"2026-06-20T12:00:01Z","type":"response_item",` +
+			`"payload":{"type":"message","role":"user","content":` +
+			`[{"type":"input_text","text":"Make the change"}]}}`,
+		`{"timestamp":"2026-06-20T12:00:02Z","type":"event_msg",` +
+			`"payload":{"type":"token_count","info":{"total_token_usage":` +
+			`{"input_tokens":110,"output_tokens":12}}}}`,
+		`{"timestamp":"2026-06-20T12:00:03Z","type":"event_msg",` +
+			`"payload":{"type":"agent_message","message":"The change is complete."}}`,
+		`{"timestamp":"2026-06-20T12:00:04Z","type":"event_msg",` +
+			`"payload":{"type":"token_count","info":{"total_token_usage":` +
+			`{"input_tokens":150,"output_tokens":20}}}}`,
+	}, "\n") + "\n"
+	require.NoError(t, os.WriteFile(transcriptPath, []byte(transcript), 0o644))
+
+	got, err := (ai.Codex{After: time.Date(2026, 6, 20, 12, 0, 0, 0, time.UTC)}).Parse(ctx)
+	require.NoError(t, err)
+	require.Len(t, got, 2)
+	assert.EqualValues(t, 10, got[0].AIInputTokens)
+	assert.EqualValues(t, 2, got[0].AIOutputTokens)
+	assert.EqualValues(t, 40, got[1].AIInputTokens)
+	assert.EqualValues(t, 8, got[1].AIOutputTokens)
+}
+
+func TestCodexParse_EmitsOnlySuccessfulPatches(t *testing.T) {
+	ctx := context.Background()
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	transcriptDir := filepath.Join(home, ".codex", "sessions", "2026", "06", "20")
+	require.NoError(t, os.MkdirAll(transcriptDir, 0o755))
+	transcriptPath := filepath.Join(transcriptDir, "session.jsonl")
+	transcript := strings.Join([]string{
+		`{"timestamp":"2026-06-20T12:00:00Z","type":"session_meta",` +
+			`"payload":{"id":"session","cwd":"/workspace/project"}}`,
+		`{"timestamp":"2026-06-20T12:00:01Z","type":"response_item",` +
+			`"payload":{"type":"custom_tool_call","call_id":"failed-direct",` +
+			`"name":"apply_patch","input":"*** Update File: failed.go\n+one"}}`,
+		`{"timestamp":"2026-06-20T12:00:02Z","type":"event_msg",` +
+			`"payload":{"type":"patch_apply_end","call_id":"failed-direct",` +
+			`"success":false,"status":"failed"}}`,
+		`{"timestamp":"2026-06-20T12:00:03Z","type":"response_item",` +
+			`"payload":{"type":"custom_tool_call","call_id":"successful-direct",` +
+			`"name":"apply_patch","input":"*** Update File: successful.go\n+one"}}`,
+		`{"timestamp":"2026-06-20T12:00:04Z","type":"event_msg",` +
+			`"payload":{"type":"patch_apply_end","call_id":"successful-direct",` +
+			`"success":true,"status":"completed"}}`,
+		`{"timestamp":"2026-06-20T12:00:05Z","type":"response_item",` +
+			`"payload":{"type":"custom_tool_call","call_id":"failed-exec","name":"exec",` +
+			`"input":"const patch = \"*** Begin Patch\\n*** Update File: failed-exec.go` +
+			`\\n+one\\n*** End Patch\"; tools.apply_patch(patch);"}}`,
+		`{"timestamp":"2026-06-20T12:00:06Z","type":"response_item",` +
+			`"payload":{"type":"custom_tool_call_output","call_id":"failed-exec",` +
+			`"output":[{"type":"input_text","text":"Failed to apply patch"}]}}`,
+	}, "\n") + "\n"
+	require.NoError(t, os.WriteFile(transcriptPath, []byte(transcript), 0o644))
+
+	got, err := (ai.Codex{After: time.Date(2026, 6, 20, 12, 0, 0, 0, time.UTC)}).Parse(ctx)
+	require.NoError(t, err)
+	require.Len(t, got, 1)
+	assert.Equal(t, filepath.Join("/workspace/project", "successful.go"), got[0].Entity)
+	assert.Equal(t, float64(time.Date(2026, 6, 20, 12, 0, 4, 0, time.UTC).Unix()), got[0].Time)
 }
 
 func TestCodexParse_UserAgentUsesSourceFromRealSessionMetaLines(t *testing.T) {
@@ -648,8 +707,8 @@ func TestCodexParse_RolloutFixtureIncludesExpectedHeartbeatAttributes(t *testing
 	assert.Equal(t, "Codex rollout-2026-04-15T18-46-36-019d9353-333c-7c41-a909-26f5c6221a5a", heartbeats[i].Entity)
 	assert.Equal(t, "ai coding", heartbeats[i].Category)
 	assert.False(t, *heartbeats[i].IsWrite)
-	assert.Zero(t, heartbeats[i].AIInputTokens)
-	assert.Zero(t, heartbeats[i].AIOutputTokens)
+	assert.EqualValues(t, 1, heartbeats[i].AIInputTokens)
+	assert.EqualValues(t, 2, heartbeats[i].AIOutputTokens)
 	assert.Equal(t, 29, heartbeats[i].AIPromptLength)
 	assert.Nil(t, heartbeats[i].AILineChanges)
 	assert.Equal(t, "/Users/user/git/wakatime-cli", heartbeats[i].ProjectPathOverride)
@@ -662,8 +721,8 @@ func TestCodexParse_RolloutFixtureIncludesExpectedHeartbeatAttributes(t *testing
 	assert.Equal(t, "Codex rollout-2026-04-15T18-46-36-019d9353-333c-7c41-a909-26f5c6221a5a", heartbeats[i].Entity)
 	assert.Equal(t, "ai coding", heartbeats[i].Category)
 	assert.False(t, *heartbeats[i].IsWrite)
-	assert.EqualValues(t, 1, heartbeats[i].AIInputTokens)
-	assert.EqualValues(t, 2, heartbeats[i].AIOutputTokens)
+	assert.EqualValues(t, 105133, heartbeats[i].AIInputTokens)
+	assert.EqualValues(t, 477, heartbeats[i].AIOutputTokens)
 	assert.Zero(t, heartbeats[i].AIPromptLength)
 	assert.Nil(t, heartbeats[i].AILineChanges)
 	assert.Equal(t, "/Users/user/git/wakatime-cli", heartbeats[i].ProjectPathOverride)
@@ -676,8 +735,8 @@ func TestCodexParse_RolloutFixtureIncludesExpectedHeartbeatAttributes(t *testing
 	assert.Equal(t, "Codex rollout-2026-04-15T18-46-36-019d9353-333c-7c41-a909-26f5c6221a5a", heartbeats[i].Entity)
 	assert.Equal(t, "ai coding", heartbeats[i].Category)
 	assert.False(t, *heartbeats[i].IsWrite)
-	assert.EqualValues(t, 105133, heartbeats[i].AIInputTokens)
-	assert.EqualValues(t, 477, heartbeats[i].AIOutputTokens)
+	assert.EqualValues(t, 217197, heartbeats[i].AIInputTokens)
+	assert.EqualValues(t, 599, heartbeats[i].AIOutputTokens)
 	assert.Zero(t, heartbeats[i].AIPromptLength)
 	assert.Nil(t, heartbeats[i].AILineChanges)
 	assert.Equal(t, "/Users/user/git/wakatime-cli", heartbeats[i].ProjectPathOverride)
@@ -690,8 +749,8 @@ func TestCodexParse_RolloutFixtureIncludesExpectedHeartbeatAttributes(t *testing
 	assert.Equal(t, "Codex rollout-2026-04-15T18-46-36-019d9353-333c-7c41-a909-26f5c6221a5a", heartbeats[i].Entity)
 	assert.Equal(t, "ai coding", heartbeats[i].Category)
 	assert.False(t, *heartbeats[i].IsWrite)
-	assert.EqualValues(t, 217197, heartbeats[i].AIInputTokens)
-	assert.EqualValues(t, 599, heartbeats[i].AIOutputTokens)
+	assert.EqualValues(t, 109309, heartbeats[i].AIInputTokens)
+	assert.EqualValues(t, 843, heartbeats[i].AIOutputTokens)
 	assert.Zero(t, heartbeats[i].AIPromptLength)
 	assert.Nil(t, heartbeats[i].AILineChanges)
 	assert.Equal(t, "/Users/user/git/wakatime-cli", heartbeats[i].ProjectPathOverride)
@@ -717,8 +776,8 @@ func TestCodexParse_RolloutFixtureIncludesExpectedHeartbeatAttributes(t *testing
 	assert.Equal(t, "Codex rollout-2026-04-15T18-46-36-019d9353-333c-7c41-a909-26f5c6221a5a", heartbeats[i].Entity)
 	assert.Equal(t, "ai coding", heartbeats[i].Category)
 	assert.False(t, *heartbeats[i].IsWrite)
-	assert.EqualValues(t, 109309, heartbeats[i].AIInputTokens)
-	assert.EqualValues(t, 843, heartbeats[i].AIOutputTokens)
+	assert.Zero(t, heartbeats[i].AIInputTokens)
+	assert.Zero(t, heartbeats[i].AIOutputTokens)
 	assert.Zero(t, heartbeats[i].AIPromptLength)
 	assert.Nil(t, heartbeats[i].AILineChanges)
 	assert.Equal(t, "019d9353-333c-7c41-a909-26f5c6221a5a", heartbeats[i].AISession)
@@ -730,8 +789,8 @@ func TestCodexParse_RolloutFixtureIncludesExpectedHeartbeatAttributes(t *testing
 	assert.Equal(t, "Codex rollout-2026-04-15T18-46-36-019d9353-333c-7c41-a909-26f5c6221a5a", heartbeats[i].Entity)
 	assert.Equal(t, "ai coding", heartbeats[i].Category)
 	assert.False(t, *heartbeats[i].IsWrite)
-	assert.Zero(t, heartbeats[i].AIInputTokens)
-	assert.Zero(t, heartbeats[i].AIOutputTokens)
+	assert.EqualValues(t, 110200, heartbeats[i].AIInputTokens)
+	assert.EqualValues(t, 223, heartbeats[i].AIOutputTokens)
 	assert.Equal(t, 10, heartbeats[i].AIPromptLength)
 	assert.Nil(t, heartbeats[i].AILineChanges)
 	assert.Equal(t, "019d9353-333c-7c41-a909-26f5c6221a5a", heartbeats[i].AISession)
@@ -756,8 +815,8 @@ func TestCodexParse_RolloutFixtureIncludesExpectedHeartbeatAttributes(t *testing
 	assert.Equal(t, "Codex rollout-2026-04-15T18-46-36-019d9353-333c-7c41-a909-26f5c6221a5a", heartbeats[i].Entity)
 	assert.Equal(t, "ai coding", heartbeats[i].Category)
 	assert.False(t, *heartbeats[i].IsWrite)
-	assert.EqualValues(t, 110200, heartbeats[i].AIInputTokens)
-	assert.EqualValues(t, 223, heartbeats[i].AIOutputTokens)
+	assert.EqualValues(t, 110472, heartbeats[i].AIInputTokens)
+	assert.EqualValues(t, 156, heartbeats[i].AIOutputTokens)
 	assert.Zero(t, heartbeats[i].AIPromptLength)
 	assert.Nil(t, heartbeats[i].AILineChanges)
 	assert.Equal(t, "/Users/user/git/wakatime-cli", heartbeats[i].ProjectPathOverride)

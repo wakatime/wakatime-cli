@@ -8,7 +8,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
@@ -32,12 +31,24 @@ type (
 	codexParseState struct {
 		heartbeats                    Heartbeats
 		tokens                        heartbeat.AITokens
+		pendingPatches                map[string]codexPendingPatch
 		subscriptionPlan              string
 		model                         string
 		reasoningEffort               string
 		lastAgentMessageTime          time.Time
 		lastResponseItemAssistantTime time.Time
 		lastResponseItemUserTime      time.Time
+	}
+
+	codexPendingPatch struct {
+		inputs            []string
+		version           string
+		agentVersion      string
+		source            string
+		cwd               string
+		userAgents        map[string]string
+		fallbackUserAgent string
+		sessionID         string
 	}
 
 	codexSessionMeta struct {
@@ -69,6 +80,9 @@ type (
 				ReasoningEffort *string `json:"reasoning_effort"`
 			} `json:"settings"`
 		} `json:"collaboration_mode"`
+		CallID  *string         `json:"call_id"`
+		Success *bool           `json:"success"`
+		Output  json.RawMessage `json:"output"`
 	}
 
 	codexPayloadRateLimits struct {
@@ -193,7 +207,9 @@ func (g Codex) parseTranscript(ctx context.Context, transcript string) (Heartbea
 		return nil, err
 	}
 
-	state := codexParseState{}
+	state := codexParseState{
+		pendingPatches: make(map[string]codexPendingPatch),
+	}
 
 	for scanner.Scan() {
 		if ctx.Err() != nil {
@@ -290,10 +306,18 @@ func (g Codex) handleTranscriptLine(
 		return
 	}
 
-	state.tokens = g.codexTokenCounts(logLine, state.tokens, g.After)
+	state.trackTokenCount(logLine, g.After)
 	state.trackSubscriptionPlan(logLine)
 	state.trackModel(logLine)
 	state.trackUserMessage(logLine)
+
+	if patchHeartbeats, handled := g.handlePendingPatch(logLine, session, state); handled {
+		if !logLine.Timestamp.IsZero() && !logLine.Timestamp.Before(g.After) {
+			state.heartbeats = append(state.heartbeats, patchHeartbeats...)
+		}
+
+		return
+	}
 
 	if logLine.Timestamp.IsZero() ||
 		logLine.Timestamp.Before(g.After) ||
@@ -318,17 +342,54 @@ func (g Codex) handleTranscriptLine(
 		g.UserAgents,
 		g.FallbackUserAgent,
 		*logLine.Payload,
-		state.tokens,
+		heartbeat.AITokens{},
 	)
 	if len(aiHeartbeats) == 0 {
 		return
 	}
 
-	state.tokens.LastInput = state.tokens.CurrentInput
-	state.tokens.LastOutput = state.tokens.CurrentOutput
 	state.heartbeats = append(state.heartbeats, aiHeartbeats...)
 	state.trackAgentMessage(logLine)
 	state.trackAssistantMessage(logLine)
+}
+
+func (s *codexParseState) trackTokenCount(logLine codexLogLine, after time.Time) {
+	if logLine.Payload == nil || logLine.Payload.Type == nil || *logLine.Payload.Type != "token_count" ||
+		logLine.Payload.Info == nil || logLine.Payload.Info.TotalTokenUsage == nil ||
+		logLine.Payload.Info.TotalTokenUsage.InputTokens == nil ||
+		logLine.Payload.Info.TotalTokenUsage.OutputTokens == nil {
+		return
+	}
+
+	usage := logLine.Payload.Info.TotalTokenUsage
+	s.tokens.CurrentInput = int64(*usage.InputTokens)
+	s.tokens.CurrentOutput = int64(*usage.OutputTokens)
+
+	if logLine.Timestamp.IsZero() || logLine.Timestamp.Before(after) {
+		s.tokens.LastInput = s.tokens.CurrentInput
+		s.tokens.LastOutput = s.tokens.CurrentOutput
+
+		return
+	}
+
+	inputTokens := s.tokens.CurrentInput - s.tokens.LastInput
+	if inputTokens < 0 {
+		inputTokens = 0
+	}
+
+	outputTokens := s.tokens.CurrentOutput - s.tokens.LastOutput
+	if outputTokens < 0 {
+		outputTokens = 0
+	}
+
+	if len(s.heartbeats) > 0 {
+		i := len(s.heartbeats) - 1
+		s.heartbeats[i].AIInputTokens += inputTokens
+		s.heartbeats[i].AIOutputTokens += outputTokens
+	}
+
+	s.tokens.LastInput = s.tokens.CurrentInput
+	s.tokens.LastOutput = s.tokens.CurrentOutput
 }
 
 func (s *codexParseState) trackModel(logLine codexLogLine) {
@@ -551,6 +612,107 @@ func (g Codex) getHeartbeats(
 	return heartbeats
 }
 
+func (g Codex) handlePendingPatch(
+	logLine codexLogLine,
+	session codexSessionState,
+	state *codexParseState,
+) (Heartbeats, bool) {
+	if logLine.Payload == nil || logLine.Payload.Type == nil {
+		return nil, false
+	}
+
+	payload := *logLine.Payload
+	if payload.CallID == nil || strings.TrimSpace(*payload.CallID) == "" {
+		return nil, false
+	}
+
+	callID := strings.TrimSpace(*payload.CallID)
+
+	inputs := codexPatchInputs(payload)
+	if len(inputs) > 0 {
+		state.pendingPatches[callID] = codexPendingPatch{
+			inputs:            inputs,
+			version:           session.version,
+			agentVersion:      codexAgentVersion(state.model, state.reasoningEffort),
+			source:            session.source,
+			cwd:               session.cwd,
+			userAgents:        g.UserAgents,
+			fallbackUserAgent: g.FallbackUserAgent,
+			sessionID:         session.id,
+		}
+
+		return nil, true
+	}
+
+	pending, ok := state.pendingPatches[callID]
+	if !ok {
+		return nil, false
+	}
+
+	switch *payload.Type {
+	case "patch_apply_end":
+		delete(state.pendingPatches, callID)
+
+		if payload.Success == nil || !*payload.Success {
+			return nil, true
+		}
+	case "custom_tool_call_output":
+		delete(state.pendingPatches, callID)
+
+		if !codexToolCallSucceeded(payload.Output) {
+			return nil, true
+		}
+	default:
+		return nil, false
+	}
+
+	var heartbeats Heartbeats
+	for _, input := range pending.inputs {
+		heartbeats = append(heartbeats, g.patchHeartbeats(
+			logLine.Timestamp,
+			pending.version,
+			pending.agentVersion,
+			pending.source,
+			pending.cwd,
+			pending.userAgents,
+			pending.fallbackUserAgent,
+			input,
+			pending.sessionID,
+			heartbeat.AITokens{},
+		)...)
+	}
+
+	return heartbeats, true
+}
+
+func codexToolCallSucceeded(output json.RawMessage) bool {
+	if len(output) == 0 || string(output) == "null" {
+		return true
+	}
+
+	var items []codexContentItem
+	if err := json.Unmarshal(output, &items); err != nil {
+		var text string
+		if err := json.Unmarshal(output, &text); err != nil {
+			return true
+		}
+
+		items = []codexContentItem{{Text: text}}
+	}
+
+	for _, item := range items {
+		text := strings.ToLower(item.Text)
+		if strings.Contains(text, "failed") ||
+			strings.Contains(text, "error") ||
+			strings.Contains(text, "invalid context") ||
+			strings.Contains(text, "invalid patch") {
+			return false
+		}
+	}
+
+	return true
+}
+
 func codexPatchInputs(payload codexPayload) []string {
 	if payload.Name == nil || payload.Input == nil {
 		return nil
@@ -567,7 +729,7 @@ func codexPatchInputs(payload codexPayload) []string {
 }
 
 func codexExecPatchInputs(input string) []string {
-	if !strings.Contains(input, "tools.apply_patch") {
+	if !strings.Contains(input, "tools.apply_patch(") {
 		return nil
 	}
 
@@ -595,18 +757,101 @@ func codexExecPatchInputs(input string) []string {
 		encoded := input[:end]
 		input = input[end:]
 
-		if strings.Contains(encoded, "\n") {
-			patches = append(patches, encoded)
-			continue
-		}
-
-		decoded, err := strconv.Unquote(`"` + encoded + `"`)
-		if err == nil {
-			patches = append(patches, decoded)
-		}
+		patches = append(patches, codexDecodePatch(encoded))
 	}
 
 	return patches
+}
+
+func codexDecodePatch(encoded string) string {
+	var decoded strings.Builder
+	decoded.Grow(len(encoded))
+
+	for i := 0; i < len(encoded); i++ {
+		if encoded[i] != '\\' || i+1 >= len(encoded) {
+			decoded.WriteByte(encoded[i])
+			continue
+		}
+
+		next := encoded[i+1]
+		switch next {
+		case 'n':
+			decoded.WriteByte('\n')
+
+			i++
+		case 'r':
+			decoded.WriteByte('\r')
+
+			i++
+		case 't':
+			decoded.WriteByte('\t')
+
+			i++
+		case 'b':
+			decoded.WriteByte('\b')
+
+			i++
+		case 'f':
+			decoded.WriteByte('\f')
+
+			i++
+		case 'v':
+			decoded.WriteByte('\v')
+
+			i++
+		case '\\', '"', '\'', '/':
+			decoded.WriteByte(next)
+
+			i++
+		case 'x':
+			if value, consumed, ok := codexDecodeHexEscape(encoded[i+2:], 2); ok {
+				decoded.WriteRune(value)
+
+				i += consumed + 1
+			} else {
+				decoded.WriteByte(encoded[i])
+			}
+		case 'u':
+			if value, consumed, ok := codexDecodeHexEscape(encoded[i+2:], 4); ok {
+				decoded.WriteRune(value)
+
+				i += consumed + 1
+			} else {
+				decoded.WriteByte(encoded[i])
+			}
+		default:
+			decoded.WriteByte(encoded[i])
+		}
+	}
+
+	return decoded.String()
+}
+
+func codexDecodeHexEscape(encoded string, size int) (rune, int, bool) {
+	if len(encoded) < size {
+		return 0, 0, false
+	}
+
+	var value rune
+
+	for i := 0; i < size; i++ {
+		var digit rune
+
+		switch char := encoded[i]; {
+		case char >= '0' && char <= '9':
+			digit = rune(char - '0')
+		case char >= 'a' && char <= 'f':
+			digit = rune(char-'a') + 10
+		case char >= 'A' && char <= 'F':
+			digit = rune(char-'A') + 10
+		default:
+			return 0, 0, false
+		}
+
+		value = value*16 + digit
+	}
+
+	return value, size, true
 }
 
 func (g Codex) patchHeartbeats(
@@ -636,6 +881,14 @@ func (g Codex) patchHeartbeats(
 			continue
 		}
 
+		if moveFile := codexMoveFilePath(cwd, line); moveFile != "" {
+			if currentFile != "" {
+				currentFile = moveFile
+			}
+
+			continue
+		}
+
 		if strings.HasPrefix(line, "*** ") {
 			if currentFile != "" {
 				heartbeats = append(heartbeats, g.heartbeat(
@@ -651,6 +904,8 @@ func (g Codex) patchHeartbeats(
 					deletions,
 					tokens,
 				))
+				tokens.LastInput = tokens.CurrentInput
+				tokens.LastOutput = tokens.CurrentOutput
 			}
 
 			currentFile = codexFilePath(cwd, line)
@@ -915,6 +1170,19 @@ func codexFilePath(cwd string, line string) string {
 	return ""
 }
 
+func codexMoveFilePath(cwd string, line string) string {
+	file, ok := strings.CutPrefix(line, "*** Move to: ")
+	if !ok {
+		return ""
+	}
+
+	if file == "" || filepath.IsAbs(file) || strings.HasPrefix(file, "/") {
+		return file
+	}
+
+	return filepath.Join(cwd, file)
+}
+
 func (Codex) userAgent(
 	entity string,
 	agentVersion string,
@@ -1001,30 +1269,6 @@ func (g Codex) heartbeat(
 		float64(timestamp.Unix()),
 		g.userAgent(currentFile, agentVersion, version, source, userAgents, fallbackUserAgent),
 	)
-}
-
-func (Codex) codexTokenCounts(line codexLogLine, tokens heartbeat.AITokens, after time.Time) heartbeat.AITokens {
-	if line.Payload == nil {
-		return tokens
-	}
-
-	payload := *line.Payload
-	if payload.Type == nil || *payload.Type != "token_count" || payload.Info == nil {
-		return tokens
-	}
-
-	info := *payload.Info
-	if info.TotalTokenUsage != nil && info.TotalTokenUsage.InputTokens != nil && info.TotalTokenUsage.OutputTokens != nil {
-		tokens.CurrentInput = int64(*info.TotalTokenUsage.InputTokens)
-		tokens.CurrentOutput = int64(*info.TotalTokenUsage.OutputTokens)
-	}
-
-	if line.Timestamp.IsZero() || line.Timestamp.Before(after) {
-		tokens.LastInput = tokens.CurrentInput
-		tokens.LastOutput = tokens.CurrentOutput
-	}
-
-	return tokens
 }
 
 func (Codex) sessionIDFromPath(path string) string {
