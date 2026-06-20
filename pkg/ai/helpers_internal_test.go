@@ -526,6 +526,40 @@ func TestCodexHelpers(t *testing.T) {
 	require.NotNil(t, heartbeats[1].AILineChanges)
 	assert.Equal(t, 2, *heartbeats[1].AILineChanges)
 
+	execHeartbeats := parser.getHeartbeats(
+		timestamp,
+		"session.jsonl",
+		"session",
+		"1.2.3",
+		"gpt-1.2.3",
+		"",
+		"/workspace",
+		nil,
+		"plugin/0.1.0",
+		codexPayload{
+			Type: heartbeat.PointerTo("custom_tool_call"),
+			Name: heartbeat.PointerTo("exec"),
+			Input: heartbeat.PointerTo(
+				`const patch = "*** Begin Patch\n*** Update File: pkg/main.go\n+one\n-two` +
+					`\n*** Add File: pkg/extra.go\n+alpha\n+beta\n*** End Patch";` +
+					` text(await tools.apply_patch(patch));`,
+			),
+		},
+		heartbeat.AITokens{},
+	)
+	require.Len(t, execHeartbeats, 2)
+	assert.Equal(t, filepath.Join("/workspace", "pkg/main.go"), execHeartbeats[0].Entity)
+	require.NotNil(t, execHeartbeats[0].AILineChanges)
+	assert.Equal(t, 0, *execHeartbeats[0].AILineChanges)
+	assert.Equal(t, filepath.Join("/workspace", "pkg/extra.go"), execHeartbeats[1].Entity)
+	require.NotNil(t, execHeartbeats[1].AILineChanges)
+	assert.Equal(t, 2, *execHeartbeats[1].AILineChanges)
+
+	assert.Nil(t, codexPatchInputs(codexPayload{
+		Name:  heartbeat.PointerTo("exec"),
+		Input: heartbeat.PointerTo(`const example = "*** Begin Patch";`),
+	}))
+
 	assert.Equal(t, filepath.Join("/workspace", "pkg/main.go"), codexFilePath("/workspace", "*** Update File: pkg/main.go"))
 	assert.Equal(t, "/tmp/main.go", codexFilePath("/workspace", "*** Add File: /tmp/main.go"))
 	assert.Equal(t, "", codexFilePath("/workspace", "*** Move to: pkg/main.go"))
