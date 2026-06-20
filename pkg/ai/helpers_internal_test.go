@@ -514,17 +514,21 @@ func TestCodexHelpers(t *testing.T) {
 				"*** Update File: pkg/main.go\n+one\n-two\n*** Add File: /tmp/extra.go\n+alpha\n+beta",
 			),
 		},
-		heartbeat.AITokens{},
+		heartbeat.AITokens{LastInput: 10, LastOutput: 5, CurrentInput: 20, CurrentOutput: 8},
 	)
 	require.Len(t, heartbeats, 2)
 	assert.Equal(t, filepath.Join("/workspace", "pkg/main.go"), heartbeats[0].Entity)
 	require.NotNil(t, heartbeats[0].AILineChanges)
 	assert.Equal(t, 0, *heartbeats[0].AILineChanges)
+	assert.EqualValues(t, 10, heartbeats[0].AIInputTokens)
+	assert.EqualValues(t, 3, heartbeats[0].AIOutputTokens)
 	assert.Contains(t, heartbeats[0].UserAgent, "gpt/1.2.3")
 
 	assert.Equal(t, "/tmp/extra.go", heartbeats[1].Entity)
 	require.NotNil(t, heartbeats[1].AILineChanges)
 	assert.Equal(t, 2, *heartbeats[1].AILineChanges)
+	assert.Zero(t, heartbeats[1].AIInputTokens)
+	assert.Zero(t, heartbeats[1].AIOutputTokens)
 
 	execHeartbeats := parser.getHeartbeats(
 		timestamp,
@@ -555,6 +559,54 @@ func TestCodexHelpers(t *testing.T) {
 	require.NotNil(t, execHeartbeats[1].AILineChanges)
 	assert.Equal(t, 2, *execHeartbeats[1].AILineChanges)
 
+	mixedEscapingHeartbeats := parser.getHeartbeats(
+		timestamp,
+		"session.jsonl",
+		"session",
+		"1.2.3",
+		"gpt-1.2.3",
+		"",
+		"/workspace",
+		nil,
+		"plugin/0.1.0",
+		codexPayload{
+			Type: heartbeat.PointerTo("custom_tool_call"),
+			Name: heartbeat.PointerTo("exec"),
+			Input: heartbeat.PointerTo(
+				"const patch = \"*** Begin Patch\\n*** Update File: pkg/escaped.go\\n" +
+					"+const pattern = /foo\\/bar/;\n*** End Patch\"; tools.apply_patch(patch);",
+			),
+		},
+		heartbeat.AITokens{},
+	)
+	require.Len(t, mixedEscapingHeartbeats, 1)
+	assert.Equal(t, filepath.Join("/workspace", "pkg/escaped.go"), mixedEscapingHeartbeats[0].Entity)
+	require.NotNil(t, mixedEscapingHeartbeats[0].AILineChanges)
+	assert.Equal(t, 1, *mixedEscapingHeartbeats[0].AILineChanges)
+
+	moveHeartbeats := parser.getHeartbeats(
+		timestamp,
+		"session.jsonl",
+		"session",
+		"1.2.3",
+		"gpt-1.2.3",
+		"",
+		"/workspace",
+		nil,
+		"plugin/0.1.0",
+		codexPayload{
+			Name: heartbeat.PointerTo("apply_patch"),
+			Input: heartbeat.PointerTo(
+				"*** Update File: pkg/old.go\n*** Move to: pkg/new.go\n+one\n-two",
+			),
+		},
+		heartbeat.AITokens{},
+	)
+	require.Len(t, moveHeartbeats, 1)
+	assert.Equal(t, filepath.Join("/workspace", "pkg/new.go"), moveHeartbeats[0].Entity)
+	require.NotNil(t, moveHeartbeats[0].AILineChanges)
+	assert.Equal(t, 0, *moveHeartbeats[0].AILineChanges)
+
 	assert.Nil(t, codexPatchInputs(codexPayload{
 		Name:  heartbeat.PointerTo("exec"),
 		Input: heartbeat.PointerTo(`const example = "*** Begin Patch";`),
@@ -563,6 +615,7 @@ func TestCodexHelpers(t *testing.T) {
 	assert.Equal(t, filepath.Join("/workspace", "pkg/main.go"), codexFilePath("/workspace", "*** Update File: pkg/main.go"))
 	assert.Equal(t, "/tmp/main.go", codexFilePath("/workspace", "*** Add File: /tmp/main.go"))
 	assert.Equal(t, "", codexFilePath("/workspace", "*** Move to: pkg/main.go"))
+	assert.Equal(t, filepath.Join("/workspace", "pkg/main.go"), codexMoveFilePath("/workspace", "*** Move to: pkg/main.go"))
 }
 
 func TestPreserveAttributesMutatesAIHeartbeats(t *testing.T) {
