@@ -83,6 +83,8 @@ const (
 	PiParser
 	// GooseParser is the parser ID for Goose.
 	GooseParser
+	// AmpParser is the parser ID for Amp.
+	AmpParser
 )
 
 type (
@@ -220,6 +222,11 @@ func parseAIHeartbeats(
 			FallbackUserAgent: config.Plugin,
 		},
 		Codex{
+			After:             after,
+			UserAgents:        userAgents,
+			FallbackUserAgent: config.Plugin,
+		},
+		Amp{
 			After:             after,
 			UserAgents:        userAgents,
 			FallbackUserAgent: config.Plugin,
