@@ -1,6 +1,7 @@
 package today_test
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -12,11 +13,57 @@ import (
 
 	"github.com/wakatime/wakatime-cli/cmd/today"
 	"github.com/wakatime/wakatime-cli/pkg/api"
+	"github.com/wakatime/wakatime-cli/pkg/exitcode"
 
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestRun(t *testing.T) {
+	testServerURL, router, tearDown := setupTestServer()
+	defer tearDown()
+
+	router.HandleFunc("/users/current/statusbar/today", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+
+		f, err := os.Open("testdata/api_statusbar_today_response.json")
+		require.NoError(t, err)
+
+		defer f.Close()
+
+		_, err = io.Copy(w, f)
+		require.NoError(t, err)
+	})
+
+	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("api-url", testServerURL)
+
+	var (
+		code int
+		err  error
+	)
+
+	output := captureStdout(t, func() {
+		code, err = today.Run(t.Context(), v)
+	})
+
+	require.NoError(t, err)
+	assert.Equal(t, exitcode.Success, code)
+	assert.Equal(t, "10 secs\n", output)
+}
+
+func TestRunErr(t *testing.T) {
+	v := viper.New()
+
+	code, err := today.Run(t.Context(), v)
+
+	require.Error(t, err)
+	assert.Equal(t, exitcode.ErrGeneric, code)
+	assert.Contains(t, err.Error(), "today fetch failed")
+}
 
 func TestToday(t *testing.T) {
 	testServerURL, router, tearDown := setupTestServer()
@@ -183,4 +230,39 @@ func setupTestServer() (string, *http.ServeMux, func()) {
 	srv := httptest.NewServer(router)
 
 	return srv.URL, router, func() { srv.Close() }
+}
+
+func captureStdout(t *testing.T, fn func()) string {
+	t.Helper()
+
+	stdout := os.Stdout
+	r, w, err := os.Pipe()
+	require.NoError(t, err)
+
+	os.Stdout = w
+
+	defer func() { os.Stdout = stdout }()
+
+	outC := make(chan string, 1)
+	errC := make(chan error, 1)
+
+	go func() {
+		var buf bytes.Buffer
+
+		_, err := io.Copy(&buf, r)
+		errC <- err
+
+		outC <- buf.String()
+	}()
+
+	fn()
+
+	require.NoError(t, w.Close())
+
+	output := <-outC
+
+	require.NoError(t, <-errC)
+	require.NoError(t, r.Close())
+
+	return output
 }
