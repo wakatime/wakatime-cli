@@ -299,7 +299,9 @@ func missingResultHeartbeats(hh []heartbeat.Heartbeat, handled map[string]int) [
 }
 
 func popHeartbeats(ctx context.Context, filepath string, limit int) (queued []heartbeat.Heartbeat, err error) {
-	defer recoverDBPanic(filepath, &err)
+	defer func() {
+		recoverDBPanic(filepath, &err, recover())
+	}()
 
 	db, close, err := openDB(ctx, filepath)
 	if err != nil {
@@ -396,7 +398,9 @@ func pushHeartbeatsWithRetry(ctx context.Context, filepath string, hh []heartbea
 }
 
 func pushHeartbeats(ctx context.Context, filepath string, hh []heartbeat.Heartbeat) (err error) {
-	defer recoverDBPanic(filepath, &err)
+	defer func() {
+		recoverDBPanic(filepath, &err, recover())
+	}()
 
 	db, close, err := openDB(ctx, filepath)
 	if err != nil {
@@ -440,7 +444,9 @@ func pushHeartbeats(ctx context.Context, filepath string, hh []heartbeat.Heartbe
 
 // CountHeartbeats returns the total number of heartbeats in the offline db.
 func CountHeartbeats(ctx context.Context, filepath string) (count int, err error) {
-	defer recoverDBPanic(filepath, &err)
+	defer func() {
+		recoverDBPanic(filepath, &err, recover())
+	}()
 
 	db, close, err := openDB(ctx, filepath)
 	if err != nil {
@@ -475,7 +481,9 @@ func CountHeartbeats(ctx context.Context, filepath string) (count int, err error
 
 // ReadHeartbeats reads the informed heartbeats in the offline db.
 func ReadHeartbeats(ctx context.Context, filepath string, limit int) (hh []heartbeat.Heartbeat, err error) {
-	defer recoverDBPanic(filepath, &err)
+	defer func() {
+		recoverDBPanic(filepath, &err, recover())
+	}()
 
 	db, close, err := openDB(ctx, filepath)
 	if err != nil {
@@ -512,9 +520,9 @@ func ReadHeartbeats(ctx context.Context, filepath string, limit int) (hh []heart
 	return hh, nil
 }
 
-func recoverDBPanic(dbFilepath string, err *error) {
-	if r := recover(); r != nil {
-		*err = resetCorruptDBError(dbFilepath, fmt.Errorf("panicked: %v", r))
+func recoverDBPanic(dbFilepath string, err *error, recovered any) {
+	if recovered != nil {
+		*err = resetCorruptDBError(dbFilepath, fmt.Errorf("panicked: %v", recovered))
 	}
 }
 
