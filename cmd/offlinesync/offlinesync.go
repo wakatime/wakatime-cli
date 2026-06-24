@@ -2,6 +2,7 @@ package offlinesync
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 
@@ -68,8 +69,9 @@ func run(ctx context.Context, v *viper.Viper) (int, error) {
 	}
 
 	if err = SyncOfflineActivity(ctx, v, queueFilepath); err != nil {
-		if errwaka, ok := err.(wakaerror.Error); ok {
-			return errwaka.ExitCode(), fmt.Errorf("offline sync failed: %s", errwaka.Message())
+		var errwaka wakaerror.Error
+		if errors.As(err, &errwaka) {
+			return errwaka.ExitCode(), fmt.Errorf("offline sync failed: %w", err)
 		}
 
 		return exitcode.ErrGeneric, fmt.Errorf(

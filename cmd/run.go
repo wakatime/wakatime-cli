@@ -3,6 +3,7 @@ package cmd
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	stdlog "log"
@@ -289,13 +290,15 @@ func runCmd(ctx context.Context, v *viper.Viper, verbose bool, sendDiagsOnErrors
 	exitCode, err := cmd(ctx, v)
 	// nolint:nestif
 	if err != nil {
-		if errwaka, ok := err.(wakaerror.Error); ok {
+		var errwaka wakaerror.Error
+		if errors.As(err, &errwaka) {
 			sendDiagsOnErrors = sendDiagsOnErrors || errwaka.SendDiagsOnErrors()
 			// if verbose is not set, use the value from the error
 			verbose = verbose || errwaka.ShouldLogError()
 		}
 
-		if errloglevel, ok := err.(wakaerror.LogLevel); ok {
+		var errloglevel wakaerror.LogLevel
+		if errors.As(err, &errloglevel) {
 			logger.Logf(zapcore.Level(errloglevel.LogLevel()), "failed to run command: %s", err)
 		} else if verbose {
 			logger.Errorf("failed to run command: %s", err)
