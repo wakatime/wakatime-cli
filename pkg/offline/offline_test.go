@@ -2,6 +2,7 @@ package offline_test
 
 import (
 	"context"
+	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -1283,6 +1284,92 @@ func TestCountHeartbeats_Empty(t *testing.T) {
 	assert.Equal(t, count, 0)
 }
 
+func TestCountHeartbeats_CorruptDBReturnsErrOpenDB(t *testing.T) {
+	f, err := os.CreateTemp(t.TempDir(), "")
+	require.NoError(t, err)
+
+	queuePath := f.Name()
+	require.NoError(t, f.Close())
+
+	db, err := bolt.Open(queuePath, 0600, nil)
+	require.NoError(t, err)
+	require.NoError(t, db.Close())
+
+	corruptBoltPageFlags(t, queuePath, 3, 0x0a)
+
+	count, err := offline.CountHeartbeats(t.Context(), queuePath)
+
+	var erropen offline.ErrOpenDB
+	require.ErrorAs(t, err, &erropen)
+	assert.Zero(t, count)
+	assert.True(t, erropen.Reset)
+	assert.FileExists(t, erropen.BackupFilepath)
+	assert.NoFileExists(t, queuePath)
+	assert.Contains(t, err.Error(), "panicked:")
+	assert.Contains(t, err.Error(), "page 3")
+
+	count, err = offline.CountHeartbeats(t.Context(), queuePath)
+	require.NoError(t, err)
+	assert.Zero(t, count)
+	assert.FileExists(t, queuePath)
+}
+
+func TestCountHeartbeats_InvalidDBResetsQueue(t *testing.T) {
+	queuePath := filepath.Join(t.TempDir(), "offline_heartbeats.bdb")
+	require.NoError(t, os.WriteFile(queuePath, []byte("not a bolt db"), 0600))
+
+	count, err := offline.CountHeartbeats(t.Context(), queuePath)
+
+	var erropen offline.ErrOpenDB
+	require.ErrorAs(t, err, &erropen)
+	assert.Zero(t, count)
+	assert.True(t, erropen.Reset)
+	assert.FileExists(t, erropen.BackupFilepath)
+	assert.NoFileExists(t, queuePath)
+
+	count, err = offline.CountHeartbeats(t.Context(), queuePath)
+	require.NoError(t, err)
+	assert.Zero(t, count)
+	assert.FileExists(t, queuePath)
+}
+
+func TestWithQueue_CorruptDBResetsAndSavesHeartbeats(t *testing.T) {
+	f, err := os.CreateTemp(t.TempDir(), "")
+	require.NoError(t, err)
+
+	queuePath := f.Name()
+	require.NoError(t, f.Close())
+
+	db, err := bolt.Open(queuePath, 0600, nil)
+	require.NoError(t, err)
+	require.NoError(t, db.Close())
+
+	corruptBoltPageFlags(t, queuePath, 3, 0x0a)
+
+	h := heartbeat.Heartbeat{
+		Entity:     "/tmp/main.go",
+		EntityType: heartbeat.FileType,
+		Time:       1,
+		UserAgent:  "wakatime/test",
+	}
+
+	handle := offline.WithQueue(queuePath)(func(context.Context, []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		return nil, errors.New("api unavailable")
+	})
+
+	_, err = handle(t.Context(), []heartbeat.Heartbeat{h})
+	require.EqualError(t, err, "api unavailable")
+
+	count, err := offline.CountHeartbeats(t.Context(), queuePath)
+	require.NoError(t, err)
+	assert.Equal(t, 1, count)
+
+	hh, err := offline.ReadHeartbeats(t.Context(), queuePath, 1)
+	require.NoError(t, err)
+	require.Len(t, hh, 1)
+	assert.Equal(t, h.ID(), hh[0].ID())
+}
+
 func TestReadHeartbeats(t *testing.T) {
 	// setup
 	f, err := os.CreateTemp(t.TempDir(), "")
@@ -1946,4 +2033,23 @@ func insertHeartbeatRecord(t *testing.T, db *bolt.DB, bucket string, h heartbeat
 		return nil
 	})
 	require.NoError(t, err)
+}
+
+func corruptBoltPageFlags(t *testing.T, path string, pageID uint64, flags uint16) {
+	t.Helper()
+
+	f, err := os.OpenFile(path, os.O_WRONLY, 0600)
+	require.NoError(t, err)
+
+	defer func() {
+		require.NoError(t, f.Close())
+	}()
+
+	var data [2]byte
+	binary.LittleEndian.PutUint16(data[:], flags)
+
+	offset := int64(pageID)*int64(os.Getpagesize()) + 8
+	n, err := f.WriteAt(data[:], offset)
+	require.NoError(t, err)
+	require.Equal(t, len(data), n)
 }
