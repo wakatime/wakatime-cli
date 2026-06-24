@@ -62,8 +62,9 @@ func Run(ctx context.Context, v *viper.Viper) (int, error) {
 			return errauth.ExitCode(), fmt.Errorf("sending heartbeat(s) failed: %w", errauth)
 		}
 
-		if errwaka, ok := err.(wakaerror.Error); ok {
-			return errwaka.ExitCode(), fmt.Errorf("sending heartbeat(s) failed: %w", errwaka)
+		var errwaka wakaerror.Error
+		if errors.As(err, &errwaka) {
+			return errwaka.ExitCode(), fmt.Errorf("sending heartbeat(s) failed: %w", err)
 		}
 
 		return exitcode.ErrGeneric, fmt.Errorf(

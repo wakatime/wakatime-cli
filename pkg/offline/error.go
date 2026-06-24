@@ -9,7 +9,9 @@ import (
 
 // ErrOpenDB is an error returned when the database cannot be opened.
 type ErrOpenDB struct {
-	Err error
+	Err            error
+	BackupFilepath string
+	Reset          bool
 }
 
 var _ wakaerror.Error = ErrOpenDB{}

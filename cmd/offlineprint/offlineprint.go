@@ -4,12 +4,14 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/offline"
 	"github.com/wakatime/wakatime-cli/pkg/params"
+	"github.com/wakatime/wakatime-cli/pkg/wakaerror"
 
 	"github.com/spf13/viper"
 )
@@ -29,6 +31,12 @@ func Run(ctx context.Context, v *viper.Viper) (int, error) {
 	hh, err := offline.ReadHeartbeats(ctx, queueFilepath, p.PrintMax)
 	if err != nil {
 		fmt.Println(err)
+
+		var errwaka wakaerror.Error
+		if errors.As(err, &errwaka) {
+			return errwaka.ExitCode(), fmt.Errorf("failed to read offline heartbeats: %w", err)
+		}
+
 		return exitcode.ErrGeneric, fmt.Errorf("failed to read offline heartbeats: %w", err)
 	}
 

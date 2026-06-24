@@ -604,7 +604,7 @@ func TestRunCmd_SendDiagnostics_WakaError(t *testing.T) {
 
 	cmdFn := func(_ context.Context, _ *viper.Viper) (int, error) {
 		cmdNumCalls++
-		return 42, offline.ErrOpenDB{Err: errors.New("fail")}
+		return 42, fmt.Errorf("wrapped: %w", offline.ErrOpenDB{Err: errors.New("fail")})
 	}
 
 	err = cmd.RunCmd(ctx, v, false, false, cmdFn)
