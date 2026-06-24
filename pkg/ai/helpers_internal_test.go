@@ -16,6 +16,12 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/params"
 )
 
+type panicJSONUnmarshaler struct{}
+
+func (*panicJSONUnmarshaler) UnmarshalJSON([]byte) error {
+	panic("boom")
+}
+
 func TestParserIDStringAndPlugins(t *testing.T) {
 	assert.Equal(t, "Claude", aiPlugin(Claude{}, ""))
 	assert.Equal(t, "Claude/1.2.3", aiPlugin(Claude{}, "1.2.3"))
@@ -300,6 +306,14 @@ func TestHeartbeatTime(t *testing.T) {
 }
 
 func TestClaudeHelpers(t *testing.T) {
+	t.Run("json unmarshal panic returns error", func(t *testing.T) {
+		var target panicJSONUnmarshaler
+
+		err := claudeJSONUnmarshal([]byte(`{"bad":true}`), &target)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "json decoder panicked: boom")
+	})
+
 	t.Run("content unmarshal and line counting", func(t *testing.T) {
 		var str contentValue
 		require.NoError(t, json.Unmarshal([]byte(`"first\nsecond"`), &str))

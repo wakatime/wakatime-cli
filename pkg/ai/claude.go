@@ -126,14 +126,14 @@ func (v *contentValue) UnmarshalJSON(data []byte) error {
 	}
 
 	var str string
-	if err := json.Unmarshal(data, &str); err == nil {
+	if err := claudeJSONUnmarshal(data, &str); err == nil {
 		v.String = &str
 
 		return nil
 	}
 
 	var arr []json.RawMessage
-	if err := json.Unmarshal(data, &arr); err == nil {
+	if err := claudeJSONUnmarshal(data, &arr); err == nil {
 		v.Array = &arr
 
 		return nil
@@ -144,14 +144,14 @@ func (v *contentValue) UnmarshalJSON(data []byte) error {
 
 func (r *toolUseResult) UnmarshalJSON(data []byte) error {
 	var raw map[string]json.RawMessage
-	if err := json.Unmarshal(data, &raw); err != nil {
+	if err := claudeJSONUnmarshal(data, &raw); err != nil {
 		return err
 	}
 
 	type alias toolUseResult
 
 	var decoded alias
-	if err := json.Unmarshal(data, &decoded); err != nil {
+	if err := claudeJSONUnmarshal(data, &decoded); err != nil {
 		return nil
 	}
 
@@ -167,21 +167,21 @@ func (v *toolUseResultValue) UnmarshalJSON(data []byte) error {
 	}
 
 	var result toolUseResult
-	if err := json.Unmarshal(data, &result); err == nil {
+	if err := claudeJSONUnmarshal(data, &result); err == nil {
 		v.Object = &result
 
 		return nil
 	}
 
 	var str string
-	if err := json.Unmarshal(data, &str); err == nil {
+	if err := claudeJSONUnmarshal(data, &str); err == nil {
 		v.String = &str
 
 		return nil
 	}
 
 	var arr []json.RawMessage
-	if err := json.Unmarshal(data, &arr); err == nil {
+	if err := claudeJSONUnmarshal(data, &arr); err == nil {
 		v.Array = &contentValue{Array: &arr}
 
 		return nil
@@ -195,8 +195,8 @@ func (c *claudeMessageContentList) UnmarshalJSON(data []byte) error {
 		return nil
 	}
 
-	var rawItems []json.RawMessage
-	if err := json.Unmarshal(data, &rawItems); err == nil {
+	var rawItems []any
+	if err := claudeJSONUnmarshal(data, &rawItems); err == nil {
 		items := make([]claudeMessageContent, 0, len(rawItems))
 
 		for _, raw := range rawItems {
@@ -212,7 +212,7 @@ func (c *claudeMessageContentList) UnmarshalJSON(data []byte) error {
 	}
 
 	var str string
-	if err := json.Unmarshal(data, &str); err == nil {
+	if err := claudeJSONUnmarshal(data, &str); err == nil {
 		*c = claudeMessageContentList{{Type: "text", Text: str}}
 
 		return nil
@@ -221,28 +221,34 @@ func (c *claudeMessageContentList) UnmarshalJSON(data []byte) error {
 	return fmt.Errorf("unsupported message content type")
 }
 
-func parseClaudeMessageContent(raw json.RawMessage) (claudeMessageContent, bool) {
-	var str string
-	if err := json.Unmarshal(raw, &str); err == nil {
-		return claudeMessageContent{Type: "text", Text: str}, true
-	}
+func parseClaudeMessageContent(raw any) (claudeMessageContent, bool) {
+	switch value := raw.(type) {
+	case string:
+		return claudeMessageContent{Type: "text", Text: value}, true
+	case map[string]any:
+		content := claudeMessageContent{}
+		if contentType, ok := value["type"].(string); ok {
+			content.Type = contentType
+		}
 
-	var block struct {
-		Type string          `json:"type"`
-		Text json.RawMessage `json:"text"`
-	}
-	if err := json.Unmarshal(raw, &block); err != nil {
+		if text, ok := value["text"].(string); ok {
+			content.Text = text
+		}
+
+		return content, true
+	default:
 		return claudeMessageContent{}, false
 	}
+}
 
-	content := claudeMessageContent{Type: block.Type}
+func claudeJSONUnmarshal(data []byte, v any) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("json decoder panicked: %v", r)
+		}
+	}()
 
-	var text string
-	if err := json.Unmarshal(block.Text, &text); err == nil {
-		content.Text = text
-	}
-
-	return content, true
+	return json.Unmarshal(data, v)
 }
 
 func (v *contentValue) lineChanges() int {
@@ -262,7 +268,7 @@ func (v *contentValue) lineChanges() int {
 
 	for _, item := range *v.Array {
 		var str string
-		if err := json.Unmarshal(item, &str); err == nil {
+		if err := claudeJSONUnmarshal(item, &str); err == nil {
 			lineChanges += countStringLines(str)
 
 			continue
@@ -271,7 +277,7 @@ func (v *contentValue) lineChanges() int {
 		var block struct {
 			Text *string `json:"text"`
 		}
-		if err := json.Unmarshal(item, &block); err == nil && block.Text != nil {
+		if err := claudeJSONUnmarshal(item, &block); err == nil && block.Text != nil {
 			lineChanges += countStringLines(*block.Text)
 		}
 	}
@@ -419,7 +425,7 @@ func (Claude) subscriptionPlanFromConfig(path string) (string, error) {
 	}
 
 	var config claudeConfig
-	if err := json.Unmarshal(data, &config); err != nil {
+	if err := claudeJSONUnmarshal(data, &config); err != nil {
 		return "", err
 	}
 
@@ -496,7 +502,7 @@ func (g Claude) parseTranscript(ctx context.Context, transcript string) (Heartbe
 		}
 
 		var logLine claudeLogLine
-		if err := json.Unmarshal(line, &logLine); err != nil {
+		if err := claudeJSONUnmarshal(line, &logLine); err != nil {
 			logger.Warnf("failed parsing claude transcript line from %q: %s", transcript, err)
 			logger.Debugf("failed parsing claude transcript line: %s", line)
 
