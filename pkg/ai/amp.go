@@ -633,6 +633,7 @@ func (g Amp) heartbeat(
 
 func ampAgentVersion(version string, reasoningEffort string) string {
 	version = unknownIfEmpty(version)
+
 	reasoningEffort = strings.TrimSpace(reasoningEffort)
 	if reasoningEffort == "" {
 		return "amp/" + version
