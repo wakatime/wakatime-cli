@@ -149,6 +149,53 @@ func TestWithDetection_NonFileType(t *testing.T) {
 	}, result)
 }
 
+func TestWithDetection_SkipsUnsupportedHeartbeats(t *testing.T) {
+	opt := deps.WithDetection(deps.Config{})
+
+	h := opt(func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		assert.Equal(t, []heartbeat.Heartbeat{
+			{
+				Entity:          "testdata/golang.go",
+				EntityType:      heartbeat.FileType,
+				IsUnsavedEntity: true,
+				Language:        heartbeat.PointerTo("Go"),
+			},
+			{
+				Entity:     "testdata/golang.go",
+				EntityType: heartbeat.FileType,
+			},
+			{
+				Entity:     "testdata/golang.go",
+				EntityType: heartbeat.FileType,
+				Language:   heartbeat.PointerTo("NotALanguage"),
+			},
+		}, hh)
+
+		return []heartbeat.Result{{Status: 201}}, nil
+	})
+
+	result, err := h(t.Context(), []heartbeat.Heartbeat{
+		{
+			Entity:          "testdata/golang.go",
+			EntityType:      heartbeat.FileType,
+			IsUnsavedEntity: true,
+			Language:        heartbeat.PointerTo("Go"),
+		},
+		{
+			Entity:     "testdata/golang.go",
+			EntityType: heartbeat.FileType,
+		},
+		{
+			Entity:     "testdata/golang.go",
+			EntityType: heartbeat.FileType,
+			Language:   heartbeat.PointerTo("NotALanguage"),
+		},
+	})
+	require.NoError(t, err)
+
+	assert.Equal(t, []heartbeat.Result{{Status: 201}}, result)
+}
+
 func TestDetect(t *testing.T) {
 	ctx := t.Context()
 
