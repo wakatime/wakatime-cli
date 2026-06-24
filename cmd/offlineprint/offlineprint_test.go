@@ -120,6 +120,26 @@ func TestPrintOfflineHeartbeats_Empty(t *testing.T) {
 	assert.Equal(t, "[]\n", output)
 }
 
+func TestPrintOfflineHeartbeats_OpenDBErr(t *testing.T) {
+	v := viper.New()
+	v.Set("print-offline-heartbeats", 10)
+	v.Set("offline-queue-file", t.TempDir())
+
+	var (
+		code int
+		err  error
+	)
+
+	output := captureStdout(t, func() {
+		code, err = offlineprint.Run(t.Context(), v)
+	})
+
+	require.Error(t, err)
+	assert.Equal(t, exitcode.ErrGeneric, code)
+	assert.Contains(t, err.Error(), "failed to read offline heartbeats")
+	assert.Contains(t, output, "failed to open db file")
+}
+
 type heartbeatRecord struct {
 	ID        string
 	Heartbeat string
@@ -148,4 +168,39 @@ func insertHeartbeatRecord(t *testing.T, db *bolt.DB, bucket string, h heartbeat
 		return nil
 	})
 	require.NoError(t, err)
+}
+
+func captureStdout(t *testing.T, fn func()) string {
+	t.Helper()
+
+	stdout := os.Stdout
+	r, w, err := os.Pipe()
+	require.NoError(t, err)
+
+	os.Stdout = w
+
+	defer func() { os.Stdout = stdout }()
+
+	outC := make(chan string, 1)
+	errC := make(chan error, 1)
+
+	go func() {
+		var buf bytes.Buffer
+
+		_, err := io.Copy(&buf, r)
+		errC <- err
+
+		outC <- buf.String()
+	}()
+
+	fn()
+
+	require.NoError(t, w.Close())
+
+	output := <-outC
+
+	require.NoError(t, <-errC)
+	require.NoError(t, r.Close())
+
+	return output
 }

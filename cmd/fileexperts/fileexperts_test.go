@@ -1,6 +1,7 @@
 package fileexperts_test
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -13,6 +14,7 @@ import (
 
 	"github.com/wakatime/wakatime-cli/cmd/fileexperts"
 	"github.com/wakatime/wakatime-cli/pkg/api"
+	"github.com/wakatime/wakatime-cli/pkg/exitcode"
 	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/log/setup"
 	"github.com/wakatime/wakatime-cli/pkg/project"
@@ -21,6 +23,53 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestRun(t *testing.T) {
+	testServerURL, router, tearDown := setupTestServer()
+	defer tearDown()
+
+	router.HandleFunc("/users/current/file_experts", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+
+		f, err := os.Open("testdata/api_file_experts_response.json")
+		require.NoError(t, err)
+
+		defer f.Close()
+
+		_, err = io.Copy(w, f)
+		require.NoError(t, err)
+	})
+
+	v := viper.New()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("api-url", testServerURL)
+	v.Set("entity", "testdata/main.go")
+	v.Set("projectmap..*", "wakatime-cli")
+
+	var (
+		code int
+		err  error
+	)
+
+	output := captureStdout(t, func() {
+		code, err = fileexperts.Run(t.Context(), v)
+	})
+
+	require.NoError(t, err)
+	assert.Equal(t, exitcode.Success, code)
+	assert.Equal(t, "You: 40 mins | Karl: 21 mins\n", output)
+}
+
+func TestRunErr(t *testing.T) {
+	v := viper.New()
+	v.Set("entity", "testdata/main.go")
+
+	code, err := fileexperts.Run(t.Context(), v)
+
+	require.Error(t, err)
+	assert.Equal(t, exitcode.ErrGeneric, code)
+	assert.Contains(t, err.Error(), "file experts fetch failed")
+}
 
 func TestFileExperts(t *testing.T) {
 	testServerURL, router, tearDown := setupTestServer()
@@ -264,4 +313,39 @@ func removeProjectRootCount(v any) {
 			removeProjectRootCount(child)
 		}
 	}
+}
+
+func captureStdout(t *testing.T, fn func()) string {
+	t.Helper()
+
+	stdout := os.Stdout
+	r, w, err := os.Pipe()
+	require.NoError(t, err)
+
+	os.Stdout = w
+
+	defer func() { os.Stdout = stdout }()
+
+	outC := make(chan string, 1)
+	errC := make(chan error, 1)
+
+	go func() {
+		var buf bytes.Buffer
+
+		_, err := io.Copy(&buf, r)
+		errC <- err
+
+		outC <- buf.String()
+	}()
+
+	fn()
+
+	require.NoError(t, w.Close())
+
+	output := <-outC
+
+	require.NoError(t, <-errC)
+	require.NoError(t, r.Close())
+
+	return output
 }

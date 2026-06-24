@@ -209,6 +209,16 @@ func TestRunWithoutRateLimiting(t *testing.T) {
 	assert.Equal(t, 1, numCalls)
 }
 
+func TestRunWithoutRateLimiting_Disabled(t *testing.T) {
+	v := viper.New()
+	v.Set("disable-offline", true)
+
+	code, err := offlinesync.RunWithoutRateLimiting(t.Context(), v)
+
+	require.NoError(t, err)
+	assert.Equal(t, exitcode.Success, code)
+}
+
 func TestRunWithRateLimiting_RateLimited(t *testing.T) {
 	resetSingleton(t)
 
