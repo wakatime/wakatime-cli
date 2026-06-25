@@ -6,6 +6,8 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -147,6 +149,13 @@ func TestRequestCloneHelpers(t *testing.T) {
 	contents, err := io.ReadAll(cloned.Body)
 	require.NoError(t, err)
 	assert.Equal(t, "body", string(contents))
+
+	req.GetBody = func() (io.ReadCloser, error) {
+		return nil, errors.New("get body failed")
+	}
+
+	_, err = cloneRequest(req)
+	require.EqualError(t, err, "get body failed")
 }
 
 func TestShouldRetryProxyWithHTTP(t *testing.T) {
@@ -171,4 +180,21 @@ func TestTLSOptions(t *testing.T) {
 	require.NotNil(t, transport.TLSClientConfig)
 	assert.Equal(t, serverName, transport.TLSClientConfig.ServerName)
 	assert.NotNil(t, transport.TLSClientConfig.RootCAs)
+}
+
+func TestWithSSLCertFile(t *testing.T) {
+	certFile := filepath.Join(t.TempDir(), "ca.pem")
+	require.NoError(t, os.WriteFile(certFile, []byte("not a cert"), 0600))
+
+	opt, err := WithSSLCertFile(t.Context(), certFile)
+	require.NoError(t, err)
+	require.NotNil(t, opt)
+
+	client := NewClient("https://example.com", opt)
+	transport := client.client.Transport.(*http.Transport)
+	require.NotNil(t, transport.TLSClientConfig)
+	assert.NotNil(t, transport.TLSClientConfig.RootCAs)
+
+	_, err = WithSSLCertFile(t.Context(), certFile+".missing")
+	require.Error(t, err)
 }

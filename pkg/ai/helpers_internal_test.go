@@ -3,6 +3,7 @@ package ai
 import (
 	"context"
 	"encoding/json"
+	"math"
 	"os"
 	"path/filepath"
 	"testing"
@@ -200,6 +201,8 @@ func TestAppHeartbeatEntity(t *testing.T) {
 	assert.Equal(t, "Claude session", appHeartbeatEntity("Claude", "session.jsonl"))
 	assert.Equal(t, "Cursor composer-1", appHeartbeatEntity("Cursor", "composer-1"))
 	assert.Equal(t, "Cursor", appHeartbeatEntity("Cursor", ""))
+	assert.Equal(t, "Cursor", appHeartbeatEntity("Cursor", "Cursor.jsonl"))
+	assert.Equal(t, "Cursor", appHeartbeatEntity("Cursor", ".jsonl"))
 }
 
 func TestCodexSessionIDFromPath(t *testing.T) {
@@ -235,6 +238,15 @@ func TestGetLastParsedAt(t *testing.T) {
 		require.NoError(t, err)
 		assert.False(t, parsed.Before(before))
 		assert.False(t, parsed.After(after))
+	})
+
+	t.Run("keeps default when timestamp is invalid", func(t *testing.T) {
+		v := viper.New()
+		v.Set("internal.ai_logs_last_parsed_at", "invalid")
+
+		parsed, err := getLastParsedAt(ctx, v)
+		require.NoError(t, err)
+		assert.WithinDuration(t, time.Now().Add(-2*time.Minute), parsed, 2*time.Second)
 	})
 
 	t.Run("defaults to Claude Code release date when value is unset", func(t *testing.T) {
@@ -303,6 +315,53 @@ func TestHeartbeatTime(t *testing.T) {
 	got := heartbeatTime(float64(expected.Unix()) + 0.5)
 
 	assert.Equal(t, expected, got)
+}
+
+func TestHeartbeatTimeInvalidAndRounded(t *testing.T) {
+	assert.True(t, heartbeatTime(math.NaN()).IsZero())
+	assert.True(t, heartbeatTime(math.Inf(1)).IsZero())
+	assert.Equal(
+		t,
+		time.Unix(11, 0).UTC(),
+		heartbeatTime(10.9999999999),
+	)
+}
+
+func TestMinMaxAIHeartbeatTimesBranches(t *testing.T) {
+	minimum, maximum := minMaxAIHeartbeatTimes(Heartbeats{
+		{Time: 10},
+		{Time: 5},
+		{Time: 15},
+	})
+
+	assert.Equal(t, float64(5), minimum)
+	assert.Equal(t, float64(15), maximum)
+}
+
+func TestUserAgentProductFields(t *testing.T) {
+	assert.Nil(t, userAgentProductFields(""))
+	assert.Nil(t, userAgentProductFields("wakatime/1.0"))
+	assert.Equal(t, []string{"plugin/1.0"}, userAgentProductFields("wakatime/1.0 (os) go1 plugin/1.0"))
+	assert.Equal(t, []string{"plugin/1.0"}, userAgentProductFields("plugin/1.0"))
+	assert.False(t, userAgentHasToken("", "plugin/1.0"))
+	assert.False(t, userAgentHasToken("plugin/1.0", ""))
+	assert.True(t, userAgentHasToken("plugin/1.0", "plugin/1.0"))
+	assert.Empty(t, aiAgentUserAgentToken(""))
+	assert.Empty(t, aiAgentUserAgentToken("bad/-"))
+	assert.Equal(t, "agent/1.2.3", aiAgentUserAgentToken("agent-1.2.3"))
+	assert.Equal(t, "agent", aiAgentUserAgentToken("agent"))
+}
+
+func TestAddIntPointers(t *testing.T) {
+	one := 1
+	two := 2
+
+	assert.Equal(t, &one, addIntPointers(nil, &one))
+	assert.Equal(t, &one, addIntPointers(&one, nil))
+
+	got := addIntPointers(&one, &two)
+	require.NotNil(t, got)
+	assert.Equal(t, 3, *got)
 }
 
 func TestClaudeHelpers(t *testing.T) {

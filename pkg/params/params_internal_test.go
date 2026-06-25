@@ -1,10 +1,14 @@
 package params
 
 import (
+	"net/url"
 	"regexp"
+	"runtime"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/spf13/viper"
 	"github.com/wakatime/wakatime-cli/pkg/ini"
 	"github.com/wakatime/wakatime-cli/pkg/regex"
 	"github.com/wakatime/wakatime-cli/pkg/vipertools"
@@ -156,4 +160,194 @@ func TestNormalizeURL(t *testing.T) {
 			assert.Equal(t, test.Expected, result)
 		})
 	}
+}
+
+func TestLoadAPIKeyPatternsBranches(t *testing.T) {
+	v := viper.New()
+	v.Set("project_api_key.(?", "00000000-0000-4000-8000-000000000000")
+	v.Set("project_api_key./same", "00000000-0000-4000-8000-000000000000")
+	v.Set("project_api_key./custom", "11111111-1111-4111-8111-111111111111")
+
+	patterns, err := loadAPIKeyPatterns(t.Context(), v, "00000000-0000-4000-8000-000000000000")
+	require.NoError(t, err)
+	require.Len(t, patterns, 1)
+	assert.Equal(t, "11111111-1111-4111-8111-111111111111", patterns[0].APIKey)
+
+	v = viper.New()
+	v.Set("project_api_key./bad", "invalid")
+
+	_, err = loadAPIKeyPatterns(t.Context(), v, "00000000-0000-4000-8000-000000000000")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid api key format")
+}
+
+func TestLoadAPIURLPatternsBranches(t *testing.T) {
+	defaultURL, err := url.Parse("https://api.wakatime.com/api/v1")
+	require.NoError(t, err)
+
+	v := viper.New()
+	v.Set("api_urls.(?", "https://ignored.example|11111111-1111-4111-8111-111111111111")
+	v.Set("api_urls./default", "|00000000-0000-4000-8000-000000000000")
+	v.Set(
+		"api_urls./custom",
+		"https://custom.example/api/v1/users/current/heartbeats.bulk|11111111-1111-4111-8111-111111111111",
+	)
+	v.Set("api_urls./invalidurl", "%|11111111-1111-4111-8111-111111111111")
+
+	patterns, err := loadAPIURLPatterns(t.Context(), v, defaultURL, "00000000-0000-4000-8000-000000000000")
+	require.NoError(t, err)
+	require.Len(t, patterns, 2)
+
+	var urls []string
+	for _, pattern := range patterns {
+		urls = append(urls, pattern.APIURL)
+	}
+
+	assert.ElementsMatch(t, []string{
+		"https://api.wakatime.com/api/v1",
+		"https://custom.example/api/v1",
+	}, urls)
+
+	v = viper.New()
+	v.Set("api_urls./badkey", "https://custom.example|invalid")
+
+	_, err = loadAPIURLPatterns(t.Context(), v, defaultURL, "00000000-0000-4000-8000-000000000000")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid api key format in api_urls")
+
+	emptyURL := &url.URL{}
+	v = viper.New()
+	v.Set("api_urls./empty", "|00000000-0000-4000-8000-000000000000")
+	patterns, err = loadAPIURLPatterns(t.Context(), v, emptyURL, "00000000-0000-4000-8000-000000000000")
+	require.NoError(t, err)
+	assert.Empty(t, patterns)
+}
+
+func TestParseExtraHeartbeatErrorBranches(t *testing.T) {
+	base := ExtraHeartbeat{
+		Category: "coding",
+		Entity:   "main.go",
+		Time:     float64(1),
+		Type:     "file",
+	}
+
+	tests := map[string]struct {
+		Heartbeat ExtraHeartbeat
+		Contains  string
+	}{
+		"category": {
+			Heartbeat: withExtraHeartbeat(base, func(h *ExtraHeartbeat) { h.Category = "bad" }),
+			Contains:  "failed to parse category",
+		},
+		"entity type": {
+			Heartbeat: withExtraHeartbeat(base, func(h *ExtraHeartbeat) { h.Type = "bad" }),
+			Contains:  "invalid entity type",
+		},
+		"cursor": {
+			Heartbeat: withExtraHeartbeat(base, func(h *ExtraHeartbeat) { h.CursorPosition = "bad" }),
+			Contains:  "failed to convert cursorpos to int",
+		},
+		"is write": {
+			Heartbeat: withExtraHeartbeat(base, func(h *ExtraHeartbeat) { h.IsWrite = "bad" }),
+			Contains:  "failed to convert is write to bool",
+		},
+		"line number": {
+			Heartbeat: withExtraHeartbeat(base, func(h *ExtraHeartbeat) { h.LineNumber = "bad" }),
+			Contains:  "failed to convert lineno to int",
+		},
+		"lines": {
+			Heartbeat: withExtraHeartbeat(base, func(h *ExtraHeartbeat) { h.Lines = "bad" }),
+			Contains:  "failed to convert lines to int",
+		},
+		"time": {
+			Heartbeat: withExtraHeartbeat(base, func(h *ExtraHeartbeat) { h.Time = "bad" }),
+			Contains:  "failed to convert time to float64",
+		},
+		"timestamp": {
+			Heartbeat: withExtraHeartbeat(base, func(h *ExtraHeartbeat) {
+				h.Time = nil
+				h.Timestamp = "bad"
+			}),
+			Contains: "failed to convert timestamp to float64",
+		},
+		"missing timestamp": {
+			Heartbeat: withExtraHeartbeat(base, func(h *ExtraHeartbeat) { h.Time = nil }),
+			Contains:  "no valid timestamp",
+		},
+		"is unsaved entity": {
+			Heartbeat: withExtraHeartbeat(base, func(h *ExtraHeartbeat) { h.IsUnsavedEntity = "bad" }),
+			Contains:  "failed to convert is_unsaved_entity to bool",
+		},
+		"ai line changes": {
+			Heartbeat: withExtraHeartbeat(base, func(h *ExtraHeartbeat) { h.AILineChanges = "bad" }),
+			Contains:  "failed to convert ai_line_changes to int",
+		},
+		"human line changes": {
+			Heartbeat: withExtraHeartbeat(base, func(h *ExtraHeartbeat) { h.HumanLineChanges = "bad" }),
+			Contains:  "failed to convert human_line_changes to int",
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			_, err := parseExtraHeartbeat(test.Heartbeat)
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), test.Contains)
+		})
+	}
+}
+
+func TestParseExtraHeartbeatsBranches(t *testing.T) {
+	heartbeats, err := parseExtraHeartbeats(t.Context(), "")
+	require.NoError(t, err)
+	assert.Nil(t, heartbeats)
+
+	_, err = parseExtraHeartbeats(t.Context(), "{")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to json decode")
+
+	_, err = parseExtraHeartbeats(t.Context(), `[{"category":"bad"}]`)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to parse category")
+}
+
+func TestParamsStringAndHelperBranches(t *testing.T) {
+	assert.Contains(t, (Params{}).String(), "api params:")
+	assert.Equal(t, "unknown", FlagReadOrder(99).String())
+	assert.Nil(t, mustParseIntegerNumber(t, nil))
+	assert.Equal(t, 3, *mustParseIntegerNumber(t, float64(3)))
+	assert.Equal(t, "first", firstNonEmptyString("", "first", "second"))
+	assert.Equal(t, "", firstNonEmptyString("", ""))
+}
+
+func withExtraHeartbeat(base ExtraHeartbeat, update func(*ExtraHeartbeat)) ExtraHeartbeat {
+	update(&base)
+
+	return base
+}
+
+func mustParseIntegerNumber(t *testing.T, value any) *int {
+	t.Helper()
+
+	parsed, err := parseIntegerNumber(value)
+	require.NoError(t, err)
+
+	return parsed
+}
+
+func TestReadAPIKeyFromCommandBranches(t *testing.T) {
+	key, err := readAPIKeyFromCommand("  ")
+	require.NoError(t, err)
+	assert.Empty(t, key)
+
+	if runtime.GOOS == "windows" {
+		return
+	}
+
+	key, err = readAPIKeyFromCommand(`printf 'waka_key'`)
+	require.NoError(t, err)
+	assert.Equal(t, "waka_key", strings.TrimSpace(key))
+
+	_, err = readAPIKeyFromCommand("exit 7")
+	require.Error(t, err)
 }
