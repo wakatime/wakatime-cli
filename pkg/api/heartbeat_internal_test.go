@@ -1,223 +1,110 @@
 package api
 
 import (
+	"context"
+	"encoding/json"
+	"errors"
+	"io"
+	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func TestGroupByAPIURLAndKey(t *testing.T) {
-	tests := map[string]struct {
-		Input    []heartbeat.Heartbeat
-		Expected map[string][]heartbeat.Heartbeat
-	}{
-		"empty slice": {
-			Input:    []heartbeat.Heartbeat{},
-			Expected: map[string][]heartbeat.Heartbeat{},
-		},
-		"single heartbeat": {
-			Input: []heartbeat.Heartbeat{
-				{
-					Entity: "/path/to/file.go",
-					APIURL: "https://api.wakatime.com/api/v1",
-					APIKey: "00000000-0000-4000-8000-000000000000",
-				},
-			},
-			Expected: map[string][]heartbeat.Heartbeat{
-				"https://api.wakatime.com/api/v1|00000000-0000-4000-8000-000000000000": {
-					{
-						Entity: "/path/to/file.go",
-						APIURL: "https://api.wakatime.com/api/v1",
-						APIKey: "00000000-0000-4000-8000-000000000000",
-					},
-				},
-			},
-		},
-		"multiple heartbeats same url and key": {
-			Input: []heartbeat.Heartbeat{
-				{
-					Entity: "/path/to/file1.go",
-					APIURL: "https://api.wakatime.com/api/v1",
-					APIKey: "00000000-0000-4000-8000-000000000000",
-				},
-				{
-					Entity: "/path/to/file2.go",
-					APIURL: "https://api.wakatime.com/api/v1",
-					APIKey: "00000000-0000-4000-8000-000000000000",
-				},
-			},
-			Expected: map[string][]heartbeat.Heartbeat{
-				"https://api.wakatime.com/api/v1|00000000-0000-4000-8000-000000000000": {
-					{
-						Entity: "/path/to/file1.go",
-						APIURL: "https://api.wakatime.com/api/v1",
-						APIKey: "00000000-0000-4000-8000-000000000000",
-					},
-					{
-						Entity: "/path/to/file2.go",
-						APIURL: "https://api.wakatime.com/api/v1",
-						APIKey: "00000000-0000-4000-8000-000000000000",
-					},
-				},
-			},
-		},
-		"multiple heartbeats different urls": {
-			Input: []heartbeat.Heartbeat{
-				{
-					Entity: "/path/to/file1.go",
-					APIURL: "https://api.wakatime.com/api/v1",
-					APIKey: "00000000-0000-4000-8000-000000000000",
-				},
-				{
-					Entity: "/path/to/file2.go",
-					APIURL: "https://custom.example.com/api/v1",
-					APIKey: "00000000-0000-4000-8000-000000000001",
-				},
-			},
-			Expected: map[string][]heartbeat.Heartbeat{
-				"https://api.wakatime.com/api/v1|00000000-0000-4000-8000-000000000000": {
-					{
-						Entity: "/path/to/file1.go",
-						APIURL: "https://api.wakatime.com/api/v1",
-						APIKey: "00000000-0000-4000-8000-000000000000",
-					},
-				},
-				"https://custom.example.com/api/v1|00000000-0000-4000-8000-000000000001": {
-					{
-						Entity: "/path/to/file2.go",
-						APIURL: "https://custom.example.com/api/v1",
-						APIKey: "00000000-0000-4000-8000-000000000001",
-					},
-				},
-			},
-		},
-		"same url different keys": {
-			Input: []heartbeat.Heartbeat{
-				{
-					Entity: "/path/to/file1.go",
-					APIURL: "https://api.wakatime.com/api/v1",
-					APIKey: "00000000-0000-4000-8000-000000000000",
-				},
-				{
-					Entity: "/path/to/file2.go",
-					APIURL: "https://api.wakatime.com/api/v1",
-					APIKey: "00000000-0000-4000-8000-000000000001",
-				},
-			},
-			Expected: map[string][]heartbeat.Heartbeat{
-				"https://api.wakatime.com/api/v1|00000000-0000-4000-8000-000000000000": {
-					{
-						Entity: "/path/to/file1.go",
-						APIURL: "https://api.wakatime.com/api/v1",
-						APIKey: "00000000-0000-4000-8000-000000000000",
-					},
-				},
-				"https://api.wakatime.com/api/v1|00000000-0000-4000-8000-000000000001": {
-					{
-						Entity: "/path/to/file2.go",
-						APIURL: "https://api.wakatime.com/api/v1",
-						APIKey: "00000000-0000-4000-8000-000000000001",
-					},
-				},
-			},
-		},
-		"mixed grouping": {
-			Input: []heartbeat.Heartbeat{
-				{
-					Entity: "/work/file1.go",
-					APIURL: "https://work.example.com/api/v1",
-					APIKey: "00000000-0000-4000-8000-000000000001",
-				},
-				{
-					Entity: "/home/file1.go",
-					APIURL: "https://api.wakatime.com/api/v1",
-					APIKey: "00000000-0000-4000-8000-000000000000",
-				},
-				{
-					Entity: "/work/file2.go",
-					APIURL: "https://work.example.com/api/v1",
-					APIKey: "00000000-0000-4000-8000-000000000001",
-				},
-				{
-					Entity: "/home/file2.go",
-					APIURL: "https://api.wakatime.com/api/v1",
-					APIKey: "00000000-0000-4000-8000-000000000000",
-				},
-			},
-			Expected: map[string][]heartbeat.Heartbeat{
-				"https://work.example.com/api/v1|00000000-0000-4000-8000-000000000001": {
-					{
-						Entity: "/work/file1.go",
-						APIURL: "https://work.example.com/api/v1",
-						APIKey: "00000000-0000-4000-8000-000000000001",
-					},
-					{
-						Entity: "/work/file2.go",
-						APIURL: "https://work.example.com/api/v1",
-						APIKey: "00000000-0000-4000-8000-000000000001",
-					},
-				},
-				"https://api.wakatime.com/api/v1|00000000-0000-4000-8000-000000000000": {
-					{
-						Entity: "/home/file1.go",
-						APIURL: "https://api.wakatime.com/api/v1",
-						APIKey: "00000000-0000-4000-8000-000000000000",
-					},
-					{
-						Entity: "/home/file2.go",
-						APIURL: "https://api.wakatime.com/api/v1",
-						APIKey: "00000000-0000-4000-8000-000000000000",
-					},
-				},
-			},
-		},
-	}
+type errorReadCloser struct{}
 
-	for name, test := range tests {
-		t.Run(name, func(t *testing.T) {
-			result := groupByAPIURLAndKey(test.Input)
-
-			assert.Equal(t, test.Expected, result)
-		})
-	}
+func (errorReadCloser) Read([]byte) (int, error) {
+	return 0, errors.New("read failed")
 }
 
-func TestSortKeys(t *testing.T) {
-	tests := map[string]struct {
-		Input    map[string][]heartbeat.Heartbeat
-		Expected []string
-	}{
-		"empty map": {
-			Input:    map[string][]heartbeat.Heartbeat{},
-			Expected: []string{},
-		},
-		"single key": {
-			Input: map[string][]heartbeat.Heartbeat{
-				"https://api.wakatime.com/api/v1|key1": {},
-			},
-			Expected: []string{"https://api.wakatime.com/api/v1|key1"},
-		},
-		"multiple keys sorted": {
-			Input: map[string][]heartbeat.Heartbeat{
-				"https://z.example.com/api/v1|key1": {},
-				"https://a.example.com/api/v1|key2": {},
-				"https://m.example.com/api/v1|key3": {},
-			},
-			Expected: []string{
-				"https://a.example.com/api/v1|key2",
-				"https://m.example.com/api/v1|key3",
-				"https://z.example.com/api/v1|key1",
-			},
-		},
-	}
+func (errorReadCloser) Close() error {
+	return nil
+}
 
-	for name, test := range tests {
-		t.Run(name, func(t *testing.T) {
-			result := sortKeys(test.Input)
+func TestParseHeartbeatResponsesBranches(t *testing.T) {
+	_, err := ParseHeartbeatResponses(t.Context(), []byte(`{`))
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to parse json response body")
 
-			assert.Equal(t, test.Expected, result)
-		})
-	}
+	_, err = ParseHeartbeatResponses(t.Context(), []byte(`{"responses":[[{}, "bad"]]}`))
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed parsing result #0")
+
+	_, err = parseHeartbeatResponse(t.Context(), []json.RawMessage{jsonRaw(`{}`), jsonRaw(`"bad"`)})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to parse json status")
+
+	_, err = parseHeartbeatResponse(t.Context(), []json.RawMessage{jsonRaw(`{`), jsonRaw(`201`)})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to parse json heartbeat")
+
+	_, err = parseHeartbeatResponse(t.Context(), []json.RawMessage{jsonRaw(`{`), jsonRaw(`500`)})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to parse result errors")
+
+	result, err := parseHeartbeatResponse(t.Context(), []json.RawMessage{
+		jsonRaw(`{"errors":{"dependencies":["skip"],"entity":["bad","missing"]}}`),
+		jsonRaw(`400`),
+	})
+	require.NoError(t, err)
+	assert.Equal(t, 400, result.Status)
+	assert.Equal(t, []string{"entity: bad missing"}, result.Errors)
+}
+
+func TestClientSendHeartbeatsInternalBranches(t *testing.T) {
+	t.Run("response body read error", func(t *testing.T) {
+		c := NewClient(BaseURL)
+		c.doFunc = func(*Client, *http.Request) (*http.Response, error) {
+			return &http.Response{
+				StatusCode: http.StatusCreated,
+				Body:       errorReadCloser{},
+			}, nil
+		}
+
+		_, err := c.SendHeartbeats(t.Context(), []heartbeat.Heartbeat{{APIKey: "key"}})
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed reading response body")
+	})
+
+	t.Run("parse response error", func(t *testing.T) {
+		c := NewClient(BaseURL)
+		c.doFunc = func(*Client, *http.Request) (*http.Response, error) {
+			return &http.Response{
+				StatusCode: http.StatusCreated,
+				Body:       io.NopCloser(strings.NewReader(`{`)),
+			}, nil
+		}
+
+		_, err := c.SendHeartbeats(t.Context(), []heartbeat.Heartbeat{{APIKey: "key"}})
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed parsing results")
+	})
+
+	t.Run("extra results are not assigned heartbeats", func(t *testing.T) {
+		c := NewClient(BaseURL)
+		c.doFunc = func(*Client, *http.Request) (*http.Response, error) {
+			return &http.Response{
+				StatusCode: http.StatusCreated,
+				Body: io.NopCloser(strings.NewReader(`{"responses":[` +
+					`[{"data":{"id":"first"}},201],` +
+					`[{"data":{"id":"extra"}},201]` +
+					`]}`)),
+			}, nil
+		}
+
+		input := heartbeat.Heartbeat{APIKey: "key", Entity: "main.go"}
+		results, err := c.SendHeartbeats(context.Background(), []heartbeat.Heartbeat{input})
+		require.NoError(t, err)
+		require.Len(t, results, 2)
+		assert.Equal(t, input, results[0].Heartbeat)
+		assert.Empty(t, results[1].Heartbeat)
+	})
+}
+
+func jsonRaw(value string) json.RawMessage {
+	return json.RawMessage(value)
 }

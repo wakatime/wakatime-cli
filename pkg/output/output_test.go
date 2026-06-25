@@ -39,4 +39,6 @@ func TestOutput_String(t *testing.T) {
 			assert.Equal(t, value, out.String())
 		})
 	}
+
+	assert.Empty(t, output.Output(99).String())
 }

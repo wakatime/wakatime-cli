@@ -133,6 +133,13 @@ func TestReadLines_NonFile(t *testing.T) {
 	assert.ErrorContains(t, err, "failed to open file \"non-file\"")
 }
 
+func TestReadLines_EmptyPath(t *testing.T) {
+	lines, err := file.ReadLines(t.Context(), "", 10)
+
+	assert.Nil(t, lines)
+	assert.EqualError(t, err, "filepath cannot be empty")
+}
+
 func TestCountLines(t *testing.T) {
 	tmpDir := t.TempDir()
 
@@ -173,4 +180,11 @@ func TestCountLines_NonFile(t *testing.T) {
 
 	assert.Empty(t, lines)
 	assert.ErrorContains(t, err, "failed to open file \"non-file\"")
+}
+
+func TestCountLines_EmptyPath(t *testing.T) {
+	lines, err := file.CountLines(t.Context(), "")
+
+	assert.Empty(t, lines)
+	assert.EqualError(t, err, "filepath cannot be empty")
 }
