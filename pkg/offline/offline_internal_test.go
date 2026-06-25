@@ -1,6 +1,7 @@
 package offline
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -122,6 +123,44 @@ func TestResetCorruptDBHelpers(t *testing.T) {
 	assert.NotEmpty(t, backup)
 	assert.NoFileExists(t, dbPath)
 	assert.FileExists(t, backup)
+}
+
+func TestHandleResultsStopsWhenResultHasNoHeartbeat(t *testing.T) {
+	results := []heartbeat.Result{{Status: 201}}
+
+	stop, err := handleResults(t.Context(), filepath.Join(t.TempDir(), "offline.bdb"), results, nil)
+
+	require.NoError(t, err)
+	assert.False(t, stop)
+}
+
+func TestResultHeartbeatBranches(t *testing.T) {
+	fromResult := heartbeat.Heartbeat{Entity: "result.go", Time: 1}
+	got, ok := resultHeartbeat(heartbeat.Result{Heartbeat: fromResult}, nil, 10)
+	assert.True(t, ok)
+	assert.Equal(t, fromResult, got)
+
+	fromInput := heartbeat.Heartbeat{Entity: "input.go", Time: 2}
+	got, ok = resultHeartbeat(heartbeat.Result{}, []heartbeat.Heartbeat{fromInput}, 0)
+	assert.True(t, ok)
+	assert.Equal(t, fromInput, got)
+
+	got, ok = resultHeartbeat(heartbeat.Result{}, nil, 0)
+	assert.False(t, ok)
+	assert.Empty(t, got)
+}
+
+func TestRecoverDBPanic(t *testing.T) {
+	var err error
+
+	recoverDBPanic(filepath.Join(t.TempDir(), "missing.bdb"), &err, "boom")
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "panicked: boom")
+}
+
+func TestIsCorruptDBError(t *testing.T) {
+	assert.False(t, isCorruptDBError(errors.New("other")))
 }
 
 func openTestQueueDB(t *testing.T) *bolt.DB {

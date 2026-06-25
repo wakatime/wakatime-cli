@@ -170,6 +170,106 @@ func TestQoderToolResultHelpers(t *testing.T) {
 	}.lineChanges())
 }
 
+func TestQoderPromptAndPathBranches(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	parser := Qoder{FallbackUserAgent: "fallback/1.0"}
+	dbPath, err := parser.localDBPath(context.Background())
+	require.NoError(t, err)
+	assert.Empty(t, dbPath)
+	assert.False(t, parser.localDBModifiedAfter(filepath.Join(home, "missing.db"), time.Now()))
+
+	localDBPath := filepath.Join(
+		home,
+		"Library",
+		"Application Support",
+		"Qoder",
+		"SharedClientCache",
+		"cache",
+		"db",
+		"local.db",
+	)
+	require.NoError(t, os.MkdirAll(filepath.Dir(localDBPath), 0700))
+	require.NoError(t, os.WriteFile(localDBPath, []byte("db"), 0600))
+	dbPath, err = parser.localDBPath(context.Background())
+	require.NoError(t, err)
+	assert.Equal(t, localDBPath, dbPath)
+
+	old := time.Now().Add(-time.Hour)
+	require.NoError(t, os.Chtimes(localDBPath, old, old))
+	assert.False(t, parser.localDBModifiedAfter(localDBPath, time.Now()))
+	assert.True(t, parser.localDBModifiedAfter(localDBPath, time.Time{}))
+
+	historyPath := filepath.Join(
+		home,
+		".qoder",
+		"cache",
+		"projects",
+		"workspace",
+		"conversation-history",
+		"session",
+		"abc.jsonl",
+	)
+	require.NoError(t, os.MkdirAll(filepath.Dir(historyPath), 0700))
+	require.NoError(t, os.WriteFile(historyPath, []byte(strings.Join([]string{
+		`not json`,
+		`{"role":"assistant","message":{"content":[{"type":"text","text":"ignored"}]}}`,
+		`{"role":"user","message":{"content":[{"type":"image","text":"ignored"}]}}`,
+		`{"role":"user","message":{"content":[{"type":"text","text":"<user_query>hello</user_query>"}]}}`,
+		`{"role":"user","message":{"content":[{"type":"text","text":"plain prompt"}]}}`,
+	}, "\n")), 0600))
+
+	lengths, err := qoderPromptLengths(filepath.Join(home, ".qoder", "cache", "projects"), historyPath)
+	require.NoError(t, err)
+	assert.Equal(t, []int{5, len([]rune("plain prompt"))}, lengths)
+
+	_, err = qoderPromptLengths(filepath.Dir(historyPath), filepath.Join(home, "outside.jsonl"))
+	require.Error(t, err)
+
+	rows := []qoderPromptRow{
+		{SessionID: "abc-session", ProjectURI: "/workspace", CreatedAtMS: time.Now().UnixMilli()},
+		{SessionID: "abc-session", ProjectURI: "/workspace", CreatedAtMS: time.Now().Add(time.Second).UnixMilli()},
+		{SessionID: "abc-session", ProjectURI: "/workspace", CreatedAtMS: time.Now().Add(2 * time.Second).UnixMilli()},
+		{SessionID: "unknown", ProjectURI: "/workspace", CreatedAtMS: time.Now().UnixMilli()},
+		{SessionID: "abc-session", ProjectURI: "/workspace"},
+	}
+	prompts, err := parser.qoderPrompts(context.Background(), rows)
+	require.NoError(t, err)
+	require.Len(t, prompts, 2)
+	assert.Equal(t, 5, prompts[0].Length)
+	assert.Equal(t, len([]rune("plain prompt")), prompts[1].Length)
+
+	heartbeatTime := float64(prompts[0].Timestamp.Add(time.Second).UnixMilli()) / 1000
+	heartbeats := Heartbeats{{AISession: "abc-session", Time: heartbeatTime}}
+	assert.Equal(t, 0, nearestPromptHeartbeat(heartbeats, prompts[0]))
+	heartbeats[0].AIPromptLength = 1
+	assert.Equal(t, -1, nearestPromptHeartbeat(heartbeats, prompts[0]))
+
+	withPrompt := parser.withPromptLengths(Heartbeats{{
+		AISession: "abc-session",
+		Time:      heartbeatTime,
+	}}, prompts[:1])
+	require.Len(t, withPrompt, 1)
+	assert.Equal(t, 5, withPrompt[0].AIPromptLength)
+
+	appPrompt := parser.withPromptLengths(nil, prompts[:1])
+	require.Len(t, appPrompt, 1)
+	assert.Equal(t, heartbeat.AppType, appPrompt[0].EntityType)
+	assert.Equal(t, 5, appPrompt[0].AIPromptLength)
+
+	parser.After = time.Now()
+	stalePrompt := prompts[0]
+	stalePrompt.Timestamp = parser.After.Add(-time.Second)
+	assert.Empty(t, parser.withPromptLengths(nil, []qoderPrompt{{Length: 0}, stalePrompt}))
+	assert.Equal(t, []int{2}, qoderPromptLengthsForSession("abcdef", map[string][]int{
+		"ab":  {1},
+		"abc": {2},
+	}))
+	assert.Equal(t, "last", qoderUserQuery("first <user_query>ignored</user_query> <user_query>last"))
+}
+
 func TestQwenCodeResolveDir(t *testing.T) {
 	home := filepath.Join(t.TempDir(), "home")
 

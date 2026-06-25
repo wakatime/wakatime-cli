@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/wakatime/wakatime-cli/cmd/offlinecount"
@@ -146,6 +147,51 @@ func TestOfflineCount_OpenDBErr(t *testing.T) {
 	assert.Equal(t, exitcode.ErrGeneric, code)
 	assert.Contains(t, err.Error(), "failed to count offline heartbeats")
 	assert.Contains(t, output, "failed to open db file")
+}
+
+func TestOfflineCount_QueueFilepathErr(t *testing.T) {
+	v := viper.New()
+	v.Set("offline-count", true)
+	v.Set("offline-queue-file", "~missing-user/offline_heartbeats.bdb")
+
+	output := captureStdout(t, func() {
+		code, err := offlinecount.Run(t.Context(), v)
+		assert.Equal(t, exitcode.ErrGeneric, code)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to load offline queue filepath")
+		assert.Contains(t, err.Error(), "failed expanding offline-queue-file param")
+	})
+
+	assert.Empty(t, output)
+}
+
+func TestOfflineCount_CorruptDBErrReturnsWakaExitCode(t *testing.T) {
+	queueFilepath := filepath.Join(t.TempDir(), "offline_heartbeats.bdb")
+	require.NoError(t, os.WriteFile(queueFilepath, []byte("not a bolt db"), 0600))
+
+	v := viper.New()
+	v.Set("offline-count", true)
+	v.Set("offline-queue-file", queueFilepath)
+
+	var (
+		code int
+		err  error
+	)
+
+	output := captureStdout(t, func() {
+		code, err = offlinecount.Run(t.Context(), v)
+	})
+
+	require.Error(t, err)
+	assert.Equal(t, exitcode.Success, code)
+	assert.Contains(t, err.Error(), "failed to count offline heartbeats")
+	assert.Contains(t, output, "moved corrupt db file")
+	assert.NoFileExists(t, queueFilepath)
+
+	backups, globErr := filepath.Glob(queueFilepath + ".corrupt.*")
+	require.NoError(t, globErr)
+	require.Len(t, backups, 1)
+	assert.FileExists(t, backups[0])
 }
 
 type heartbeatRecord struct {
