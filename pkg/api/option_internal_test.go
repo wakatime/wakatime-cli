@@ -198,3 +198,54 @@ func TestWithSSLCertFile(t *testing.T) {
 	_, err = WithSSLCertFile(t.Context(), certFile+".missing")
 	require.Error(t, err)
 }
+
+func TestOptionErrorBranches(t *testing.T) {
+	_, err := WithAuth(BasicAuth{})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to retrieve auth header value")
+
+	noop, err := WithNTLM("invalid")
+	require.Error(t, err)
+	assert.NotNil(t, noop)
+	assert.Contains(t, err.Error(), "invalid ntlm credentials format")
+
+	noop, err = WithNTLMRequestRetry(t.Context(), "invalid")
+	require.Error(t, err)
+	assert.NotNil(t, noop)
+	assert.Contains(t, err.Error(), "invalid ntlm credentials format")
+
+	_, err = WithProxy("%")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to parse proxy url")
+
+	client := NewClient("https://example.com")
+	transport := LazyCreateNewTransport(nil)
+	require.NotNil(t, transport)
+	assert.NotSame(t, client.client.Transport, transport)
+
+	opt, err := WithProxy("http://proxy.example.com")
+	require.NoError(t, err)
+	opt(client)
+}
+
+func TestWithProxyHTTPSFallbackNonReplayableBody(t *testing.T) {
+	client := NewClient("https://example.com")
+	client.doFunc = func(*Client, *http.Request) (*http.Response, error) {
+		return nil, errors.New("proxyconnect tcp: server gave HTTP response to HTTPS client")
+	}
+
+	opt, err := WithProxy("https://proxy.example.com")
+	require.NoError(t, err)
+	opt(client)
+
+	req, err := http.NewRequest(
+		http.MethodPost,
+		"https://example.com",
+		io.NopCloser(strings.NewReader("body")),
+	)
+	require.NoError(t, err)
+
+	err = doAndClose(t, client, req)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "proxyconnect tcp")
+}

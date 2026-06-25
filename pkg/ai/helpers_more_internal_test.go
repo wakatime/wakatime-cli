@@ -2,6 +2,7 @@ package ai
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -668,6 +669,126 @@ func TestCodexPatchDecodeBranches(t *testing.T) {
 	assert.False(t, codexToolCallSucceeded(json.RawMessage(`"invalid patch"`)))
 	assert.False(t, codexToolCallSucceeded(json.RawMessage(`[{"text":"tool failed"}]`)))
 	assert.True(t, codexToolCallSucceeded(json.RawMessage(`123`)))
+}
+
+func TestCodexAdditionalHelperBranches(t *testing.T) {
+	base := t.TempDir()
+	parser := Codex{FallbackUserAgent: "fallback/1.0"}
+
+	assert.Empty(t, codexStripHarnessPrefix("   "))
+	assert.Empty(t, codexStripHarnessPrefix("<bad"))
+	assert.Empty(t, codexStripHarnessPrefix("</bad>"))
+	assert.Empty(t, codexStripHarnessPrefix("<tag>missing close"))
+	assert.Equal(t, "request", codexUserMessageText("<system>ignore</system> request"))
+	assert.Equal(t, "actual request", codexUserMessageText(strings.Join([]string{
+		"# Context from my IDE setup:",
+		"ignored",
+		"## My request for Codex:",
+		"actual request",
+	}, "\n")))
+
+	assert.Empty(t, codexFilePath(base, "*** Unknown File: main.go"))
+	assert.Empty(t, codexFilePath(base, "*** Add File: "))
+	assert.Equal(t, filepath.Join(base, "main.go"), codexFilePath(base, "*** Add File: main.go"))
+	assert.Equal(t, "/tmp/main.go", codexFilePath(base, "*** Delete File: /tmp/main.go"))
+	assert.Empty(t, codexMoveFilePath(base, "*** Move from: old.go"))
+	assert.Empty(t, codexMoveFilePath(base, "*** Move to: "))
+	assert.Equal(t, filepath.Join(base, "new.go"), codexMoveFilePath(base, "*** Move to: new.go"))
+	assert.Equal(t, "/tmp/new.go", codexMoveFilePath(base, "*** Move to: /tmp/new.go"))
+
+	assert.Empty(t, codexSourceEditor("", ""))
+	assert.Equal(t, "codex-cli/unknown", codexSourceEditor("cli", ""))
+	assert.Equal(t, "codex-cli/1.2.3", codexSourceEditor("cli", "1.2.3"))
+	assert.Equal(t, "vs-code-wakatime/unknown", codexSourceEditor(" VS Code ", ""))
+	assert.Empty(t, codexSourceProduct(" / \\ "))
+
+	callID := "call-1"
+	payloadType := "custom_tool_call"
+	name := "apply_patch"
+	input := "*** Begin Patch\n*** Add File: main.go\n+one\n*** End Patch"
+	state := &codexParseState{pendingPatches: map[string]codexPendingPatch{}}
+	session := codexSessionState{cwd: base, id: "session-1", version: "0.1.0", source: "cli"}
+
+	heartbeats, handled := parser.handlePendingPatch(codexLogLine{}, session, state)
+	assert.False(t, handled)
+	assert.Nil(t, heartbeats)
+
+	heartbeats, handled = parser.handlePendingPatch(codexLogLine{Payload: &codexPayload{
+		Type: &payloadType,
+	}}, session, state)
+	assert.False(t, handled)
+	assert.Nil(t, heartbeats)
+
+	emptyCallID := " "
+	heartbeats, handled = parser.handlePendingPatch(codexLogLine{Payload: &codexPayload{
+		Type:   &payloadType,
+		CallID: &emptyCallID,
+	}}, session, state)
+	assert.False(t, handled)
+	assert.Nil(t, heartbeats)
+
+	heartbeats, handled = parser.handlePendingPatch(codexLogLine{Payload: &codexPayload{
+		Type:   &payloadType,
+		CallID: &callID,
+		Name:   &name,
+		Input:  &input,
+	}}, session, state)
+	assert.True(t, handled)
+	assert.Nil(t, heartbeats)
+	assert.Contains(t, state.pendingPatches, callID)
+
+	unknownType := "unknown"
+	heartbeats, handled = parser.handlePendingPatch(codexLogLine{Payload: &codexPayload{
+		Type:   &unknownType,
+		CallID: &callID,
+	}}, session, state)
+	assert.False(t, handled)
+	assert.Nil(t, heartbeats)
+
+	endType := "patch_apply_end"
+	success := false
+	heartbeats, handled = parser.handlePendingPatch(codexLogLine{Payload: &codexPayload{
+		Type:    &endType,
+		CallID:  &callID,
+		Success: &success,
+	}}, session, state)
+	assert.True(t, handled)
+	assert.Nil(t, heartbeats)
+	assert.NotContains(t, state.pendingPatches, callID)
+
+	state.pendingPatches[callID] = codexPendingPatch{
+		inputs:            []string{input},
+		cwd:               base,
+		sessionID:         "session-1",
+		fallbackUserAgent: "fallback/1.0",
+	}
+	outputType := "custom_tool_call_output"
+	heartbeats, handled = parser.handlePendingPatch(codexLogLine{Payload: &codexPayload{
+		Type:   &outputType,
+		CallID: &callID,
+		Output: json.RawMessage(`"invalid patch"`),
+	}}, session, state)
+	assert.True(t, handled)
+	assert.Nil(t, heartbeats)
+	assert.NotContains(t, state.pendingPatches, callID)
+
+	state.pendingPatches[callID] = codexPendingPatch{
+		inputs:            []string{input},
+		cwd:               base,
+		sessionID:         "session-1",
+		fallbackUserAgent: "fallback/1.0",
+	}
+	heartbeats, handled = parser.handlePendingPatch(codexLogLine{
+		Timestamp: time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC),
+		Payload: &codexPayload{
+			Type:   &outputType,
+			CallID: &callID,
+			Output: json.RawMessage(`"done"`),
+		},
+	}, session, state)
+	assert.True(t, handled)
+	require.NotEmpty(t, heartbeats)
+	assert.Equal(t, filepath.Join(base, "main.go"), heartbeats[0].Entity)
 }
 
 func TestQwenCodeHelperBranches(t *testing.T) {
@@ -1610,6 +1731,126 @@ func TestOpenCodeAdditionalBranches(t *testing.T) {
 	assert.Empty(t, openCodePatchFilePath("/workspace", "*** Unknown File: rel.go"))
 }
 
+func TestOpenCodeLegacyAndSQLiteBranches(t *testing.T) {
+	parser := OpenCode{FallbackUserAgent: "fallback/1.0", After: time.UnixMilli(2000)}
+
+	dataRoot := t.TempDir()
+	sessionsDir := filepath.Join(dataRoot, "storage", "session")
+	require.NoError(t, os.MkdirAll(filepath.Join(sessionsDir, "ignored-dir"), 0700))
+	require.NoError(t, os.WriteFile(filepath.Join(sessionsDir, "ignored.txt"), []byte(`{}`), 0600))
+	require.NoError(t, os.WriteFile(filepath.Join(sessionsDir, "bad.json"), []byte(`{`), 0600))
+
+	_, err := parser.parseLegacyRoot(dataRoot)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to walk OpenCode sessions directory")
+
+	require.NoError(t, os.Remove(filepath.Join(sessionsDir, "bad.json")))
+	require.NoError(t, os.WriteFile(
+		filepath.Join(sessionsDir, "old.json"),
+		[]byte(`{"id":"old","time":{"updated":1000}}`),
+		0600,
+	))
+	require.NoError(t, os.WriteFile(filepath.Join(sessionsDir, "zero.json"), []byte(`{"id":"zero"}`), 0600))
+
+	legacy, err := parser.parseLegacyRoot(dataRoot)
+	require.NoError(t, err)
+	assert.Nil(t, legacy)
+
+	_, err = parser.parseLegacySession(filepath.Join(dataRoot, "missing.json"))
+	require.Error(t, err)
+
+	messageDataRoot := t.TempDir()
+	sessionPath := filepath.Join(messageDataRoot, "storage", "session", "session.json")
+	require.NoError(t, os.MkdirAll(filepath.Dir(sessionPath), 0700))
+	require.NoError(t, os.WriteFile(sessionPath, []byte(`{"id":"session-1"}`), 0600))
+	require.NoError(t, os.MkdirAll(filepath.Join(messageDataRoot, "message"), 0700))
+	require.NoError(t, os.WriteFile(filepath.Join(messageDataRoot, "message", "session-1"), []byte("file"), 0600))
+
+	_, err = parser.parseLegacySession(sessionPath)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to read OpenCode messages directory")
+
+	require.NoError(t, os.Remove(filepath.Join(messageDataRoot, "message", "session-1")))
+	require.NoError(t, os.MkdirAll(filepath.Join(messageDataRoot, "message", "session-1", "subdir"), 0700))
+	require.NoError(t, os.WriteFile(filepath.Join(messageDataRoot, "message", "session-1", "bad.json"), []byte(`{`), 0600))
+
+	_, err = parser.parseLegacySession(sessionPath)
+	require.Error(t, err)
+
+	require.NoError(t, os.WriteFile(
+		filepath.Join(messageDataRoot, "message", "session-1", "bad.json"),
+		[]byte(`{"id":"message-1","role":"user","time":{"created":3000}}`),
+		0600,
+	))
+	require.NoError(t, os.MkdirAll(filepath.Join(messageDataRoot, "part", "message-1"), 0700))
+	require.NoError(t, os.WriteFile(filepath.Join(messageDataRoot, "part", "message-1", "bad.json"), []byte(`{`), 0600))
+
+	_, err = parser.parseLegacySession(sessionPath)
+	require.Error(t, err)
+
+	dbPath := filepath.Join(t.TempDir(), "opencode.db")
+
+	db := openOpenCodeTestDB(t, dbPath)
+	defer db.Close()
+
+	_, err = queryOpenCodeSQLiteSessions(context.Background(), db, dbPath)
+	require.Error(t, err)
+
+	require.NoError(t, execOpenCodeSQL(db, `
+CREATE TABLE session (id TEXT, directory TEXT, version TEXT);
+CREATE TABLE message (id TEXT, session_id TEXT, data TEXT, time_created INTEGER);
+CREATE TABLE part (id TEXT, message_id TEXT, session_id TEXT, data TEXT, time_created INTEGER);
+INSERT INTO message VALUES ('bad-json', 's1', '123', 3000);
+INSERT INTO message VALUES ('old-by-payload', 's1', '{"id":"old","time":{"created":1000}}', 3000);
+INSERT INTO message VALUES ('m1', 's1', '{"role":"user"}', 3000);
+INSERT INTO message VALUES ('other-seed', 'other', '{"id":"other","sessionID":"other"}', 1900);
+INSERT INTO message VALUES ('bad-seed', 's1', '123', 1800);
+INSERT INTO message VALUES ('zero-seed', 's1', '{"id":"zero-seed"}', 0);
+INSERT INTO message VALUES ('seed', 's1', '{"id":"seed","sessionID":"s1"}', 1600);
+INSERT INTO part VALUES ('skip', 'unknown', 's1', '{"type":"text","text":"skip"}', 3000);
+INSERT INTO part VALUES ('bad-part', 'm1', 's1', '123', 3001);
+INSERT INTO part VALUES ('p1', 'm1', 's1', '{"type":"text","text":"hello"}', 3002);
+`))
+
+	messagesBySession, messageIDs, err := parser.querySQLiteMessages(context.Background(), db, dbPath)
+	require.NoError(t, err)
+	assert.Contains(t, messageIDs, "m1")
+	require.NoError(t, queryOpenCodeSQLiteParts(context.Background(), db, dbPath, messagesBySession, messageIDs))
+
+	heartbeats, err := parser.parseSQLiteDB(context.Background(), dbPath)
+	require.NoError(t, err)
+	require.NotEmpty(t, heartbeats)
+	assert.Equal(t, "OpenCode s1", heartbeats[0].Entity)
+
+	missingMessageDB := openOpenCodeTestDB(t, filepath.Join(t.TempDir(), "missing-message.db"))
+	defer missingMessageDB.Close()
+
+	require.NoError(t, execOpenCodeSQL(missingMessageDB, `CREATE TABLE session (id TEXT, directory TEXT, version TEXT);`))
+	_, _, err = parser.querySQLiteMessages(context.Background(), missingMessageDB, "missing-message.db")
+	require.Error(t, err)
+
+	missingPartPath := filepath.Join(t.TempDir(), "missing-part.db")
+
+	missingPartDB := openOpenCodeTestDB(t, missingPartPath)
+	defer missingPartDB.Close()
+
+	require.NoError(t, execOpenCodeSQL(missingPartDB, `
+CREATE TABLE session (id TEXT, directory TEXT, version TEXT);
+CREATE TABLE message (id TEXT, session_id TEXT, data TEXT, time_created INTEGER);
+INSERT INTO message VALUES ('m1', 's1', '{"role":"user"}', 3000);
+`))
+
+	_, err = parser.parseSQLiteDB(context.Background(), missingPartPath)
+	require.Error(t, err)
+
+	require.Error(t, parser.querySQLiteSeedMessages(
+		context.Background(),
+		missingMessageDB,
+		"missing-message.db",
+		map[string][]openCodeMessageWithParts{"s1": nil},
+	))
+}
+
 func TestQwenCodeAdditionalBranches(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
@@ -1869,4 +2110,19 @@ func mustJSON(t *testing.T, value interface{}) string {
 	require.NoError(t, err)
 
 	return string(encoded)
+}
+
+func openOpenCodeTestDB(t *testing.T, dbPath string) *sql.DB {
+	t.Helper()
+
+	db, err := sql.Open("sqlite", dbPath)
+	require.NoError(t, err)
+
+	return db
+}
+
+func execOpenCodeSQL(db *sql.DB, statement string) error {
+	_, err := db.Exec(statement)
+
+	return err
 }

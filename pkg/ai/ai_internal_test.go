@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -166,6 +167,29 @@ func TestSendAIPanicDiagnosticsErrorBranches(t *testing.T) {
 	err = sendAIPanicDiagnostics(t.Context(), v, aiPanicReport{})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to set up ssl cert file option")
+
+	v = newDiagnosticViper("http://127.0.0.1")
+	v.Set("proxy", "%")
+
+	err = sendAIPanicDiagnostics(t.Context(), v, aiPanicReport{})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to set up proxy option")
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusCreated)
+	}))
+	defer server.Close()
+
+	v = newDiagnosticViper(server.URL)
+	v.Set("no-ssl-verify", true)
+	require.NoError(t, sendAIPanicDiagnostics(t.Context(), v, aiPanicReport{}))
+
+	certFile := filepath.Join(t.TempDir(), "ca.pem")
+	require.NoError(t, os.WriteFile(certFile, []byte("not a cert"), 0600))
+
+	v = newDiagnosticViper(server.URL)
+	v.Set("ssl-certs-file", certFile)
+	require.NoError(t, sendAIPanicDiagnostics(t.Context(), v, aiPanicReport{}))
 }
 
 func newDiagnosticViper(apiURL string) *viper.Viper {

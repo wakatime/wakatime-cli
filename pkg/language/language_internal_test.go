@@ -3,6 +3,8 @@ package language
 import (
 	"context"
 	"errors"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
@@ -43,4 +45,33 @@ func TestDetectLanguage_Error(t *testing.T) {
 
 	require.EqualError(t, err, "failed")
 	assert.Equal(t, heartbeat.LanguageUnknown, language)
+}
+
+func TestDetectChromaCustomizedFallbackBranches(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	lang, weight, ok := detectChromaCustomized(t.Context(), filepath.Join(tmpDir, "unknown.nope"), false)
+	assert.False(t, ok)
+	assert.Equal(t, heartbeat.LanguageUnknown, lang)
+	assert.Zero(t, weight)
+
+	lang, weight, ok = detectChromaCustomized(t.Context(), filepath.Join(tmpDir, "missing.nope"), true)
+	assert.False(t, ok)
+	assert.Equal(t, heartbeat.LanguageUnknown, lang)
+	assert.Zero(t, weight)
+
+	emptyFile := filepath.Join(tmpDir, "empty.nope")
+	require.NoError(t, os.WriteFile(emptyFile, nil, 0600))
+	lang, weight, ok = detectChromaCustomized(t.Context(), emptyFile, true)
+	assert.False(t, ok)
+	assert.Equal(t, heartbeat.LanguageUnknown, lang)
+	assert.Zero(t, weight)
+
+	contentFile := filepath.Join(tmpDir, "script.nope")
+	require.NoError(t, os.WriteFile(contentFile, []byte("#!/usr/bin/env python\nprint('x')\n"), 0600))
+
+	lang, _, ok = detectChromaCustomized(t.Context(), contentFile, true)
+	if ok {
+		assert.NotEqual(t, heartbeat.LanguageUnknown, lang)
+	}
 }
