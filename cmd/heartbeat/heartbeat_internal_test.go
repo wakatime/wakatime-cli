@@ -57,6 +57,7 @@ func TestRunAISyncActivityNoActivity(t *testing.T) {
 
 	v := viper.New()
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("offline-queue-file", "~missing-user/offline.bdb")
 
 	code, err := RunAISyncActivity(t.Context(), v)
 
@@ -120,6 +121,35 @@ func TestSendPreparedHeartbeatsBuildHandleErrorSavesOffline(t *testing.T) {
 	count, countErr := offlinepkg.CountHeartbeats(t.Context(), queueFile)
 	require.NoError(t, countErr)
 	assert.Equal(t, 1, count)
+}
+
+func TestSendPreparedHeartbeatsSavesExtraBeforeBuildHandleError(t *testing.T) {
+	queueFile := filepath.Join(t.TempDir(), "offline.bdb")
+	params := internalCommandParams()
+	params.API.SSLCertFilepath = filepath.Join(t.TempDir(), "missing.pem")
+
+	heartbeats := make([]heartbeatpkg.Heartbeat, offlinepkg.SendLimit+1)
+	for i := range heartbeats {
+		heartbeats[i] = internalAppHeartbeat()
+		heartbeats[i].Time = float64(i + 1)
+	}
+
+	err := sendPreparedHeartbeats(
+		t.Context(),
+		viper.New(),
+		params,
+		queueFile,
+		heartbeats,
+		false,
+		loadParams,
+	)
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to initialize api client")
+
+	count, countErr := offlinepkg.CountHeartbeats(t.Context(), queueFile)
+	require.NoError(t, countErr)
+	assert.Equal(t, offlinepkg.SendLimit+1, count)
 }
 
 func TestShouldUseProjectConfigBranches(t *testing.T) {

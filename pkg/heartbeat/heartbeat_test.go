@@ -67,17 +67,57 @@ func TestNew(t *testing.T) {
 	}, h)
 }
 
+func TestNewWithAITokens(t *testing.T) {
+	h := heartbeat.NewWithAITokens(
+		heartbeat.PointerTo(5),
+		"session-1",
+		heartbeat.AITokens{
+			LastInput:     10,
+			LastOutput:    20,
+			CurrentInput:  7,
+			CurrentOutput: 25,
+		},
+		"feature/branch",
+		heartbeat.AICodingCategory.String(),
+		heartbeat.PointerTo(12),
+		"testdata/main.go",
+		heartbeat.FileType,
+		heartbeat.PointerTo(2),
+		false,
+		heartbeat.PointerTo(true),
+		heartbeat.PointerTo("Go"),
+		"Golang",
+		heartbeat.PointerTo(42),
+		heartbeat.PointerTo(100),
+		"/path/to/file",
+		"billing",
+		true,
+		"pci",
+		"/custom-path",
+		1592868313.541149,
+		"wakatime/13.0.7",
+	)
+
+	assert.Equal(t, "session-1", h.AISession)
+	assert.Zero(t, h.AIInputTokens)
+	assert.Equal(t, int64(5), h.AIOutputTokens)
+	assert.Equal(t, heartbeat.AICodingCategory.String(), h.Category)
+	assert.Equal(t, "testdata/main.go", h.Entity)
+	assert.True(t, h.ProjectFromGitRemote)
+}
+
 func TestHeartbeat_ID(t *testing.T) {
 	h := heartbeat.Heartbeat{
-		Branch:     heartbeat.PointerTo("heartbeat"),
-		Category:   heartbeat.CodingCategory.String(),
-		Entity:     "/tmp/main.go",
-		EntityType: heartbeat.FileType,
-		IsWrite:    heartbeat.PointerTo(true),
-		Project:    heartbeat.PointerTo("wakatime"),
-		Time:       1592868313.541149,
+		Branch:         heartbeat.PointerTo("heartbeat"),
+		Category:       heartbeat.CodingCategory.String(),
+		CursorPosition: heartbeat.PointerTo(42),
+		Entity:         "/tmp/main.go",
+		EntityType:     heartbeat.FileType,
+		IsWrite:        heartbeat.PointerTo(true),
+		Project:        heartbeat.PointerTo("wakatime"),
+		Time:           1592868313.541149,
 	}
-	assert.Equal(t, "1592868313.541149-nil-file-coding-wakatime-heartbeat-/tmp/main.go-true", h.ID())
+	assert.Equal(t, "1592868313.541149-42-file-coding-wakatime-heartbeat-/tmp/main.go-true", h.ID())
 }
 
 func TestHeartbeat_ID_NilFields(t *testing.T) {
@@ -267,6 +307,18 @@ func TestRemoteAddressRegex(t *testing.T) {
 		"invalid": {
 			Heartbeat: heartbeat.Heartbeat{Entity: "http://192.168.1.2"},
 			Expected:  false,
+		},
+		"non-file": {
+			Heartbeat: heartbeat.Heartbeat{Entity: "ssh://user@192.168.1.2/main.go", EntityType: heartbeat.AppType},
+			Expected:  false,
+		},
+		"unsaved file": {
+			Heartbeat: heartbeat.Heartbeat{
+				Entity:          "ssh://user@192.168.1.2/main.go",
+				EntityType:      heartbeat.FileType,
+				IsUnsavedEntity: true,
+			},
+			Expected: false,
 		},
 	}
 

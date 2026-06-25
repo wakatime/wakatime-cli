@@ -187,6 +187,16 @@ func TestFilePath(t *testing.T) {
 	}
 }
 
+func TestFilePathExpandError(t *testing.T) {
+	v := vipertools.MustNew()
+	v.Set("config", "~missing-user/.wakatime.cfg")
+
+	_, err := ini.FilePath(t.Context(), v)
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to expand config param")
+}
+
 func TestInternalFilePath(t *testing.T) {
 	home, err := os.UserHomeDir()
 	require.NoError(t, err)
@@ -224,6 +234,26 @@ func TestInternalFilePath(t *testing.T) {
 			assert.Equal(t, test.Expected, configFilepath)
 		})
 	}
+}
+
+func TestImportFilePathExpandError(t *testing.T) {
+	v := vipertools.MustNew()
+	v.Set("settings.import_cfg", "~missing-user/imported.cfg")
+
+	_, err := ini.ImportFilePath(t.Context(), v)
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to expand settings.import_cfg param")
+}
+
+func TestInternalFilePathExpandError(t *testing.T) {
+	v := vipertools.MustNew()
+	v.Set("internal-config", "~missing-user/internal.cfg")
+
+	_, err := ini.InternalFilePath(t.Context(), v)
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to expand internal-config param")
 }
 
 func TestImportFilePath(t *testing.T) {
@@ -297,6 +327,17 @@ func TestNewWriter_MissingFile(t *testing.T) {
 
 	assert.Equal(t, filepath.Join(tmpDir, "missing.cfg"), w.ConfigFilepath)
 	assert.NotNil(t, w.File)
+}
+
+func TestNewWriter_CreateMissingFileError(t *testing.T) {
+	v := vipertools.MustNew()
+
+	_, err := ini.NewWriter(t.Context(), v, func(context.Context, *viper.Viper) (string, error) {
+		return filepath.Join(t.TempDir(), "missing", "wakatime.cfg"), nil
+	})
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed creating file")
 }
 
 func TestNewWriter_CorruptedFile(t *testing.T) {
@@ -426,6 +467,18 @@ func TestWriteErr(t *testing.T) {
 	require.Error(t, err)
 
 	assert.Equal(t, "got undefined wakatime config file instance", err.Error())
+}
+
+func TestWriteSaveErr(t *testing.T) {
+	w := ini.WriterConfig{
+		File:           iniv1.Empty(),
+		ConfigFilepath: t.TempDir(),
+	}
+
+	err := w.Write(t.Context(), "settings", map[string]string{"debug": "true"})
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "error saving wakatime config")
 }
 
 func copyFile(t *testing.T, source, destination string) {

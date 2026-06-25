@@ -371,6 +371,49 @@ func TestRunAISyncActivity_SendsAIPromptLengthToAPI(t *testing.T) {
 	assert.Equal(t, 1, numCalls)
 }
 
+func TestRunAISyncActivity_SendError(t *testing.T) {
+	resetSingleton(t)
+
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	transcriptModifiedAt := time.Date(2026, 3, 28, 11, 33, 14, 0, time.UTC)
+	transcriptDir := filepath.Join(home, ".codex", "sessions", "2026", "03", "28")
+	require.NoError(t, os.MkdirAll(transcriptDir, 0o755))
+
+	transcriptPath := filepath.Join(transcriptDir, "rollout-2026-03-28T07-33-13-019d3438-39ae-7fb2-8526-d6c02ba3577c.jsonl")
+	transcript := strings.Join([]string{
+		`{"timestamp":"2026-03-28T11:33:14.288Z","type":"session_meta","payload":` +
+			`{"id":"019d3438-39ae-7fb2-8526-d6c02ba3577c","cwd":"/root/wakatime-cli",` +
+			`"cli_version":"0.116.0-alpha.10"}}`,
+		`{"timestamp":"2026-03-28T11:33:14.289Z","type":"response_item","payload":` +
+			`{"type":"message","role":"user","content":` +
+			`[{"type":"input_text","text":"Please implement the code."}]}}`,
+	}, "\n") + "\n"
+	require.NoError(t, os.WriteFile(transcriptPath, []byte(transcript), 0o644))
+	require.NoError(t, os.Chtimes(transcriptPath, transcriptModifiedAt, transcriptModifiedAt))
+
+	tmpInternalFile, err := os.CreateTemp(t.TempDir(), "wakatime-internal-config")
+	require.NoError(t, err)
+	require.NoError(t, tmpInternalFile.Close())
+
+	v := viper.New()
+	v.Set("api-url", "https://example.com")
+	v.Set("internal-config", tmpInternalFile.Name())
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("plugin", "plugin/0.0.1")
+	v.Set("ssl-certs-file", filepath.Join(t.TempDir(), "missing.pem"))
+	v.Set("timeout", 5)
+	v.Set("internal.ai_logs_last_parsed_at", time.Date(2026, 3, 28, 11, 0, 0, 0, time.UTC).Format(ini.DateFormat))
+
+	code, err := cmdheartbeat.RunAISyncActivity(t.Context(), v)
+
+	require.Error(t, err)
+	assert.Equal(t, 1, code)
+	assert.Contains(t, err.Error(), "sending ai activity failed")
+}
+
 func TestRunAISyncActivity_UsesAlternateProject(t *testing.T) {
 	resetSingleton(t)
 

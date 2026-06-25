@@ -9,6 +9,12 @@ import (
 	"strings"
 )
 
+type svnCommands struct {
+	version         func(string) error
+	info            func(string, string) ([]byte, error)
+	xcodeToolsExist func() bool
+}
+
 // Subversion contains svn data.
 type Subversion struct {
 	// Filepath contains the entity path.
@@ -17,7 +23,15 @@ type Subversion struct {
 
 // Detect gets information about the svn project for a given file.
 func (s Subversion) Detect(ctx context.Context) (Result, bool, error) {
-	binary, ok := findSvnBinary()
+	return s.detect(ctx, svnCommands{
+		version:         svnVersion,
+		info:            svnInfoOutput,
+		xcodeToolsExist: hasXcodeTools,
+	})
+}
+
+func (s Subversion) detect(ctx context.Context, commands svnCommands) (Result, bool, error) {
+	binary, ok := findSvnBinary(commands)
 	if !ok {
 		return Result{}, false, nil
 	}
@@ -35,7 +49,7 @@ func (s Subversion) Detect(ctx context.Context) (Result, bool, error) {
 		return Result{}, false, nil
 	}
 
-	info, ok, err := svnInfo(filepath.Join(svnConfigFile, "..", ".."), binary)
+	info, ok, err := svnInfo(filepath.Join(svnConfigFile, "..", ".."), binary, commands)
 	if err != nil {
 		return Result{}, false, fmt.Errorf("failed to get svn info: %s", err)
 	}
@@ -51,14 +65,20 @@ func (s Subversion) Detect(ctx context.Context) (Result, bool, error) {
 	}, true, nil
 }
 
-func svnInfo(fp string, binary string) (map[string]string, bool, error) {
-	if runtime.GOOS == "darwin" && !hasXcodeTools() {
+func svnVersion(loc string) error {
+	return exec.Command(loc, "--version").Run() //nolint:gosec
+}
+
+func svnInfoOutput(binary, fp string) ([]byte, error) {
+	return exec.Command(binary, "info", fp).Output() //nolint:gosec
+}
+
+func svnInfo(fp string, binary string, commands svnCommands) (map[string]string, bool, error) {
+	if runtime.GOOS == "darwin" && !commands.xcodeToolsExist() {
 		return nil, false, nil
 	}
 
-	cmd := exec.Command(binary, "info", fp) //nolint:gosec // binary is selected from fixed allowlist in findSvnBinary.
-
-	out, err := cmd.Output()
+	out, err := commands.info(binary, fp)
 	if err != nil {
 		return nil, false, fmt.Errorf("error getting svn info: %s", err)
 	}
@@ -75,7 +95,7 @@ func svnInfo(fp string, binary string) (map[string]string, bool, error) {
 	return result, true, nil
 }
 
-func findSvnBinary() (string, bool) {
+func findSvnBinary(commands svnCommands) (string, bool) {
 	locations := []string{
 		"svn",
 		"/usr/bin/svn",
@@ -83,10 +103,7 @@ func findSvnBinary() (string, bool) {
 	}
 
 	for _, loc := range locations {
-		cmd := exec.Command(loc, "--version") // nolint:gosec
-
-		err := cmd.Run()
-		if err != nil {
+		if err := commands.version(loc); err != nil {
 			continue
 		}
 

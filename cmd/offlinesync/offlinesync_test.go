@@ -273,6 +273,26 @@ func TestRunWithoutRateLimiting_APIParamsError(t *testing.T) {
 	assert.Contains(t, err.Error(), "offline sync failed: failed to load API parameters")
 }
 
+func TestRunWithoutRateLimiting_CorruptDBReturnsWakaExitCode(t *testing.T) {
+	resetSingleton(t)
+
+	queueFilepath := filepath.Join(t.TempDir(), "offline_heartbeats.bdb")
+	require.NoError(t, os.WriteFile(queueFilepath, []byte("not a bolt db"), 0600))
+
+	v := viper.New()
+	v.Set("api-url", "http://127.0.0.1:1")
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("offline-queue-file", queueFilepath)
+
+	code, err := offlinesync.RunWithoutRateLimiting(t.Context(), v)
+
+	require.Error(t, err)
+	assert.Equal(t, exitcode.Success, code)
+	assert.Contains(t, err.Error(), "offline sync failed")
+	assert.Contains(t, err.Error(), "moved corrupt db file")
+	assert.NoFileExists(t, queueFilepath)
+}
+
 func TestSyncOfflineActivity_APIParamsError(t *testing.T) {
 	resetSingleton(t)
 	t.Setenv("WAKATIME_API_KEY", "")

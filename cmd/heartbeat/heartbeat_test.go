@@ -154,6 +154,61 @@ func TestSendHeartbeats(t *testing.T) {
 	assert.Equal(t, 1, numCalls)
 }
 
+func TestRunSuccess(t *testing.T) {
+	resetSingleton(t)
+
+	testServerURL, router, tearDown := setupTestServer()
+	defer tearDown()
+
+	var numCalls int
+
+	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
+		numCalls++
+
+		assert.Equal(t, http.MethodPost, req.Method)
+
+		w.WriteHeader(http.StatusCreated)
+
+		f, err := os.Open("testdata/api_heartbeats_response.json")
+		require.NoError(t, err)
+
+		defer f.Close()
+
+		_, err = io.Copy(w, f)
+		require.NoError(t, err)
+	})
+
+	tmpFile, err := os.CreateTemp(t.TempDir(), "wakatime-config")
+	require.NoError(t, err)
+	require.NoError(t, tmpFile.Close())
+
+	offlineQueueFile, err := os.CreateTemp(t.TempDir(), "offline-queue-file")
+	require.NoError(t, err)
+	require.NoError(t, offlineQueueFile.Close())
+
+	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
+	v.Set("api-url", testServerURL)
+	v.Set("category", "debugging")
+	v.Set("config", tmpFile.Name())
+	v.Set("cursorpos", 42)
+	v.Set("entity", "testdata/main.go")
+	v.Set("entity-type", "file")
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("language", "Go")
+	v.Set("offline-queue-file", offlineQueueFile.Name())
+	v.Set("plugin", "plugin/0.0.1")
+	v.Set("time", 1585598059.1)
+	v.Set("timeout", 5)
+	v.Set("write", true)
+
+	code, err := cmdheartbeat.Run(t.Context(), v)
+
+	require.NoError(t, err)
+	assert.Equal(t, 0, code)
+	assert.Equal(t, 1, numCalls)
+}
+
 func TestSendHeartbeats_RateLimited(t *testing.T) {
 	resetSingleton(t)
 
