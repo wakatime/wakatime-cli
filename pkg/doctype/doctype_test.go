@@ -30,6 +30,11 @@ func TestDoctype_MatchString(t *testing.T) {
 			Pattern:  `html.*`,
 			Expected: false,
 		},
+		"empty pattern": {
+			Text:     "<!DOCTYPE html> <html>",
+			Pattern:  "",
+			Expected: false,
+		},
 	}
 
 	for name, test := range tests {
@@ -40,4 +45,12 @@ func TestDoctype_MatchString(t *testing.T) {
 			assert.Equal(t, test.Expected, res)
 		})
 	}
+}
+
+func TestDoctype_MatchString_InvalidPattern(t *testing.T) {
+	res, err := doctype.MatchString("<!DOCTYPE html> <html>", "[")
+
+	require.Error(t, err)
+	assert.False(t, res)
+	assert.Contains(t, err.Error(), "failed to compile doctype regex")
 }

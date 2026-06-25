@@ -3,6 +3,7 @@ package metrics_test
 import (
 	"os"
 	"path/filepath"
+	"runtime/pprof"
 	"strings"
 	"testing"
 
@@ -50,4 +51,26 @@ func TestStartProfiling_MetricsFolderError(t *testing.T) {
 	require.Error(t, err)
 	assert.Nil(t, stop)
 	assert.Contains(t, err.Error(), "failed to create metrics folder")
+}
+
+func TestStartProfiling_CPUAlreadyProfiling(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("WAKATIME_HOME", home)
+
+	cpuProfile, err := os.Create(filepath.Join(t.TempDir(), "cpu.profile"))
+	require.NoError(t, err)
+
+	defer cpuProfile.Close()
+
+	require.NoError(t, pprof.StartCPUProfile(cpuProfile))
+
+	stop, err := metrics.StartProfiling(t.Context())
+	require.NoError(t, err)
+	require.NotNil(t, stop)
+
+	stop()
+
+	entries, err := os.ReadDir(filepath.Join(home, "metrics"))
+	require.NoError(t, err)
+	assert.Len(t, entries, 2)
 }

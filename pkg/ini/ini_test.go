@@ -226,6 +226,37 @@ func TestInternalFilePath(t *testing.T) {
 	}
 }
 
+func TestImportFilePath(t *testing.T) {
+	home, err := os.UserHomeDir()
+	require.NoError(t, err)
+
+	v := vipertools.MustNew()
+
+	configFilepath, err := ini.ImportFilePath(t.Context(), v)
+	require.NoError(t, err)
+	assert.Empty(t, configFilepath)
+
+	v.Set("settings.import_cfg", "~/path/imported.cfg")
+
+	configFilepath, err = ini.ImportFilePath(t.Context(), v)
+	require.NoError(t, err)
+	assert.Equal(t, filepath.Join(home, "path", "imported.cfg"), configFilepath)
+}
+
+func TestWakaHomeDirAndResourcesDirFromEnv(t *testing.T) {
+	home := filepath.Join(t.TempDir(), "wakatime-home")
+	t.Setenv("WAKATIME_HOME", home)
+
+	wakaHome, homeType, err := ini.WakaHomeDir(t.Context())
+	require.NoError(t, err)
+	assert.Equal(t, home, wakaHome)
+	assert.Equal(t, ini.WakaHomeTypeEnvVar, homeType)
+
+	resourcesDir, err := ini.WakaResourcesDir(t.Context())
+	require.NoError(t, err)
+	assert.Equal(t, home, resourcesDir)
+}
+
 func TestNewWriter(t *testing.T) {
 	v := vipertools.MustNew()
 

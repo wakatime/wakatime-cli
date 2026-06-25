@@ -53,6 +53,18 @@ func TestNewClient(t *testing.T) {
 	assert.Equal(t, 1, calls)
 }
 
+func TestNewClient_AuthError(t *testing.T) {
+	client, err := cmdapi.NewClient(t.Context(), params.API{
+		DisableSSLVerify: true,
+		Timeout:          time.Second,
+		URL:              "https://example.com",
+	})
+
+	require.Error(t, err)
+	assert.Nil(t, client)
+	assert.Contains(t, err.Error(), "failed to set up auth option on api client")
+}
+
 func TestNewClientWithoutAuth(t *testing.T) {
 	router := http.NewServeMux()
 
@@ -77,6 +89,17 @@ func TestNewClientWithoutAuth(t *testing.T) {
 	require.NoError(t, err)
 
 	defer resp.Body.Close()
+}
+
+func TestNewClientWithoutAuth_DefaultCACertsAndProxy(t *testing.T) {
+	client, err := cmdapi.NewClientWithoutAuth(t.Context(), params.API{
+		ProxyURL: "http://127.0.0.1:1",
+		Timeout:  time.Second,
+		URL:      "https://example.com",
+	})
+
+	require.NoError(t, err)
+	assert.NotNil(t, client)
 }
 
 func TestNewClient_SSLCertFileError(t *testing.T) {
