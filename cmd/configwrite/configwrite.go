@@ -24,7 +24,7 @@ func Run(ctx context.Context, v *viper.Viper) (int, error) {
 	w, err := ini.NewWriter(ctx, v, ini.FilePath)
 	if err != nil {
 		return exitcode.ErrConfigFileParse, fmt.Errorf(
-			"failed to parse config file: %s",
+			"failed to write to config file: %s",
 			err,
 		)
 	}

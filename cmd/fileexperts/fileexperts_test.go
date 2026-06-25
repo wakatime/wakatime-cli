@@ -17,6 +17,7 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
 	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/log/setup"
+	"github.com/wakatime/wakatime-cli/pkg/params"
 	"github.com/wakatime/wakatime-cli/pkg/project"
 
 	"github.com/spf13/viper"
@@ -276,6 +277,104 @@ func TestFileExperts_ErrBadRequest(t *testing.T) {
 	assert.EqualError(t, err, expectedMsg)
 
 	assert.Equal(t, 1, numCalls)
+}
+
+func TestRun_ErrWaka(t *testing.T) {
+	testServerURL, router, tearDown := setupTestServer()
+	defer tearDown()
+
+	// an auth failure surfaces as a wakaerror.Error, so Run returns its
+	// dedicated exit code instead of the generic one.
+	router.HandleFunc("/users/current/file_experts", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusUnauthorized)
+	})
+
+	v := viper.New()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("api-url", testServerURL)
+	v.Set("entity", "testdata/main.go")
+	v.Set("projectmap..*", "wakatime-cli")
+
+	code, err := fileexperts.Run(t.Context(), v)
+
+	require.Error(t, err)
+	assert.Equal(t, exitcode.ErrAuth, code)
+	assert.Contains(t, err.Error(), "file experts fetch failed")
+}
+
+func TestFileExperts_ErrApiClient(t *testing.T) {
+	// a missing ssl certs file makes the api client initialization fail.
+	v := viper.New()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("entity", "testdata/main.go")
+	v.Set("ssl-certs-file", filepath.Join(t.TempDir(), "missing.pem"))
+
+	_, err := fileexperts.FileExperts(t.Context(), v)
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to initialize api client")
+}
+
+func TestFileExperts_LogFields(t *testing.T) {
+	testServerURL, router, tearDown := setupTestServer()
+	defer tearDown()
+
+	router.HandleFunc("/users/current/file_experts", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+
+		f, err := os.Open("testdata/api_file_experts_response.json")
+		require.NoError(t, err)
+
+		defer f.Close()
+
+		_, err = io.Copy(w, f)
+		require.NoError(t, err)
+	})
+
+	// lineno and write exercise the optional log fields in setLogFields.
+	v := viper.New()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("api-url", testServerURL)
+	v.Set("entity", "testdata/main.go")
+	v.Set("projectmap..*", "wakatime-cli")
+	v.Set("plugin", "plugin/0.0.1")
+	v.Set("lineno", 42)
+	v.Set("write", true)
+
+	output, err := fileexperts.FileExperts(t.Context(), v)
+	require.NoError(t, err)
+
+	assert.Equal(t, "You: 40 mins | Karl: 21 mins", output)
+}
+
+func TestLoadParams_ErrNilViper(t *testing.T) {
+	_, err := fileexperts.LoadParams(t.Context(), nil, params.FlagReadOrderFlagPrecedence)
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "viper instance unset")
+}
+
+func TestLoadParams_ErrHeartbeat(t *testing.T) {
+	v := viper.New()
+	v.Set("entity", "testdata/main.go")
+	v.Set("category", "invalid")
+
+	_, err := fileexperts.LoadParams(t.Context(), v, params.FlagReadOrderFlagPrecedence)
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to load heartbeat params")
+}
+
+func TestLoadParams_ErrStatusBar(t *testing.T) {
+	v := viper.New()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("entity", "testdata/main.go")
+	v.Set("output", "invalid")
+
+	_, err := fileexperts.LoadParams(t.Context(), v, params.FlagReadOrderFlagPrecedence)
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to load status bar params")
 }
 
 func setupTestServer() (string, *http.ServeMux, func()) {
