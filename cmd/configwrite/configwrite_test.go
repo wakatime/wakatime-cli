@@ -48,6 +48,21 @@ func TestRunErr(t *testing.T) {
 	assert.Contains(t, err.Error(), "failed to write to config file")
 }
 
+func TestRunNewWriterErr(t *testing.T) {
+	// point config at a path whose parent directory does not exist, so
+	// ini.NewWriter fails to create the file and returns an error.
+	v := viper.New()
+	v.Set("config", filepath.Join(t.TempDir(), "does-not-exist", ".wakatime.cfg"))
+	v.Set("config-section", "settings")
+	v.Set("config-write", map[string]string{"debug": "true"})
+
+	code, err := configwrite.Run(t.Context(), v)
+
+	require.Error(t, err)
+	assert.Equal(t, exitcode.ErrConfigFileParse, code)
+	assert.Contains(t, err.Error(), "failed to write to config file")
+}
+
 func TestLoadParams(t *testing.T) {
 	tests := map[string]struct {
 		Value   map[string]string
