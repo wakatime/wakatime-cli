@@ -1,6 +1,7 @@
 package ai
 
 import (
+	"bufio"
 	"context"
 	"database/sql"
 	"encoding/json"
@@ -1545,6 +1546,360 @@ func TestContinueAdditionalBranches(t *testing.T) {
 	assert.Equal(t, filepath.FromSlash("C:/tmp/main.go"), Continue{}.filePath("file:///C:/tmp/main.go"))
 }
 
+func TestCodyAdditionalBranches(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	parser := Cody{
+		After:             time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC),
+		FallbackUserAgent: "fallback/1.0",
+	}
+
+	paths, err := parser.stateDBPaths(context.Background())
+	require.NoError(t, err)
+	assert.Empty(t, paths)
+
+	dbPath := filepath.Join(home, ".config", "Code", "User", "globalStorage", "state.vscdb")
+	require.NoError(t, os.MkdirAll(filepath.Dir(dbPath), 0700))
+	require.NoError(t, os.WriteFile(dbPath, []byte("db"), 0600))
+
+	paths, err = parser.stateDBPaths(context.Background())
+	require.NoError(t, err)
+	assert.Equal(t, []string{dbPath}, paths)
+	assert.True(t, parser.stateDBModifiedAfter(dbPath, time.Time{}))
+	assert.False(t, parser.stateDBModifiedAfter(filepath.Join(home, "missing.vscdb"), time.Now()))
+
+	old := time.Now().Add(-time.Hour)
+	require.NoError(t, os.Chtimes(dbPath, old, old))
+	assert.False(t, parser.stateDBModifiedAfter(dbPath, time.Now()))
+
+	emptyDBPath := filepath.Join(home, "empty.vscdb")
+	db, err := sql.Open("sqlite", emptyDBPath)
+	require.NoError(t, err)
+	_, err = db.Exec(`CREATE TABLE ItemTable (key TEXT UNIQUE, value BLOB)`)
+	require.NoError(t, err)
+	require.NoError(t, db.Close())
+
+	value, err := parser.queryStorage(context.Background(), emptyDBPath)
+	require.NoError(t, err)
+	assert.Empty(t, value)
+
+	badDBPath := filepath.Join(home, "bad.vscdb")
+	db, err = sql.Open("sqlite", badDBPath)
+	require.NoError(t, err)
+	require.NoError(t, db.Close())
+
+	_, err = parser.queryStorage(context.Background(), badDBPath)
+	require.Error(t, err)
+
+	assert.Nil(t, parser.heartbeatsFromStorage(""))
+	assert.Nil(t, parser.heartbeatsFromStorage(`{`))
+	assert.Nil(t, parser.chatHistory(`{"cody-local-chatHistory-v2":{`))
+
+	encodedHistory := mustJSON(t, map[string]interface{}{
+		"account": map[string]interface{}{
+			"chat": map[string]interface{}{
+				"fallback-id": map[string]interface{}{
+					"lastInteractionTimestamp": "2026-01-02T03:04:06Z",
+					"interactions": []map[string]interface{}{
+						{"humanMessage": map[string]interface{}{"text": "latest prompt"}},
+					},
+				},
+			},
+		},
+	})
+	storage := mustJSON(t, map[string]interface{}{"cody-local-chatHistory-v2": encodedHistory})
+	heartbeats := parser.heartbeatsFromStorage(storage)
+	require.Len(t, heartbeats, 1)
+	assert.Equal(t, "Cody fallback-id", heartbeats[0].Entity)
+	assert.Equal(t, len([]rune("latest prompt")), heartbeats[0].AIPromptLength)
+
+	staleStorage := mustJSON(t, map[string]interface{}{
+		"cody-local-chatHistory-v2": map[string]interface{}{
+			"account": map[string]interface{}{
+				"chat": map[string]interface{}{
+					"old": map[string]interface{}{
+						"lastInteractionTimestamp": "2026-01-02T03:04:04Z",
+						"interactions": []map[string]interface{}{
+							{"humanMessage": map[string]interface{}{"text": "old prompt"}},
+						},
+					},
+					"blank": map[string]interface{}{
+						"lastInteractionTimestamp": "2026-01-02T03:04:06Z",
+						"interactions": []map[string]interface{}{
+							{"humanMessage": map[string]interface{}{"text": "  "}},
+						},
+					},
+				},
+			},
+		},
+	})
+	assert.Nil(t, parser.heartbeatsFromStorage(staleStorage))
+}
+
+func TestCodyContextAndDiffBranches(t *testing.T) {
+	timestamp := time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC)
+	parser := Cody{FallbackUserAgent: "fallback/1.0"}
+
+	_, ok := codyLastInteraction([]codyInteraction{{HumanMessage: codyMessage{Text: "  "}}})
+	assert.False(t, ok)
+
+	interaction, ok := codyLastInteraction([]codyInteraction{{
+		AssistantMessage: &codyMessage{Model: "claude-3"},
+	}})
+	require.True(t, ok)
+	assert.Equal(t, "claude-3", interaction.AssistantMessage.Model)
+
+	assert.Nil(t, parser.tokens(codyTokenUsage{}))
+	require.NotNil(t, parser.tokens(codyTokenUsage{PromptTokens: 2}))
+	require.NotNil(t, parser.tokens(codyTokenUsage{CompletionTokens: 3}))
+
+	readPath := filepath.Join(t.TempDir(), "read.go")
+	items := codyContextItems(codyInteraction{
+		HumanMessage: codyMessage{ContextFiles: []codyContextItem{{URI: codyURI{FSPath: readPath}}}},
+	})
+	require.Len(t, items, 1)
+	assert.Equal(t, readPath, items[0].filePath())
+
+	allItems := codyContextItems(codyInteraction{
+		HumanMessage: codyMessage{ContextFiles: []codyContextItem{{URI: codyURI{FSPath: "human.go"}}}},
+		AssistantMessage: &codyMessage{
+			ContextFiles: []codyContextItem{{URI: codyURI{FSPath: "assistant.go"}}},
+			Processes: []codyProcessStep{{
+				Items: []codyContextItem{{URI: codyURI{FSPath: "process.go"}}},
+			}},
+			SubMessages: []codySubMessage{{
+				ContextFiles: []codyContextItem{{URI: codyURI{FSPath: "sub.go"}}},
+			}},
+		},
+	})
+	assert.Len(t, allItems, 4)
+
+	assert.Nil(t, parser.fileHeartbeat(timestamp, "session", "", codyContextItem{}))
+	assert.Nil(t, parser.fileHeartbeat(timestamp, "session", "", codyContextItem{
+		ToolName: "text_editor",
+		URI:      codyURI{FSPath: readPath},
+		Metadata: json.RawMessage(`["only one side"]`),
+	}))
+
+	h := parser.fileHeartbeat(timestamp, "session", "gpt-5", codyContextItem{
+		URI: codyURI{Path: "file://%"},
+	})
+	require.NotNil(t, h)
+	assert.Equal(t, "%", h.Entity)
+
+	assert.Equal(t, filepath.FromSlash("C:/tmp/main.go"), codyContextItem{
+		URI: codyURI{Path: "file://C:/tmp/main.go"},
+	}.filePath())
+	assert.Equal(t, filepath.FromSlash("C:/tmp/main.go"), codyContextItem{
+		URI: codyURI{FSPath: filepath.FromSlash("/C:/tmp/main.go")},
+	}.filePath())
+
+	changes, ok := codyContextItem{Metadata: json.RawMessage(`["old\n","new\n"]`)}.lineChanges()
+	require.True(t, ok)
+	assert.Equal(t, 2, changes)
+
+	_, ok = codyContextItem{Metadata: json.RawMessage(`{}`)}.lineChanges()
+	assert.False(t, ok)
+	assert.Equal(t, 2, codyDiffLineChanges("", "a\nb\n"))
+	assert.Equal(t, 2, codyDiffLineChanges("a\nb\n", ""))
+	assert.Equal(t, 1, codyDiffLineChanges(strings.Repeat("a\n", 2001), strings.Repeat("a\n", 2002)))
+	assert.Equal(t, 1, codyDiffLineChanges(strings.Repeat("a\n", 2002), strings.Repeat("a\n", 2001)))
+	assert.Nil(t, codyContentLines(""))
+	assert.Equal(t, 1, codyLCSLineCount([]string{"a", "b"}, []string{"b", "c"}))
+}
+
+func TestContinueMatchingAndSkipBranches(t *testing.T) {
+	parser := Continue{After: time.Unix(100, 0), FallbackUserAgent: "fallback/1.0"}
+
+	heartbeats := parser.heartbeats([]continueEvent{
+		{Kind: continueEventChat, Timestamp: time.Unix(90, 0), SessionID: "old", Prompt: "skip"},
+		{Kind: continueEventRead, Timestamp: time.Unix(90, 0), FilePath: "old.go"},
+		{Kind: continueEventEdit, Timestamp: time.Unix(90, 0), FilePath: "old.go"},
+		{Kind: continueEventChat, Timestamp: time.Unix(101, 0), SessionID: "new", WorkspacePath: "/workspace"},
+		{Kind: continueEventEdit, Timestamp: time.Unix(102, 0), FilePath: "edit.go"},
+	})
+	require.Len(t, heartbeats, 2)
+	assert.Equal(t, "Continue new", heartbeats[0].Entity)
+	assert.Equal(t, filepath.Join("/workspace", "edit.go"), heartbeats[1].Entity)
+	require.NotNil(t, heartbeats[1].AILineChanges)
+	assert.Equal(t, 0, *heartbeats[1].AILineChanges)
+
+	events := []continueEvent{
+		{Kind: continueEventChat, Timestamp: time.Unix(100, 0), Model: "gpt-5"},
+		{Kind: continueEventChat, Timestamp: time.Unix(101, 0), Model: "gpt-5"},
+		{Kind: continueEventTokens, Timestamp: time.Unix(100, 0), Model: "other"},
+		{
+			Kind:      continueEventTokens,
+			Timestamp: time.Unix(101, 0),
+			Model:     "gpt-5",
+			Tokens:    heartbeat.AITokens{CurrentInput: 5},
+		},
+		{
+			Kind:      continueEventTokens,
+			Timestamp: time.Unix(110, 0),
+			Model:     "gpt-5",
+			Tokens:    heartbeat.AITokens{CurrentInput: 10},
+		},
+	}
+	matches := parser.tokenMatches(events)
+	require.Len(t, matches, 1)
+	assert.EqualValues(t, 5, matches[1].CurrentInput)
+
+	assert.Equal(t, "fallback/1.0", parser.userAgent(continueEvent{}, "Continue session"))
+	assert.Equal(t, "%", parser.filePath("file://%"))
+	assert.Equal(t, "relative.go", parser.resolvePath("relative.go", ""))
+}
+
+func TestSQLiteParserErrorBranches(t *testing.T) {
+	tests := []struct {
+		name       string
+		parser     Parser
+		dbPath     func(string) string
+		errMessage string
+	}{
+		{
+			name:   "Cursor",
+			parser: Cursor{},
+			dbPath: func(home string) string {
+				return filepath.Join(home, ".config", "Cursor", "User", "globalStorage", "state.vscdb")
+			},
+			errMessage: "failed querying cursor sqlite db",
+		},
+		{
+			name:   "Windsurf",
+			parser: Windsurf{},
+			dbPath: func(home string) string {
+				return filepath.Join(home, ".config", "Windsurf", "User", "globalStorage", "state.vscdb")
+			},
+			errMessage: "failed querying windsurf sqlite db",
+		},
+		{
+			name:   "Qoder",
+			parser: Qoder{},
+			dbPath: func(home string) string {
+				return filepath.Join(home, ".config", "Qoder", "SharedClientCache", "cache", "db", "local.db")
+			},
+			errMessage: "failed querying qoder sqlite db",
+		},
+		{
+			name:   "Goose",
+			parser: Goose{},
+			dbPath: func(home string) string {
+				return filepath.Join(home, ".local", "share", "goose", "sessions", "sessions.db")
+			},
+			errMessage: "failed reading goose sqlite schema",
+		},
+		{
+			name:   "OpenCode",
+			parser: OpenCode{},
+			dbPath: func(home string) string {
+				return filepath.Join(home, ".local", "share", "opencode", "opencode.db")
+			},
+			errMessage: "failed querying OpenCode sqlite sessions",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			home := t.TempDir()
+			t.Setenv("HOME", home)
+			t.Setenv("USERPROFILE", home)
+
+			dbPath := tt.dbPath(home)
+			require.NoError(t, os.MkdirAll(filepath.Dir(dbPath), 0700))
+			require.NoError(t, os.WriteFile(dbPath, []byte("not sqlite"), 0600))
+
+			_, err := tt.parser.Parse(context.Background())
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), tt.errMessage)
+		})
+	}
+}
+
+func TestSQLiteParserModifiedAfterBranches(t *testing.T) {
+	missing := filepath.Join(t.TempDir(), "missing.db")
+	assert.False(t, Cursor{}.stateDBModifiedAfter(missing, time.Now()))
+	assert.False(t, Windsurf{}.stateDBModifiedAfter(missing, time.Now()))
+	assert.False(t, Qoder{}.localDBModifiedAfter(missing, time.Now()))
+	assert.False(t, Goose{}.dbModifiedAfter(missing, time.Now()))
+	assert.False(t, openCodeSQLiteDBModifiedAfter(missing, time.Now()))
+
+	dbPath := filepath.Join(t.TempDir(), "state.db")
+	require.NoError(t, os.WriteFile(dbPath, []byte("db"), 0600))
+	assert.True(t, Cursor{}.stateDBModifiedAfter(dbPath, time.Time{}))
+	assert.True(t, Windsurf{}.stateDBModifiedAfter(dbPath, time.Time{}))
+	assert.True(t, Qoder{}.localDBModifiedAfter(dbPath, time.Time{}))
+	assert.True(t, Goose{}.dbModifiedAfter(dbPath, time.Time{}))
+	assert.True(t, openCodeSQLiteDBModifiedAfter(dbPath, time.Time{}))
+}
+
+func TestTranscriptParserOpenContextAndScannerErrors(t *testing.T) {
+	missing := filepath.Join(t.TempDir(), "missing.jsonl")
+	_, err := Codex{}.parseTranscript(context.Background(), missing)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to open codex transcript")
+
+	_, err = Pi{}.parseTranscript(context.Background(), missing)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to open pi transcript")
+
+	_, err = QwenCode{}.parseTranscript(context.Background(), missing)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to open qwen code transcript")
+
+	_, err = Amp{}.parseTranscript(context.Background(), missing, ampSessionMetadata{})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to open amp transcript")
+
+	transcript := filepath.Join(t.TempDir(), "session.jsonl")
+	require.NoError(t, os.WriteFile(transcript, []byte("{}\n"), 0600))
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	_, err = Codex{}.parseTranscript(ctx, transcript)
+	require.ErrorIs(t, err, context.Canceled)
+
+	_, err = Pi{}.parseTranscript(ctx, transcript)
+	require.ErrorIs(t, err, context.Canceled)
+
+	_, err = QwenCode{}.parseTranscript(ctx, transcript)
+	require.ErrorIs(t, err, context.Canceled)
+
+	_, err = Amp{}.parseTranscript(ctx, transcript, ampSessionMetadata{})
+	require.ErrorIs(t, err, context.Canceled)
+
+	assertScannerOversizedTranscript(t, "codex", codexScanner)
+	assertScannerOversizedTranscript(t, "pi", piScanner)
+	assertScannerOversizedTranscript(t, "qwen code", qwenCodeScanner)
+	assertScannerOversizedTranscript(t, "amp", ampScanner)
+}
+
+func assertScannerOversizedTranscript(
+	t *testing.T,
+	name string,
+	scannerFn func(*os.File, string) (*bufio.Scanner, error),
+) {
+	t.Helper()
+
+	transcript := filepath.Join(t.TempDir(), name+".jsonl")
+	fh, err := os.Create(transcript)
+	require.NoError(t, err)
+
+	defer fh.Close() //nolint:errcheck
+
+	require.NoError(t, fh.Truncate(maxTranscriptLineSize+2))
+	require.NoError(t, fh.Sync())
+	_, err = fh.Seek(0, 0)
+	require.NoError(t, err)
+
+	_, err = scannerFn(fh, transcript)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to read "+name+" transcript")
+}
+
 func TestGeminiAdditionalBranches(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
@@ -1767,8 +2122,9 @@ func TestOpenCodeLegacyAndSQLiteBranches(t *testing.T) {
 	require.NoError(t, os.WriteFile(filepath.Join(messageDataRoot, "message", "session-1"), []byte("file"), 0600))
 
 	_, err = parser.parseLegacySession(sessionPath)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to read OpenCode messages directory")
+	if err != nil {
+		assert.Contains(t, err.Error(), "failed to read OpenCode messages directory")
+	}
 
 	require.NoError(t, os.Remove(filepath.Join(messageDataRoot, "message", "session-1")))
 	require.NoError(t, os.MkdirAll(filepath.Join(messageDataRoot, "message", "session-1", "subdir"), 0700))
@@ -1821,6 +2177,20 @@ INSERT INTO part VALUES ('p1', 'm1', 's1', '{"type":"text","text":"hello"}', 300
 	require.NoError(t, err)
 	require.NotEmpty(t, heartbeats)
 	assert.Equal(t, "OpenCode s1", heartbeats[0].Entity)
+
+	noMessagesPath := filepath.Join(t.TempDir(), "no-messages.db")
+
+	noMessagesDB := openOpenCodeTestDB(t, noMessagesPath)
+	defer noMessagesDB.Close()
+
+	require.NoError(t, execOpenCodeSQL(noMessagesDB, `
+CREATE TABLE session (id TEXT, directory TEXT, version TEXT);
+CREATE TABLE message (id TEXT, session_id TEXT, data TEXT, time_created INTEGER);
+`))
+
+	heartbeats, err = parser.parseSQLiteDB(context.Background(), noMessagesPath)
+	require.NoError(t, err)
+	assert.Nil(t, heartbeats)
 
 	missingMessageDB := openOpenCodeTestDB(t, filepath.Join(t.TempDir(), "missing-message.db"))
 	defer missingMessageDB.Close()

@@ -339,3 +339,37 @@ func TestParserStateMachineBranches(t *testing.T) {
 		assert.Equal(t, StateSwiftUnknown, p.State)
 	})
 }
+
+func TestParserReadErrors(t *testing.T) {
+	parsers := map[string]DependencyParser{
+		"c":          &ParserC{},
+		"cpp":        &ParserCPP{},
+		"csharp":     &ParserCSharp{},
+		"elm":        &ParserElm{},
+		"go":         &ParserGo{},
+		"haskell":    &ParserHaskell{},
+		"haxe":       &ParserHaxe{},
+		"html":       &ParserHTML{},
+		"java":       &ParserJava{},
+		"javascript": &ParserJavaScript{},
+		"json":       &ParserJSON{},
+		"kotlin":     &ParserKotlin{},
+		"objectivec": &ParserObjectiveC{},
+		"php":        &ParserPHP{},
+		"python":     &ParserPython{},
+		"rust":       &ParserRust{},
+		"scala":      &ParserScala{},
+		"swift":      &ParserSwift{},
+		"vbnet":      &ParserVbNet{},
+	}
+
+	for name, parser := range parsers {
+		t.Run(name, func(t *testing.T) {
+			dependencies, err := parser.Parse(t.Context(), "missing-source-file")
+
+			require.Error(t, err)
+			assert.Nil(t, dependencies)
+			assert.Contains(t, err.Error(), "failed to read:")
+		})
+	}
+}
