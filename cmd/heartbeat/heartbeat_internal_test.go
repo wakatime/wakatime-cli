@@ -2,6 +2,7 @@ package heartbeat
 
 import (
 	"path/filepath"
+	"sync"
 	"testing"
 	"time"
 
@@ -45,6 +46,34 @@ func TestApplyAIParsingDisabledPassesThrough(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.Equal(t, input, got)
+}
+
+func TestRunAISyncActivityNoActivity(t *testing.T) {
+	paramspkg.Once = sync.Once{}
+
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	v := viper.New()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+
+	code, err := RunAISyncActivity(t.Context(), v)
+
+	require.NoError(t, err)
+	assert.Equal(t, 0, code)
+}
+
+func TestRunAISyncActivityLoadParamsError(t *testing.T) {
+	paramspkg.Once = sync.Once{}
+
+	t.Setenv("WAKATIME_API_KEY", "")
+
+	code, err := RunAISyncActivity(t.Context(), viper.New())
+
+	require.Error(t, err)
+	assert.Equal(t, 104, code)
+	assert.Contains(t, err.Error(), "failed to load command params")
 }
 
 func TestSendPreparedHeartbeatsRateLimitedSavesOffline(t *testing.T) {
