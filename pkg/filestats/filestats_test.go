@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/wakatime/wakatime-cli/pkg/filestats"
@@ -115,4 +116,34 @@ func TestWithDetection_MaxFileSizeExceeded(t *testing.T) {
 		},
 	})
 	require.NoError(t, err)
+}
+
+func TestWithDetection_SkipsUnsupportedInputs(t *testing.T) {
+	dir := t.TempDir()
+	existing := filepath.Join(dir, "existing.txt")
+	require.NoError(t, os.WriteFile(existing, []byte("one\n"), 0600))
+
+	opt := filestats.WithDetection()
+	handle := opt(func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		require.Len(t, hh, 6)
+		assert.Nil(t, hh[0].Lines)
+		assert.Nil(t, hh[1].Lines)
+		assert.Equal(t, 9, *hh[2].Lines)
+		assert.Nil(t, hh[3].Lines)
+		assert.Nil(t, hh[4].Lines)
+		assert.Nil(t, hh[5].Lines)
+
+		return []heartbeat.Result{{Status: 42}}, nil
+	})
+
+	result, err := handle(t.Context(), []heartbeat.Heartbeat{
+		{EntityType: heartbeat.AppType, Entity: "app"},
+		{EntityType: heartbeat.FileType, Entity: existing, IsUnsavedEntity: true},
+		{EntityType: heartbeat.FileType, Entity: existing, Lines: heartbeat.PointerTo(9)},
+		{EntityType: heartbeat.FileType, Entity: filepath.Join(dir, "missing.txt")},
+		{EntityType: heartbeat.FileType, Entity: dir},
+		{EntityType: heartbeat.FileType, Entity: "remote.go", LocalFile: filepath.Join(dir, "missing-local.txt")},
+	})
+	require.NoError(t, err)
+	assert.Equal(t, []heartbeat.Result{{Status: 42}}, result)
 }

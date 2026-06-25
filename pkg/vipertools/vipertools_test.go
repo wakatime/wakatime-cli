@@ -1,7 +1,9 @@
 package vipertools_test
 
 import (
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/wakatime/wakatime-cli/pkg/vipertools"
 
@@ -9,6 +11,21 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestNew(t *testing.T) {
+	v, err := vipertools.New()
+	require.NoError(t, err)
+	require.NotNil(t, v)
+
+	v.SetConfigType("ini")
+	require.NoError(t, v.ReadConfig(strings.NewReader("[settings]\ndebug=true\n")))
+
+	assert.True(t, v.GetBool("settings.debug"))
+}
+
+func TestMustNew(t *testing.T) {
+	assert.NotNil(t, vipertools.MustNew())
+}
 
 func TestFirstNonEmptyBool(t *testing.T) {
 	v := viper.New()
@@ -163,4 +180,18 @@ func TestGetStringMapString_NotFound(t *testing.T) {
 
 	m := vipertools.GetStringMapString(v, "internal")
 	assert.Equal(t, map[string]string{}, m)
+}
+
+func TestSafeTimeParse(t *testing.T) {
+	parsed, err := vipertools.SafeTimeParse(time.RFC3339, "2026-06-24T18:00:00Z")
+	require.NoError(t, err)
+
+	assert.Equal(t, time.Date(2026, 6, 24, 18, 0, 0, 0, time.UTC), parsed)
+}
+
+func TestSafeTimeParseErr(t *testing.T) {
+	parsed, err := vipertools.SafeTimeParse(time.RFC3339, "not-a-time")
+	require.Error(t, err)
+
+	assert.True(t, parsed.IsZero())
 }

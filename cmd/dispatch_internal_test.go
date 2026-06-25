@@ -297,6 +297,7 @@ func newRunEViper(t *testing.T) *viper.Viper {
 	v.Set("config", filepath.Join(tmpDir, "missing.cfg"))
 	v.Set("internal-config", filepath.Join(tmpDir, "missing-internal.cfg"))
 	v.Set("log-file", filepath.Join(tmpDir, "wakatime.log"))
+	v.Set("log-to-stdout", true)
 
 	return v
 }

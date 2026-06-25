@@ -13,9 +13,8 @@ type Lexer interface {
 	Name() string
 }
 
-// RegisterAll registers all custom lexers.
-func RegisterAll() error {
-	var lexers = []Lexer{
+func customLexers() []Lexer {
+	return []Lexer{
 		ADL{},
 		AMPL{},
 		ActionScript3{},
@@ -304,8 +303,11 @@ func RegisterAll() error {
 		Zeek{},
 		Zephir{},
 	}
+}
 
-	for _, lexer := range lexers {
+// RegisterAll registers all custom lexers.
+func RegisterAll() error {
+	for _, lexer := range customLexers() {
 		found := lexer.Lexer()
 		if found == nil {
 			return fmt.Errorf("%q lexer not found", lexer.Name())

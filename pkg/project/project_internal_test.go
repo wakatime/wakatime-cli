@@ -148,3 +148,41 @@ func TestInterpolateProjectPlaceholder_VCSProjectTakesPrecedenceOverFolder(t *te
 
 	assert.Equal(t, "prefix-vcs-name", result)
 }
+
+func TestProjectHelperBranches(t *testing.T) {
+	tmpDir := t.TempDir()
+	childDir := filepath.Join(tmpDir, "child", "grandchild")
+	require.NoError(t, os.MkdirAll(childDir, 0700))
+
+	marker := filepath.Join(tmpDir, ".marker")
+	require.NoError(t, os.WriteFile(marker, []byte("ok"), 0600))
+
+	found, ok := FindFileOrDirectory(t.Context(), childDir, ".marker")
+	require.True(t, ok)
+	assert.Equal(t, marker, found)
+
+	found, ok = FindFileOrDirectory(t.Context(), tmpDir, ".missing")
+	assert.False(t, ok)
+	assert.Empty(t, found)
+
+	assert.True(t, isRootPath(""))
+	assert.True(t, isRootPath("."))
+	assert.Equal(t, "", firstNonEmptyString("", ""))
+	assert.Equal(t, "second", firstNonEmptyString("", "second", "third"))
+	assert.Empty(t, FormatProjectFolder(t.Context(), ""))
+	assert.Equal(
+		t,
+		"template/{project}",
+		interpolateProjectPlaceholder("template/{project}", "", string(filepath.Separator)),
+	)
+	assert.Positive(t, CountSlashesInProjectFolder(filepath.Join(tmpDir, "child")))
+	assert.Equal(
+		t,
+		"repo",
+		resolveSvnInfo(map[string]string{
+			"Repository Root": "https://svn.example.com/team/repo\r",
+		}, "Repository Root"),
+	)
+	assert.Equal(t, "branch", resolveSvnInfo(map[string]string{"URL": `https://svn.example.com\team\branch`}, "URL"))
+	assert.Empty(t, resolveSvnInfo(map[string]string{}, "URL"))
+}
