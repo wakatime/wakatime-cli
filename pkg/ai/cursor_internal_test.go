@@ -44,6 +44,21 @@ func TestCursorHelpers(t *testing.T) {
 			}, heartbeat.AITokens{}),
 		)
 	})
+
+	t.Run("token counts accept snake case token count", func(t *testing.T) {
+		input := 7
+		output := 11
+
+		assert.Equal(t,
+			heartbeat.AITokens{LastInput: 3, LastOutput: 5, CurrentInput: 10, CurrentOutput: 16},
+			Cursor{}.cursorTokenCounts(cursorLogLine{
+				TokenCount: &cursorTokenCount{
+					InputTokensSnake:  &input,
+					OutputTokensSnake: &output,
+				},
+			}, heartbeat.AITokens{LastInput: 3, LastOutput: 5}),
+		)
+	})
 }
 
 func TestCursorHeartbeatFallbacks(t *testing.T) {

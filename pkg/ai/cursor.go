@@ -28,9 +28,12 @@ const cursorRecentBubbleRowLimit = 5000
 
 type (
 	cursorTokenCount struct {
-		InputTokens  *int `json:"inputTokens"`
-		OutputTokens *int `json:"outputTokens"`
-		TotalTokens  *int `json:"totalTokens"`
+		InputTokens       *int `json:"inputTokens"`
+		OutputTokens      *int `json:"outputTokens"`
+		TotalTokens       *int `json:"totalTokens"`
+		InputTokensSnake  *int `json:"input_tokens"`
+		OutputTokensSnake *int `json:"output_tokens"`
+		TotalTokensSnake  *int `json:"total_tokens"`
 	}
 
 	cursorUsage struct {
@@ -177,15 +180,18 @@ func (g Cursor) Parse(ctx context.Context) (Heartbeats, error) {
 func (Cursor) cursorTokenCounts(line cursorLogLine, previous heartbeat.AITokens) heartbeat.AITokens {
 	if line.TokenCount != nil {
 		current := previous
-		if line.TokenCount.InputTokens != nil {
-			current.CurrentInput = previous.LastInput + int64(*line.TokenCount.InputTokens)
+		if inputTokens := cursorFirstInt(line.TokenCount.InputTokens, line.TokenCount.InputTokensSnake); inputTokens != nil {
+			current.CurrentInput = previous.LastInput + int64(*inputTokens)
 		}
 
+		outputTokens := cursorFirstInt(line.TokenCount.OutputTokens, line.TokenCount.OutputTokensSnake)
+
+		totalTokens := cursorFirstInt(line.TokenCount.TotalTokens, line.TokenCount.TotalTokensSnake)
 		switch {
-		case line.TokenCount.OutputTokens != nil:
-			current.CurrentOutput = previous.LastOutput + int64(*line.TokenCount.OutputTokens)
-		case line.TokenCount.TotalTokens != nil:
-			current.CurrentOutput = previous.LastOutput + int64(*line.TokenCount.TotalTokens)
+		case outputTokens != nil:
+			current.CurrentOutput = previous.LastOutput + int64(*outputTokens)
+		case totalTokens != nil:
+			current.CurrentOutput = previous.LastOutput + int64(*totalTokens)
 		}
 
 		return current
@@ -201,6 +207,7 @@ func (Cursor) cursorTokenCounts(line cursorLogLine, previous heartbeat.AITokens)
 	}
 
 	outputTokens := cursorFirstInt(line.Usage.OutputTokens, line.Usage.OutputTokensCamel)
+
 	totalTokens := cursorFirstInt(line.Usage.TotalTokens, line.Usage.TotalTokensCamel)
 	switch {
 	case outputTokens != nil:
