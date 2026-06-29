@@ -34,9 +34,12 @@ type (
 	}
 
 	cursorUsage struct {
-		InputTokens  *int `json:"input_tokens"`
-		OutputTokens *int `json:"output_tokens"`
-		TotalTokens  *int `json:"total_tokens"`
+		InputTokens       *int `json:"input_tokens"`
+		OutputTokens      *int `json:"output_tokens"`
+		TotalTokens       *int `json:"total_tokens"`
+		InputTokensCamel  *int `json:"inputTokens"`
+		OutputTokensCamel *int `json:"outputTokens"`
+		TotalTokensCamel  *int `json:"totalTokens"`
 	}
 
 	cursorToolFormerData struct {
@@ -193,18 +196,30 @@ func (Cursor) cursorTokenCounts(line cursorLogLine, previous heartbeat.AITokens)
 	}
 
 	current := previous
-	if line.Usage.InputTokens != nil {
-		current.CurrentInput = int64(*line.Usage.InputTokens)
+	if inputTokens := cursorFirstInt(line.Usage.InputTokens, line.Usage.InputTokensCamel); inputTokens != nil {
+		current.CurrentInput = int64(*inputTokens)
 	}
 
+	outputTokens := cursorFirstInt(line.Usage.OutputTokens, line.Usage.OutputTokensCamel)
+	totalTokens := cursorFirstInt(line.Usage.TotalTokens, line.Usage.TotalTokensCamel)
 	switch {
-	case line.Usage.OutputTokens != nil:
-		current.CurrentOutput = int64(*line.Usage.OutputTokens)
-	case line.Usage.TotalTokens != nil:
-		current.CurrentOutput = int64(*line.Usage.TotalTokens)
+	case outputTokens != nil:
+		current.CurrentOutput = int64(*outputTokens)
+	case totalTokens != nil:
+		current.CurrentOutput = int64(*totalTokens)
 	}
 
 	return current
+}
+
+func cursorFirstInt(values ...*int) *int {
+	for _, value := range values {
+		if value != nil {
+			return value
+		}
+	}
+
+	return nil
 }
 
 func (Cursor) stateDBModifiedAfter(dbPath string, after time.Time) bool {
@@ -286,6 +301,8 @@ WHERE json_valid(value)
     OR json_extract(value, '$.modelConfig') IS NOT NULL
     OR json_extract(value, '$.selectedModel') IS NOT NULL
     OR json_extract(value, '$.selectedChatModel') IS NOT NULL
+    OR json_extract(value, '$.tokenCount') IS NOT NULL
+    OR json_extract(value, '$.usage') IS NOT NULL
   )
 ORDER BY json_extract(value, '$.createdAt') ASC;
 `, cursorRecentBubbleRowLimit)
