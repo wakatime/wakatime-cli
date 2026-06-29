@@ -5,15 +5,63 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/wakatime/wakatime-cli/cmd/configwrite"
+	"github.com/wakatime/wakatime-cli/pkg/exitcode"
 	"github.com/wakatime/wakatime-cli/pkg/ini"
 
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestRun(t *testing.T) {
+	configFile := filepath.Join(t.TempDir(), ".wakatime.cfg")
+
+	v := viper.New()
+	v.Set("config", configFile)
+	v.Set("config-section", "settings")
+	v.Set("config-write", map[string]string{"debug": "true"})
+
+	code, err := configwrite.Run(t.Context(), v)
+
+	require.NoError(t, err)
+	assert.Equal(t, exitcode.Success, code)
+
+	contents, err := os.ReadFile(configFile)
+	require.NoError(t, err)
+	assert.Contains(t, string(contents), "debug")
+	assert.Contains(t, string(contents), "true")
+}
+
+func TestRunErr(t *testing.T) {
+	v := viper.New()
+	v.Set("config", filepath.Join(t.TempDir(), ".wakatime.cfg"))
+	v.Set("config-section", "settings")
+
+	code, err := configwrite.Run(t.Context(), v)
+
+	require.Error(t, err)
+	assert.Equal(t, exitcode.ErrGeneric, code)
+	assert.Contains(t, err.Error(), "failed to write to config file")
+}
+
+func TestRunNewWriterErr(t *testing.T) {
+	// point config at a path whose parent directory does not exist, so
+	// ini.NewWriter fails to create the file and returns an error.
+	v := viper.New()
+	v.Set("config", filepath.Join(t.TempDir(), "does-not-exist", ".wakatime.cfg"))
+	v.Set("config-section", "settings")
+	v.Set("config-write", map[string]string{"debug": "true"})
+
+	code, err := configwrite.Run(t.Context(), v)
+
+	require.Error(t, err)
+	assert.Equal(t, exitcode.ErrConfigFileParse, code)
+	assert.Contains(t, err.Error(), "failed to write to config file")
+}
 
 func TestLoadParams(t *testing.T) {
 	tests := map[string]struct {

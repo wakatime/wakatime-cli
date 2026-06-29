@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/wakatime/wakatime-cli/cmd/offlineprint"
@@ -120,6 +121,71 @@ func TestPrintOfflineHeartbeats_Empty(t *testing.T) {
 	assert.Equal(t, "[]\n", output)
 }
 
+func TestPrintOfflineHeartbeats_OpenDBErr(t *testing.T) {
+	v := viper.New()
+	v.Set("print-offline-heartbeats", 10)
+	v.Set("offline-queue-file", t.TempDir())
+
+	var (
+		code int
+		err  error
+	)
+
+	output := captureStdout(t, func() {
+		code, err = offlineprint.Run(t.Context(), v)
+	})
+
+	require.Error(t, err)
+	assert.Equal(t, exitcode.ErrGeneric, code)
+	assert.Contains(t, err.Error(), "failed to read offline heartbeats")
+	assert.Contains(t, output, "failed to open db file")
+}
+
+func TestPrintOfflineHeartbeats_QueueFilepathErr(t *testing.T) {
+	v := viper.New()
+	v.Set("print-offline-heartbeats", 10)
+	v.Set("offline-queue-file", "~missing-user/offline_heartbeats.bdb")
+
+	output := captureStdout(t, func() {
+		code, err := offlineprint.Run(t.Context(), v)
+		assert.Equal(t, exitcode.ErrGeneric, code)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to load offline queue filepath")
+		assert.Contains(t, err.Error(), "failed expanding offline-queue-file param")
+	})
+
+	assert.Empty(t, output)
+}
+
+func TestPrintOfflineHeartbeats_CorruptDBErrReturnsWakaExitCode(t *testing.T) {
+	queueFilepath := filepath.Join(t.TempDir(), "offline_heartbeats.bdb")
+	require.NoError(t, os.WriteFile(queueFilepath, []byte("not a bolt db"), 0600))
+
+	v := viper.New()
+	v.Set("print-offline-heartbeats", 10)
+	v.Set("offline-queue-file", queueFilepath)
+
+	var (
+		code int
+		err  error
+	)
+
+	output := captureStdout(t, func() {
+		code, err = offlineprint.Run(t.Context(), v)
+	})
+
+	require.Error(t, err)
+	assert.Equal(t, exitcode.Success, code)
+	assert.Contains(t, err.Error(), "failed to read offline heartbeats")
+	assert.Contains(t, output, "moved corrupt db file")
+	assert.NoFileExists(t, queueFilepath)
+
+	backups, globErr := filepath.Glob(queueFilepath + ".corrupt.*")
+	require.NoError(t, globErr)
+	require.Len(t, backups, 1)
+	assert.FileExists(t, backups[0])
+}
+
 type heartbeatRecord struct {
 	ID        string
 	Heartbeat string
@@ -148,4 +214,39 @@ func insertHeartbeatRecord(t *testing.T, db *bolt.DB, bucket string, h heartbeat
 		return nil
 	})
 	require.NoError(t, err)
+}
+
+func captureStdout(t *testing.T, fn func()) string {
+	t.Helper()
+
+	stdout := os.Stdout
+	r, w, err := os.Pipe()
+	require.NoError(t, err)
+
+	os.Stdout = w
+
+	defer func() { os.Stdout = stdout }()
+
+	outC := make(chan string, 1)
+	errC := make(chan error, 1)
+
+	go func() {
+		var buf bytes.Buffer
+
+		_, err := io.Copy(&buf, r)
+		errC <- err
+
+		outC <- buf.String()
+	}()
+
+	fn()
+
+	require.NoError(t, w.Close())
+
+	output := <-outC
+
+	require.NoError(t, <-errC)
+	require.NoError(t, r.Close())
+
+	return output
 }

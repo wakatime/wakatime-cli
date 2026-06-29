@@ -48,3 +48,15 @@ func TestQueueFilepathLegacy(t *testing.T) {
 		})
 	}
 }
+
+func TestQueueFilepathLegacy_ConfiguredFile(t *testing.T) {
+	expected := filepath.Join(t.TempDir(), "legacy.bdb")
+
+	v := viper.New()
+	v.Set("offline-queue-file-legacy", expected)
+
+	queueFilepath, err := offline.QueueFilepathLegacy(t.Context(), v)
+	require.NoError(t, err)
+
+	assert.Equal(t, expected, queueFilepath)
+}

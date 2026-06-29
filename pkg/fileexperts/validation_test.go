@@ -45,6 +45,30 @@ func TestWithValidation(t *testing.T) {
 	}, result)
 }
 
+func TestWithValidation_FiltersInvalid(t *testing.T) {
+	valid := heartbeat.Heartbeat{
+		Entity:           "/path/to/file",
+		Project:          heartbeat.PointerTo("wakatime"),
+		ProjectRootCount: heartbeat.PointerTo(3),
+	}
+	// missing project/root count, so it should be filtered out.
+	invalid := heartbeat.Heartbeat{
+		Entity: "/path/to/other",
+	}
+
+	opt := fileexperts.WithValidation()
+	h := opt(func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		assert.Equal(t, []heartbeat.Heartbeat{valid}, hh)
+
+		return []heartbeat.Result{{Status: 201}}, nil
+	})
+
+	result, err := h(t.Context(), []heartbeat.Heartbeat{valid, invalid})
+	require.NoError(t, err)
+
+	assert.Equal(t, []heartbeat.Result{{Status: 201}}, result)
+}
+
 func TestValidate_EmptyEntity(t *testing.T) {
 	h := heartbeat.Heartbeat{}
 

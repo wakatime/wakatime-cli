@@ -1,11 +1,13 @@
 package fileexperts_test
 
 import (
+	"context"
 	"encoding/json"
 	"os"
 	"testing"
 
 	"github.com/wakatime/wakatime-cli/pkg/fileexperts"
+	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/output"
 
 	"github.com/stretchr/testify/assert"
@@ -145,4 +147,49 @@ func TestRenderFileExperts_RawJSON(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, string(data), rendered)
+}
+
+func TestRenderFileExperts_NilOrEmpty(t *testing.T) {
+	rendered, err := fileexperts.RenderFileExperts(nil, output.TextOutput)
+	require.NoError(t, err)
+	assert.Empty(t, rendered)
+
+	rendered, err = fileexperts.RenderFileExperts(&fileexperts.FileExperts{}, output.TextOutput)
+	require.NoError(t, err)
+	assert.Empty(t, rendered)
+}
+
+func TestRenderFileExperts_TextWithOtherOnlyEmptyUser(t *testing.T) {
+	rendered, err := fileexperts.RenderFileExperts(&fileexperts.FileExperts{
+		Data: []fileexperts.Data{{}},
+	}, output.TextOutput)
+
+	require.NoError(t, err)
+	assert.Equal(t, ": ", rendered)
+}
+
+func TestNewHandle(t *testing.T) {
+	caller := fileExpertsCallerFunc(func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		assert.Equal(t, []heartbeat.Heartbeat{{Entity: "entity"}}, hh)
+
+		return []heartbeat.Result{{Status: 201}}, nil
+	})
+
+	opt := func(next heartbeat.Handle) heartbeat.Handle {
+		return func(ctx context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+			hh[0].Entity = "entity"
+
+			return next(ctx, hh)
+		}
+	}
+
+	results, err := fileexperts.NewHandle(caller, opt)(t.Context(), []heartbeat.Heartbeat{{Entity: "raw"}})
+	require.NoError(t, err)
+	assert.Equal(t, []heartbeat.Result{{Status: 201}}, results)
+}
+
+type fileExpertsCallerFunc func(context.Context, []heartbeat.Heartbeat) ([]heartbeat.Result, error)
+
+func (f fileExpertsCallerFunc) FileExperts(ctx context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+	return f(ctx, hh)
 }

@@ -852,6 +852,19 @@ func (g Copilot) editHeartbeats(
 ) ([]copilotTimedHeartbeat, error) {
 	editSessionsDir := filepath.Join(workspaceDir, "chatEditingSessions")
 
+	info, err := os.Stat(editSessionsDir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+
+		return nil, fmt.Errorf("failed reading copilot edit sessions %q: %s", editSessionsDir, err)
+	}
+
+	if !info.IsDir() {
+		return nil, fmt.Errorf("copilot edit sessions %q is not a directory", editSessionsDir)
+	}
+
 	entries, err := os.ReadDir(editSessionsDir)
 	if err != nil {
 		if os.IsNotExist(err) {

@@ -1,12 +1,21 @@
 package ai
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"testing"
 
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/wakatime/wakatime-cli/pkg/log"
 )
 
 type panicParser struct{}
@@ -73,4 +82,122 @@ func TestParseHeartbeats_Error(t *testing.T) {
 
 	require.EqualError(t, err, "failed")
 	assert.Nil(t, heartbeats)
+}
+
+func TestCaptureAIParsingLogsVerbose(t *testing.T) {
+	var output bytes.Buffer
+
+	logger := log.New(&output, log.WithVerbose(true))
+	ctx := log.ToContext(t.Context(), logger)
+
+	captured, reset := captureAIParsingLogs(ctx)
+
+	logger.Debugln("captured debug")
+	reset()
+	logger.Debugln("after reset")
+
+	assert.Contains(t, output.String(), "captured debug")
+	assert.Contains(t, output.String(), "after reset")
+	assert.Contains(t, captured.String(), "captured debug")
+	assert.NotContains(t, captured.String(), "after reset")
+}
+
+func TestSendAIPanicDiagnostics(t *testing.T) {
+	t.Setenv("HTTP_PROXY", "")
+	t.Setenv("HTTPS_PROXY", "")
+	t.Setenv("NO_PROXY", "*")
+
+	var called bool
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		called = true
+
+		assert.Equal(t, http.MethodPost, req.Method)
+		assert.Equal(t, "/plugins/errors", req.URL.Path)
+		assert.Equal(t, "application/json", req.Header.Get("Content-Type"))
+		assert.NotEmpty(t, req.Header.Get("Authorization"))
+
+		body, err := io.ReadAll(req.Body)
+		require.NoError(t, err)
+
+		var payload struct {
+			ErrorMessage string `json:"error_message"`
+			IsPanic      bool   `json:"is_panic"`
+			Logs         string `json:"logs"`
+			Plugin       string `json:"plugin"`
+			Stack        string `json:"stacktrace"`
+		}
+
+		require.NoError(t, json.Unmarshal(body, &payload))
+		assert.Equal(t, `ai parser "panic" panicked: OOM`, payload.ErrorMessage)
+		assert.True(t, payload.IsPanic)
+		assert.Equal(t, "parser logs", payload.Logs)
+		assert.Equal(t, "plugin/0.0.1", payload.Plugin)
+		assert.Equal(t, "stack", payload.Stack)
+
+		w.WriteHeader(http.StatusCreated)
+	}))
+	defer server.Close()
+
+	v := newDiagnosticViper(server.URL)
+
+	err := sendAIPanicDiagnostics(t.Context(), v, aiPanicReport{
+		Logs:       "parser logs",
+		ParserName: "panic",
+		Recovered:  "OOM",
+		Stack:      "stack",
+	})
+
+	require.NoError(t, err)
+	assert.True(t, called)
+}
+
+func TestSendAIPanicDiagnosticsErrorBranches(t *testing.T) {
+	err := sendAIPanicDiagnostics(t.Context(), nil, aiPanicReport{})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "missing viper instance")
+
+	err = sendAIPanicDiagnostics(t.Context(), viper.New(), aiPanicReport{})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to load API parameters")
+
+	v := newDiagnosticViper("http://127.0.0.1")
+	v.Set("ssl-certs-file", filepath.Join(t.TempDir(), "missing.pem"))
+
+	err = sendAIPanicDiagnostics(t.Context(), v, aiPanicReport{})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to set up ssl cert file option")
+
+	v = newDiagnosticViper("http://127.0.0.1")
+	v.Set("proxy", "%")
+
+	err = sendAIPanicDiagnostics(t.Context(), v, aiPanicReport{})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to set up proxy option")
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusCreated)
+	}))
+	defer server.Close()
+
+	v = newDiagnosticViper(server.URL)
+	v.Set("no-ssl-verify", true)
+	require.NoError(t, sendAIPanicDiagnostics(t.Context(), v, aiPanicReport{}))
+
+	certFile := filepath.Join(t.TempDir(), "ca.pem")
+	require.NoError(t, os.WriteFile(certFile, []byte("not a cert"), 0600))
+
+	v = newDiagnosticViper(server.URL)
+	v.Set("ssl-certs-file", certFile)
+	require.NoError(t, sendAIPanicDiagnostics(t.Context(), v, aiPanicReport{}))
+}
+
+func newDiagnosticViper(apiURL string) *viper.Viper {
+	v := viper.New()
+	v.Set("api-url", apiURL)
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("plugin", "plugin/0.0.1")
+	v.Set("timeout", 5)
+
+	return v
 }

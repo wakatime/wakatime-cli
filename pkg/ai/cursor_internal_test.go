@@ -29,6 +29,36 @@ func TestCursorHelpers(t *testing.T) {
 		assert.False(t, Cursor{}.looksLikeUnifiedDiff("plain text"))
 		assert.Equal(t, 1, Cursor{}.lineChangesFromDiff("--- a\n+++ b\n-old\n+new\n+extra"))
 	})
+
+	t.Run("token counts accept camel case usage", func(t *testing.T) {
+		input := 7
+		total := 11
+
+		assert.Equal(t,
+			heartbeat.AITokens{CurrentInput: 7, CurrentOutput: 11},
+			Cursor{}.cursorTokenCounts(cursorLogLine{
+				Usage: &cursorUsage{
+					InputTokensCamel: &input,
+					TotalTokensCamel: &total,
+				},
+			}, heartbeat.AITokens{}),
+		)
+	})
+
+	t.Run("token counts accept snake case token count", func(t *testing.T) {
+		input := 7
+		output := 11
+
+		assert.Equal(t,
+			heartbeat.AITokens{LastInput: 3, LastOutput: 5, CurrentInput: 10, CurrentOutput: 16},
+			Cursor{}.cursorTokenCounts(cursorLogLine{
+				TokenCount: &cursorTokenCount{
+					InputTokensSnake:  &input,
+					OutputTokensSnake: &output,
+				},
+			}, heartbeat.AITokens{LastInput: 3, LastOutput: 5}),
+		)
+	})
 }
 
 func TestCursorHeartbeatFallbacks(t *testing.T) {

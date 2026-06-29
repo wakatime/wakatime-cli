@@ -55,6 +55,18 @@ func TestQueueFilepath(t *testing.T) {
 	}
 }
 
+func TestQueueFilepath_ConfiguredFile(t *testing.T) {
+	expected := filepath.Join(t.TempDir(), "queue.bdb")
+
+	v := viper.New()
+	v.Set("offline-queue-file", expected)
+
+	queueFilepath, err := offline.QueueFilepath(t.Context(), v)
+	require.NoError(t, err)
+
+	assert.Equal(t, expected, queueFilepath)
+}
+
 func TestWithQueue(t *testing.T) {
 	// setup
 	f, err := os.CreateTemp(t.TempDir(), "")
@@ -385,6 +397,30 @@ func TestWithQueue_HandleLeftovers(t *testing.T) {
 	assert.JSONEq(t, string(dataJs), stored[1].Heartbeat)
 }
 
+func TestWithQueue_BadRequestDoesNotRequeue(t *testing.T) {
+	f, err := os.CreateTemp(t.TempDir(), "")
+	require.NoError(t, err)
+
+	defer f.Close()
+
+	handle := offline.WithQueue(f.Name())(func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		require.Len(t, hh, 1)
+
+		return []heartbeat.Result{{
+			Status: http.StatusBadRequest,
+			Errors: []string{"bad entity"},
+		}}, nil
+	})
+
+	results, err := handle(t.Context(), []heartbeat.Heartbeat{testHeartbeats()[0]})
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+
+	count, err := offline.CountHeartbeats(t.Context(), f.Name())
+	require.NoError(t, err)
+	assert.Zero(t, count)
+}
+
 func TestWithSync(t *testing.T) {
 	// setup
 	f, err := os.CreateTemp(t.TempDir(), "")
@@ -461,6 +497,52 @@ func TestWithSync(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Len(t, stored, 0)
+}
+
+func TestWithSync_OpenError(t *testing.T) {
+	handle := offline.WithSync(t.TempDir(), 1)(func(_ context.Context, _ []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		t.Fatal("next handler should not be called")
+
+		return nil, nil
+	})
+
+	results, err := handle(t.Context(), nil)
+	require.Error(t, err)
+	assert.Nil(t, results)
+	assert.Contains(t, err.Error(), "failed to sync offline heartbeats")
+}
+
+func TestSync_RequeuesOnHandlerError(t *testing.T) {
+	f, err := os.CreateTemp(t.TempDir(), "")
+	require.NoError(t, err)
+
+	defer f.Close()
+
+	db, err := bolt.Open(f.Name(), 0600, nil)
+	require.NoError(t, err)
+
+	dataGo, err := os.ReadFile("testdata/heartbeat_go.json")
+	require.NoError(t, err)
+
+	insertHeartbeatRecords(t, db, "heartbeats", []heartbeatRecord{{
+		ID:        "1592868367.219124-12-file-coding-wakatime-cli-heartbeat-/tmp/main.go-true",
+		Heartbeat: string(dataGo),
+	}})
+	require.NoError(t, db.Close())
+
+	err = offline.Sync(t.Context(), f.Name(), 1)(
+		func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+			require.Len(t, hh, 1)
+
+			return nil, errors.New("api unavailable")
+		},
+	)
+	require.EqualError(t, err, "api unavailable")
+
+	queued, err := offline.ReadHeartbeats(t.Context(), f.Name(), 10)
+	require.NoError(t, err)
+	require.Len(t, queued, 1)
+	assert.Equal(t, "/tmp/main.go", queued[0].Entity)
 }
 
 func TestSync_MultipleRequests(t *testing.T) {

@@ -109,6 +109,17 @@ func TestCursorParse(t *testing.T) {
 			},
 		},
 		{
+			Key: "bubbleId:composer-1:token-count",
+			Value: map[string]any{
+				"_v":        3,
+				"createdAt": "2026-03-15T23:35:20Z",
+				"tokenCount": map[string]any{
+					"inputTokens":  4,
+					"outputTokens": 3,
+				},
+			},
+		},
+		{
 			Key: "bubbleId:composer-1:assistant",
 			Value: map[string]any{
 				"_v":        3,
@@ -229,6 +240,8 @@ func TestCursorParse(t *testing.T) {
 	assert.Nil(t, got[3].AILineChanges)
 	assert.Zero(t, got[3].AIPromptLength)
 	assert.Equal(t, filepath.Dir(diffPath), got[3].ProjectPathOverride)
+	assert.Equal(t, int64(4), got[3].AIInputTokens)
+	assert.Equal(t, int64(3), got[3].AIOutputTokens)
 	require.NotNil(t, got[3].IsWrite)
 	assert.False(t, *got[3].IsWrite)
 	assert.Equal(t, float64(time.Date(2026, 3, 15, 23, 35, 30, 0, time.UTC).Unix()), got[3].Time)

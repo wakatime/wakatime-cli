@@ -3,6 +3,7 @@ package ratelimit_test
 import (
 	"context"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -91,4 +92,14 @@ func TestRateLimitReset(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.WithinDuration(t, time.Now(), lastSentAt, 2*time.Second)
+}
+
+func TestRateLimitReset_NewWriterError(t *testing.T) {
+	v := viper.New()
+	v.Set("internal-config", filepath.Join(t.TempDir(), "missing", "wakatime-internal.cfg"))
+
+	err := ratelimit.Reset(t.Context(), v)
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to parse internal config file")
 }

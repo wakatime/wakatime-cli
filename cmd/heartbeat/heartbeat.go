@@ -314,6 +314,10 @@ func sendPreparedHeartbeats(
 			logger.Errorf("failed to save extra heartbeats to offline queue: %s", err)
 		}
 
+		if savedOffline {
+			<-chOfflineSave
+		}
+
 		return fmt.Errorf("failed to initialize api client: %w", err)
 	}
 

@@ -386,7 +386,7 @@ func (item codyContextItem) filePath() string {
 		}
 	}
 
-	if len(rawPath) >= 3 && rawPath[0] == '/' && rawPath[2] == ':' {
+	if len(rawPath) >= 3 && (rawPath[0] == '/' || rawPath[0] == '\\') && rawPath[2] == ':' {
 		rawPath = rawPath[1:]
 	}
 
