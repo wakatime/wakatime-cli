@@ -59,6 +59,52 @@ func TestCursorHelpers(t *testing.T) {
 			}, heartbeat.AITokens{LastInput: 3, LastOutput: 5}),
 		)
 	})
+
+	t.Run("zero token counts preserve pending tokens", func(t *testing.T) {
+		zero := 0
+		output := 4
+		previous := heartbeat.AITokens{
+			LastInput:     3,
+			LastOutput:    5,
+			CurrentInput:  10,
+			CurrentOutput: 16,
+		}
+
+		assert.Equal(t,
+			previous,
+			Cursor{}.cursorTokenCounts(cursorLogLine{
+				TokenCount: &cursorTokenCount{
+					InputTokens:  &zero,
+					OutputTokens: &zero,
+				},
+			}, previous),
+		)
+
+		assert.Equal(t,
+			heartbeat.AITokens{
+				LastInput:     3,
+				LastOutput:    5,
+				CurrentInput:  10,
+				CurrentOutput: 9,
+			},
+			Cursor{}.cursorTokenCounts(cursorLogLine{
+				TokenCount: &cursorTokenCount{
+					InputTokens:  &zero,
+					OutputTokens: &output,
+				},
+			}, previous),
+		)
+
+		assert.Equal(t,
+			previous,
+			Cursor{}.cursorTokenCounts(cursorLogLine{
+				Usage: &cursorUsage{
+					InputTokensCamel:  &zero,
+					OutputTokensCamel: &zero,
+				},
+			}, previous),
+		)
+	})
 }
 
 func TestCursorHeartbeatFallbacks(t *testing.T) {
