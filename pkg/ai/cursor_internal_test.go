@@ -45,12 +45,12 @@ func TestCursorHelpers(t *testing.T) {
 		)
 	})
 
-	t.Run("token counts accept snake case token count", func(t *testing.T) {
+	t.Run("token counts treat snake case token count as cumulative", func(t *testing.T) {
 		input := 7
 		output := 11
 
 		assert.Equal(t,
-			heartbeat.AITokens{LastInput: 3, LastOutput: 5, CurrentInput: 10, CurrentOutput: 16},
+			heartbeat.AITokens{LastInput: 3, LastOutput: 5, CurrentInput: 7, CurrentOutput: 11},
 			Cursor{}.cursorTokenCounts(cursorLogLine{
 				TokenCount: &cursorTokenCount{
 					InputTokensSnake:  &input,
@@ -85,7 +85,23 @@ func TestCursorHelpers(t *testing.T) {
 				LastInput:     3,
 				LastOutput:    5,
 				CurrentInput:  10,
-				CurrentOutput: 9,
+				CurrentOutput: 16,
+			},
+			Cursor{}.cursorTokenCounts(cursorLogLine{
+				TokenCount: &cursorTokenCount{
+					InputTokens:  &zero,
+					OutputTokens: &output,
+				},
+			}, previous),
+		)
+
+		output = 20
+		assert.Equal(t,
+			heartbeat.AITokens{
+				LastInput:     3,
+				LastOutput:    5,
+				CurrentInput:  10,
+				CurrentOutput: 20,
 			},
 			Cursor{}.cursorTokenCounts(cursorLogLine{
 				TokenCount: &cursorTokenCount{

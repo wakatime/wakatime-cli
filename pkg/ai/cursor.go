@@ -186,7 +186,7 @@ func (Cursor) cursorTokenCounts(line cursorLogLine, previous heartbeat.AITokens)
 		current := previous
 		if inputTokens := cursorFirstInt(line.TokenCount.InputTokens, line.TokenCount.InputTokensSnake); inputTokens != nil {
 			if *inputTokens != 0 {
-				current.CurrentInput = previous.LastInput + int64(*inputTokens)
+				current.CurrentInput = cumulativeTokenCount(current.LastInput, current.CurrentInput, *inputTokens)
 			}
 		}
 
@@ -195,9 +195,9 @@ func (Cursor) cursorTokenCounts(line cursorLogLine, previous heartbeat.AITokens)
 		totalTokens := cursorFirstInt(line.TokenCount.TotalTokens, line.TokenCount.TotalTokensSnake)
 		switch {
 		case outputTokens != nil && *outputTokens != 0:
-			current.CurrentOutput = previous.LastOutput + int64(*outputTokens)
+			current.CurrentOutput = cumulativeTokenCount(current.LastOutput, current.CurrentOutput, *outputTokens)
 		case totalTokens != nil && *totalTokens != 0:
-			current.CurrentOutput = previous.LastOutput + int64(*totalTokens)
+			current.CurrentOutput = cumulativeTokenCount(current.LastOutput, current.CurrentOutput, *totalTokens)
 		}
 
 		return current
@@ -229,6 +229,15 @@ func (Cursor) cursorTokenCounts(line cursorLogLine, previous heartbeat.AITokens)
 	}
 
 	return current
+}
+
+func cumulativeTokenCount(last int64, current int64, value int) int64 {
+	next := int64(value)
+	if next < last || next < current {
+		return current
+	}
+
+	return next
 }
 
 func (c cursorTokenCount) isZero() bool {
