@@ -452,10 +452,17 @@ func TestWindsurfHelperBranches(t *testing.T) {
 	usageTotal := 15
 
 	assert.Equal(t,
-		heartbeat.AITokens{LastInput: 2, LastOutput: 3, CurrentInput: 7, CurrentOutput: 12},
+		heartbeat.AITokens{LastInput: 2, LastOutput: 3, CurrentInput: 5, CurrentOutput: 9},
 		parser.windsurfTokenCounts(windsurfLogLine{
 			TokenCount: &windsurfTokenCount{InputTokens: &input, TotalTokens: &total},
 		}, heartbeat.AITokens{LastInput: 2, LastOutput: 3}),
+	)
+	zero := 0
+	assert.Equal(t,
+		heartbeat.AITokens{LastInput: 2, LastOutput: 3, CurrentInput: 5, CurrentOutput: 9},
+		parser.windsurfTokenCounts(windsurfLogLine{
+			TokenCount: &windsurfTokenCount{InputTokens: &zero, OutputTokens: &zero},
+		}, heartbeat.AITokens{LastInput: 2, LastOutput: 3, CurrentInput: 5, CurrentOutput: 9}),
 	)
 	assert.Equal(t,
 		heartbeat.AITokens{CurrentInput: 12, CurrentOutput: 15},

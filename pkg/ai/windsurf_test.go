@@ -37,6 +37,26 @@ func TestWindsurfParse(t *testing.T) {
 
 	createWindsurfDB(t, dbPath, []windsurfTestRow{
 		{
+			Key: "bubbleId:cascade-1:old-edit",
+			Value: map[string]any{
+				"_v":        3,
+				"type":      2,
+				"createdAt": "2026-04-20T11:58:00Z",
+				"toolFormerData": map[string]any{
+					"status": "completed",
+					"name":   "edit_file_v2",
+					"params": fmt.Sprintf(
+						`{"relativeWorkspacePath":%q,"streamingContent":"skip"}`,
+						editedPath,
+					),
+				},
+				"tokenCount": map[string]any{
+					"inputTokens":  3,
+					"outputTokens": 1,
+				},
+			},
+		},
+		{
 			Key: "bubbleId:cascade-1:user",
 			Value: map[string]any{
 				"_v":        3,
@@ -61,8 +81,8 @@ func TestWindsurfParse(t *testing.T) {
 					),
 				},
 				"tokenCount": map[string]any{
-					"inputTokens":  5,
-					"outputTokens": 2,
+					"inputTokens":  8,
+					"outputTokens": 3,
 				},
 			},
 		},
