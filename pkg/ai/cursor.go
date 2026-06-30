@@ -179,19 +179,25 @@ func (g Cursor) Parse(ctx context.Context) (Heartbeats, error) {
 
 func (Cursor) cursorTokenCounts(line cursorLogLine, previous heartbeat.AITokens) heartbeat.AITokens {
 	if line.TokenCount != nil {
+		if line.TokenCount.isZero() {
+			return previous
+		}
+
 		current := previous
 		if inputTokens := cursorFirstInt(line.TokenCount.InputTokens, line.TokenCount.InputTokensSnake); inputTokens != nil {
-			current.CurrentInput = previous.LastInput + int64(*inputTokens)
+			if *inputTokens != 0 {
+				current.CurrentInput = cumulativeTokenCount(current.LastInput, current.CurrentInput, *inputTokens)
+			}
 		}
 
 		outputTokens := cursorFirstInt(line.TokenCount.OutputTokens, line.TokenCount.OutputTokensSnake)
 
 		totalTokens := cursorFirstInt(line.TokenCount.TotalTokens, line.TokenCount.TotalTokensSnake)
 		switch {
-		case outputTokens != nil:
-			current.CurrentOutput = previous.LastOutput + int64(*outputTokens)
-		case totalTokens != nil:
-			current.CurrentOutput = previous.LastOutput + int64(*totalTokens)
+		case outputTokens != nil && *outputTokens != 0:
+			current.CurrentOutput = cumulativeTokenCount(current.LastOutput, current.CurrentOutput, *outputTokens)
+		case totalTokens != nil && *totalTokens != 0:
+			current.CurrentOutput = cumulativeTokenCount(current.LastOutput, current.CurrentOutput, *totalTokens)
 		}
 
 		return current
@@ -201,22 +207,75 @@ func (Cursor) cursorTokenCounts(line cursorLogLine, previous heartbeat.AITokens)
 		return previous
 	}
 
+	if line.Usage.isZero() {
+		return previous
+	}
+
 	current := previous
 	if inputTokens := cursorFirstInt(line.Usage.InputTokens, line.Usage.InputTokensCamel); inputTokens != nil {
-		current.CurrentInput = int64(*inputTokens)
+		if *inputTokens != 0 {
+			current.CurrentInput = int64(*inputTokens)
+		}
 	}
 
 	outputTokens := cursorFirstInt(line.Usage.OutputTokens, line.Usage.OutputTokensCamel)
 
 	totalTokens := cursorFirstInt(line.Usage.TotalTokens, line.Usage.TotalTokensCamel)
 	switch {
-	case outputTokens != nil:
+	case outputTokens != nil && *outputTokens != 0:
 		current.CurrentOutput = int64(*outputTokens)
-	case totalTokens != nil:
+	case totalTokens != nil && *totalTokens != 0:
 		current.CurrentOutput = int64(*totalTokens)
 	}
 
 	return current
+}
+
+func cumulativeTokenCount(last int64, current int64, value int) int64 {
+	next := int64(value)
+	if next < last || next < current {
+		return current
+	}
+
+	return next
+}
+
+func (c cursorTokenCount) isZero() bool {
+	return cursorAllIntsZero(
+		c.InputTokens,
+		c.OutputTokens,
+		c.TotalTokens,
+		c.InputTokensSnake,
+		c.OutputTokensSnake,
+		c.TotalTokensSnake,
+	)
+}
+
+func (u cursorUsage) isZero() bool {
+	return cursorAllIntsZero(
+		u.InputTokens,
+		u.OutputTokens,
+		u.TotalTokens,
+		u.InputTokensCamel,
+		u.OutputTokensCamel,
+		u.TotalTokensCamel,
+	)
+}
+
+func cursorAllIntsZero(values ...*int) bool {
+	hasValue := false
+	for _, value := range values {
+		if value == nil {
+			continue
+		}
+
+		hasValue = true
+		if *value != 0 {
+			return false
+		}
+	}
+
+	return hasValue
 }
 
 func cursorFirstInt(values ...*int) *int {

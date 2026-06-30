@@ -45,18 +45,80 @@ func TestCursorHelpers(t *testing.T) {
 		)
 	})
 
-	t.Run("token counts accept snake case token count", func(t *testing.T) {
+	t.Run("token counts treat snake case token count as cumulative", func(t *testing.T) {
 		input := 7
 		output := 11
 
 		assert.Equal(t,
-			heartbeat.AITokens{LastInput: 3, LastOutput: 5, CurrentInput: 10, CurrentOutput: 16},
+			heartbeat.AITokens{LastInput: 3, LastOutput: 5, CurrentInput: 7, CurrentOutput: 11},
 			Cursor{}.cursorTokenCounts(cursorLogLine{
 				TokenCount: &cursorTokenCount{
 					InputTokensSnake:  &input,
 					OutputTokensSnake: &output,
 				},
 			}, heartbeat.AITokens{LastInput: 3, LastOutput: 5}),
+		)
+	})
+
+	t.Run("zero token counts preserve pending tokens", func(t *testing.T) {
+		zero := 0
+		output := 4
+		previous := heartbeat.AITokens{
+			LastInput:     3,
+			LastOutput:    5,
+			CurrentInput:  10,
+			CurrentOutput: 16,
+		}
+
+		assert.Equal(t,
+			previous,
+			Cursor{}.cursorTokenCounts(cursorLogLine{
+				TokenCount: &cursorTokenCount{
+					InputTokens:  &zero,
+					OutputTokens: &zero,
+				},
+			}, previous),
+		)
+
+		assert.Equal(t,
+			heartbeat.AITokens{
+				LastInput:     3,
+				LastOutput:    5,
+				CurrentInput:  10,
+				CurrentOutput: 16,
+			},
+			Cursor{}.cursorTokenCounts(cursorLogLine{
+				TokenCount: &cursorTokenCount{
+					InputTokens:  &zero,
+					OutputTokens: &output,
+				},
+			}, previous),
+		)
+
+		output = 20
+		assert.Equal(t,
+			heartbeat.AITokens{
+				LastInput:     3,
+				LastOutput:    5,
+				CurrentInput:  10,
+				CurrentOutput: 20,
+			},
+			Cursor{}.cursorTokenCounts(cursorLogLine{
+				TokenCount: &cursorTokenCount{
+					InputTokens:  &zero,
+					OutputTokens: &output,
+				},
+			}, previous),
+		)
+
+		assert.Equal(t,
+			previous,
+			Cursor{}.cursorTokenCounts(cursorLogLine{
+				Usage: &cursorUsage{
+					InputTokensCamel:  &zero,
+					OutputTokensCamel: &zero,
+				},
+			}, previous),
 		)
 	})
 }

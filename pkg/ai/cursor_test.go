@@ -114,8 +114,8 @@ func TestCursorParse(t *testing.T) {
 				"_v":        3,
 				"createdAt": "2026-03-15T23:35:20Z",
 				"tokenCount": map[string]any{
-					"inputTokens":  4,
-					"outputTokens": 3,
+					"inputTokens":  12,
+					"outputTokens": 8,
 				},
 			},
 		},
@@ -126,6 +126,10 @@ func TestCursorParse(t *testing.T) {
 				"type":      2,
 				"text":      "I updated the implementation",
 				"createdAt": "2026-03-15T23:35:30Z",
+				"tokenCount": map[string]any{
+					"inputTokens":  0,
+					"outputTokens": 0,
+				},
 			},
 		},
 		{
@@ -216,8 +220,8 @@ func TestCursorParse(t *testing.T) {
 	require.NotNil(t, got[1].AILineChanges)
 	assert.Equal(t, 3, *got[1].AILineChanges)
 	assert.Zero(t, got[1].AIPromptLength)
-	assert.Equal(t, int64(8), got[1].AIInputTokens)
-	assert.Equal(t, int64(5), got[1].AIOutputTokens)
+	assert.Equal(t, int64(5), got[1].AIInputTokens)
+	assert.Equal(t, int64(4), got[1].AIOutputTokens)
 	require.NotNil(t, got[1].IsWrite)
 	assert.True(t, *got[1].IsWrite)
 	assert.Equal(t, float64(time.Date(2026, 3, 15, 23, 34, 39, 0, time.UTC).Unix()), got[1].Time)

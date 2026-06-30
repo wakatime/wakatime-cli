@@ -157,16 +157,23 @@ func (g Windsurf) Parse(ctx context.Context) (Heartbeats, error) {
 
 func (Windsurf) windsurfTokenCounts(line windsurfLogLine, previous heartbeat.AITokens) heartbeat.AITokens {
 	if line.TokenCount != nil {
+		if line.TokenCount.isZero() {
+			return previous
+		}
+
 		current := previous
 		if line.TokenCount.InputTokens != nil {
-			current.CurrentInput = previous.LastInput + int64(*line.TokenCount.InputTokens)
+			current.CurrentInput = cumulativeTokenCount(
+				current.LastInput, current.CurrentInput, *line.TokenCount.InputTokens)
 		}
 
 		switch {
 		case line.TokenCount.OutputTokens != nil:
-			current.CurrentOutput = previous.LastOutput + int64(*line.TokenCount.OutputTokens)
+			current.CurrentOutput = cumulativeTokenCount(
+				current.LastOutput, current.CurrentOutput, *line.TokenCount.OutputTokens)
 		case line.TokenCount.TotalTokens != nil:
-			current.CurrentOutput = previous.LastOutput + int64(*line.TokenCount.TotalTokens)
+			current.CurrentOutput = cumulativeTokenCount(
+				current.LastOutput, current.CurrentOutput, *line.TokenCount.TotalTokens)
 		}
 
 		return current
@@ -189,6 +196,10 @@ func (Windsurf) windsurfTokenCounts(line windsurfLogLine, previous heartbeat.AIT
 	}
 
 	return current
+}
+
+func (c windsurfTokenCount) isZero() bool {
+	return cursorAllIntsZero(c.InputTokens, c.OutputTokens, c.TotalTokens)
 }
 
 func (Windsurf) stateDBModifiedAfter(dbPath string, after time.Time) bool {
