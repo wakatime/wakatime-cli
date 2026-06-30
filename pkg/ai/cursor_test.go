@@ -126,6 +126,10 @@ func TestCursorParse(t *testing.T) {
 				"type":      2,
 				"text":      "I updated the implementation",
 				"createdAt": "2026-03-15T23:35:30Z",
+				"tokenCount": map[string]any{
+					"inputTokens":  0,
+					"outputTokens": 0,
+				},
 			},
 		},
 		{
