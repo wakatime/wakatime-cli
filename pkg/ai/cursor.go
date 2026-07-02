@@ -50,6 +50,16 @@ type (
 		Name    string `json:"name"`
 		Params  string `json:"params"`
 		RawArgs string `json:"rawArgs"`
+		Result  string `json:"result"`
+	}
+
+	cursorContextWindowStatus struct {
+		TokensUsed *int `json:"tokensUsed"`
+	}
+
+	cursorEditResult struct {
+		BeforeContentID string `json:"beforeContentId"`
+		AfterContentID  string `json:"afterContentId"`
 	}
 
 	cursorURI struct {
@@ -62,14 +72,15 @@ type (
 	}
 
 	cursorLogLine struct {
-		BubbleID       string
-		CreatedAt      time.Time             `json:"createdAt"`
-		Type           int                   `json:"type"`
-		Text           string                `json:"text"`
-		TokenCount     *cursorTokenCount     `json:"tokenCount"`
-		Usage          *cursorUsage          `json:"usage"`
-		ToolFormerData *cursorToolFormerData `json:"toolFormerData"`
-		CodeBlocks     []cursorCodeBlock     `json:"codeBlocks"`
+		BubbleID            string
+		CreatedAt           time.Time                  `json:"createdAt"`
+		Type                int                        `json:"type"`
+		Text                string                     `json:"text"`
+		TokenCount          *cursorTokenCount          `json:"tokenCount"`
+		Usage               *cursorUsage               `json:"usage"`
+		ContextWindowStatus *cursorContextWindowStatus `json:"contextWindowStatusAtCreation"`
+		ToolFormerData      *cursorToolFormerData      `json:"toolFormerData"`
+		CodeBlocks          []cursorCodeBlock          `json:"codeBlocks"`
 	}
 
 	cursorLogRow struct {
@@ -134,6 +145,13 @@ func (g Cursor) Parse(ctx context.Context) (Heartbeats, error) {
 		return nil, err
 	}
 
+	contents, err := g.queryContentBlobs(ctx, db, g.editContentIDs(rows))
+	if err != nil {
+		logger.Debugf("failed reading cursor edit content blobs from %q: %s", dbPath, err)
+
+		contents = nil
+	}
+
 	var heartbeats Heartbeats
 
 	bubbleCWDs := make(map[string]string)
@@ -163,7 +181,7 @@ func (g Cursor) Parse(ctx context.Context) (Heartbeats, error) {
 			continue
 		}
 
-		parsed := g.cursorHeartbeats(logLine, bubbleCWDs[logLine.BubbleID], bubbleModels[logLine.BubbleID], tokens)
+		parsed := g.cursorHeartbeats(logLine, bubbleCWDs[logLine.BubbleID], bubbleModels[logLine.BubbleID], tokens, contents)
 		if len(parsed) == 0 {
 			bubbleTokens[logLine.BubbleID] = tokens
 			continue
@@ -177,7 +195,26 @@ func (g Cursor) Parse(ctx context.Context) (Heartbeats, error) {
 	return cursorApplySubscriptionPlan(heartbeats, subscriptionPlan), nil
 }
 
-func (Cursor) cursorTokenCounts(line cursorLogLine, previous heartbeat.AITokens) heartbeat.AITokens {
+func (g Cursor) cursorTokenCounts(line cursorLogLine, previous heartbeat.AITokens) heartbeat.AITokens {
+	current := g.cursorExplicitTokenCounts(line, previous)
+
+	// Recent Cursor versions only write zero tokenCount placeholders. The
+	// cumulative context window usage on user bubbles is the remaining
+	// token signal, so treat it as a cumulative input token counter.
+	if line.ContextWindowStatus != nil &&
+		line.ContextWindowStatus.TokensUsed != nil &&
+		*line.ContextWindowStatus.TokensUsed > 0 {
+		current.CurrentInput = cumulativeTokenCount(
+			current.LastInput,
+			current.CurrentInput,
+			*line.ContextWindowStatus.TokensUsed,
+		)
+	}
+
+	return current
+}
+
+func (Cursor) cursorExplicitTokenCounts(line cursorLogLine, previous heartbeat.AITokens) heartbeat.AITokens {
 	if line.TokenCount != nil {
 		if line.TokenCount.isZero() {
 			return previous
@@ -369,6 +406,8 @@ WHERE json_valid(value)
     OR json_extract(value, '$.selectedChatModel') IS NOT NULL
     OR json_extract(value, '$.tokenCount') IS NOT NULL
     OR json_extract(value, '$.usage') IS NOT NULL
+    OR json_extract(value, '$.modelInfo') IS NOT NULL
+    OR json_extract(value, '$.contextWindowStatusAtCreation') IS NOT NULL
   )
 ORDER BY json_extract(value, '$.createdAt') ASC;
 `, cursorRecentBubbleRowLimit)
@@ -407,6 +446,99 @@ ORDER BY json_extract(value, '$.createdAt') ASC;
 	}
 
 	return results, nil
+}
+
+func (Cursor) editContentIDs(rows []cursorLogRow) []string {
+	var ids []string
+
+	seen := make(map[string]bool)
+
+	for _, row := range rows {
+		if !strings.Contains(row.Value, "ContentId") {
+			continue
+		}
+
+		var logLine cursorLogLine
+		if err := json.Unmarshal([]byte(row.Value), &logLine); err != nil {
+			continue
+		}
+
+		if logLine.ToolFormerData == nil || logLine.ToolFormerData.Result == "" {
+			continue
+		}
+
+		var result cursorEditResult
+		if err := json.Unmarshal([]byte(logLine.ToolFormerData.Result), &result); err != nil {
+			continue
+		}
+
+		for _, id := range []string{result.BeforeContentID, result.AfterContentID} {
+			if id != "" && !seen[id] {
+				seen[id] = true
+
+				ids = append(ids, id)
+			}
+		}
+	}
+
+	return ids
+}
+
+func (Cursor) queryContentBlobs(ctx context.Context, db *sql.DB, ids []string) (map[string]string, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+
+	contents := make(map[string]string)
+
+	const chunkSize = 500
+
+	for start := 0; start < len(ids); start += chunkSize {
+		end := start + chunkSize
+		if end > len(ids) {
+			end = len(ids)
+		}
+
+		chunk := ids[start:end]
+
+		placeholders := strings.Repeat("?,", len(chunk))
+		placeholders = placeholders[:len(placeholders)-1]
+
+		params := make([]any, len(chunk))
+		for i, id := range chunk {
+			params[i] = id
+		}
+
+		rows, err := db.QueryContext(ctx, fmt.Sprintf(`
+SELECT key, CAST(value AS TEXT)
+FROM cursorDiskKV
+WHERE key IN (%s);
+`, placeholders), params...)
+		if err != nil {
+			return nil, fmt.Errorf("failed querying cursor content blobs: %s", err)
+		}
+
+		for rows.Next() {
+			var key, value string
+			if err := rows.Scan(&key, &value); err != nil {
+				_ = rows.Close()
+
+				return nil, fmt.Errorf("failed scanning cursor content blob row: %s", err)
+			}
+
+			contents[key] = value
+		}
+
+		if err := rows.Err(); err != nil {
+			_ = rows.Close()
+
+			return nil, fmt.Errorf("failed reading cursor content blob rows: %s", err)
+		}
+
+		_ = rows.Close()
+	}
+
+	return contents, nil
 }
 
 func (Cursor) querySubscriptionPlan(ctx context.Context, db *sql.DB, dbPath string) (string, error) {
@@ -461,7 +593,13 @@ func cursorApplySubscriptionPlan(heartbeats Heartbeats, plan string) Heartbeats 
 	return heartbeats
 }
 
-func (g Cursor) cursorHeartbeats(logLine cursorLogLine, cwd string, model string, tokens heartbeat.AITokens) Heartbeats {
+func (g Cursor) cursorHeartbeats(
+	logLine cursorLogLine,
+	cwd string,
+	model string,
+	tokens heartbeat.AITokens,
+	contents map[string]string,
+) Heartbeats {
 	var heartbeats Heartbeats
 
 	assignTokens := g.hasTokenDelta(tokens)
@@ -488,6 +626,7 @@ func (g Cursor) cursorHeartbeats(logLine cursorLogLine, cwd string, model string
 		model,
 		logLine.BubbleID,
 		fileTokens,
+		contents,
 	); heartbeat != nil {
 		heartbeats = append(heartbeats, *heartbeat)
 	}
@@ -536,6 +675,7 @@ func (g Cursor) cursorFileHeartbeat(
 	model string,
 	sessionID string,
 	tokens *heartbeat.AITokens,
+	contents map[string]string,
 ) *heartbeat.Heartbeat {
 	switch logLine.ToolFormerData.Name {
 	case "edit_file_v2":
@@ -550,6 +690,10 @@ func (g Cursor) cursorFileHeartbeat(
 		}
 
 		lineChanges := g.lineChanges(params.StreamingContent)
+		if strings.TrimSpace(params.StreamingContent) == "" {
+			lineChanges = g.lineChangesFromEditResult(logLine.ToolFormerData.Result, contents)
+		}
+
 		h := g.newHeartbeat(
 			heartbeat.PointerTo(lineChanges),
 			sessionID,
@@ -587,6 +731,10 @@ func (g Cursor) cursorFileHeartbeat(
 		}
 
 		lineChanges := g.lineChanges(content)
+		if strings.TrimSpace(content) == "" {
+			lineChanges = g.lineChangesFromEditResult(logLine.ToolFormerData.Result, contents)
+		}
+
 		h := g.newHeartbeat(
 			heartbeat.PointerTo(lineChanges),
 			sessionID,
@@ -936,6 +1084,66 @@ func (g Cursor) projectPath(logLine cursorLogLine) string {
 	}
 
 	return filepath.Dir(filePath)
+}
+
+func (g Cursor) lineChangesFromEditResult(result string, contents map[string]string) int {
+	if result == "" || len(contents) == 0 {
+		return 0
+	}
+
+	var editResult cursorEditResult
+	if err := json.Unmarshal([]byte(result), &editResult); err != nil {
+		return 0
+	}
+
+	after, ok := contents[editResult.AfterContentID]
+	if !ok {
+		return 0
+	}
+
+	return g.lineChangesFromSnapshots(contents[editResult.BeforeContentID], after)
+}
+
+// lineChangesFromSnapshots counts the lines in the after snapshot that are
+// not part of the longest common subsequence with the before snapshot, i.e.
+// lines added or modified by the edit.
+func (Cursor) lineChangesFromSnapshots(before, after string) int {
+	if strings.TrimSpace(after) == "" {
+		return 0
+	}
+
+	beforeLines := strings.Split(before, "\n")
+	afterLines := strings.Split(after, "\n")
+
+	const maxDiffLines = 3000
+
+	if len(beforeLines) > maxDiffLines || len(afterLines) > maxDiffLines {
+		if diff := len(afterLines) - len(beforeLines); diff > 0 {
+			return diff
+		}
+
+		return 0
+	}
+
+	prev := make([]int, len(beforeLines)+1)
+	curr := make([]int, len(beforeLines)+1)
+
+	for i := 1; i <= len(afterLines); i++ {
+		for j := 1; j <= len(beforeLines); j++ {
+			switch {
+			case afterLines[i-1] == beforeLines[j-1]:
+				curr[j] = prev[j-1] + 1
+			case prev[j] >= curr[j-1]:
+				curr[j] = prev[j]
+			default:
+				curr[j] = curr[j-1]
+			}
+		}
+
+		prev, curr = curr, prev
+	}
+
+	return len(afterLines) - prev[len(beforeLines)]
 }
 
 func (g Cursor) lineChanges(content string) int {

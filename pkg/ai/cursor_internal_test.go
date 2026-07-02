@@ -121,6 +121,55 @@ func TestCursorHelpers(t *testing.T) {
 			}, previous),
 		)
 	})
+
+	t.Run("context window status tokens treated as cumulative input", func(t *testing.T) {
+		zero := 0
+		tokensUsed := 61702
+
+		assert.Equal(t,
+			heartbeat.AITokens{CurrentInput: 61702},
+			Cursor{}.cursorTokenCounts(cursorLogLine{
+				TokenCount:          &cursorTokenCount{InputTokens: &zero, OutputTokens: &zero},
+				ContextWindowStatus: &cursorContextWindowStatus{TokensUsed: &tokensUsed},
+			}, heartbeat.AITokens{}),
+		)
+
+		// shrinking context window usage (summarization) keeps previous state
+		shrunk := 100
+		assert.Equal(t,
+			heartbeat.AITokens{LastInput: 61702, CurrentInput: 61702},
+			Cursor{}.cursorTokenCounts(cursorLogLine{
+				ContextWindowStatus: &cursorContextWindowStatus{TokensUsed: &shrunk},
+			}, heartbeat.AITokens{LastInput: 61702, CurrentInput: 61702}),
+		)
+	})
+
+	t.Run("line changes from content snapshots", func(t *testing.T) {
+		assert.Equal(t, 0, Cursor{}.lineChangesFromSnapshots("one", " \n "))
+		assert.Equal(t, 2, Cursor{}.lineChangesFromSnapshots(
+			"one\ntwo\nthree",
+			"one\ntwo changed\nthree\nfour",
+		))
+		assert.Equal(t, 2, Cursor{}.lineChangesFromSnapshots("", "new\nfile"))
+	})
+
+	t.Run("line changes from edit result content ids", func(t *testing.T) {
+		contents := map[string]string{
+			"composer.content.before": "one\ntwo",
+			"composer.content.after":  "one\ntwo\nthree",
+		}
+
+		assert.Equal(t, 1, Cursor{}.lineChangesFromEditResult(
+			`{"beforeContentId":"composer.content.before","afterContentId":"composer.content.after"}`,
+			contents,
+		))
+		assert.Equal(t, 0, Cursor{}.lineChangesFromEditResult(
+			`{"beforeContentId":"composer.content.before","afterContentId":"composer.content.missing"}`,
+			contents,
+		))
+		assert.Equal(t, 0, Cursor{}.lineChangesFromEditResult("not-json", contents))
+		assert.Equal(t, 0, Cursor{}.lineChangesFromEditResult("", nil))
+	})
 }
 
 func TestCursorHeartbeatFallbacks(t *testing.T) {
@@ -136,7 +185,7 @@ func TestCursorHeartbeatFallbacks(t *testing.T) {
 			RawArgs: `{"target_file":"/tmp/raw-edit.go","code_edit":"one\ntwo"}`,
 			Status:  "completed",
 		},
-	}, "", "composer-2.5", heartbeat.AITokens{})
+	}, "", "composer-2.5", heartbeat.AITokens{}, nil)
 	require.Len(t, editHeartbeats, 1)
 	edit := &editHeartbeats[0]
 	require.NotNil(t, edit)
@@ -159,7 +208,7 @@ func TestCursorHeartbeatFallbacks(t *testing.T) {
 		CodeBlocks: []cursorCodeBlock{{
 			URI: &cursorURI{FSPath: "/tmp/from-read-block.go"},
 		}},
-	}, "", "", heartbeat.AITokens{})
+	}, "", "", heartbeat.AITokens{}, nil)
 	require.Len(t, readHeartbeats, 1)
 	read := &readHeartbeats[0]
 	require.NotNil(t, read)
@@ -172,7 +221,7 @@ func TestCursorHeartbeatFallbacks(t *testing.T) {
 		CreatedAt: createdAt,
 		Type:      1,
 		Text:      "Please edit the file",
-	}, "/tmp", "", heartbeat.AITokens{})
+	}, "/tmp", "", heartbeat.AITokens{}, nil)
 	require.Len(t, appHeartbeats, 1)
 	assert.Equal(t, "Cursor composer-1", appHeartbeats[0].Entity)
 	assert.Equal(t, heartbeat.AppType, appHeartbeats[0].EntityType)
@@ -188,7 +237,7 @@ func TestCursorHeartbeatFallbacks(t *testing.T) {
 			Name:   "unknown_tool",
 			Status: "completed",
 		},
-	}, "", "", nil))
+	}, "", "", nil, nil))
 }
 
 func TestCursorModelName(t *testing.T) {
