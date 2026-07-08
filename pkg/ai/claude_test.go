@@ -653,6 +653,43 @@ func TestClaudeParse_DoesNotUseEditorUserAgentWithoutIDEContext(t *testing.T) {
 	assert.Equal(t, "opus/4.1-medium claude-code/2.1.45", got[1].UserAgent)
 }
 
+func TestClaudeParse_SupportsClaudeFable5Model(t *testing.T) {
+	ctx := context.Background()
+
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	transcriptDir := filepath.Join(home, ".claude", "projects", "sample-project")
+	require.NoError(t, os.MkdirAll(transcriptDir, 0o755))
+
+	transcriptPath := filepath.Join(transcriptDir, "session.jsonl")
+	transcript := strings.Join([]string{
+		strings.Join([]string{
+			`{"timestamp":"2026-07-06T11:45:00Z","sessionId":"claude-session","version":"2.5.0",`,
+			`"cwd":"/tmp","type":"user","message":{"role":"user",`,
+			`"model":"claude-fable-5","effort":"high","content":[`,
+			`{"type":"text","text":"please refactor this module"}`,
+			`]}}`,
+		}, ""),
+		"{\"timestamp\":\"2026-07-06T12:00:00Z\",\"sessionId\":\"claude-session\",\"version\":\"2.5.0\"," +
+			"\"toolUseResult\":{\"filePath\":\"/tmp/edited.go\"," +
+			"\"structuredPatch\":[{\"oldLines\":1,\"newLines\":2}]}}",
+	}, "\n") + "\n"
+	require.NoError(t, os.WriteFile(transcriptPath, []byte(transcript), 0o644))
+
+	parser := ai.Claude{
+		After: time.Date(2026, 7, 6, 11, 0, 0, 0, time.UTC),
+	}
+
+	got, err := parser.Parse(ctx)
+	require.NoError(t, err)
+	require.Len(t, got, 2)
+
+	assert.Equal(t, "fable/5-high claude-code/2.5.0", got[0].UserAgent)
+	assert.Equal(t, "fable/5-high claude-code/2.5.0", got[1].UserAgent)
+}
+
 func TestClaudeParse_PreservesClaudeCodePluginUserAgent(t *testing.T) {
 	ctx := context.Background()
 
