@@ -308,8 +308,12 @@ func TestCursorParse_ModernSchemaContextWindowTokensAndContentSnapshots(t *testi
 				"toolFormerData": map[string]any{
 					"status": "completed",
 					"name":   "edit_file_v2",
-					"params": fmt.Sprintf(`{"relativeWorkspacePath":%q,"noCodeblock":true,"cloudAgentEdit":false}`, editedPath),
-					"result": `{"beforeContentId":"composer.content.before-hash","afterContentId":"composer.content.after-hash"}`,
+					"params": fmt.Sprintf(
+						`{"relativeWorkspacePath":%q,"noCodeblock":true,"cloudAgentEdit":false}`,
+						editedPath,
+					),
+					"result": `{"beforeContentId":"composer.content.before-hash",` +
+						`"afterContentId":"composer.content.after-hash"}`,
 				},
 			},
 		},
