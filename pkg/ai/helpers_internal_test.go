@@ -317,12 +317,36 @@ func TestParserLastParsedAt(t *testing.T) {
 	fallback := time.Date(2026, time.March, 18, 11, 0, 0, 0, time.UTC)
 	expected := time.Date(2026, time.March, 18, 12, 30, 0, 0, time.UTC)
 
+	got, exists, err := getParserLastParsedAt(ctx, nil, "Cursor", fallback)
+	require.Error(t, err)
+	assert.False(t, exists)
+	assert.Equal(t, fallback, got)
+
 	v := viper.New()
 
-	got, exists, err := getParserLastParsedAt(ctx, v, "Cursor", fallback)
+	got, exists, err = getParserLastParsedAt(ctx, v, "Cursor", fallback)
 	require.NoError(t, err)
 	assert.False(t, exists)
 	assert.Equal(t, fallback, got)
+
+	v.Set("internal.ai_logs_last_parsed_at_cursor", "invalid")
+
+	got, exists, err = getParserLastParsedAt(ctx, v, "Cursor", fallback)
+	require.NoError(t, err)
+	assert.False(t, exists)
+	assert.Equal(t, fallback, got)
+
+	future := time.Now().Add(time.Hour)
+	v.Set("internal.ai_logs_last_parsed_at_cursor", future.Format(ini.DateFormat))
+
+	before := time.Now()
+	got, exists, err = getParserLastParsedAt(ctx, v, "Cursor", fallback)
+	after := time.Now()
+
+	require.NoError(t, err)
+	assert.True(t, exists)
+	assert.False(t, got.Before(before))
+	assert.False(t, got.After(after))
 
 	v.Set("internal.ai_logs_last_parsed_at_cursor", expected.Format(ini.DateFormat))
 
@@ -332,6 +356,16 @@ func TestParserLastParsedAt(t *testing.T) {
 	assert.Equal(t, expected, got)
 	assert.Equal(t, "ai_logs_last_parsed_at_cursor", parserLastParsedAtKey("Cursor"))
 	assert.Equal(t, "ai_logs_last_parsed_at_roo_code", parserLastParsedAtKey("Roo Code"))
+}
+
+func TestParseAIHeartbeatsWithoutCheckpointConfig(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	got, err := parseAIHeartbeats(t.Context(), time.Now(), nil, Config{})
+	require.NoError(t, err)
+	assert.Empty(t, got)
 }
 
 func TestUpdateParserLastParsedAt(t *testing.T) {

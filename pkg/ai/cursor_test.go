@@ -531,6 +531,50 @@ func TestCursorParse_SkipsMalformedSQLiteRows(t *testing.T) {
 	assert.Equal(t, "Cursor composer-1", got[0].Entity)
 }
 
+func TestCursorParse_ReportsValidButUnsupportedRows(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	dbDir := filepath.Join(home, "Library", "Application Support", "Cursor", "User", "globalStorage")
+	require.NoError(t, os.MkdirAll(dbDir, 0o755))
+
+	dbPath := filepath.Join(dbDir, "state.vscdb")
+	createCursorDB(t, dbPath, []cursorTestRow{
+		{
+			Key: "bubbleId:malformed-time:user",
+			Value: map[string]any{
+				"_v":        3,
+				"type":      1,
+				"text":      "valid json with unsupported timestamp type",
+				"createdAt": 123,
+			},
+		},
+		{
+			Key: "bubbleId:older-schema:user",
+			Value: map[string]any{
+				"_v":        2,
+				"type":      1,
+				"text":      "supported timestamp",
+				"createdAt": "2026-03-15T23:34:10Z",
+			},
+		},
+	})
+
+	var logs bytes.Buffer
+
+	ctx := log.ToContext(t.Context(), log.New(&logs, log.WithVerbose(true)))
+
+	got, err := (ai.Cursor{
+		After: time.Date(2026, 3, 15, 23, 34, 0, 0, time.UTC),
+	}).Parse(ctx)
+	require.NoError(t, err)
+	require.Len(t, got, 1)
+	assert.Equal(t, "Cursor older-schema", got[0].Entity)
+	assert.Contains(t, logs.String(), "malformed=1")
+	assert.Contains(t, logs.String(), "schema_other=1")
+}
+
 func TestCursorParse_NoCursorStateDB(t *testing.T) {
 	ctx := context.Background()
 

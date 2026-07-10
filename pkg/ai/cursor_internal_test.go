@@ -3,6 +3,7 @@
 package ai
 
 import (
+	"database/sql"
 	"strings"
 	"testing"
 	"time"
@@ -224,6 +225,105 @@ func TestCursorHelpers(t *testing.T) {
 		assert.Nil(t, Cursor{}.lineChangesFromEditResult("not-json", lineCounts))
 		assert.Nil(t, Cursor{}.lineChangesFromEditResult("", nil))
 	})
+
+	t.Run("parse stats record every token and edit source", func(t *testing.T) {
+		var stats cursorParseStats
+
+		for _, source := range []cursorTokenSource{
+			cursorTokenSourceNone,
+			cursorTokenSourceTokenCountPerRequest,
+			cursorTokenSourceUsagePerRequest,
+			cursorTokenSourceCumulative,
+			cursorTokenSourceContextSnapshotEstimate,
+		} {
+			stats.recordTokenSource(source)
+		}
+
+		for _, source := range []cursorEditSource{
+			cursorEditSourceNone,
+			cursorEditSourceEmbedded,
+			cursorEditSourceSnapshot,
+			cursorEditSourceUnavailable,
+		} {
+			stats.recordEditSource(source)
+		}
+
+		assert.Equal(t, 1, stats.TokenCountRows)
+		assert.Equal(t, 1, stats.UsageRows)
+		assert.Equal(t, 1, stats.CumulativeTokenRows)
+		assert.Equal(t, 1, stats.ContextEstimateRows)
+		assert.Equal(t, 1, stats.EmbeddedEditRows)
+		assert.Equal(t, 1, stats.SnapshotEdits)
+		assert.Equal(t, 1, stats.UnavailableEditRows)
+	})
+
+	t.Run("edit source and content ids handle malformed and fallback data", func(t *testing.T) {
+		parser := Cursor{}
+
+		assert.Equal(t, cursorEditSourceNone, parser.editSource(cursorLogLine{}))
+		assert.Equal(t, cursorEditSourceUnavailable, parser.editSource(cursorLogLine{
+			ToolFormerData: &cursorToolFormerData{
+				Name:   "edit_file_v2",
+				Params: "{",
+				Status: "completed",
+			},
+		}))
+		assert.Equal(t, cursorEditSourceEmbedded, parser.editSource(cursorLogLine{
+			ToolFormerData: &cursorToolFormerData{
+				Name:    "edit_file",
+				RawArgs: `{}`,
+				Status:  "completed",
+			},
+			CodeBlocks: []cursorCodeBlock{{Content: "from code block"}},
+		}))
+		assert.Equal(t, cursorEditSourceNone, parser.editSource(cursorLogLine{
+			ToolFormerData: &cursorToolFormerData{Name: "read_file", Status: "completed"},
+		}))
+		assert.Equal(t, cursorEditSourceUnavailable, parser.editSource(cursorLogLine{
+			ToolFormerData: &cursorToolFormerData{
+				Name:   "edit_file_v2",
+				Params: `{}`,
+				Status: "completed",
+			},
+		}))
+
+		assert.Nil(t, parser.editContentIDs(cursorLogLine{}))
+		assert.Nil(t, parser.editContentIDs(cursorLogLine{
+			ToolFormerData: &cursorToolFormerData{Result: "{"},
+		}))
+		assert.Equal(t, []string{"before"}, parser.editContentIDs(cursorLogLine{
+			ToolFormerData: &cursorToolFormerData{Result: `{"beforeContentId":"before"}`},
+		}))
+	})
+}
+
+func TestCursorSQLiteQueryErrorBranches(t *testing.T) {
+	db, err := sql.Open("sqlite", ":memory:")
+	require.NoError(t, err)
+
+	_, err = db.Exec(`CREATE TABLE cursorDiskKV (key TEXT, value BLOB)`)
+	require.NoError(t, err)
+	_, err = db.Exec(
+		`INSERT INTO cursorDiskKV(key, value) VALUES(?, ?)`,
+		"bubbleId:query-test:user",
+		`{"_v":3,"type":1,"text":"prompt","createdAt":"2026-07-10T12:00:00Z"}`,
+	)
+	require.NoError(t, err)
+
+	err = (Cursor{}).queryRows(t.Context(), db, "memory", func(cursorLogRow) error {
+		return assert.AnError
+	})
+	require.ErrorIs(t, err, assert.AnError)
+
+	require.NoError(t, db.Close())
+
+	err = (Cursor{}).queryRows(t.Context(), db, "closed", func(cursorLogRow) error {
+		return nil
+	})
+	require.Error(t, err)
+
+	_, err = (Cursor{}).queryContentLineCounts(t.Context(), db, []string{"content"})
+	require.Error(t, err)
 }
 
 func TestCursorHeartbeatFallbacks(t *testing.T) {
@@ -249,6 +349,22 @@ func TestCursorHeartbeatFallbacks(t *testing.T) {
 	assert.Equal(t, 2, *edit.AILineChanges)
 	require.NotNil(t, edit.IsWrite)
 	assert.True(t, *edit.IsWrite)
+
+	snapshotHeartbeats := parser.cursorHeartbeats(cursorLogLine{
+		CreatedAt: createdAt,
+		Type:      2,
+		ToolFormerData: &cursorToolFormerData{
+			Name:    "edit_file",
+			Params:  `{"relativeWorkspacePath":"/tmp/snapshot.go"}`,
+			RawArgs: `{}`,
+			Result: `{"beforeContentId":"before",` +
+				`"afterContentId":"after"}`,
+			Status: "completed",
+		},
+	}, "", "", heartbeat.AITokens{}, map[string]int{"before": 3, "after": 2})
+	require.Len(t, snapshotHeartbeats, 1)
+	require.NotNil(t, snapshotHeartbeats[0].AILineChanges)
+	assert.Equal(t, -1, *snapshotHeartbeats[0].AILineChanges)
 
 	readHeartbeats := parser.cursorHeartbeats(cursorLogLine{
 		CreatedAt: createdAt,
