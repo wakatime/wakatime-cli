@@ -318,48 +318,50 @@ func (g Claude) Parse(ctx context.Context) (Heartbeats, error) {
 }
 
 func (g Claude) transcriptPaths(ctx context.Context) ([]string, error) {
-	home, err := ini.UserHomeDir(ctx)
+	configDirs, err := claudeConfigDirs(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to find user home dir: %s", err)
-	}
-
-	claudeProjectsDir := filepath.Join(home, ".claude", "projects")
-
-	info, err := os.Stat(claudeProjectsDir)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil, nil
-		}
-
-		return nil, fmt.Errorf("failed to read .claude projects directory: %s", err)
-	}
-
-	if !info.IsDir() {
-		return nil, nil
+		return nil, err
 	}
 
 	var transcripts []string
 
-	err = filepath.WalkDir(claudeProjectsDir, func(path string, d os.DirEntry, walkErr error) error {
-		if walkErr != nil {
-			return walkErr
+	for _, dir := range configDirs {
+		claudeProjectsDir := filepath.Join(dir, "projects")
+
+		info, err := os.Stat(claudeProjectsDir)
+		if err != nil {
+			if os.IsNotExist(err) {
+				continue
+			}
+
+			return nil, fmt.Errorf("failed to read claude projects directory %q: %s", claudeProjectsDir, err)
 		}
 
-		if d.IsDir() || filepath.Ext(d.Name()) != ".jsonl" {
+		if !info.IsDir() {
+			continue
+		}
+
+		err = filepath.WalkDir(claudeProjectsDir, func(path string, d os.DirEntry, walkErr error) error {
+			if walkErr != nil {
+				return walkErr
+			}
+
+			if d.IsDir() || filepath.Ext(d.Name()) != ".jsonl" {
+				return nil
+			}
+
+			info, err := d.Info()
+			if err != nil || info.ModTime().Before(g.After) {
+				return nil
+			}
+
+			transcripts = append(transcripts, path)
+
 			return nil
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed walking claude projects directory %q: %s", claudeProjectsDir, err)
 		}
-
-		info, err := d.Info()
-		if err != nil || info.ModTime().Before(g.After) {
-			return nil
-		}
-
-		transcripts = append(transcripts, path)
-
-		return nil
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed walking .claude projects directory: %s", err)
 	}
 
 	return transcripts, nil
@@ -392,23 +394,96 @@ func (g Claude) subscriptionPlan(ctx context.Context) string {
 }
 
 func (Claude) configPaths(ctx context.Context) ([]string, error) {
+	configDirs, err := claudeConfigDirs(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	home, err := ini.UserHomeDir(ctx)
+	if err != nil && os.Getenv("CLAUDE_CONFIG_DIR") == "" {
+		return nil, fmt.Errorf("failed to find user home dir: %s", err)
+	}
+
+	var defaultConfigDir string
+	if home != "" {
+		defaultConfigDir = filepath.Join(home, ".claude")
+	}
+
+	paths := make([]string, 0, len(configDirs))
+
+	for _, dir := range configDirs {
+		if defaultConfigDir != "" && dir == defaultConfigDir {
+			paths = append(paths, filepath.Join(home, ".claude.json"))
+		} else {
+			paths = append(paths, filepath.Join(dir, ".claude.json"))
+		}
+
+		backups, err := claudeConfigBackupPaths(dir)
+		if err != nil {
+			return nil, err
+		}
+
+		paths = append(paths, backups...)
+	}
+
+	return paths, nil
+}
+
+func claudeConfigDirs(ctx context.Context) ([]string, error) {
+	if raw := os.Getenv("CLAUDE_CONFIG_DIR"); raw != "" {
+		dirs := make([]string, 0, strings.Count(raw, ",")+1)
+		seen := make(map[string]bool)
+
+		for _, dir := range strings.Split(raw, ",") {
+			dir = strings.TrimSpace(dir)
+			if dir == "" {
+				continue
+			}
+
+			dir = filepath.Clean(dir)
+			if seen[dir] {
+				continue
+			}
+
+			seen[dir] = true
+			dirs = append(dirs, dir)
+		}
+
+		if len(dirs) > 0 {
+			return dirs, nil
+		}
+	}
+
 	home, err := ini.UserHomeDir(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find user home dir: %s", err)
 	}
 
-	paths := []string{filepath.Join(home, ".claude.json")}
+	return []string{filepath.Join(home, ".claude")}, nil
+}
 
-	backups, err := filepath.Glob(filepath.Join(home, ".claude", "backups", ".claude.json.backup.*"))
+func claudeConfigBackupPaths(configDir string) ([]string, error) {
+	backupDir := filepath.Join(configDir, "backups")
+
+	entries, err := os.ReadDir(backupDir)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+
 		return nil, err
 	}
 
-	for i, j := 0, len(backups)-1; i < j; i, j = i+1, j-1 {
-		backups[i], backups[j] = backups[j], backups[i]
-	}
+	var paths []string
 
-	paths = append(paths, backups...)
+	for i := len(entries) - 1; i >= 0; i-- {
+		entry := entries[i]
+		if entry.IsDir() || !strings.HasPrefix(entry.Name(), ".claude.json.backup.") {
+			continue
+		}
+
+		paths = append(paths, filepath.Join(backupDir, entry.Name()))
+	}
 
 	return paths, nil
 }
