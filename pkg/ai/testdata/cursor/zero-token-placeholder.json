@@ -1,0 +1,45 @@
+{
+  "schema": "zero-token-placeholder",
+  "after": "2026-07-10T11:59:00Z",
+  "rows": [
+    {
+      "key": "bubbleId:fixture-placeholder:tokens",
+      "value": {
+        "_v": 3,
+        "createdAt": "2026-07-10T12:00:00Z",
+        "tokenCount": {
+          "inputTokens": 90,
+          "outputTokens": 20
+        }
+      }
+    },
+    {
+      "key": "bubbleId:fixture-placeholder:assistant",
+      "value": {
+        "_v": 3,
+        "type": 2,
+        "text": "sanitized response",
+        "createdAt": "2026-07-10T12:00:01Z",
+        "tokenCount": {
+          "inputTokens": 0,
+          "outputTokens": 0
+        }
+      }
+    }
+  ],
+  "expected": {
+    "entities": [
+      "Cursor fixture-placeholder"
+    ],
+    "inputTokens": [
+      90
+    ],
+    "outputTokens": [
+      20
+    ],
+    "lineChanges": [
+      null
+    ],
+    "tokenSource": "token_count_per_request"
+  }
+}

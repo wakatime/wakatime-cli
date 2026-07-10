@@ -1,0 +1,37 @@
+{
+  "schema": "legacy-token-count",
+  "after": "2026-07-10T10:59:00Z",
+  "rows": [
+    {
+      "key": "bubbleId:fixture-legacy:user",
+      "value": {
+        "_v": 3,
+        "type": 1,
+        "text": "sanitized prompt",
+        "createdAt": "2026-07-10T11:00:00Z",
+        "modelInfo": {
+          "modelName": "fixture-model"
+        },
+        "tokenCount": {
+          "inputTokens": 120,
+          "outputTokens": 30
+        }
+      }
+    }
+  ],
+  "expected": {
+    "entities": [
+      "Cursor fixture-legacy"
+    ],
+    "inputTokens": [
+      120
+    ],
+    "outputTokens": [
+      30
+    ],
+    "lineChanges": [
+      null
+    ],
+    "tokenSource": "token_count_per_request"
+  }
+}

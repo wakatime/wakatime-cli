@@ -312,6 +312,52 @@ func TestUpdateLastParsedAt(t *testing.T) {
 	})
 }
 
+func TestParserLastParsedAt(t *testing.T) {
+	ctx := context.Background()
+	fallback := time.Date(2026, time.March, 18, 11, 0, 0, 0, time.UTC)
+	expected := time.Date(2026, time.March, 18, 12, 30, 0, 0, time.UTC)
+
+	v := viper.New()
+
+	got, exists, err := getParserLastParsedAt(ctx, v, "Cursor", fallback)
+	require.NoError(t, err)
+	assert.False(t, exists)
+	assert.Equal(t, fallback, got)
+
+	v.Set("internal.ai_logs_last_parsed_at_cursor", expected.Format(ini.DateFormat))
+
+	got, exists, err = getParserLastParsedAt(ctx, v, "Cursor", fallback)
+	require.NoError(t, err)
+	assert.True(t, exists)
+	assert.Equal(t, expected, got)
+	assert.Equal(t, "ai_logs_last_parsed_at_cursor", parserLastParsedAtKey("Cursor"))
+	assert.Equal(t, "ai_logs_last_parsed_at_roo_code", parserLastParsedAtKey("Roo Code"))
+}
+
+func TestUpdateParserLastParsedAt(t *testing.T) {
+	ctx := context.Background()
+
+	tmpInternal, err := os.CreateTemp(t.TempDir(), "wakatime-internal")
+	require.NoError(t, err)
+	require.NoError(t, tmpInternal.Close())
+
+	v := viper.New()
+	v.Set("internal-config", tmpInternal.Name())
+
+	expected := time.Date(2026, time.March, 18, 12, 30, 0, int(500*time.Millisecond), time.UTC)
+	require.NoError(t, UpdateParserLastParsedAt(ctx, v, "Cursor", expected))
+
+	writer, err := ini.NewWriter(ctx, v, ini.InternalFilePath)
+	require.NoError(t, err)
+	require.NoError(t, writer.File.Reload())
+
+	written, err := writer.File.Section("internal").
+		Key("ai_logs_last_parsed_at_cursor").
+		TimeFormat(ini.DateFormat)
+	require.NoError(t, err)
+	assert.Equal(t, expected, written)
+}
+
 func TestHeartbeatTime(t *testing.T) {
 	expected := time.Date(2026, time.March, 18, 12, 30, 0, int(500*time.Millisecond), time.UTC)
 

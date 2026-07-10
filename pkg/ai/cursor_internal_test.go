@@ -33,31 +33,52 @@ func TestCursorHelpers(t *testing.T) {
 	t.Run("token counts accept camel case usage", func(t *testing.T) {
 		input := 7
 		total := 11
+		line := cursorLogLine{
+			Usage: &cursorUsage{
+				InputTokensCamel: &input,
+				TotalTokensCamel: &total,
+			},
+		}
 
 		assert.Equal(t,
-			heartbeat.AITokens{CurrentInput: 7, CurrentOutput: 11},
-			Cursor{}.cursorTokenCounts(cursorLogLine{
-				Usage: &cursorUsage{
-					InputTokensCamel: &input,
-					TotalTokensCamel: &total,
-				},
-			}, heartbeat.AITokens{}),
+			heartbeat.AITokens{CurrentInput: 7, CurrentOutput: 4},
+			Cursor{}.cursorTokenCounts(line, heartbeat.AITokens{}),
 		)
+		assert.Equal(t, cursorTokenSourceUsagePerRequest, Cursor{}.cursorTokenObservation(line).Source)
 	})
 
-	t.Run("token counts treat snake case token count as cumulative", func(t *testing.T) {
+	t.Run("token counts treat snake case token count as per request", func(t *testing.T) {
 		input := 7
 		output := 11
+		line := cursorLogLine{
+			TokenCount: &cursorTokenCount{
+				InputTokensSnake:  &input,
+				OutputTokensSnake: &output,
+			},
+		}
+
+		assert.Equal(t,
+			heartbeat.AITokens{LastInput: 3, LastOutput: 5, CurrentInput: 10, CurrentOutput: 16},
+			Cursor{}.cursorTokenCounts(line, heartbeat.AITokens{LastInput: 3, LastOutput: 5}),
+		)
+		assert.Equal(t, cursorTokenSourceTokenCountPerRequest, Cursor{}.cursorTokenObservation(line).Source)
+	})
+
+	t.Run("token counts up until here are cumulative", func(t *testing.T) {
+		input := 7
+		output := 11
+		line := cursorLogLine{
+			TokenCountUpUntilHere: &cursorTokenCount{
+				InputTokens:  &input,
+				OutputTokens: &output,
+			},
+		}
 
 		assert.Equal(t,
 			heartbeat.AITokens{LastInput: 3, LastOutput: 5, CurrentInput: 7, CurrentOutput: 11},
-			Cursor{}.cursorTokenCounts(cursorLogLine{
-				TokenCount: &cursorTokenCount{
-					InputTokensSnake:  &input,
-					OutputTokensSnake: &output,
-				},
-			}, heartbeat.AITokens{LastInput: 3, LastOutput: 5}),
+			Cursor{}.cursorTokenCounts(line, heartbeat.AITokens{LastInput: 3, LastOutput: 5}),
 		)
+		assert.Equal(t, cursorTokenSourceCumulative, Cursor{}.cursorTokenObservation(line).Source)
 	})
 
 	t.Run("zero token counts preserve pending tokens", func(t *testing.T) {
@@ -85,7 +106,7 @@ func TestCursorHelpers(t *testing.T) {
 				LastInput:     3,
 				LastOutput:    5,
 				CurrentInput:  10,
-				CurrentOutput: 16,
+				CurrentOutput: 20,
 			},
 			Cursor{}.cursorTokenCounts(cursorLogLine{
 				TokenCount: &cursorTokenCount{
@@ -101,7 +122,7 @@ func TestCursorHelpers(t *testing.T) {
 				LastInput:     3,
 				LastOutput:    5,
 				CurrentInput:  10,
-				CurrentOutput: 20,
+				CurrentOutput: 36,
 			},
 			Cursor{}.cursorTokenCounts(cursorLogLine{
 				TokenCount: &cursorTokenCount{
@@ -122,53 +143,86 @@ func TestCursorHelpers(t *testing.T) {
 		)
 	})
 
-	t.Run("context window status tokens treated as cumulative input", func(t *testing.T) {
+	t.Run("context window status is retained as an unpublished estimate", func(t *testing.T) {
 		zero := 0
 		tokensUsed := 61702
+		line := cursorLogLine{
+			TokenCount:          &cursorTokenCount{InputTokens: &zero, OutputTokens: &zero},
+			ContextWindowStatus: &cursorContextWindowStatus{TokensUsed: &tokensUsed},
+		}
 
-		assert.Equal(t,
-			heartbeat.AITokens{CurrentInput: 61702},
-			Cursor{}.cursorTokenCounts(cursorLogLine{
-				TokenCount:          &cursorTokenCount{InputTokens: &zero, OutputTokens: &zero},
-				ContextWindowStatus: &cursorContextWindowStatus{TokensUsed: &tokensUsed},
-			}, heartbeat.AITokens{}),
-		)
+		observation := Cursor{}.cursorTokenObservation(line)
+		assert.Equal(t, cursorTokenSourceContextSnapshotEstimate, observation.Source)
+		assert.True(t, observation.Estimated)
+		assert.Equal(t, cursorInt64Pointer(61702), observation.Input)
+		assert.Equal(t, heartbeat.AITokens{}, Cursor{}.cursorTokenCounts(line, heartbeat.AITokens{}))
 
-		// shrinking context window usage (summarization) keeps previous state
 		shrunk := 100
+		previous := heartbeat.AITokens{LastInput: 61702, CurrentInput: 61702}
 		assert.Equal(t,
-			heartbeat.AITokens{LastInput: 61702, CurrentInput: 61702},
+			previous,
 			Cursor{}.cursorTokenCounts(cursorLogLine{
 				ContextWindowStatus: &cursorContextWindowStatus{TokensUsed: &shrunk},
-			}, heartbeat.AITokens{LastInput: 61702, CurrentInput: 61702}),
+			}, previous),
+		)
+	})
+
+	t.Run("cumulative counter reset does not create a negative or duplicate delta", func(t *testing.T) {
+		reset := 20
+		previous := heartbeat.AITokens{LastInput: 100, CurrentInput: 100}
+
+		assert.Equal(t,
+			previous,
+			Cursor{}.cursorTokenCounts(cursorLogLine{
+				TokenCountUpUntilHere: &cursorTokenCount{InputTokens: &reset},
+			}, previous),
+		)
+
+		regrown := 130
+		assert.Equal(t,
+			heartbeat.AITokens{LastInput: 100, CurrentInput: 130},
+			Cursor{}.cursorTokenCounts(cursorLogLine{
+				TokenCountUpUntilHere: &cursorTokenCount{InputTokens: &regrown},
+			}, previous),
 		)
 	})
 
 	t.Run("line changes from content snapshots", func(t *testing.T) {
-		assert.Equal(t, 0, Cursor{}.lineChangesFromSnapshots("one", " \n "))
-		assert.Equal(t, 2, Cursor{}.lineChangesFromSnapshots(
+		assert.Equal(t, 1, Cursor{}.lineChangesFromSnapshots(
 			"one\ntwo\nthree",
-			"one\ntwo changed\nthree\nfour",
+			"one\ntwo\nthree\nfour",
+		))
+		assert.Equal(t, -1, Cursor{}.lineChangesFromSnapshots(
+			"one\ntwo\nthree",
+			"one\nthree",
+		))
+		assert.Equal(t, 0, Cursor{}.lineChangesFromSnapshots(
+			"one\ntwo",
+			"one changed\ntwo",
 		))
 		assert.Equal(t, 2, Cursor{}.lineChangesFromSnapshots("", "new\nfile"))
+		assert.Equal(t, -1, Cursor{}.lineChangesFromSnapshots(
+			strings.Repeat("line\n", 4_000)+"last",
+			strings.Repeat("line\n", 3_999)+"last",
+		))
 	})
 
 	t.Run("line changes from edit result content ids", func(t *testing.T) {
-		contents := map[string]string{
-			"composer.content.before": "one\ntwo",
-			"composer.content.after":  "one\ntwo\nthree",
+		lineCounts := map[string]int{
+			"composer.content.before": 2,
+			"composer.content.after":  3,
 		}
 
-		assert.Equal(t, 1, Cursor{}.lineChangesFromEditResult(
+		assert.Equal(t, heartbeat.PointerTo(1), Cursor{}.lineChangesFromEditResult(
 			`{"beforeContentId":"composer.content.before","afterContentId":"composer.content.after"}`,
-			contents,
+			lineCounts,
 		))
-		assert.Equal(t, 0, Cursor{}.lineChangesFromEditResult(
+		assert.Nil(t, Cursor{}.lineChangesFromEditResult(
 			`{"beforeContentId":"composer.content.before","afterContentId":"composer.content.missing"}`,
-			contents,
+			lineCounts,
 		))
-		assert.Equal(t, 0, Cursor{}.lineChangesFromEditResult("not-json", contents))
-		assert.Equal(t, 0, Cursor{}.lineChangesFromEditResult("", nil))
+		assert.Nil(t, Cursor{}.lineChangesFromEditResult("not-json", lineCounts))
+		assert.Nil(t, Cursor{}.lineChangesFromEditResult("", nil))
 	})
 }
 
@@ -295,4 +349,20 @@ func TestCursorUserAgentWithModel(t *testing.T) {
 		"composer/2.5 Cursor/1.105.1",
 		cursorUserAgentWithModel("composer/2.5 Cursor/1.105.1", "composer/2.5"),
 	)
+}
+
+func BenchmarkCursorLineChangesFromSnapshots(b *testing.B) {
+	before := strings.TrimSuffix(strings.Repeat("unchanged line\n", 10_000), "\n")
+	after := before + "\nnew line"
+
+	b.ReportAllocs()
+
+	var got int
+	for b.Loop() {
+		got = (Cursor{}).lineChangesFromSnapshots(before, after)
+	}
+
+	if got != 1 {
+		b.Fatalf("expected one added line, got %d", got)
+	}
 }

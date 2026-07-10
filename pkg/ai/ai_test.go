@@ -156,6 +156,75 @@ func TestWithAISyncUpdatesLastParsedAtBeforeNext(t *testing.T) {
 	assert.Equal(t, expectedLastParsedAt, lastParsedAt)
 }
 
+func TestWithAISyncUsesCursorCheckpointWhenGlobalCheckpointAdvanced(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	dbDir := filepath.Join(home, "Library", "Application Support", "Cursor", "User", "globalStorage")
+	require.NoError(t, os.MkdirAll(dbDir, 0o755))
+	createCursorDB(t, filepath.Join(dbDir, "state.vscdb"), []cursorTestRow{{
+		Key: "bubbleId:checkpoint-session:user",
+		Value: map[string]any{
+			"_v":        3,
+			"type":      1,
+			"text":      "sanitized prompt",
+			"createdAt": "2026-03-18T12:00:00Z",
+		},
+	}})
+
+	tmpInternal, err := os.CreateTemp(t.TempDir(), "wakatime-internal")
+	require.NoError(t, err)
+	require.NoError(t, tmpInternal.Close())
+
+	globalCheckpoint := time.Date(2026, 3, 18, 12, 30, 0, 0, time.UTC)
+	cursorCheckpoint := time.Date(2026, 3, 18, 11, 0, 0, 0, time.UTC)
+
+	v := viper.New()
+	v.Set("internal-config", tmpInternal.Name())
+	v.Set("internal.ai_logs_last_parsed_at", globalCheckpoint.Format(ini.DateFormat))
+	v.Set("internal.ai_logs_last_parsed_at_cursor", cursorCheckpoint.Format(ini.DateFormat))
+
+	var received []heartbeat.Heartbeat
+
+	handle := ai.WithAISync(ai.Config{
+		Plugin: "cursor/fixture",
+		V:      v,
+	})(func(_ context.Context, heartbeats []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		received = append(received, heartbeats...)
+
+		results := make([]heartbeat.Result, len(heartbeats))
+		for i := range heartbeats {
+			results[i] = heartbeat.Result{Heartbeat: heartbeats[i]}
+		}
+
+		return results, nil
+	})
+
+	_, err = handle(t.Context(), nil)
+	require.NoError(t, err)
+
+	require.Len(t, received, 1)
+	assert.Equal(t, "checkpoint-session", received[0].AISession)
+	assert.Equal(t, float64(time.Date(2026, 3, 18, 12, 0, 0, 0, time.UTC).Unix()), received[0].Time)
+
+	writer, err := ini.NewWriter(t.Context(), v, ini.InternalFilePath)
+	require.NoError(t, err)
+	require.NoError(t, writer.File.Reload())
+
+	globalWritten, err := writer.File.Section("internal").
+		Key("ai_logs_last_parsed_at").
+		TimeFormat(ini.DateFormat)
+	require.NoError(t, err)
+	assert.Equal(t, globalCheckpoint, globalWritten)
+
+	cursorWritten, err := writer.File.Section("internal").
+		Key("ai_logs_last_parsed_at_cursor").
+		TimeFormat(ini.DateFormat)
+	require.NoError(t, err)
+	assert.Equal(t, time.Date(2026, 3, 18, 12, 0, 0, 0, time.UTC), cursorWritten)
+}
+
 func TestWithAISyncReleasesLockOnRecoveredPanic(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)

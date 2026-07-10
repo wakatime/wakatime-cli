@@ -220,8 +220,8 @@ func TestCursorParse(t *testing.T) {
 	require.NotNil(t, got[1].AILineChanges)
 	assert.Equal(t, 3, *got[1].AILineChanges)
 	assert.Zero(t, got[1].AIPromptLength)
-	assert.Equal(t, int64(5), got[1].AIInputTokens)
-	assert.Equal(t, int64(4), got[1].AIOutputTokens)
+	assert.Equal(t, int64(8), got[1].AIInputTokens)
+	assert.Equal(t, int64(5), got[1].AIOutputTokens)
 	require.NotNil(t, got[1].IsWrite)
 	assert.True(t, *got[1].IsWrite)
 	assert.Equal(t, float64(time.Date(2026, 3, 15, 23, 34, 39, 0, time.UTC).Unix()), got[1].Time)
@@ -244,8 +244,8 @@ func TestCursorParse(t *testing.T) {
 	assert.Nil(t, got[3].AILineChanges)
 	assert.Zero(t, got[3].AIPromptLength)
 	assert.Equal(t, filepath.Dir(diffPath), got[3].ProjectPathOverride)
-	assert.Equal(t, int64(4), got[3].AIInputTokens)
-	assert.Equal(t, int64(3), got[3].AIOutputTokens)
+	assert.Equal(t, int64(12), got[3].AIInputTokens)
+	assert.Equal(t, int64(8), got[3].AIOutputTokens)
 	require.NotNil(t, got[3].IsWrite)
 	assert.False(t, *got[3].IsWrite)
 	assert.Equal(t, float64(time.Date(2026, 3, 15, 23, 35, 30, 0, time.UTC).Unix()), got[3].Time)
@@ -361,16 +361,17 @@ func TestCursorParse_ModernSchemaContextWindowTokensAndContentSnapshots(t *testi
 	require.NoError(t, err)
 	require.Len(t, got, 4)
 
-	// first user prompt carries the context window token usage
+	// Context-window snapshots are estimates and are not published as exact
+	// token usage.
 	assert.Equal(t, "Cursor composer-modern", got[0].Entity)
-	assert.Equal(t, int64(61702), got[0].AIInputTokens)
+	assert.Equal(t, int64(0), got[0].AIInputTokens)
 	assert.Equal(t, int64(0), got[0].AIOutputTokens)
 	assert.Contains(t, got[0].UserAgent, "sonnet/5")
 
 	// edit heartbeat computes line changes from before/after content snapshots
 	assert.Equal(t, editedPath, got[1].Entity)
 	require.NotNil(t, got[1].AILineChanges)
-	assert.Equal(t, 2, *got[1].AILineChanges)
+	assert.Equal(t, 1, *got[1].AILineChanges)
 	require.NotNil(t, got[1].IsWrite)
 	assert.True(t, *got[1].IsWrite)
 	assert.Equal(t, int64(0), got[1].AIInputTokens)
@@ -379,9 +380,46 @@ func TestCursorParse_ModernSchemaContextWindowTokensAndContentSnapshots(t *testi
 	assert.Equal(t, "Cursor composer-modern", got[2].Entity)
 	assert.Equal(t, int64(0), got[2].AIInputTokens)
 
-	// second user prompt carries the context window token delta
+	// Later context snapshots remain unpublished estimates.
 	assert.Equal(t, "Cursor composer-modern", got[3].Entity)
-	assert.Equal(t, int64(68073-61702), got[3].AIInputTokens)
+	assert.Equal(t, int64(0), got[3].AIInputTokens)
+}
+
+func TestCursorParse_RealShapeFixtures(t *testing.T) {
+	for _, name := range []string{
+		"legacy-token-count.json",
+		"zero-token-placeholder.json",
+		"modern-context-snapshots.json",
+	} {
+		t.Run(name, func(t *testing.T) {
+			fixture := loadCursorFixture(t, name)
+
+			home := t.TempDir()
+			t.Setenv("HOME", home)
+			t.Setenv("USERPROFILE", home)
+
+			dbDir := filepath.Join(home, "Library", "Application Support", "Cursor", "User", "globalStorage")
+			require.NoError(t, os.MkdirAll(dbDir, 0o755))
+			createCursorDB(t, filepath.Join(dbDir, "state.vscdb"), fixture.Rows)
+
+			after, err := time.Parse(time.RFC3339Nano, fixture.After)
+			require.NoError(t, err)
+
+			got, err := (ai.Cursor{
+				After:             after,
+				FallbackUserAgent: "cursor/fixture",
+			}).Parse(t.Context())
+			require.NoError(t, err)
+			require.Len(t, got, len(fixture.Expected.Entities))
+
+			for i := range got {
+				assert.Equal(t, fixture.Expected.Entities[i], got[i].Entity)
+				assert.Equal(t, fixture.Expected.InputTokens[i], got[i].AIInputTokens)
+				assert.Equal(t, fixture.Expected.OutputTokens[i], got[i].AIOutputTokens)
+				assert.Equal(t, fixture.Expected.LineChanges[i], got[i].AILineChanges)
+			}
+		})
+	}
 }
 
 func TestCursorParse_UnicodePathsAndText(t *testing.T) {
@@ -592,10 +630,195 @@ func TestCursorParse_SkipsStaleCursorStateDB(t *testing.T) {
 	assert.Empty(t, got)
 }
 
+func TestCursorParse_BoundsRecentRows(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	dbDir := filepath.Join(home, "Library", "Application Support", "Cursor", "User", "globalStorage")
+	require.NoError(t, os.MkdirAll(dbDir, 0o755))
+
+	rows := []cursorTestRow{{
+		Key: "bubbleId:outside-window:user",
+		Value: map[string]any{
+			"_v":        3,
+			"type":      1,
+			"text":      "this row must be outside the bounded scan",
+			"createdAt": "2026-07-10T14:00:00Z",
+		},
+	}}
+
+	for i := range 5000 {
+		rows = append(rows, cursorTestRow{
+			Key: fmt.Sprintf("bubbleId:noise-%04d:row", i),
+			Value: map[string]any{
+				"_v":        3,
+				"createdAt": time.Date(2026, 7, 10, 14, 1, 0, i, time.UTC).Format(time.RFC3339Nano),
+			},
+		})
+	}
+
+	createCursorDB(t, filepath.Join(dbDir, "state.vscdb"), rows)
+
+	got, err := (ai.Cursor{
+		After: time.Date(2026, 7, 10, 13, 59, 0, 0, time.UTC),
+	}).Parse(t.Context())
+	require.NoError(t, err)
+	assert.Empty(t, got)
+}
+
+func TestCursorParse_LoadsOnlyPostCheckpointSnapshotsAndLogsSafeStats(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	dbDir := filepath.Join(home, "Library", "Application Support", "Cursor", "User", "globalStorage")
+	require.NoError(t, os.MkdirAll(dbDir, 0o755))
+
+	privatePath := filepath.Join(home, "private-project", "main.go")
+	createCursorDB(t, filepath.Join(dbDir, "state.vscdb"), []cursorTestRow{
+		{
+			Key: "bubbleId:historical:edit",
+			Value: map[string]any{
+				"_v":        3,
+				"type":      2,
+				"createdAt": "2026-07-10T14:00:00Z",
+				"toolFormerData": map[string]any{
+					"status": "completed",
+					"name":   "edit_file_v2",
+					"params": fmt.Sprintf(
+						`{"relativeWorkspacePath":%q,"noCodeblock":true}`,
+						privatePath,
+					),
+					"result": `{"beforeContentId":"composer.content.old-before",` +
+						`"afterContentId":"composer.content.old-after"}`,
+				},
+			},
+		},
+		{
+			Key: "bubbleId:current:user",
+			Value: map[string]any{
+				"_v":        3,
+				"type":      1,
+				"text":      "sanitized current prompt",
+				"createdAt": "2026-07-10T14:02:00Z",
+			},
+		},
+		{Key: "composer.content.old-before", Raw: "one"},
+		{Key: "composer.content.old-after", Raw: "one\ntwo"},
+	})
+
+	var logs bytes.Buffer
+
+	ctx := log.ToContext(t.Context(), log.New(&logs, log.WithVerbose(true)))
+
+	got, err := (ai.Cursor{
+		After: time.Date(2026, 7, 10, 14, 1, 0, 0, time.UTC),
+	}).Parse(ctx)
+	require.NoError(t, err)
+	require.Len(t, got, 1)
+
+	assert.Contains(t, logs.String(), "cursor parser stats")
+	assert.Contains(t, logs.String(), "content_ids=0")
+	assert.NotContains(t, logs.String(), privatePath)
+	assert.NotContains(t, logs.String(), "sanitized current prompt")
+}
+
+func TestCursorParse_MissingSnapshotIsUnknownNotZero(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	dbDir := filepath.Join(home, "Library", "Application Support", "Cursor", "User", "globalStorage")
+	require.NoError(t, os.MkdirAll(dbDir, 0o755))
+
+	editPath := filepath.Join(home, "project", "main.go")
+	createCursorDB(t, filepath.Join(dbDir, "state.vscdb"), []cursorTestRow{{
+		Key: "bubbleId:missing-snapshot:edit",
+		Value: map[string]any{
+			"_v":        3,
+			"type":      2,
+			"createdAt": "2026-07-10T15:00:00Z",
+			"toolFormerData": map[string]any{
+				"status": "completed",
+				"name":   "edit_file_v2",
+				"params": fmt.Sprintf(
+					`{"relativeWorkspacePath":%q,"noCodeblock":true}`,
+					editPath,
+				),
+				"result": `{"beforeContentId":"composer.content.before",` +
+					`"afterContentId":"composer.content.missing"}`,
+			},
+		},
+	}})
+
+	got, err := (ai.Cursor{
+		After: time.Date(2026, 7, 10, 14, 59, 0, 0, time.UTC),
+	}).Parse(t.Context())
+	require.NoError(t, err)
+	require.Len(t, got, 1)
+
+	assert.Equal(t, editPath, got[0].Entity)
+	assert.Nil(t, got[0].AILineChanges)
+}
+
 type cursorTestRow struct {
 	Key   string
 	Value map[string]any
 	Raw   string
+}
+
+type cursorFixtureExpected struct {
+	Entities     []string `json:"entities"`
+	InputTokens  []int64  `json:"inputTokens"`
+	LineChanges  []*int   `json:"lineChanges"`
+	OutputTokens []int64  `json:"outputTokens"`
+	TokenSource  string   `json:"tokenSource"`
+}
+
+type cursorSchemaFixture struct {
+	After    string                `json:"after"`
+	Expected cursorFixtureExpected `json:"expected"`
+	Rows     []struct {
+		Key   string          `json:"key"`
+		Raw   *string         `json:"raw"`
+		Value json.RawMessage `json:"value"`
+	} `json:"rows"`
+	Schema string `json:"schema"`
+}
+
+type loadedCursorFixture struct {
+	After    string
+	Expected cursorFixtureExpected
+	Rows     []cursorTestRow
+}
+
+func loadCursorFixture(t *testing.T, name string) loadedCursorFixture {
+	t.Helper()
+
+	data, err := os.ReadFile(filepath.Join("testdata", "cursor", name))
+	require.NoError(t, err)
+
+	var fixture cursorSchemaFixture
+	require.NoError(t, json.Unmarshal(data, &fixture))
+	require.NotEmpty(t, fixture.Schema)
+	require.NotEmpty(t, fixture.Expected.TokenSource)
+
+	rows := make([]cursorTestRow, 0, len(fixture.Rows))
+	for _, row := range fixture.Rows {
+		raw := string(row.Value)
+		if row.Raw != nil {
+			raw = *row.Raw
+		}
+
+		rows = append(rows, cursorTestRow{Key: row.Key, Raw: raw})
+	}
+
+	return loadedCursorFixture{
+		After:    fixture.After,
+		Expected: fixture.Expected,
+		Rows:     rows,
+	}
 }
 
 func createCursorDB(t *testing.T, dbPath string, rows []cursorTestRow) {

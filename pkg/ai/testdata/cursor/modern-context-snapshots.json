@@ -1,0 +1,72 @@
+{
+  "schema": "modern-context-snapshots",
+  "after": "2026-07-10T12:59:00Z",
+  "rows": [
+    {
+      "key": "bubbleId:fixture-modern:user",
+      "value": {
+        "_v": 3,
+        "type": 1,
+        "text": "sanitized prompt",
+        "createdAt": "2026-07-10T13:00:00Z",
+        "modelInfo": {
+          "modelName": "fixture-model"
+        },
+        "tokenCount": {
+          "inputTokens": 0,
+          "outputTokens": 0
+        },
+        "contextWindowStatusAtCreation": {
+          "percentageRemaining": 80,
+          "tokensUsed": 500,
+          "tokenLimit": 2500
+        }
+      }
+    },
+    {
+      "key": "bubbleId:fixture-modern:edit",
+      "value": {
+        "_v": 3,
+        "type": 2,
+        "createdAt": "2026-07-10T13:00:01Z",
+        "tokenCount": {
+          "inputTokens": 0,
+          "outputTokens": 0
+        },
+        "toolFormerData": {
+          "status": "completed",
+          "name": "edit_file_v2",
+          "params": "{\"relativeWorkspacePath\":\"/workspace/sanitized/main.go\",\"noCodeblock\":true}",
+          "result": "{\"beforeContentId\":\"composer.content.fixture-before\",\"afterContentId\":\"composer.content.fixture-after\"}"
+        }
+      }
+    },
+    {
+      "key": "composer.content.fixture-before",
+      "raw": "alpha\nbeta\ngamma"
+    },
+    {
+      "key": "composer.content.fixture-after",
+      "raw": "alpha\ngamma"
+    }
+  ],
+  "expected": {
+    "entities": [
+      "Cursor fixture-modern",
+      "/workspace/sanitized/main.go"
+    ],
+    "inputTokens": [
+      0,
+      0
+    ],
+    "outputTokens": [
+      0,
+      0
+    ],
+    "lineChanges": [
+      null,
+      -1
+    ],
+    "tokenSource": "context_snapshot_estimate"
+  }
+}

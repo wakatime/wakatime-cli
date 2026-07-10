@@ -164,6 +164,10 @@ func WithAISync(config Config) heartbeat.HandleOption {
 			minAIHeartbeatTime, maxAIHeartbeatTime := minMaxAIHeartbeatTimes(heartbeats)
 
 			parsedAt := heartbeatTime(maxAIHeartbeatTime)
+			if parsedAt.Before(lastParsedAt) {
+				parsedAt = lastParsedAt
+			}
+
 			if err := UpdateLastParsedAt(ctx, config.V, parsedAt); err != nil {
 				log.Extract(ctx).Warnf("failed to update ai_logs_last_parsed_at: %s", err)
 			}
@@ -215,6 +219,22 @@ func parseAIHeartbeats(
 	logs, resetLogs := captureAIParsingLogs(ctx)
 	defer resetLogs()
 
+	cursorName := (Cursor{}).Name()
+
+	cursorAfter, cursorCheckpointExists, err := getParserLastParsedAt(
+		ctx,
+		config.V,
+		cursorName,
+		after,
+	)
+	if err != nil {
+		logger.Warnf("failed reading %s parser checkpoint: %s", cursorName, err)
+
+		cursorAfter = after
+	}
+
+	cursorParsedAt := cursorAfter
+
 	var parsers = []Parser{
 		Claude{
 			After:             after,
@@ -257,7 +277,7 @@ func parseAIHeartbeats(
 			FallbackUserAgent: config.Plugin,
 		},
 		Cursor{
-			After:             after,
+			After:             cursorAfter,
 			UserAgents:        userAgents,
 			FallbackUserAgent: config.Plugin,
 		},
@@ -324,6 +344,21 @@ func parseAIHeartbeats(
 
 		if len(heartbeats) > 0 {
 			aiHeartbeats = append(aiHeartbeats, heartbeats...)
+
+			if p.Name() == cursorName {
+				_, maximum := minMaxAIHeartbeatTimes(heartbeats)
+
+				parsedAt := heartbeatTime(maximum)
+				if parsedAt.After(cursorParsedAt) {
+					cursorParsedAt = parsedAt
+				}
+			}
+		}
+	}
+
+	if !cursorCheckpointExists || cursorParsedAt.After(cursorAfter) {
+		if err := UpdateParserLastParsedAt(ctx, config.V, cursorName, cursorParsedAt); err != nil {
+			logger.Warnf("failed updating %s parser checkpoint: %s", cursorName, err)
 		}
 	}
 
@@ -469,9 +504,66 @@ func getLastParsedAt(ctx context.Context, v *viper.Viper) (time.Time, error) {
 	return lastParsedAt, nil
 }
 
+func getParserLastParsedAt(
+	ctx context.Context,
+	v *viper.Viper,
+	parserName string,
+	fallback time.Time,
+) (time.Time, bool, error) {
+	if v == nil {
+		return fallback, false, fmt.Errorf("missing viper instance")
+	}
+
+	key := parserLastParsedAtKey(parserName)
+
+	value := vipertools.GetString(v, "internal."+key)
+	if value == "" {
+		return fallback, false, nil
+	}
+
+	parsed, err := vipertools.SafeTimeParse(ini.DateFormat, value)
+	if err != nil {
+		log.Extract(ctx).Warnf("failed to parse %s: %s", key, err)
+		return fallback, false, nil
+	}
+
+	if parsed.After(time.Now()) {
+		return time.Now(), true, nil
+	}
+
+	return parsed, true, nil
+}
+
+func parserLastParsedAtKey(parserName string) string {
+	slug := strings.ToLower(strings.TrimSpace(parserName))
+	slug = strings.NewReplacer(" ", "_", "-", "_", "/", "_").Replace(slug)
+
+	return "ai_logs_last_parsed_at_" + slug
+}
+
 // UpdateLastParsedAt stores the latest AI transcript timestamp covered by
 // generated AI heartbeats.
 func UpdateLastParsedAt(ctx context.Context, v *viper.Viper, parsedAt time.Time) error {
+	return updateLastParsedAtKey(ctx, v, "ai_logs_last_parsed_at", parsedAt)
+}
+
+// UpdateParserLastParsedAt stores the latest transcript timestamp covered by
+// one parser, so another parser cannot move its checkpoint forward.
+func UpdateParserLastParsedAt(
+	ctx context.Context,
+	v *viper.Viper,
+	parserName string,
+	parsedAt time.Time,
+) error {
+	return updateLastParsedAtKey(ctx, v, parserLastParsedAtKey(parserName), parsedAt)
+}
+
+func updateLastParsedAtKey(
+	ctx context.Context,
+	v *viper.Viper,
+	key string,
+	parsedAt time.Time,
+) error {
 	if v == nil {
 		return fmt.Errorf("missing viper instance")
 	}
@@ -482,7 +574,7 @@ func UpdateLastParsedAt(ctx context.Context, v *viper.Viper, parsedAt time.Time)
 	}
 
 	keyValue := map[string]string{
-		"ai_logs_last_parsed_at": parsedAt.Format(time.RFC3339Nano),
+		key: parsedAt.Format(time.RFC3339Nano),
 	}
 
 	if err := w.Write(ctx, "internal", keyValue); err != nil {
