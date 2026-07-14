@@ -43,6 +43,22 @@ func TestShouldBackoff_NegateBackoff(t *testing.T) {
 	assert.False(t, should)
 }
 
+func TestShouldBackoff_StaleBackoffResetsAfter24Hours(t *testing.T) {
+	at := time.Now().Add(-25 * time.Hour)
+
+	should := shouldBackoff(t.Context(), 3, at)
+
+	assert.False(t, should)
+}
+
+func TestShouldBackoff_StaleBackoffActiveWithin24Hours(t *testing.T) {
+	at := time.Now().Add(-30 * time.Second)
+
+	should := shouldBackoff(t.Context(), 3, at)
+
+	assert.True(t, should)
+}
+
 func TestUpdateBackoffSettings(t *testing.T) {
 	tmpFile, err := os.CreateTemp(t.TempDir(), "wakatime")
 	require.NoError(t, err)

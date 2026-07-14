@@ -19,6 +19,8 @@ import (
 const (
 	// maxBackoff sets the maximum seconds we will rate limit before retrying to send.
 	maxBackoffSecs = 3600
+	// maxRetries sets the maximum number of retries before resetting backoff state.
+	maxRetries = 10
 	// factor is the total seconds to be multiplied by.
 	factor = 15
 )
@@ -54,8 +56,14 @@ func WithBackoff(config Config) heartbeat.HandleOption {
 
 			results, err := next(ctx, hh)
 			if err != nil {
+				// cap retries at maxRetries to prevent unbounded growth
+				newRetries := config.Retries + 1
+				if newRetries > maxRetries {
+					newRetries = maxRetries
+				}
+
 				// error response, increment backoff
-				if updateErr := updateBackoffSettings(ctx, config.V, config.Retries+1, time.Now()); updateErr != nil {
+				if updateErr := updateBackoffSettings(ctx, config.V, newRetries, time.Now()); updateErr != nil {
 					logger.Warnf("failed to update backoff settings: %s", updateErr)
 				}
 
@@ -94,6 +102,16 @@ func shouldBackoff(ctx context.Context, retries int, at time.Time) bool {
 			retries,
 			at.Format(ini.DateFormat),
 			duration.String(),
+		)
+
+		return false
+	}
+
+	// safety reset: if backoff_at is older than 24 hours, force reset
+	if time.Since(at) > 24*time.Hour {
+		logger.Debugf(
+			"backoff_at is older than 24 hours (since %s), resetting backoff state",
+			at.Format(ini.DateFormat),
 		)
 
 		return false

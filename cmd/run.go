@@ -239,14 +239,21 @@ func RunCmd(ctx context.Context, v *viper.Viper, verbose bool, sendDiagsOnErrors
 }
 
 // RunCmdWithOfflineSync runs a command function and exits with the exit code
-// returned by the command function. If command run was successful, it will execute
-// offline sync command afterwards. Will send diagnostic on any errors or panics.
+// returned by the command function. It will always execute offline sync afterwards,
+// regardless of whether the command succeeded or failed. Will send diagnostic on
+// any errors or panics.
 func RunCmdWithOfflineSync(ctx context.Context, v *viper.Viper, verbose bool, sendDiagsOnErrors bool, cmd cmdFn) error {
-	if err := runCmd(ctx, v, verbose, sendDiagsOnErrors, cmd); err != nil {
-		return err
+	heartbeatErr := runCmd(ctx, v, verbose, sendDiagsOnErrors, cmd)
+
+	// always attempt offline sync, even when heartbeat command fails,
+	// to ensure queued heartbeats are drained when the API becomes reachable
+	syncErr := runCmd(ctx, v, verbose, sendDiagsOnErrors, offlinesync.RunWithRateLimiting)
+
+	if heartbeatErr != nil {
+		return heartbeatErr
 	}
 
-	return runCmd(ctx, v, verbose, sendDiagsOnErrors, offlinesync.RunWithRateLimiting)
+	return syncErr
 }
 
 // runCmd contains the main logic of RunCmd.
