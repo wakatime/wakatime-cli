@@ -63,6 +63,8 @@ type (
 
 	cursorLogLine struct {
 		BubbleID       string
+		BeforeContent  *string
+		AfterContent   *string
 		CreatedAt      time.Time             `json:"createdAt"`
 		Type           int                   `json:"type"`
 		Text           string                `json:"text"`
@@ -73,8 +75,10 @@ type (
 	}
 
 	cursorLogRow struct {
-		BubbleID string
-		Value    string
+		BubbleID      string
+		Value         string
+		BeforeContent *string
+		AfterContent  *string
 	}
 
 	cursorEditParams struct {
@@ -147,6 +151,8 @@ func (g Cursor) Parse(ctx context.Context) (Heartbeats, error) {
 		}
 
 		logLine.BubbleID = row.BubbleID
+		logLine.BeforeContent = row.BeforeContent
+		logLine.AfterContent = row.AfterContent
 
 		if model := g.modelName([]byte(row.Value)); model != "" && logLine.BubbleID != "" {
 			bubbleModels[logLine.BubbleID] = model
@@ -348,33 +354,59 @@ WITH recentCursorRows AS (
 	WHERE key LIKE 'bubbleId:%'
 	ORDER BY rowid DESC
 	LIMIT ?
+),
+filteredCursorRows AS (
+	SELECT
+		key,
+		value,
+		CASE
+			WHEN json_valid(json_extract(value, '$.toolFormerData.result'))
+			THEN json_extract(
+				json_extract(value, '$.toolFormerData.result'),
+				'$.beforeContentId'
+			)
+		END AS beforeContentId,
+		CASE
+			WHEN json_valid(json_extract(value, '$.toolFormerData.result'))
+			THEN json_extract(
+				json_extract(value, '$.toolFormerData.result'),
+				'$.afterContentId'
+			)
+		END AS afterContentId
+	FROM recentCursorRows
+	WHERE json_valid(value)
+	  AND (
+	    (
+	      json_extract(value, '$.toolFormerData.status') = 'completed'
+	      AND json_extract(
+	        value,
+	        '$.toolFormerData.name'
+	      ) IN ('edit_file', 'edit_file_v2', 'read_file', 'read_file_v2')
+	    )
+	    OR json_extract(value, '$.text') IS NOT NULL
+	    OR json_extract(value, '$.model') IS NOT NULL
+	    OR json_extract(value, '$.modelName') IS NOT NULL
+	    OR json_extract(value, '$.modelId') IS NOT NULL
+	    OR json_extract(value, '$.modelID') IS NOT NULL
+	    OR json_extract(value, '$.model_id') IS NOT NULL
+	    OR json_extract(value, '$.modelSlug') IS NOT NULL
+	    OR json_extract(value, '$.modelDetails') IS NOT NULL
+	    OR json_extract(value, '$.modelConfig') IS NOT NULL
+	    OR json_extract(value, '$.selectedModel') IS NOT NULL
+	    OR json_extract(value, '$.selectedChatModel') IS NOT NULL
+	    OR json_extract(value, '$.tokenCount') IS NOT NULL
+	    OR json_extract(value, '$.usage') IS NOT NULL
+	  )
 )
-SELECT key, value
-FROM recentCursorRows
-WHERE json_valid(value)
-  AND (
-    (
-      json_extract(value, '$.toolFormerData.status') = 'completed'
-      AND json_extract(
-        value,
-        '$.toolFormerData.name'
-      ) IN ('edit_file', 'edit_file_v2', 'read_file', 'read_file_v2')
-    )
-    OR json_extract(value, '$.text') IS NOT NULL
-    OR json_extract(value, '$.model') IS NOT NULL
-    OR json_extract(value, '$.modelName') IS NOT NULL
-    OR json_extract(value, '$.modelId') IS NOT NULL
-    OR json_extract(value, '$.modelID') IS NOT NULL
-    OR json_extract(value, '$.model_id') IS NOT NULL
-    OR json_extract(value, '$.modelSlug') IS NOT NULL
-    OR json_extract(value, '$.modelDetails') IS NOT NULL
-    OR json_extract(value, '$.modelConfig') IS NOT NULL
-    OR json_extract(value, '$.selectedModel') IS NOT NULL
-    OR json_extract(value, '$.selectedChatModel') IS NOT NULL
-    OR json_extract(value, '$.tokenCount') IS NOT NULL
-    OR json_extract(value, '$.usage') IS NOT NULL
-  )
-ORDER BY json_extract(value, '$.createdAt') ASC;
+SELECT
+	row.key,
+	row.value,
+	CAST(beforeContent.value AS TEXT),
+	CAST(afterContent.value AS TEXT)
+FROM filteredCursorRows AS row
+LEFT JOIN cursorDiskKV AS beforeContent ON beforeContent.key = row.beforeContentId
+LEFT JOIN cursorDiskKV AS afterContent ON afterContent.key = row.afterContentId
+ORDER BY json_extract(row.value, '$.createdAt') ASC;
 `, cursorRecentBubbleRowLimit)
 	if err != nil {
 		return nil, fmt.Errorf("failed querying cursor sqlite db %q: %s", dbPath, err)
@@ -385,10 +417,12 @@ ORDER BY json_extract(value, '$.createdAt') ASC;
 
 	for rows.Next() {
 		var (
-			key string
-			row string
+			key           string
+			row           string
+			beforeContent sql.NullString
+			afterContent  sql.NullString
 		)
-		if err := rows.Scan(&key, &row); err != nil {
+		if err := rows.Scan(&key, &row, &beforeContent, &afterContent); err != nil {
 			return nil, fmt.Errorf("failed scanning cursor sqlite row: %s", err)
 		}
 
@@ -399,10 +433,19 @@ ORDER BY json_extract(value, '$.createdAt') ASC;
 				bubbleID = bubbleID[:idx]
 			}
 
-			results = append(results, cursorLogRow{
+			result := cursorLogRow{
 				BubbleID: bubbleID,
 				Value:    row,
-			})
+			}
+			if beforeContent.Valid {
+				result.BeforeContent = heartbeat.PointerTo(beforeContent.String)
+			}
+
+			if afterContent.Valid {
+				result.AfterContent = heartbeat.PointerTo(afterContent.String)
+			}
+
+			results = append(results, result)
 		}
 	}
 
@@ -554,6 +597,10 @@ func (g Cursor) cursorFileHeartbeat(
 		}
 
 		lineChanges := g.lineChanges(params.StreamingContent)
+		if params.StreamingContent == "" {
+			lineChanges = g.lineChangesFromContent(logLine.BeforeContent, logLine.AfterContent)
+		}
+
 		h := g.newHeartbeat(
 			heartbeat.PointerTo(lineChanges),
 			sessionID,
@@ -960,6 +1007,22 @@ func (g Cursor) lineChanges(content string) int {
 	}
 
 	return lineChanges
+}
+
+func (Cursor) lineChangesFromContent(beforeContent *string, afterContent *string) int {
+	if beforeContent == nil || afterContent == nil {
+		return 0
+	}
+
+	lineCount := func(content string) int {
+		if content == "" {
+			return 0
+		}
+
+		return countStringLines(content)
+	}
+
+	return lineCount(*afterContent) - lineCount(*beforeContent)
 }
 
 func (Cursor) looksLikeUnifiedDiff(content string) bool {

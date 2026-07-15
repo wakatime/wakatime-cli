@@ -334,6 +334,86 @@ func TestCursorParse_UnicodePathsAndText(t *testing.T) {
 	assert.Equal(t, 2, *got[1].AILineChanges)
 }
 
+func TestCursorParse_ContentSnapshots(t *testing.T) {
+	ctx := context.Background()
+
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	dbDir := filepath.Join(home, "Library", "Application Support", "Cursor", "User", "globalStorage")
+	require.NoError(t, os.MkdirAll(dbDir, 0o755))
+
+	dbPath := filepath.Join(dbDir, "state.vscdb")
+	editedPath := filepath.Join(home, "cursor-test", "edited.go")
+	beforeID := "composer.content.before"
+	afterAdditionID := "composer.content.after-addition"
+	afterDeletionID := "composer.content.after-deletion"
+
+	createCursorDB(t, dbPath, []cursorTestRow{
+		{Key: beforeID, RawValue: "one\ntwo\nthree"},
+		{Key: afterAdditionID, RawValue: "one\ntwo changed\nthree\nfour\nfive"},
+		{Key: afterDeletionID, RawValue: "one\nfive"},
+		{
+			Key: "bubbleId:composer-snapshots:additions",
+			Value: map[string]any{
+				"_v":        3,
+				"type":      2,
+				"createdAt": "2026-07-15T11:38:57.351Z",
+				"toolFormerData": map[string]any{
+					"status": "completed",
+					"name":   "edit_file_v2",
+					"params": fmt.Sprintf(
+						`{"relativeWorkspacePath":%q,"noCodeblock":true,"cloudAgentEdit":false}`,
+						editedPath,
+					),
+					"result": fmt.Sprintf(
+						`{"beforeContentId":%q,"afterContentId":%q}`,
+						beforeID,
+						afterAdditionID,
+					),
+				},
+			},
+		},
+		{
+			Key: "bubbleId:composer-snapshots:deletions",
+			Value: map[string]any{
+				"_v":        3,
+				"type":      2,
+				"createdAt": "2026-07-15T11:38:59.112Z",
+				"toolFormerData": map[string]any{
+					"status": "completed",
+					"name":   "edit_file_v2",
+					"params": fmt.Sprintf(
+						`{"relativeWorkspacePath":%q,"noCodeblock":true,"cloudAgentEdit":false}`,
+						editedPath,
+					),
+					"result": fmt.Sprintf(
+						`{"beforeContentId":%q,"afterContentId":%q}`,
+						afterAdditionID,
+						afterDeletionID,
+					),
+				},
+			},
+		},
+	})
+
+	got, err := ai.Cursor{
+		After:             time.Date(2026, 7, 15, 11, 38, 0, 0, time.UTC),
+		FallbackUserAgent: "Cursor/1.105.1",
+	}.Parse(ctx)
+	require.NoError(t, err)
+	require.Len(t, got, 2)
+
+	assert.Equal(t, editedPath, got[0].Entity)
+	require.NotNil(t, got[0].AILineChanges)
+	assert.Equal(t, 2, *got[0].AILineChanges)
+
+	assert.Equal(t, editedPath, got[1].Entity)
+	require.NotNil(t, got[1].AILineChanges)
+	assert.Equal(t, -3, *got[1].AILineChanges)
+}
+
 func TestCursorParse_SkipsMalformedSQLiteRows(t *testing.T) {
 	ctx := context.Background()
 
@@ -472,8 +552,9 @@ func TestCursorParse_SkipsStaleCursorStateDB(t *testing.T) {
 }
 
 type cursorTestRow struct {
-	Key   string
-	Value map[string]any
+	Key      string
+	Value    map[string]any
+	RawValue string
 }
 
 func createCursorDB(t *testing.T, dbPath string, rows []cursorTestRow) {
@@ -493,8 +574,11 @@ func createCursorDB(t *testing.T, dbPath string, rows []cursorTestRow) {
 	require.NoError(t, err)
 
 	for _, row := range rows {
-		value, err := json.Marshal(row.Value)
-		require.NoError(t, err)
+		value := []byte(row.RawValue)
+		if row.Value != nil {
+			value, err = json.Marshal(row.Value)
+			require.NoError(t, err)
+		}
 
 		_, err = db.Exec(`INSERT INTO cursorDiskKV(key, value) VALUES(?, ?)`, row.Key, string(value))
 		require.NoError(t, err)
