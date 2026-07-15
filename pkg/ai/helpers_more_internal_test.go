@@ -1844,6 +1844,7 @@ func TestSQLiteParserModifiedAfterBranches(t *testing.T) {
 
 	info, err := os.Stat(dbPath)
 	require.NoError(t, err)
+
 	cutoff := info.ModTime()
 	assert.True(t, Cursor{}.stateDBModifiedAfter(dbPath, cutoff))
 	assert.True(t, Windsurf{}.stateDBModifiedAfter(dbPath, cutoff))

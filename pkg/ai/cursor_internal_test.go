@@ -149,6 +149,7 @@ func TestCursorHeartbeatFallbacks(t *testing.T) {
 	require.NotNil(t, edit)
 	assert.Equal(t, "/tmp/raw-edit.go", edit.Entity)
 	assert.Contains(t, edit.UserAgent, "composer/2.5")
+	assert.Contains(t, edit.UserAgent, "Cursor")
 	require.NotNil(t, edit.AILineChanges)
 	assert.Equal(t, 2, *edit.AILineChanges)
 	require.NotNil(t, edit.IsWrite)
@@ -252,5 +253,31 @@ func TestCursorUserAgentWithModel(t *testing.T) {
 		t,
 		"composer/2.5 Cursor/1.105.1",
 		cursorUserAgentWithModel("composer/2.5 Cursor/1.105.1", "composer/2.5"),
+	)
+}
+
+func TestCursorUserAgentIncludesModelAndCursorAttribution(t *testing.T) {
+	parser := Cursor{
+		FallbackUserAgent: "codex-cli/0.144.4 codex-cli-wakatime/1.0.0",
+		UserAgents: map[string]string{
+			"/tmp/dependencies.ts": "neovim/0.12 wakatime.nvim/12.0.0",
+		},
+	}
+
+	assert.Equal(
+		t,
+		"grok/4.5 Cursor codex-cli/0.144.4 codex-cli-wakatime/1.0.0",
+		parser.userAgent("Cursor session-id", "grok-4.5"),
+	)
+	assert.Equal(
+		t,
+		"grok/4.5 Cursor neovim/0.12 wakatime.nvim/12.0.0",
+		parser.userAgent("/tmp/dependencies.ts", "grok-4.5"),
+	)
+	assert.Equal(t, "grok/4.5 Cursor", Cursor{}.userAgent("Cursor session-id", "grok-4.5"))
+	assert.Equal(
+		t,
+		"grok/4.5 Cursor/3.11.25",
+		Cursor{FallbackUserAgent: "Cursor/3.11.25"}.userAgent("Cursor session-id", "grok-4.5"),
 	)
 }
