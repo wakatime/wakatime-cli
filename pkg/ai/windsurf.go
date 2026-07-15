@@ -135,7 +135,7 @@ func (g Windsurf) Parse(ctx context.Context) (Heartbeats, error) {
 
 		tokens := g.windsurfTokenCounts(logLine, bubbleTokens[logLine.BubbleID])
 
-		if logLine.CreatedAt.IsZero() || logLine.CreatedAt.Before(g.After) {
+		if logLine.CreatedAt.IsZero() || !timestampAtOrAfterCutoff(logLine.CreatedAt, g.After) {
 			bubbleTokens[logLine.BubbleID] = g.advanceTokens(tokens)
 			continue
 		}
@@ -212,7 +212,7 @@ func (Windsurf) stateDBModifiedAfter(dbPath string, after time.Time) bool {
 		return false
 	}
 
-	return info.ModTime().After(after)
+	return timestampAtOrAfterCutoff(info.ModTime(), after)
 }
 
 func (Windsurf) stateDBPath(ctx context.Context) (string, error) {
@@ -383,7 +383,7 @@ func (g Windsurf) windsurfAppHeartbeat(
 		heartbeat.AppType,
 		heartbeat.PointerTo(false),
 		cwd,
-		float64(logLine.CreatedAt.Unix()),
+		heartbeatTimestamp(logLine.CreatedAt),
 		aiUserAgentWithModel(entity, g.UserAgents, g.FallbackUserAgent, model, ""),
 	)
 	if logLine.Type == 1 {
@@ -420,7 +420,7 @@ func (g Windsurf) windsurfFileHeartbeat(
 			heartbeat.FileType,
 			heartbeat.PointerTo(true),
 			"",
-			float64(logLine.CreatedAt.Unix()),
+			heartbeatTimestamp(logLine.CreatedAt),
 			aiUserAgentWithModel(filePath, g.UserAgents, g.FallbackUserAgent, model, ""),
 		)
 
@@ -457,7 +457,7 @@ func (g Windsurf) windsurfFileHeartbeat(
 			heartbeat.FileType,
 			heartbeat.PointerTo(true),
 			"",
-			float64(logLine.CreatedAt.Unix()),
+			heartbeatTimestamp(logLine.CreatedAt),
 			aiUserAgentWithModel(filePath, g.UserAgents, g.FallbackUserAgent, model, ""),
 		)
 
@@ -504,7 +504,7 @@ func (g Windsurf) windsurfFileHeartbeat(
 			heartbeat.FileType,
 			heartbeat.PointerTo(false),
 			"",
-			float64(logLine.CreatedAt.Unix()),
+			heartbeatTimestamp(logLine.CreatedAt),
 			aiUserAgentWithModel(filePath, g.UserAgents, g.FallbackUserAgent, model, ""),
 		)
 

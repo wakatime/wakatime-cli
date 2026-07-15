@@ -159,7 +159,7 @@ func (g Gemini) transcriptPaths(ctx context.Context) (map[string][]string, error
 		}
 
 		info, err := entry.Info()
-		if err != nil || info.ModTime().Before(g.After) {
+		if err != nil || !timestampAtOrAfterCutoff(info.ModTime(), g.After) {
 			return nil
 		}
 
@@ -278,7 +278,7 @@ func (g Gemini) parseTranscript(transcript string, projectPath string) (Heartbea
 			state.CurrentOutput = message.Tokens.Output
 		}
 
-		if messageTime.IsZero() || messageTime.Before(g.After) {
+		if messageTime.IsZero() || !timestampAtOrAfterCutoff(messageTime, g.After) {
 			state.LastInput = state.CurrentInput
 			state.LastOutput = state.CurrentOutput
 
@@ -419,7 +419,7 @@ func (g Gemini) appHeartbeat(
 		false,
 		"",
 		projectPath,
-		float64(timestamp.Unix()),
+		heartbeatTimestamp(timestamp),
 		aiUserAgentWithModel(entity, g.UserAgents, g.FallbackUserAgent, message.Model, ""),
 	)
 	if role == "user" {
@@ -488,7 +488,7 @@ func (g Gemini) toolHeartbeat(
 			false,
 			"",
 			"",
-			float64(timestamp.Unix()),
+			heartbeatTimestamp(timestamp),
 			aiUserAgentWithModel(filePath, g.UserAgents, g.FallbackUserAgent, model, ""),
 		), true
 	case "edit", "replace":
@@ -521,7 +521,7 @@ func (g Gemini) toolHeartbeat(
 			false,
 			"",
 			"",
-			float64(timestamp.Unix()),
+			heartbeatTimestamp(timestamp),
 			aiUserAgentWithModel(filePath, g.UserAgents, g.FallbackUserAgent, model, ""),
 		), true
 	default:
@@ -559,7 +559,7 @@ func (g Gemini) promptHeartbeatsFromLogs(
 		}
 
 		timestamp := parseGeminiTime(entry.Timestamp)
-		if timestamp.IsZero() || timestamp.Before(g.After) || strings.TrimSpace(entry.Message) == "" {
+		if timestamp.IsZero() || !timestampAtOrAfterCutoff(timestamp, g.After) || strings.TrimSpace(entry.Message) == "" {
 			continue
 		}
 
@@ -584,7 +584,7 @@ func (g Gemini) promptHeartbeatsFromLogs(
 			false,
 			"",
 			projectPath,
-			float64(timestamp.Unix()),
+			heartbeatTimestamp(timestamp),
 			aiUserAgentWithModel(sessionEntity, g.UserAgents, g.FallbackUserAgent, "", ""),
 		)
 		h.AIPromptLength = promptLength(entry.Message)

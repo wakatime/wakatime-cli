@@ -54,6 +54,20 @@ func TestParserIDStringAndPlugins(t *testing.T) {
 	assert.Equal(t, "Goose", aiPlugin(Goose{}, ""))
 }
 
+func TestTimestampAtOrAfterCutoff(t *testing.T) {
+	cutoff := time.Date(2026, 7, 15, 19, 6, 59, 531000000, time.UTC)
+
+	assert.False(t, timestampAtOrAfterCutoff(cutoff.Add(-time.Nanosecond), cutoff))
+	assert.True(t, timestampAtOrAfterCutoff(cutoff, cutoff))
+	assert.True(t, timestampAtOrAfterCutoff(cutoff.Add(time.Nanosecond), cutoff))
+}
+
+func TestHeartbeatTimestampPreservesSubsecondPrecision(t *testing.T) {
+	timestamp := time.Date(2026, 7, 15, 19, 6, 59, 531000000, time.UTC)
+
+	assert.WithinDuration(t, timestamp, heartbeatTime(heartbeatTimestamp(timestamp)), time.Microsecond)
+}
+
 func TestEntityUserAgentsAndAIUserAgent(t *testing.T) {
 	ctx := context.Background()
 

@@ -164,7 +164,7 @@ func (g Amp) transcriptPaths(ctx context.Context) ([]string, error) {
 			}
 
 			info, err := entry.Info()
-			if err != nil || info.ModTime().Before(g.After) {
+			if err != nil || !timestampAtOrAfterCutoff(info.ModTime(), g.After) {
 				return nil
 			}
 
@@ -477,7 +477,7 @@ func (g Amp) handleTranscriptLine(
 	delete(state.pendingPatches, logLine.ToolCallID)
 
 	if logLine.RunStatus != "done" || logLine.HasRunError ||
-		logLine.Timestamp.IsZero() || logLine.Timestamp.Before(g.After) {
+		logLine.Timestamp.IsZero() || !timestampAtOrAfterCutoff(logLine.Timestamp, g.After) {
 		return
 	}
 

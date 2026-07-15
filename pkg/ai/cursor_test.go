@@ -63,7 +63,7 @@ func TestCursorParse(t *testing.T) {
 			Value: map[string]any{
 				"_v":        3,
 				"type":      2,
-				"createdAt": "2026-03-15T23:33:59Z",
+				"createdAt": "2026-03-15T23:33:55Z",
 				"tokenCount": map[string]any{
 					"inputTokens":  3,
 					"outputTokens": 1,
@@ -283,7 +283,7 @@ func TestCursorParse_UnicodePathsAndText(t *testing.T) {
 			Value: map[string]any{
 				"_v":        3,
 				"type":      2,
-				"createdAt": "2026-03-15T23:33:59Z",
+				"createdAt": "2026-03-15T23:33:55Z",
 				"toolFormerData": map[string]any{
 					"status": "completed",
 					"name":   "read_file_v2",
@@ -399,19 +399,106 @@ func TestCursorParse_ContentSnapshots(t *testing.T) {
 	})
 
 	got, err := ai.Cursor{
-		After:             time.Date(2026, 7, 15, 11, 38, 0, 0, time.UTC),
+		After:             time.Date(2026, 7, 15, 11, 38, 59, int(112*time.Millisecond), time.UTC),
 		FallbackUserAgent: "Cursor/1.105.1",
 	}.Parse(ctx)
 	require.NoError(t, err)
 	require.Len(t, got, 2)
 
 	assert.Equal(t, editedPath, got[0].Entity)
+	assert.Equal(
+		t,
+		float64(time.Date(2026, 7, 15, 11, 38, 57, int(351*time.Millisecond), time.UTC).UnixMilli())/1000,
+		got[0].Time,
+	)
 	require.NotNil(t, got[0].AILineChanges)
 	assert.Equal(t, 2, *got[0].AILineChanges)
 
 	assert.Equal(t, editedPath, got[1].Entity)
 	require.NotNil(t, got[1].AILineChanges)
 	assert.Equal(t, -3, *got[1].AILineChanges)
+}
+
+func TestCursorParse_FourSecondCutoffBufferIncludesEarlierEdits(t *testing.T) {
+	ctx := context.Background()
+
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	dbDir := filepath.Join(home, "Library", "Application Support", "Cursor", "User", "globalStorage")
+	require.NoError(t, os.MkdirAll(dbDir, 0o755))
+
+	dbPath := filepath.Join(dbDir, "state.vscdb")
+	editedPath := filepath.Join(home, "cursor-test", "dependencies.ts")
+	beforeID := "composer.content.before-buffered-edits"
+	afterFirstID := "composer.content.after-first-buffered-edit"
+	afterSecondID := "composer.content.after-second-buffered-edit"
+
+	createCursorDB(t, dbPath, []cursorTestRow{
+		{Key: beforeID, RawValue: "one\ntwo\nthree"},
+		{Key: afterFirstID, RawValue: "one"},
+		{Key: afterSecondID, RawValue: ""},
+		{
+			Key: "bubbleId:30b94b59-483c-4b88-b2b1-5c6b1c70d8af:first-edit",
+			Value: map[string]any{
+				"type":      2,
+				"createdAt": "2026-07-15T19:06:57.550Z",
+				"toolFormerData": map[string]any{
+					"status": "completed",
+					"name":   "edit_file_v2",
+					"params": fmt.Sprintf(`{"relativeWorkspacePath":%q}`, editedPath),
+					"result": fmt.Sprintf(
+						`{"beforeContentId":%q,"afterContentId":%q}`,
+						beforeID,
+						afterFirstID,
+					),
+				},
+			},
+		},
+		{
+			Key: "bubbleId:30b94b59-483c-4b88-b2b1-5c6b1c70d8af:second-edit",
+			Value: map[string]any{
+				"type":      2,
+				"createdAt": "2026-07-15T19:06:58.291Z",
+				"toolFormerData": map[string]any{
+					"status": "completed",
+					"name":   "edit_file_v2",
+					"params": fmt.Sprintf(`{"relativeWorkspacePath":%q}`, editedPath),
+					"result": fmt.Sprintf(
+						`{"beforeContentId":%q,"afterContentId":%q}`,
+						afterFirstID,
+						afterSecondID,
+					),
+				},
+			},
+		},
+		{
+			Key: "bubbleId:30b94b59-483c-4b88-b2b1-5c6b1c70d8af:assistant",
+			Value: map[string]any{
+				"type":      2,
+				"text":      "Removed the requested lines.",
+				"createdAt": "2026-07-15T19:06:59.531Z",
+			},
+		},
+	})
+
+	got, err := ai.Cursor{
+		After: time.Date(2026, 7, 15, 19, 6, 59, int(531*time.Millisecond), time.UTC),
+	}.Parse(ctx)
+	require.NoError(t, err)
+	require.Len(t, got, 3)
+
+	assert.Equal(t, editedPath, got[0].Entity)
+	require.NotNil(t, got[0].AILineChanges)
+	assert.Equal(t, -2, *got[0].AILineChanges)
+
+	assert.Equal(t, editedPath, got[1].Entity)
+	require.NotNil(t, got[1].AILineChanges)
+	assert.Equal(t, -1, *got[1].AILineChanges)
+
+	assert.Equal(t, heartbeat.AppType, got[2].EntityType)
+	assert.Equal(t, "Cursor 30b94b59-483c-4b88-b2b1-5c6b1c70d8af", got[2].Entity)
 }
 
 func TestCursorParse_SkipsMalformedSQLiteRows(t *testing.T) {
@@ -545,7 +632,7 @@ func TestCursorParse_SkipsStaleCursorStateDB(t *testing.T) {
 	require.NoError(t, os.Chtimes(dbPath, staleTime, staleTime))
 
 	got, err := ai.Cursor{
-		After: staleTime.Add(time.Second),
+		After: staleTime.Add(5 * time.Second),
 	}.Parse(ctx)
 	require.NoError(t, err)
 	assert.Empty(t, got)

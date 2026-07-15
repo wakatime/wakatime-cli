@@ -247,7 +247,7 @@ func (g Copilot) Parse(ctx context.Context) (Heartbeats, error) {
 
 	heartbeats := make(Heartbeats, 0, len(timed))
 	for _, item := range timed {
-		if item.timestamp.Before(g.After) {
+		if !timestampAtOrAfterCutoff(item.timestamp, g.After) {
 			continue
 		}
 
@@ -346,7 +346,7 @@ func (g Copilot) loadWorkspaceSessions(logger *log.Logger, workspaceDir string) 
 		}
 
 		info, err := entry.Info()
-		if err != nil || info.ModTime().Before(g.After) {
+		if err != nil || !timestampAtOrAfterCutoff(info.ModTime(), g.After) {
 			continue
 		}
 
@@ -903,7 +903,7 @@ func (Copilot) fileModifiedAfter(path string, after time.Time) bool {
 		return false
 	}
 
-	return !info.ModTime().Before(after)
+	return timestampAtOrAfterCutoff(info.ModTime(), after)
 }
 
 func (g Copilot) parseEditState(

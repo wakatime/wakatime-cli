@@ -189,7 +189,7 @@ func (g OpenCode) parseLegacyRoot(dataRoot string) (Heartbeats, error) {
 			return nil
 		}
 
-		if !time.UnixMilli(session.Time.Updated).Before(g.After) {
+		if timestampAtOrAfterCutoff(time.UnixMilli(session.Time.Updated), g.After) {
 			sessionPaths = append(sessionPaths, path)
 		}
 
@@ -404,7 +404,8 @@ ORDER BY time_created ASC, id ASC;
 			message.Time.Created = createdAt
 		}
 
-		if message.Time.Created == 0 || time.UnixMilli(message.Time.Created).Before(g.After) {
+		if message.Time.Created == 0 ||
+			!timestampAtOrAfterCutoff(time.UnixMilli(message.Time.Created), g.After) {
 			continue
 		}
 
@@ -611,7 +612,8 @@ func (g OpenCode) sessionHeartbeats(
 			tokens.CurrentOutput = message.info.Tokens.Output
 		}
 
-		if message.info.Time.Created == 0 || (!g.After.IsZero() && messageTime.Before(g.After)) {
+		if message.info.Time.Created == 0 ||
+			(!g.After.IsZero() && !timestampAtOrAfterCutoff(messageTime, g.After)) {
 			tokens.LastInput = tokens.CurrentInput
 			tokens.LastOutput = tokens.CurrentOutput
 
@@ -714,7 +716,7 @@ func openCodeSQLiteDBModifiedAfter(dbPath string, after time.Time) bool {
 		return false
 	}
 
-	return info.ModTime().After(after)
+	return timestampAtOrAfterCutoff(info.ModTime(), after)
 }
 
 func (g OpenCode) afterUnixMilli() int64 {
@@ -840,7 +842,7 @@ func (g OpenCode) userHeartbeat(
 		false,
 		"",
 		cwd,
-		float64(time.UnixMilli(message.info.Time.Created).Unix()),
+		heartbeatTimestamp(time.UnixMilli(message.info.Time.Created)),
 		aiUserAgentWithModelAndEditor(
 			entity, g.UserAgents, g.FallbackUserAgent, model, "", "opencode-cli/"+unknownIfEmpty(version)),
 	)
@@ -896,7 +898,7 @@ func (g OpenCode) assistantHeartbeat(
 		false,
 		"",
 		cwd,
-		float64(time.UnixMilli(message.info.Time.Created).Unix()),
+		heartbeatTimestamp(time.UnixMilli(message.info.Time.Created)),
 		aiUserAgentWithModelAndEditor(
 			entity, g.UserAgents, g.FallbackUserAgent, model, "", "opencode-cli/"+unknownIfEmpty(version)),
 	)
@@ -1111,7 +1113,7 @@ func (g OpenCode) fileHeartbeat(
 		false,
 		"",
 		"",
-		float64(timestamp.Unix()),
+		heartbeatTimestamp(timestamp),
 		aiUserAgentWithModelAndEditor(
 			filePath, g.UserAgents, g.FallbackUserAgent, model, "", "opencode-cli/"+unknownIfEmpty(version)),
 	)
