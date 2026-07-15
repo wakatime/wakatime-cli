@@ -97,7 +97,7 @@ func (g Goose) Parse(ctx context.Context) (Heartbeats, error) {
 			false,
 			"",
 			row.WorkingDir,
-			float64(row.UpdatedAt.Unix()),
+			heartbeatTimestamp(row.UpdatedAt),
 			aiUserAgentWithModel(entity, g.UserAgents, g.FallbackUserAgent, row.Model, ""),
 		)
 
@@ -144,7 +144,7 @@ func (Goose) dbModifiedAfter(dbPath string, after time.Time) bool {
 		return false
 	}
 
-	return info.ModTime().After(after)
+	return timestampAtOrAfterCutoff(info.ModTime(), after)
 }
 
 func (g Goose) queryRows(ctx context.Context, dbPath string) ([]gooseSessionRow, error) {
@@ -207,7 +207,7 @@ func (g Goose) queryRows(ctx context.Context, dbPath string) ([]gooseSessionRow,
 		}
 
 		row, ok := g.rowFromValues(selectColumns, raw)
-		if !ok || row.UpdatedAt.IsZero() || row.UpdatedAt.Before(g.After) {
+		if !ok || row.UpdatedAt.IsZero() || !timestampAtOrAfterCutoff(row.UpdatedAt, g.After) {
 			continue
 		}
 

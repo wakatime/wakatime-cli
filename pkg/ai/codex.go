@@ -172,7 +172,7 @@ func (g Codex) transcriptPaths(ctx context.Context) ([]string, error) {
 		}
 
 		info, err := entry.Info()
-		if err != nil || info.ModTime().Before(g.After) {
+		if err != nil || !timestampAtOrAfterCutoff(info.ModTime(), g.After) {
 			return nil
 		}
 
@@ -312,7 +312,7 @@ func (g Codex) handleTranscriptLine(
 	state.trackUserMessage(logLine)
 
 	if patchHeartbeats, handled := g.handlePendingPatch(logLine, session, state); handled {
-		if !logLine.Timestamp.IsZero() && !logLine.Timestamp.Before(g.After) {
+		if !logLine.Timestamp.IsZero() && timestampAtOrAfterCutoff(logLine.Timestamp, g.After) {
 			state.heartbeats = append(state.heartbeats, patchHeartbeats...)
 		}
 
@@ -320,7 +320,7 @@ func (g Codex) handleTranscriptLine(
 	}
 
 	if logLine.Timestamp.IsZero() ||
-		logLine.Timestamp.Before(g.After) ||
+		!timestampAtOrAfterCutoff(logLine.Timestamp, g.After) ||
 		state.shouldSkipAgentMessage(logLine) ||
 		state.shouldSkipAssistantMessage(logLine) ||
 		state.shouldSkipUserMessage(logLine) {
@@ -365,7 +365,7 @@ func (s *codexParseState) trackTokenCount(logLine codexLogLine, after time.Time)
 	s.tokens.CurrentInput = int64(*usage.InputTokens)
 	s.tokens.CurrentOutput = int64(*usage.OutputTokens)
 
-	if logLine.Timestamp.IsZero() || logLine.Timestamp.Before(after) {
+	if logLine.Timestamp.IsZero() || !timestampAtOrAfterCutoff(logLine.Timestamp, after) {
 		s.tokens.LastInput = s.tokens.CurrentInput
 		s.tokens.LastOutput = s.tokens.CurrentOutput
 
@@ -1010,7 +1010,7 @@ func (g Codex) messageHeartbeat(
 		false,
 		"",
 		cwd,
-		float64(timestamp.Unix()),
+		heartbeatTimestamp(timestamp),
 		g.userAgent(entity, agentVersion, version, source, userAgents, fallbackUserAgent),
 	)
 	if *payload.Role == "user" && promptChars > 0 {
@@ -1097,7 +1097,7 @@ func (g Codex) userMessageHeartbeat(
 		false,
 		"",
 		cwd,
-		float64(timestamp.Unix()),
+		heartbeatTimestamp(timestamp),
 		g.userAgent(sessionEntity, agentVersion, version, source, userAgents, fallbackUserAgent),
 	)
 	h.AIPromptLength = len([]rune(text))
@@ -1266,7 +1266,7 @@ func (g Codex) heartbeat(
 		false,
 		"",
 		"",
-		float64(timestamp.Unix()),
+		heartbeatTimestamp(timestamp),
 		g.userAgent(currentFile, agentVersion, version, source, userAgents, fallbackUserAgent),
 	)
 }

@@ -588,6 +588,21 @@ func heartbeatTime(timestamp float64) time.Time {
 	return time.Unix(sec, nsec).UTC()
 }
 
+// timestampAtOrAfterCutoff reports whether timestamp is inside the inclusive
+// parsing window. Keeping this comparison in one place makes the cutoff
+// contract explicit for every AI parser.
+func timestampAtOrAfterCutoff(timestamp time.Time, cutoff time.Time) bool {
+	return !timestamp.Before(cutoff)
+}
+
+// heartbeatTimestamp converts a time to a heartbeat timestamp without
+// discarding subsecond precision. Dropping that precision can leave the saved
+// parsing cutoff behind the source event and cause the event to be parsed
+// repeatedly.
+func heartbeatTimestamp(timestamp time.Time) float64 {
+	return float64(timestamp.Unix()) + float64(timestamp.Nanosecond())/float64(time.Second)
+}
+
 func entityToTimeMap(aiHeartbeats []heartbeat.Heartbeat) map[string][]float64 {
 	entities := make(map[string][]float64, len(aiHeartbeats))
 	for _, h := range aiHeartbeats {

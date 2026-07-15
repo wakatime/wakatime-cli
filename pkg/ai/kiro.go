@@ -128,7 +128,7 @@ func (g Kiro) Parse(ctx context.Context) (Heartbeats, error) {
 
 		if prompt, ok := prompts[execution.ExecutionID]; ok {
 			timestamp := time.UnixMilli(execution.StartTimeMS)
-			if !timestamp.Before(g.After) {
+			if timestampAtOrAfterCutoff(timestamp, g.After) {
 				heartbeats = append(heartbeats, g.promptHeartbeat(prompt, timestamp))
 			}
 		}
@@ -385,7 +385,7 @@ func (g Kiro) actionHeartbeats(execution kiroExecution, session kiroSessionInfo)
 		}
 
 		timestamp := time.UnixMilli(timestampMS)
-		if timestamp.IsZero() || timestamp.Before(g.After) {
+		if timestamp.IsZero() || !timestampAtOrAfterCutoff(timestamp, g.After) {
 			continue
 		}
 

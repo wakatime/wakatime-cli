@@ -134,7 +134,7 @@ func (g Qoder) Parse(ctx context.Context) (Heartbeats, error) {
 
 	for _, row := range rows {
 		timestamp := time.UnixMilli(row.CreatedAtMS)
-		if timestamp.IsZero() || timestamp.Before(g.After) {
+		if timestamp.IsZero() || !timestampAtOrAfterCutoff(timestamp, g.After) {
 			continue
 		}
 
@@ -185,7 +185,7 @@ func (Qoder) localDBModifiedAfter(dbPath string, after time.Time) bool {
 		return false
 	}
 
-	return info.ModTime().After(after)
+	return timestampAtOrAfterCutoff(info.ModTime(), after)
 }
 
 func (g Qoder) afterUnixMilli() int64 {
@@ -347,7 +347,7 @@ func (g Qoder) qoderAppHeartbeat(row qoderMessageRow, timestamp time.Time) *hear
 
 func (g Qoder) withPromptLengths(heartbeats Heartbeats, prompts []qoderPrompt) Heartbeats {
 	for _, prompt := range prompts {
-		if prompt.Length == 0 || prompt.Timestamp.Before(g.After) {
+		if prompt.Length == 0 || !timestampAtOrAfterCutoff(prompt.Timestamp, g.After) {
 			continue
 		}
 

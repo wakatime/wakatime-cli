@@ -351,7 +351,7 @@ func (g Claude) transcriptPaths(ctx context.Context) ([]string, error) {
 			}
 
 			info, err := d.Info()
-			if err != nil || info.ModTime().Before(g.After) {
+			if err != nil || !timestampAtOrAfterCutoff(info.ModTime(), g.After) {
 				return nil
 			}
 
@@ -608,7 +608,7 @@ func (g Claude) parseTranscript(ctx context.Context, transcript string) (Heartbe
 
 		tokens = g.claudeTokenCounts(logLine, tokens, &lastMsg)
 
-		if logLine.Timestamp.IsZero() || logLine.Timestamp.Before(g.After) {
+		if logLine.Timestamp.IsZero() || !timestampAtOrAfterCutoff(logLine.Timestamp, g.After) {
 			tokens = g.advanceTokens(tokens)
 			continue
 		}
@@ -834,7 +834,7 @@ func (g Claude) claudeAppHeartbeat(
 		heartbeat.AppType,
 		heartbeat.PointerTo(false),
 		cwd,
-		float64(logLine.Timestamp.Unix()),
+		heartbeatTimestamp(logLine.Timestamp),
 		g.userAgent(sessionEntity, version, model, complexity, ideSession),
 	)
 	h.AIPromptLength = promptLength
@@ -882,7 +882,7 @@ func (g Claude) claudeFileHeartbeat(
 		heartbeat.FileType,
 		heartbeat.PointerTo(isWrite),
 		projectPathOverride,
-		float64(logLine.Timestamp.Unix()),
+		heartbeatTimestamp(logLine.Timestamp),
 		g.userAgent(filePath, version, model, complexity, ideSession),
 	)
 

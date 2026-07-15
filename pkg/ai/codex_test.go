@@ -54,7 +54,7 @@ func TestCodexParse(t *testing.T) {
 	assert.Equal(t, "/root/wakatime-cli", got[0].ProjectPathOverride)
 	require.NotNil(t, got[0].IsWrite)
 	assert.False(t, *got[0].IsWrite)
-	assert.Equal(t, float64(time.Date(2026, 3, 28, 11, 33, 14, 289, time.UTC).Unix()), got[0].Time)
+	assert.Equal(t, float64(time.Date(2026, 3, 28, 11, 33, 14, int(289*time.Millisecond), time.UTC).UnixMilli())/1000, got[0].Time)
 	assert.NotContains(t, got[0].UserAgent, "Codex/")
 	assert.Contains(t, got[0].UserAgent, "vscode-wakatime/unknown")
 	assert.True(
@@ -74,7 +74,7 @@ func TestCodexParse(t *testing.T) {
 	assert.False(t, *got[1].IsWrite)
 	assert.Zero(t, got[1].AIInputTokens)
 	assert.Zero(t, got[1].AIOutputTokens)
-	assert.Equal(t, float64(time.Date(2026, 3, 28, 11, 33, 18, 535000000, time.UTC).Unix()), got[1].Time)
+	assert.Equal(t, float64(time.Date(2026, 3, 28, 11, 33, 18, int(535*time.Millisecond), time.UTC).UnixMilli())/1000, got[1].Time)
 	assert.NotContains(t, got[1].UserAgent, "Codex/")
 	assert.Contains(t, got[1].UserAgent, "vscode-wakatime/unknown")
 	assert.True(

@@ -13,6 +13,13 @@ import (
 )
 
 func TestCursorHelpers(t *testing.T) {
+	t.Run("cutoff includes a four second overlap", func(t *testing.T) {
+		cutoff := time.Date(2026, 7, 15, 19, 6, 59, 531000000, time.UTC)
+
+		assert.Equal(t, cutoff.Add(-4*time.Second), Cursor{After: cutoff}.bufferedCutoff())
+		assert.True(t, Cursor{}.bufferedCutoff().IsZero())
+	})
+
 	t.Run("file path prefers explicit path then code block", func(t *testing.T) {
 		assert.Equal(t, "/tmp/main.go", Cursor{}.filePath("/tmp/main.go", nil))
 		assert.Equal(t, "/tmp/from-block.go", Cursor{}.filePath("", []cursorCodeBlock{{
