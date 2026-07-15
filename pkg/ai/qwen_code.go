@@ -158,7 +158,7 @@ func (g QwenCode) transcriptPaths(ctx context.Context) ([]string, error) {
 		}
 
 		info, err := entry.Info()
-		if err != nil || info.ModTime().Before(g.After) {
+		if err != nil || !timestampAtOrAfterCutoff(info.ModTime(), g.After) {
 			return nil
 		}
 
@@ -420,7 +420,7 @@ func (g QwenCode) handleTranscriptRecord(record qwenCodeRecord, state *qwenCodeP
 	g.trackToolCalls(record.Message, state)
 	state.tokens = g.tokenCounts(record, state.tokens)
 
-	if record.Timestamp.IsZero() || record.Timestamp.Before(g.After) {
+	if record.Timestamp.IsZero() || !timestampAtOrAfterCutoff(record.Timestamp, g.After) {
 		state.tokens.LastInput = state.tokens.CurrentInput
 		state.tokens.LastOutput = state.tokens.CurrentOutput
 

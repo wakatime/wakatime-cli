@@ -318,7 +318,7 @@ func (g Continue) heartbeats(events []continueEvent) Heartbeats {
 				currentWorkspace = event.WorkspacePath
 			}
 
-			if event.Timestamp.Before(g.After) {
+			if !timestampAtOrAfterCutoff(event.Timestamp, g.After) {
 				continue
 			}
 
@@ -330,12 +330,12 @@ func (g Continue) heartbeats(events []continueEvent) Heartbeats {
 				heartbeat.AppType,
 				heartbeat.PointerTo(false),
 				currentWorkspace,
-				float64(event.Timestamp.Unix()),
+				heartbeatTimestamp(event.Timestamp),
 				g.userAgent(event, appHeartbeatEntity(g.Name(), currentSessionID)),
 			))
 			heartbeats[len(heartbeats)-1].AIPromptLength = g.promptLength(event.Prompt)
 		case continueEventRead:
-			if event.Timestamp.Before(g.After) {
+			if !timestampAtOrAfterCutoff(event.Timestamp, g.After) {
 				continue
 			}
 
@@ -348,11 +348,11 @@ func (g Continue) heartbeats(events []continueEvent) Heartbeats {
 				heartbeat.FileType,
 				heartbeat.PointerTo(false),
 				"",
-				float64(event.Timestamp.Unix()),
+				heartbeatTimestamp(event.Timestamp),
 				g.userAgent(event, filePath),
 			))
 		case continueEventEdit:
-			if event.Timestamp.Before(g.After) {
+			if !timestampAtOrAfterCutoff(event.Timestamp, g.After) {
 				continue
 			}
 
@@ -370,7 +370,7 @@ func (g Continue) heartbeats(events []continueEvent) Heartbeats {
 				heartbeat.FileType,
 				heartbeat.PointerTo(true),
 				"",
-				float64(event.Timestamp.Unix()),
+				heartbeatTimestamp(event.Timestamp),
 				g.userAgent(event, filePath),
 			))
 		}

@@ -269,7 +269,7 @@ func (g Gemini) antigravityTranscriptPaths(home string) ([]antigravityTranscript
 			}
 
 			info, err := entry.Info()
-			if err != nil || info.ModTime().Before(g.After) {
+			if err != nil || !timestampAtOrAfterCutoff(info.ModTime(), g.After) {
 				return nil
 			}
 
@@ -353,7 +353,7 @@ func (g Gemini) parseAntigravityTranscript(
 		}
 
 		timestamp := parseGeminiTime(line.CreatedAt)
-		if timestamp.IsZero() || timestamp.Before(g.After) {
+		if timestamp.IsZero() || !timestampAtOrAfterCutoff(timestamp, g.After) {
 			continue
 		}
 
@@ -445,7 +445,7 @@ func (g Gemini) antigravityAppHeartbeat(
 		false,
 		"",
 		projectPath,
-		float64(timestamp.Unix()),
+		heartbeatTimestamp(timestamp),
 		aiUserAgentWithModelAndEditor(
 			entity,
 			g.UserAgents,
@@ -499,7 +499,7 @@ func (g Gemini) antigravityFileHeartbeat(
 		false,
 		"",
 		"",
-		float64(timestamp.Unix()),
+		heartbeatTimestamp(timestamp),
 		aiUserAgentWithModelAndEditor(
 			filePath,
 			g.UserAgents,

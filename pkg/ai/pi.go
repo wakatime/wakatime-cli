@@ -141,7 +141,7 @@ func (g Pi) transcriptPaths(ctx context.Context) ([]string, error) {
 		}
 
 		info, err := entry.Info()
-		if err != nil || info.ModTime().Before(g.After) {
+		if err != nil || !timestampAtOrAfterCutoff(info.ModTime(), g.After) {
 			return nil
 		}
 
@@ -277,7 +277,7 @@ func (g Pi) handleTranscriptLine(
 	state.tokens = g.piTokenCounts(logLine, state.tokens, g.After)
 	state.version = g.sessionVersion(state.version, logLine)
 
-	if logLine.Timestamp.IsZero() || logLine.Timestamp.Before(g.After) {
+	if logLine.Timestamp.IsZero() || !timestampAtOrAfterCutoff(logLine.Timestamp, g.After) {
 		return
 	}
 
@@ -553,7 +553,7 @@ func (Pi) piTokenCounts(line piLogLine, tokens heartbeat.AITokens, after time.Ti
 	tokens.CurrentInput = tokens.LastInput + inputTokens
 	tokens.CurrentOutput = tokens.LastOutput + outputTokens
 
-	if line.Timestamp.IsZero() || line.Timestamp.Before(after) {
+	if line.Timestamp.IsZero() || !timestampAtOrAfterCutoff(line.Timestamp, after) {
 		tokens.LastInput = tokens.CurrentInput
 		tokens.LastOutput = tokens.CurrentOutput
 	}

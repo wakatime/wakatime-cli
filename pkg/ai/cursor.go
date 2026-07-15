@@ -24,7 +24,12 @@ import (
 // Cursor contains params for detecting heartbeats from Cursor transcripts.
 type Cursor ParserConfig
 
-const cursorRecentBubbleRowLimit = 5000
+const (
+	cursorRecentBubbleRowLimit = 5000
+	// Cursor can persist related edit rows shortly before a newer conversation
+	// row that advanced the shared AI parsing cutoff.
+	cursorCutoffBuffer = 4 * time.Second
+)
 
 type (
 	cursorTokenCount struct {
@@ -106,6 +111,7 @@ type (
 // Parse parses the Cursor SQLite state db for ai heartbeats.
 func (g Cursor) Parse(ctx context.Context) (Heartbeats, error) {
 	logger := log.Extract(ctx)
+	cutoff := g.bufferedCutoff()
 
 	dbPath, err := g.stateDBPath(ctx)
 	if err != nil {
@@ -116,7 +122,7 @@ func (g Cursor) Parse(ctx context.Context) (Heartbeats, error) {
 		return Heartbeats{}, nil
 	}
 
-	if !g.stateDBModifiedAfter(dbPath, g.After) {
+	if !g.stateDBModifiedAfter(dbPath, cutoff) {
 		return Heartbeats{}, nil
 	}
 
@@ -164,7 +170,7 @@ func (g Cursor) Parse(ctx context.Context) (Heartbeats, error) {
 
 		tokens := g.cursorTokenCounts(logLine, bubbleTokens[logLine.BubbleID])
 
-		if logLine.CreatedAt.IsZero() || logLine.CreatedAt.Before(g.After) {
+		if logLine.CreatedAt.IsZero() || !timestampAtOrAfterCutoff(logLine.CreatedAt, cutoff) {
 			bubbleTokens[logLine.BubbleID] = g.advanceTokens(tokens)
 			continue
 		}
@@ -181,6 +187,14 @@ func (g Cursor) Parse(ctx context.Context) (Heartbeats, error) {
 	}
 
 	return cursorApplySubscriptionPlan(heartbeats, subscriptionPlan), nil
+}
+
+func (g Cursor) bufferedCutoff() time.Time {
+	if g.After.IsZero() {
+		return time.Time{}
+	}
+
+	return g.After.Add(-cursorCutoffBuffer)
 }
 
 func (Cursor) cursorTokenCounts(line cursorLogLine, previous heartbeat.AITokens) heartbeat.AITokens {
@@ -308,7 +322,7 @@ func (Cursor) stateDBModifiedAfter(dbPath string, after time.Time) bool {
 		return false
 	}
 
-	return info.ModTime().After(after)
+	return timestampAtOrAfterCutoff(info.ModTime(), after)
 }
 
 func (Cursor) stateDBPath(ctx context.Context) (string, error) {
@@ -568,7 +582,7 @@ func (g Cursor) cursorAppHeartbeat(
 		heartbeat.AppType,
 		heartbeat.PointerTo(false),
 		cwd,
-		float64(logLine.CreatedAt.Unix()),
+		heartbeatTimestamp(logLine.CreatedAt),
 		g.userAgent(entity, model),
 	)
 	if logLine.Type == 1 {
@@ -609,7 +623,7 @@ func (g Cursor) cursorFileHeartbeat(
 			heartbeat.FileType,
 			heartbeat.PointerTo(true),
 			"",
-			float64(logLine.CreatedAt.Unix()),
+			heartbeatTimestamp(logLine.CreatedAt),
 			g.userAgent(filePath, model),
 		)
 
@@ -646,7 +660,7 @@ func (g Cursor) cursorFileHeartbeat(
 			heartbeat.FileType,
 			heartbeat.PointerTo(true),
 			"",
-			float64(logLine.CreatedAt.Unix()),
+			heartbeatTimestamp(logLine.CreatedAt),
 			g.userAgent(filePath, model),
 		)
 
@@ -693,7 +707,7 @@ func (g Cursor) cursorFileHeartbeat(
 			heartbeat.FileType,
 			heartbeat.PointerTo(false),
 			"",
-			float64(logLine.CreatedAt.Unix()),
+			heartbeatTimestamp(logLine.CreatedAt),
 			g.userAgent(filePath, model),
 		)
 
@@ -704,7 +718,9 @@ func (g Cursor) cursorFileHeartbeat(
 }
 
 func (g Cursor) userAgent(entity string, model string) string {
-	return aiUserAgentWithModel(entity, g.UserAgents, g.FallbackUserAgent, model, "")
+	cursorUserAgent := aiUserAgent(entity, g.UserAgents, g.FallbackUserAgent, aiPlugin(g, ""))
+
+	return userAgentWithPrependedAgent(cursorUserAgent, aiModelUserAgentToken(model, ""))
 }
 
 func cursorUserAgentWithModel(userAgent string, modelToken string) string {
