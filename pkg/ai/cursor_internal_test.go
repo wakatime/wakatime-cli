@@ -3,6 +3,8 @@
 package ai
 
 import (
+	"context"
+	"database/sql"
 	"strings"
 	"testing"
 	"time"
@@ -121,6 +123,263 @@ func TestCursorHelpers(t *testing.T) {
 			}, previous),
 		)
 	})
+
+	t.Run("usage output tokens take precedence over totals", func(t *testing.T) {
+		input := 7
+		output := 4
+		total := 11
+
+		assert.Equal(t,
+			heartbeat.AITokens{CurrentInput: 7, CurrentOutput: 4},
+			Cursor{}.cursorTokenCounts(cursorLogLine{
+				Usage: &cursorUsage{
+					InputTokensCamel:  &input,
+					OutputTokensCamel: &output,
+					TotalTokensCamel:  &total,
+				},
+			}, heartbeat.AITokens{}),
+		)
+	})
+
+	t.Run("token counts up until here are cumulative", func(t *testing.T) {
+		zero := 0
+		input := 7
+		output := 11
+
+		assert.Equal(t,
+			heartbeat.AITokens{LastInput: 3, LastOutput: 5, CurrentInput: 7, CurrentOutput: 11},
+			Cursor{}.cursorTokenCounts(cursorLogLine{
+				TokenCount:            &cursorTokenCount{InputTokens: &zero, OutputTokens: &zero},
+				TokenCountUpUntilHere: &cursorTokenCount{InputTokens: &input, OutputTokens: &output},
+			}, heartbeat.AITokens{LastInput: 3, LastOutput: 5}),
+		)
+	})
+
+	t.Run("token counts up until here accept totals", func(t *testing.T) {
+		input := 7
+		total := 11
+
+		assert.Equal(t,
+			heartbeat.AITokens{CurrentInput: 7, CurrentOutput: 11},
+			Cursor{}.cursorTokenCounts(cursorLogLine{
+				TokenCountUpUntilHere: &cursorTokenCount{
+					InputTokensSnake: &input,
+					TotalTokensSnake: &total,
+				},
+			}, heartbeat.AITokens{}),
+		)
+	})
+
+	t.Run("zero token counts up until here preserve pending tokens", func(t *testing.T) {
+		zero := 0
+		previous := heartbeat.AITokens{
+			LastInput:     3,
+			LastOutput:    5,
+			CurrentInput:  10,
+			CurrentOutput: 16,
+		}
+
+		assert.Equal(t,
+			previous,
+			Cursor{}.cursorTokenCounts(cursorLogLine{
+				TokenCountUpUntilHere: &cursorTokenCount{
+					InputTokens:  &zero,
+					OutputTokens: &zero,
+				},
+			}, previous),
+		)
+	})
+
+	t.Run("cumulative counter decrease does not create a negative delta", func(t *testing.T) {
+		reset := 20
+		previous := heartbeat.AITokens{LastInput: 100, CurrentInput: 100}
+
+		assert.Equal(t,
+			previous,
+			Cursor{}.cursorTokenCounts(cursorLogLine{
+				TokenCountUpUntilHere: &cursorTokenCount{InputTokens: &reset},
+			}, previous),
+		)
+
+		regrown := 130
+		assert.Equal(t,
+			heartbeat.AITokens{LastInput: 100, CurrentInput: 130},
+			Cursor{}.cursorTokenCounts(cursorLogLine{
+				TokenCountUpUntilHere: &cursorTokenCount{InputTokens: &regrown},
+			}, previous),
+		)
+	})
+
+	t.Run("edit embedded content per tool", func(t *testing.T) {
+		content, isEdit := Cursor{}.editEmbeddedContent(cursorLogLine{
+			ToolFormerData: &cursorToolFormerData{
+				Name:   "edit_file_v2",
+				Params: `{"streamingContent":"one\ntwo"}`,
+			},
+		})
+		assert.True(t, isEdit)
+		assert.Equal(t, "one\ntwo", content)
+
+		content, isEdit = Cursor{}.editEmbeddedContent(cursorLogLine{
+			ToolFormerData: &cursorToolFormerData{
+				Name:   "edit_file_v2",
+				Params: "{",
+			},
+		})
+		assert.True(t, isEdit)
+		assert.Empty(t, content)
+
+		content, isEdit = Cursor{}.editEmbeddedContent(cursorLogLine{
+			ToolFormerData: &cursorToolFormerData{
+				Name:    "edit_file",
+				RawArgs: `{}`,
+			},
+			CodeBlocks: []cursorCodeBlock{{Content: "from code block"}},
+		})
+		assert.True(t, isEdit)
+		assert.Equal(t, "from code block", content)
+
+		_, isEdit = Cursor{}.editEmbeddedContent(cursorLogLine{
+			ToolFormerData: &cursorToolFormerData{Name: "read_file"},
+		})
+		assert.False(t, isEdit)
+	})
+
+	t.Run("edit snapshot content ids require before and after", func(t *testing.T) {
+		before, after, ok := Cursor{}.editSnapshotContentIDs(cursorLogLine{
+			ToolFormerData: &cursorToolFormerData{
+				Result: `{"beforeContentId":"composer.content.b","afterContentId":"composer.content.a"}`,
+			},
+		})
+		assert.True(t, ok)
+		assert.Equal(t, "composer.content.b", before)
+		assert.Equal(t, "composer.content.a", after)
+
+		_, _, ok = Cursor{}.editSnapshotContentIDs(cursorLogLine{
+			ToolFormerData: &cursorToolFormerData{},
+		})
+		assert.False(t, ok)
+
+		_, _, ok = Cursor{}.editSnapshotContentIDs(cursorLogLine{
+			ToolFormerData: &cursorToolFormerData{Result: "{"},
+		})
+		assert.False(t, ok)
+
+		_, _, ok = Cursor{}.editSnapshotContentIDs(cursorLogLine{
+			ToolFormerData: &cursorToolFormerData{Result: `{"beforeContentId":"composer.content.b"}`},
+		})
+		assert.False(t, ok)
+	})
+}
+
+func TestCursorSnapshotLineChanges(t *testing.T) {
+	ctx := context.Background()
+
+	db, err := sql.Open("sqlite", ":memory:")
+	require.NoError(t, err)
+
+	defer db.Close() // nolint:errcheck
+
+	_, err = db.Exec(`CREATE TABLE cursorDiskKV (key TEXT, value BLOB)`)
+	require.NoError(t, err)
+
+	for key, content := range map[string]string{
+		"composer.content.before": "one\ntwo\nthree",
+		"composer.content.after":  "one\nthree",
+		"composer.content.empty":  "",
+	} {
+		_, err = db.Exec(`INSERT INTO cursorDiskKV(key, value) VALUES(?, ?)`, key, content)
+		require.NoError(t, err)
+	}
+
+	editLine := func(result string) cursorLogLine {
+		return cursorLogLine{
+			Type: 2,
+			ToolFormerData: &cursorToolFormerData{
+				Name:   "edit_file_v2",
+				Params: `{"relativeWorkspacePath":"/tmp/main.go","noCodeblock":true}`,
+				Result: result,
+				Status: "completed",
+			},
+		}
+	}
+
+	t.Run("signed net delta from snapshots", func(t *testing.T) {
+		got := Cursor{}.snapshotLineChanges(ctx, db, editLine(
+			`{"beforeContentId":"composer.content.before","afterContentId":"composer.content.after"}`,
+		))
+		require.NotNil(t, got)
+		assert.Equal(t, -1, *got)
+
+		got = Cursor{}.snapshotLineChanges(ctx, db, editLine(
+			`{"beforeContentId":"composer.content.empty","afterContentId":"composer.content.before"}`,
+		))
+		require.NotNil(t, got)
+		assert.Equal(t, 3, *got)
+	})
+
+	t.Run("missing snapshot is unknown not zero", func(t *testing.T) {
+		assert.Nil(t, Cursor{}.snapshotLineChanges(ctx, db, editLine(
+			`{"beforeContentId":"composer.content.before","afterContentId":"composer.content.missing"}`,
+		)))
+	})
+
+	t.Run("skips non edit rows and embedded content", func(t *testing.T) {
+		assert.Nil(t, Cursor{}.snapshotLineChanges(ctx, db, cursorLogLine{Type: 1}))
+		assert.Nil(t, Cursor{}.snapshotLineChanges(ctx, db, cursorLogLine{
+			Type:           2,
+			ToolFormerData: &cursorToolFormerData{Name: "edit_file_v2", Status: "pending"},
+		}))
+		assert.Nil(t, Cursor{}.snapshotLineChanges(ctx, db, cursorLogLine{
+			Type: 2,
+			ToolFormerData: &cursorToolFormerData{
+				Name:   "edit_file_v2",
+				Params: `{"streamingContent":"one\ntwo"}`,
+				Status: "completed",
+			},
+		}))
+		assert.Nil(t, Cursor{}.snapshotLineChanges(ctx, db, editLine("")))
+	})
+
+	t.Run("legacy edit_file uses snapshot line changes when content is empty", func(t *testing.T) {
+		got := Cursor{}.cursorFileHeartbeat(cursorLogLine{
+			Type: 2,
+			ToolFormerData: &cursorToolFormerData{
+				Name:    "edit_file",
+				Params:  `{"relativeWorkspacePath":"/tmp/main.go"}`,
+				RawArgs: `{}`,
+				Status:  "completed",
+			},
+		}, "", "", nil, heartbeat.PointerTo(-2))
+		require.NotNil(t, got)
+		require.NotNil(t, got.AILineChanges)
+		assert.Equal(t, -2, *got.AILineChanges)
+	})
+
+	t.Run("null snapshot values resolve to unknown", func(t *testing.T) {
+		_, err := db.Exec(
+			`INSERT INTO cursorDiskKV(key, value) VALUES(?, NULL)`,
+			"composer.content.null",
+		)
+		require.NoError(t, err)
+
+		assert.Nil(t, Cursor{}.snapshotLineChanges(ctx, db, editLine(
+			`{"beforeContentId":"composer.content.null","afterContentId":"composer.content.after"}`,
+		)))
+	})
+
+	t.Run("query errors resolve to unknown", func(t *testing.T) {
+		closedDB, err := sql.Open("sqlite", ":memory:")
+		require.NoError(t, err)
+		require.NoError(t, closedDB.Close())
+
+		assert.Nil(t, Cursor{}.snapshotLineChanges(ctx, closedDB, editLine(
+			`{"beforeContentId":"composer.content.before","afterContentId":"composer.content.after"}`,
+		)))
+
+		_, err = Cursor{}.queryContentLineCounts(ctx, closedDB, "composer.content.before")
+		require.Error(t, err)
+	})
 }
 
 func TestCursorHeartbeatFallbacks(t *testing.T) {
@@ -136,7 +395,7 @@ func TestCursorHeartbeatFallbacks(t *testing.T) {
 			RawArgs: `{"target_file":"/tmp/raw-edit.go","code_edit":"one\ntwo"}`,
 			Status:  "completed",
 		},
-	}, "", "composer-2.5", heartbeat.AITokens{})
+	}, "", "composer-2.5", heartbeat.AITokens{}, nil)
 	require.Len(t, editHeartbeats, 1)
 	edit := &editHeartbeats[0]
 	require.NotNil(t, edit)
@@ -159,7 +418,7 @@ func TestCursorHeartbeatFallbacks(t *testing.T) {
 		CodeBlocks: []cursorCodeBlock{{
 			URI: &cursorURI{FSPath: "/tmp/from-read-block.go"},
 		}},
-	}, "", "", heartbeat.AITokens{})
+	}, "", "", heartbeat.AITokens{}, nil)
 	require.Len(t, readHeartbeats, 1)
 	read := &readHeartbeats[0]
 	require.NotNil(t, read)
@@ -172,7 +431,7 @@ func TestCursorHeartbeatFallbacks(t *testing.T) {
 		CreatedAt: createdAt,
 		Type:      1,
 		Text:      "Please edit the file",
-	}, "/tmp", "", heartbeat.AITokens{})
+	}, "/tmp", "", heartbeat.AITokens{}, nil)
 	require.Len(t, appHeartbeats, 1)
 	assert.Equal(t, "Cursor composer-1", appHeartbeats[0].Entity)
 	assert.Equal(t, heartbeat.AppType, appHeartbeats[0].EntityType)
@@ -188,7 +447,7 @@ func TestCursorHeartbeatFallbacks(t *testing.T) {
 			Name:   "unknown_tool",
 			Status: "completed",
 		},
-	}, "", "", nil))
+	}, "", "", nil, nil))
 }
 
 func TestCursorModelName(t *testing.T) {

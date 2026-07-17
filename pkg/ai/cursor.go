@@ -50,6 +50,12 @@ type (
 		Name    string `json:"name"`
 		Params  string `json:"params"`
 		RawArgs string `json:"rawArgs"`
+		Result  string `json:"result"`
+	}
+
+	cursorEditResult struct {
+		BeforeContentID string `json:"beforeContentId"`
+		AfterContentID  string `json:"afterContentId"`
 	}
 
 	cursorURI struct {
@@ -62,14 +68,15 @@ type (
 	}
 
 	cursorLogLine struct {
-		BubbleID       string
-		CreatedAt      time.Time             `json:"createdAt"`
-		Type           int                   `json:"type"`
-		Text           string                `json:"text"`
-		TokenCount     *cursorTokenCount     `json:"tokenCount"`
-		Usage          *cursorUsage          `json:"usage"`
-		ToolFormerData *cursorToolFormerData `json:"toolFormerData"`
-		CodeBlocks     []cursorCodeBlock     `json:"codeBlocks"`
+		BubbleID              string
+		CreatedAt             time.Time             `json:"createdAt"`
+		Type                  int                   `json:"type"`
+		Text                  string                `json:"text"`
+		TokenCount            *cursorTokenCount     `json:"tokenCount"`
+		TokenCountUpUntilHere *cursorTokenCount     `json:"tokenCountUpUntilHere"`
+		Usage                 *cursorUsage          `json:"usage"`
+		ToolFormerData        *cursorToolFormerData `json:"toolFormerData"`
+		CodeBlocks            []cursorCodeBlock     `json:"codeBlocks"`
 	}
 
 	cursorLogRow struct {
@@ -163,7 +170,13 @@ func (g Cursor) Parse(ctx context.Context) (Heartbeats, error) {
 			continue
 		}
 
-		parsed := g.cursorHeartbeats(logLine, bubbleCWDs[logLine.BubbleID], bubbleModels[logLine.BubbleID], tokens)
+		parsed := g.cursorHeartbeats(
+			logLine,
+			bubbleCWDs[logLine.BubbleID],
+			bubbleModels[logLine.BubbleID],
+			tokens,
+			g.snapshotLineChanges(ctx, db, logLine),
+		)
 		if len(parsed) == 0 {
 			bubbleTokens[logLine.BubbleID] = tokens
 			continue
@@ -177,55 +190,62 @@ func (g Cursor) Parse(ctx context.Context) (Heartbeats, error) {
 	return cursorApplySubscriptionPlan(heartbeats, subscriptionPlan), nil
 }
 
-func (Cursor) cursorTokenCounts(line cursorLogLine, previous heartbeat.AITokens) heartbeat.AITokens {
-	if line.TokenCount != nil {
-		if line.TokenCount.isZero() {
-			return previous
-		}
+func (g Cursor) cursorTokenCounts(line cursorLogLine, previous heartbeat.AITokens) heartbeat.AITokens {
+	// Older Cursor versions persist per-bubble cumulative counts in
+	// tokenCount. Newer versions write a zero placeholder there instead, so
+	// fall through to the other token sources when it carries no data.
+	if line.TokenCount != nil && !line.TokenCount.isZero() {
+		return g.cursorCumulativeTokenCounts(*line.TokenCount, previous)
+	}
 
+	if line.Usage != nil && !line.Usage.isZero() {
 		current := previous
-		if inputTokens := cursorFirstInt(line.TokenCount.InputTokens, line.TokenCount.InputTokensSnake); inputTokens != nil {
+
+		if inputTokens := cursorFirstInt(line.Usage.InputTokens, line.Usage.InputTokensCamel); inputTokens != nil {
 			if *inputTokens != 0 {
-				current.CurrentInput = cumulativeTokenCount(current.LastInput, current.CurrentInput, *inputTokens)
+				current.CurrentInput = int64(*inputTokens)
 			}
 		}
 
-		outputTokens := cursorFirstInt(line.TokenCount.OutputTokens, line.TokenCount.OutputTokensSnake)
+		outputTokens := cursorFirstInt(line.Usage.OutputTokens, line.Usage.OutputTokensCamel)
 
-		totalTokens := cursorFirstInt(line.TokenCount.TotalTokens, line.TokenCount.TotalTokensSnake)
+		totalTokens := cursorFirstInt(line.Usage.TotalTokens, line.Usage.TotalTokensCamel)
 		switch {
 		case outputTokens != nil && *outputTokens != 0:
-			current.CurrentOutput = cumulativeTokenCount(current.LastOutput, current.CurrentOutput, *outputTokens)
+			current.CurrentOutput = int64(*outputTokens)
 		case totalTokens != nil && *totalTokens != 0:
-			current.CurrentOutput = cumulativeTokenCount(current.LastOutput, current.CurrentOutput, *totalTokens)
+			current.CurrentOutput = int64(*totalTokens)
 		}
 
 		return current
 	}
 
-	if line.Usage == nil {
-		return previous
+	// Modern Cursor Agent Chat only persists per-bubble cumulative token
+	// usage in tokenCountUpUntilHere.
+	if line.TokenCountUpUntilHere != nil && !line.TokenCountUpUntilHere.isZero() {
+		return g.cursorCumulativeTokenCounts(*line.TokenCountUpUntilHere, previous)
 	}
 
-	if line.Usage.isZero() {
-		return previous
-	}
+	return previous
+}
 
+func (Cursor) cursorCumulativeTokenCounts(count cursorTokenCount, previous heartbeat.AITokens) heartbeat.AITokens {
 	current := previous
-	if inputTokens := cursorFirstInt(line.Usage.InputTokens, line.Usage.InputTokensCamel); inputTokens != nil {
+
+	if inputTokens := cursorFirstInt(count.InputTokens, count.InputTokensSnake); inputTokens != nil {
 		if *inputTokens != 0 {
-			current.CurrentInput = int64(*inputTokens)
+			current.CurrentInput = cumulativeTokenCount(current.LastInput, current.CurrentInput, *inputTokens)
 		}
 	}
 
-	outputTokens := cursorFirstInt(line.Usage.OutputTokens, line.Usage.OutputTokensCamel)
+	outputTokens := cursorFirstInt(count.OutputTokens, count.OutputTokensSnake)
 
-	totalTokens := cursorFirstInt(line.Usage.TotalTokens, line.Usage.TotalTokensCamel)
+	totalTokens := cursorFirstInt(count.TotalTokens, count.TotalTokensSnake)
 	switch {
 	case outputTokens != nil && *outputTokens != 0:
-		current.CurrentOutput = int64(*outputTokens)
+		current.CurrentOutput = cumulativeTokenCount(current.LastOutput, current.CurrentOutput, *outputTokens)
 	case totalTokens != nil && *totalTokens != 0:
-		current.CurrentOutput = int64(*totalTokens)
+		current.CurrentOutput = cumulativeTokenCount(current.LastOutput, current.CurrentOutput, *totalTokens)
 	}
 
 	return current
@@ -264,12 +284,14 @@ func (u cursorUsage) isZero() bool {
 
 func cursorAllIntsZero(values ...*int) bool {
 	hasValue := false
+
 	for _, value := range values {
 		if value == nil {
 			continue
 		}
 
 		hasValue = true
+
 		if *value != 0 {
 			return false
 		}
@@ -364,10 +386,12 @@ WHERE json_valid(value)
     OR json_extract(value, '$.model_id') IS NOT NULL
     OR json_extract(value, '$.modelSlug') IS NOT NULL
     OR json_extract(value, '$.modelDetails') IS NOT NULL
+    OR json_extract(value, '$.modelInfo') IS NOT NULL
     OR json_extract(value, '$.modelConfig') IS NOT NULL
     OR json_extract(value, '$.selectedModel') IS NOT NULL
     OR json_extract(value, '$.selectedChatModel') IS NOT NULL
     OR json_extract(value, '$.tokenCount') IS NOT NULL
+    OR json_extract(value, '$.tokenCountUpUntilHere') IS NOT NULL
     OR json_extract(value, '$.usage') IS NOT NULL
   )
 ORDER BY json_extract(value, '$.createdAt') ASC;
@@ -407,6 +431,134 @@ ORDER BY json_extract(value, '$.createdAt') ASC;
 	}
 
 	return results, nil
+}
+
+// snapshotLineChanges returns the signed net line-count delta between the
+// before/after file snapshots referenced by an edit tool result, matching
+// ai_line_changes semantics where deletions produce negative values. Modern
+// Cursor versions no longer embed edited content in the tool params, only
+// snapshot references. Returns nil when the edit content is embedded in the
+// row or the snapshots cannot be resolved.
+func (g Cursor) snapshotLineChanges(ctx context.Context, db *sql.DB, logLine cursorLogLine) *int {
+	if logLine.Type != 2 || logLine.ToolFormerData == nil || logLine.ToolFormerData.Status != "completed" {
+		return nil
+	}
+
+	content, isEdit := g.editEmbeddedContent(logLine)
+	if !isEdit || strings.TrimSpace(content) != "" {
+		return nil
+	}
+
+	beforeID, afterID, ok := g.editSnapshotContentIDs(logLine)
+	if !ok {
+		return nil
+	}
+
+	lineCounts, err := g.queryContentLineCounts(ctx, db, beforeID, afterID)
+	if err != nil {
+		log.Extract(ctx).Debugf("failed reading cursor edit content snapshots: %s", err)
+
+		return nil
+	}
+
+	beforeLines, beforeOK := lineCounts[beforeID]
+
+	afterLines, afterOK := lineCounts[afterID]
+	if !beforeOK || !afterOK {
+		return nil
+	}
+
+	return heartbeat.PointerTo(afterLines - beforeLines)
+}
+
+func (Cursor) editEmbeddedContent(logLine cursorLogLine) (string, bool) {
+	switch logLine.ToolFormerData.Name {
+	case "edit_file_v2":
+		var params cursorEditParams
+		if err := json.Unmarshal([]byte(logLine.ToolFormerData.Params), &params); err != nil {
+			return "", true
+		}
+
+		return params.StreamingContent, true
+	case "edit_file":
+		var rawArgs cursorEditRawArgs
+
+		_ = json.Unmarshal([]byte(logLine.ToolFormerData.RawArgs), &rawArgs)
+
+		content := rawArgs.CodeEdit
+		if content == "" && len(logLine.CodeBlocks) > 0 {
+			content = logLine.CodeBlocks[0].Content
+		}
+
+		return content, true
+	default:
+		return "", false
+	}
+}
+
+func (Cursor) editSnapshotContentIDs(logLine cursorLogLine) (string, string, bool) {
+	if logLine.ToolFormerData.Result == "" {
+		return "", "", false
+	}
+
+	var result cursorEditResult
+	if err := json.Unmarshal([]byte(logLine.ToolFormerData.Result), &result); err != nil {
+		return "", "", false
+	}
+
+	if result.BeforeContentID == "" || result.AfterContentID == "" {
+		return "", "", false
+	}
+
+	return result.BeforeContentID, result.AfterContentID, true
+}
+
+// queryContentLineCounts counts lines of the given content snapshot rows in
+// SQL, so full file contents never need to be loaded into memory.
+func (Cursor) queryContentLineCounts(ctx context.Context, db *sql.DB, ids ...string) (map[string]int, error) {
+	placeholders := strings.TrimSuffix(strings.Repeat("?,", len(ids)), ",")
+
+	params := make([]any, len(ids))
+	for i, id := range ids {
+		params[i] = id
+	}
+
+	rows, err := db.QueryContext(ctx, fmt.Sprintf(`
+SELECT
+	key,
+	CASE
+		WHEN length(CAST(value AS TEXT)) = 0 THEN 0
+		ELSE length(CAST(value AS TEXT))
+			- length(replace(CAST(value AS TEXT), char(10), ''))
+			+ 1
+	END
+FROM cursorDiskKV
+WHERE key IN (%s);
+`, placeholders), params...)
+	if err != nil {
+		return nil, fmt.Errorf("failed querying cursor content line counts: %s", err)
+	}
+	defer rows.Close() // nolint:errcheck
+
+	lineCounts := make(map[string]int)
+
+	for rows.Next() {
+		var (
+			key       string
+			lineCount int
+		)
+		if err := rows.Scan(&key, &lineCount); err != nil {
+			return nil, fmt.Errorf("failed scanning cursor content line count row: %s", err)
+		}
+
+		lineCounts[key] = lineCount
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed reading cursor content line count rows: %s", err)
+	}
+
+	return lineCounts, nil
 }
 
 func (Cursor) querySubscriptionPlan(ctx context.Context, db *sql.DB, dbPath string) (string, error) {
@@ -461,7 +613,13 @@ func cursorApplySubscriptionPlan(heartbeats Heartbeats, plan string) Heartbeats 
 	return heartbeats
 }
 
-func (g Cursor) cursorHeartbeats(logLine cursorLogLine, cwd string, model string, tokens heartbeat.AITokens) Heartbeats {
+func (g Cursor) cursorHeartbeats(
+	logLine cursorLogLine,
+	cwd string,
+	model string,
+	tokens heartbeat.AITokens,
+	snapshotLineChanges *int,
+) Heartbeats {
 	var heartbeats Heartbeats
 
 	assignTokens := g.hasTokenDelta(tokens)
@@ -488,6 +646,7 @@ func (g Cursor) cursorHeartbeats(logLine cursorLogLine, cwd string, model string
 		model,
 		logLine.BubbleID,
 		fileTokens,
+		snapshotLineChanges,
 	); heartbeat != nil {
 		heartbeats = append(heartbeats, *heartbeat)
 	}
@@ -536,6 +695,7 @@ func (g Cursor) cursorFileHeartbeat(
 	model string,
 	sessionID string,
 	tokens *heartbeat.AITokens,
+	snapshotLineChanges *int,
 ) *heartbeat.Heartbeat {
 	switch logLine.ToolFormerData.Name {
 	case "edit_file_v2":
@@ -549,9 +709,13 @@ func (g Cursor) cursorFileHeartbeat(
 			return nil
 		}
 
-		lineChanges := g.lineChanges(params.StreamingContent)
+		lineChanges := heartbeat.PointerTo(g.lineChanges(params.StreamingContent))
+		if strings.TrimSpace(params.StreamingContent) == "" {
+			lineChanges = snapshotLineChanges
+		}
+
 		h := g.newHeartbeat(
-			heartbeat.PointerTo(lineChanges),
+			lineChanges,
 			sessionID,
 			tokens,
 			filePath,
@@ -586,9 +750,13 @@ func (g Cursor) cursorFileHeartbeat(
 			content = logLine.CodeBlocks[0].Content
 		}
 
-		lineChanges := g.lineChanges(content)
+		lineChanges := heartbeat.PointerTo(g.lineChanges(content))
+		if strings.TrimSpace(content) == "" {
+			lineChanges = snapshotLineChanges
+		}
+
 		h := g.newHeartbeat(
-			heartbeat.PointerTo(lineChanges),
+			lineChanges,
 			sessionID,
 			tokens,
 			filePath,

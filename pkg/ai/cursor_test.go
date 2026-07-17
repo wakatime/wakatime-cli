@@ -263,6 +263,135 @@ func TestCursorParse(t *testing.T) {
 	assert.Equal(t, 2, *got[5].AILineChanges)
 }
 
+func TestCursorParse_ModernSchemaCumulativeTokensAndContentSnapshots(t *testing.T) {
+	ctx := context.Background()
+
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	dbDir := filepath.Join(home, "Library", "Application Support", "Cursor", "User", "globalStorage")
+	require.NoError(t, os.MkdirAll(dbDir, 0o755))
+
+	dbPath := filepath.Join(dbDir, "state.vscdb")
+	editedPath := filepath.Join(home, "cursor-test", "edited.ts")
+
+	zeroTokenCount := map[string]any{
+		"inputTokens":  0,
+		"outputTokens": 0,
+	}
+
+	createCursorDB(t, dbPath, []cursorTestRow{
+		{
+			Key: "bubbleId:composer-modern:user",
+			Value: map[string]any{
+				"_v":         3,
+				"type":       1,
+				"text":       "Please update the file",
+				"createdAt":  "2026-03-15T23:34:10Z",
+				"modelInfo":  map[string]any{"modelName": "claude-sonnet-4.5"},
+				"tokenCount": zeroTokenCount,
+			},
+		},
+		{
+			Key: "bubbleId:composer-modern:edit",
+			Value: map[string]any{
+				"_v":         3,
+				"type":       2,
+				"createdAt":  "2026-03-15T23:34:40Z",
+				"tokenCount": zeroTokenCount,
+				"tokenCountUpUntilHere": map[string]any{
+					"inputTokens":  61702,
+					"outputTokens": 350,
+				},
+				"toolFormerData": map[string]any{
+					"status": "completed",
+					"name":   "edit_file_v2",
+					"params": fmt.Sprintf(
+						`{"relativeWorkspacePath":%q,"noCodeblock":true}`,
+						editedPath,
+					),
+					"result": `{"beforeContentId":"composer.content.before-hash",` +
+						`"afterContentId":"composer.content.after-hash"}`,
+				},
+			},
+		},
+		{
+			Key: "bubbleId:composer-modern:assistant",
+			Value: map[string]any{
+				"_v":         3,
+				"type":       2,
+				"text":       "I updated the implementation",
+				"createdAt":  "2026-03-15T23:35:30Z",
+				"tokenCount": zeroTokenCount,
+				"tokenCountUpUntilHere": map[string]any{
+					"inputTokens":  68073,
+					"outputTokens": 512,
+				},
+			},
+		},
+		{
+			Key: "bubbleId:composer-modern:missing-snapshot",
+			Value: map[string]any{
+				"_v":         3,
+				"type":       2,
+				"createdAt":  "2026-03-15T23:36:00Z",
+				"tokenCount": zeroTokenCount,
+				"toolFormerData": map[string]any{
+					"status": "completed",
+					"name":   "edit_file_v2",
+					"params": fmt.Sprintf(
+						`{"relativeWorkspacePath":%q,"noCodeblock":true}`,
+						editedPath,
+					),
+					"result": `{"beforeContentId":"composer.content.before-hash",` +
+						`"afterContentId":"composer.content.missing-hash"}`,
+				},
+			},
+		},
+		{
+			Key: "composer.content.before-hash",
+			Raw: "one\ntwo\nthree",
+		},
+		{
+			Key: "composer.content.after-hash",
+			Raw: "one\ntwo changed\nthree\nfour",
+		},
+	})
+
+	got, err := (ai.Cursor{
+		After:             time.Date(2026, 3, 15, 23, 34, 0, 0, time.UTC),
+		FallbackUserAgent: "Cursor/1.105.1",
+	}).Parse(ctx)
+	require.NoError(t, err)
+	require.Len(t, got, 4)
+
+	// user bubble only carries a zero tokenCount placeholder
+	assert.Equal(t, "Cursor composer-modern", got[0].Entity)
+	assert.Equal(t, int64(0), got[0].AIInputTokens)
+	assert.Equal(t, int64(0), got[0].AIOutputTokens)
+	assert.Contains(t, got[0].UserAgent, "sonnet/4.5")
+
+	// edit heartbeat publishes cumulative tokens and computes line changes
+	// from the before/after content snapshots
+	assert.Equal(t, editedPath, got[1].Entity)
+	assert.Equal(t, int64(61702), got[1].AIInputTokens)
+	assert.Equal(t, int64(350), got[1].AIOutputTokens)
+	require.NotNil(t, got[1].AILineChanges)
+	assert.Equal(t, 1, *got[1].AILineChanges)
+	require.NotNil(t, got[1].IsWrite)
+	assert.True(t, *got[1].IsWrite)
+
+	// assistant bubble publishes only the token delta since the edit
+	assert.Equal(t, "Cursor composer-modern", got[2].Entity)
+	assert.Equal(t, int64(68073-61702), got[2].AIInputTokens)
+	assert.Equal(t, int64(512-350), got[2].AIOutputTokens)
+
+	// unresolved snapshots report unknown line changes, not zero
+	assert.Equal(t, editedPath, got[3].Entity)
+	assert.Nil(t, got[3].AILineChanges)
+}
+
 func TestCursorParse_UnicodePathsAndText(t *testing.T) {
 	ctx := context.Background()
 
@@ -474,6 +603,7 @@ func TestCursorParse_SkipsStaleCursorStateDB(t *testing.T) {
 type cursorTestRow struct {
 	Key   string
 	Value map[string]any
+	Raw   string
 }
 
 func createCursorDB(t *testing.T, dbPath string, rows []cursorTestRow) {
@@ -493,10 +623,15 @@ func createCursorDB(t *testing.T, dbPath string, rows []cursorTestRow) {
 	require.NoError(t, err)
 
 	for _, row := range rows {
-		value, err := json.Marshal(row.Value)
-		require.NoError(t, err)
+		raw := row.Raw
+		if row.Value != nil {
+			value, err := json.Marshal(row.Value)
+			require.NoError(t, err)
 
-		_, err = db.Exec(`INSERT INTO cursorDiskKV(key, value) VALUES(?, ?)`, row.Key, string(value))
+			raw = string(value)
+		}
+
+		_, err = db.Exec(`INSERT INTO cursorDiskKV(key, value) VALUES(?, ?)`, row.Key, raw)
 		require.NoError(t, err)
 	}
 }
