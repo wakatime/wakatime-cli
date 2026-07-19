@@ -192,7 +192,7 @@ func (g Copilot) cliTranscriptPaths(ctx context.Context) ([]string, error) {
 			return nil, fmt.Errorf("failed statting copilot cli transcript %q: %s", path, err)
 		}
 
-		if info.ModTime().Before(g.After) {
+		if !timestampAtOrAfterCutoff(info.ModTime(), g.After) {
 			continue
 		}
 
@@ -369,7 +369,7 @@ func (Copilot) handleCLIModelChange(event copilotCLIEvent, state *copilotCLIPars
 }
 
 func (g Copilot) handleCLIUserMessage(event copilotCLIEvent, state *copilotCLIParseState) {
-	if event.Timestamp.IsZero() || event.Timestamp.Before(g.After) {
+	if event.Timestamp.IsZero() || !timestampAtOrAfterCutoff(event.Timestamp, g.After) {
 		return
 	}
 
@@ -414,7 +414,7 @@ func (g Copilot) handleCLIAssistantMessage(event copilotCLIEvent, state *copilot
 		state.tokens.CurrentOutput += data.OutputTokens
 	}
 
-	if event.Timestamp.IsZero() || event.Timestamp.Before(g.After) {
+	if event.Timestamp.IsZero() || !timestampAtOrAfterCutoff(event.Timestamp, g.After) {
 		if assignTokens {
 			state.tokens = g.advanceTokens(state.tokens)
 		}
@@ -486,7 +486,7 @@ func (g Copilot) handleCLIToolExecutionComplete(event copilotCLIEvent, state *co
 			continue
 		}
 
-		if event.Timestamp.Before(g.After) {
+		if !timestampAtOrAfterCutoff(event.Timestamp, g.After) {
 			state.trackCLIFilePath(path)
 			continue
 		}
@@ -519,7 +519,7 @@ func (g Copilot) handleCLIShutdown(event copilotCLIEvent, state *copilotCLIParse
 		assignTokens = true
 	}
 
-	if event.Timestamp.IsZero() || event.Timestamp.Before(g.After) {
+	if event.Timestamp.IsZero() || !timestampAtOrAfterCutoff(event.Timestamp, g.After) {
 		if assignTokens {
 			state.tokens = g.advanceTokens(state.tokens)
 		}

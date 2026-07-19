@@ -967,7 +967,7 @@ func TestWithAISync_ProducesExpectedHeartbeats(t *testing.T) {
 	require.Len(t, heartbeats, 3)
 
 	h := heartbeats[0].Heartbeat
-	assert.Equal(t, float64(1776297745), h.Time)
+	assert.Equal(t, float64(1776297745499)/1000, h.Time)
 	assert.Equal(t, heartbeat.FileType, h.EntityType)
 	assert.Equal(t, "/Users/user/git/wakatime-cli/templates/index.html", h.Entity)
 	assert.Equal(t, "ai coding", h.Category)
@@ -981,7 +981,7 @@ func TestWithAISync_ProducesExpectedHeartbeats(t *testing.T) {
 	assert.Equal(t, "plus", h.AISubscriptionPlan)
 
 	h = heartbeats[1].Heartbeat
-	assert.Equal(t, float64(1776297784), h.Time)
+	assert.Equal(t, float64(1776297784039)/1000, h.Time)
 	assert.Equal(t, heartbeat.FileType, h.EntityType)
 	assert.Equal(t, "/Users/user/git/wakatime-cli/templates/index.html", h.Entity)
 	assert.Equal(t, "ai coding", h.Category)
@@ -995,7 +995,7 @@ func TestWithAISync_ProducesExpectedHeartbeats(t *testing.T) {
 	assert.Equal(t, "plus", h.AISubscriptionPlan)
 
 	h = heartbeats[2].Heartbeat
-	assert.Equal(t, float64(1776297789), h.Time)
+	assert.Equal(t, float64(1776297789438)/1000, h.Time)
 	assert.Equal(t, heartbeat.FileType, h.EntityType)
 	assert.Equal(t, "/Users/user/git/wakatime-cli/static/css/index.less", h.Entity)
 	assert.Equal(t, "ai coding", h.Category)

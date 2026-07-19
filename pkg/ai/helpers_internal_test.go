@@ -29,6 +29,9 @@ func TestParserIDStringAndPlugins(t *testing.T) {
 	assert.Equal(t, "Codex", aiPlugin(Codex{}, ""))
 	assert.Equal(t, "Codex/1.2.3", aiPlugin(Codex{}, "1.2.3"))
 	assert.Equal(t, "opus/4.1-medium", aiModelUserAgentToken("claude-opus-4.1", "medium"))
+	assert.Equal(t, "fable/5", aiModelUserAgentToken("claude-fable-5", ""))
+	assert.Equal(t, "fable/5-high", aiModelUserAgentToken("claude-fable-5", "high"))
+	assert.Equal(t, "mythos/5", aiModelUserAgentToken("claude-mythos-5", ""))
 	assert.Equal(t, "gpt/5.2", aiModelUserAgentToken("gpt-5.2", ""))
 	assert.Equal(t, "qwen/3-coder-plus", aiModelUserAgentToken("qwen3-coder-plus", ""))
 	assert.Empty(t, aiModelUserAgentToken("", ""))
@@ -49,6 +52,20 @@ func TestParserIDStringAndPlugins(t *testing.T) {
 	assert.Equal(t, "Qwen Code/1.2.3", aiPlugin(QwenCode{}, "1.2.3"))
 	assert.Equal(t, "Pi", aiPlugin(Pi{}, ""))
 	assert.Equal(t, "Goose", aiPlugin(Goose{}, ""))
+}
+
+func TestTimestampAtOrAfterCutoff(t *testing.T) {
+	cutoff := time.Date(2026, 7, 15, 19, 6, 59, 531000000, time.UTC)
+
+	assert.False(t, timestampAtOrAfterCutoff(cutoff.Add(-time.Nanosecond), cutoff))
+	assert.True(t, timestampAtOrAfterCutoff(cutoff, cutoff))
+	assert.True(t, timestampAtOrAfterCutoff(cutoff.Add(time.Nanosecond), cutoff))
+}
+
+func TestHeartbeatTimestampPreservesSubsecondPrecision(t *testing.T) {
+	timestamp := time.Date(2026, 7, 15, 19, 6, 59, 531000000, time.UTC)
+
+	assert.WithinDuration(t, timestamp, heartbeatTime(heartbeatTimestamp(timestamp)), time.Microsecond)
 }
 
 func TestEntityUserAgentsAndAIUserAgent(t *testing.T) {

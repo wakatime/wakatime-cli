@@ -457,6 +457,7 @@ func TestWindsurfHelperBranches(t *testing.T) {
 			TokenCount: &windsurfTokenCount{InputTokens: &input, TotalTokens: &total},
 		}, heartbeat.AITokens{LastInput: 2, LastOutput: 3}),
 	)
+
 	zero := 0
 	assert.Equal(t,
 		heartbeat.AITokens{LastInput: 2, LastOutput: 3, CurrentInput: 5, CurrentOutput: 9},
@@ -1840,6 +1841,16 @@ func TestSQLiteParserModifiedAfterBranches(t *testing.T) {
 	assert.True(t, Qoder{}.localDBModifiedAfter(dbPath, time.Time{}))
 	assert.True(t, Goose{}.dbModifiedAfter(dbPath, time.Time{}))
 	assert.True(t, openCodeSQLiteDBModifiedAfter(dbPath, time.Time{}))
+
+	info, err := os.Stat(dbPath)
+	require.NoError(t, err)
+
+	cutoff := info.ModTime()
+	assert.True(t, Cursor{}.stateDBModifiedAfter(dbPath, cutoff))
+	assert.True(t, Windsurf{}.stateDBModifiedAfter(dbPath, cutoff))
+	assert.True(t, Qoder{}.localDBModifiedAfter(dbPath, cutoff))
+	assert.True(t, Goose{}.dbModifiedAfter(dbPath, cutoff))
+	assert.True(t, openCodeSQLiteDBModifiedAfter(dbPath, cutoff))
 }
 
 func TestTranscriptParserOpenContextAndScannerErrors(t *testing.T) {

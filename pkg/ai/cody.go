@@ -148,7 +148,7 @@ func (Cody) stateDBModifiedAfter(dbPath string, after time.Time) bool {
 		return false
 	}
 
-	return info.ModTime().After(after)
+	return timestampAtOrAfterCutoff(info.ModTime(), after)
 }
 
 func (Cody) queryStorage(ctx context.Context, dbPath string) (string, error) {
@@ -192,7 +192,8 @@ func (g Cody) heartbeatsFromStorage(value string) Heartbeats {
 	for _, userHistory := range history {
 		for chatID, transcript := range userHistory.Chat {
 			transcriptID := firstNonEmptyString(transcript.ID, chatID)
-			if transcript.LastInteractionTimestamp.IsZero() || transcript.LastInteractionTimestamp.Before(g.After) {
+			if transcript.LastInteractionTimestamp.IsZero() ||
+				!timestampAtOrAfterCutoff(transcript.LastInteractionTimestamp, g.After) {
 				continue
 			}
 
@@ -266,7 +267,7 @@ func (g Cody) interactionHeartbeats(
 		heartbeat.AppType,
 		heartbeat.PointerTo(false),
 		"",
-		float64(timestamp.Unix()),
+		heartbeatTimestamp(timestamp),
 		aiUserAgentWithModel(entity, g.UserAgents, g.FallbackUserAgent, model, ""),
 	)
 	appHeartbeat.AIPromptLength = promptLength(interaction.HumanMessage.Text)
@@ -347,7 +348,7 @@ func (g Cody) fileHeartbeat(
 		heartbeat.FileType,
 		heartbeat.PointerTo(isWrite),
 		"",
-		float64(timestamp.Unix()),
+		heartbeatTimestamp(timestamp),
 		aiUserAgentWithModel(filePath, g.UserAgents, g.FallbackUserAgent, model, ""),
 	)
 

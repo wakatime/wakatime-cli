@@ -159,7 +159,7 @@ func (g Cline) taskDirModifiedAfter(taskDir string) bool {
 
 	for _, path := range paths {
 		info, err := os.Stat(path)
-		if err == nil && !info.ModTime().Before(g.After) {
+		if err == nil && timestampAtOrAfterCutoff(info.ModTime(), g.After) {
 			return true
 		}
 	}
@@ -191,7 +191,7 @@ func (g Cline) parseTaskDir(taskDir string) (Heartbeats, error) {
 
 	for _, message := range messages {
 		timestamp := time.UnixMilli(message.Timestamp)
-		if timestamp.IsZero() || timestamp.Before(g.After) {
+		if timestamp.IsZero() || !timestampAtOrAfterCutoff(timestamp, g.After) {
 			continue
 		}
 
@@ -276,7 +276,7 @@ func (g Cline) appHeartbeat(
 		false,
 		"",
 		cwd,
-		float64(timestamp.Unix()),
+		heartbeatTimestamp(timestamp),
 		aiUserAgentWithModel(entity, g.UserAgents, g.FallbackUserAgent, "", ""),
 	)
 	h.AIPromptLength = promptLength(taskText)
@@ -312,7 +312,7 @@ func (g Cline) fileHeartbeat(
 		false,
 		"",
 		"",
-		float64(timestamp.Unix()),
+		heartbeatTimestamp(timestamp),
 		aiUserAgentWithModel(filePath, g.UserAgents, g.FallbackUserAgent, "", ""),
 	)
 }
