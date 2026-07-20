@@ -263,7 +263,7 @@ func TestCursorParse(t *testing.T) {
 	assert.Equal(t, 2, *got[5].AILineChanges)
 }
 
-func TestCursorParse_ModernSchemaCumulativeTokensAndContentSnapshots(t *testing.T) {
+func TestCursorParse_ModernSchemaContentSnapshots(t *testing.T) {
 	ctx := context.Background()
 
 	home := t.TempDir()
@@ -300,10 +300,6 @@ func TestCursorParse_ModernSchemaCumulativeTokensAndContentSnapshots(t *testing.
 				"type":       2,
 				"createdAt":  "2026-03-15T23:34:40Z",
 				"tokenCount": zeroTokenCount,
-				"tokenCountUpUntilHere": map[string]any{
-					"inputTokens":  61702,
-					"outputTokens": 350,
-				},
 				"toolFormerData": map[string]any{
 					"status": "completed",
 					"name":   "edit_file_v2",
@@ -324,10 +320,6 @@ func TestCursorParse_ModernSchemaCumulativeTokensAndContentSnapshots(t *testing.
 				"text":       "I updated the implementation",
 				"createdAt":  "2026-03-15T23:35:30Z",
 				"tokenCount": zeroTokenCount,
-				"tokenCountUpUntilHere": map[string]any{
-					"inputTokens":  68073,
-					"outputTokens": 512,
-				},
 			},
 		},
 		{
@@ -366,26 +358,19 @@ func TestCursorParse_ModernSchemaCumulativeTokensAndContentSnapshots(t *testing.
 	require.NoError(t, err)
 	require.Len(t, got, 4)
 
-	// user bubble only carries a zero tokenCount placeholder
+	// user bubble carries a zero tokenCount placeholder — no token data
 	assert.Equal(t, "Cursor composer-modern", got[0].Entity)
-	assert.Equal(t, int64(0), got[0].AIInputTokens)
-	assert.Equal(t, int64(0), got[0].AIOutputTokens)
 	assert.Contains(t, got[0].UserAgent, "sonnet/4.5")
 
-	// edit heartbeat publishes cumulative tokens and computes line changes
-	// from the before/after content snapshots
+	// edit heartbeat computes line changes from the before/after content snapshots
 	assert.Equal(t, editedPath, got[1].Entity)
-	assert.Equal(t, int64(61702), got[1].AIInputTokens)
-	assert.Equal(t, int64(350), got[1].AIOutputTokens)
 	require.NotNil(t, got[1].AILineChanges)
 	assert.Equal(t, 1, *got[1].AILineChanges)
 	require.NotNil(t, got[1].IsWrite)
 	assert.True(t, *got[1].IsWrite)
 
-	// assistant bubble publishes only the token delta since the edit
+	// assistant bubble
 	assert.Equal(t, "Cursor composer-modern", got[2].Entity)
-	assert.Equal(t, int64(68073-61702), got[2].AIInputTokens)
-	assert.Equal(t, int64(512-350), got[2].AIOutputTokens)
 
 	// unresolved snapshots report unknown line changes, not zero
 	assert.Equal(t, editedPath, got[3].Entity)

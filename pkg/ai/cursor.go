@@ -73,15 +73,14 @@ type (
 	}
 
 	cursorLogLine struct {
-		BubbleID              string
-		CreatedAt             time.Time             `json:"createdAt"`
-		Type                  int                   `json:"type"`
-		Text                  string                `json:"text"`
-		TokenCount            *cursorTokenCount     `json:"tokenCount"`
-		TokenCountUpUntilHere *cursorTokenCount     `json:"tokenCountUpUntilHere"`
-		Usage                 *cursorUsage          `json:"usage"`
-		ToolFormerData        *cursorToolFormerData `json:"toolFormerData"`
-		CodeBlocks            []cursorCodeBlock     `json:"codeBlocks"`
+		BubbleID       string
+		CreatedAt      time.Time             `json:"createdAt"`
+		Type           int                   `json:"type"`
+		Text           string                `json:"text"`
+		TokenCount     *cursorTokenCount     `json:"tokenCount"`
+		Usage          *cursorUsage          `json:"usage"`
+		ToolFormerData *cursorToolFormerData `json:"toolFormerData"`
+		CodeBlocks     []cursorCodeBlock     `json:"codeBlocks"`
 	}
 
 	cursorLogRow struct {
@@ -232,12 +231,6 @@ func (g Cursor) cursorTokenCounts(line cursorLogLine, previous heartbeat.AIToken
 		}
 
 		return current
-	}
-
-	// Modern Cursor Agent Chat only persists per-bubble cumulative token
-	// usage in tokenCountUpUntilHere.
-	if line.TokenCountUpUntilHere != nil && !line.TokenCountUpUntilHere.isZero() {
-		return g.cursorCumulativeTokenCounts(*line.TokenCountUpUntilHere, previous)
 	}
 
 	return previous
@@ -405,7 +398,6 @@ WHERE json_valid(value)
     OR json_extract(value, '$.selectedModel') IS NOT NULL
     OR json_extract(value, '$.selectedChatModel') IS NOT NULL
     OR json_extract(value, '$.tokenCount') IS NOT NULL
-    OR json_extract(value, '$.tokenCountUpUntilHere') IS NOT NULL
     OR json_extract(value, '$.usage') IS NOT NULL
   )
 ORDER BY json_extract(value, '$.createdAt') ASC;
