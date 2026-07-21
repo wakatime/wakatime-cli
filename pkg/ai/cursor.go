@@ -146,11 +146,10 @@ func (g Cursor) Parse(ctx context.Context) (Heartbeats, error) {
 		return nil, err
 	}
 
-	var heartbeats Heartbeats
-
-	bubbleCWDs := make(map[string]string)
-	bubbleModels := make(map[string]string)
-	bubbleTokens := make(map[string]heartbeat.AITokens)
+	// Parse all rows upfront so we can collect snapshot IDs for a single
+	// batched query instead of one query per eligible edit row.
+	logLines := make([]cursorLogLine, 0, len(rows))
+	rawValues := make([][]byte, 0, len(rows))
 
 	for _, row := range rows {
 		var logLine cursorLogLine
@@ -159,13 +158,38 @@ func (g Cursor) Parse(ctx context.Context) (Heartbeats, error) {
 		}
 
 		logLine.BubbleID = row.BubbleID
+		logLines = append(logLines, logLine)
+		rawValues = append(rawValues, []byte(row.Value))
+	}
 
-		if model := g.modelName([]byte(row.Value)); model != "" && logLine.BubbleID != "" {
-			bubbleModels[logLine.BubbleID] = model
+	snapshotIDs := g.collectSnapshotIDs(logLines, cutoff)
+
+	var lineCounts map[string]int
+
+	if len(snapshotIDs) > 0 {
+		lineCounts, err = g.queryContentLineCounts(ctx, db, snapshotIDs...)
+		if err != nil {
+			log.Extract(ctx).Debugf("failed reading cursor edit content snapshots: %s", err)
+
+			lineCounts = nil
 		}
+	}
 
-		if cwd := g.projectPath(logLine); cwd != "" && logLine.BubbleID != "" {
-			bubbleCWDs[logLine.BubbleID] = cwd
+	var heartbeats Heartbeats
+
+	bubbleCWDs := make(map[string]string)
+	bubbleModels := make(map[string]string)
+	bubbleTokens := make(map[string]heartbeat.AITokens)
+
+	for i, logLine := range logLines {
+		if logLine.BubbleID != "" {
+			if model := g.modelName(rawValues[i]); model != "" {
+				bubbleModels[logLine.BubbleID] = model
+			}
+
+			if cwd := g.projectPath(logLine); cwd != "" {
+				bubbleCWDs[logLine.BubbleID] = cwd
+			}
 		}
 
 		tokens := g.cursorTokenCounts(logLine, bubbleTokens[logLine.BubbleID])
@@ -175,21 +199,21 @@ func (g Cursor) Parse(ctx context.Context) (Heartbeats, error) {
 			continue
 		}
 
-		parsed := g.cursorHeartbeats(
+		hbs := g.cursorHeartbeats(
 			logLine,
 			bubbleCWDs[logLine.BubbleID],
 			bubbleModels[logLine.BubbleID],
 			tokens,
-			g.snapshotLineChanges(ctx, db, logLine),
+			g.snapshotLineChangesFromCache(logLine, lineCounts),
 		)
-		if len(parsed) == 0 {
+		if len(hbs) == 0 {
 			bubbleTokens[logLine.BubbleID] = tokens
 			continue
 		}
 
 		bubbleTokens[logLine.BubbleID] = g.advanceTokens(tokens)
 
-		heartbeats = append(heartbeats, parsed...)
+		heartbeats = append(heartbeats, hbs...)
 	}
 
 	return cursorApplySubscriptionPlan(heartbeats, subscriptionPlan), nil
@@ -464,6 +488,70 @@ func (g Cursor) snapshotLineChanges(ctx context.Context, db *sql.DB, logLine cur
 	if err != nil {
 		log.Extract(ctx).Debugf("failed reading cursor edit content snapshots: %s", err)
 
+		return nil
+	}
+
+	beforeLines, beforeOK := lineCounts[beforeID]
+
+	afterLines, afterOK := lineCounts[afterID]
+	if !beforeOK || !afterOK {
+		return nil
+	}
+
+	return heartbeat.PointerTo(afterLines - beforeLines)
+}
+
+// collectSnapshotIDs returns all content snapshot IDs that will be needed for
+// eligible edit rows, so callers can batch-query them in a single SQL round-trip.
+func (g Cursor) collectSnapshotIDs(logLines []cursorLogLine, cutoff time.Time) []string {
+	seen := make(map[string]struct{})
+
+	var ids []string
+
+	for _, logLine := range logLines {
+		if logLine.Type != 2 || logLine.ToolFormerData == nil || logLine.ToolFormerData.Status != "completed" {
+			continue
+		}
+
+		if logLine.CreatedAt.IsZero() || !timestampAtOrAfterCutoff(logLine.CreatedAt, cutoff) {
+			continue
+		}
+
+		content, isEdit := g.editEmbeddedContent(logLine)
+		if !isEdit || strings.TrimSpace(content) != "" {
+			continue
+		}
+
+		beforeID, afterID, ok := g.editSnapshotContentIDs(logLine)
+		if !ok {
+			continue
+		}
+
+		for _, id := range []string{beforeID, afterID} {
+			if _, exists := seen[id]; !exists {
+				seen[id] = struct{}{}
+				ids = append(ids, id)
+			}
+		}
+	}
+
+	return ids
+}
+
+// snapshotLineChangesFromCache resolves the line-count delta for an edit row
+// using a pre-fetched lineCounts map rather than issuing a new SQL query.
+func (g Cursor) snapshotLineChangesFromCache(logLine cursorLogLine, lineCounts map[string]int) *int {
+	if logLine.Type != 2 || logLine.ToolFormerData == nil || logLine.ToolFormerData.Status != "completed" {
+		return nil
+	}
+
+	content, isEdit := g.editEmbeddedContent(logLine)
+	if !isEdit || strings.TrimSpace(content) != "" {
+		return nil
+	}
+
+	beforeID, afterID, ok := g.editSnapshotContentIDs(logLine)
+	if !ok {
 		return nil
 	}
 
