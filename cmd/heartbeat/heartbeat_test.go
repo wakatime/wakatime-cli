@@ -154,6 +154,98 @@ func TestSendHeartbeats(t *testing.T) {
 	assert.Equal(t, 1, numCalls)
 }
 
+func TestSendHeartbeatsPreservesAITranscriptProjectLocation(t *testing.T) {
+	resetSingleton(t)
+
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+	t.Setenv("WAKATIME_HOME", home)
+
+	repo := filepath.Join(t.TempDir(), "gendervibes")
+	require.NoError(t, os.MkdirAll(filepath.Join(repo, ".git"), 0o755))
+	require.NoError(t, os.WriteFile(filepath.Join(repo, ".git", "HEAD"), []byte("ref: refs/heads/main\n"), 0o644))
+	require.NoError(t, os.WriteFile(filepath.Join(repo, ".git", "config"), []byte("[core]\n"), 0o644))
+
+	entity := filepath.Join(repo, "Cargo.toml")
+	require.NoError(t, os.WriteFile(entity, []byte("[package]\nname = \"gendervibes\"\n"), 0o644))
+
+	transcriptDir := filepath.Join(home, ".claude", "projects", "gendervibes")
+	require.NoError(t, os.MkdirAll(transcriptDir, 0o755))
+	transcriptPath := filepath.Join(transcriptDir, "session.jsonl")
+	transcriptModifiedAt := time.Date(2026, 3, 18, 12, 0, 0, 0, time.UTC)
+	transcript := fmt.Sprintf(
+		"{\"timestamp\":\"2026-03-18T12:00:00Z\",\"version\":\"2.1.45\",\"cwd\":%q,"+
+			"\"toolUseResult\":{\"filePath\":%q,\"structuredPatch\":[{\"oldLines\":1,\"newLines\":2}]}}\n",
+		repo,
+		entity,
+	)
+	require.NoError(t, os.WriteFile(transcriptPath, []byte(transcript), 0o644))
+	require.NoError(t, os.Chtimes(transcriptPath, transcriptModifiedAt, transcriptModifiedAt))
+
+	testServerURL, router, tearDown := setupTestServer()
+	defer tearDown()
+
+	var received []struct {
+		Entity    string `json:"entity"`
+		Project   string `json:"project"`
+		AISession string `json:"ai_session"`
+	}
+
+	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
+		require.NoError(t, json.NewDecoder(req.Body).Decode(&received))
+
+		responses := make([][]any, len(received))
+		for i := range received {
+			responses[i] = []any{map[string]any{"data": map[string]string{"id": fmt.Sprintf("heartbeat-%d", i)}}, 201}
+		}
+
+		w.WriteHeader(http.StatusCreated)
+		require.NoError(t, json.NewEncoder(w).Encode(map[string]any{"responses": responses}))
+	})
+
+	internalConfig, err := os.CreateTemp(t.TempDir(), "wakatime-internal-config")
+	require.NoError(t, err)
+	require.NoError(t, internalConfig.Close())
+	offlineQueue, err := os.CreateTemp(t.TempDir(), "wakatime-offline-queue")
+	require.NoError(t, err)
+	require.NoError(t, offlineQueue.Close())
+
+	v := viper.New()
+	v.Set("api-url", testServerURL)
+	v.Set("entity", "Cargo.toml")
+	v.Set("entity-type", "app")
+	v.Set("heartbeat-rate-limit-seconds", 0)
+	v.Set("internal-config", internalConfig.Name())
+	v.Set("internal.ai_logs_last_parsed_at", time.Date(2026, 3, 18, 11, 0, 0, 0, time.UTC).Format(ini.DateFormat))
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("plugin", "Zed/1.10.3 macos-wakatime/5.28.4")
+	v.Set("project", "Cargo.toml")
+	v.Set("sync-ai-disabled", false)
+	v.Set("time", transcriptModifiedAt.Unix())
+	v.Set("timeout", 5)
+
+	loadedParams, heartbeats, err := testLoadParamsAndHeartbeats(t.Context(), v)
+	require.NoError(t, err)
+	require.NoError(t, cmdheartbeat.SendHeartbeats(t.Context(), v, loadedParams, offlineQueue.Name(), heartbeats))
+
+	var aiHeartbeat *struct {
+		Entity    string `json:"entity"`
+		Project   string `json:"project"`
+		AISession string `json:"ai_session"`
+	}
+	for i := range received {
+		if received[i].AISession == "session" {
+			aiHeartbeat = &received[i]
+			break
+		}
+	}
+
+	require.NotNil(t, aiHeartbeat)
+	assert.Equal(t, entity, aiHeartbeat.Entity)
+	assert.Equal(t, "gendervibes", aiHeartbeat.Project)
+}
+
 func TestRunSuccess(t *testing.T) {
 	resetSingleton(t)
 

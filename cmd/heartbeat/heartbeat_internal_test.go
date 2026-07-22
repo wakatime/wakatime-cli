@@ -42,7 +42,7 @@ func TestApplyAIParsingDisabledPassesThrough(t *testing.T) {
 	got, err := applyAIParsing(t.Context(), viper.New(), paramspkg.Params{
 		AI:  paramspkg.AIParams{SyncDisabled: true},
 		API: paramspkg.API{Plugin: "plugin/0.0.1"},
-	}, input)
+	}, input, false)
 
 	require.NoError(t, err)
 	assert.Equal(t, input, got)

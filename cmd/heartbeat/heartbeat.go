@@ -93,7 +93,7 @@ func SendHeartbeats(
 	setLogFields(ctx, params)
 	logger.Debugf("params: %s", params)
 
-	heartbeats, err := applyAIParsing(ctx, v, params, heartbeats)
+	heartbeats, err := applyAIParsing(ctx, v, params, heartbeats, true)
 	if err != nil {
 		return err
 	}
@@ -226,13 +226,15 @@ func applyAIParsing(
 	v *viper.Viper,
 	params params.Params,
 	heartbeats []heartbeat.Heartbeat,
+	preserveDetectedProjectLocation bool,
 ) ([]heartbeat.Heartbeat, error) {
 	handle := ai.WithAISync(ai.Config{
-		SyncDisabled: params.AI.SyncDisabled,
-		Plugin:       params.API.Plugin,
-		Project:      params.Heartbeat.Project,
-		Sanitize:     params.Heartbeat.Sanitize,
-		V:            v,
+		SyncDisabled:                    params.AI.SyncDisabled,
+		PreserveDetectedProjectLocation: preserveDetectedProjectLocation,
+		Plugin:                          params.API.Plugin,
+		Project:                         params.Heartbeat.Project,
+		Sanitize:                        params.Heartbeat.Sanitize,
+		V:                               v,
 	})(func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		results := make([]heartbeat.Result, len(hh))
 

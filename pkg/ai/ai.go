@@ -24,11 +24,12 @@ import (
 
 // Config contains filtering configurations.
 type Config struct {
-	SyncDisabled bool
-	Plugin       string
-	Project      params.ProjectParams
-	Sanitize     params.SanitizeParams
-	V            *viper.Viper
+	SyncDisabled                    bool
+	PreserveDetectedProjectLocation bool
+	Plugin                          string
+	Project                         params.ProjectParams
+	Sanitize                        params.SanitizeParams
+	V                               *viper.Viper
 }
 
 // ProjectInfo contains --project, --alternate-project, and --project-folder cli args.
@@ -531,7 +532,11 @@ func preserveHumanAttributes(
 			preserveAttributesFromHumanHeartbeat(aiHeartbeat, h)
 		}
 
-		if aiHeartbeat.ProjectOverride == "" {
+		if aiHeartbeat.ProjectOverride == "" &&
+			(!config.PreserveDetectedProjectLocation ||
+				(aiHeartbeat.ProjectPathOverride == "" &&
+					aiHeartbeat.ProjectPath == "" &&
+					(aiHeartbeat.EntityType != heartbeat.FileType || aiHeartbeat.Entity == ""))) {
 			aiHeartbeat.ProjectOverride = config.Project.Override
 		}
 
