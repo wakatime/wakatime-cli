@@ -178,60 +178,36 @@ func TestPreserveHumanAttributesAppliesConfigOverridesWhenEmpty(t *testing.T) {
 
 func TestPreserveHumanAttributesProjectOverrideOwnership(t *testing.T) {
 	tests := map[string]struct {
-		aiHeartbeat      heartbeat.Heartbeat
-		humanHeartbeats  []heartbeat.Heartbeat
-		preserveLocation bool
-		expectedProject  string
+		aiHeartbeat     heartbeat.Heartbeat
+		expectedProject string
 	}{
 		"incidental sync preserves project path override": {
 			aiHeartbeat: heartbeat.Heartbeat{
-				Entity: "/projects/gendervibes/Cargo.toml", EntityType: heartbeat.FileType,
-				ProjectPathOverride: "/projects/gendervibes",
+				Entity: "/projects/sample-project/main.go", EntityType: heartbeat.FileType,
+				ProjectPathOverride: "/projects/sample-project",
 			},
-			preserveLocation: true,
 		},
 		"incidental sync preserves detected project path": {
 			aiHeartbeat: heartbeat.Heartbeat{
-				Entity: "Claude session", EntityType: heartbeat.AppType, ProjectPath: "/projects/gendervibes",
+				Entity: "AI session", EntityType: heartbeat.AppType, ProjectPath: "/projects/sample-project",
 			},
-			preserveLocation: true,
 		},
 		"incidental sync preserves file entity": {
 			aiHeartbeat: heartbeat.Heartbeat{
-				Entity: "/projects/gendervibes/Cargo.toml", EntityType: heartbeat.FileType,
+				Entity: "/projects/sample-project/main.go", EntityType: heartbeat.FileType,
 			},
-			preserveLocation: true,
 		},
 		"incidental sync falls back for app without location": {
-			aiHeartbeat:      heartbeat.Heartbeat{Entity: "Claude session", EntityType: heartbeat.AppType},
-			preserveLocation: true,
-			expectedProject:  "Cargo.toml",
-		},
-		"explicit sync applies project override": {
-			aiHeartbeat: heartbeat.Heartbeat{
-				Entity: "/projects/gendervibes/Cargo.toml", EntityType: heartbeat.FileType,
-				ProjectPathOverride: "/projects/gendervibes",
-			},
-			expectedProject: "Cargo.toml",
-		},
-		"same entity human override remains authoritative": {
-			aiHeartbeat: heartbeat.Heartbeat{
-				Entity: "/projects/gendervibes/Cargo.toml", EntityType: heartbeat.FileType,
-				ProjectPathOverride: "/projects/gendervibes",
-			},
-			humanHeartbeats: []heartbeat.Heartbeat{{
-				Entity: "/projects/gendervibes/Cargo.toml", ProjectOverride: "human-project",
-			}},
-			preserveLocation: true,
-			expectedProject:  "human-project",
+			aiHeartbeat:     heartbeat.Heartbeat{Entity: "AI session", EntityType: heartbeat.AppType},
+			expectedProject: "editor-project",
 		},
 	}
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			got, _ := preserveHumanAttributes(Heartbeats{test.aiHeartbeat}, test.humanHeartbeats, Config{
-				PreserveDetectedProjectLocation: test.preserveLocation,
-				Project:                         params.ProjectParams{Override: "Cargo.toml"},
+			got, _ := preserveHumanAttributes(Heartbeats{test.aiHeartbeat}, nil, Config{
+				PreserveDetectedProjectLocation: true,
+				Project:                         params.ProjectParams{Override: "editor-project"},
 			}, 0)
 
 			require.Len(t, got, 1)

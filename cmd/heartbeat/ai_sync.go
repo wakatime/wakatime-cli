@@ -29,7 +29,7 @@ func RunAISyncActivity(ctx context.Context, v *viper.Viper) (int, error) {
 		return exitcode.ErrAuth, fmt.Errorf("failed to load command params: %w", err)
 	}
 
-	heartbeats, err := applyAIParsing(ctx, v, loadedParams, []heartbeat.Heartbeat{}, false)
+	heartbeats, err := applyAIParsing(ctx, v, loadedParams, []heartbeat.Heartbeat{})
 	if err != nil {
 		if errwaka, ok := err.(wakaerror.Error); ok {
 			return errwaka.ExitCode(), fmt.Errorf("sending ai activity failed: %w", errwaka)

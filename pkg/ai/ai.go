@@ -532,11 +532,12 @@ func preserveHumanAttributes(
 			preserveAttributesFromHumanHeartbeat(aiHeartbeat, h)
 		}
 
-		if aiHeartbeat.ProjectOverride == "" &&
-			(!config.PreserveDetectedProjectLocation ||
-				(aiHeartbeat.ProjectPathOverride == "" &&
-					aiHeartbeat.ProjectPath == "" &&
-					(aiHeartbeat.EntityType != heartbeat.FileType || aiHeartbeat.Entity == ""))) {
+		hasDetectedProjectLocation := aiHeartbeat.ProjectPathOverride != "" ||
+			aiHeartbeat.ProjectPath != "" ||
+			(aiHeartbeat.EntityType == heartbeat.FileType && aiHeartbeat.Entity != "")
+		preserveDetectedProject := config.PreserveDetectedProjectLocation && hasDetectedProjectLocation
+
+		if aiHeartbeat.ProjectOverride == "" && !preserveDetectedProject {
 			aiHeartbeat.ProjectOverride = config.Project.Override
 		}
 

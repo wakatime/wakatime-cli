@@ -157,20 +157,20 @@ func TestSendHeartbeats(t *testing.T) {
 func TestSendHeartbeatsPreservesAITranscriptProjectLocation(t *testing.T) {
 	resetSingleton(t)
 
+	const projectName = "sample-project"
+
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
 	t.Setenv("WAKATIME_HOME", home)
 
-	repo := filepath.Join(t.TempDir(), "gendervibes")
-	require.NoError(t, os.MkdirAll(filepath.Join(repo, ".git"), 0o755))
-	require.NoError(t, os.WriteFile(filepath.Join(repo, ".git", "HEAD"), []byte("ref: refs/heads/main\n"), 0o644))
-	require.NoError(t, os.WriteFile(filepath.Join(repo, ".git", "config"), []byte("[core]\n"), 0o644))
+	repo := filepath.Join(t.TempDir(), projectName)
+	require.NoError(t, os.MkdirAll(repo, 0o755))
 
-	entity := filepath.Join(repo, "Cargo.toml")
-	require.NoError(t, os.WriteFile(entity, []byte("[package]\nname = \"gendervibes\"\n"), 0o644))
+	entity := filepath.Join(repo, "main.go")
+	require.NoError(t, os.WriteFile(entity, []byte("package main\n"), 0o644))
 
-	transcriptDir := filepath.Join(home, ".claude", "projects", "gendervibes")
+	transcriptDir := filepath.Join(home, ".claude", "projects", projectName)
 	require.NoError(t, os.MkdirAll(transcriptDir, 0o755))
 	transcriptPath := filepath.Join(transcriptDir, "session.jsonl")
 	transcriptModifiedAt := time.Date(2026, 3, 18, 12, 0, 0, 0, time.UTC)
@@ -186,11 +186,13 @@ func TestSendHeartbeatsPreservesAITranscriptProjectLocation(t *testing.T) {
 	testServerURL, router, tearDown := setupTestServer()
 	defer tearDown()
 
-	var received []struct {
+	type receivedHeartbeat struct {
 		Entity    string `json:"entity"`
 		Project   string `json:"project"`
 		AISession string `json:"ai_session"`
 	}
+
+	var received []receivedHeartbeat
 
 	router.HandleFunc("/users/current/heartbeats.bulk", func(w http.ResponseWriter, req *http.Request) {
 		require.NoError(t, json.NewDecoder(req.Body).Decode(&received))
@@ -213,14 +215,14 @@ func TestSendHeartbeatsPreservesAITranscriptProjectLocation(t *testing.T) {
 
 	v := viper.New()
 	v.Set("api-url", testServerURL)
-	v.Set("entity", "Cargo.toml")
+	v.Set("entity", "Editor")
 	v.Set("entity-type", "app")
 	v.Set("heartbeat-rate-limit-seconds", 0)
 	v.Set("internal-config", internalConfig.Name())
 	v.Set("internal.ai_logs_last_parsed_at", time.Date(2026, 3, 18, 11, 0, 0, 0, time.UTC).Format(ini.DateFormat))
 	v.Set("key", "00000000-0000-4000-8000-000000000000")
-	v.Set("plugin", "Zed/1.10.3 macos-wakatime/5.28.4")
-	v.Set("project", "Cargo.toml")
+	v.Set("plugin", "plugin/0.0.1")
+	v.Set("project", "editor-project")
 	v.Set("sync-ai-disabled", false)
 	v.Set("time", transcriptModifiedAt.Unix())
 	v.Set("timeout", 5)
@@ -229,11 +231,8 @@ func TestSendHeartbeatsPreservesAITranscriptProjectLocation(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, cmdheartbeat.SendHeartbeats(t.Context(), v, loadedParams, offlineQueue.Name(), heartbeats))
 
-	var aiHeartbeat *struct {
-		Entity    string `json:"entity"`
-		Project   string `json:"project"`
-		AISession string `json:"ai_session"`
-	}
+	var aiHeartbeat *receivedHeartbeat
+
 	for i := range received {
 		if received[i].AISession == "session" {
 			aiHeartbeat = &received[i]
@@ -243,7 +242,7 @@ func TestSendHeartbeatsPreservesAITranscriptProjectLocation(t *testing.T) {
 
 	require.NotNil(t, aiHeartbeat)
 	assert.Equal(t, entity, aiHeartbeat.Entity)
-	assert.Equal(t, "gendervibes", aiHeartbeat.Project)
+	assert.Equal(t, projectName, aiHeartbeat.Project)
 }
 
 func TestRunSuccess(t *testing.T) {
