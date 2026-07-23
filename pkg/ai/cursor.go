@@ -41,15 +41,6 @@ type (
 		TotalTokensSnake  *int `json:"total_tokens"`
 	}
 
-	cursorUsage struct {
-		InputTokens       *int `json:"input_tokens"`
-		OutputTokens      *int `json:"output_tokens"`
-		TotalTokens       *int `json:"total_tokens"`
-		InputTokensCamel  *int `json:"inputTokens"`
-		OutputTokensCamel *int `json:"outputTokens"`
-		TotalTokensCamel  *int `json:"totalTokens"`
-	}
-
 	cursorToolFormerData struct {
 		Status  string `json:"status"`
 		Name    string `json:"name"`
@@ -78,7 +69,6 @@ type (
 		Type           int                   `json:"type"`
 		Text           string                `json:"text"`
 		TokenCount     *cursorTokenCount     `json:"tokenCount"`
-		Usage          *cursorUsage          `json:"usage"`
 		ToolFormerData *cursorToolFormerData `json:"toolFormerData"`
 		CodeBlocks     []cursorCodeBlock     `json:"codeBlocks"`
 	}
@@ -229,32 +219,10 @@ func (g Cursor) bufferedCutoff() time.Time {
 
 func (g Cursor) cursorTokenCounts(line cursorLogLine, previous heartbeat.AITokens) heartbeat.AITokens {
 	// Older Cursor versions persist per-bubble cumulative counts in
-	// tokenCount. Newer versions write a zero placeholder there instead, so
-	// fall through to the other token sources when it carries no data.
+	// tokenCount. Newer versions write a zero placeholder there instead,
+	// which carries no usable token data.
 	if line.TokenCount != nil && !line.TokenCount.isZero() {
 		return g.cursorCumulativeTokenCounts(*line.TokenCount, previous)
-	}
-
-	if line.Usage != nil && !line.Usage.isZero() {
-		current := previous
-
-		if inputTokens := cursorFirstInt(line.Usage.InputTokens, line.Usage.InputTokensCamel); inputTokens != nil {
-			if *inputTokens != 0 {
-				current.CurrentInput = int64(*inputTokens)
-			}
-		}
-
-		outputTokens := cursorFirstInt(line.Usage.OutputTokens, line.Usage.OutputTokensCamel)
-
-		totalTokens := cursorFirstInt(line.Usage.TotalTokens, line.Usage.TotalTokensCamel)
-		switch {
-		case outputTokens != nil && *outputTokens != 0:
-			current.CurrentOutput = int64(*outputTokens)
-		case totalTokens != nil && *totalTokens != 0:
-			current.CurrentOutput = int64(*totalTokens)
-		}
-
-		return current
 	}
 
 	return previous
@@ -263,20 +231,28 @@ func (g Cursor) cursorTokenCounts(line cursorLogLine, previous heartbeat.AIToken
 func (Cursor) cursorCumulativeTokenCounts(count cursorTokenCount, previous heartbeat.AITokens) heartbeat.AITokens {
 	current := previous
 
-	if inputTokens := cursorFirstInt(count.InputTokens, count.InputTokensSnake); inputTokens != nil {
-		if *inputTokens != 0 {
-			current.CurrentInput = cumulativeTokenCount(current.LastInput, current.CurrentInput, *inputTokens)
-		}
+	inputTokens := cursorFirstInt(count.InputTokens, count.InputTokensSnake)
+
+	if inputTokens != nil && *inputTokens != 0 {
+		current.CurrentInput = cumulativeTokenCount(current.LastInput, current.CurrentInput, *inputTokens)
 	}
 
 	outputTokens := cursorFirstInt(count.OutputTokens, count.OutputTokensSnake)
 
 	totalTokens := cursorFirstInt(count.TotalTokens, count.TotalTokensSnake)
+
 	switch {
 	case outputTokens != nil && *outputTokens != 0:
 		current.CurrentOutput = cumulativeTokenCount(current.LastOutput, current.CurrentOutput, *outputTokens)
-	case totalTokens != nil && *totalTokens != 0:
-		current.CurrentOutput = cumulativeTokenCount(current.LastOutput, current.CurrentOutput, *totalTokens)
+	case totalTokens != nil && *totalTokens != 0 && inputTokens != nil:
+		// totalTokens covers input + output combined, so derive the output
+		// share instead of treating the total itself as the output count.
+		derivedOutput := *totalTokens - *inputTokens
+		if derivedOutput < 0 {
+			derivedOutput = 0
+		}
+
+		current.CurrentOutput = cumulativeTokenCount(current.LastOutput, current.CurrentOutput, derivedOutput)
 	}
 
 	return current
@@ -299,17 +275,6 @@ func (c cursorTokenCount) isZero() bool {
 		c.InputTokensSnake,
 		c.OutputTokensSnake,
 		c.TotalTokensSnake,
-	)
-}
-
-func (u cursorUsage) isZero() bool {
-	return cursorAllIntsZero(
-		u.InputTokens,
-		u.OutputTokens,
-		u.TotalTokens,
-		u.InputTokensCamel,
-		u.OutputTokensCamel,
-		u.TotalTokensCamel,
 	)
 }
 
@@ -422,7 +387,6 @@ WHERE json_valid(value)
     OR json_extract(value, '$.selectedModel') IS NOT NULL
     OR json_extract(value, '$.selectedChatModel') IS NOT NULL
     OR json_extract(value, '$.tokenCount') IS NOT NULL
-    OR json_extract(value, '$.usage') IS NOT NULL
   )
 ORDER BY json_extract(value, '$.createdAt') ASC;
 `, cursorRecentBubbleRowLimit)
@@ -474,8 +438,7 @@ func (g Cursor) snapshotLineChanges(ctx context.Context, db *sql.DB, logLine cur
 		return nil
 	}
 
-	content, isEdit := g.editEmbeddedContent(logLine)
-	if !isEdit || strings.TrimSpace(content) != "" {
+	if _, isEdit := g.editEmbeddedContent(logLine); !isEdit {
 		return nil
 	}
 
@@ -517,8 +480,7 @@ func (g Cursor) collectSnapshotIDs(logLines []cursorLogLine, cutoff time.Time) [
 			continue
 		}
 
-		content, isEdit := g.editEmbeddedContent(logLine)
-		if !isEdit || strings.TrimSpace(content) != "" {
+		if _, isEdit := g.editEmbeddedContent(logLine); !isEdit {
 			continue
 		}
 
@@ -545,8 +507,7 @@ func (g Cursor) snapshotLineChangesFromCache(logLine cursorLogLine, lineCounts m
 		return nil
 	}
 
-	content, isEdit := g.editEmbeddedContent(logLine)
-	if !isEdit || strings.TrimSpace(content) != "" {
+	if _, isEdit := g.editEmbeddedContent(logLine); !isEdit {
 		return nil
 	}
 
@@ -803,9 +764,9 @@ func (g Cursor) cursorFileHeartbeat(
 			return nil
 		}
 
-		lineChanges := heartbeat.PointerTo(g.lineChanges(params.StreamingContent))
-		if strings.TrimSpace(params.StreamingContent) == "" {
-			lineChanges = snapshotLineChanges
+		lineChanges := snapshotLineChanges
+		if lineChanges == nil && strings.TrimSpace(params.StreamingContent) != "" {
+			lineChanges = heartbeat.PointerTo(g.lineChanges(params.StreamingContent))
 		}
 
 		h := g.newHeartbeat(
@@ -844,9 +805,9 @@ func (g Cursor) cursorFileHeartbeat(
 			content = logLine.CodeBlocks[0].Content
 		}
 
-		lineChanges := heartbeat.PointerTo(g.lineChanges(content))
-		if strings.TrimSpace(content) == "" {
-			lineChanges = snapshotLineChanges
+		lineChanges := snapshotLineChanges
+		if lineChanges == nil && strings.TrimSpace(content) != "" {
+			lineChanges = heartbeat.PointerTo(g.lineChanges(content))
 		}
 
 		h := g.newHeartbeat(

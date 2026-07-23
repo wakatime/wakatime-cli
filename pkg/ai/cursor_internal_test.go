@@ -39,16 +39,16 @@ func TestCursorHelpers(t *testing.T) {
 		assert.Equal(t, 1, Cursor{}.lineChangesFromDiff("--- a\n+++ b\n-old\n+new\n+extra"))
 	})
 
-	t.Run("token counts accept camel case usage", func(t *testing.T) {
+	t.Run("token counts derive output from total minus input", func(t *testing.T) {
 		input := 7
 		total := 11
 
 		assert.Equal(t,
-			heartbeat.AITokens{CurrentInput: 7, CurrentOutput: 11},
+			heartbeat.AITokens{CurrentInput: 7, CurrentOutput: 4},
 			Cursor{}.cursorTokenCounts(cursorLogLine{
-				Usage: &cursorUsage{
-					InputTokensCamel: &input,
-					TotalTokensCamel: &total,
+				TokenCount: &cursorTokenCount{
+					InputTokensSnake: &input,
+					TotalTokensSnake: &total,
 				},
 			}, heartbeat.AITokens{}),
 		)
@@ -119,19 +119,9 @@ func TestCursorHelpers(t *testing.T) {
 				},
 			}, previous),
 		)
-
-		assert.Equal(t,
-			previous,
-			Cursor{}.cursorTokenCounts(cursorLogLine{
-				Usage: &cursorUsage{
-					InputTokensCamel:  &zero,
-					OutputTokensCamel: &zero,
-				},
-			}, previous),
-		)
 	})
 
-	t.Run("usage output tokens take precedence over totals", func(t *testing.T) {
+	t.Run("output tokens take precedence over totals", func(t *testing.T) {
 		input := 7
 		output := 4
 		total := 11
@@ -139,10 +129,10 @@ func TestCursorHelpers(t *testing.T) {
 		assert.Equal(t,
 			heartbeat.AITokens{CurrentInput: 7, CurrentOutput: 4},
 			Cursor{}.cursorTokenCounts(cursorLogLine{
-				Usage: &cursorUsage{
-					InputTokensCamel:  &input,
-					OutputTokensCamel: &output,
-					TotalTokensCamel:  &total,
+				TokenCount: &cursorTokenCount{
+					InputTokensSnake:  &input,
+					OutputTokensSnake: &output,
+					TotalTokensSnake:  &total,
 				},
 			}, heartbeat.AITokens{}),
 		)
