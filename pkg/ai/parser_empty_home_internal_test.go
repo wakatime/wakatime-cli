@@ -25,6 +25,7 @@ func TestParsersEmptyHome(t *testing.T) {
 		Cursor{After: after},
 		Gemini{After: after},
 		Goose{After: after},
+		GrokBuild{After: after},
 		Kiro{After: after},
 		OpenCode{After: after},
 		Pi{After: after},

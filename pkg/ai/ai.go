@@ -85,6 +85,8 @@ const (
 	GooseParser
 	// AmpParser is the parser ID for Amp.
 	AmpParser
+	// GrokBuildParser is the parser ID for Grok Build (x.ai CLI).
+	GrokBuildParser
 )
 
 type (
@@ -297,6 +299,11 @@ func parseAIHeartbeats(
 			FallbackUserAgent: config.Plugin,
 		},
 		Goose{
+			After:             after,
+			UserAgents:        userAgents,
+			FallbackUserAgent: config.Plugin,
+		},
+		GrokBuild{
 			After:             after,
 			UserAgents:        userAgents,
 			FallbackUserAgent: config.Plugin,

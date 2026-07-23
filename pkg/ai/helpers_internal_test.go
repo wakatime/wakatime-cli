@@ -52,6 +52,8 @@ func TestParserIDStringAndPlugins(t *testing.T) {
 	assert.Equal(t, "Qwen Code/1.2.3", aiPlugin(QwenCode{}, "1.2.3"))
 	assert.Equal(t, "Pi", aiPlugin(Pi{}, ""))
 	assert.Equal(t, "Goose", aiPlugin(Goose{}, ""))
+	assert.Equal(t, "Grok Build", aiPlugin(GrokBuild{}, ""))
+	assert.Equal(t, "Grok Build/0.2.111", aiPlugin(GrokBuild{}, "0.2.111"))
 }
 
 func TestTimestampAtOrAfterCutoff(t *testing.T) {
