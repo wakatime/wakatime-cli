@@ -35,6 +35,7 @@ type Heartbeat struct {
 	Dependencies          []string   `json:"dependencies,omitempty"`
 	Entity                string     `json:"entity"`
 	EntityType            EntityType `json:"type"`
+	Framework             *string    `json:"framework,omitempty"`
 	HumanLineChanges      *int       `json:"human_line_changes,omitempty"`
 	IsUnsavedEntity       bool       `json:"-"`
 	IsWrite               *bool      `json:"is_write,omitempty"`

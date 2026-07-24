@@ -6,6 +6,7 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/fileexperts"
 	"github.com/wakatime/wakatime-cli/pkg/filestats"
 	"github.com/wakatime/wakatime-cli/pkg/filter"
+	"github.com/wakatime/wakatime-cli/pkg/framework"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/language"
 	"github.com/wakatime/wakatime-cli/pkg/params"
@@ -81,6 +82,13 @@ func WithLanguageDetection() Preprocessor {
 		return language.WithDetection(language.Config{
 			GuessLanguage: params.Heartbeat.GuessLanguage,
 		})
+	}
+}
+
+// WithFrameworkDetection returns a Preprocessor that applies framework detection to heartbeats.
+func WithFrameworkDetection() Preprocessor {
+	return func(_ params.Params) heartbeat.HandleOption {
+		return framework.WithDetection()
 	}
 }
 

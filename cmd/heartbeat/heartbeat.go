@@ -212,6 +212,7 @@ func initHandleOptions() []handler.Preprocessor {
 		handler.WithAPIKeyReplacing(),
 		handler.WithFileStatsDetection(),
 		handler.WithLanguageDetection(),
+		handler.WithFrameworkDetection(),
 		handler.WithDependencyDetection(),
 		handler.WithCategoryDetection(),
 		handler.WithProjectDetection(),
