@@ -2,6 +2,7 @@ package ai_test
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -868,4 +869,125 @@ func TestClaudeParse_UserMessageContentAsPlainStringSystemReminder(t *testing.T)
 	got, err := parser.Parse(ctx)
 	require.NoError(t, err)
 	assert.Empty(t, got)
+}
+
+func TestClaudeParse_RealTranscriptContinuesAfterInvalidLineAndField(t *testing.T) {
+	ctx := context.Background()
+
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	transcriptDir := filepath.Join(home, ".claude", "projects", "sample-project")
+	require.NoError(t, os.MkdirAll(transcriptDir, 0o755))
+
+	firstFile := filepath.Join(home, "project", "first.go")
+	secondFile := filepath.Join(home, "project", "second.go")
+	transcriptPath := filepath.Join(transcriptDir, "session.jsonl")
+
+	marshalLine := func(value map[string]any) string {
+		t.Helper()
+
+		data, err := json.Marshal(value)
+		require.NoError(t, err)
+
+		return string(data)
+	}
+
+	// These records include the envelope and tool result fields written by real
+	// Claude Code transcripts. The middle record has two independently bad
+	// optional fields but still contains a usable edit result.
+	transcript := strings.Join([]string{
+		marshalLine(map[string]any{
+			"parentUuid":  nil,
+			"isSidechain": false,
+			"userType":    "external",
+			"cwd":         filepath.Dir(firstFile),
+			"sessionId":   "claude-session",
+			"version":     "2.1.138",
+			"gitBranch":   "main",
+			"type":        "user",
+			"message": map[string]any{
+				"role": "user",
+				"content": []any{
+					map[string]any{"type": "text", "text": "Update both files."},
+				},
+			},
+			"uuid":      "user-message",
+			"timestamp": "2026-07-24T12:00:00Z",
+		}),
+		`{"type":"user","timestamp":"not-finished"`,
+		marshalLine(map[string]any{
+			"parentUuid":  "assistant-message",
+			"isSidechain": false,
+			"userType":    "external",
+			"cwd":         filepath.Dir(firstFile),
+			"sessionId":   "claude-session",
+			"version":     "2.1.138",
+			"gitBranch":   "main",
+			"type":        "user",
+			"message": map[string]any{
+				"id":      "tool-result-message",
+				"role":    "user",
+				"content": []any{map[string]any{"type": "tool_result", "tool_use_id": "tool-1"}},
+				"usage":   map[string]any{"input_tokens": "unknown"},
+			},
+			"uuid":      "first-tool-result",
+			"timestamp": "2026-07-24T12:01:00Z",
+			"toolUseResult": map[string]any{
+				"file":         "unexpected-new-shape",
+				"filePath":     firstFile,
+				"oldString":    "package main",
+				"newString":    "package main\n\nfunc main() {}",
+				"originalFile": "package main",
+				"structuredPatch": []any{
+					map[string]any{
+						"oldStart": 1,
+						"oldLines": 1,
+						"newStart": 1,
+						"newLines": 3,
+						"lines":    []string{" package main", "+", "+func main() {}"},
+					},
+				},
+			},
+		}),
+		marshalLine(map[string]any{
+			"parentUuid":  "next-assistant-message",
+			"isSidechain": false,
+			"userType":    "external",
+			"cwd":         filepath.Dir(secondFile),
+			"sessionId":   "claude-session",
+			"version":     "2.1.138",
+			"gitBranch":   "main",
+			"type":        "user",
+			"message": map[string]any{
+				"role":    "user",
+				"content": []any{map[string]any{"type": "tool_result", "tool_use_id": "tool-2"}},
+			},
+			"uuid":      "second-tool-result",
+			"timestamp": "2026-07-24T12:02:00Z",
+			"toolUseResult": map[string]any{
+				"filePath":     secondFile,
+				"oldString":    "package second",
+				"newString":    "package second\n\nconst ready = true",
+				"originalFile": "package second",
+			},
+		}),
+	}, "\n") + "\n"
+	require.NoError(t, os.WriteFile(transcriptPath, []byte(transcript), 0o644))
+
+	got, err := (ai.Claude{
+		After:             time.Date(2026, 7, 24, 11, 0, 0, 0, time.UTC),
+		FallbackUserAgent: "claude-code/2.1.138 claude-code-wakatime/4.1.0",
+	}).Parse(ctx)
+	require.NoError(t, err)
+	require.Len(t, got, 3)
+
+	assert.Equal(t, "Claude session", got[0].Entity)
+	assert.Equal(t, firstFile, got[1].Entity)
+	assert.Equal(t, secondFile, got[2].Entity)
+	require.NotNil(t, got[1].AILineChanges)
+	require.NotNil(t, got[2].AILineChanges)
+	assert.Equal(t, 2, *got[1].AILineChanges)
+	assert.Equal(t, 2, *got[2].AILineChanges)
 }
