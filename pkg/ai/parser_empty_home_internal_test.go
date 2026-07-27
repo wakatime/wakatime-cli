@@ -12,6 +12,7 @@ func TestParsersEmptyHome(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
+	t.Setenv("GROK_HOME", "")
 
 	after := time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC)
 	parsers := []Parser{
@@ -25,6 +26,7 @@ func TestParsersEmptyHome(t *testing.T) {
 		Cursor{After: after},
 		Gemini{After: after},
 		Goose{After: after},
+		GrokBuild{After: after},
 		Kiro{After: after},
 		OpenCode{After: after},
 		Pi{After: after},

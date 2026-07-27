@@ -39,9 +39,9 @@ jobs:
         run: make test
       -
         name: Linter
-        uses: golangci/golangci-lint-action@v7
+        uses: golangci/golangci-lint-action@v9
         with:
-          version: latest
+          version: v2.11.0
           skip-cache: true
       -
         name: Vulnerability scan
@@ -99,9 +99,9 @@ jobs:
         run: make test
       -
         name: Linter
-        uses: golangci/golangci-lint-action@v7
+        uses: golangci/golangci-lint-action@v9
         with:
-          version: latest
+          version: v2.11.0
           skip-cache: true
 
   test-integration-windows:
@@ -150,9 +150,9 @@ jobs:
         run: make test
       -
         name: Linter
-        uses: golangci/golangci-lint-action@v7
+        uses: golangci/golangci-lint-action@v9
         with:
-          version: latest
+          version: v2.11.0
           skip-cache: true
 
   test-integration-macos:

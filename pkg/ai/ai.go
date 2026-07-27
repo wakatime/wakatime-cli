@@ -85,6 +85,8 @@ const (
 	GooseParser
 	// AmpParser is the parser ID for Amp.
 	AmpParser
+	// GrokBuildParser is the parser ID for Grok Build.
+	GrokBuildParser
 )
 
 type (
@@ -222,6 +224,11 @@ func parseAIHeartbeats(
 			FallbackUserAgent: config.Plugin,
 		},
 		Codex{
+			After:             after,
+			UserAgents:        userAgents,
+			FallbackUserAgent: config.Plugin,
+		},
+		GrokBuild{
 			After:             after,
 			UserAgents:        userAgents,
 			FallbackUserAgent: config.Plugin,

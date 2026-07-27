@@ -120,6 +120,22 @@ type (
 	}
 )
 
+func (m *claudeMessage) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := claudeJSONUnmarshal(data, &raw); err != nil {
+		return err
+	}
+
+	claudeDecodeField(raw, "id", &m.ID)
+	claudeDecodeField(raw, "role", &m.Role)
+	claudeDecodeField(raw, "model", &m.Model)
+	claudeDecodeField(raw, "effort", &m.Effort)
+	claudeDecodeField(raw, "usage", &m.Usage)
+	claudeDecodeField(raw, "content", &m.Content)
+
+	return nil
+}
+
 func (v *contentValue) UnmarshalJSON(data []byte) error {
 	if data == nil || string(data) == "null" {
 		return nil
@@ -148,15 +164,19 @@ func (r *toolUseResult) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	type alias toolUseResult
-
-	var decoded alias
-	if err := claudeJSONUnmarshal(data, &decoded); err != nil {
-		return nil
-	}
-
-	*r = toolUseResult(decoded)
 	r.Raw = raw
+	claudeDecodeField(raw, "type", &r.Type)
+	claudeDecodeField(raw, "file", &r.File)
+	claudeDecodeField(raw, "content", &r.Content)
+	claudeDecodeField(raw, "stdout", &r.Stdout)
+	claudeDecodeField(raw, "stderr", &r.Stderr)
+	claudeDecodeField(raw, "result", &r.Result)
+	claudeDecodeField(raw, "codeText", &r.CodeText)
+	claudeDecodeField(raw, "filePath", &r.FilePath)
+	claudeDecodeField(raw, "originalFile", &r.OriginalFile)
+	claudeDecodeField(raw, "oldString", &r.OldString)
+	claudeDecodeField(raw, "newString", &r.NewString)
+	claudeDecodeField(raw, "structuredPatch", &r.StructuredPatch)
 
 	return nil
 }
@@ -239,6 +259,38 @@ func parseClaudeMessageContent(raw any) (claudeMessageContent, bool) {
 	default:
 		return claudeMessageContent{}, false
 	}
+}
+
+func (l *claudeLogLine) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := claudeJSONUnmarshal(data, &raw); err != nil {
+		return err
+	}
+
+	claudeDecodeField(raw, "timestamp", &l.Timestamp)
+	claudeDecodeField(raw, "sessionId", &l.SessionID)
+	claudeDecodeField(raw, "version", &l.Version)
+	claudeDecodeField(raw, "toolUseResult", &l.ToolUseResult)
+	claudeDecodeField(raw, "usage", &l.Usage)
+	claudeDecodeField(raw, "message", &l.Message)
+	claudeDecodeField(raw, "isSidechain", &l.IsSideChain)
+	claudeDecodeField(raw, "promptId", &l.PromptID)
+	claudeDecodeField(raw, "type", &l.Type)
+	claudeDecodeField(raw, "cwd", &l.Cwd)
+
+	return nil
+}
+
+// claudeDecodeField decodes one optional transcript field independently. Claude
+// Code's JSONL schema evolves frequently, so a new shape for one field must not
+// discard other usable data from the same line.
+func claudeDecodeField(raw map[string]json.RawMessage, key string, value any) {
+	data, ok := raw[key]
+	if !ok {
+		return
+	}
+
+	_ = claudeJSONUnmarshal(data, value)
 }
 
 func claudeJSONUnmarshal(data []byte, v any) (err error) {
