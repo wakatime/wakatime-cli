@@ -387,9 +387,10 @@ func TestGrokBuildParse_AggregatesUserChunks(t *testing.T) {
 		FallbackUserAgent: "plugin/0.0.1",
 	}.Parse(ctx)
 	require.NoError(t, err)
-	require.Len(t, got, 1)
-	assert.Equal(t, len([]rune("fix main.go")), got[0].AIPromptLength)
-	assert.Equal(t, int64(11), got[0].AIInputTokens)
+	require.Len(t, got, 2)
+	assert.Equal(t, len([]rune("fix ")), got[0].AIPromptLength)
+	assert.Equal(t, len([]rune("main.go")), got[1].AIPromptLength)
+	assert.Equal(t, int64(11), got[1].AIInputTokens)
 }
 
 func TestGrokBuildParse_RejectedHunkNegates(t *testing.T) {
@@ -436,6 +437,270 @@ func TestGrokBuildParse_RejectedHunkNegates(t *testing.T) {
 	assert.Equal(t, 2, *got[0].AILineChanges)
 	assert.Equal(t, -2, *got[1].AILineChanges)
 	assert.Equal(t, 0, *got[0].AILineChanges+*got[1].AILineChanges)
+}
+
+func TestGrokBuildParse_MixedAuthorRemovalReversesOnlyAgent(t *testing.T) {
+	ctx := context.Background()
+	_, sessionDir, sessionID, projectDir := setupGrokBuildSession(t)
+
+	editFile := filepath.Join(projectDir, "main.go")
+	require.NoError(t, os.WriteFile(filepath.Join(sessionDir, "updates.jsonl"), []byte{}, 0o644))
+
+	hunks := strings.Join([]string{
+		mustJSONLine(t, map[string]interface{}{
+			"hunkId":       "h-mixed",
+			"filePath":     filepath.ToSlash(editFile),
+			"linesAdded":   5,
+			"linesRemoved": 0,
+			"authorType":   "human",
+			"sourceType":   "external",
+			"eventType":    "added",
+			"sessionId":    sessionID,
+			"timestamp":    "2026-07-23T22:09:20.000000Z",
+		}),
+		mustJSONLine(t, map[string]interface{}{
+			"hunkId":       "h-mixed",
+			"filePath":     filepath.ToSlash(editFile),
+			"linesAdded":   1,
+			"linesRemoved": 0,
+			"authorType":   "agent",
+			"sourceType":   "agentEdit",
+			"eventType":    "updated",
+			"promptIndex":  0,
+			"sessionId":    sessionID,
+			"timestamp":    "2026-07-23T22:09:21.000000Z",
+		}),
+		mustJSONLine(t, map[string]interface{}{
+			"hunkId":        "h-mixed",
+			"filePath":      filepath.ToSlash(editFile),
+			"linesAdded":    -6,
+			"linesRemoved":  0,
+			"eventType":     "removed",
+			"removalReason": "rejected",
+			"sessionId":     sessionID,
+			"timestamp":     "2026-07-23T22:09:22.000000Z",
+		}),
+	}, "\n") + "\n"
+	require.NoError(t, os.WriteFile(filepath.Join(sessionDir, "hunk_records.jsonl"), []byte(hunks), 0o644))
+
+	got, err := ai.GrokBuild{
+		After:             time.Date(2026, 7, 23, 20, 0, 0, 0, time.UTC),
+		FallbackUserAgent: "plugin/0.0.1",
+	}.Parse(ctx)
+	require.NoError(t, err)
+	require.Len(t, got, 2)
+	require.NotNil(t, got[0].AILineChanges)
+	require.NotNil(t, got[1].AILineChanges)
+	assert.Equal(t, 1, *got[0].AILineChanges)
+	assert.Equal(t, -1, *got[1].AILineChanges)
+	assert.Equal(t, 0, *got[0].AILineChanges+*got[1].AILineChanges)
+}
+
+func TestGrokBuildParse_RemovalReversesPerModel(t *testing.T) {
+	ctx := context.Background()
+	_, sessionDir, sessionID, projectDir := setupGrokBuildSession(t)
+
+	editFile := filepath.Join(projectDir, "main.go")
+	updates := strings.Join([]string{
+		mustJSONLine(t, map[string]interface{}{
+			"timestamp": 1784841973,
+			"method":    "session/update",
+			"params": map[string]interface{}{
+				"sessionId": sessionID,
+				"update": map[string]interface{}{
+					"sessionUpdate": "user_message_chunk",
+					"content":       map[string]interface{}{"type": "text", "text": "first"},
+					"_meta":         map[string]interface{}{"modelId": "grok-3", "promptIndex": 0},
+				},
+				"_meta": map[string]interface{}{"agentTimestampMs": int64(1784841972430)},
+			},
+		}),
+		mustJSONLine(t, map[string]interface{}{
+			"timestamp": 1784841975,
+			"method":    "session/update",
+			"params": map[string]interface{}{
+				"sessionId": sessionID,
+				"update": map[string]interface{}{
+					"sessionUpdate": "user_message_chunk",
+					"content":       map[string]interface{}{"type": "text", "text": "second"},
+					"_meta":         map[string]interface{}{"modelId": "grok-4.5", "promptIndex": 1},
+				},
+				"_meta": map[string]interface{}{"agentTimestampMs": int64(1784841972600)},
+			},
+		}),
+	}, "\n") + "\n"
+	require.NoError(t, os.WriteFile(filepath.Join(sessionDir, "updates.jsonl"), []byte(updates), 0o644))
+
+	hunks := strings.Join([]string{
+		mustJSONLine(t, map[string]interface{}{
+			"hunkId":       "h-multi",
+			"filePath":     filepath.ToSlash(editFile),
+			"linesAdded":   3,
+			"linesRemoved": 0,
+			"authorType":   "agent",
+			"sourceType":   "agentEdit",
+			"eventType":    "added",
+			"promptIndex":  0,
+			"sessionId":    sessionID,
+			"timestamp":    "2026-07-23T22:09:21.000000Z",
+		}),
+		mustJSONLine(t, map[string]interface{}{
+			"hunkId":       "h-multi",
+			"filePath":     filepath.ToSlash(editFile),
+			"linesAdded":   1,
+			"linesRemoved": 0,
+			"authorType":   "agent",
+			"sourceType":   "agentEdit",
+			"eventType":    "updated",
+			"promptIndex":  1,
+			"sessionId":    sessionID,
+			"timestamp":    "2026-07-23T22:09:22.000000Z",
+		}),
+		mustJSONLine(t, map[string]interface{}{
+			"hunkId":        "h-multi",
+			"filePath":      filepath.ToSlash(editFile),
+			"linesAdded":    -4,
+			"linesRemoved":  0,
+			"eventType":     "removed",
+			"removalReason": "rejected",
+			"sessionId":     sessionID,
+			"timestamp":     "2026-07-23T22:09:23.000000Z",
+		}),
+	}, "\n") + "\n"
+	require.NoError(t, os.WriteFile(filepath.Join(sessionDir, "hunk_records.jsonl"), []byte(hunks), 0o644))
+
+	got, err := ai.GrokBuild{
+		After:             time.Date(2026, 7, 23, 20, 0, 0, 0, time.UTC),
+		FallbackUserAgent: "plugin/0.0.1",
+	}.Parse(ctx)
+	require.NoError(t, err)
+
+	var fileHBs []heartbeat.Heartbeat
+	for _, hb := range got {
+		if hb.EntityType == heartbeat.FileType {
+			fileHBs = append(fileHBs, hb)
+		}
+	}
+
+	require.Len(t, fileHBs, 4)
+	require.NotNil(t, fileHBs[0].AILineChanges)
+	require.NotNil(t, fileHBs[1].AILineChanges)
+	require.NotNil(t, fileHBs[2].AILineChanges)
+	require.NotNil(t, fileHBs[3].AILineChanges)
+
+	assert.Equal(t, 3, *fileHBs[0].AILineChanges)
+	assert.Contains(t, fileHBs[0].UserAgent, "grok/3")
+	assert.Equal(t, 1, *fileHBs[1].AILineChanges)
+	assert.Contains(t, fileHBs[1].UserAgent, "grok/4.5")
+
+	// Removals reverse per model (sorted by model key): grok-3 then grok-4.5.
+	assert.Equal(t, -3, *fileHBs[2].AILineChanges)
+	assert.Contains(t, fileHBs[2].UserAgent, "grok/3")
+	assert.NotContains(t, fileHBs[2].UserAgent, "grok/4.5")
+	assert.Equal(t, -1, *fileHBs[3].AILineChanges)
+	assert.Contains(t, fileHBs[3].UserAgent, "grok/4.5")
+}
+
+func TestGrokBuildParse_DropsPhantomPromptAfterIndexed(t *testing.T) {
+	ctx := context.Background()
+	_, sessionDir, sessionID, _ := setupGrokBuildSession(t)
+
+	updates := strings.Join([]string{
+		mustJSONLine(t, map[string]interface{}{
+			"timestamp": 1784841973,
+			"method":    "session/update",
+			"params": map[string]interface{}{
+				"sessionId": sessionID,
+				"update": map[string]interface{}{
+					"sessionUpdate": "user_message_chunk",
+					"content":       map[string]interface{}{"type": "text", "text": "indexed"},
+					"_meta":         map[string]interface{}{"modelId": "grok-4.5", "promptIndex": 0},
+				},
+				"_meta": map[string]interface{}{"agentTimestampMs": int64(1784841972430)},
+			},
+		}),
+		mustJSONLine(t, map[string]interface{}{
+			"timestamp": 1784841974,
+			"method":    "_x.ai/session/update",
+			"params": map[string]interface{}{
+				"sessionId": sessionID,
+				"update": map[string]interface{}{
+					"sessionUpdate": "agent_message_chunk",
+					"content":       map[string]interface{}{"type": "text", "text": "ok"},
+				},
+				"_meta": map[string]interface{}{"agentTimestampMs": int64(1784841972500)},
+			},
+		}),
+		mustJSONLine(t, map[string]interface{}{
+			"timestamp": 1784841975,
+			"method":    "session/update",
+			"params": map[string]interface{}{
+				"sessionId": sessionID,
+				"update": map[string]interface{}{
+					"sessionUpdate": "user_message_chunk",
+					"content":       map[string]interface{}{"type": "text", "text": "phantom"},
+					"_meta":         map[string]interface{}{"modelId": "grok-4.5"},
+				},
+				"_meta": map[string]interface{}{"agentTimestampMs": int64(1784841972600)},
+			},
+		}),
+	}, "\n") + "\n"
+	require.NoError(t, os.WriteFile(filepath.Join(sessionDir, "updates.jsonl"), []byte(updates), 0o644))
+	require.NoError(t, os.WriteFile(filepath.Join(sessionDir, "hunk_records.jsonl"), []byte{}, 0o644))
+
+	got, err := ai.GrokBuild{
+		After:             time.Date(2026, 7, 23, 20, 0, 0, 0, time.UTC),
+		FallbackUserAgent: "plugin/0.0.1",
+	}.Parse(ctx)
+	require.NoError(t, err)
+	require.Len(t, got, 1)
+	assert.Equal(t, len([]rune("indexed")), got[0].AIPromptLength)
+}
+
+func TestGrokBuildParse_MalformedUpdateFlushesPending(t *testing.T) {
+	ctx := context.Background()
+	_, sessionDir, sessionID, _ := setupGrokBuildSession(t)
+
+	updates := strings.Join([]string{
+		mustJSONLine(t, map[string]interface{}{
+			"timestamp": 1784841973,
+			"method":    "session/update",
+			"params": map[string]interface{}{
+				"sessionId": sessionID,
+				"update": map[string]interface{}{
+					"sessionUpdate": "user_message_chunk",
+					"content":       map[string]interface{}{"type": "text", "text": "before"},
+					"_meta":         map[string]interface{}{"modelId": "grok-4.5", "promptIndex": 0},
+				},
+				"_meta": map[string]interface{}{"agentTimestampMs": int64(1784841972430)},
+			},
+		}),
+		`{not-valid-json`,
+		mustJSONLine(t, map[string]interface{}{
+			"timestamp": 1784841975,
+			"method":    "session/update",
+			"params": map[string]interface{}{
+				"sessionId": sessionID,
+				"update": map[string]interface{}{
+					"sessionUpdate": "user_message_chunk",
+					"content":       map[string]interface{}{"type": "text", "text": "after"},
+					"_meta":         map[string]interface{}{"modelId": "grok-4.5", "promptIndex": 0},
+				},
+				"_meta": map[string]interface{}{"agentTimestampMs": int64(1784841972600)},
+			},
+		}),
+	}, "\n") + "\n"
+	require.NoError(t, os.WriteFile(filepath.Join(sessionDir, "updates.jsonl"), []byte(updates), 0o644))
+	require.NoError(t, os.WriteFile(filepath.Join(sessionDir, "hunk_records.jsonl"), []byte{}, 0o644))
+
+	got, err := ai.GrokBuild{
+		After:             time.Date(2026, 7, 23, 20, 0, 0, 0, time.UTC),
+		FallbackUserAgent: "plugin/0.0.1",
+	}.Parse(ctx)
+	require.NoError(t, err)
+	require.Len(t, got, 2)
+	assert.Equal(t, len([]rune("before")), got[0].AIPromptLength)
+	assert.Equal(t, len([]rune("after")), got[1].AIPromptLength)
 }
 
 func TestGrokBuildParse_HunkUsesPromptIndexModel(t *testing.T) {

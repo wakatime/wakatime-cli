@@ -113,8 +113,11 @@ type (
 		tokens              heartbeat.AITokens
 		model               string
 		modelsByPromptIndex map[int]string
-		agentHunks          map[string]bool
-		pending             *grokBuildPendingPrompt
+		// agentHunkContribs tracks AI net line deltas per hunkId → model so
+		// removals can reverse only agent-attributed contributions (and by model).
+		agentHunkContribs map[string]map[string]int
+		seenPromptIndex   bool
+		pending           *grokBuildPendingPrompt
 	}
 )
 
@@ -253,7 +256,7 @@ func (g GrokBuild) parseSession(ctx context.Context, sessionDir string, version 
 	state := grokBuildParseState{
 		model:               session.model,
 		modelsByPromptIndex: make(map[int]string),
-		agentHunks:          make(map[string]bool),
+		agentHunkContribs:   make(map[string]map[string]int),
 	}
 
 	if err := g.parseUpdates(ctx, logger, sessionDir, session, &state); err != nil {
@@ -330,6 +333,9 @@ func (g GrokBuild) parseUpdates(
 		line, readErr := grokBuildReadJSONLLine(reader, maxTranscriptLineSize)
 		if errors.Is(readErr, errGrokBuildOversizedLine) {
 			logger.Warnf("skipping oversized Grok Build updates line in %q", path)
+			// Oversized lines are NotUserMessage-equivalent: flush conservatively.
+			g.flushPendingPrompt(session, state)
+
 			continue
 		}
 
@@ -352,6 +358,9 @@ func (g GrokBuild) parseUpdates(
 		updateLine, ok := grokBuildDecodeUpdateLine(line)
 		if !ok {
 			logger.Warnf("failed parsing Grok Build updates line from %q", path)
+			// Malformed records flush any in-progress prompt (upstream NotUserMessage).
+			g.flushPendingPrompt(session, state)
+
 			if errors.Is(readErr, io.EOF) {
 				break
 			}
@@ -404,29 +413,30 @@ func (g GrokBuild) handleUserMessage(
 	session grokBuildSession,
 	state *grokBuildParseState,
 ) {
-	// Excluded chunks must not open a new prompt or emit heartbeats, and must not
-	// interrupt consecutive user text accumulation (unlike upstream NotUserMessage,
-	// which flushes for prompt-index reconstruction).
+	// Host/bash/nil/non-text match upstream NotUserMessage: flush current accumulation.
 	if update.Meta != nil && update.Meta.HostTurn {
+		g.flushPendingPrompt(session, state)
 		return
 	}
 
 	if update.Content == nil {
+		g.flushPendingPrompt(session, state)
 		return
 	}
 
 	if update.Content.Meta != nil && strings.TrimSpace(update.Content.Meta.BashCommand) != "" {
+		g.flushPendingPrompt(session, state)
 		return
 	}
 
 	if !strings.EqualFold(strings.TrimSpace(update.Content.Type), "text") {
-		// Non-text user chunks (e.g. images) end any in-progress accumulation.
 		g.flushPendingPrompt(session, state)
 		return
 	}
 
 	text := update.Content.Text
 	if strings.TrimSpace(text) == "" {
+		g.flushPendingPrompt(session, state)
 		return
 	}
 
@@ -435,11 +445,23 @@ func (g GrokBuild) handleUserMessage(
 		promptIndex = update.Meta.PromptIndex
 	}
 
+	if promptIndex != nil {
+		state.seenPromptIndex = true
+	}
+
+	// Progressive promptIndex: after the first indexed prompt, unindexed phantoms
+	// must not be counted (upstream UserRunTurnTracker / collect_prompts_from_events).
+	counts := !state.seenPromptIndex || promptIndex != nil
+	if !counts {
+		g.flushPendingPrompt(session, state)
+		return
+	}
+
 	model := firstNonEmptyString(state.model, session.model)
 
 	if state.pending != nil {
 		newRun := false
-		if promptIndex != nil || state.pending.promptIndex != nil {
+		if state.seenPromptIndex || promptIndex != nil || state.pending.promptIndex != nil {
 			newRun = !grokBuildSamePromptIndex(state.pending.promptIndex, promptIndex)
 		}
 
@@ -625,8 +647,8 @@ func (g GrokBuild) parseHunks(
 			continue
 		}
 
-		if hb := g.hunkHeartbeat(hunk, session, state, grokHome); hb != nil {
-			state.heartbeats = append(state.heartbeats, *hb)
+		if hbs := g.hunkHeartbeats(hunk, session, state, grokHome); len(hbs) > 0 {
+			state.heartbeats = append(state.heartbeats, hbs...)
 		}
 
 		if errors.Is(readErr, io.EOF) {
@@ -637,32 +659,16 @@ func (g GrokBuild) parseHunks(
 	return nil
 }
 
-func (g GrokBuild) hunkHeartbeat(
+func (g GrokBuild) hunkHeartbeats(
 	hunk grokBuildHunk,
 	session grokBuildSession,
 	state *grokBuildParseState,
 	grokHome string,
-) *heartbeat.Heartbeat {
+) []heartbeat.Heartbeat {
 	eventType := strings.ToLower(strings.TrimSpace(hunk.EventType))
 	hunkID := strings.TrimSpace(hunk.HunkID)
 	isAgent := strings.EqualFold(strings.TrimSpace(hunk.AuthorType), "agent")
 	isRemoved := eventType == "removed"
-
-	if isRemoved {
-		if hunkID == "" || !state.agentHunks[hunkID] {
-			return nil
-		}
-
-		delete(state.agentHunks, hunkID)
-	} else {
-		if !isAgent {
-			return nil
-		}
-
-		if hunkID != "" {
-			state.agentHunks[hunkID] = true
-		}
-	}
 
 	filePath := filepath.FromSlash(strings.TrimSpace(hunk.FilePath))
 	if filePath == "" {
@@ -674,13 +680,111 @@ func (g GrokBuild) hunkHeartbeat(
 	}
 
 	if hunk.Timestamp.IsZero() || hunk.Timestamp.Before(g.After) {
+		// Still track agent contributions for later removals even when the
+		// originating heartbeat itself is filtered by After.
+		if !isRemoved && isAgent && hunkID != "" {
+			model := g.hunkModel(hunk, session, state)
+			lineChanges := hunk.LinesAdded - hunk.LinesRemoved
+			g.trackAgentHunkContrib(state, hunkID, model, lineChanges)
+		}
+
+		if isRemoved && hunkID != "" {
+			delete(state.agentHunkContribs, hunkID)
+		}
+
+		return nil
+	}
+
+	if isRemoved {
+		return g.hunkRemovalHeartbeats(hunk, session, state, filePath)
+	}
+
+	if !isAgent {
 		return nil
 	}
 
 	lineChanges := hunk.LinesAdded - hunk.LinesRemoved
 	model := g.hunkModel(hunk, session, state)
 
-	h := heartbeat.NewWithAITokens(
+	if hunkID != "" {
+		g.trackAgentHunkContrib(state, hunkID, model, lineChanges)
+	}
+
+	return []heartbeat.Heartbeat{g.fileLineChangeHeartbeat(filePath, lineChanges, model, session, hunk.Timestamp)}
+}
+
+func (g GrokBuild) hunkRemovalHeartbeats(
+	hunk grokBuildHunk,
+	session grokBuildSession,
+	state *grokBuildParseState,
+	filePath string,
+) []heartbeat.Heartbeat {
+	hunkID := strings.TrimSpace(hunk.HunkID)
+	if hunkID == "" {
+		return nil
+	}
+
+	contribs, ok := state.agentHunkContribs[hunkID]
+	if !ok || len(contribs) == 0 {
+		return nil
+	}
+
+	delete(state.agentHunkContribs, hunkID)
+
+	models := make([]string, 0, len(contribs))
+	for model := range contribs {
+		models = append(models, model)
+	}
+
+	sort.Strings(models)
+
+	var heartbeats []heartbeat.Heartbeat
+
+	for _, model := range models {
+		delta := contribs[model]
+		if delta == 0 {
+			continue
+		}
+
+		heartbeats = append(heartbeats, g.fileLineChangeHeartbeat(
+			filePath,
+			-delta,
+			model,
+			session,
+			hunk.Timestamp,
+		))
+	}
+
+	return heartbeats
+}
+
+func (g GrokBuild) trackAgentHunkContrib(
+	state *grokBuildParseState,
+	hunkID string,
+	model string,
+	lineChanges int,
+) {
+	if hunkID == "" || lineChanges == 0 {
+		return
+	}
+
+	byModel, ok := state.agentHunkContribs[hunkID]
+	if !ok {
+		byModel = make(map[string]int)
+		state.agentHunkContribs[hunkID] = byModel
+	}
+
+	byModel[model] += lineChanges
+}
+
+func (g GrokBuild) fileLineChangeHeartbeat(
+	filePath string,
+	lineChanges int,
+	model string,
+	session grokBuildSession,
+	ts time.Time,
+) heartbeat.Heartbeat {
+	return heartbeat.NewWithAITokens(
 		heartbeat.PointerTo(lineChanges),
 		session.id,
 		heartbeat.AITokens{},
@@ -701,11 +805,9 @@ func (g GrokBuild) hunkHeartbeat(
 		false,
 		"",
 		"",
-		float64(hunk.Timestamp.UnixMilli())/1000,
+		float64(ts.UnixMilli())/1000,
 		g.userAgent(filePath, model, session.version),
 	)
-
-	return &h
 }
 
 func (g GrokBuild) hunkModel(
