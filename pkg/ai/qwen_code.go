@@ -76,8 +76,9 @@ type (
 	}
 
 	qwenCodeUsageMetadata struct {
-		CandidatesTokenCount int64 `json:"candidatesTokenCount"`
-		PromptTokenCount     int64 `json:"promptTokenCount"`
+		CachedContentTokenCount int64 `json:"cachedContentTokenCount"`
+		CandidatesTokenCount    int64 `json:"candidatesTokenCount"`
+		PromptTokenCount        int64 `json:"promptTokenCount"`
 	}
 
 	qwenCodeToolCall struct {
@@ -422,6 +423,7 @@ func (g QwenCode) handleTranscriptRecord(record qwenCodeRecord, state *qwenCodeP
 
 	if record.Timestamp.IsZero() || !timestampAtOrAfterCutoff(record.Timestamp, g.After) {
 		state.tokens.LastInput = state.tokens.CurrentInput
+		state.tokens.LastCachedInput = state.tokens.CurrentCachedInput
 		state.tokens.LastOutput = state.tokens.CurrentOutput
 
 		return
@@ -433,6 +435,7 @@ func (g QwenCode) handleTranscriptRecord(record qwenCodeRecord, state *qwenCodeP
 	}
 
 	state.tokens.LastInput = state.tokens.CurrentInput
+	state.tokens.LastCachedInput = state.tokens.CurrentCachedInput
 	state.tokens.LastOutput = state.tokens.CurrentOutput
 	state.heartbeats = append(state.heartbeats, heartbeats...)
 }
@@ -657,7 +660,15 @@ func (QwenCode) tokenCounts(record qwenCodeRecord, tokens heartbeat.AITokens) he
 		return tokens
 	}
 
-	tokens.CurrentInput = tokens.LastInput + record.UsageMetadata.PromptTokenCount
+	cachedInput := max(record.UsageMetadata.CachedContentTokenCount, 0)
+
+	freshInput := record.UsageMetadata.PromptTokenCount - cachedInput
+	if freshInput < 0 {
+		freshInput = 0
+	}
+
+	tokens.CurrentInput = tokens.LastInput + freshInput
+	tokens.CurrentCachedInput = tokens.LastCachedInput + cachedInput
 	tokens.CurrentOutput = tokens.LastOutput + record.UsageMetadata.CandidatesTokenCount
 
 	return tokens

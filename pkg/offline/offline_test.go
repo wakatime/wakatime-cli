@@ -1756,15 +1756,16 @@ func TestQueue_PushMany_PreservesAITokensAndSession(t *testing.T) {
 	q.Bucket = "test_bucket"
 
 	expected := heartbeat.Heartbeat{
-		AISession:      "session-123",
-		AIOutputTokens: 17,
-		Category:       heartbeat.AICodingCategory.String(),
-		Entity:         "Claude session",
-		EntityType:     heartbeat.AppType,
-		IsWrite:        heartbeat.PointerTo(false),
-		AIPromptLength: 42,
-		Time:           1770000000,
-		UserAgent:      "Claude/2.1.45 plugin/0.0.1",
+		AISession:           "session-123",
+		AICachedInputTokens: 23,
+		AIOutputTokens:      17,
+		Category:            heartbeat.AICodingCategory.String(),
+		Entity:              "Claude session",
+		EntityType:          heartbeat.AppType,
+		IsWrite:             heartbeat.PointerTo(false),
+		AIPromptLength:      42,
+		Time:                1770000000,
+		UserAgent:           "Claude/2.1.45 plugin/0.0.1",
 	}
 
 	require.NoError(t, q.PushMany([]heartbeat.Heartbeat{expected}))

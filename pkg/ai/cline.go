@@ -27,9 +27,11 @@ type (
 	}
 
 	clineAPIRequest struct {
-		Request   string `json:"request"`
-		TokensIn  int64  `json:"tokensIn"`
-		TokensOut int64  `json:"tokensOut"`
+		Request     string `json:"request"`
+		TokensIn    int64  `json:"tokensIn"`
+		TokensOut   int64  `json:"tokensOut"`
+		CacheWrites int64  `json:"cacheWrites"`
+		CacheReads  int64  `json:"cacheReads"`
 	}
 
 	clineToolMessage struct {
@@ -209,8 +211,9 @@ func (g Cline) parseTaskDir(taskDir string) (Heartbeats, error) {
 					cwd,
 					clineTaskText(request.Request),
 					heartbeat.AITokens{
-						CurrentInput:  request.TokensIn,
-						CurrentOutput: request.TokensOut,
+						CurrentInput:       max(request.TokensIn, 0) + max(request.CacheWrites, 0),
+						CurrentCachedInput: max(request.CacheReads, 0),
+						CurrentOutput:      max(request.TokensOut, 0),
 					},
 				))
 			}

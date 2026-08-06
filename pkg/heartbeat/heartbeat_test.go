@@ -72,10 +72,12 @@ func TestNewWithAITokens(t *testing.T) {
 		heartbeat.PointerTo(5),
 		"session-1",
 		heartbeat.AITokens{
-			LastInput:     10,
-			LastOutput:    20,
-			CurrentInput:  7,
-			CurrentOutput: 25,
+			LastInput:          10,
+			LastCachedInput:    3,
+			LastOutput:         20,
+			CurrentInput:       7,
+			CurrentCachedInput: 11,
+			CurrentOutput:      25,
 		},
 		"feature/branch",
 		heartbeat.AICodingCategory.String(),
@@ -100,6 +102,7 @@ func TestNewWithAITokens(t *testing.T) {
 
 	assert.Equal(t, "session-1", h.AISession)
 	assert.Zero(t, h.AIInputTokens)
+	assert.Equal(t, int64(8), h.AICachedInputTokens)
 	assert.Equal(t, int64(5), h.AIOutputTokens)
 	assert.Equal(t, heartbeat.AICodingCategory.String(), h.Category)
 	assert.Equal(t, "testdata/main.go", h.Entity)
