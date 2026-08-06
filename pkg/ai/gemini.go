@@ -1,6 +1,7 @@
 package ai
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -24,6 +25,18 @@ type (
 		StartTime   string          `json:"startTime"`
 		LastUpdated string          `json:"lastUpdated"`
 		Messages    []geminiMessage `json:"messages"`
+	}
+
+	geminiSessionUpdate struct {
+		SessionID   *string          `json:"sessionId"`
+		StartTime   *string          `json:"startTime"`
+		LastUpdated *string          `json:"lastUpdated"`
+		Messages    *[]geminiMessage `json:"messages"`
+	}
+
+	geminiJSONLControl struct {
+		Set      *geminiSessionUpdate `json:"$set"`
+		RewindTo *string              `json:"$rewindTo"`
 	}
 
 	geminiMessage struct {
@@ -154,7 +167,28 @@ func (g Gemini) transcriptPaths(ctx context.Context) (map[string][]string, error
 			return walkErr
 		}
 
-		if entry.IsDir() || filepath.Ext(entry.Name()) != ".json" || !strings.HasPrefix(entry.Name(), "session-") {
+		if entry.IsDir() {
+			return nil
+		}
+
+		ext := filepath.Ext(entry.Name())
+		if ext != ".json" && ext != ".jsonl" {
+			return nil
+		}
+
+		rel, err := filepath.Rel(tmpDir, path)
+		if err != nil {
+			return nil
+		}
+
+		parts := strings.Split(filepath.Clean(rel), string(filepath.Separator))
+		if len(parts) < 3 || parts[1] != "chats" {
+			return nil
+		}
+
+		// Main-agent sessions use the session- prefix. Subagent sessions are
+		// nested below chats/<parent-session>/ and use their bare session ID.
+		if len(parts) == 3 && !strings.HasPrefix(entry.Name(), "session-") {
 			return nil
 		}
 
@@ -163,11 +197,7 @@ func (g Gemini) transcriptPaths(ctx context.Context) (map[string][]string, error
 			return nil
 		}
 
-		if filepath.Base(filepath.Dir(path)) != "chats" {
-			return nil
-		}
-
-		slug := filepath.Base(filepath.Dir(filepath.Dir(path)))
+		slug := parts[0]
 		if slug == "." || slug == string(filepath.Separator) {
 			return nil
 		}
@@ -178,6 +208,32 @@ func (g Gemini) transcriptPaths(ctx context.Context) (map[string][]string, error
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to walk .gemini tmp directory: %s", err)
+	}
+
+	// Gemini leaves the legacy .json file in place when migrating a resumed
+	// session to .jsonl. Prefer the JSONL copy with the same basename so the
+	// migrated history is not emitted twice.
+	for slug, paths := range transcripts {
+		jsonlBases := make(map[string]struct{})
+
+		for _, path := range paths {
+			if filepath.Ext(path) == ".jsonl" {
+				jsonlBases[strings.TrimSuffix(path, ".jsonl")] = struct{}{}
+			}
+		}
+
+		filtered := paths[:0]
+		for _, path := range paths {
+			if filepath.Ext(path) == ".json" {
+				if _, migrated := jsonlBases[strings.TrimSuffix(path, ".json")]; migrated {
+					continue
+				}
+			}
+
+			filtered = append(filtered, path)
+		}
+
+		transcripts[slug] = filtered
 	}
 
 	return transcripts, nil
@@ -246,14 +302,9 @@ func (Gemini) projectPaths(ctx context.Context) (geminiProjectPaths, error) {
 }
 
 func (g Gemini) parseTranscript(transcript string, projectPath string) (Heartbeats, error) {
-	contents, err := os.ReadFile(filepath.Clean(transcript))
+	session, err := loadGeminiSession(transcript)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read Gemini session %q: %s", transcript, err)
-	}
-
-	var session geminiSession
-	if err := json.Unmarshal(contents, &session); err != nil {
-		return nil, fmt.Errorf("failed to parse Gemini session %q: %s", transcript, err)
+		return nil, err
 	}
 
 	sessionID := session.SessionID
@@ -274,12 +325,18 @@ func (g Gemini) parseTranscript(transcript string, projectPath string) (Heartbea
 	for _, message := range session.Messages {
 		messageTime := parseGeminiTime(message.Timestamp)
 		if message.Tokens != nil {
-			state.CurrentInput = message.Tokens.Input
+			state.CurrentInput = message.Tokens.Input - message.Tokens.Cached
+			if state.CurrentInput < 0 {
+				state.CurrentInput = 0
+			}
+
+			state.CurrentCachedInput = max(message.Tokens.Cached, 0)
 			state.CurrentOutput = message.Tokens.Output
 		}
 
 		if messageTime.IsZero() || !timestampAtOrAfterCutoff(messageTime, g.After) {
 			state.LastInput = state.CurrentInput
+			state.LastCachedInput = state.CurrentCachedInput
 			state.LastOutput = state.CurrentOutput
 
 			continue
@@ -295,6 +352,7 @@ func (g Gemini) parseTranscript(transcript string, projectPath string) (Heartbea
 		)
 		if len(messageHeartbeats) == 0 {
 			state.LastInput = state.CurrentInput
+			state.LastCachedInput = state.CurrentCachedInput
 			state.LastOutput = state.CurrentOutput
 
 			continue
@@ -305,6 +363,7 @@ func (g Gemini) parseTranscript(transcript string, projectPath string) (Heartbea
 		}
 
 		state.LastInput = state.CurrentInput
+		state.LastCachedInput = state.CurrentCachedInput
 		state.LastOutput = state.CurrentOutput
 
 		heartbeats = append(heartbeats, messageHeartbeats...)
@@ -320,6 +379,135 @@ func (g Gemini) parseTranscript(transcript string, projectPath string) (Heartbea
 	}
 
 	return append(fallbackPrompts, heartbeats...), nil
+}
+
+func loadGeminiSession(transcript string) (geminiSession, error) {
+	if filepath.Ext(transcript) == ".json" {
+		contents, err := os.ReadFile(filepath.Clean(transcript))
+		if err != nil {
+			return geminiSession{}, fmt.Errorf("failed to read Gemini session %q: %s", transcript, err)
+		}
+
+		var session geminiSession
+		if err := json.Unmarshal(contents, &session); err != nil {
+			return geminiSession{}, fmt.Errorf("failed to parse Gemini session %q: %s", transcript, err)
+		}
+
+		return session, nil
+	}
+
+	//nolint:gosec // Reads a transcript path discovered below the Gemini storage directory.
+	fh, err := os.Open(filepath.Clean(transcript))
+	if err != nil {
+		return geminiSession{}, fmt.Errorf("failed to read Gemini session %q: %s", transcript, err)
+	}
+	defer fh.Close() // nolint:errcheck,gosec
+
+	var session geminiSession
+
+	messageIndexes := make(map[string]int)
+
+	rebuildMessageIndexes := func() {
+		clear(messageIndexes)
+
+		for i, message := range session.Messages {
+			messageIndexes[message.ID] = i
+		}
+	}
+
+	setMessages := func(messages []geminiMessage) {
+		session.Messages = nil
+
+		clear(messageIndexes)
+
+		for _, message := range messages {
+			if index, ok := messageIndexes[message.ID]; ok {
+				session.Messages[index] = message
+				continue
+			}
+
+			messageIndexes[message.ID] = len(session.Messages)
+			session.Messages = append(session.Messages, message)
+		}
+	}
+
+	upsertMessage := func(message geminiMessage) {
+		if index, ok := messageIndexes[message.ID]; ok {
+			session.Messages[index] = message
+			return
+		}
+
+		messageIndexes[message.ID] = len(session.Messages)
+		session.Messages = append(session.Messages, message)
+	}
+
+	applyUpdate := func(update geminiSessionUpdate) {
+		if update.SessionID != nil {
+			session.SessionID = *update.SessionID
+		}
+
+		if update.StartTime != nil {
+			session.StartTime = *update.StartTime
+		}
+
+		if update.LastUpdated != nil {
+			session.LastUpdated = *update.LastUpdated
+		}
+
+		if update.Messages != nil {
+			setMessages(*update.Messages)
+		}
+	}
+
+	scanner := bufio.NewScanner(fh)
+	scanner.Buffer(make([]byte, 0, 64*1024), maxTranscriptLineSize)
+
+	for scanner.Scan() {
+		line := scanner.Bytes()
+		if len(strings.TrimSpace(string(line))) == 0 {
+			continue
+		}
+
+		var control geminiJSONLControl
+		if json.Unmarshal(line, &control) != nil {
+			continue
+		}
+
+		switch {
+		case control.RewindTo != nil:
+			index, ok := messageIndexes[*control.RewindTo]
+			if !ok {
+				session.Messages = nil
+			} else {
+				session.Messages = session.Messages[:index]
+			}
+
+			rebuildMessageIndexes()
+		case control.Set != nil:
+			applyUpdate(*control.Set)
+		default:
+			var message geminiMessage
+			if json.Unmarshal(line, &message) == nil && message.ID != "" && message.Type != "" {
+				upsertMessage(message)
+				continue
+			}
+
+			var update geminiSessionUpdate
+			if json.Unmarshal(line, &update) == nil {
+				applyUpdate(update)
+			}
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		return geminiSession{}, fmt.Errorf("failed to read Gemini session %q: %s", transcript, err)
+	}
+
+	if session.SessionID == "" {
+		return geminiSession{}, fmt.Errorf("failed to parse Gemini session %q: missing sessionId", transcript)
+	}
+
+	return session, nil
 }
 
 func (g Gemini) messageHeartbeats(
@@ -535,7 +723,7 @@ func (g Gemini) promptHeartbeatsFromLogs(
 	sessionID string,
 	projectPath string,
 ) (Heartbeats, error) {
-	logsPath := filepath.Join(filepath.Dir(filepath.Dir(transcript)), "logs.json")
+	logsPath := filepath.Join(geminiProjectTempDir(transcript), "logs.json")
 
 	contents, err := os.ReadFile(filepath.Clean(logsPath))
 	if err != nil {
@@ -599,7 +787,7 @@ func (Gemini) projectPathFromLogs(transcript string, fallback string) string {
 		return fallback
 	}
 
-	rootPath := filepath.Join(filepath.Dir(filepath.Dir(transcript)), ".project_root")
+	rootPath := filepath.Join(geminiProjectTempDir(transcript), ".project_root")
 
 	contents, err := os.ReadFile(filepath.Clean(rootPath))
 	if err == nil {
@@ -609,6 +797,23 @@ func (Gemini) projectPathFromLogs(transcript string, fallback string) string {
 	}
 
 	return fallback
+}
+
+func geminiProjectTempDir(transcript string) string {
+	dir := filepath.Dir(transcript)
+
+	for {
+		if filepath.Base(dir) == "chats" {
+			return filepath.Dir(dir)
+		}
+
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			return filepath.Dir(filepath.Dir(transcript))
+		}
+
+		dir = parent
+	}
 }
 
 func (Gemini) toolFilePath(projectPath string, resultDisplay json.RawMessage, filePath string) string {
@@ -639,12 +844,17 @@ func (Gemini) hasTokenDelta(tokens heartbeat.AITokens) bool {
 		input = 0
 	}
 
+	cachedInput := tokens.CurrentCachedInput - tokens.LastCachedInput
+	if cachedInput < 0 {
+		cachedInput = 0
+	}
+
 	output := tokens.CurrentOutput - tokens.LastOutput
 	if output < 0 {
 		output = 0
 	}
 
-	return input > 0 || output > 0
+	return input > 0 || cachedInput > 0 || output > 0
 }
 
 func (Gemini) tokensForFirstHeartbeat(assign bool, tokens heartbeat.AITokens) *heartbeat.AITokens {

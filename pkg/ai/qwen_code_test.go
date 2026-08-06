@@ -110,8 +110,9 @@ func TestQwenCodeParse(t *testing.T) {
 				"parts": []map[string]interface{}{{"text": "I will update the files."}},
 			},
 			"usageMetadata": map[string]interface{}{
-				"promptTokenCount":     100,
-				"candidatesTokenCount": 20,
+				"promptTokenCount":        100,
+				"cachedContentTokenCount": 40,
+				"candidatesTokenCount":    20,
 			},
 		}),
 		record(map[string]interface{}{
@@ -294,7 +295,8 @@ func TestQwenCodeParse(t *testing.T) {
 	assert.Equal(t, projectDir, got[1].ProjectPathOverride)
 
 	assert.Equal(t, "Qwen Code "+sessionID, got[2].Entity)
-	assert.EqualValues(t, 100, got[2].AIInputTokens)
+	assert.EqualValues(t, 60, got[2].AIInputTokens)
+	assert.EqualValues(t, 40, got[2].AICachedInputTokens)
 	assert.EqualValues(t, 20, got[2].AIOutputTokens)
 	assert.Contains(t, got[2].UserAgent, "qwen/3-coder-plus qwen-code-cli/0.17.0")
 	assert.True(t, strings.Index(got[2].UserAgent, "qwen/3-coder-plus") <

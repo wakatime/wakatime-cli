@@ -305,27 +305,29 @@ func TestCodexParse_AttributesTokenCountsToPreviousHeartbeat(t *testing.T) {
 			`"payload":{"id":"session","cwd":"/workspace/project"}}`,
 		`{"timestamp":"2026-06-20T11:59:59Z","type":"event_msg",` +
 			`"payload":{"type":"token_count","info":{"total_token_usage":` +
-			`{"input_tokens":100,"output_tokens":10}}}}`,
+			`{"input_tokens":100,"cached_input_tokens":60,"output_tokens":10}}}}`,
 		`{"timestamp":"2026-06-20T12:00:01Z","type":"response_item",` +
 			`"payload":{"type":"message","role":"user","content":` +
 			`[{"type":"input_text","text":"Make the change"}]}}`,
 		`{"timestamp":"2026-06-20T12:00:02Z","type":"event_msg",` +
 			`"payload":{"type":"token_count","info":{"total_token_usage":` +
-			`{"input_tokens":110,"output_tokens":12}}}}`,
+			`{"input_tokens":110,"cached_input_tokens":65,"output_tokens":12}}}}`,
 		`{"timestamp":"2026-06-20T12:00:03Z","type":"event_msg",` +
 			`"payload":{"type":"agent_message","message":"The change is complete."}}`,
 		`{"timestamp":"2026-06-20T12:00:04Z","type":"event_msg",` +
 			`"payload":{"type":"token_count","info":{"total_token_usage":` +
-			`{"input_tokens":150,"output_tokens":20}}}}`,
+			`{"input_tokens":150,"cached_input_tokens":90,"output_tokens":20}}}}`,
 	}, "\n") + "\n"
 	require.NoError(t, os.WriteFile(transcriptPath, []byte(transcript), 0o644))
 
 	got, err := (ai.Codex{After: time.Date(2026, 6, 20, 12, 0, 0, 0, time.UTC)}).Parse(ctx)
 	require.NoError(t, err)
 	require.Len(t, got, 2)
-	assert.EqualValues(t, 10, got[0].AIInputTokens)
+	assert.EqualValues(t, 5, got[0].AIInputTokens)
+	assert.EqualValues(t, 5, got[0].AICachedInputTokens)
 	assert.EqualValues(t, 2, got[0].AIOutputTokens)
-	assert.EqualValues(t, 40, got[1].AIInputTokens)
+	assert.EqualValues(t, 15, got[1].AIInputTokens)
+	assert.EqualValues(t, 25, got[1].AICachedInputTokens)
 	assert.EqualValues(t, 8, got[1].AIOutputTokens)
 }
 
@@ -729,7 +731,8 @@ func TestCodexParse_RolloutFixtureIncludesExpectedHeartbeatAttributes(t *testing
 	assert.Equal(t, "Codex rollout-2026-04-15T18-46-36-019d9353-333c-7c41-a909-26f5c6221a5a", heartbeats[i].Entity)
 	assert.Equal(t, "ai coding", heartbeats[i].Category)
 	assert.False(t, *heartbeats[i].IsWrite)
-	assert.EqualValues(t, 105133, heartbeats[i].AIInputTokens)
+	assert.EqualValues(t, 5677, heartbeats[i].AIInputTokens)
+	assert.EqualValues(t, 99456, heartbeats[i].AICachedInputTokens)
 	assert.EqualValues(t, 477, heartbeats[i].AIOutputTokens)
 	assert.Zero(t, heartbeats[i].AIPromptLength)
 	assert.Nil(t, heartbeats[i].AILineChanges)
@@ -743,7 +746,8 @@ func TestCodexParse_RolloutFixtureIncludesExpectedHeartbeatAttributes(t *testing
 	assert.Equal(t, "Codex rollout-2026-04-15T18-46-36-019d9353-333c-7c41-a909-26f5c6221a5a", heartbeats[i].Entity)
 	assert.Equal(t, "ai coding", heartbeats[i].Category)
 	assert.False(t, *heartbeats[i].IsWrite)
-	assert.EqualValues(t, 217197, heartbeats[i].AIInputTokens)
+	assert.EqualValues(t, 3309, heartbeats[i].AIInputTokens)
+	assert.EqualValues(t, 213888, heartbeats[i].AICachedInputTokens)
 	assert.EqualValues(t, 599, heartbeats[i].AIOutputTokens)
 	assert.Zero(t, heartbeats[i].AIPromptLength)
 	assert.Nil(t, heartbeats[i].AILineChanges)
@@ -757,7 +761,8 @@ func TestCodexParse_RolloutFixtureIncludesExpectedHeartbeatAttributes(t *testing
 	assert.Equal(t, "Codex rollout-2026-04-15T18-46-36-019d9353-333c-7c41-a909-26f5c6221a5a", heartbeats[i].Entity)
 	assert.Equal(t, "ai coding", heartbeats[i].Category)
 	assert.False(t, *heartbeats[i].IsWrite)
-	assert.EqualValues(t, 109309, heartbeats[i].AIInputTokens)
+	assert.EqualValues(t, 125, heartbeats[i].AIInputTokens)
+	assert.EqualValues(t, 109184, heartbeats[i].AICachedInputTokens)
 	assert.EqualValues(t, 843, heartbeats[i].AIOutputTokens)
 	assert.Zero(t, heartbeats[i].AIPromptLength)
 	assert.Nil(t, heartbeats[i].AILineChanges)
@@ -797,7 +802,8 @@ func TestCodexParse_RolloutFixtureIncludesExpectedHeartbeatAttributes(t *testing
 	assert.Equal(t, "Codex rollout-2026-04-15T18-46-36-019d9353-333c-7c41-a909-26f5c6221a5a", heartbeats[i].Entity)
 	assert.Equal(t, "ai coding", heartbeats[i].Category)
 	assert.False(t, *heartbeats[i].IsWrite)
-	assert.EqualValues(t, 110200, heartbeats[i].AIInputTokens)
+	assert.EqualValues(t, 120, heartbeats[i].AIInputTokens)
+	assert.EqualValues(t, 110080, heartbeats[i].AICachedInputTokens)
 	assert.EqualValues(t, 223, heartbeats[i].AIOutputTokens)
 	assert.Equal(t, 10, heartbeats[i].AIPromptLength)
 	assert.Nil(t, heartbeats[i].AILineChanges)
@@ -823,7 +829,8 @@ func TestCodexParse_RolloutFixtureIncludesExpectedHeartbeatAttributes(t *testing
 	assert.Equal(t, "Codex rollout-2026-04-15T18-46-36-019d9353-333c-7c41-a909-26f5c6221a5a", heartbeats[i].Entity)
 	assert.Equal(t, "ai coding", heartbeats[i].Category)
 	assert.False(t, *heartbeats[i].IsWrite)
-	assert.EqualValues(t, 110472, heartbeats[i].AIInputTokens)
+	assert.EqualValues(t, 136, heartbeats[i].AIInputTokens)
+	assert.EqualValues(t, 110336, heartbeats[i].AICachedInputTokens)
 	assert.EqualValues(t, 156, heartbeats[i].AIOutputTokens)
 	assert.Zero(t, heartbeats[i].AIPromptLength)
 	assert.Nil(t, heartbeats[i].AILineChanges)

@@ -55,6 +55,10 @@ type (
 		Tokens *struct {
 			Input  int64 `json:"input"`
 			Output int64 `json:"output"`
+			Cache  struct {
+				Read  int64 `json:"read"`
+				Write int64 `json:"write"`
+			} `json:"cache"`
 		} `json:"tokens"`
 		Time struct {
 			Created int64 `json:"created"`
@@ -608,13 +612,15 @@ func (g OpenCode) sessionHeartbeats(
 		}
 
 		if message.info.Tokens != nil {
-			tokens.CurrentInput = message.info.Tokens.Input
+			tokens.CurrentInput = message.info.Tokens.Input + message.info.Tokens.Cache.Write
+			tokens.CurrentCachedInput = message.info.Tokens.Cache.Read
 			tokens.CurrentOutput = message.info.Tokens.Output
 		}
 
 		if message.info.Time.Created == 0 ||
 			(!g.After.IsZero() && !timestampAtOrAfterCutoff(messageTime, g.After)) {
 			tokens.LastInput = tokens.CurrentInput
+			tokens.LastCachedInput = tokens.CurrentCachedInput
 			tokens.LastOutput = tokens.CurrentOutput
 
 			continue
@@ -662,6 +668,7 @@ func (g OpenCode) sessionHeartbeats(
 		}
 
 		tokens.LastInput = tokens.CurrentInput
+		tokens.LastCachedInput = tokens.CurrentCachedInput
 		tokens.LastOutput = tokens.CurrentOutput
 	}
 

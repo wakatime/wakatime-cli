@@ -114,9 +114,10 @@ type (
 	// so that streaming duplicates (same message.id logged multiple times)
 	// replace rather than accumulate.
 	claudeLastMessage struct {
-		ID           string
-		InputTokens  int64
-		OutputTokens int64
+		ID                string
+		InputTokens       int64
+		CachedInputTokens int64
+		OutputTokens      int64
 	}
 )
 
@@ -748,8 +749,13 @@ func (g Claude) claudeTokenCounts(
 
 	current := previous
 
-	if line.Usage.InputTokens != nil {
-		current.CurrentInput = int64(*line.Usage.InputTokens)
+	if line.Usage.InputTokens != nil || line.Usage.CacheCreationInputTokens != nil {
+		current.CurrentInput = claudeTokenValue(line.Usage.InputTokens) +
+			claudeTokenValue(line.Usage.CacheCreationInputTokens)
+	}
+
+	if line.Usage.CacheReadInputTokens != nil {
+		current.CurrentCachedInput = claudeTokenValue(line.Usage.CacheReadInputTokens)
 	}
 
 	switch {
@@ -770,19 +776,8 @@ func (Claude) messageTokenCounts(
 	usage := msg.Usage
 	current := previous
 
-	inputTokens := int64(0)
-
-	if usage.InputTokens != nil {
-		inputTokens = int64(*usage.InputTokens)
-
-		if usage.CacheCreationInputTokens != nil {
-			inputTokens += int64(*usage.CacheCreationInputTokens)
-		}
-
-		if usage.CacheReadInputTokens != nil {
-			inputTokens += int64(*usage.CacheReadInputTokens)
-		}
-	}
+	inputTokens := claudeTokenValue(usage.InputTokens) + claudeTokenValue(usage.CacheCreationInputTokens)
+	cachedInputTokens := claudeTokenValue(usage.CacheReadInputTokens)
 
 	outputTokens := int64(0)
 
@@ -796,18 +791,29 @@ func (Claude) messageTokenCounts(
 	if msg.ID != "" && msg.ID == lastMsg.ID {
 		// Same message (streaming update): replace previous contribution with latest.
 		current.CurrentInput += inputTokens - lastMsg.InputTokens
+		current.CurrentCachedInput += cachedInputTokens - lastMsg.CachedInputTokens
 		current.CurrentOutput += outputTokens - lastMsg.OutputTokens
 	} else {
 		// New message: accumulate onto the running total.
 		current.CurrentInput += inputTokens
+		current.CurrentCachedInput += cachedInputTokens
 		current.CurrentOutput += outputTokens
 	}
 
 	lastMsg.ID = msg.ID
 	lastMsg.InputTokens = inputTokens
+	lastMsg.CachedInputTokens = cachedInputTokens
 	lastMsg.OutputTokens = outputTokens
 
 	return current
+}
+
+func claudeTokenValue(value *int) int64 {
+	if value == nil || *value < 0 {
+		return 0
+	}
+
+	return int64(*value)
 }
 
 func (g Claude) claudeHeartbeats(
@@ -969,11 +975,14 @@ func (Claude) tokenDelta(tokens heartbeat.AITokens) (int64, int64) {
 
 func (g Claude) hasTokenDelta(tokens heartbeat.AITokens) bool {
 	input, output := g.tokenDelta(tokens)
-	return input > 0 || output > 0
+	cachedInput := tokens.CurrentCachedInput - tokens.LastCachedInput
+
+	return input > 0 || cachedInput > 0 || output > 0
 }
 
 func (Claude) advanceTokens(tokens heartbeat.AITokens) heartbeat.AITokens {
 	tokens.LastInput = tokens.CurrentInput
+	tokens.LastCachedInput = tokens.CurrentCachedInput
 	tokens.LastOutput = tokens.CurrentOutput
 
 	return tokens

@@ -55,7 +55,8 @@ func TestClaudeParse(t *testing.T) {
 		"{\"timestamp\":\"2026-03-18T12:00:00Z\",\"sessionId\":\"claude-session\",\"version\":\"2.1.45\"," +
 			"\"toolUseResult\":{\"filePath\":\"/tmp/edited.go\"," +
 			"\"structuredPatch\":[{\"oldLines\":3,\"newLines\":5}," +
-			"{\"oldLines\":4,\"newLines\":1}]},\"message\":{\"usage\":{\"input_tokens\":11,\"output_tokens\":12}}}",
+			"{\"oldLines\":4,\"newLines\":1}]},\"message\":{\"usage\":{\"input_tokens\":11," +
+			"\"cache_creation_input_tokens\":2,\"cache_read_input_tokens\":7,\"output_tokens\":12}}}",
 		strings.Join([]string{
 			`{"timestamp":"2026-03-18T12:15:00Z","sessionId":"claude-session",`,
 			`"toolUseResult":"plain string result"}`,
@@ -131,7 +132,8 @@ func TestClaudeParse(t *testing.T) {
 	require.NotNil(t, got[1].AILineChanges)
 	assert.Equal(t, -1, *got[1].AILineChanges)
 	assert.Zero(t, got[1].AIPromptLength)
-	assert.Equal(t, int64(11), got[1].AIInputTokens)
+	assert.Equal(t, int64(13), got[1].AIInputTokens)
+	assert.Equal(t, int64(7), got[1].AICachedInputTokens)
 	assert.Equal(t, int64(12), got[1].AIOutputTokens)
 	require.NotNil(t, got[1].IsWrite)
 	assert.True(t, *got[1].IsWrite)

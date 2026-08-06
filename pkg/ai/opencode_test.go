@@ -66,7 +66,7 @@ func TestOpenCodeParse_LegacyStorage(t *testing.T) {
   "role": "assistant",
   "modelID": "claude-3.5",
   "path": { "cwd": "/workspace/project", "root": "/workspace/project" },
-  "tokens": { "input": 120, "output": 30 },
+  "tokens": { "input": 120, "output": 30, "cache": { "read": 40, "write": 5 } },
   "time": { "created": 1740000002000 }
 }`), 0o600))
 	require.NoError(t, os.WriteFile(filepath.Join(partDirAssistant, "part_assistant_text.json"), []byte(`{
@@ -139,7 +139,8 @@ func TestOpenCodeParse_LegacyStorage(t *testing.T) {
 
 	assert.Equal(t, "OpenCode ses_123", got[1].Entity)
 	assert.Equal(t, heartbeat.AppType, got[1].EntityType)
-	assert.EqualValues(t, 120, got[1].AIInputTokens)
+	assert.EqualValues(t, 125, got[1].AIInputTokens)
+	assert.EqualValues(t, 40, got[1].AICachedInputTokens)
 	assert.EqualValues(t, 30, got[1].AIOutputTokens)
 	assert.Equal(t, "/workspace/project", got[1].ProjectPathOverride)
 	assert.Contains(t, got[1].UserAgent, "claude/3.5 opencode-cli/1.4.4")
@@ -323,8 +324,12 @@ func TestOpenCodeParse_SQLiteFallback_UnicodeAndMalformedRows(t *testing.T) {
 						"root": "/workspace/项目",
 					},
 					"tokens": map[string]any{
-						"input":  50,
+						"input":  40,
 						"output": 20,
+						"cache": map[string]any{
+							"read":  15,
+							"write": 10,
+						},
 					},
 					"time": map[string]any{
 						"created": int64(1740000004000),
@@ -402,6 +407,7 @@ func TestOpenCodeParse_SQLiteFallback_UnicodeAndMalformedRows(t *testing.T) {
 
 	assert.Equal(t, "OpenCode ses_unicode", got[1].Entity)
 	assert.EqualValues(t, 50, got[1].AIInputTokens)
+	assert.EqualValues(t, 15, got[1].AICachedInputTokens)
 	assert.EqualValues(t, 20, got[1].AIOutputTokens)
 
 	assert.Equal(t, editedPath, got[2].Entity)

@@ -113,6 +113,14 @@ type (
 
 	copilotCLIShutdownData struct {
 		CurrentModel string `json:"currentModel"`
+		ModelMetrics map[string]struct {
+			Usage *struct {
+				InputTokens      int64 `json:"inputTokens"`
+				OutputTokens     int64 `json:"outputTokens"`
+				CacheReadTokens  int64 `json:"cacheReadTokens"`
+				CacheWriteTokens int64 `json:"cacheWriteTokens"`
+			} `json:"usage"`
+		} `json:"modelMetrics"`
 		TokenDetails struct {
 			Input struct {
 				TokenCount *int64 `json:"tokenCount"`
@@ -508,13 +516,42 @@ func (g Copilot) handleCLIShutdown(event copilotCLIEvent, state *copilotCLIParse
 	}
 
 	assignTokens := false
+	modelMetricsAssigned := false
 
-	if data.TokenDetails.Input.TokenCount != nil {
+	if len(data.ModelMetrics) > 0 {
+		var totalInput, totalCachedInput, totalOutput int64
+
+		for _, metrics := range data.ModelMetrics {
+			if metrics.Usage == nil {
+				continue
+			}
+
+			cacheRead := max(metrics.Usage.CacheReadTokens, 0)
+			cacheWrite := max(metrics.Usage.CacheWriteTokens, 0)
+			freshInput := max(metrics.Usage.InputTokens-cacheRead-cacheWrite, 0)
+
+			// Copilot's input total includes cache reads and writes. Cache writes
+			// remain regular input because heartbeats only have a cache-read bucket.
+			totalInput += freshInput + cacheWrite
+			totalCachedInput += cacheRead
+			totalOutput += max(metrics.Usage.OutputTokens, 0)
+			modelMetricsAssigned = true
+		}
+
+		if modelMetricsAssigned {
+			state.tokens.CurrentInput = totalInput
+			state.tokens.CurrentCachedInput = totalCachedInput
+			state.tokens.CurrentOutput = totalOutput
+			assignTokens = true
+		}
+	}
+
+	if !modelMetricsAssigned && data.TokenDetails.Input.TokenCount != nil {
 		state.tokens.CurrentInput = *data.TokenDetails.Input.TokenCount
 		assignTokens = true
 	}
 
-	if data.TokenDetails.Output.TokenCount != nil {
+	if !modelMetricsAssigned && data.TokenDetails.Output.TokenCount != nil {
 		state.tokens.CurrentOutput = *data.TokenDetails.Output.TokenCount
 		assignTokens = true
 	}
