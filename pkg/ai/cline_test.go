@@ -52,9 +52,11 @@ func TestClineParse(t *testing.T) {
 			"type": "say",
 			"say":  &sayAPIReqStarted,
 			"text": textJSON(map[string]any{
-				"request":   "<task>Fix the auth bug</task>\n# Current Working Directory (/workspace/project)",
-				"tokensIn":  90,
-				"tokensOut": 20,
+				"request":     "<task>Fix the auth bug</task>\n# Current Working Directory (/workspace/project)",
+				"tokensIn":    90,
+				"tokensOut":   20,
+				"cacheWrites": 10,
+				"cacheReads":  40,
 			}),
 		},
 		{
@@ -119,7 +121,8 @@ func TestClineParse(t *testing.T) {
 	assert.Equal(t, "1740000000000", got[0].AISession)
 	assert.Equal(t, "/workspace/project", got[0].ProjectPathOverride)
 	assert.Equal(t, len([]rune("Fix the auth bug")), got[0].AIPromptLength)
-	assert.EqualValues(t, 90, got[0].AIInputTokens)
+	assert.EqualValues(t, 100, got[0].AIInputTokens)
+	assert.EqualValues(t, 40, got[0].AICachedInputTokens)
 	assert.EqualValues(t, 20, got[0].AIOutputTokens)
 	assert.Equal(t, "plugin/0.0.1", got[0].UserAgent)
 

@@ -21,6 +21,7 @@ var remoteAddressRegex = regexp.MustCompile(`(?i)^((ssh|sftp)://)+(?P<credential
 // Heartbeat is a structure representing activity for a user on a some entity.
 type Heartbeat struct {
 	AILineChanges         *int       `json:"ai_line_changes,omitempty"`
+	AICachedInputTokens   int64      `json:"ai_cached_input_tokens,omitempty"`
 	AISession             string     `json:"ai_session,omitempty"`
 	AISubscriptionPlan    string     `json:"ai_subscription_plan,omitempty"`
 	AIInputTokens         int64      `json:"ai_input_tokens,omitempty"`
@@ -55,13 +56,15 @@ type Heartbeat struct {
 	UserAgent             string     `json:"user_agent"`
 }
 
-// AITokens contains the previous and current token counts for calculating the delta input and output AI tokens used
-// since the last heartbeat.
+// AITokens contains previous and current token counts for calculating the delta
+// of input, cached input, and output AI tokens used since the last heartbeat.
 type AITokens struct {
-	LastInput     int64
-	LastOutput    int64
-	CurrentInput  int64
-	CurrentOutput int64
+	LastInput          int64
+	LastCachedInput    int64
+	LastOutput         int64
+	CurrentInput       int64
+	CurrentCachedInput int64
+	CurrentOutput      int64
 }
 
 // New creates a new instance of Heartbeat with formatted entity
@@ -143,6 +146,11 @@ func NewWithAITokens(
 		inputTokens = 0
 	}
 
+	cachedInputTokens := aiTokens.CurrentCachedInput - aiTokens.LastCachedInput
+	if cachedInputTokens < 0 {
+		cachedInputTokens = 0
+	}
+
 	outputTokens := aiTokens.CurrentOutput - aiTokens.LastOutput
 	if outputTokens < 0 {
 		outputTokens = 0
@@ -150,6 +158,7 @@ func NewWithAITokens(
 
 	return Heartbeat{
 		AILineChanges:        aiLineChanges,
+		AICachedInputTokens:  cachedInputTokens,
 		AISession:            aiSession,
 		AIInputTokens:        inputTokens,
 		AIOutputTokens:       outputTokens,

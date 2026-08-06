@@ -1037,6 +1037,7 @@ func mergeHeartbeatCounts(dst *heartbeat.Heartbeat, src heartbeat.Heartbeat) {
 	dst.HumanLineChanges = addIntPointers(dst.HumanLineChanges, src.HumanLineChanges)
 	dst.AIPromptLength += src.AIPromptLength
 	dst.AIInputTokens += src.AIInputTokens
+	dst.AICachedInputTokens += src.AICachedInputTokens
 
 	dst.AIOutputTokens += src.AIOutputTokens
 	if dst.AISubscriptionPlan == "" {

@@ -50,7 +50,8 @@ func TestRunAISyncActivity_SendsAIHeartbeatsWithoutEntity(t *testing.T) {
 		"{\"timestamp\":\"2026-03-18T12:00:00Z\",\"version\":\"2.1.45\"," +
 			"\"toolUseResult\":{\"filePath\":\"" + entity + "\"," +
 			"\"structuredPatch\":[{\"oldLines\":3,\"newLines\":5}," +
-			"{\"oldLines\":4,\"newLines\":1}]},\"usage\":{\"total_tokens\":7}}",
+			"{\"oldLines\":4,\"newLines\":1}]},\"usage\":{\"input_tokens\":1," +
+			"\"cache_creation_input_tokens\":2,\"cache_read_input_tokens\":3,\"total_tokens\":7}}",
 	}, "\n") + "\n"
 	require.NoError(t, os.WriteFile(transcriptPath, []byte(transcript), 0o644))
 	require.NoError(t, os.Chtimes(transcriptPath, transcriptModifiedAt, transcriptModifiedAt))
@@ -71,15 +72,16 @@ func TestRunAISyncActivity_SendsAIHeartbeatsWithoutEntity(t *testing.T) {
 		require.NoError(t, err)
 
 		var entities []struct {
-			Entity         string  `json:"entity"`
-			AISession      string  `json:"ai_session"`
-			AIInputTokens  int64   `json:"ai_input_tokens"`
-			AIOutputTokens int64   `json:"ai_output_tokens"`
-			Category       string  `json:"category"`
-			Language       *string `json:"language"`
-			Project        *string `json:"project"`
-			UserAgent      string  `json:"user_agent"`
-			AILineChange   *int    `json:"ai_line_changes"`
+			Entity              string  `json:"entity"`
+			AISession           string  `json:"ai_session"`
+			AIInputTokens       int64   `json:"ai_input_tokens"`
+			AICachedInputTokens int64   `json:"ai_cached_input_tokens"`
+			AIOutputTokens      int64   `json:"ai_output_tokens"`
+			Category            string  `json:"category"`
+			Language            *string `json:"language"`
+			Project             *string `json:"project"`
+			UserAgent           string  `json:"user_agent"`
+			AILineChange        *int    `json:"ai_line_changes"`
 		}
 
 		require.NoError(t, json.Unmarshal(body, &entities))
@@ -93,7 +95,8 @@ func TestRunAISyncActivity_SendsAIHeartbeatsWithoutEntity(t *testing.T) {
 		assert.Equal(t, "myproject", *entities[0].Project)
 		require.NotNil(t, entities[0].AILineChange)
 		assert.Equal(t, -1, *entities[0].AILineChange)
-		assert.Zero(t, entities[0].AIInputTokens)
+		assert.Equal(t, int64(3), entities[0].AIInputTokens)
+		assert.Equal(t, int64(3), entities[0].AICachedInputTokens)
 		assert.Equal(t, int64(7), entities[0].AIOutputTokens)
 		assert.Contains(t, entities[0].UserAgent, "claude-code/2.1.45")
 		assert.Contains(t, entities[0].UserAgent, "plugin/0.0.1")

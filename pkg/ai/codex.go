@@ -362,11 +362,23 @@ func (s *codexParseState) trackTokenCount(logLine codexLogLine, after time.Time)
 	}
 
 	usage := logLine.Payload.Info.TotalTokenUsage
-	s.tokens.CurrentInput = int64(*usage.InputTokens)
+
+	cachedInputTokens := int64(0)
+	if usage.CachedInputTokens != nil && *usage.CachedInputTokens > 0 {
+		cachedInputTokens = int64(*usage.CachedInputTokens)
+	}
+
+	s.tokens.CurrentInput = int64(*usage.InputTokens) - cachedInputTokens
+	if s.tokens.CurrentInput < 0 {
+		s.tokens.CurrentInput = 0
+	}
+
+	s.tokens.CurrentCachedInput = cachedInputTokens
 	s.tokens.CurrentOutput = int64(*usage.OutputTokens)
 
 	if logLine.Timestamp.IsZero() || !timestampAtOrAfterCutoff(logLine.Timestamp, after) {
 		s.tokens.LastInput = s.tokens.CurrentInput
+		s.tokens.LastCachedInput = s.tokens.CurrentCachedInput
 		s.tokens.LastOutput = s.tokens.CurrentOutput
 
 		return
@@ -377,6 +389,11 @@ func (s *codexParseState) trackTokenCount(logLine codexLogLine, after time.Time)
 		inputTokens = 0
 	}
 
+	cachedInputTokens = s.tokens.CurrentCachedInput - s.tokens.LastCachedInput
+	if cachedInputTokens < 0 {
+		cachedInputTokens = 0
+	}
+
 	outputTokens := s.tokens.CurrentOutput - s.tokens.LastOutput
 	if outputTokens < 0 {
 		outputTokens = 0
@@ -385,10 +402,12 @@ func (s *codexParseState) trackTokenCount(logLine codexLogLine, after time.Time)
 	if len(s.heartbeats) > 0 {
 		i := len(s.heartbeats) - 1
 		s.heartbeats[i].AIInputTokens += inputTokens
+		s.heartbeats[i].AICachedInputTokens += cachedInputTokens
 		s.heartbeats[i].AIOutputTokens += outputTokens
 	}
 
 	s.tokens.LastInput = s.tokens.CurrentInput
+	s.tokens.LastCachedInput = s.tokens.CurrentCachedInput
 	s.tokens.LastOutput = s.tokens.CurrentOutput
 }
 
@@ -905,6 +924,7 @@ func (g Codex) patchHeartbeats(
 					tokens,
 				))
 				tokens.LastInput = tokens.CurrentInput
+				tokens.LastCachedInput = tokens.CurrentCachedInput
 				tokens.LastOutput = tokens.CurrentOutput
 			}
 

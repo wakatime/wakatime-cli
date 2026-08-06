@@ -406,6 +406,16 @@ func TestCopilotParseCLISessionEvents(t *testing.T) {
 			"timestamp": "2026-06-14T12:00:04Z",
 			"data": map[string]any{
 				"currentModel": "gpt-5.4",
+				"modelMetrics": map[string]any{
+					"gpt-5.4": map[string]any{
+						"usage": map[string]any{
+							"inputTokens":      17,
+							"outputTokens":     11,
+							"cacheReadTokens":  5,
+							"cacheWriteTokens": 2,
+						},
+					},
+				},
 				"tokenDetails": map[string]any{
 					"input": map[string]any{
 						"tokenCount": 17,
@@ -459,7 +469,8 @@ func TestCopilotParseCLISessionEvents(t *testing.T) {
 
 	assert.Equal(t, "Copilot "+sessionID, got[3].Entity)
 	assert.Equal(t, heartbeat.AppType, got[3].EntityType)
-	assert.Equal(t, int64(17), got[3].AIInputTokens)
+	assert.Equal(t, int64(12), got[3].AIInputTokens)
+	assert.Equal(t, int64(5), got[3].AICachedInputTokens)
 	assert.Equal(t, int64(2), got[3].AIOutputTokens)
 
 	for _, h := range got {

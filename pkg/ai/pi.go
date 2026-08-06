@@ -297,6 +297,7 @@ func (g Pi) handleTranscriptLine(
 	}
 
 	state.tokens.LastInput = state.tokens.CurrentInput
+	state.tokens.LastCachedInput = state.tokens.CurrentCachedInput
 	state.tokens.LastOutput = state.tokens.CurrentOutput
 	state.heartbeats = append(state.heartbeats, aiHeartbeats...)
 }
@@ -537,12 +538,13 @@ func (Pi) piTokenCounts(line piLogLine, tokens heartbeat.AITokens, after time.Ti
 		inputTokens = *usage.Input
 	}
 
-	if usage.CacheRead != nil {
-		inputTokens += *usage.CacheRead
-	}
-
 	if usage.CacheWrite != nil {
 		inputTokens += *usage.CacheWrite
+	}
+
+	cachedInputTokens := int64(0)
+	if usage.CacheRead != nil {
+		cachedInputTokens = max(*usage.CacheRead, 0)
 	}
 
 	outputTokens := int64(0)
@@ -551,10 +553,12 @@ func (Pi) piTokenCounts(line piLogLine, tokens heartbeat.AITokens, after time.Ti
 	}
 
 	tokens.CurrentInput = tokens.LastInput + inputTokens
+	tokens.CurrentCachedInput = tokens.LastCachedInput + cachedInputTokens
 	tokens.CurrentOutput = tokens.LastOutput + outputTokens
 
 	if line.Timestamp.IsZero() || !timestampAtOrAfterCutoff(line.Timestamp, after) {
 		tokens.LastInput = tokens.CurrentInput
+		tokens.LastCachedInput = tokens.CurrentCachedInput
 		tokens.LastOutput = tokens.CurrentOutput
 	}
 

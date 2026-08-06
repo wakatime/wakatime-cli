@@ -233,7 +233,8 @@ func TestGeminiParse(t *testing.T) {
 	assert.Equal(t, "Gemini gem-session-1", got[2].Entity)
 	assert.Equal(t, heartbeat.AppType, got[2].EntityType)
 	assert.Zero(t, got[2].AIPromptLength)
-	assert.EqualValues(t, 60, got[2].AIInputTokens)
+	assert.EqualValues(t, 30, got[2].AIInputTokens)
+	assert.EqualValues(t, 30, got[2].AICachedInputTokens)
 	assert.EqualValues(t, 14, got[2].AIOutputTokens)
 
 	assert.Equal(t, mainFile, got[3].Entity)
@@ -268,6 +269,121 @@ func TestGeminiParse(t *testing.T) {
 	assert.True(t, *got[6].IsWrite)
 	assert.Zero(t, got[6].AIInputTokens)
 	assert.Zero(t, got[6].AIOutputTokens)
+}
+
+func TestGeminiParse_JSONLSubagent(t *testing.T) {
+	ctx := context.Background()
+
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	projectDir := filepath.Join(home, "jsonl-project")
+	projectSlugDir := filepath.Join(home, ".gemini", "tmp", "jsonl-project")
+	sessionDir := filepath.Join(projectSlugDir, "chats", "parent-session")
+	require.NoError(t, os.MkdirAll(sessionDir, 0o755))
+	require.NoError(t, os.WriteFile(
+		filepath.Join(projectSlugDir, ".project_root"),
+		[]byte(projectDir),
+		0o644,
+	))
+
+	records := []any{
+		map[string]any{
+			"sessionId":   "gem-subagent-1",
+			"projectHash": "hash",
+			"startTime":   "2026-07-01T12:00:00Z",
+			"lastUpdated": "2026-07-01T12:00:04Z",
+			"kind":        "subagent",
+		},
+		map[string]any{
+			"id":        "m1",
+			"type":      "user",
+			"timestamp": "2026-07-01T12:00:01Z",
+			"content":   "Inspect this parser",
+		},
+		map[string]any{
+			"id":        "m2",
+			"type":      "gemini",
+			"timestamp": "2026-07-01T12:00:02Z",
+			"content":   "I found the issue.",
+			"model":     "gemini-3-flash-preview",
+		},
+		// Gemini appends a replacement record when token metadata arrives.
+		map[string]any{
+			"id":        "m2",
+			"type":      "gemini",
+			"timestamp": "2026-07-01T12:00:02Z",
+			"content":   "I found the issue.",
+			"model":     "gemini-3-flash-preview",
+			"tokens": map[string]any{
+				"input":  120,
+				"output": 15,
+				"cached": 30,
+				"total":  135,
+			},
+		},
+		map[string]any{
+			"id":        "m3",
+			"type":      "gemini",
+			"timestamp": "2026-07-01T12:00:03Z",
+			"content":   "This message is rewound.",
+			"model":     "gemini-3-flash-preview",
+		},
+		map[string]any{"$rewindTo": "m3"},
+		map[string]any{"$set": map[string]any{"lastUpdated": "2026-07-01T12:00:05Z"}},
+	}
+
+	var lines []string
+
+	for _, record := range records {
+		line, err := json.Marshal(record)
+		require.NoError(t, err)
+
+		lines = append(lines, string(line))
+	}
+
+	lines = append(lines, "{") // Current Gemini ignores malformed individual records.
+
+	require.NoError(t, os.WriteFile(
+		filepath.Join(sessionDir, "gem-subagent-1.jsonl"),
+		[]byte(strings.Join(lines, "\n")+"\n"),
+		0o644,
+	))
+
+	legacy, err := json.Marshal(map[string]any{
+		"sessionId": "gem-subagent-1",
+		"startTime": "2026-07-01T12:00:00Z",
+		"messages": []map[string]any{
+			{
+				"id":        "legacy-only",
+				"type":      "user",
+				"timestamp": "2026-07-01T12:00:00Z",
+				"content":   "This migrated legacy copy must not be parsed too",
+			},
+		},
+	})
+	require.NoError(t, err)
+	require.NoError(t, os.WriteFile(
+		filepath.Join(sessionDir, "gem-subagent-1.json"),
+		legacy,
+		0o644,
+	))
+
+	got, err := (ai.Gemini{
+		After:             time.Date(2026, 7, 1, 11, 59, 0, 0, time.UTC),
+		FallbackUserAgent: "plugin/0.0.1",
+	}).Parse(ctx)
+	require.NoError(t, err)
+	require.Len(t, got, 2)
+
+	assert.Equal(t, "Gemini gem-subagent-1", got[0].Entity)
+	assert.Equal(t, projectDir, got[0].ProjectPathOverride)
+	assert.Equal(t, len([]rune("Inspect this parser")), got[0].AIPromptLength)
+
+	assert.EqualValues(t, 90, got[1].AIInputTokens)
+	assert.EqualValues(t, 30, got[1].AICachedInputTokens)
+	assert.EqualValues(t, 15, got[1].AIOutputTokens)
 }
 
 func TestGeminiParse_NoGeminiTmpDir(t *testing.T) {

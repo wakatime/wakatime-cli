@@ -53,7 +53,8 @@ func TestRooCodeParse(t *testing.T) {
 	assert.Equal(t, heartbeat.AICodingCategory.String(), got[0].Category)
 	assert.Equal(t, "/workspace/project", got[0].ProjectPathOverride)
 	assert.Equal(t, len([]rune("Refactor this function")), got[0].AIPromptLength)
-	assert.EqualValues(t, 120, got[0].AIInputTokens)
+	assert.EqualValues(t, 121, got[0].AIInputTokens)
+	assert.EqualValues(t, 2, got[0].AICachedInputTokens)
 	assert.EqualValues(t, 30, got[0].AIOutputTokens)
 	require.NotNil(t, got[0].IsWrite)
 	assert.False(t, *got[0].IsWrite)
@@ -75,6 +76,57 @@ func TestRooCodeParse(t *testing.T) {
 	assert.EqualValues(t, 180, got[2].AIInputTokens)
 	assert.EqualValues(t, 40, got[2].AIOutputTokens)
 	assert.Equal(t, "/workspace/project", got[2].ProjectPathOverride)
+}
+
+func TestRooCodeParse_InclusiveInputTokens(t *testing.T) {
+	ctx := context.Background()
+
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	taskDir := filepath.Join(
+		home,
+		".config",
+		"Code",
+		"User",
+		"globalStorage",
+		"RooVeterinaryInc.roo-cline",
+		"tasks",
+		"1762000000000",
+	)
+	require.NoError(t, os.MkdirAll(taskDir, 0o755))
+
+	request, err := json.Marshal(map[string]any{
+		"request":     "<task>Update the parser</task>\n# Current Working Directory (/workspace/project)",
+		"tokensIn":    120,
+		"tokensOut":   30,
+		"cacheWrites": 5,
+		"cacheReads":  40,
+		"apiProtocol": "anthropic",
+	})
+	require.NoError(t, err)
+
+	messages, err := json.Marshal([]map[string]any{
+		{
+			"ts":   int64(1762000000000),
+			"type": "say",
+			"say":  "api_req_started",
+			"text": string(request),
+		},
+	})
+	require.NoError(t, err)
+	require.NoError(t, os.WriteFile(filepath.Join(taskDir, "ui_messages.json"), messages, 0o600))
+
+	got, err := (ai.RooCode{
+		After:             time.Date(2025, 11, 1, 10, 0, 0, 0, time.UTC),
+		FallbackUserAgent: "plugin/0.0.1",
+	}).Parse(ctx)
+	require.NoError(t, err)
+	require.Len(t, got, 1)
+	assert.EqualValues(t, 80, got[0].AIInputTokens)
+	assert.EqualValues(t, 40, got[0].AICachedInputTokens)
+	assert.EqualValues(t, 30, got[0].AIOutputTokens)
 }
 
 func TestRooCodeParse_NoTasksDir(t *testing.T) {

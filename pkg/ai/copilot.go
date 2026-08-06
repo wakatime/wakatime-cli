@@ -750,11 +750,14 @@ func (Copilot) tokenDelta(tokens heartbeat.AITokens) (int64, int64) {
 
 func (g Copilot) hasTokenDelta(tokens heartbeat.AITokens) bool {
 	input, output := g.tokenDelta(tokens)
-	return input > 0 || output > 0
+	cachedInput := tokens.CurrentCachedInput - tokens.LastCachedInput
+
+	return input > 0 || cachedInput > 0 || output > 0
 }
 
 func (Copilot) advanceTokens(tokens heartbeat.AITokens) heartbeat.AITokens {
 	tokens.LastInput = tokens.CurrentInput
+	tokens.LastCachedInput = tokens.CurrentCachedInput
 	tokens.LastOutput = tokens.CurrentOutput
 
 	return tokens

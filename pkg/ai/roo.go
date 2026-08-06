@@ -17,6 +17,11 @@ import (
 // RooCode contains params for detecting heartbeats from Roo Code task logs.
 type RooCode ParserConfig
 
+// Roo Code changed tokensIn to include cache reads and writes in commit
+// 416fa5727e66178e4bd18548325bf8bdc9d6adab. Older Anthropic records used
+// disjoint input/cache buckets.
+const rooInclusiveInputTokensSinceMS int64 = 1761938069000
+
 type (
 	rooUIMessage struct {
 		Timestamp int64   `json:"ts"`
@@ -27,9 +32,12 @@ type (
 	}
 
 	rooAPIRequest struct {
-		Request   string `json:"request"`
-		TokensIn  int64  `json:"tokensIn"`
-		TokensOut int64  `json:"tokensOut"`
+		Request     string `json:"request"`
+		TokensIn    int64  `json:"tokensIn"`
+		TokensOut   int64  `json:"tokensOut"`
+		CacheWrites int64  `json:"cacheWrites"`
+		CacheReads  int64  `json:"cacheReads"`
+		APIProtocol string `json:"apiProtocol"`
 	}
 
 	rooToolAsk struct {
@@ -254,13 +262,31 @@ func (g RooCode) rooAPIRequestHeartbeats(
 		sessionID,
 		cwd,
 		rooTaskText(request.Request),
-		heartbeat.AITokens{
-			CurrentInput:  request.TokensIn,
-			CurrentOutput: request.TokensOut,
-		},
+		rooRequestTokens(request, timestamp),
 	))
 
 	return heartbeats, cwd, pendingTool
+}
+
+func rooRequestTokens(request rooAPIRequest, timestamp time.Time) heartbeat.AITokens {
+	input := max(request.TokensIn, 0)
+	cacheRead := max(request.CacheReads, 0)
+	cacheWrite := max(request.CacheWrites, 0)
+
+	if timestamp.UnixMilli() < rooInclusiveInputTokensSinceMS && request.APIProtocol != "openai" {
+		// Historical Anthropic records stored fresh input separately.
+		input += cacheWrite
+	} else {
+		// Current records and historical OpenAI records include cache tokens in
+		// tokensIn. Cache writes remain regular input in our two-bucket model.
+		input = max(input-cacheRead, 0)
+	}
+
+	return heartbeat.AITokens{
+		CurrentInput:       input,
+		CurrentCachedInput: cacheRead,
+		CurrentOutput:      max(request.TokensOut, 0),
+	}
 }
 
 func (g RooCode) rooPendingToolResultHeartbeat(
