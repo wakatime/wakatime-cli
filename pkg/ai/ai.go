@@ -87,6 +87,54 @@ const (
 	AmpParser
 	// GrokBuildParser is the parser ID for Grok Build.
 	GrokBuildParser
+	// ClineCLIParser is the parser ID for Cline CLI.
+	ClineCLIParser
+	// CodebuffParser is the parser ID for Codebuff.
+	CodebuffParser
+	// CodeWhaleParser is the parser ID for CodeWhale.
+	CodeWhaleParser
+	// CrushParser is the parser ID for Crush.
+	CrushParser
+	// CursorAgentParser is the parser ID for Cursor Agent.
+	CursorAgentParser
+	// DevinParser is the parser ID for Devin.
+	DevinParser
+	// DroidParser is the parser ID for Droid.
+	DroidParser
+	// ForgeParser is the parser ID for Forge.
+	ForgeParser
+	// HermesParser is the parser ID for Hermes Agent.
+	HermesParser
+	// IBMBobParser is the parser ID for IBM Bob.
+	IBMBobParser
+	// KiloCodeParser is the parser ID for KiloCode.
+	KiloCodeParser
+	// KimiParser is the parser ID for Kimi.
+	KimiParser
+	// KimiCodeParser is the parser ID for Kimi Code.
+	KimiCodeParser
+	// LingTaiTUIParser is the parser ID for LingTai TUI.
+	LingTaiTUIParser
+	// MistralVibeParser is the parser ID for Mistral Vibe.
+	MistralVibeParser
+	// MuxParser is the parser ID for Mux.
+	MuxParser
+	// OMPParser is the parser ID for OMP.
+	OMPParser
+	// OpenClawParser is the parser ID for OpenClaw.
+	OpenClawParser
+	// OpenDesignParser is the parser ID for Open Design.
+	OpenDesignParser
+	// QuickDeskParser is the parser ID for Quick Desktop.
+	QuickDeskParser
+	// WarpParser is the parser ID for Warp.
+	WarpParser
+	// ZCodeParser is the parser ID for ZCode.
+	ZCodeParser
+	// ZedParser is the parser ID for Zed.
+	ZedParser
+	// ZerostackParser is the parser ID for Zerostack.
+	ZerostackParser
 )
 
 type (
@@ -304,6 +352,126 @@ func parseAIHeartbeats(
 			FallbackUserAgent: config.Plugin,
 		},
 		Goose{
+			After:             after,
+			UserAgents:        userAgents,
+			FallbackUserAgent: config.Plugin,
+		},
+		ClineCLI{
+			After:             after,
+			UserAgents:        userAgents,
+			FallbackUserAgent: config.Plugin,
+		},
+		Codebuff{
+			After:             after,
+			UserAgents:        userAgents,
+			FallbackUserAgent: config.Plugin,
+		},
+		CodeWhale{
+			After:             after,
+			UserAgents:        userAgents,
+			FallbackUserAgent: config.Plugin,
+		},
+		Crush{
+			After:             after,
+			UserAgents:        userAgents,
+			FallbackUserAgent: config.Plugin,
+		},
+		CursorAgent{
+			After:             after,
+			UserAgents:        userAgents,
+			FallbackUserAgent: config.Plugin,
+		},
+		Devin{
+			After:             after,
+			UserAgents:        userAgents,
+			FallbackUserAgent: config.Plugin,
+		},
+		Droid{
+			After:             after,
+			UserAgents:        userAgents,
+			FallbackUserAgent: config.Plugin,
+		},
+		Forge{
+			After:             after,
+			UserAgents:        userAgents,
+			FallbackUserAgent: config.Plugin,
+		},
+		Hermes{
+			After:             after,
+			UserAgents:        userAgents,
+			FallbackUserAgent: config.Plugin,
+		},
+		IBMBob{
+			After:             after,
+			UserAgents:        userAgents,
+			FallbackUserAgent: config.Plugin,
+		},
+		KiloCode{
+			After:             after,
+			UserAgents:        userAgents,
+			FallbackUserAgent: config.Plugin,
+		},
+		Kimi{
+			After:             after,
+			UserAgents:        userAgents,
+			FallbackUserAgent: config.Plugin,
+		},
+		KimiCode{
+			After:             after,
+			UserAgents:        userAgents,
+			FallbackUserAgent: config.Plugin,
+		},
+		LingTaiTUI{
+			After:             after,
+			UserAgents:        userAgents,
+			FallbackUserAgent: config.Plugin,
+		},
+		MistralVibe{
+			After:             after,
+			UserAgents:        userAgents,
+			FallbackUserAgent: config.Plugin,
+		},
+		Mux{
+			After:             after,
+			UserAgents:        userAgents,
+			FallbackUserAgent: config.Plugin,
+		},
+		OMP{
+			After:             after,
+			UserAgents:        userAgents,
+			FallbackUserAgent: config.Plugin,
+		},
+		OpenClaw{
+			After:             after,
+			UserAgents:        userAgents,
+			FallbackUserAgent: config.Plugin,
+		},
+		OpenDesign{
+			After:             after,
+			UserAgents:        userAgents,
+			FallbackUserAgent: config.Plugin,
+		},
+		QuickDesk{
+			After:             after,
+			UserAgents:        userAgents,
+			FallbackUserAgent: config.Plugin,
+		},
+		Warp{
+			After:             after,
+			UserAgents:        userAgents,
+			FallbackUserAgent: config.Plugin,
+		},
+		ZCode{
+			After:             after,
+			UserAgents:        userAgents,
+			FallbackUserAgent: config.Plugin,
+		},
+		Zed{
+			After:             after,
+			UserAgents:        userAgents,
+			FallbackUserAgent: config.Plugin,
+		},
+		Zerostack{
 			After:             after,
 			UserAgents:        userAgents,
 			FallbackUserAgent: config.Plugin,
