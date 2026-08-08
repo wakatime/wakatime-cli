@@ -156,6 +156,44 @@ func TestGrokBuildParse_PromptShapesAndRewind(t *testing.T) {
 	assert.EqualValues(t, 2, got[6].AIOutputTokens)
 }
 
+func TestGrokBuildParse_ToolUpdateDiffDoesNotDuplicateHunkEdit(t *testing.T) {
+	session := setupGrokBuildTestSession(t, false)
+	base := time.Date(2026, 7, 23, 22, 0, 0, 0, time.UTC)
+	promptIndex := 0
+	editFile := filepath.Join(session.projectDir, "main.go")
+
+	session.writeUpdates(t, []string{
+		grokBuildTestEnvelope(t, session.id, "session/update", base.Add(time.Second),
+			map[string]any{
+				"sessionUpdate": "tool_call_update",
+				"content": []any{
+					map[string]any{
+						"type":    "diff",
+						"path":    filepath.ToSlash(editFile),
+						"oldText": "old\n",
+						"newText": "new\nline\n",
+					},
+				},
+			}),
+		grokBuildTestEnvelope(t, session.id, "session/update", base.Add(2*time.Second),
+			grokBuildTestUserUpdate("still parsed", "grok-4.5", &promptIndex)),
+		grokBuildTestEnvelope(t, session.id, "_x.ai/session/update", base.Add(3*time.Second),
+			grokBuildTestTurnCompleted(3, 1)),
+	})
+	session.writeHunks(t, []string{
+		grokBuildTestHunk(t, session.id, "edit", editFile, base.Add(4*time.Second),
+			"added", "agent", &promptIndex, 2, 1),
+	})
+
+	got, err := (ai.GrokBuild{After: base}).Parse(context.Background())
+	require.NoError(t, err)
+	require.Len(t, got, 2)
+	assert.Equal(t, len([]rune("still parsed")), got[0].AIPromptLength)
+	assert.EqualValues(t, 3, got[0].AIInputTokens)
+	assert.EqualValues(t, 1, got[0].AIOutputTokens)
+	assertGrokBuildFileHeartbeat(t, got[1], editFile, 1, "grok/4.5")
+}
+
 func TestGrokBuildParse_RemovalReversesPriorModelContributions(t *testing.T) {
 	session := setupGrokBuildTestSession(t, false)
 	base := time.Date(2026, 7, 23, 22, 0, 0, 0, time.UTC)

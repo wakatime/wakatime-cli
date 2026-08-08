@@ -143,6 +143,49 @@ type (
 	}
 )
 
+// UnmarshalJSON decodes content only for user message chunks. Tool call content
+// can be an array containing command output, file contents, or edit diffs. Grok
+// file edits are sourced exclusively from hunk_records.jsonl, so decoding that
+// content here would be unnecessary and could lead to duplicate edit handling.
+func (u *grokBuildUpdate) UnmarshalJSON(data []byte) error {
+	var decoded struct {
+		SessionUpdate     string               `json:"sessionUpdate"`
+		Content           json.RawMessage      `json:"content"`
+		Usage             *grokBuildUsage      `json:"usage"`
+		Meta              *grokBuildUpdateMeta `json:"_meta"`
+		TargetPromptIndex *int                 `json:"target_prompt_index"`
+	}
+
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return err
+	}
+
+	*u = grokBuildUpdate{
+		SessionUpdate:     decoded.SessionUpdate,
+		Usage:             decoded.Usage,
+		Meta:              decoded.Meta,
+		TargetPromptIndex: decoded.TargetPromptIndex,
+	}
+
+	if decoded.SessionUpdate != "user_message_chunk" {
+		return nil
+	}
+
+	raw := bytes.TrimSpace(decoded.Content)
+	if len(raw) == 0 || bytes.Equal(raw, []byte("null")) {
+		return nil
+	}
+
+	var content grokBuildUpdateContent
+	if err := json.Unmarshal(raw, &content); err != nil {
+		return fmt.Errorf("failed to parse Grok Build update content: %s", err)
+	}
+
+	u.Content = &content
+
+	return nil
+}
+
 // Parse parses Grok Build session transcripts for AI heartbeats.
 func (g GrokBuild) Parse(ctx context.Context) (Heartbeats, error) {
 	logger := log.Extract(ctx)
