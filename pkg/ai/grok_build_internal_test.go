@@ -62,6 +62,21 @@ func TestGrokBuildDecodeUpdate(t *testing.T) {
 		assert.Equal(t, "user_message_chunk", event.params.Update.SessionUpdate)
 	})
 
+	t.Run("tool update with array content", func(t *testing.T) {
+		event, err := grokBuildDecodeUpdate([]byte(`{
+			"params": {
+				"sessionId": "session",
+				"update": {
+					"sessionUpdate": "tool_call_update",
+					"content": [{"type": "content", "content": "result"}]
+				}
+			}
+		}`))
+		require.NoError(t, err)
+		assert.Equal(t, "tool_call_update", event.params.Update.SessionUpdate)
+		assert.Nil(t, event.params.Update.Content)
+	})
+
 	for name, input := range map[string]string{
 		"malformed envelope": `{`,
 		"malformed params":   `{"params":{"update":`,
