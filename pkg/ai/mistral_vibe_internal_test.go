@@ -22,7 +22,7 @@ func TestMistralVibeParsesSessionMetadata(t *testing.T) {
 	require.NoError(t, os.WriteFile(filepath.Join(sessionDir, "meta.json"), []byte(`{
 		"session_id":"session-1","end_time":"2026-05-11T10:05:00Z",
 		"environment":{"working_directory":"/workspace/vibe"},
-		"stats":{"session_prompt_tokens":2000,"session_completion_tokens":3000},
+		"stats":{"session_prompt_tokens":2000,"session_completion_tokens":3000,"session_cached_tokens":400},
 		"config":{"active_model":"mistral-medium-3.5"},"title":"Implement Vibe support"
 	}`), 0o600))
 
@@ -30,7 +30,8 @@ func TestMistralVibeParsesSessionMetadata(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, got, 1)
 	assert.Equal(t, "Mistral Vibe session-1", got[0].Entity)
-	assert.Equal(t, int64(2000), got[0].AIInputTokens)
+	assert.Equal(t, int64(1600), got[0].AIInputTokens)
+	assert.Equal(t, int64(400), got[0].AICachedInputTokens)
 	assert.Equal(t, int64(3000), got[0].AIOutputTokens)
 	assert.Equal(t, "/workspace/vibe", got[0].ProjectPathOverride)
 }

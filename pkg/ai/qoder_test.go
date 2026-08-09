@@ -55,14 +55,16 @@ func TestQoderParse(t *testing.T) {
 	assert.Equal(t, "Qoder 99947f30-f6f8-4323-a2c1-4970f5329d9c", got[0].Entity)
 	assert.Equal(t, heartbeat.AppType, got[0].EntityType)
 	assert.Equal(t, "99947f30-f6f8-4323-a2c1-4970f5329d9c", got[0].AISession)
-	assert.EqualValues(t, 20159, got[0].AIInputTokens)
+	assert.EqualValues(t, 3029, got[0].AIInputTokens)
+	assert.EqualValues(t, 17130, got[0].AICachedInputTokens)
 	assert.EqualValues(t, 129, got[0].AIOutputTokens)
 	assert.Equal(t, 45, got[0].AIPromptLength)
 	assert.Equal(t, "/Users/user/git/wakatime-cli", got[0].ProjectPathOverride)
 	assert.Equal(t, "plugin/0.0.1", got[0].UserAgent)
 
 	assert.Equal(t, "Qoder 99947f30-f6f8-4323-a2c1-4970f5329d9c", got[1].Entity)
-	assert.EqualValues(t, 19812, got[1].AIInputTokens)
+	assert.EqualValues(t, 3321, got[1].AIInputTokens)
+	assert.EqualValues(t, 16491, got[1].AICachedInputTokens)
 	assert.EqualValues(t, 80, got[1].AIOutputTokens)
 	assert.Equal(t, 52, got[1].AIPromptLength)
 
@@ -72,7 +74,8 @@ func TestQoderParse(t *testing.T) {
 	assert.Nil(t, got[2].AILineChanges)
 	assert.Zero(t, got[2].AIPromptLength)
 
-	assert.EqualValues(t, 20088, got[3].AIInputTokens)
+	assert.EqualValues(t, 282, got[3].AIInputTokens)
+	assert.EqualValues(t, 19806, got[3].AICachedInputTokens)
 	assert.EqualValues(t, 125, got[3].AIOutputTokens)
 	assert.Zero(t, got[3].AIPromptLength)
 

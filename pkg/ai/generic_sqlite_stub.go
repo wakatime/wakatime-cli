@@ -4,6 +4,6 @@ package ai
 
 import "context"
 
-func parseGenericAISQLite(context.Context, Parser, ParserConfig, []string) (Heartbeats, error) {
+func parseGenericAISQLite(context.Context, genericAIProvider) (Heartbeats, error) {
 	return Heartbeats{}, nil
 }

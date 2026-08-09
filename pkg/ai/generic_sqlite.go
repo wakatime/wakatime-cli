@@ -20,11 +20,9 @@ const genericAISQLiteRowLimit = 5000
 
 func parseGenericAISQLite(
 	ctx context.Context,
-	parser Parser,
-	config ParserConfig,
-	roots []string,
+	provider genericAIProvider,
 ) (Heartbeats, error) {
-	paths, err := genericAISQLitePaths(parser, config, roots)
+	paths, err := genericAISQLitePaths(provider.parser, provider.config, provider.sqliteRoots)
 	if err != nil {
 		return nil, err
 	}
@@ -34,9 +32,9 @@ func parseGenericAISQLite(
 	var heartbeats Heartbeats
 
 	for _, path := range paths {
-		parsed, err := parseGenericAISQLiteDB(ctx, parser, config, path)
+		parsed, err := parseGenericAISQLiteDB(ctx, provider, path)
 		if err != nil {
-			logger.Warnf("failed parsing %s sqlite transcript %q: %s", parser.Name(), path, err)
+			logger.Warnf("failed parsing %s sqlite transcript %q: %s", provider.parser.Name(), path, err)
 			continue
 		}
 
@@ -105,8 +103,7 @@ func genericAISQLiteFilename(path string) bool {
 
 func parseGenericAISQLiteDB(
 	ctx context.Context,
-	parser Parser,
-	config ParserConfig,
+	provider genericAIProvider,
 	path string,
 ) (Heartbeats, error) {
 	db, err := sql.Open("sqlite", path)
@@ -123,7 +120,6 @@ func parseGenericAISQLiteDB(
 	var heartbeats Heartbeats
 
 	logger := log.Extract(ctx)
-	provider := genericAIProvider{parser: parser, config: config}
 
 	for _, table := range tables {
 		values, err := genericAISQLiteRows(ctx, db, table)
@@ -132,9 +128,13 @@ func parseGenericAISQLiteDB(
 				return nil, ctxErr
 			}
 
-			logger.Warnf("failed parsing %s sqlite table %q from %q: %s", parser.Name(), table, path, err)
+			logger.Warnf("failed parsing %s sqlite table %q from %q: %s", provider.parser.Name(), table, path, err)
 
 			continue
+		}
+
+		if provider.containerKey != "" {
+			values = genericAISQLiteContainerValues(values, provider.containerKey)
 		}
 
 		parsed, err := genericAIHeartbeats(ctx, provider, path, values)
@@ -146,6 +146,22 @@ func parseGenericAISQLiteDB(
 	}
 
 	return heartbeats, nil
+}
+
+func genericAISQLiteContainerValues(values []any, key string) []any {
+	var expanded []any
+
+	for _, value := range values {
+		object, ok := value.(map[string]any)
+		if !ok {
+			expanded = append(expanded, value)
+			continue
+		}
+
+		expanded = append(expanded, genericAIContainerValues(object, key)...)
+	}
+
+	return expanded
 }
 
 func genericAISQLiteTables(ctx context.Context, db *sql.DB) ([]string, error) {

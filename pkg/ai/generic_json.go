@@ -27,6 +27,7 @@ type genericAIProvider struct {
 	sqliteRoots        []string
 	containerKey       string
 	preferMessagesFile bool
+	inputIncludesCache bool
 	tokenCounterMode   genericAICounterMode
 	lineCounterMode    genericAICounterMode
 }
@@ -83,7 +84,7 @@ func parseGenericAIProvider(ctx context.Context, provider genericAIProvider) (He
 		heartbeats = append(heartbeats, parsed...)
 	}
 
-	sqliteHeartbeats, err := parseGenericAISQLite(ctx, provider.parser, provider.config, provider.sqliteRoots)
+	sqliteHeartbeats, err := parseGenericAISQLite(ctx, provider)
 	if err != nil {
 		return nil, err
 	}
@@ -176,6 +177,8 @@ func genericAITranscriptHasTokens(path string) bool {
 		if object, ok := value.(map[string]any); ok {
 			for _, child := range genericAIContainerValues(object, "messages") {
 				if genericAIInt64(genericAIFind(child, genericAIInputKeys()...)) > 0 ||
+					genericAIInt64(genericAIFind(child, genericAICachedInputKeys()...)) > 0 ||
+					genericAIInt64(genericAIFind(child, genericAICacheCreationKeys()...)) > 0 ||
 					genericAIInt64(genericAIFind(child, genericAIOutputKeys()...)) > 0 {
 					return true
 				}
@@ -308,13 +311,27 @@ func genericAIJSONValues(contents []byte) []any {
 }
 
 func genericAIContainerValues(object map[string]any, key string) []any {
-	values, ok := object[key].([]any)
+	container := genericAIDecodedValue(object[key])
+
+	values, ok := container.([]any)
+	if !ok {
+		container = genericAIFind(object, key)
+		values, ok = container.([]any)
+	}
+
 	if !ok {
 		return []any{object}
 	}
 
 	sessionID := genericAIString(genericAIFind(object, genericAISessionKeys()...))
 	cwd := genericAIString(genericAIFind(object, genericAICWDKeys()...))
+	// Container records without per-message timestamps (notably ForgeCode's
+	// conversations table) represent the latest transcript state at updated_at.
+	// Prefer it to the row's creation time when inheriting a timestamp.
+	timestamp := genericAIFind(object, "updated_at", "updatedAt")
+	if genericAITime(timestamp).IsZero() {
+		timestamp = genericAIFind(object, genericAITimestampKeys()...)
+	}
 
 	for i, value := range values {
 		child, ok := value.(map[string]any)
@@ -328,6 +345,11 @@ func genericAIContainerValues(object map[string]any, key string) []any {
 
 		if cwd != "" && genericAIString(genericAIFind(child, genericAICWDKeys()...)) == "" {
 			child["cwd"] = cwd
+		}
+
+		if !genericAITime(timestamp).IsZero() &&
+			genericAITime(genericAIFind(child, genericAITimestampKeys()...)).IsZero() {
+			child["timestamp"] = timestamp
 		}
 
 		values[i] = child
@@ -397,6 +419,10 @@ func genericAIHeartbeats(
 		}
 
 		event := genericAIEventFromValue(value)
+		if provider.inputIncludesCache {
+			event.input = max(event.input-event.cachedInput, 0)
+		}
+
 		if event.timestamp.IsZero() {
 			event.timestamp = fallbackTimestamp
 		}
@@ -850,9 +876,21 @@ func genericAIInt64Value(value any) (int64, bool) {
 	case string:
 		parsed, err := strconv.ParseInt(strings.TrimSpace(typed), 10, 64)
 		return parsed, err == nil
+	case map[string]any:
+		// ForgeCode persists token counts as externally tagged enum values,
+		// for example {"actual": 123} (or legacy {"Actual": 123}).
+		for _, variant := range []string{"actual", "approx"} {
+			for key, child := range typed {
+				if genericAIKey(key) == variant {
+					return genericAIInt64Value(child)
+				}
+			}
+		}
 	default:
 		return 0, false
 	}
+
+	return 0, false
 }
 
 func genericAIBool(value any) bool {
@@ -939,14 +977,47 @@ func genericAIPrompt(value any) string {
 	}
 
 	if genericAIBool(genericAIFind(value, "is_user_input", "isUserInput")) {
-		return genericAIString(genericAIFind(value, "message", "content", "text"))
+		return genericAIContentText(genericAIFind(value, "message", "content", "text"))
 	}
 
 	if role != "user" && role != "human" && role != "user_message" {
 		return ""
 	}
 
-	return genericAIString(genericAIFind(value, "content", "text", "message"))
+	for _, key := range []string{"content", "text", "message"} {
+		if prompt := genericAIContentText(genericAIFind(value, key)); prompt != "" {
+			return prompt
+		}
+	}
+
+	return ""
+}
+
+func genericAIContentText(value any) string {
+	switch typed := value.(type) {
+	case string:
+		return strings.TrimSpace(typed)
+	case map[string]any:
+		for _, key := range []string{"text", "content", "message"} {
+			if child, ok := typed[key]; ok {
+				if text := genericAIContentText(child); text != "" {
+					return text
+				}
+			}
+		}
+	case []any:
+		var parts []string
+
+		for _, child := range typed {
+			if text := genericAIContentText(child); text != "" {
+				parts = append(parts, text)
+			}
+		}
+
+		return strings.Join(parts, "\n")
+	}
+
+	return ""
 }
 
 func genericAICWDFromText(text string) string {
@@ -1044,8 +1115,8 @@ func genericAIFileKeys() []string {
 func genericAIInputKeys() []string {
 	return []string{
 		"input_tokens", "inputTokens", "tokens_in", "tokensIn", "prompt_tokens", "promptTokens",
-		"promptTokenCount", "total_input_tokens", "total_tokens", "session_prompt_tokens", "input_other",
-		"inputOther", "input",
+		"promptTokenCount", "total_input_tokens", "session_prompt_tokens", "input_other", "inputOther",
+		"input", "total_tokens",
 	}
 }
 
@@ -1060,13 +1131,13 @@ func genericAICachedInputKeys() []string {
 	return []string{
 		"cached_input_tokens", "cachedInputTokens", "cache_read_input_tokens", "cacheReadInputTokens",
 		"cache_read_tokens", "cacheReadTokens", "cacheReads", "cachedContentTokenCount", "input_cache_read",
-		"inputCacheRead", "cached",
+		"inputCacheRead", "session_cached_tokens", "cached_tokens", "cacheRead", "cached",
 	}
 }
 
 func genericAICacheCreationKeys() []string {
 	return []string{
 		"cache_creation_input_tokens", "cacheCreationInputTokens", "cache_creation_tokens", "cacheCreationTokens",
-		"input_cache_creation", "inputCacheCreation", "cacheWrites",
+		"input_cache_creation", "inputCacheCreation", "cacheWrites", "cacheWrite",
 	}
 }

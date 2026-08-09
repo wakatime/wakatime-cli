@@ -17,9 +17,10 @@ func (g MistralVibe) Parse(ctx context.Context) (Heartbeats, error) {
 
 	root := envOrDefault("VIBE_HOME", filepath.Join(home, ".vibe"))
 	paths := genericAIPaths{
-		roots:            []string{filepath.Join(root, "logs", "session")},
-		fileNames:        []string{"messages.jsonl", "meta.json"},
-		tokenCounterMode: genericAICumulativeCounters,
+		roots:              []string{filepath.Join(root, "logs", "session")},
+		fileNames:          []string{"messages.jsonl", "meta.json"},
+		inputIncludesCache: true,
+		tokenCounterMode:   genericAICumulativeCounters,
 	}
 
 	return parseGenericProvider(ctx, g, ParserConfig(g), paths)

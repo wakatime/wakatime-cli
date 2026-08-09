@@ -66,6 +66,7 @@ type (
 	qoderTokenInfo struct {
 		PromptTokens     int64 `json:"prompt_tokens"`
 		CompletionTokens int64 `json:"completion_tokens"`
+		CachedTokens     int64 `json:"cached_tokens"`
 	}
 
 	qoderToolResult struct {
@@ -308,7 +309,7 @@ func (g Qoder) qoderAppHeartbeat(row qoderMessageRow, timestamp time.Time) *hear
 		return nil
 	}
 
-	if tokenInfo.PromptTokens == 0 && tokenInfo.CompletionTokens == 0 {
+	if tokenInfo.PromptTokens == 0 && tokenInfo.CompletionTokens == 0 && tokenInfo.CachedTokens == 0 {
 		return nil
 	}
 
@@ -318,8 +319,9 @@ func (g Qoder) qoderAppHeartbeat(row qoderMessageRow, timestamp time.Time) *hear
 		nil,
 		row.SessionID,
 		heartbeat.AITokens{
-			CurrentInput:  tokenInfo.PromptTokens,
-			CurrentOutput: tokenInfo.CompletionTokens,
+			CurrentInput:       max(tokenInfo.PromptTokens-tokenInfo.CachedTokens, 0),
+			CurrentCachedInput: max(tokenInfo.CachedTokens, 0),
+			CurrentOutput:      max(tokenInfo.CompletionTokens, 0),
 		},
 		"",
 		heartbeat.AICodingCategory.String(),

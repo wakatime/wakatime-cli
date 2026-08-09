@@ -325,13 +325,15 @@ func (g Gemini) parseTranscript(transcript string, projectPath string) (Heartbea
 	for _, message := range session.Messages {
 		messageTime := parseGeminiTime(message.Timestamp)
 		if message.Tokens != nil {
-			state.CurrentInput = message.Tokens.Input - message.Tokens.Cached
-			if state.CurrentInput < 0 {
-				state.CurrentInput = 0
-			}
+			cachedInput := max(message.Tokens.Cached, 0)
+			freshInput := max(message.Tokens.Input-cachedInput, 0)
 
-			state.CurrentCachedInput = max(message.Tokens.Cached, 0)
-			state.CurrentOutput = message.Tokens.Output
+			// Gemini stores one usageMetadata snapshot per model response, not
+			// cumulative session counters. Convert each response to the cumulative
+			// state expected by NewWithAITokens.
+			state.CurrentInput = state.LastInput + freshInput + max(message.Tokens.Tool, 0)
+			state.CurrentCachedInput = state.LastCachedInput + cachedInput
+			state.CurrentOutput = state.LastOutput + max(message.Tokens.Output, 0) + max(message.Tokens.Thoughts, 0)
 		}
 
 		if messageTime.IsZero() || !timestampAtOrAfterCutoff(messageTime, g.After) {
