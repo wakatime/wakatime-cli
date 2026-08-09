@@ -18,6 +18,7 @@ type genericAIPaths struct {
 	sqliteRoots        []string
 	containerKey       string
 	preferMessagesFile bool
+	inputIncludesCache bool
 	tokenCounterMode   genericAICounterMode
 	lineCounterMode    genericAICounterMode
 }
@@ -44,6 +45,7 @@ func parseGenericProvider(
 		sqliteRoots:        paths.sqliteRoots,
 		containerKey:       paths.containerKey,
 		preferMessagesFile: paths.preferMessagesFile,
+		inputIncludesCache: paths.inputIncludesCache,
 		tokenCounterMode:   paths.tokenCounterMode,
 		lineCounterMode:    paths.lineCounterMode,
 	})

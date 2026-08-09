@@ -15,7 +15,11 @@ func (g Forge) Parse(ctx context.Context) (Heartbeats, error) {
 		return nil, err
 	}
 
-	paths := genericAIPaths{sqliteRoots: []string{filepath.Join(home, ".forge", ".forge.db")}}
+	paths := genericAIPaths{
+		sqliteRoots:        []string{filepath.Join(home, ".forge", ".forge.db")},
+		containerKey:       "messages",
+		inputIncludesCache: true,
+	}
 
 	return parseGenericProvider(ctx, g, ParserConfig(g), paths)
 }

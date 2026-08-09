@@ -37,7 +37,7 @@ func AcquireSyncLock(ctx context.Context, v *viper.Viper, timeout time.Duration)
 		Delay:   time.Millisecond,
 		Timeout: timeout,
 		Cancel:  ctx.Done(),
-		Clock:   syncLockClock{delay: time.Millisecond},
+		Clock:   syncLockClock{},
 	})
 }
 
@@ -59,12 +59,10 @@ func syncLockName(ctx context.Context, v *viper.Viper) (string, error) {
 	return syncLockNamePrefix + "-" + strconv.FormatUint(uint64(hash.Sum32()), 16), nil
 }
 
-type syncLockClock struct {
-	delay time.Duration
-}
+type syncLockClock struct{}
 
-func (c syncLockClock) After(time.Duration) <-chan time.Time {
-	return time.After(c.delay)
+func (syncLockClock) After(delay time.Duration) <-chan time.Time {
+	return time.After(delay)
 }
 
 func (syncLockClock) Now() time.Time {

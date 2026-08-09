@@ -66,7 +66,7 @@ func TestOpenCodeParse_LegacyStorage(t *testing.T) {
   "role": "assistant",
   "modelID": "claude-3.5",
   "path": { "cwd": "/workspace/project", "root": "/workspace/project" },
-  "tokens": { "input": 120, "output": 30, "cache": { "read": 40, "write": 5 } },
+  "tokens": { "input": 120, "output": 30, "reasoning": 10, "cache": { "read": 40, "write": 5 } },
   "time": { "created": 1740000002000 }
 }`), 0o600))
 	require.NoError(t, os.WriteFile(filepath.Join(partDirAssistant, "part_assistant_text.json"), []byte(`{
@@ -141,7 +141,7 @@ func TestOpenCodeParse_LegacyStorage(t *testing.T) {
 	assert.Equal(t, heartbeat.AppType, got[1].EntityType)
 	assert.EqualValues(t, 125, got[1].AIInputTokens)
 	assert.EqualValues(t, 40, got[1].AICachedInputTokens)
-	assert.EqualValues(t, 30, got[1].AIOutputTokens)
+	assert.EqualValues(t, 40, got[1].AIOutputTokens)
 	assert.Equal(t, "/workspace/project", got[1].ProjectPathOverride)
 	assert.Contains(t, got[1].UserAgent, "claude/3.5 opencode-cli/1.4.4")
 	assert.True(t, strings.Index(got[1].UserAgent, "claude/3.5") <
@@ -415,7 +415,7 @@ func TestOpenCodeParse_SQLiteFallback_UnicodeAndMalformedRows(t *testing.T) {
 	assert.Equal(t, 1, *got[2].AILineChanges)
 }
 
-func TestOpenCodeParse_LegacyStorage_AfterUsesSeedTokens(t *testing.T) {
+func TestOpenCodeParse_LegacyStorage_AfterUsesPerMessageTokens(t *testing.T) {
 	ctx := context.Background()
 
 	home := t.TempDir()
@@ -461,7 +461,7 @@ func TestOpenCodeParse_LegacyStorage_AfterUsesSeedTokens(t *testing.T) {
   "sessionID": "ses_456",
   "role": "assistant",
   "path": { "cwd": "/workspace/project", "root": "/workspace/project" },
-  "tokens": { "input": 130, "output": 27 },
+  "tokens": { "input": 30, "output": 7, "reasoning": 2, "cache": { "read": 8, "write": 4 } },
   "time": { "created": 1740000003000 }
 }`), 0o600))
 	require.NoError(t, os.WriteFile(filepath.Join(partDirAfter, "part_after_text.json"), []byte(`{
@@ -482,11 +482,12 @@ func TestOpenCodeParse_LegacyStorage_AfterUsesSeedTokens(t *testing.T) {
 	require.Len(t, got, 1)
 
 	assert.Equal(t, "OpenCode ses_456", got[0].Entity)
-	assert.EqualValues(t, 30, got[0].AIInputTokens)
-	assert.EqualValues(t, 7, got[0].AIOutputTokens)
+	assert.EqualValues(t, 34, got[0].AIInputTokens)
+	assert.EqualValues(t, 8, got[0].AICachedInputTokens)
+	assert.EqualValues(t, 9, got[0].AIOutputTokens)
 }
 
-func TestOpenCodeParse_SQLiteFallback_AfterUsesSeedTokens(t *testing.T) {
+func TestOpenCodeParse_SQLiteFallback_AfterUsesPerMessageTokens(t *testing.T) {
 	ctx := context.Background()
 
 	home := t.TempDir()
@@ -537,8 +538,13 @@ func TestOpenCodeParse_SQLiteFallback_AfterUsesSeedTokens(t *testing.T) {
 						"root": "/workspace/project",
 					},
 					"tokens": map[string]any{
-						"input":  130,
-						"output": 27,
+						"input":     30,
+						"output":    7,
+						"reasoning": 2,
+						"cache": map[string]any{
+							"read":  8,
+							"write": 4,
+						},
 					},
 					"time": map[string]any{
 						"created": int64(1740000003000),
@@ -570,8 +576,9 @@ func TestOpenCodeParse_SQLiteFallback_AfterUsesSeedTokens(t *testing.T) {
 	require.Len(t, got, 1)
 
 	assert.Equal(t, "OpenCode ses_seed", got[0].Entity)
-	assert.EqualValues(t, 30, got[0].AIInputTokens)
-	assert.EqualValues(t, 7, got[0].AIOutputTokens)
+	assert.EqualValues(t, 34, got[0].AIInputTokens)
+	assert.EqualValues(t, 8, got[0].AICachedInputTokens)
+	assert.EqualValues(t, 9, got[0].AIOutputTokens)
 }
 
 func TestOpenCodeParse_NoStorageDir(t *testing.T) {

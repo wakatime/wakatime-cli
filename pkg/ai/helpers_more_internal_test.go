@@ -292,6 +292,15 @@ func TestSyncLockClockNow(t *testing.T) {
 	assert.False(t, syncLockClock{}.Now().IsZero())
 }
 
+func TestSyncLockClockAfterHonorsDelay(t *testing.T) {
+	delay := 20 * time.Millisecond
+	startedAt := time.Now()
+
+	<-syncLockClock{}.After(delay)
+
+	assert.GreaterOrEqual(t, time.Since(startedAt), delay)
+}
+
 func TestCopilotCLITelemetryHelpers(t *testing.T) {
 	telemetry := &copilotCLIToolTelemetry{
 		Metrics: copilotCLIToolMetrics{
@@ -708,7 +717,7 @@ func TestCodexAdditionalHelperBranches(t *testing.T) {
 	assert.Empty(t, codexSourceEditor("", ""))
 	assert.Equal(t, "codex-cli/unknown", codexSourceEditor("cli", ""))
 	assert.Equal(t, "codex-cli/1.2.3", codexSourceEditor("cli", "1.2.3"))
-	assert.Equal(t, "vs-code-wakatime/unknown", codexSourceEditor(" VS Code ", ""))
+	assert.Equal(t, "codex-vs-code/unknown", codexSourceEditor(" VS Code ", ""))
 	assert.Empty(t, codexSourceProduct(" / \\ "))
 
 	callID := "call-1"

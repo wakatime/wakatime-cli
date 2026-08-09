@@ -1240,7 +1240,11 @@ func codexSourceEditor(source string, version string) string {
 			return ""
 		}
 
-		return product + "-wakatime/unknown"
+		if version == "" {
+			version = "unknown"
+		}
+
+		return "codex-" + product + "/" + version
 	}
 }
 

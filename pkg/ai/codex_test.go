@@ -60,10 +60,10 @@ func TestCodexParse(t *testing.T) {
 		got[0].Time,
 	)
 	assert.NotContains(t, got[0].UserAgent, "Codex/")
-	assert.Contains(t, got[0].UserAgent, "vscode-wakatime/unknown")
+	assert.Contains(t, got[0].UserAgent, "codex-vscode/0.116.0-alpha.10")
 	assert.True(
 		t,
-		strings.Index(got[0].UserAgent, "vscode-wakatime/unknown") <
+		strings.Index(got[0].UserAgent, "codex-vscode/0.116.0-alpha.10") <
 			strings.Index(got[0].UserAgent, "plugin/0.0.1"),
 	)
 	assert.Contains(t, got[0].UserAgent, "plugin/0.0.1")
@@ -84,10 +84,10 @@ func TestCodexParse(t *testing.T) {
 		got[1].Time,
 	)
 	assert.NotContains(t, got[1].UserAgent, "Codex/")
-	assert.Contains(t, got[1].UserAgent, "vscode-wakatime/unknown")
+	assert.Contains(t, got[1].UserAgent, "codex-vscode/0.116.0-alpha.10")
 	assert.True(
 		t,
-		strings.Index(got[1].UserAgent, "vscode-wakatime/unknown") <
+		strings.Index(got[1].UserAgent, "codex-vscode/0.116.0-alpha.10") <
 			strings.Index(got[1].UserAgent, "plugin/0.0.1"),
 	)
 	assert.Contains(t, got[1].UserAgent, "plugin/0.0.1")
@@ -141,7 +141,7 @@ func TestCodexParse_UserAgentUsesTranscriptSource(t *testing.T) {
 			Source:            "vscode",
 			Version:           "0.131.0-alpha.9",
 			FallbackUserAgent: "zoom.us/6.7.7(76486)-6.7.7.76486 macos-wakatime/5.28.4",
-			ExpectedUserAgent: "vscode-wakatime/unknown " +
+			ExpectedUserAgent: "codex-vscode/0.131.0-alpha.9 " +
 				"zoom.us/6.7.7(76486)-6.7.7.76486 macos-wakatime/5.28.4",
 		},
 		"cli": {
@@ -396,7 +396,7 @@ func TestCodexParse_UserAgentUsesSourceFromRealSessionMetaLines(t *testing.T) {
 				`"collaboration_mode_kind":"default"}}`,
 			}, ""),
 			FallbackUserAgent: "zoom.us/6.7.7(76486)-6.7.7.76486 macos-wakatime/5.28.4",
-			ExpectedUserAgent: "vscode-wakatime/unknown " +
+			ExpectedUserAgent: "codex-vscode/0.131.0-alpha.9 " +
 				"zoom.us/6.7.7(76486)-6.7.7.76486 macos-wakatime/5.28.4",
 		},
 		"cli": {

@@ -79,6 +79,8 @@ type (
 		CachedContentTokenCount int64 `json:"cachedContentTokenCount"`
 		CandidatesTokenCount    int64 `json:"candidatesTokenCount"`
 		PromptTokenCount        int64 `json:"promptTokenCount"`
+		ThoughtsTokenCount      int64 `json:"thoughtsTokenCount"`
+		ToolUsePromptTokenCount int64 `json:"toolUsePromptTokenCount"`
 	}
 
 	qwenCodeToolCall struct {
@@ -667,9 +669,10 @@ func (QwenCode) tokenCounts(record qwenCodeRecord, tokens heartbeat.AITokens) he
 		freshInput = 0
 	}
 
-	tokens.CurrentInput = tokens.LastInput + freshInput
+	tokens.CurrentInput = tokens.LastInput + freshInput + max(record.UsageMetadata.ToolUsePromptTokenCount, 0)
 	tokens.CurrentCachedInput = tokens.LastCachedInput + cachedInput
-	tokens.CurrentOutput = tokens.LastOutput + record.UsageMetadata.CandidatesTokenCount
+	tokens.CurrentOutput = tokens.LastOutput + max(record.UsageMetadata.CandidatesTokenCount, 0) +
+		max(record.UsageMetadata.ThoughtsTokenCount, 0)
 
 	return tokens
 }
