@@ -292,6 +292,15 @@ func TestSyncLockClockNow(t *testing.T) {
 	assert.False(t, syncLockClock{}.Now().IsZero())
 }
 
+func TestSyncLockClockAfterHonorsDelay(t *testing.T) {
+	delay := 20 * time.Millisecond
+	startedAt := time.Now()
+
+	<-syncLockClock{}.After(delay)
+
+	assert.GreaterOrEqual(t, time.Since(startedAt), delay)
+}
+
 func TestCopilotCLITelemetryHelpers(t *testing.T) {
 	telemetry := &copilotCLIToolTelemetry{
 		Metrics: copilotCLIToolMetrics{
