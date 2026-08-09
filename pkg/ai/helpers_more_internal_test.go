@@ -717,7 +717,7 @@ func TestCodexAdditionalHelperBranches(t *testing.T) {
 	assert.Empty(t, codexSourceEditor("", ""))
 	assert.Equal(t, "codex-cli/unknown", codexSourceEditor("cli", ""))
 	assert.Equal(t, "codex-cli/1.2.3", codexSourceEditor("cli", "1.2.3"))
-	assert.Equal(t, "vs-code-wakatime/unknown", codexSourceEditor(" VS Code ", ""))
+	assert.Equal(t, "codex-vs-code/unknown", codexSourceEditor(" VS Code ", ""))
 	assert.Empty(t, codexSourceProduct(" / \\ "))
 
 	callID := "call-1"
