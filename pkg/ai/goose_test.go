@@ -104,6 +104,7 @@ func TestGooseParse_ActualSQLiteSchema(t *testing.T) {
 	assert.Equal(t, "/workspace/goose", got[0].ProjectPathOverride)
 	assert.Equal(t, len([]rune("Fix the Goose parser using the real schema")), got[0].AIPromptLength)
 	assert.EqualValues(t, 13, got[0].AIInputTokens)
+	assert.EqualValues(t, 5, got[0].AICachedInputTokens)
 	assert.EqualValues(t, 8, got[0].AIOutputTokens)
 	assert.Equal(t, float64(time.Date(2026, 4, 20, 12, 0, 0, 0, time.UTC).Unix()), got[0].Time)
 	assert.Contains(t, got[0].UserAgent, "gpt/4o")
@@ -353,6 +354,10 @@ CREATE TABLE sessions (
 	accumulated_total_tokens INTEGER,
 	accumulated_input_tokens INTEGER,
 	accumulated_output_tokens INTEGER,
+	cache_read_tokens INTEGER,
+	cache_write_tokens INTEGER,
+	accumulated_cache_read_tokens INTEGER,
+	accumulated_cache_write_tokens INTEGER,
 	schedule_id TEXT,
 	recipe_json TEXT,
 	user_recipe_values_json TEXT,
@@ -436,6 +441,10 @@ INSERT INTO sessions (
 	accumulated_total_tokens,
 	accumulated_input_tokens,
 	accumulated_output_tokens,
+	cache_read_tokens,
+	cache_write_tokens,
+	accumulated_cache_read_tokens,
+	accumulated_cache_write_tokens,
 	provider_name,
 	model_config_json,
 	goose_mode
@@ -454,6 +463,10 @@ INSERT INTO sessions (
 		150,
 		100,
 		50,
+		2,
+		1,
+		20,
+		10,
 		'openai',
 		'{"model_name":"gpt-4o"}',
 		'auto'
@@ -466,12 +479,16 @@ INSERT INTO sessions (
 		'/workspace/goose',
 		'2026-04-20 12:00:00',
 		'{"enabled_extensions.v0":{"extensions":[]}}',
-		21,
-		13,
+		26,
+		18,
 		8,
 		210,
 		130,
 		80,
+		5,
+		3,
+		50,
+		30,
 		'openai',
 		'{"model_name":"gpt-4o"}',
 		'auto'

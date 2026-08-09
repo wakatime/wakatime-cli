@@ -104,11 +104,12 @@ func TestGeminiParse(t *testing.T) {
 				"timestamp": "2026-04-21T12:00:03Z",
 				"content":   "I found one issue and patched it.",
 				"tokens": map[string]any{
-					"input":  160,
-					"output": 34,
-					"cached": 30,
-					"tool":   0,
-					"total":  194,
+					"input":    160,
+					"output":   34,
+					"cached":   30,
+					"thoughts": 5,
+					"tool":     7,
+					"total":    206,
 				},
 				"model": "gemini-3-flash-preview",
 				"toolCalls": []map[string]any{
@@ -233,9 +234,9 @@ func TestGeminiParse(t *testing.T) {
 	assert.Equal(t, "Gemini gem-session-1", got[2].Entity)
 	assert.Equal(t, heartbeat.AppType, got[2].EntityType)
 	assert.Zero(t, got[2].AIPromptLength)
-	assert.EqualValues(t, 30, got[2].AIInputTokens)
+	assert.EqualValues(t, 137, got[2].AIInputTokens)
 	assert.EqualValues(t, 30, got[2].AICachedInputTokens)
-	assert.EqualValues(t, 14, got[2].AIOutputTokens)
+	assert.EqualValues(t, 39, got[2].AIOutputTokens)
 
 	assert.Equal(t, mainFile, got[3].Entity)
 	assert.Equal(t, heartbeat.FileType, got[3].EntityType)
@@ -252,14 +253,16 @@ func TestGeminiParse(t *testing.T) {
 	assert.Equal(t, "Gemini gem-session-1", got[4].Entity)
 	assert.Equal(t, heartbeat.AppType, got[4].EntityType)
 	assert.Zero(t, got[4].AIPromptLength)
-	assert.EqualValues(t, 10, got[4].AIInputTokens)
-	assert.EqualValues(t, 6, got[4].AIOutputTokens)
+	assert.EqualValues(t, 140, got[4].AIInputTokens)
+	assert.EqualValues(t, 30, got[4].AICachedInputTokens)
+	assert.EqualValues(t, 40, got[4].AIOutputTokens)
 
 	assert.Equal(t, "Gemini gem-session-1", got[5].Entity)
 	assert.Equal(t, heartbeat.AppType, got[5].EntityType)
 	assert.Zero(t, got[5].AIPromptLength)
-	assert.EqualValues(t, 20, got[5].AIInputTokens)
-	assert.EqualValues(t, 5, got[5].AIOutputTokens)
+	assert.EqualValues(t, 160, got[5].AIInputTokens)
+	assert.EqualValues(t, 30, got[5].AICachedInputTokens)
+	assert.EqualValues(t, 45, got[5].AIOutputTokens)
 
 	assert.Equal(t, notesFile, got[6].Entity)
 	assert.Equal(t, heartbeat.FileType, got[6].EntityType)

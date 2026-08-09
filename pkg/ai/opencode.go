@@ -53,9 +53,10 @@ type (
 			Root string `json:"root"`
 		} `json:"path"`
 		Tokens *struct {
-			Input  int64 `json:"input"`
-			Output int64 `json:"output"`
-			Cache  struct {
+			Input     int64 `json:"input"`
+			Output    int64 `json:"output"`
+			Reasoning int64 `json:"reasoning"`
+			Cache     struct {
 				Read  int64 `json:"read"`
 				Write int64 `json:"write"`
 			} `json:"cache"`
@@ -612,9 +613,14 @@ func (g OpenCode) sessionHeartbeats(
 		}
 
 		if message.info.Tokens != nil {
-			tokens.CurrentInput = message.info.Tokens.Input + message.info.Tokens.Cache.Write
-			tokens.CurrentCachedInput = message.info.Tokens.Cache.Read
-			tokens.CurrentOutput = message.info.Tokens.Output
+			// OpenCode persists per-assistant-message usage. Accumulate it into the
+			// state expected by NewWithAITokens so a smaller later response is not
+			// mistaken for a counter reset.
+			tokens.CurrentInput = tokens.LastInput + max(message.info.Tokens.Input, 0) +
+				max(message.info.Tokens.Cache.Write, 0)
+			tokens.CurrentCachedInput = tokens.LastCachedInput + max(message.info.Tokens.Cache.Read, 0)
+			tokens.CurrentOutput = tokens.LastOutput + max(message.info.Tokens.Output, 0) +
+				max(message.info.Tokens.Reasoning, 0)
 		}
 
 		if message.info.Time.Created == 0 ||

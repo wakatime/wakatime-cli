@@ -35,6 +35,8 @@ type gooseSessionRow struct {
 	Model             string
 	UpdatedAt         time.Time
 	Input             int64
+	CachedInput       int64
+	CacheWriteInput   int64
 	Output            int64
 	UsesSummaryTokens bool
 	ThreadID          string
@@ -72,8 +74,12 @@ func (g Goose) Parse(ctx context.Context) (Heartbeats, error) {
 
 		tokens := heartbeat.AITokens{}
 		if !row.UsesSummaryTokens {
-			tokens.CurrentInput = row.Input
-			tokens.CurrentOutput = row.Output
+			// Goose normalizes input_tokens to include both cache reads and
+			// writes. Cache writes remain regular input; only reads use the
+			// discounted cached-input bucket.
+			tokens.CurrentInput = max(row.Input-row.CachedInput, 0)
+			tokens.CurrentCachedInput = max(row.CachedInput, 0)
+			tokens.CurrentOutput = max(row.Output, 0)
 		}
 
 		h := heartbeat.NewWithAITokens(
@@ -318,11 +324,21 @@ func (Goose) rowFromValues(columns []string, raw []sql.NullString) (gooseSession
 			row.Input = parseGooseInt(value)
 		case "output_tokens":
 			row.Output = parseGooseInt(value)
+		case "cache_read_tokens":
+			row.CachedInput = parseGooseInt(value)
+		case "cache_write_tokens":
+			row.CacheWriteInput = parseGooseInt(value)
 		case "accumulated_input_tokens":
 			row.Input = parseGooseInt(value)
 			row.UsesSummaryTokens = true
 		case "accumulated_output_tokens":
 			row.Output = parseGooseInt(value)
+			row.UsesSummaryTokens = true
+		case "accumulated_cache_read_tokens":
+			row.CachedInput = parseGooseInt(value)
+			row.UsesSummaryTokens = true
+		case "accumulated_cache_write_tokens":
+			row.CacheWriteInput = parseGooseInt(value)
 			row.UsesSummaryTokens = true
 		case "thread_id":
 			row.ThreadID = value
@@ -509,6 +525,20 @@ func gooseSessionsQuery(columns []string) (string, []string, error) {
 
 	if outputColumn != "" {
 		selectColumns = append(selectColumns, outputColumn)
+	}
+
+	cacheReadColumn := "cache_read_tokens"
+	cacheWriteColumn := "cache_write_tokens"
+
+	if inputColumn == "accumulated_input_tokens" {
+		cacheReadColumn = "accumulated_cache_read_tokens"
+		cacheWriteColumn = "accumulated_cache_write_tokens"
+	}
+
+	for _, column := range []string{cacheReadColumn, cacheWriteColumn} {
+		if slices.Contains(columns, column) {
+			selectColumns = append(selectColumns, column)
+		}
 	}
 
 	joinedColumns := strings.Join(selectColumns, ", ")
