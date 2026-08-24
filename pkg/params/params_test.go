@@ -75,6 +75,27 @@ func TestLoadAIParams_CodexSource(t *testing.T) {
 	assert.Equal(t, "kandev", params.CodexSource)
 }
 
+func TestLoadAIParams_CodexSourceFromEnvironment(t *testing.T) {
+	t.Setenv("WAKATIME_CODEX_SOURCE", "kandev")
+
+	v := vipertools.MustNew()
+
+	params, err := paramspkg.LoadAIParams(t.Context(), v, paramspkg.FlagReadOrderFlagPrecedence)
+	require.NoError(t, err)
+	assert.Equal(t, "kandev", params.CodexSource)
+}
+
+func TestLoadAIParams_CodexSourceFlagTakesPrecedenceOverEnvironment(t *testing.T) {
+	t.Setenv("WAKATIME_CODEX_SOURCE", "environment")
+
+	v := vipertools.MustNew()
+	v.Set("codex-source", "flag")
+
+	params, err := paramspkg.LoadAIParams(t.Context(), v, paramspkg.FlagReadOrderFlagPrecedence)
+	require.NoError(t, err)
+	assert.Equal(t, "flag", params.CodexSource)
+}
+
 func TestLoadHeartbeatParams_ProjectConfigTakesPrecedence(t *testing.T) {
 	v := vipertools.MustNew()
 	v.Set("entity", "/path/to/file")

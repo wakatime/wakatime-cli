@@ -901,8 +901,13 @@ func loadProjectMapPatterns(ctx context.Context, v *viper.Viper, prefix string) 
 
 // LoadAIParams loads ai sync params from viper.Viper instance.
 func LoadAIParams(_ context.Context, v *viper.Viper, _ FlagReadOrder) (AIParams, error) {
+	codexSource := vipertools.GetString(v, "codex-source")
+	if codexSource == "" {
+		codexSource = os.Getenv("WAKATIME_CODEX_SOURCE")
+	}
+
 	return AIParams{
-		CodexSource: vipertools.GetString(v, "codex-source"),
+		CodexSource: codexSource,
 		SyncDisabled: v.GetBool("sync-ai-disable") ||
 			v.GetBool("sync-ai-disabled") ||
 			v.GetBool("settings.sync_ai_disabled"),
