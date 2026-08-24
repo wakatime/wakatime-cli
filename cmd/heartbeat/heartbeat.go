@@ -228,6 +228,7 @@ func applyAIParsing(
 	heartbeats []heartbeat.Heartbeat,
 ) ([]heartbeat.Heartbeat, error) {
 	handle := ai.WithAISync(ai.Config{
+		CodexSource:  params.AI.CodexSource,
 		SyncDisabled: params.AI.SyncDisabled,
 		Plugin:       params.API.Plugin,
 		Project:      params.Heartbeat.Project,

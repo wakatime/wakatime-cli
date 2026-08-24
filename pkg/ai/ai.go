@@ -24,6 +24,7 @@ import (
 
 // Config contains filtering configurations.
 type Config struct {
+	CodexSource  string
 	SyncDisabled bool
 	Plugin       string
 	Project      params.ProjectParams
@@ -41,6 +42,7 @@ type ProjectInfo struct {
 // ParserConfig contains the arguments for each Parser implementation.
 type ParserConfig struct {
 	After             time.Time
+	CodexSource       string
 	FallbackUserAgent string
 	UserAgents        map[string]string
 	ProjectInfo       ProjectInfo
@@ -273,6 +275,7 @@ func parseAIHeartbeats(
 		},
 		Codex{
 			After:             after,
+			CodexSource:       config.CodexSource,
 			UserAgents:        userAgents,
 			FallbackUserAgent: config.Plugin,
 		},

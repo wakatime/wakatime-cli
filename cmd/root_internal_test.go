@@ -37,3 +37,16 @@ func TestSyncAIHeartbeatsFlagHidden(t *testing.T) {
 	require.NotNil(t, flag)
 	assert.True(t, flag.Hidden)
 }
+
+func TestCodexSourceFlag(t *testing.T) {
+	v := vipertools.MustNew()
+	command := &cobra.Command{}
+	setFlags(command, v)
+
+	flag := command.Flags().Lookup("codex-source")
+	require.NotNil(t, flag)
+	assert.True(t, flag.Hidden)
+
+	require.NoError(t, command.ParseFlags([]string{"--codex-source", "kandev"}))
+	assert.Equal(t, "kandev", v.GetString("codex-source"))
+}

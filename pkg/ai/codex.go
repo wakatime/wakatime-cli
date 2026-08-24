@@ -1203,7 +1203,7 @@ func codexMoveFilePath(cwd string, line string) string {
 	return filepath.Join(cwd, file)
 }
 
-func (Codex) userAgent(
+func (g Codex) userAgent(
 	entity string,
 	agentVersion string,
 	version string,
@@ -1211,6 +1211,10 @@ func (Codex) userAgent(
 	userAgents map[string]string,
 	fallbackUserAgent string,
 ) string {
+	if override := strings.TrimSpace(g.CodexSource); override != "" {
+		source = override
+	}
+
 	return aiUserAgentWithModelAndEditor(
 		entity,
 		userAgents,

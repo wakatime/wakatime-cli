@@ -950,8 +950,9 @@ func TestWithAISync_ProducesExpectedHeartbeats(t *testing.T) {
 	v.Set("internal.ai_logs_last_parsed_at", after.Format(ini.DateFormat))
 
 	handle := ai.WithAISync(ai.Config{
-		Plugin: "plugin/0.0.1",
-		V:      v,
+		CodexSource: "kandev",
+		Plugin:      "plugin/0.0.1",
+		V:           v,
 	})(func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		results := make([]heartbeat.Result, len(hh))
 		for i := range hh {
@@ -980,6 +981,7 @@ func TestWithAISync_ProducesExpectedHeartbeats(t *testing.T) {
 	assert.Equal(t, "/Users/user/git/wakatime-cli", h.ProjectPathOverride)
 	assert.Equal(t, "019d9353-333c-7c41-a909-26f5c6221a5a", h.AISession)
 	assert.Equal(t, "plus", h.AISubscriptionPlan)
+	assert.Contains(t, h.UserAgent, "codex-kandev/0.119.0-alpha.28")
 
 	h = heartbeats[1].Heartbeat
 	assert.Equal(t, float64(1776297784039)/1000, h.Time)
@@ -995,6 +997,7 @@ func TestWithAISync_ProducesExpectedHeartbeats(t *testing.T) {
 	assert.Equal(t, "/Users/user/git/wakatime-cli", h.ProjectPathOverride)
 	assert.Equal(t, "019d9353-333c-7c41-a909-26f5c6221a5a", h.AISession)
 	assert.Equal(t, "plus", h.AISubscriptionPlan)
+	assert.Contains(t, h.UserAgent, "codex-kandev/0.119.0-alpha.28")
 
 	h = heartbeats[2].Heartbeat
 	assert.Equal(t, float64(1776297789438)/1000, h.Time)
@@ -1010,6 +1013,7 @@ func TestWithAISync_ProducesExpectedHeartbeats(t *testing.T) {
 	assert.Equal(t, "/Users/user/git/wakatime-cli", h.ProjectPathOverride)
 	assert.Equal(t, "019d9353-333c-7c41-a909-26f5c6221a5a", h.AISession)
 	assert.Equal(t, "plus", h.AISubscriptionPlan)
+	assert.Contains(t, h.UserAgent, "codex-kandev/0.119.0-alpha.28")
 }
 
 func TestWithAISync_PreservesCopilotTokensAfterMergingAppHeartbeat(t *testing.T) {

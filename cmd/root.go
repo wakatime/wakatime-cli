@@ -215,6 +215,7 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 		"",
 		"Format output. Can be \"text\", \"json\" or \"raw-json\". Defaults to \"text\".",
 	)
+	flags.String("codex-source", "", "(internal) Override the Codex transcript source used for AI activity.")
 	flags.String("plugin", "", "Optional text editor plugin name and version for User-Agent header.")
 	flags.Int("print-offline-heartbeats", offline.PrintMaxDefault, "Prints offline heartbeats to stdout.")
 	flags.String("project", "", "Override auto-detected project."+
@@ -310,6 +311,7 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 	// hide internal flags
 	_ = flags.MarkHidden("offline-queue-file")
 	_ = flags.MarkHidden("offline-queue-file-legacy")
+	_ = flags.MarkHidden("codex-source")
 	_ = flags.MarkHidden("user-agent")
 
 	err := v.BindPFlags(flags)

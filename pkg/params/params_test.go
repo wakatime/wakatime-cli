@@ -66,6 +66,15 @@ func TestLoadHeartbeatParams_FlagTakesPrecedence(t *testing.T) {
 	assert.True(t, params.GuessLanguage)
 }
 
+func TestLoadAIParams_CodexSource(t *testing.T) {
+	v := vipertools.MustNew()
+	v.Set("codex-source", "kandev")
+
+	params, err := paramspkg.LoadAIParams(t.Context(), v, paramspkg.FlagReadOrderFlagPrecedence)
+	require.NoError(t, err)
+	assert.Equal(t, "kandev", params.CodexSource)
+}
+
 func TestLoadHeartbeatParams_ProjectConfigTakesPrecedence(t *testing.T) {
 	v := vipertools.MustNew()
 	v.Set("entity", "/path/to/file")
