@@ -135,6 +135,8 @@ const (
 	ZedParser
 	// ZerostackParser is the parser ID for Zerostack.
 	ZerostackParser
+	// DeepSeekParser is the parser ID for DeepSeek Harness.
+	DeepSeekParser
 )
 
 type (
@@ -272,6 +274,11 @@ func parseAIHeartbeats(
 			FallbackUserAgent: config.Plugin,
 		},
 		Codex{
+			After:             after,
+			UserAgents:        userAgents,
+			FallbackUserAgent: config.Plugin,
+		},
+		DeepSeek{
 			After:             after,
 			UserAgents:        userAgents,
 			FallbackUserAgent: config.Plugin,
