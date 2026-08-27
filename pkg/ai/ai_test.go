@@ -929,6 +929,7 @@ func TestWithAISync_ProducesExpectedHeartbeats(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
+	t.Setenv("CODEX_HOME", "")
 
 	now := time.Now()
 	transcriptDir := filepath.Join(home, ".codex", "sessions", now.Format("2026"), now.Format("04"), now.Format("15"))

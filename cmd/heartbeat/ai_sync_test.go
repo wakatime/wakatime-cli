@@ -297,6 +297,7 @@ func TestRunAISyncActivity_SendsAIPromptLengthToAPI(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
+	t.Setenv("CODEX_HOME", "")
 
 	transcriptModifiedAt := time.Date(2026, 3, 28, 11, 33, 14, 0, time.UTC)
 
@@ -380,6 +381,7 @@ func TestRunAISyncActivity_SendError(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
+	t.Setenv("CODEX_HOME", "")
 
 	transcriptModifiedAt := time.Date(2026, 3, 28, 11, 33, 14, 0, time.UTC)
 	transcriptDir := filepath.Join(home, ".codex", "sessions", "2026", "03", "28")
