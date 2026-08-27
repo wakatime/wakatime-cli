@@ -21,6 +21,7 @@ func TestCodexParse(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
+	t.Setenv("CODEX_HOME", "")
 
 	now := time.Now()
 	transcriptDir := filepath.Join(home, ".codex", "sessions", now.Format("2006"), now.Format("01"), now.Format("02"))
@@ -99,6 +100,7 @@ func TestCodexParse_ParsesTranscriptFromPreviousDayFolder(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
+	t.Setenv("CODEX_HOME", "")
 
 	transcriptDir := filepath.Join(home, ".codex", "sessions", "2026", "03", "27")
 	require.NoError(t, os.MkdirAll(transcriptDir, 0o755))
@@ -124,10 +126,30 @@ func TestCodexParse_NoCodexSessionsDir(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
+	t.Setenv("CODEX_HOME", "")
 
 	got, err := ai.Codex{After: time.Now()}.Parse(ctx)
 	require.NoError(t, err)
 	assert.Empty(t, got)
+}
+
+func TestCodexParse_CODEXHome(t *testing.T) {
+	ctx := context.Background()
+
+	codexHome := t.TempDir()
+	t.Setenv("HOME", "")
+	t.Setenv("USERPROFILE", "")
+	t.Setenv("CODEX_HOME", codexHome)
+
+	transcriptDir := filepath.Join(codexHome, "sessions", "2026", "03", "28")
+	require.NoError(t, os.MkdirAll(transcriptDir, 0o755))
+
+	transcriptPath := filepath.Join(transcriptDir, "rollout-2026-03-28T07-33-13-019d3438-39ae-7fb2-8526-d6c02ba3577c.jsonl")
+	copyFile(t, "testdata/codex.jsonl", transcriptPath)
+
+	got, err := (ai.Codex{After: time.Date(2026, 3, 28, 4, 0, 0, 0, time.UTC)}).Parse(ctx)
+	require.NoError(t, err)
+	require.Len(t, got, 2)
 }
 
 func TestCodexParse_UserAgentUsesTranscriptSource(t *testing.T) {
@@ -165,6 +187,7 @@ func TestCodexParse_UserAgentUsesTranscriptSource(t *testing.T) {
 			home := t.TempDir()
 			t.Setenv("HOME", home)
 			t.Setenv("USERPROFILE", home)
+			t.Setenv("CODEX_HOME", "")
 
 			transcriptDir := filepath.Join(home, ".codex", "sessions", "2026", "05", "27")
 			require.NoError(t, os.MkdirAll(transcriptDir, 0o755))
@@ -213,6 +236,7 @@ func TestCodexParse_UserAgentUsesModelAndReasoningEffort(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
+	t.Setenv("CODEX_HOME", "")
 
 	transcriptDir := filepath.Join(home, ".codex", "sessions", "2026", "06", "19")
 	require.NoError(t, os.MkdirAll(transcriptDir, 0o755))
@@ -254,6 +278,7 @@ func TestCodexParse_UpdatesReasoningEffortForFutureHeartbeats(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
+	t.Setenv("CODEX_HOME", "")
 
 	transcriptDir := filepath.Join(home, ".codex", "sessions", "2026", "06", "19")
 	require.NoError(t, os.MkdirAll(transcriptDir, 0o755))
@@ -296,6 +321,7 @@ func TestCodexParse_AttributesTokenCountsToPreviousHeartbeat(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
+	t.Setenv("CODEX_HOME", "")
 
 	transcriptDir := filepath.Join(home, ".codex", "sessions", "2026", "06", "20")
 	require.NoError(t, os.MkdirAll(transcriptDir, 0o755))
@@ -336,6 +362,7 @@ func TestCodexParse_EmitsOnlySuccessfulPatches(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
+	t.Setenv("CODEX_HOME", "")
 
 	transcriptDir := filepath.Join(home, ".codex", "sessions", "2026", "06", "20")
 	require.NoError(t, os.MkdirAll(transcriptDir, 0o755))
@@ -428,6 +455,7 @@ func TestCodexParse_UserAgentUsesSourceFromRealSessionMetaLines(t *testing.T) {
 			home := t.TempDir()
 			t.Setenv("HOME", home)
 			t.Setenv("USERPROFILE", home)
+			t.Setenv("CODEX_HOME", "")
 
 			transcriptDir := filepath.Join(home, ".codex", "sessions", "2026", "05", "27")
 			require.NoError(t, os.MkdirAll(transcriptDir, 0o755))
@@ -462,6 +490,7 @@ func TestCodexParse_RetainsCwdFromSkippedSessionMetaLine(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
+	t.Setenv("CODEX_HOME", "")
 
 	now := time.Now()
 	transcriptDir := filepath.Join(home, ".codex", "sessions", now.Format("2006"), now.Format("01"), now.Format("02"))
@@ -498,6 +527,7 @@ func TestCodexParse_SkipsHarnessInputWhenCalculatingPromptLength(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
+	t.Setenv("CODEX_HOME", "")
 
 	now := time.Now()
 	transcriptDir := filepath.Join(home, ".codex", "sessions", now.Format("2006"), now.Format("01"), now.Format("02"))
@@ -542,6 +572,7 @@ func TestCodexParse_StripsBundledHarnessPrefixBeforeCountingPromptLength(t *test
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
+	t.Setenv("CODEX_HOME", "")
 
 	now := time.Now()
 	transcriptDir := filepath.Join(home, ".codex", "sessions", now.Format("2006"), now.Format("01"), now.Format("02"))
@@ -604,6 +635,7 @@ func TestCodexParse_StripsVSCodePrefixFromUserMessage(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
+	t.Setenv("CODEX_HOME", "")
 
 	now := time.Now()
 	transcriptDir := filepath.Join(home, ".codex", "sessions", now.Format("2006"), now.Format("01"), now.Format("02"))
@@ -643,6 +675,7 @@ func TestCodexParse_ParsesLegacyAgentMessage(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
+	t.Setenv("CODEX_HOME", "")
 
 	transcriptDir := filepath.Join(home, ".codex", "sessions", "2025", "11", "17")
 	require.NoError(t, os.MkdirAll(transcriptDir, 0o755))
@@ -689,6 +722,7 @@ func TestCodexParse_RolloutFixtureIncludesExpectedHeartbeatAttributes(t *testing
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
+	t.Setenv("CODEX_HOME", "")
 
 	now := time.Now()
 	transcriptDir := filepath.Join(home, ".codex", "sessions", now.Format("2026"), now.Format("04"), now.Format("15"))
