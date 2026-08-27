@@ -101,6 +101,8 @@ const (
 	DevinParser
 	// DroidParser is the parser ID for Droid.
 	DroidParser
+	// DshParser is the parser ID for DeepSeek Harness.
+	DshParser
 	// ForgeParser is the parser ID for Forge.
 	ForgeParser
 	// HermesParser is the parser ID for Hermes Agent.
@@ -387,6 +389,11 @@ func parseAIHeartbeats(
 			FallbackUserAgent: config.Plugin,
 		},
 		Droid{
+			After:             after,
+			UserAgents:        userAgents,
+			FallbackUserAgent: config.Plugin,
+		},
+		Dsh{
 			After:             after,
 			UserAgents:        userAgents,
 			FallbackUserAgent: config.Plugin,
