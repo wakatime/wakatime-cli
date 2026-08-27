@@ -12,6 +12,7 @@ func TestParsersEmptyHome(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
+	t.Setenv("CODEX_HOME", "")
 	t.Setenv("GROK_HOME", "")
 
 	after := time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC)

@@ -146,12 +146,11 @@ func (g Codex) Parse(ctx context.Context) (Heartbeats, error) {
 }
 
 func (g Codex) transcriptPaths(ctx context.Context) ([]string, error) {
-	home, err := ini.UserHomeDir(ctx)
+	sessionsDir, err := codexSessionsDir(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to find user home dir: %s", err)
+		return nil, err
 	}
 
-	sessionsDir := filepath.Join(home, ".codex", "sessions")
 	if _, err := os.Stat(sessionsDir); err != nil {
 		if os.IsNotExist(err) {
 			return nil, nil
@@ -185,6 +184,24 @@ func (g Codex) transcriptPaths(ctx context.Context) ([]string, error) {
 	}
 
 	return transcripts, nil
+}
+
+func codexSessionsDir(ctx context.Context) (string, error) {
+	if configuredHome := os.Getenv("CODEX_HOME"); configuredHome != "" {
+		sessionsDir, err := filepath.Abs(filepath.Join(configuredHome, "sessions"))
+		if err != nil {
+			return "", fmt.Errorf("failed to resolve CODEX_HOME: %s", err)
+		}
+
+		return sessionsDir, nil
+	}
+
+	home, err := ini.UserHomeDir(ctx)
+	if err != nil {
+		return "", fmt.Errorf("failed to find user home dir: %s", err)
+	}
+
+	return filepath.Join(home, ".codex", "sessions"), nil
 }
 
 func (g Codex) parseTranscript(ctx context.Context, transcript string) (Heartbeats, error) {
