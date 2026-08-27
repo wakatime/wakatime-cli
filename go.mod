@@ -12,6 +12,7 @@ require (
 	github.com/go-viper/encoding/ini v0.1.1
 	github.com/juju/mutex v0.0.0-20180619145857-d21b13acf4bf
 	github.com/kevinburke/ssh_config v1.4.0
+	github.com/klauspost/compress v1.19.2
 	github.com/matishsiao/goInfo v0.0.0-20241216093258-66a9250504d6
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/pkg/sftp v1.13.10
