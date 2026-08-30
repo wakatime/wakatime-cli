@@ -24,7 +24,7 @@ require (
 	go.etcd.io/bbolt v1.4.3
 	go.uber.org/zap v1.27.1
 	golang.org/x/crypto v0.52.0
-	golang.org/x/net v0.55.0
+	golang.org/x/net v0.56.0
 	golang.org/x/sys v0.45.0
 	golang.org/x/text v0.39.0
 	gopkg.in/ini.v1 v1.67.0
