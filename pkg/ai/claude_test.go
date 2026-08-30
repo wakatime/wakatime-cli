@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -992,4 +993,82 @@ func TestClaudeParse_RealTranscriptContinuesAfterInvalidLineAndField(t *testing.
 	require.NotNil(t, got[2].AILineChanges)
 	assert.Equal(t, 2, *got[1].AILineChanges)
 	assert.Equal(t, 2, *got[2].AILineChanges)
+}
+
+func TestClaudeParse_PerTranscriptCutoff(t *testing.T) {
+	ctx := context.Background()
+
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	transcriptDir := filepath.Join(home, ".claude", "projects", "sample-project")
+	require.NoError(t, os.MkdirAll(transcriptDir, 0o755))
+
+	transcriptPath := filepath.Join(transcriptDir, "session.jsonl")
+
+	editLine := func(ts, file string, output int) string {
+		return `{"timestamp":"` + ts + `","sessionId":"s1","version":"2.1.45","cwd":"/tmp",` +
+			`"toolUseResult":{"filePath":"` + file + `","structuredPatch":[{"oldLines":1,"newLines":2}]},` +
+			`"message":{"usage":{"input_tokens":1,"output_tokens":` + strconv.Itoa(output) + `}}}`
+	}
+	usageOnlyLine := func(ts string, output int) string {
+		return `{"timestamp":"` + ts + `","sessionId":"s1","type":"assistant",` +
+			`"message":{"role":"assistant","content":[{"type":"text","text":"thinking"}],` +
+			`"usage":{"input_tokens":1,"output_tokens":` + strconv.Itoa(output) + `}}}`
+	}
+
+	require.NoError(t, os.WriteFile(transcriptPath, []byte(strings.Join([]string{
+		editLine("2026-03-18T10:00:00Z", "/tmp/a.go", 10),
+		editLine("2026-03-18T12:00:00Z", "/tmp/b.go", 20),
+		// trailing usage without a heartbeat yet
+		usageOnlyLine("2026-03-18T12:30:00Z", 7),
+	}, "\n")+"\n"), 0o644))
+
+	parser := ai.Claude{After: time.Date(2020, time.January, 1, 0, 0, 0, 0, time.UTC)}
+
+	first, err := parser.Parse(ctx)
+	require.NoError(t, err)
+
+	fileEntities := func(hh ai.Heartbeats) []string {
+		var entities []string
+		for _, h := range hh {
+			if h.EntityType == heartbeat.FileType {
+				entities = append(entities, h.Entity)
+			}
+		}
+		return entities
+	}
+
+	assert.Equal(t, []string{"/tmp/a.go", "/tmp/b.go"}, fileEntities(first))
+
+	// Another session produced a heartbeat at 12:45, so the global cutoff moved
+	// past this transcript's 12:30 line. Then this session edits a file.
+	fh, err := os.OpenFile(transcriptPath, os.O_APPEND|os.O_WRONLY, 0o644)
+	require.NoError(t, err)
+	_, err = fh.WriteString(editLine("2026-03-18T13:00:00Z", "/tmp/c.go", 3) + "\n")
+	require.NoError(t, err)
+	require.NoError(t, fh.Close())
+
+	parser.After = time.Date(2026, time.March, 18, 12, 45, 0, 0, time.UTC)
+
+	second, err := parser.Parse(ctx)
+	require.NoError(t, err)
+
+	assert.Equal(t, []string{"/tmp/c.go"}, fileEntities(second))
+
+	for _, h := range second {
+		if h.Entity == "/tmp/c.go" {
+			// 7 output tokens from the 12:30 line must roll into this heartbeat
+			assert.Equal(t, int64(10), h.AIOutputTokens)
+		}
+	}
+
+	statePath := filepath.Join(home, ".wakatime", "ai-claude-transcripts.json")
+	data, err := os.ReadFile(statePath)
+	require.NoError(t, err)
+
+	var state map[string]string
+	require.NoError(t, json.Unmarshal(data, &state))
+	assert.Equal(t, "2026-03-18T13:00:00Z", state[transcriptPath])
 }
