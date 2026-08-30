@@ -29,6 +29,7 @@ func TestParserIDStringAndPlugins(t *testing.T) {
 	assert.Equal(t, "Codex", aiPlugin(Codex{}, ""))
 	assert.Equal(t, "Codex/1.2.3", aiPlugin(Codex{}, "1.2.3"))
 	assert.Equal(t, "DeepSeek Harness", aiPlugin(DeepSeek{}, ""))
+	assert.Equal(t, "CodeBuddy Code", aiPlugin(CodeBuddyCode{}, ""))
 	assert.Equal(t, "Grok Build", aiPlugin(GrokBuild{}, ""))
 	assert.Equal(t, "Grok Build/1.2.3", aiPlugin(GrokBuild{}, "1.2.3"))
 	assert.Equal(t, "opus/4.1-medium", aiModelUserAgentToken("claude-opus-4.1", "medium"))
