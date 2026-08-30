@@ -137,6 +137,8 @@ const (
 	ZerostackParser
 	// DeepSeekParser is the parser ID for DeepSeek Harness.
 	DeepSeekParser
+	// CodeBuddyCodeParser is the parser ID for Tencent CodeBuddy Code.
+	CodeBuddyCodeParser
 )
 
 type (
@@ -279,6 +281,11 @@ func parseAIHeartbeats(
 			FallbackUserAgent: config.Plugin,
 		},
 		DeepSeek{
+			After:             after,
+			UserAgents:        userAgents,
+			FallbackUserAgent: config.Plugin,
+		},
+		CodeBuddyCode{
 			After:             after,
 			UserAgents:        userAgents,
 			FallbackUserAgent: config.Plugin,
