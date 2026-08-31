@@ -1006,6 +1006,7 @@ func TestClaudeParse_PerTranscriptCutoff(t *testing.T) {
 	require.NoError(t, os.MkdirAll(transcriptDir, 0o755))
 
 	transcriptPath := filepath.Join(transcriptDir, "session.jsonl")
+	statePath := filepath.Join(home, ".wakatime", "wakatime-internal-ai-claude-transcripts.json")
 
 	editLine := func(ts, file string, output int) string {
 		return `{"timestamp":"` + ts + `","sessionId":"s1","version":"2.1.45","cwd":"/tmp",` +
@@ -1017,19 +1018,15 @@ func TestClaudeParse_PerTranscriptCutoff(t *testing.T) {
 			`"message":{"role":"assistant","content":[{"type":"text","text":"thinking"}],` +
 			`"usage":{"input_tokens":1,"output_tokens":` + strconv.Itoa(output) + `}}}`
 	}
-
-	require.NoError(t, os.WriteFile(transcriptPath, []byte(strings.Join([]string{
-		editLine("2026-03-18T10:00:00Z", "/tmp/a.go", 10),
-		editLine("2026-03-18T12:00:00Z", "/tmp/b.go", 20),
-		// trailing usage without a heartbeat yet
-		usageOnlyLine("2026-03-18T12:30:00Z", 7),
-	}, "\n")+"\n"), 0o644))
-
-	parser := ai.Claude{After: time.Date(2020, time.January, 1, 0, 0, 0, 0, time.UTC)}
-
-	first, err := parser.Parse(ctx)
-	require.NoError(t, err)
-
+	appendLines := func(lines ...string) {
+		fh, err := os.OpenFile(transcriptPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+		require.NoError(t, err)
+		for _, line := range lines {
+			_, err = fh.WriteString(line + "\n")
+			require.NoError(t, err)
+		}
+		require.NoError(t, fh.Close())
+	}
 	fileEntities := func(hh ai.Heartbeats) []string {
 		var entities []string
 		for _, h := range hh {
@@ -1040,15 +1037,26 @@ func TestClaudeParse_PerTranscriptCutoff(t *testing.T) {
 		return entities
 	}
 
+	appendLines(
+		editLine("2026-03-18T10:00:00Z", "/tmp/a.go", 10),
+		editLine("2026-03-18T12:00:00Z", "/tmp/b.go", 20),
+		// trailing usage without a heartbeat yet
+		usageOnlyLine("2026-03-18T12:30:00Z", 7),
+	)
+
+	parser := ai.Claude{
+		After:         time.Date(2020, time.January, 1, 0, 0, 0, 0, time.UTC),
+		StateFilePath: statePath,
+	}
+
+	first, err := parser.Parse(ctx)
+	require.NoError(t, err)
+
 	assert.Equal(t, []string{"/tmp/a.go", "/tmp/b.go"}, fileEntities(first))
 
 	// Another session produced a heartbeat at 12:45, so the global cutoff moved
 	// past this transcript's 12:30 line. Then this session edits a file.
-	fh, err := os.OpenFile(transcriptPath, os.O_APPEND|os.O_WRONLY, 0o644)
-	require.NoError(t, err)
-	_, err = fh.WriteString(editLine("2026-03-18T13:00:00Z", "/tmp/c.go", 3) + "\n")
-	require.NoError(t, err)
-	require.NoError(t, fh.Close())
+	appendLines(editLine("2026-03-18T13:00:00Z", "/tmp/c.go", 3))
 
 	parser.After = time.Date(2026, time.March, 18, 12, 45, 0, 0, time.UTC)
 
@@ -1064,11 +1072,135 @@ func TestClaudeParse_PerTranscriptCutoff(t *testing.T) {
 		}
 	}
 
-	statePath := filepath.Join(home, ".wakatime", "ai-claude-transcripts.json")
+	// A record appended later with a timestamp equal to the checkpoint must
+	// still be counted, without duplicating already-sent heartbeats.
+	appendLines(
+		usageOnlyLine("2026-03-18T13:00:00Z", 5),
+		editLine("2026-03-18T14:00:00Z", "/tmp/d.go", 2),
+	)
+
+	third, err := parser.Parse(ctx)
+	require.NoError(t, err)
+
+	assert.Equal(t, []string{"/tmp/d.go"}, fileEntities(third))
+
+	for _, h := range third {
+		if h.Entity == "/tmp/d.go" {
+			assert.Equal(t, int64(7), h.AIOutputTokens)
+		}
+	}
+
 	data, err := os.ReadFile(statePath)
 	require.NoError(t, err)
 
-	var state map[string]string
+	var state map[string]struct {
+		Time  time.Time `json:"time"`
+		Count int       `json:"count"`
+	}
 	require.NoError(t, json.Unmarshal(data, &state))
-	assert.Equal(t, "2026-03-18T13:00:00Z", state[transcriptPath])
+	assert.Equal(t, time.Date(2026, time.March, 18, 14, 0, 0, 0, time.UTC), state[transcriptPath].Time.UTC())
+	assert.Positive(t, state[transcriptPath].Count)
+}
+
+func TestClaudeParse_CorruptTranscriptState(t *testing.T) {
+	ctx := context.Background()
+
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	transcriptDir := filepath.Join(home, ".claude", "projects", "sample-project")
+	require.NoError(t, os.MkdirAll(transcriptDir, 0o755))
+
+	transcriptPath := filepath.Join(transcriptDir, "session.jsonl")
+	require.NoError(t, os.WriteFile(transcriptPath, []byte(
+		`{"timestamp":"2026-03-18T12:00:00Z","sessionId":"s1","version":"2.1.45","cwd":"/tmp",`+
+			`"toolUseResult":{"filePath":"/tmp/b.go","structuredPatch":[{"oldLines":1,"newLines":2}]},`+
+			`"message":{"usage":{"input_tokens":1,"output_tokens":20}}}`+"\n"), 0o644))
+
+	statePath := filepath.Join(home, ".wakatime", "state.json")
+	require.NoError(t, os.MkdirAll(filepath.Dir(statePath), 0o755))
+	require.NoError(t, os.WriteFile(statePath, []byte("not json"), 0o644))
+
+	parser := ai.Claude{
+		After:         time.Date(2020, time.January, 1, 0, 0, 0, 0, time.UTC),
+		StateFilePath: statePath,
+	}
+
+	heartbeats, err := parser.Parse(ctx)
+	require.NoError(t, err)
+	assert.NotEmpty(t, heartbeats)
+
+	// the corrupt state must be replaced with a valid one
+	data, err := os.ReadFile(statePath)
+	require.NoError(t, err)
+
+	var state map[string]any
+	require.NoError(t, json.Unmarshal(data, &state))
+	assert.Contains(t, state, transcriptPath)
+}
+
+func TestClaudeParse_PrunesDeletedTranscriptsFromState(t *testing.T) {
+	ctx := context.Background()
+
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	transcriptDir := filepath.Join(home, ".claude", "projects", "sample-project")
+	require.NoError(t, os.MkdirAll(transcriptDir, 0o755))
+
+	transcriptPath := filepath.Join(transcriptDir, "session.jsonl")
+	require.NoError(t, os.WriteFile(transcriptPath, []byte(
+		`{"timestamp":"2026-03-18T12:00:00Z","sessionId":"s1","version":"2.1.45","cwd":"/tmp",`+
+			`"toolUseResult":{"filePath":"/tmp/b.go","structuredPatch":[{"oldLines":1,"newLines":2}]},`+
+			`"message":{"usage":{"input_tokens":1,"output_tokens":20}}}`+"\n"), 0o644))
+
+	statePath := filepath.Join(home, ".wakatime", "state.json")
+	require.NoError(t, os.MkdirAll(filepath.Dir(statePath), 0o755))
+	require.NoError(t, os.WriteFile(statePath, []byte(
+		`{"`+filepath.Join(transcriptDir, "deleted.jsonl")+`":{"time":"2026-03-18T10:00:00Z","count":1}}`), 0o644))
+
+	parser := ai.Claude{
+		After:         time.Date(2020, time.January, 1, 0, 0, 0, 0, time.UTC),
+		StateFilePath: statePath,
+	}
+
+	_, err := parser.Parse(ctx)
+	require.NoError(t, err)
+
+	data, err := os.ReadFile(statePath)
+	require.NoError(t, err)
+
+	var state map[string]any
+	require.NoError(t, json.Unmarshal(data, &state))
+	assert.Contains(t, state, transcriptPath)
+	assert.NotContains(t, state, filepath.Join(transcriptDir, "deleted.jsonl"))
+}
+
+func TestClaudeParse_NoStateFilePath(t *testing.T) {
+	ctx := context.Background()
+
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	transcriptDir := filepath.Join(home, ".claude", "projects", "sample-project")
+	require.NoError(t, os.MkdirAll(transcriptDir, 0o755))
+
+	require.NoError(t, os.WriteFile(filepath.Join(transcriptDir, "session.jsonl"), []byte(
+		`{"timestamp":"2026-03-18T12:00:00Z","sessionId":"s1","version":"2.1.45","cwd":"/tmp",`+
+			`"toolUseResult":{"filePath":"/tmp/b.go","structuredPatch":[{"oldLines":1,"newLines":2}]},`+
+			`"message":{"usage":{"input_tokens":1,"output_tokens":20}}}`+"\n"), 0o644))
+
+	parser := ai.Claude{After: time.Date(2020, time.January, 1, 0, 0, 0, 0, time.UTC)}
+
+	heartbeats, err := parser.Parse(ctx)
+	require.NoError(t, err)
+	assert.NotEmpty(t, heartbeats)
+
+	// without a state path, repeated runs behave like the global cutoff only
+	again, err := parser.Parse(ctx)
+	require.NoError(t, err)
+	assert.Len(t, again, len(heartbeats))
 }
