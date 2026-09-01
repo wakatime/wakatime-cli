@@ -1021,19 +1021,23 @@ func TestClaudeParse_PerTranscriptCutoff(t *testing.T) {
 	appendLines := func(lines ...string) {
 		fh, err := os.OpenFile(transcriptPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 		require.NoError(t, err)
+
 		for _, line := range lines {
 			_, err = fh.WriteString(line + "\n")
 			require.NoError(t, err)
 		}
+
 		require.NoError(t, fh.Close())
 	}
 	fileEntities := func(hh ai.Heartbeats) []string {
 		var entities []string
+
 		for _, h := range hh {
 			if h.EntityType == heartbeat.FileType {
 				entities = append(entities, h.Entity)
 			}
 		}
+
 		return entities
 	}
 
@@ -1203,4 +1207,161 @@ func TestClaudeParse_NoStateFilePath(t *testing.T) {
 	again, err := parser.Parse(ctx)
 	require.NoError(t, err)
 	assert.Len(t, again, len(heartbeats))
+}
+
+func TestClaudeParse_SkipsUnchangedTranscripts(t *testing.T) {
+	ctx := context.Background()
+
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	transcriptDir := filepath.Join(home, ".claude", "projects", "sample-project")
+	require.NoError(t, os.MkdirAll(transcriptDir, 0o755))
+
+	transcriptPath := filepath.Join(transcriptDir, "session.jsonl")
+	require.NoError(t, os.WriteFile(transcriptPath, []byte(
+		`{"timestamp":"2026-03-18T12:00:00Z","sessionId":"s1","version":"2.1.45","cwd":"/tmp",`+
+			`"toolUseResult":{"filePath":"/tmp/b.go","structuredPatch":[{"oldLines":1,"newLines":2}]},`+
+			`"message":{"usage":{"input_tokens":1,"output_tokens":20}}}`+"\n"), 0o644))
+
+	statePath := filepath.Join(home, ".wakatime", "state.json")
+
+	parser := ai.Claude{
+		After:         time.Date(2020, time.January, 1, 0, 0, 0, 0, time.UTC),
+		StateFilePath: statePath,
+	}
+
+	first, err := parser.Parse(ctx)
+	require.NoError(t, err)
+	assert.NotEmpty(t, first)
+
+	stateInfo, err := os.Stat(statePath)
+	require.NoError(t, err)
+
+	// nothing changed: the transcript is not read again and the state is not rewritten
+	second, err := parser.Parse(ctx)
+	require.NoError(t, err)
+	assert.Empty(t, second)
+
+	stateInfoAgain, err := os.Stat(statePath)
+	require.NoError(t, err)
+	assert.Equal(t, stateInfo.ModTime(), stateInfoAgain.ModTime())
+
+	// making the transcript unreadable proves it is skipped by stat alone
+	require.NoError(t, os.Chmod(transcriptPath, 0o000))
+	t.Cleanup(func() { _ = os.Chmod(transcriptPath, 0o644) })
+
+	third, err := parser.Parse(ctx)
+	require.NoError(t, err)
+	assert.Empty(t, third)
+}
+
+func TestClaudeParse_UsageBeforeFirstHeartbeatIsKept(t *testing.T) {
+	ctx := context.Background()
+
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	transcriptDir := filepath.Join(home, ".claude", "projects", "sample-project")
+	require.NoError(t, os.MkdirAll(transcriptDir, 0o755))
+
+	transcriptPath := filepath.Join(transcriptDir, "session.jsonl")
+
+	// a session that has only been thinking so far
+	require.NoError(t, os.WriteFile(transcriptPath, []byte(
+		`{"timestamp":"2026-03-18T12:00:00Z","sessionId":"s1","type":"assistant",`+
+			`"message":{"role":"assistant","content":[{"type":"text","text":"thinking"}],`+
+			`"usage":{"input_tokens":1,"output_tokens":9}}}`+"\n"), 0o644))
+
+	parser := ai.Claude{
+		After:         time.Date(2026, time.March, 18, 11, 0, 0, 0, time.UTC),
+		StateFilePath: filepath.Join(home, ".wakatime", "state.json"),
+	}
+
+	first, err := parser.Parse(ctx)
+	require.NoError(t, err)
+	assert.Empty(t, first)
+
+	// another session moved the global cutoff past 12:00, then this one edits a file
+	fh, err := os.OpenFile(transcriptPath, os.O_APPEND|os.O_WRONLY, 0o644)
+	require.NoError(t, err)
+	_, err = fh.WriteString(
+		`{"timestamp":"2026-03-18T13:00:00Z","sessionId":"s1","version":"2.1.45","cwd":"/tmp",` +
+			`"toolUseResult":{"filePath":"/tmp/b.go","structuredPatch":[{"oldLines":1,"newLines":2}]},` +
+			`"message":{"usage":{"input_tokens":1,"output_tokens":2}}}` + "\n")
+	require.NoError(t, err)
+	require.NoError(t, fh.Close())
+
+	parser.After = time.Date(2026, time.March, 18, 12, 30, 0, 0, time.UTC)
+
+	second, err := parser.Parse(ctx)
+	require.NoError(t, err)
+
+	var found bool
+
+	for _, h := range second {
+		if h.Entity == "/tmp/b.go" {
+			found = true
+
+			assert.Equal(t, int64(11), h.AIOutputTokens)
+		}
+	}
+
+	assert.True(t, found)
+}
+
+func BenchmarkClaudeParseSteadyState(b *testing.B) {
+	ctx := context.Background()
+
+	home := b.TempDir()
+	b.Setenv("HOME", home)
+	b.Setenv("USERPROFILE", home)
+
+	transcriptDir := filepath.Join(home, ".claude", "projects", "sample-project")
+	require.NoError(b, os.MkdirAll(transcriptDir, 0o755))
+
+	const transcripts, linesPerTranscript = 200, 300
+
+	var sb strings.Builder
+
+	for i := 0; i < linesPerTranscript; i++ {
+		ts := time.Date(2026, time.March, 18, 10, 0, i, 0, time.UTC).Format(time.RFC3339)
+
+		if i%10 == 0 {
+			sb.WriteString(`{"timestamp":"` + ts + `","sessionId":"s","version":"2.1.45","cwd":"/tmp",` +
+				`"toolUseResult":{"filePath":"/tmp/f` + strconv.Itoa(i) + `.go",` +
+				`"structuredPatch":[{"oldLines":1,"newLines":2}]},` +
+				`"message":{"usage":{"input_tokens":100,"cache_read_input_tokens":5000,"output_tokens":50}}}` + "\n")
+
+			continue
+		}
+
+		sb.WriteString(`{"timestamp":"` + ts + `","sessionId":"s","type":"assistant",` +
+			`"message":{"role":"assistant","content":[{"type":"text","text":"` + strings.Repeat("x", 400) + `"}],` +
+			`"usage":{"input_tokens":100,"cache_read_input_tokens":5000,"output_tokens":50}}}` + "\n")
+	}
+
+	for i := 0; i < transcripts; i++ {
+		path := filepath.Join(transcriptDir, "session-"+strconv.Itoa(i)+".jsonl")
+		require.NoError(b, os.WriteFile(path, []byte(sb.String()), 0o644))
+	}
+
+	parser := ai.Claude{
+		After:         time.Date(2020, time.January, 1, 0, 0, 0, 0, time.UTC),
+		StateFilePath: filepath.Join(home, ".wakatime", "state.json"),
+	}
+
+	// first run populates the per-transcript state
+	_, err := parser.Parse(ctx)
+	require.NoError(b, err)
+
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		if _, err := parser.Parse(ctx); err != nil {
+			b.Fatal(err)
+		}
+	}
 }
