@@ -42,22 +42,49 @@ func TestClaudeNextCheckpoint(t *testing.T) {
 
 	// no heartbeats: previous checkpoint is kept
 	previous := claudeTranscriptCheckpoint{Time: noon, Count: 2}
-	next, ok := claudeNextCheckpoint(nil, previous, true)
-	assert.True(t, ok)
-	assert.Equal(t, previous, next)
-
-	_, ok = claudeNextCheckpoint(nil, claudeTranscriptCheckpoint{}, false)
-	assert.False(t, ok)
+	assert.Equal(t, previous, claudeNextCheckpoint(nil, previous))
 
 	// newer heartbeats restart the count
-	next, ok = claudeNextCheckpoint(Heartbeats{hb(noon.Add(time.Hour)), hb(noon.Add(time.Hour))}, previous, true)
-	assert.True(t, ok)
+	next := claudeNextCheckpoint(Heartbeats{hb(noon.Add(time.Hour)), hb(noon.Add(time.Hour))}, previous)
 	assert.Equal(t, claudeTranscriptCheckpoint{Time: noon.Add(time.Hour), Count: 2}, next)
 
 	// heartbeats at the checkpoint timestamp add to the count
-	next, ok = claudeNextCheckpoint(Heartbeats{hb(noon)}, previous, true)
-	assert.True(t, ok)
+	next = claudeNextCheckpoint(Heartbeats{hb(noon)}, previous)
 	assert.Equal(t, claudeTranscriptCheckpoint{Time: noon, Count: 3}, next)
+}
+
+func TestClaudeTranscriptCheckpoint_Unchanged(t *testing.T) {
+	path := t.TempDir() + "/session.jsonl"
+	require.NoError(t, os.WriteFile(path, []byte("{}\n"), 0o644))
+
+	info, err := os.Stat(path)
+	require.NoError(t, err)
+
+	cp := claudeTranscriptCheckpoint{Size: info.Size(), ModTime: info.ModTime()}
+	assert.True(t, cp.unchanged(info))
+
+	// zero mtime never matches, so legacy entries without stat info are re-read
+	assert.False(t, claudeTranscriptCheckpoint{Size: info.Size()}.unchanged(info))
+	assert.False(t, claudeTranscriptCheckpoint{Size: info.Size() + 1, ModTime: info.ModTime()}.unchanged(info))
+}
+
+func TestClaudeTranscriptState_Prune(t *testing.T) {
+	dir := t.TempDir()
+	existing := dir + "/existing.jsonl"
+	require.NoError(t, os.WriteFile(existing, nil, 0o644))
+
+	state := claudeTranscriptState{
+		dir + "/visited.jsonl": {},
+		existing:               {},
+		dir + "/deleted.jsonl": {},
+	}
+
+	assert.True(t, state.prune(map[string]struct{}{dir + "/visited.jsonl": {}}))
+	assert.Len(t, state, 2)
+	assert.Contains(t, state, dir+"/visited.jsonl")
+	assert.Contains(t, state, existing)
+
+	assert.False(t, state.prune(map[string]struct{}{dir + "/visited.jsonl": {}}))
 }
 
 func TestClaudeSaveTranscriptState_Errors(t *testing.T) {
