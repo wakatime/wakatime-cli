@@ -1164,17 +1164,23 @@ func promptLength(text string) int {
 	return utf8.RuneCountInString(text)
 }
 
+// replaceAppHeartbeats rewrites app-type heartbeats (session pulses with no file entity)
+// to use the last file entity edited within the same AI session, so project detection has
+// something to work with. Entities are tracked per AISession: heartbeats is the concatenated
+// output of every parser and every transcript, so a single rolling entity would let an app
+// heartbeat from one session inherit a file from an unrelated session parsed right before it.
 func replaceAppHeartbeats(heartbeats []heartbeat.Heartbeat) []heartbeat.Heartbeat {
-	var entity string
+	entityBySession := make(map[string]string)
 
 	for _, h := range heartbeats {
 		if h.EntityType == heartbeat.FileType && h.Entity != "" {
-			entity = h.Entity
-			break
+			if _, ok := entityBySession[h.AISession]; !ok {
+				entityBySession[h.AISession] = h.Entity
+			}
 		}
 	}
 
-	if entity == "" {
+	if len(entityBySession) == 0 {
 		return heartbeats
 	}
 
@@ -1182,10 +1188,12 @@ func replaceAppHeartbeats(heartbeats []heartbeat.Heartbeat) []heartbeat.Heartbea
 
 	for i, h := range heartbeats {
 		if h.EntityType == heartbeat.FileType && h.Entity != "" {
-			entity = h.Entity
+			entityBySession[h.AISession] = h.Entity
 		}
 
-		if h.EntityType == heartbeat.AppType {
+		entity, hasEntity := entityBySession[h.AISession]
+
+		if h.EntityType == heartbeat.AppType && hasEntity {
 			h.EntityType = heartbeat.FileType
 			h.Entity = entity
 
