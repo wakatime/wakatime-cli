@@ -105,8 +105,10 @@ func isLocalIPv6(ctx context.Context) bool {
 
 	conn, err := net.Dial("udp", fmt.Sprintf("%s:80", BaseIPAddrv4))
 	if err != nil {
-		logger.Debugf("failed dialing to detect default local ip address: %s", err)
-		return true
+		// IPv4 is far more likely to be reachable than our hardcoded IPv6 address, so
+		// fall back to IPv4 when we can't determine the local address family.
+		logger.Debugf("failed dialing to detect default local ip address, falling back to ipv4: %s", err)
+		return false
 	}
 
 	defer func() {
