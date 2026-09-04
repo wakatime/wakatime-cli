@@ -1432,8 +1432,9 @@ func (Claude) sessionIDFromPath(path string) string {
 // transcript. A single global cutoff (ai_logs_last_parsed_at) is the newest
 // heartbeat across all transcripts, so with several concurrent sessions every
 // line of the slower sessions that predates it would be skipped, and its
-// token usage dropped. The file lives next to the internal config file and is
-// namespaced by it.
+// token usage dropped. The suffix is appended to the full internal config
+// path, so distinct internal config files (work.cfg, work.ini, work) keep
+// distinct state.
 const claudeTranscriptStateFileSuffix = "-ai-claude-transcripts.json"
 
 type claudeTranscriptState map[string]claudeTranscriptCheckpoint
@@ -1486,7 +1487,7 @@ func claudeTranscriptStatePath(ctx context.Context, v *viper.Viper) (string, err
 		return "", err
 	}
 
-	return strings.TrimSuffix(internalPath, filepath.Ext(internalPath)) + claudeTranscriptStateFileSuffix, nil
+	return internalPath + claudeTranscriptStateFileSuffix, nil
 }
 
 // claudeNextCheckpoint computes the checkpoint after parsing. When the newest

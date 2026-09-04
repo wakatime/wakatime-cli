@@ -3,6 +3,8 @@ package ai
 import (
 	"context"
 	"os"
+	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 
@@ -24,13 +26,16 @@ func TestClaudeTranscriptStatePath(t *testing.T) {
 
 	path, err := claudeTranscriptStatePath(ctx, v)
 	require.NoError(t, err)
-	assert.Equal(t, home+"/wakatime-internal-ai-claude-transcripts.json", path)
+	assert.Equal(t, filepath.Join(home, "wakatime-internal.cfg-ai-claude-transcripts.json"), path)
 
-	v.Set("internal-config", home+"/profiles/work.cfg")
+	// distinct internal config files must not share transcript state
+	for _, name := range []string{"work.cfg", "work.ini", "work"} {
+		v.Set("internal-config", filepath.Join(home, "profiles", name))
 
-	path, err = claudeTranscriptStatePath(ctx, v)
-	require.NoError(t, err)
-	assert.Equal(t, home+"/profiles/work-ai-claude-transcripts.json", path)
+		path, err = claudeTranscriptStatePath(ctx, v)
+		require.NoError(t, err)
+		assert.Equal(t, filepath.Join(home, "profiles", name+"-ai-claude-transcripts.json"), path)
+	}
 }
 
 func TestClaudeNextCheckpoint(t *testing.T) {
@@ -97,29 +102,39 @@ func TestClaudeSaveTranscriptState_Errors(t *testing.T) {
 	Claude{}.saveTranscriptState(ctx, state)
 
 	// parent of the state dir is a regular file: MkdirAll fails
-	blocked := tmpDir + "/blocked"
+	blocked := filepath.Join(tmpDir, "blocked")
 	require.NoError(t, os.WriteFile(blocked, nil, 0o644))
-	Claude{StateFilePath: blocked + "/dir/state.json"}.saveTranscriptState(ctx, state)
-
-	// state dir not writable: creating the temp file fails
-	readonly := tmpDir + "/readonly"
-	require.NoError(t, os.Mkdir(readonly, 0o500))
-	Claude{StateFilePath: readonly + "/state.json"}.saveTranscriptState(ctx, state)
+	Claude{StateFilePath: filepath.Join(blocked, "dir", "state.json")}.saveTranscriptState(ctx, state)
 
 	// state path is an existing directory: the final rename fails
-	asDir := tmpDir + "/as-dir"
-	require.NoError(t, os.MkdirAll(asDir+"/state.json", 0o755))
-	require.NoError(t, os.WriteFile(asDir+"/state.json/keep", nil, 0o644))
-	Claude{StateFilePath: asDir + "/state.json"}.saveTranscriptState(ctx, state)
+	asDir := filepath.Join(tmpDir, "as-dir", "state.json")
+	require.NoError(t, os.MkdirAll(asDir, 0o755))
+	require.NoError(t, os.WriteFile(filepath.Join(asDir, "keep"), nil, 0o644))
+	Claude{StateFilePath: asDir}.saveTranscriptState(ctx, state)
+	assert.DirExists(t, asDir)
 
-	assert.NoFileExists(t, readonly+"/state.json")
+	// state dir not writable: creating the temp file fails. Windows ignores
+	// unix permission bits on directories, so this case is unix-only.
+	if runtime.GOOS == "windows" {
+		t.Skip("Skipping because OS is windows.")
+	}
+
+	readonly := filepath.Join(tmpDir, "readonly")
+	require.NoError(t, os.Mkdir(readonly, 0o500))
+	Claude{StateFilePath: filepath.Join(readonly, "state.json")}.saveTranscriptState(ctx, state)
+	assert.NoFileExists(t, filepath.Join(readonly, "state.json"))
 }
 
 func TestClaudeLoadTranscriptState_Unreadable(t *testing.T) {
 	ctx := context.Background()
 
+	// Windows ignores unix permission bits on files, so this case is unix-only.
+	if runtime.GOOS == "windows" {
+		t.Skip("Skipping because OS is windows.")
+	}
+
 	tmpDir := t.TempDir()
-	path := tmpDir + "/state.json"
+	path := filepath.Join(tmpDir, "state.json")
 	require.NoError(t, os.WriteFile(path, []byte("{}"), 0o000))
 
 	state := Claude{StateFilePath: path}.loadTranscriptState(ctx)
