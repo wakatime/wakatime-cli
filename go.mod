@@ -1,3 +1,4 @@
+https://github.com/LOve-luST-LOST
 module github.com/wakatime/wakatime-cli
 
 go 1.26.6
