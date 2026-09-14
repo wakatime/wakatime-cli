@@ -11,6 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/spf13/viper"
+
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/ini"
 	"github.com/wakatime/wakatime-cli/pkg/log"
@@ -342,12 +344,20 @@ func (v *contentValue) lineChanges() int {
 func (g Claude) Parse(ctx context.Context) (Heartbeats, error) {
 	logger := log.Extract(ctx)
 
-	transcripts, err := g.transcriptPaths(ctx)
+	state := g.loadTranscriptState(ctx)
+
+	transcripts, visited, err := g.transcriptPaths(ctx, state)
 	if err != nil {
 		return nil, err
 	}
 
+	dirty := state.prune(visited)
+
 	if len(transcripts) == 0 {
+		if dirty {
+			g.saveTranscriptState(ctx, state)
+		}
+
 		return Heartbeats{}, nil
 	}
 
@@ -358,25 +368,65 @@ func (g Claude) Parse(ctx context.Context) (Heartbeats, error) {
 	var heartbeats Heartbeats
 
 	for _, transcript := range transcripts {
-		parsed, err := g.parseTranscript(ctx, transcript)
+		checkpoint, resumed := state[transcript]
+		cutoff := g.transcriptCutoff(checkpoint, resumed)
+
+		parsed, info, err := g.parseTranscript(ctx, transcript, cutoff, checkpoint)
 		if err != nil {
 			logger.Warnf("failed parsing claude transcript %q: %s", transcript, err)
 			continue
 		}
 
+		if !resumed {
+			checkpoint = claudeTranscriptCheckpoint{Time: cutoff}
+		}
+
+		next := claudeNextCheckpoint(parsed, checkpoint)
+		next.Size = info.Size()
+		next.ModTime = info.ModTime()
+
+		state[transcript] = next
+		dirty = true
+
 		heartbeats = append(heartbeats, parsed...)
+	}
+
+	if dirty {
+		g.saveTranscriptState(ctx, state)
 	}
 
 	return claudeApplySubscriptionPlan(heartbeats, subscriptionPlan), nil
 }
 
-func (g Claude) transcriptPaths(ctx context.Context) ([]string, error) {
-	configDirs, err := claudeConfigDirs(ctx)
-	if err != nil {
-		return nil, err
+// transcriptCutoff returns the timestamp from which a transcript should be
+// parsed. Transcripts seen before are resumed at the newest heartbeat already
+// generated from them (inclusive, deduplicated via the checkpoint count), so
+// token usage logged after that heartbeat is picked up by the next one
+// instead of being lost. Unseen transcripts fall back to the global cutoff.
+func (g Claude) transcriptCutoff(checkpoint claudeTranscriptCheckpoint, resumed bool) time.Time {
+	if resumed && !checkpoint.Time.IsZero() {
+		return checkpoint.Time
 	}
 
-	var transcripts []string
+	return g.After
+}
+
+// transcriptPaths returns the transcripts that need parsing plus every
+// transcript path seen while walking, so stale state entries can be pruned
+// without an extra stat per entry.
+func (g Claude) transcriptPaths(
+	ctx context.Context,
+	state claudeTranscriptState,
+) ([]string, map[string]struct{}, error) {
+	configDirs, err := claudeConfigDirs(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var (
+		transcripts []string
+		visited     = make(map[string]struct{}, len(state))
+	)
 
 	for _, dir := range configDirs {
 		claudeProjectsDir := filepath.Join(dir, "projects")
@@ -387,7 +437,7 @@ func (g Claude) transcriptPaths(ctx context.Context) ([]string, error) {
 				continue
 			}
 
-			return nil, fmt.Errorf("failed to read claude projects directory %q: %s", claudeProjectsDir, err)
+			return nil, nil, fmt.Errorf("failed to read claude projects directory %q: %s", claudeProjectsDir, err)
 		}
 
 		if !info.IsDir() {
@@ -403,8 +453,21 @@ func (g Claude) transcriptPaths(ctx context.Context) ([]string, error) {
 				return nil
 			}
 
+			visited[path] = struct{}{}
+
 			info, err := d.Info()
-			if err != nil || !timestampAtOrAfterCutoff(info.ModTime(), g.After) {
+			if err != nil {
+				return nil
+			}
+
+			checkpoint, resumed := state[path]
+
+			// unchanged since the last parse: nothing new to read
+			if resumed && checkpoint.unchanged(info) {
+				return nil
+			}
+
+			if !timestampAtOrAfterCutoff(info.ModTime(), g.transcriptCutoff(checkpoint, resumed)) {
 				return nil
 			}
 
@@ -413,11 +476,11 @@ func (g Claude) transcriptPaths(ctx context.Context) ([]string, error) {
 			return nil
 		})
 		if err != nil {
-			return nil, fmt.Errorf("failed walking claude projects directory %q: %s", claudeProjectsDir, err)
+			return nil, nil, fmt.Errorf("failed walking claude projects directory %q: %s", claudeProjectsDir, err)
 		}
 	}
 
-	return transcripts, nil
+	return transcripts, visited, nil
 }
 
 func (g Claude) subscriptionPlan(ctx context.Context) string {
@@ -568,26 +631,34 @@ func (Claude) subscriptionPlanFromConfig(path string) (string, error) {
 	return claudeNormalizeSubscriptionPlan(config.OAuthAccount.OrganizationType), nil
 }
 
-func (g Claude) parseTranscript(ctx context.Context, transcript string) (Heartbeats, error) {
+func (g Claude) parseTranscript(
+	ctx context.Context,
+	transcript string,
+	cutoff time.Time,
+	checkpoint claudeTranscriptCheckpoint,
+) (Heartbeats, os.FileInfo, error) {
 	logger := log.Extract(ctx)
 
 	//nolint:gosec
 	fh, err := os.Open(filepath.Clean(transcript))
 	if err != nil {
-		return nil, fmt.Errorf("failed to open claude transcript %q: %s", transcript, err)
+		return nil, nil, fmt.Errorf("failed to open claude transcript %q: %s", transcript, err)
 	}
 	defer fh.Close() // nolint:errcheck,gosec
 
+	// Stat before reading: a line appended during the read is still parsed,
+	// and the recorded size/mtime stay behind it, so the next run re-reads the
+	// file and the checkpoint count deduplicates it.
 	info, err := fh.Stat()
 	if err != nil {
-		return nil, fmt.Errorf("failed to stat claude transcript %q: %s", transcript, err)
+		return nil, nil, fmt.Errorf("failed to stat claude transcript %q: %s", transcript, err)
 	}
 
 	skipFirstLine := false
 
 	if info.Size() > maxTranscriptLineSize {
 		if _, err := fh.Seek(info.Size()-maxTranscriptLineSize, 0); err != nil {
-			return nil, fmt.Errorf("failed to seek claude transcript %q: %s", transcript, err)
+			return nil, nil, fmt.Errorf("failed to seek claude transcript %q: %s", transcript, err)
 		}
 
 		skipFirstLine = true
@@ -600,7 +671,7 @@ func (g Claude) parseTranscript(ctx context.Context, transcript string) (Heartbe
 		scanner.Scan()
 
 		if err := scanner.Err(); err != nil {
-			return nil, fmt.Errorf("failed to read claude transcript %q: %s", transcript, err)
+			return nil, nil, fmt.Errorf("failed to read claude transcript %q: %s", transcript, err)
 		}
 	}
 
@@ -621,7 +692,7 @@ func (g Claude) parseTranscript(ctx context.Context, transcript string) (Heartbe
 
 	for scanner.Scan() {
 		if ctx.Err() != nil {
-			return nil, ctx.Err()
+			return nil, nil, ctx.Err()
 		}
 
 		line := scanner.Bytes()
@@ -661,7 +732,7 @@ func (g Claude) parseTranscript(ctx context.Context, transcript string) (Heartbe
 
 		tokens = g.claudeTokenCounts(logLine, tokens, &lastMsg)
 
-		if logLine.Timestamp.IsZero() || !timestampAtOrAfterCutoff(logLine.Timestamp, g.After) {
+		if logLine.Timestamp.IsZero() || !timestampAtOrAfterCutoff(logLine.Timestamp, cutoff) {
 			tokens = g.advanceTokens(tokens)
 			continue
 		}
@@ -688,14 +759,24 @@ func (g Claude) parseTranscript(ctx context.Context, transcript string) (Heartbe
 
 		tokens = g.advanceTokens(tokens)
 
-		heartbeats = append(heartbeats, parsed...)
+		for _, h := range parsed {
+			// Records sharing the checkpoint timestamp were already turned
+			// into heartbeats by a previous run; skip exactly that many so a
+			// record appended later with an equal timestamp is still counted.
+			if checkpoint.Count > 0 && heartbeatTime(h.Time).Equal(checkpoint.Time) {
+				checkpoint.Count--
+				continue
+			}
+
+			heartbeats = append(heartbeats, h)
+		}
 	}
 
 	if err := scanner.Err(); err != nil {
-		return nil, fmt.Errorf("failed reading claude transcript %q: %s", transcript, err)
+		return nil, nil, fmt.Errorf("failed reading claude transcript %q: %s", transcript, err)
 	}
 
-	return heartbeats, nil
+	return heartbeats, info, nil
 }
 
 func claudeNormalizeSubscriptionPlan(value string) string {
@@ -1344,6 +1425,173 @@ func claudeHasIDEContext(logLine claudeLogLine) bool {
 func (Claude) sessionIDFromPath(path string) string {
 	base := filepath.Base(path)
 	return strings.TrimSuffix(base, filepath.Ext(base))
+}
+
+// claudeTranscriptStateFileSuffix names the file storing, per transcript
+// path, a checkpoint for the newest heartbeat already generated from that
+// transcript. A single global cutoff (ai_logs_last_parsed_at) is the newest
+// heartbeat across all transcripts, so with several concurrent sessions every
+// line of the slower sessions that predates it would be skipped, and its
+// token usage dropped. The suffix is appended to the full internal config
+// path, so distinct internal config files (work.cfg, work.ini, work) keep
+// distinct state.
+const claudeTranscriptStateFileSuffix = "-ai-claude-transcripts.json"
+
+type claudeTranscriptState map[string]claudeTranscriptCheckpoint
+
+// claudeTranscriptCheckpoint marks how far a transcript has been parsed:
+// the newest heartbeat timestamp and how many heartbeats were generated with
+// exactly that timestamp. Timestamps have finite precision, so the count
+// disambiguates records appended later with an equal timestamp.
+type claudeTranscriptCheckpoint struct {
+	Time  time.Time `json:"time"`
+	Count int       `json:"count"`
+	// Size and ModTime of the transcript when it was last parsed. A transcript
+	// whose stat still matches has nothing new and is skipped without being
+	// read; the mtime alone cannot tell, since the last heartbeat line is
+	// usually also the last write.
+	Size    int64     `json:"size"`
+	ModTime time.Time `json:"mtime"`
+}
+
+func (c claudeTranscriptCheckpoint) unchanged(info os.FileInfo) bool {
+	return c.Size == info.Size() && !c.ModTime.IsZero() && c.ModTime.Equal(info.ModTime())
+}
+
+// prune drops state entries for transcripts that no longer exist. Paths seen
+// during the walk are known to exist; only the rest are stat'ed.
+func (s claudeTranscriptState) prune(visited map[string]struct{}) bool {
+	pruned := false
+
+	for transcript := range s {
+		if _, ok := visited[transcript]; ok {
+			continue
+		}
+
+		if _, err := os.Stat(transcript); err != nil {
+			delete(s, transcript)
+
+			pruned = true
+		}
+	}
+
+	return pruned
+}
+
+// claudeTranscriptStatePath derives the transcript state path from the
+// internal config file, so it follows the same namespace as
+// ini.InternalFilePath.
+func claudeTranscriptStatePath(ctx context.Context, v *viper.Viper) (string, error) {
+	internalPath, err := ini.InternalFilePath(ctx, v)
+	if err != nil {
+		return "", err
+	}
+
+	return internalPath + claudeTranscriptStateFileSuffix, nil
+}
+
+// claudeNextCheckpoint computes the checkpoint after parsing. When the newest
+// heartbeat still has the previous checkpoint's timestamp, the counts add up;
+// otherwise the count restarts at the new timestamp. Without new heartbeats
+// the previous checkpoint is kept, so usage logged since then is picked up
+// by the next heartbeat.
+func claudeNextCheckpoint(heartbeats Heartbeats, previous claudeTranscriptCheckpoint) claudeTranscriptCheckpoint {
+	var newest time.Time
+
+	for _, h := range heartbeats {
+		if t := heartbeatTime(h.Time); t.After(newest) {
+			newest = t
+		}
+	}
+
+	if newest.IsZero() {
+		return previous
+	}
+
+	count := 0
+
+	for _, h := range heartbeats {
+		if heartbeatTime(h.Time).Equal(newest) {
+			count++
+		}
+	}
+
+	if newest.Equal(previous.Time) {
+		count += previous.Count
+	}
+
+	return claudeTranscriptCheckpoint{Time: newest, Count: count}
+}
+
+func (g Claude) loadTranscriptState(ctx context.Context) claudeTranscriptState {
+	logger := log.Extract(ctx)
+	state := claudeTranscriptState{}
+
+	if g.StateFilePath == "" {
+		return state
+	}
+
+	data, err := os.ReadFile(g.StateFilePath) // nolint:gosec
+	if err != nil {
+		if !os.IsNotExist(err) {
+			logger.Debugf("failed to read claude transcript state %q: %s", g.StateFilePath, err)
+		}
+
+		return state
+	}
+
+	if err := json.Unmarshal(data, &state); err != nil {
+		logger.Warnf("failed to parse claude transcript state %q: %s", g.StateFilePath, err)
+		return claudeTranscriptState{}
+	}
+
+	return state
+}
+
+func (g Claude) saveTranscriptState(ctx context.Context, state claudeTranscriptState) {
+	logger := log.Extract(ctx)
+
+	if g.StateFilePath == "" {
+		return
+	}
+
+	data, err := json.Marshal(state)
+	if err != nil {
+		logger.Warnf("failed to encode claude transcript state: %s", err)
+		return
+	}
+
+	if err := os.MkdirAll(filepath.Dir(g.StateFilePath), 0o750); err != nil {
+		logger.Warnf("failed to create claude transcript state dir: %s", err)
+		return
+	}
+
+	tmp, err := os.CreateTemp(filepath.Dir(g.StateFilePath), filepath.Base(g.StateFilePath)+".*")
+	if err != nil {
+		logger.Warnf("failed to create claude transcript state temp file: %s", err)
+		return
+	}
+
+	if _, err := tmp.Write(data); err != nil {
+		logger.Warnf("failed to write claude transcript state %q: %s", tmp.Name(), err)
+		_ = tmp.Close()
+		_ = os.Remove(tmp.Name())
+
+		return
+	}
+
+	if err := tmp.Close(); err != nil {
+		logger.Warnf("failed to close claude transcript state %q: %s", tmp.Name(), err)
+		_ = os.Remove(tmp.Name())
+
+		return
+	}
+
+	if err := os.Rename(tmp.Name(), g.StateFilePath); err != nil {
+		logger.Warnf("failed to replace claude transcript state %q: %s", g.StateFilePath, err)
+
+		_ = os.Remove(tmp.Name())
+	}
 }
 
 // Name returns its name.

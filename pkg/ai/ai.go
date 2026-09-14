@@ -44,6 +44,10 @@ type ParserConfig struct {
 	FallbackUserAgent string
 	UserAgents        map[string]string
 	ProjectInfo       ProjectInfo
+	// StateFilePath points to the parser's incremental parsing state. It is
+	// namespaced by the internal config file, so separate --internal-config
+	// invocations do not share or clobber each other's state.
+	StateFilePath string
 }
 
 const maxTranscriptLineSize = 10 * 1024 * 1024
@@ -269,11 +273,17 @@ func parseAIHeartbeats(
 	logs, resetLogs := captureAIParsingLogs(ctx)
 	defer resetLogs()
 
+	claudeStatePath, err := claudeTranscriptStatePath(ctx, config.V)
+	if err != nil {
+		logger.Debugf("failed to resolve claude transcript state path: %s", err)
+	}
+
 	var parsers = []Parser{
 		Claude{
 			After:             after,
 			UserAgents:        userAgents,
 			FallbackUserAgent: config.Plugin,
+			StateFilePath:     claudeStatePath,
 		},
 		Codex{
 			After:             after,
