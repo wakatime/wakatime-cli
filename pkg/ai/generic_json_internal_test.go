@@ -60,3 +60,28 @@ func TestGenericAIJSONLinesUsePerEventTokenCountsByDefault(t *testing.T) {
 	assert.Equal(t, int64(6), got[1].AIInputTokens)
 	assert.Equal(t, int64(3), got[1].AIOutputTokens)
 }
+
+func TestGenericAIHeartbeatsSingleValueTimestampFallback(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "session.json")
+	require.NoError(t, os.WriteFile(path, []byte("{}"), 0o600))
+
+	info, err := os.Stat(path)
+	require.NoError(t, err)
+
+	value := map[string]any{"session_id": "session-1", "input_tokens": 10}
+	provider := genericAIProvider{parser: Droid{}}
+
+	got, err := genericAIHeartbeats(t.Context(), provider, path, []any{value})
+	require.NoError(t, err)
+	require.Len(t, got, 1)
+	assert.Equal(t, heartbeatTimestamp(info.ModTime()), got[0].Time)
+
+	// A shared file timestamp must not manufacture dates for multiple events.
+	got, err = genericAIHeartbeats(t.Context(), provider, path, []any{value, value})
+	require.NoError(t, err)
+	assert.Empty(t, got)
+
+	got, err = genericAIHeartbeats(t.Context(), provider, path, nil)
+	require.NoError(t, err)
+	assert.Empty(t, got)
+}
