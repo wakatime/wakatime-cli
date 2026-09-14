@@ -85,6 +85,60 @@ func TestRemoveNoopHeartbeatsReplacesAppHeartbeatsAndMergesDuplicates(t *testing
 	assert.Equal(t, float64(191), got[2].Time)
 }
 
+func TestRemoveNoopHeartbeatsDoesNotLeakEntityAcrossSessions(t *testing.T) {
+	got := replaceAppHeartbeats([]heartbeat.Heartbeat{
+		{
+			Entity:     "/repo-a/main.go",
+			EntityType: heartbeat.FileType,
+			AISession:  "session-a",
+			Category:   "ai coding",
+			Time:       100,
+			UserAgent:  "Claude/1.0.0",
+		},
+		{
+			// Leading app pulse for session-b, appearing right after session-a's file
+			// heartbeat but far enough in time to not merge with session-b's own file
+			// heartbeat below. It must resolve to session-b's own entity, not session-a's.
+			Entity:     "Claude session",
+			EntityType: heartbeat.AppType,
+			AISession:  "session-b",
+			Category:   "ai coding",
+			Time:       110,
+			UserAgent:  "Claude/1.0.0",
+		},
+		{
+			Entity:     "/repo-b/main.go",
+			EntityType: heartbeat.FileType,
+			AISession:  "session-b",
+			Category:   "ai coding",
+			Time:       1000,
+			UserAgent:  "Claude/1.0.0",
+		},
+		{
+			// session-c never edits a file anywhere in the batch, so its app pulse
+			// must stay untouched rather than steal another session's entity.
+			Entity:     "Claude session",
+			EntityType: heartbeat.AppType,
+			AISession:  "session-c",
+			Category:   "ai coding",
+			Time:       200,
+			UserAgent:  "Claude/1.0.0",
+		},
+	})
+
+	require.Len(t, got, 4)
+
+	assert.Equal(t, "/repo-a/main.go", got[0].Entity)
+
+	assert.Equal(t, "/repo-b/main.go", got[1].Entity)
+	assert.Equal(t, heartbeat.FileType, got[1].EntityType)
+
+	assert.Equal(t, "/repo-b/main.go", got[2].Entity)
+
+	assert.Equal(t, "Claude session", got[3].Entity)
+	assert.Equal(t, heartbeat.AppType, got[3].EntityType)
+}
+
 func TestRemoveNoopHeartbeatsKeepsDifferentIdentityHeartbeats(t *testing.T) {
 	got := replaceAppHeartbeats([]heartbeat.Heartbeat{
 		{

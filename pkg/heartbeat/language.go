@@ -70,6 +70,17 @@
 // 46. Protocol Buffer Text Format -> LanguageProtocolBuffer
 // 47. WebAssembly Text Format -> LanguageWebAssembly
 // 48. MDX -> LanguageMDX
+// 49. Arturo -> LanguageArturo
+// 50. Gemfile.lock -> LanguageGemfileLock
+// 51. Gettext -> LanguageGettext
+// 52. KDL -> LanguageKDL
+// 53. Lateralus -> LanguageLateralus
+// 54. Luau -> LanguageLuau
+// 55. Markless -> LanguageMarkless
+// 56. microcad -> LanguageMicrocad
+// 57. MoonBit -> LanguageMoonBit
+// 58. Spade -> LanguageSpade
+// 59. Templ -> LanguageTempl
 
 package heartbeat
 
@@ -155,6 +166,8 @@ const (
 	LanguageArmAsm
 	// LanguageArrow represents the Arrow programming language.
 	LanguageArrow
+	// LanguageArturo represents the Arturo programming language.
+	LanguageArturo
 	// LanguageASCIIDoc represents the ASCIIDoc programming language.
 	LanguageASCIIDoc
 	// LanguageASL represents the ASL programming language.
@@ -619,6 +632,8 @@ const (
 	LanguageGDScript3
 	// LanguageGEDCOM represents the GEDCOM programming language.
 	LanguageGEDCOM
+	// LanguageGemfileLock represents the Gemfile.lock programming language.
+	LanguageGemfileLock
 	// LanguageGemtext represents the Gemtext programming language.
 	LanguageGemtext
 	// LanguageGenie represents the Genie programming language.
@@ -635,6 +650,8 @@ const (
 	LanguageGentooEclass
 	// LanguageGerberImage represents the GerberImage programming language.
 	LanguageGerberImage
+	// LanguageGettext represents the Gettext programming language.
+	LanguageGettext
 	// LanguageGettextCatalog represents the Gettext Catalog programming language.
 	LanguageGettextCatalog
 	// LanguageGherkin represents the Gherkin programming language.
@@ -857,6 +874,8 @@ const (
 	LanguageKal
 	// LanguageKconfig represents the Kconfig programming language.
 	LanguageKconfig
+	// LanguageKDL represents the KDL programming language.
+	LanguageKDL
 	// LanguageKernelLog represents the Kernel Log programming language.
 	LanguageKernelLog
 	// LanguageKiCadLayout represent the KiCadLayout programming language.
@@ -881,6 +900,8 @@ const (
 	LanguageLark
 	// LanguageLasso represents the Lasso programming language.
 	LanguageLasso
+	// LanguageLateralus represents the Lateralus programming language.
+	LanguageLateralus
 	// LanguageLaTeX represents the LaTeX programming language.
 	LanguageLaTeX
 	// LanguageLatte represents the Latte programming language.
@@ -945,6 +966,8 @@ const (
 	LanguageLTspiceSymbol
 	// LanguageLua represents the Lua programming language.
 	LanguageLua
+	// LanguageLuau represents the Luau programming language.
+	LanguageLuau
 	// LanguageMakefile represents the Makefile programming language.
 	LanguageMakefile
 	// LanguageMako represents the Mako programming language.
@@ -955,6 +978,8 @@ const (
 	LanguageMAQL
 	// LanguageMarkdown represents the Markdown programming language.
 	LanguageMarkdown
+	// LanguageMarkless represents the Markless programming language.
+	LanguageMarkless
 	// LanguageMarko represents the Marko programming language.
 	LanguageMarko
 	// LanguageMask represents the Mask programming language.
@@ -985,6 +1010,8 @@ const (
 	LanguageMetal
 	// LanguageMetapost represents the Metapost programming language.
 	LanguageMetapost
+	// LanguageMicrocad represents the microcad programming language.
+	LanguageMicrocad
 	// LanguageMIME represents the MIME programming language.
 	LanguageMIME
 	// LanguageMiniD represents the MiniD programming language.
@@ -1013,6 +1040,8 @@ const (
 	LanguageMonte
 	// LanguageMOOCode represents the MOOCode programming language.
 	LanguageMOOCode
+	// LanguageMoonBit represents the MoonBit programming language.
+	LanguageMoonBit
 	// LanguageMoonScript represents the MoonScript programming language.
 	LanguageMoonScript
 	// LanguageMorrowindScript represents the MorrowindScript programming language.
@@ -1395,6 +1424,8 @@ const (
 	LanguageSolidity
 	// LanguageSourcePawn represents the SourcePawn programming language.
 	LanguageSourcePawn
+	// LanguageSpade represents the Spade programming language.
+	LanguageSpade
 	// LanguageSPARQL represents the SPARQL programming language.
 	LanguageSPARQL
 	// LanguageSplineFontDatabase represents the Spline Font Database programming language.
@@ -1467,6 +1498,8 @@ const (
 	LanguageTcshSession
 	// LanguageTea represents the Tea programming language.
 	LanguageTea
+	// LanguageTempl represents the Templ programming language.
+	LanguageTempl
 	// LanguageTeraTerm represents the TeraTerm programming language.
 	LanguageTeraTerm
 	// LanguageTermcap represents the Termcap programming language.
@@ -1727,6 +1760,7 @@ const (
 	languageArduinoStr                     = "Arduino"
 	languageArmAsmStr                      = "ArmAsm"
 	languageArrowStr                       = "Arrow"
+	languageArturoStr                      = "Arturo"
 	languageASCIIDocStr                    = "AsciiDoc"
 	languageASLStr                         = "ASL"
 	languageASN1Str                        = "ASN.1"
@@ -1961,6 +1995,7 @@ const (
 	languageGDScript3Str                   = "GDScript3"
 	languageGDScriptStr                    = "GDScript"
 	languageGEDCOMStr                      = "GEDCOM"
+	languageGemfileLockStr                 = "Gemfile.lock"
 	languageGemtextStr                     = "Gemtext"
 	languageGenieStr                       = "Genie"
 	languageGenshiHTMLStr                  = "Genshi HTML"
@@ -1970,6 +2005,7 @@ const (
 	languageGentooEclassStr                = "Gentoo Eclass"
 	languageGerberImageStr                 = "Gerber Image"
 	languageGettextCatalogStr              = "Gettext Catalog"
+	languageGettextStr                     = "Gettext"
 	languageGherkinStr                     = "Gherkin"
 	languageGitAttributesStr               = "Git Attributes"
 	languageGitConfigStr                   = "Git Config"
@@ -2080,6 +2116,7 @@ const (
 	languageKakouneStr                     = "Kakoune"
 	languageKalStr                         = "Kal"
 	languageKconfigStr                     = "Kconfig"
+	languageKDLStr                         = "KDL"
 	languageKernelLogStr                   = "Kernel log"
 	languageKiCadLayoutStr                 = "KiCad Layout"
 	languageKiCadLegacyLayoutStr           = "KiCad Legacy Layout"
@@ -2092,6 +2129,7 @@ const (
 	languageLaravelTemplateStr             = "Laravel Template"
 	languageLarkStr                        = "Lark"
 	languageLassoStr                       = "Lasso"
+	languageLateralusStr                   = "Lateralus"
 	languageLaTeXStr                       = "LaTeX"
 	languageLatteStr                       = "Latte"
 	languageLeanStr                        = "Lean"
@@ -2124,11 +2162,13 @@ const (
 	languageLSLStr                         = "LSL"
 	languageLTspiceSymbolStr               = "LTspice Symbol"
 	languageLuaStr                         = "Lua"
+	languageLuauStr                        = "Luau"
 	languageMakefileStr                    = "Makefile"
 	languageMakoStr                        = "Mako"
 	languageManStr                         = "Man"
 	languageMAQLStr                        = "MAQL"
 	languageMarkdownStr                    = "Markdown"
+	languageMarklessStr                    = "Markless"
 	languageMarkoStr                       = "Marko"
 	languageMaskStr                        = "Mask"
 	languageMasonStr                       = "Mason"
@@ -2144,6 +2184,7 @@ const (
 	languageMetafontStr                    = "Metafont"
 	languageMetalStr                       = "Metal"
 	languageMetapostStr                    = "Metapost"
+	languageMicrocadStr                    = "microcad"
 	languageMIMEStr                        = "MIME"
 	languageMiniDStr                       = "MiniD"
 	languageMiniScriptStr                  = "MiniScript"
@@ -2158,6 +2199,7 @@ const (
 	languageMonkeyStr                      = "Monkey"
 	languageMonteStr                       = "Monte"
 	languageMOOCodeStr                     = "MOOCode"
+	languageMoonBitStr                     = "MoonBit"
 	languageMoonScriptStr                  = "MoonScript"
 	languageMorrowindScriptStr             = "MorrowindScript"
 	languageMoselStr                       = "Mosel"
@@ -2351,6 +2393,7 @@ const (
 	languageSolidityStr                    = "Solidity"
 	languageSourcePawnStr                  = "SourcePawn"
 	languageSourcesListStr                 = "Debian Sourcelist"
+	languageSpadeStr                       = "Spade"
 	languageSPARQLStr                      = "SPARQL"
 	languageSplineFontDatabaseStr          = "Spline Font Database"
 	languageSQFStr                         = "SQF"
@@ -2387,6 +2430,7 @@ const (
 	languageTcshSessionStr                 = "Tcsh Session"
 	languageTcshStr                        = "Tcsh"
 	languageTeaStr                         = "Tea"
+	languageTemplStr                       = "Templ"
 	languageTeraTermStr                    = "Tera Term macro"
 	languageTermcapStr                     = "Termcap"
 	languageTerminfoStr                    = "Terminfo"

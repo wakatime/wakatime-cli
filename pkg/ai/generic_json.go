@@ -6,9 +6,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"iter"
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -400,31 +402,66 @@ func genericAIHeartbeats(
 	path string,
 	values []any,
 ) (Heartbeats, error) {
+	return genericAIHeartbeatsFromValues(ctx, provider, path, slices.Values(values))
+}
+
+// genericAIEvents buffers the first event to preserve the file timestamp fallback
+// for single-value transcripts without materializing an entire SQLite table.
+func genericAIEvents(path string, values iter.Seq[any]) iter.Seq[genericAIEvent] {
+	return func(yield func(genericAIEvent) bool) {
+		var first genericAIEvent
+
+		count := 0
+
+		for value := range values {
+			event := genericAIEventFromValue(value)
+			count++
+
+			if count == 1 {
+				first = event
+				continue
+			}
+
+			if count == 2 && !yield(first) {
+				return
+			}
+
+			if !yield(event) {
+				return
+			}
+		}
+
+		if count == 1 {
+			if first.timestamp.IsZero() {
+				if info, err := os.Stat(path); err == nil {
+					first.timestamp = info.ModTime()
+				}
+			}
+
+			yield(first)
+		}
+	}
+}
+
+func genericAIHeartbeatsFromValues(
+	ctx context.Context,
+	provider genericAIProvider,
+	path string,
+	values iter.Seq[any],
+) (Heartbeats, error) {
 	defaultSessionID := genericAISessionID(path)
 	states := make(map[string]genericAISessionState)
 	lineCounters := make(map[string]int)
-	fallbackTimestamp := time.Time{}
-
-	if len(values) == 1 {
-		if info, err := os.Stat(path); err == nil {
-			fallbackTimestamp = info.ModTime()
-		}
-	}
 
 	var heartbeats Heartbeats
 
-	for _, value := range values {
+	for event := range genericAIEvents(path, values) {
 		if err := ctx.Err(); err != nil {
 			return nil, err
 		}
 
-		event := genericAIEventFromValue(value)
 		if provider.inputIncludesCache {
 			event.input = max(event.input-event.cachedInput, 0)
-		}
-
-		if event.timestamp.IsZero() {
-			event.timestamp = fallbackTimestamp
 		}
 
 		if event.sessionID == "" {

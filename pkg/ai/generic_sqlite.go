@@ -16,8 +16,6 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-const genericAISQLiteRowLimit = 5000
-
 func parseGenericAISQLite(
 	ctx context.Context,
 	provider genericAIProvider,
@@ -122,7 +120,7 @@ func parseGenericAISQLiteDB(
 	logger := log.Extract(ctx)
 
 	for _, table := range tables {
-		values, err := genericAISQLiteRows(ctx, db, table)
+		parsed, err := parseGenericAISQLiteTable(ctx, provider, db, path, table)
 		if err != nil {
 			if ctxErr := ctx.Err(); ctxErr != nil {
 				return nil, ctxErr
@@ -131,15 +129,6 @@ func parseGenericAISQLiteDB(
 			logger.Warnf("failed parsing %s sqlite table %q from %q: %s", provider.parser.Name(), table, path, err)
 
 			continue
-		}
-
-		if provider.containerKey != "" {
-			values = genericAISQLiteContainerValues(values, provider.containerKey)
-		}
-
-		parsed, err := genericAIHeartbeats(ctx, provider, path, values)
-		if err != nil {
-			return nil, err
 		}
 
 		heartbeats = append(heartbeats, parsed...)
@@ -189,9 +178,17 @@ func genericAISQLiteTables(ctx context.Context, db *sql.DB) ([]string, error) {
 	return tables, nil
 }
 
-func genericAISQLiteRows(ctx context.Context, db *sql.DB, table string) ([]any, error) {
+func parseGenericAISQLiteTable(
+	ctx context.Context,
+	provider genericAIProvider,
+	db *sql.DB,
+	path string,
+	table string,
+) (Heartbeats, error) {
 	quotedTable := `"` + strings.ReplaceAll(table, `"`, `""`) + `"`
-	query := fmt.Sprintf("SELECT * FROM %s LIMIT %d", quotedTable, genericAISQLiteRowLimit) // nolint:gosec
+	// Scan every row: timestamps may be nested in JSON, and older records can
+	// establish session metadata or cumulative counters needed by recent events.
+	query := "SELECT * FROM " + quotedTable // nolint:gosec
 
 	rows, err := db.QueryContext(ctx, query)
 	if err != nil {
@@ -204,22 +201,43 @@ func genericAISQLiteRows(ctx context.Context, db *sql.DB, table string) ([]any, 
 		return nil, fmt.Errorf("failed reading columns for table %q: %s", table, err)
 	}
 
-	var values []any
+	var scanErr error
 
-	for rows.Next() {
-		row, err := genericAISQLiteRow(rows, columns)
-		if err != nil {
-			return nil, fmt.Errorf("failed scanning table %q: %s", table, err)
+	values := func(yield func(any) bool) {
+		for rows.Next() {
+			row, err := genericAISQLiteRow(rows, columns)
+			if err != nil {
+				scanErr = fmt.Errorf("failed scanning table %q: %s", table, err)
+				return
+			}
+
+			expanded := []any{row}
+			if provider.containerKey != "" {
+				expanded = genericAISQLiteContainerValues(expanded, provider.containerKey)
+			}
+
+			for _, value := range expanded {
+				if !yield(value) {
+					return
+				}
+			}
 		}
+	}
 
-		values = append(values, row)
+	heartbeats, err := genericAIHeartbeatsFromValues(ctx, provider, path, values)
+	if err != nil {
+		return nil, err
+	}
+
+	if scanErr != nil {
+		return nil, scanErr
 	}
 
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("failed reading table %q: %s", table, err)
 	}
 
-	return values, nil
+	return heartbeats, nil
 }
 
 func genericAISQLiteRow(rows *sql.Rows, columns []string) (map[string]any, error) {
