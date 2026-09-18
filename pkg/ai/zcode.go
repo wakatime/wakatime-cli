@@ -23,11 +23,6 @@ import (
 // ZCode contains parameters for detecting heartbeats from ZCode logs.
 type ZCode ParserConfig
 
-const (
-	zCodeRecentMessageRowLimit = 5000
-	zCodeRecentPartRowLimit    = 5000
-)
-
 type (
 	zCodeSessionInfo struct {
 		ID        string
@@ -145,7 +140,7 @@ func (g ZCode) parseSQLiteDB(ctx context.Context, dbPath string) (Heartbeats, er
 		return nil, nil
 	}
 
-	if err := querySQLiteParts(ctx, db, dbPath, messagesBySession, messageIDs); err != nil {
+	if err := g.querySQLiteParts(ctx, db, dbPath, messagesBySession, messageIDs); err != nil {
 		return nil, err
 	}
 
@@ -199,27 +194,21 @@ func (g ZCode) querySQLiteMessages(
 	ctx context.Context,
 	db *sql.DB,
 	dbPath string,
-) (map[string][]zCodeMessageWithParts, map[string]string, error) {
+) (map[string][]zCodeMessageWithParts, map[string]struct{}, error) {
 	rows, err := db.QueryContext(ctx, `
-WITH recentZCodeMessages AS (
-	SELECT id, session_id, CAST(data AS TEXT) AS data, time_created
-	FROM message
-	ORDER BY rowid DESC
-	LIMIT ?
-)
-SELECT id, session_id, data, time_created
-FROM recentZCodeMessages
+SELECT id, session_id, CAST(data AS TEXT) AS data, time_created
+FROM message
 WHERE time_created >= ?
   AND json_valid(data)
 ORDER BY time_created ASC, id ASC;
-`, zCodeRecentMessageRowLimit, g.afterUnixMilli())
+`, g.afterUnixMilli())
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed querying ZCode sqlite messages %q: %s", dbPath, err)
 	}
 	defer rows.Close() // nolint:errcheck
 
 	messagesBySession := make(map[string][]zCodeMessageWithParts)
-	messageIDs := make(map[string]string)
+	messageIDs := make(map[string]struct{})
 
 	for rows.Next() {
 		var (
@@ -253,123 +242,35 @@ ORDER BY time_created ASC, id ASC;
 		messagesBySession[message.SessionID] = append(messagesBySession[message.SessionID], zCodeMessageWithParts{
 			info: message,
 		})
-		messageIDs[message.ID] = message.SessionID
+		messageIDs[message.ID] = struct{}{}
 	}
 
 	if err := rows.Err(); err != nil {
 		return nil, nil, fmt.Errorf("failed reading ZCode sqlite messages %q: %s", dbPath, err)
 	}
 
-	if !g.After.IsZero() {
-		if err := g.querySQLiteSeedMessages(ctx, db, dbPath, messagesBySession); err != nil {
-			return nil, nil, err
-		}
-	}
-
 	return messagesBySession, messageIDs, nil
 }
 
-func (g ZCode) querySQLiteSeedMessages(
+func (g ZCode) querySQLiteParts(
 	ctx context.Context,
 	db *sql.DB,
 	dbPath string,
 	messagesBySession map[string][]zCodeMessageWithParts,
-) error {
-	if len(messagesBySession) == 0 {
-		return nil
-	}
-
-	rows, err := db.QueryContext(ctx, `
-WITH recentZCodeSeedMessages AS (
-	SELECT id, session_id, CAST(data AS TEXT) AS data, time_created
-	FROM message
-	ORDER BY rowid DESC
-	LIMIT ?
-)
-SELECT id, session_id, data, time_created
-FROM recentZCodeSeedMessages
-WHERE time_created < ?
-  AND json_valid(data)
-ORDER BY time_created DESC, id DESC;
-`, zCodeRecentMessageRowLimit, g.afterUnixMilli())
-	if err != nil {
-		return fmt.Errorf("failed querying ZCode sqlite seed messages %q: %s", dbPath, err)
-	}
-	defer rows.Close() // nolint:errcheck
-
-	remaining := make(map[string]struct{}, len(messagesBySession))
-	for sessionID := range messagesBySession {
-		remaining[sessionID] = struct{}{}
-	}
-
-	for rows.Next() {
-		if len(remaining) == 0 {
-			break
-		}
-
-		var (
-			id        string
-			sessionID string
-			data      string
-			createdAt int64
-		)
-
-		if err := rows.Scan(&id, &sessionID, &data, &createdAt); err != nil {
-			return fmt.Errorf("failed scanning ZCode sqlite seed message row: %s", err)
-		}
-
-		if _, ok := remaining[sessionID]; !ok {
-			continue
-		}
-
-		var message zCodeMessageInfo
-		if err := json.Unmarshal([]byte(strings.TrimSpace(data)), &message); err != nil {
-			continue
-		}
-
-		message.ID = firstNonEmptyString(message.ID, id)
-
-		message.SessionID = firstNonEmptyString(message.SessionID, sessionID)
-		if message.Time.Created == 0 {
-			message.Time.Created = createdAt
-		}
-
-		if message.SessionID == "" || message.Time.Created == 0 {
-			continue
-		}
-
-		messagesBySession[message.SessionID] = append(messagesBySession[message.SessionID], zCodeMessageWithParts{
-			info: message,
-		})
-		delete(remaining, message.SessionID)
-	}
-
-	if err := rows.Err(); err != nil {
-		return fmt.Errorf("failed reading ZCode sqlite seed messages %q: %s", dbPath, err)
-	}
-
-	return nil
-}
-
-func querySQLiteParts(
-	ctx context.Context,
-	db *sql.DB,
-	dbPath string,
-	messagesBySession map[string][]zCodeMessageWithParts,
-	messageIDs map[string]string,
+	messageIDs map[string]struct{},
 ) error {
 	rows, err := db.QueryContext(ctx, `
-WITH recentZCodeParts AS (
-	SELECT id, message_id, session_id, CAST(data AS TEXT) AS data, time_created
-	FROM part
-	ORDER BY rowid DESC
-	LIMIT ?
-)
-SELECT id, message_id, session_id, data
-FROM recentZCodeParts
-WHERE json_valid(data)
-ORDER BY time_created ASC, id ASC;
-`, zCodeRecentPartRowLimit)
+SELECT
+	p.id,
+	p.message_id,
+	p.session_id,
+	CAST(p.data AS TEXT) AS data
+FROM part AS p
+JOIN message AS m ON m.id = p.message_id
+WHERE m.time_created >= ?
+  AND json_valid(p.data)
+ORDER BY p.time_created ASC, p.id ASC;
+`, g.afterUnixMilli())
 	if err != nil {
 		return fmt.Errorf("failed querying ZCode sqlite parts %q: %s", dbPath, err)
 	}

@@ -5,6 +5,7 @@ package ai_test
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -333,46 +334,63 @@ func TestZCodeParse_MessageHeartbeatAfter5000Rows(t *testing.T) {
 	ctx := context.Background()
 	db := zCodeTestDB(t)
 
+	// The oldest in-window message carries distinctive tokens; more than 5,000
+	// newer messages in the same window must not push it out of the parse.
+	zCodeInsertMessage(
+		t,
+		db,
+		"message-oldest",
+		baseTimestamp+1,
+		`{
+			"role": "assistant",
+			"modelID": "GLM-5.3",
+			"tokens": {
+				"input": 10, "output": 4, "reasoning": 1,
+				"cache": {"read": 4, "write": 0}
+			}
+		}`,
+	)
+
 	_, err := db.Exec(`
 WITH RECURSIVE seq(x) AS (
-	SELECT 1
+	SELECT 2
 	UNION ALL
-	SELECT x + 1 FROM seq WHERE x < 5000
+	SELECT x + 1 FROM seq WHERE x < 5001
 )
 INSERT INTO message (id, session_id, time_created, data)
 SELECT
 	printf('message-%05d', x),
 	'session-1',
 	1770000000000 + x,
-	'{"role":"assistant","modelID":"old-model","tokens":{
+	'{"role":"assistant","modelID":"GLM-5.3","tokens":{
 		"input":1,"output":1,"reasoning":0,"cache":{"read":0,"write":0}
 	}}'
 FROM seq;
-INSERT INTO message (id, session_id, time_created, data)
-VALUES (
-	'message-05001',
-	'session-1',
-	1770000010000,
-	'{"role":"assistant","modelID":"GLM-5.3","tokens":{
-		"input":10,"output":4,"reasoning":1,"cache":{"read":4,"write":0}
-	}}'
-);
 `)
 	require.NoError(t, err)
 
 	parser := ai.ZCode{
-		After: time.UnixMilli(baseTimestamp + 5500),
+		After: time.UnixMilli(baseTimestamp),
 	}
 
 	got, err := parser.Parse(ctx)
 	require.NoError(t, err)
-	require.Len(t, got, 1)
-	assert.Equal(t, heartbeat.AppType, got[0].EntityType)
+	require.Len(t, got, 5001)
+
+	expectedTime := func(millis int64) float64 {
+		return float64(millis/1000) + float64((millis%1000)*int64(time.Millisecond))/float64(time.Second)
+	}
+
+	for _, h := range got {
+		assert.Equal(t, "ZCode session-1", h.Entity)
+	}
+
+	assert.Equal(t, expectedTime(baseTimestamp+1), got[0].Time)
 	assert.EqualValues(t, 6, got[0].AIInputTokens)
 	assert.EqualValues(t, 4, got[0].AICachedInputTokens)
 	assert.EqualValues(t, 5, got[0].AIOutputTokens)
-	assert.Contains(t, got[0].UserAgent, "GLM/5.3")
-	assert.Contains(t, got[0].UserAgent, "zcode-cli/0.16.5")
+
+	assert.Equal(t, expectedTime(baseTimestamp+5001), got[5000].Time)
 }
 
 func TestZCodeParse_SQLiteWALModifiedAfter(t *testing.T) {
@@ -431,6 +449,25 @@ func TestZCodeParse_FileHeartbeatAfter5000Rows(t *testing.T) {
 
 	zCodeInsertMessage(t, db, "message-1", 6000, `{"role":"assistant","modelID":"GLM-5.3"}`)
 
+	// The only Edit part sits at the oldest end of the part table; more than
+	// 5,000 newer filler parts must not push it out of the parsed window.
+	zCodeInsertPart(
+		t,
+		db,
+		"part-edit-oldest",
+		"message-1",
+		5001,
+		`{
+			"type": "tool",
+			"tool": "Edit",
+			"state": {
+				"status": "completed",
+				"input": {"file_path": "/workspace/target.go", "old_string": "a", "new_string": "a\nb"},
+				"metadata": {"display": {"additions": 1, "deletions": 0}}
+			}
+		}`,
+	)
+
 	_, err := db.Exec(`
 WITH RECURSIVE seq(x) AS (
 	SELECT 1
@@ -438,23 +475,7 @@ WITH RECURSIVE seq(x) AS (
 	SELECT x + 1 FROM seq WHERE x < 5000
 )
 INSERT INTO part (id, message_id, session_id, time_created, data)
-SELECT printf('part-%05d', x), 'message-1', 'session-1', x, '{"type":"text"}' FROM seq;
-INSERT INTO part (id, message_id, session_id, time_created, data)
-VALUES (
-	'part-05001',
-	'message-1',
-	'session-1',
-	6001,
-	'{
-		"type":"tool",
-		"tool":"Edit",
-		"state":{
-			"status":"completed",
-			"input":{"file_path":"recent.go","old_string":"a","new_string":"a\\nb"},
-			"metadata":{"display":{"additions":1,"deletions":0}}
-		}
-	}'
-);
+SELECT printf('part-%05d', x), 'message-1', 'session-1', 10000 + x, '{"type":"text"}' FROM seq;
 `)
 	require.NoError(t, err)
 
@@ -470,12 +491,92 @@ VALUES (
 		}
 	}
 	require.Len(t, fileHeartbeats, 1)
-	assert.Equal(t, "/workspace/recent.go", fileHeartbeats[0].Entity)
+	assert.Equal(t, "/workspace/target.go", fileHeartbeats[0].Entity)
 	assert.Empty(t, fileHeartbeats[0].ProjectPathOverride)
 	assert.Contains(t, fileHeartbeats[0].UserAgent, "GLM/5.3")
 	assert.Contains(t, fileHeartbeats[0].UserAgent, "zcode-cli/0.16.5")
 	require.NotNil(t, fileHeartbeats[0].AILineChanges)
 	assert.Equal(t, 1, *fileHeartbeats[0].AILineChanges)
+}
+
+func TestZCodeParse_MissingSessionMetadata(t *testing.T) {
+	ctx := context.Background()
+	db := zCodeTestDB(t)
+
+	// A message referencing a session absent from the session table still
+	// produces a heartbeat, falling back to the message's session ID.
+	_, err := db.Exec(
+		`INSERT INTO message (id, session_id, time_created, data) VALUES (?, 'session-unknown', ?, ?)`,
+		"message-orphan",
+		7000,
+		`{"role":"user"}`,
+	)
+	require.NoError(t, err)
+	_, err = db.Exec(
+		`INSERT INTO part (id, message_id, session_id, time_created, data) VALUES (?, ?, 'session-unknown', ?, ?)`,
+		"part-orphan",
+		"message-orphan",
+		7001,
+		`{"type":"text","text":"Hello there"}`,
+	)
+	require.NoError(t, err)
+
+	parser := ai.ZCode{}
+
+	got, err := parser.Parse(ctx)
+	require.NoError(t, err)
+	require.Len(t, got, 1)
+
+	assert.Equal(t, heartbeat.AppType, got[0].EntityType)
+	assert.Equal(t, "ZCode session-unknown", got[0].Entity)
+	assert.EqualValues(t, len([]rune("Hello there")), got[0].AIPromptLength)
+	assert.Empty(t, got[0].ProjectPathOverride)
+	assert.Contains(t, got[0].UserAgent, "zcode-cli/unknown")
+}
+
+func TestZCodeParse_JSONTimeCutoffMismatch(t *testing.T) {
+	const baseTimestamp = int64(1770000000000)
+
+	ctx := context.Background()
+	db := zCodeTestDB(t)
+
+	// SQL column time is inside the window but the JSON time.created is before
+	// the cutoff: the message must be skipped without emitting a heartbeat,
+	// while the next message still parses normally.
+	zCodeInsertMessage(
+		t,
+		db,
+		"message-json-old",
+		baseTimestamp+3000,
+		`{"role":"user","time":{"created":`+fmt.Sprint(baseTimestamp+1000)+`}}`,
+	)
+	zCodeInsertPart(
+		t,
+		db,
+		"part-json-old",
+		"message-json-old",
+		baseTimestamp+3001,
+		`{"type":"text","text":"should be skipped"}`,
+	)
+
+	zCodeInsertMessage(t, db, "message-current", baseTimestamp+3000+1, `{"role":"user"}`)
+	zCodeInsertPart(
+		t,
+		db,
+		"part-current",
+		"message-current",
+		baseTimestamp+3002,
+		`{"type":"text","text":"kept"}`,
+	)
+
+	parser := ai.ZCode{After: time.UnixMilli(baseTimestamp + 2000)}
+
+	got, err := parser.Parse(ctx)
+	require.NoError(t, err)
+	require.Len(t, got, 1)
+
+	assert.Equal(t, "ZCode session-1", got[0].Entity)
+	assert.EqualValues(t, len([]rune("kept")), got[0].AIPromptLength)
 }
 
 func zCodeTestDB(t *testing.T) *sql.DB {
