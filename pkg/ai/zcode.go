@@ -372,15 +372,6 @@ func (g ZCode) sessionHeartbeats(
 				max(message.info.Tokens.Reasoning, 0)
 		}
 
-		if message.info.Time.Created == 0 ||
-			(!g.After.IsZero() && !timestampAtOrAfterCutoff(messageTime, g.After)) {
-			tokens.LastInput = tokens.CurrentInput
-			tokens.LastCachedInput = tokens.CurrentCachedInput
-			tokens.LastOutput = tokens.CurrentOutput
-
-			continue
-		}
-
 		switch message.info.Role {
 		case "user":
 			if hb := g.userHeartbeat(
