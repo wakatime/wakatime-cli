@@ -579,6 +579,68 @@ func TestZCodeParse_JSONTimeCutoffMismatch(t *testing.T) {
 	assert.EqualValues(t, len([]rune("kept")), got[0].AIPromptLength)
 }
 
+func TestZCodeParse_PerRequestTokenUsage(t *testing.T) {
+	const baseTimestamp = int64(1770000000000)
+
+	ctx := context.Background()
+	db := zCodeTestDB(t)
+
+	// Two assistant messages whose per-request usage drops sharply. Values are
+	// per request, not session counters, so the second message must be
+	// reported as-is instead of being treated as a counter reset or differenced
+	// away against the previous message.
+	zCodeInsertMessage(
+		t,
+		db,
+		"message-first",
+		baseTimestamp+1000,
+		`{
+			"role": "assistant",
+			"modelID": "GLM-5.3",
+			"tokens": {
+				"input": 100, "output": 50, "reasoning": 5,
+				"cache": {"read": 80, "write": 10}
+			}
+		}`,
+	)
+	zCodeInsertMessage(
+		t,
+		db,
+		"message-second",
+		baseTimestamp+2000,
+		`{
+			"role": "assistant",
+			"modelID": "GLM-5.3",
+			"tokens": {
+				"input": 10, "output": 4, "reasoning": 1,
+				"cache": {"read": 2, "write": 1}
+			}
+		}`,
+	)
+
+	full, err := (ai.ZCode{}).Parse(ctx)
+	require.NoError(t, err)
+	require.Len(t, full, 2)
+
+	assert.EqualValues(t, 20, full[0].AIInputTokens)
+	assert.EqualValues(t, 80, full[0].AICachedInputTokens)
+	assert.EqualValues(t, 55, full[0].AIOutputTokens)
+
+	assert.EqualValues(t, 8, full[1].AIInputTokens)
+	assert.EqualValues(t, 2, full[1].AICachedInputTokens)
+	assert.EqualValues(t, 5, full[1].AIOutputTokens)
+
+	// A window that starts after the first message needs no baseline: the
+	// second message still reports its own request usage.
+	windowed, err := (ai.ZCode{After: time.UnixMilli(baseTimestamp + 1500)}).Parse(ctx)
+	require.NoError(t, err)
+	require.Len(t, windowed, 1)
+
+	assert.EqualValues(t, 8, windowed[0].AIInputTokens)
+	assert.EqualValues(t, 2, windowed[0].AICachedInputTokens)
+	assert.EqualValues(t, 5, windowed[0].AIOutputTokens)
+}
+
 func zCodeTestDB(t *testing.T) *sql.DB {
 	t.Helper()
 

@@ -350,9 +350,19 @@ func (g ZCode) sessionHeartbeats(
 		}
 
 		if message.info.Tokens != nil {
-			// ZCode includes cache reads and cache creation in tokens.input. WakaTime
-			// has a cached-read bucket but no cache-write bucket, so only cache reads
-			// are removed from regular input; cache creation remains regular input.
+			// ZCode records per-model-request usage: each assistant message
+			// carries the input, output, reasoning and cache numbers of the
+			// single request that produced it (verified 1:1 against the
+			// model_usage table). Context growth makes input and cache reads
+			// look near-monotonic across a session, but they are not session
+			// counters, so values must never be differenced against the
+			// previous message.
+			//
+			// tokens.input includes cache reads; WakaTime has a cached-read
+			// bucket but no cache-write bucket, so regular input only
+			// subtracts cache reads and cache creation stays in regular
+			// input. Current/Last exist only to fit the delta interface of
+			// heartbeat.NewWithAITokens.
 			tokens.CurrentInput = tokens.LastInput + max(
 				message.info.Tokens.Input-message.info.Tokens.Cache.Read,
 				0,
