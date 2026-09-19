@@ -4,7 +4,6 @@ package ai
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -90,6 +89,9 @@ type (
 
 // Parse parses the Windsurf SQLite state db for ai heartbeats.
 func (g Windsurf) Parse(ctx context.Context) (Heartbeats, error) {
+	ctx, cancel := aiSQLiteContext(ctx)
+	defer cancel()
+
 	dbPath, err := g.stateDBPath(ctx)
 	if err != nil {
 		return nil, err
@@ -115,6 +117,10 @@ func (g Windsurf) Parse(ctx context.Context) (Heartbeats, error) {
 	bubbleTokens := make(map[string]heartbeat.AITokens)
 
 	for _, row := range rows {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+
 		var logLine windsurfLogLine
 		if err := json.Unmarshal([]byte(row.Value), &logLine); err != nil {
 			continue
@@ -203,16 +209,7 @@ func (c windsurfTokenCount) isZero() bool {
 }
 
 func (Windsurf) stateDBModifiedAfter(dbPath string, after time.Time) bool {
-	if after.IsZero() {
-		return true
-	}
-
-	info, err := os.Stat(dbPath)
-	if err != nil {
-		return false
-	}
-
-	return timestampAtOrAfterCutoff(info.ModTime(), after)
+	return aiSQLiteModifiedAfter(dbPath, after)
 }
 
 func (Windsurf) stateDBPath(ctx context.Context) (string, error) {
@@ -242,7 +239,7 @@ func (Windsurf) stateDBPath(ctx context.Context) (string, error) {
 }
 
 func (Windsurf) queryRows(ctx context.Context, dbPath string) ([]windsurfLogRow, error) {
-	db, err := sql.Open("sqlite", dbPath)
+	db, err := openAISQLiteDB(ctx, dbPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed opening windsurf sqlite db %q: %s", dbPath, err)
 	}
@@ -295,6 +292,10 @@ ORDER BY json_extract(value, '$.createdAt') ASC;
 		)
 		if err := rows.Scan(&key, &row); err != nil {
 			return nil, fmt.Errorf("failed scanning windsurf sqlite row: %s", err)
+		}
+
+		if err := aiSQLiteRead(ctx, key, row); err != nil {
+			return nil, err
 		}
 
 		row = strings.TrimSpace(row)

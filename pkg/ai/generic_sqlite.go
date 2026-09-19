@@ -20,6 +20,9 @@ func parseGenericAISQLite(
 	ctx context.Context,
 	provider genericAIProvider,
 ) (Heartbeats, error) {
+	parseCtx, cancel := aiSQLiteContext(ctx)
+	defer cancel()
+
 	paths, err := genericAISQLitePaths(provider.parser, provider.config, provider.sqliteRoots)
 	if err != nil {
 		return nil, err
@@ -30,19 +33,26 @@ func parseGenericAISQLite(
 	var heartbeats Heartbeats
 
 	for _, path := range paths {
-		parsed, err := parseGenericAISQLiteDB(ctx, provider, path)
-		if err != nil {
-			logger.Warnf("failed parsing %s sqlite transcript %q: %s", provider.parser.Name(), path, err)
-			continue
-		}
-
+		parsed, err := parseGenericAISQLiteDB(parseCtx, provider, path)
 		heartbeats = append(heartbeats, parsed...)
+
+		if err != nil {
+			if ctx.Err() != nil {
+				return nil, ctx.Err()
+			}
+
+			logger.Warnf("failed parsing %s sqlite transcript %q: %s", provider.parser.Name(), path, err)
+
+			if parseCtx.Err() != nil {
+				break
+			}
+		}
 	}
 
 	return heartbeats, nil
 }
 
-func genericAISQLitePaths(parser Parser, config ParserConfig, roots []string) ([]string, error) {
+func genericAISQLitePaths(parser Parser, _ ParserConfig, roots []string) ([]string, error) {
 	var paths []string
 
 	seen := make(map[string]bool)
@@ -62,7 +72,7 @@ func genericAISQLitePaths(parser Parser, config ParserConfig, roots []string) ([
 		}
 
 		if !info.IsDir() {
-			if genericAISQLiteFilename(root) && timestampAtOrAfterCutoff(info.ModTime(), config.After) {
+			if genericAISQLiteFilename(root) {
 				paths = append(paths, root)
 			}
 
@@ -78,11 +88,8 @@ func genericAISQLitePaths(parser Parser, config ParserConfig, roots []string) ([
 				return nil
 			}
 
-			info, err := entry.Info()
-			if err == nil && timestampAtOrAfterCutoff(info.ModTime(), config.After) {
-				seen[path] = true
-				paths = append(paths, path)
-			}
+			seen[path] = true
+			paths = append(paths, path)
 
 			return nil
 		})
@@ -104,7 +111,7 @@ func parseGenericAISQLiteDB(
 	provider genericAIProvider,
 	path string,
 ) (Heartbeats, error) {
-	db, err := sql.Open("sqlite", path)
+	db, err := openAISQLiteDB(ctx, path)
 	if err != nil {
 		return nil, fmt.Errorf("failed opening db: %s", err)
 	}
@@ -115,23 +122,25 @@ func parseGenericAISQLiteDB(
 		return nil, err
 	}
 
+	if err := prepareGenericAISQLiteCursors(ctx, provider, path, tables); err != nil {
+		return nil, err
+	}
+
 	var heartbeats Heartbeats
 
 	logger := log.Extract(ctx)
 
 	for _, table := range tables {
 		parsed, err := parseGenericAISQLiteTable(ctx, provider, db, path, table)
+		heartbeats = append(heartbeats, parsed...)
+
 		if err != nil {
 			if ctxErr := ctx.Err(); ctxErr != nil {
-				return nil, ctxErr
+				return heartbeats, ctxErr
 			}
 
 			logger.Warnf("failed parsing %s sqlite table %q from %q: %s", provider.parser.Name(), table, path, err)
-
-			continue
 		}
-
-		heartbeats = append(heartbeats, parsed...)
 	}
 
 	return heartbeats, nil
@@ -185,62 +194,24 @@ func parseGenericAISQLiteTable(
 	path string,
 	table string,
 ) (Heartbeats, error) {
-	quotedTable := `"` + strings.ReplaceAll(table, `"`, `""`) + `"`
-	// Scan every row: timestamps may be nested in JSON, and older records can
-	// establish session metadata or cumulative counters needed by recent events.
-	query := "SELECT * FROM " + quotedTable // nolint:gosec
-
-	rows, err := db.QueryContext(ctx, query)
-	if err != nil {
-		return nil, fmt.Errorf("failed querying table %q: %s", table, err)
-	}
-	defer rows.Close() // nolint:errcheck
-
-	columns, err := rows.Columns()
-	if err != nil {
-		return nil, fmt.Errorf("failed reading columns for table %q: %s", table, err)
-	}
-
-	var scanErr error
-
-	values := func(yield func(any) bool) {
-		for rows.Next() {
-			row, err := genericAISQLiteRow(rows, columns)
-			if err != nil {
-				scanErr = fmt.Errorf("failed scanning table %q: %s", table, err)
-				return
-			}
-
-			expanded := []any{row}
-			if provider.containerKey != "" {
-				expanded = genericAISQLiteContainerValues(expanded, provider.containerKey)
-			}
-
-			for _, value := range expanded {
-				if !yield(value) {
-					return
-				}
-			}
-		}
-	}
-
-	heartbeats, err := genericAIHeartbeatsFromValues(ctx, provider, path, values)
+	rowID, err := genericAISQLiteRowID(ctx, db, table)
 	if err != nil {
 		return nil, err
 	}
 
-	if scanErr != nil {
-		return nil, scanErr
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("failed reading table %q: %s", table, err)
-	}
-
-	return heartbeats, nil
+	return parseGenericAISQLiteIncremental(ctx, provider, db, path, table, rowID)
 }
 
-func genericAISQLiteRow(rows *sql.Rows, columns []string) (map[string]any, error) {
+func genericAISQLiteRow(ctx context.Context, rows *sql.Rows, columns []string) (map[string]any, error) {
+	row, err := genericAISQLiteRawRow(ctx, rows, columns)
+	if err != nil {
+		return nil, err
+	}
+
+	return genericAISQLiteDecodeRow(row), nil
+}
+
+func genericAISQLiteRawRow(ctx context.Context, rows *sql.Rows, columns []string) (map[string]any, error) {
 	values := make([]any, len(columns))
 
 	destinations := make([]any, len(columns))
@@ -252,15 +223,39 @@ func genericAISQLiteRow(rows *sql.Rows, columns []string) (map[string]any, error
 		return nil, err
 	}
 
+	// Check before decoding: a single row may contain an entire conversation.
+	// A context deadline cannot interrupt encoding/json while it decodes a value.
+	var textValues []string
+
+	for _, value := range values {
+		switch typed := value.(type) {
+		case string:
+			textValues = append(textValues, typed)
+		case []byte:
+			textValues = append(textValues, string(typed))
+		}
+	}
+
+	if err := aiSQLiteRead(ctx, textValues...); err != nil {
+		return nil, err
+	}
+
 	result := make(map[string]any, len(columns))
 	for i, column := range columns {
-		if contents, ok := values[i].([]byte); ok {
-			result[column] = genericAIDecodedValue(string(contents))
-			continue
-		}
-
 		result[column] = values[i]
 	}
 
 	return result, nil
+}
+
+func genericAISQLiteDecodeRow(row map[string]any) map[string]any {
+	for column, value := range row {
+		if contents, ok := value.([]byte); ok {
+			row[column] = genericAIDecodedValue(string(contents))
+		} else {
+			row[column] = genericAICacheJSONText(value)
+		}
+	}
+
+	return row
 }

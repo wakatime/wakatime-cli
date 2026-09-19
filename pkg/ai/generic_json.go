@@ -51,10 +51,16 @@ type genericAIEvent struct {
 }
 
 type genericAISessionState struct {
-	event       genericAIEvent
-	input       int64
-	cachedInput int64
-	output      int64
+	CWD         string
+	Model       string
+	Input       int64
+	CachedInput int64
+	Output      int64
+}
+
+type genericAIParseState struct {
+	Sessions     map[string]genericAISessionState
+	LineCounters map[string]int
 }
 
 var genericAICWDPattern = regexp.MustCompile(
@@ -449,13 +455,32 @@ func genericAIHeartbeatsFromValues(
 	path string,
 	values iter.Seq[any],
 ) (Heartbeats, error) {
+	return genericAIHeartbeatsFromEvents(ctx, provider, path, genericAIEvents(path, values), &genericAIParseState{})
+}
+
+func genericAIHeartbeatsFromEvents(
+	ctx context.Context,
+	provider genericAIProvider,
+	path string,
+	events iter.Seq[genericAIEvent],
+	state *genericAIParseState,
+) (Heartbeats, error) {
 	defaultSessionID := genericAISessionID(path)
-	states := make(map[string]genericAISessionState)
-	lineCounters := make(map[string]int)
+
+	if state.Sessions == nil {
+		state.Sessions = make(map[string]genericAISessionState)
+	}
+
+	if state.LineCounters == nil {
+		state.LineCounters = make(map[string]int)
+	}
+
+	states := state.Sessions
+	lineCounters := state.LineCounters
 
 	var heartbeats Heartbeats
 
-	for event := range genericAIEvents(path, values) {
+	for event := range events {
 		if err := ctx.Err(); err != nil {
 			return nil, err
 		}
@@ -470,13 +495,12 @@ func genericAIHeartbeatsFromValues(
 
 		state := states[event.sessionID]
 
-		previous := state.event
 		if event.cwd == "" {
-			event.cwd = previous.cwd
+			event.cwd = state.CWD
 		}
 
 		if event.model == "" {
-			event.model = previous.model
+			event.model = state.Model
 		}
 
 		if event.filePath != "" && event.cwd != "" && !genericAIPathIsAbs(event.filePath) {
@@ -492,14 +516,14 @@ func genericAIHeartbeatsFromValues(
 			currentOutput := event.output
 
 			if insideCutoff {
-				event.input = nonNegativeDelta(currentInput, state.input)
-				event.cachedInput = nonNegativeDelta(currentCachedInput, state.cachedInput)
-				event.output = nonNegativeDelta(currentOutput, state.output)
+				event.input = nonNegativeDelta(currentInput, state.Input)
+				event.cachedInput = nonNegativeDelta(currentCachedInput, state.CachedInput)
+				event.output = nonNegativeDelta(currentOutput, state.Output)
 			}
 
-			state.input = currentInput
-			state.cachedInput = currentCachedInput
-			state.output = currentOutput
+			state.Input = currentInput
+			state.CachedInput = currentCachedInput
+			state.Output = currentOutput
 		}
 
 		if provider.lineCounterMode == genericAICumulativeCounters && event.lineChanges != nil {
@@ -514,7 +538,8 @@ func genericAIHeartbeatsFromValues(
 			}
 		}
 
-		state.event = event
+		state.CWD = event.cwd
+		state.Model = event.model
 
 		states[event.sessionID] = state
 		if !insideCutoff || !event.hasActivity() {
@@ -771,7 +796,32 @@ func genericAIFindDepth(value any, key string, depth int) any {
 	return nil
 }
 
+// Keep the original text for fields such as prompts, while sharing its decoded
+// representation across the many recursive field lookups for a SQLite row.
+type genericAIJSONText struct {
+	text    string
+	decoded any
+}
+
+func genericAICacheJSONText(value any) any {
+	text, ok := value.(string)
+	if !ok {
+		return value
+	}
+
+	trimmed := strings.TrimSpace(text)
+	if !strings.HasPrefix(trimmed, "{") && !strings.HasPrefix(trimmed, "[") {
+		return value
+	}
+
+	return genericAIJSONText{text: text, decoded: genericAIDecodedValue(text)}
+}
+
 func genericAIDecodedValue(value any) any {
+	if cached, ok := value.(genericAIJSONText); ok {
+		return cached.decoded
+	}
+
 	text, ok := value.(string)
 	if !ok {
 		return value
@@ -819,6 +869,8 @@ func genericAIEmpty(value any) bool {
 
 func genericAIString(value any) string {
 	switch typed := value.(type) {
+	case genericAIJSONText:
+		return strings.TrimSpace(typed.text)
 	case string:
 		return strings.TrimSpace(typed)
 	case json.Number:
@@ -1032,6 +1084,8 @@ func genericAIPrompt(value any) string {
 
 func genericAIContentText(value any) string {
 	switch typed := value.(type) {
+	case genericAIJSONText:
+		return strings.TrimSpace(typed.text)
 	case string:
 		return strings.TrimSpace(typed)
 	case map[string]any:
@@ -1079,11 +1133,11 @@ func genericAIToolIsWrite(tool string) bool {
 
 func genericAILineChanges(value any, isWrite bool) *int {
 	added, addedFound := genericAINumericField(
-		value, "lines_added", "linesAdded", "added_lines", "model_added_lines",
+		value, "lines_added", "linesAdded", "added_lines", "model_added_lines", "additions",
 	)
 
 	removed, removedFound := genericAINumericField(
-		value, "lines_removed", "linesRemoved", "removed_lines", "model_removed_lines",
+		value, "lines_removed", "linesRemoved", "removed_lines", "model_removed_lines", "deletions",
 	)
 	if addedFound || removedFound {
 		lineChanges := int(max(added, 0) + max(removed, 0))
@@ -1120,7 +1174,7 @@ func genericAILineChanges(value any, isWrite bool) *int {
 
 func genericAITimestampKeys() []string {
 	return []string{
-		"timestamp", "created_at", "createdAt", "updated_at", "updatedAt",
+		"timestamp", "created_at", "createdAt", "updated_at", "updatedAt", "time_updated", "time_created",
 		"completed_at", "completedAt", "ended_at", "endedAt", "started_at", "startedAt",
 		"end_time", "endTime", "start_time", "startTime", "ts", "time",
 	}

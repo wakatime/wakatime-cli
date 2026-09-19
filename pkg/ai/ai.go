@@ -264,6 +264,7 @@ func parseAIHeartbeats(
 	userAgents map[string]string,
 	config Config,
 ) (Heartbeats, error) {
+	ctx = aiSQLiteBudgetContext(ctx)
 	logger := log.Extract(ctx)
 
 	logs, resetLogs := captureAIParsingLogs(ctx)

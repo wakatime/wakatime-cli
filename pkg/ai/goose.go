@@ -50,6 +50,9 @@ type gooseMessageContent struct {
 
 // Parse parses the Goose SQLite session db for ai heartbeats.
 func (g Goose) Parse(ctx context.Context) (Heartbeats, error) {
+	ctx, cancel := aiSQLiteContext(ctx)
+	defer cancel()
+
 	dbPath, err := g.dbPath(ctx)
 	if err != nil {
 		return nil, err
@@ -141,22 +144,13 @@ func (Goose) dbPath(ctx context.Context) (string, error) {
 }
 
 func (Goose) dbModifiedAfter(dbPath string, after time.Time) bool {
-	if after.IsZero() {
-		return true
-	}
-
-	info, err := os.Stat(dbPath)
-	if err != nil {
-		return false
-	}
-
-	return timestampAtOrAfterCutoff(info.ModTime(), after)
+	return aiSQLiteModifiedAfter(dbPath, after)
 }
 
 func (g Goose) queryRows(ctx context.Context, dbPath string) ([]gooseSessionRow, error) {
 	logger := log.Extract(ctx)
 
-	db, err := sql.Open("sqlite", dbPath)
+	db, err := openAISQLiteDB(ctx, dbPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed opening goose sqlite db %q: %s", dbPath, err)
 	}
@@ -212,18 +206,29 @@ func (g Goose) queryRows(ctx context.Context, dbPath string) ([]gooseSessionRow,
 			return nil, fmt.Errorf("failed scanning goose sqlite row: %s", err)
 		}
 
+		var textValues []string
+		for _, value := range raw {
+			textValues = append(textValues, value.String)
+		}
+
+		if err := aiSQLiteRead(ctx, textValues...); err != nil {
+			return nil, err
+		}
+
 		row, ok := g.rowFromValues(selectColumns, raw)
 		if !ok || row.UpdatedAt.IsZero() || !timestampAtOrAfterCutoff(row.UpdatedAt, g.After) {
 			continue
 		}
-
-		row.Prompt = g.sessionPrompt(ctx, db, tables, row)
 
 		result = append(result, row)
 	}
 
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("failed reading goose sqlite rows: %s", err)
+	}
+
+	for i := range result {
+		result[i].Prompt = g.sessionPrompt(ctx, db, tables, result[i])
 	}
 
 	return result, nil
@@ -399,6 +404,10 @@ func gooseQueryLatestPrompt(ctx context.Context, db *sql.DB, query, id string) s
 		var raw sql.NullString
 		if err := rows.Scan(&raw); err != nil || !raw.Valid {
 			continue
+		}
+
+		if err := aiSQLiteRead(ctx, raw.String); err != nil {
+			return ""
 		}
 
 		if prompt := goosePromptFromContent(raw.String); prompt != "" {

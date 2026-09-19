@@ -110,6 +110,9 @@ type (
 
 // Parse parses the Cursor SQLite state db for ai heartbeats.
 func (g Cursor) Parse(ctx context.Context) (Heartbeats, error) {
+	ctx, cancel := aiSQLiteContext(ctx)
+	defer cancel()
+
 	logger := log.Extract(ctx)
 	cutoff := g.bufferedCutoff()
 
@@ -151,6 +154,10 @@ func (g Cursor) Parse(ctx context.Context) (Heartbeats, error) {
 	bubbleTokens := make(map[string]heartbeat.AITokens)
 
 	for _, row := range rows {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+
 		var logLine cursorLogLine
 		if err := json.Unmarshal([]byte(row.Value), &logLine); err != nil {
 			continue
@@ -313,16 +320,7 @@ func cursorFirstInt(values ...*int) *int {
 }
 
 func (Cursor) stateDBModifiedAfter(dbPath string, after time.Time) bool {
-	if after.IsZero() {
-		return true
-	}
-
-	info, err := os.Stat(dbPath)
-	if err != nil {
-		return false
-	}
-
-	return timestampAtOrAfterCutoff(info.ModTime(), after)
+	return aiSQLiteModifiedAfter(dbPath, after)
 }
 
 func (Cursor) stateDBPath(ctx context.Context) (string, error) {
@@ -348,7 +346,7 @@ func (Cursor) stateDBPath(ctx context.Context) (string, error) {
 }
 
 func (Cursor) openDB(dbPath string) (*sql.DB, error) {
-	db, err := sql.Open("sqlite", dbPath)
+	db, err := openAISQLiteDB(context.Background(), dbPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed opening cursor sqlite db %q: %s", dbPath, err)
 	}
@@ -438,6 +436,10 @@ ORDER BY json_extract(row.value, '$.createdAt') ASC;
 		)
 		if err := rows.Scan(&key, &row, &beforeContent, &afterContent); err != nil {
 			return nil, fmt.Errorf("failed scanning cursor sqlite row: %s", err)
+		}
+
+		if err := aiSQLiteRead(ctx, key, row, beforeContent.String, afterContent.String); err != nil {
+			return nil, err
 		}
 
 		row = strings.TrimSpace(row)
