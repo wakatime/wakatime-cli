@@ -85,6 +85,9 @@ const codyStorageKey = "sourcegraph.cody-ai"
 
 // Parse parses Cody chat history from VS Code global storage.
 func (g Cody) Parse(ctx context.Context) (Heartbeats, error) {
+	ctx, cancel := aiSQLiteContext(ctx)
+	defer cancel()
+
 	dbPaths, err := g.stateDBPaths(ctx)
 	if err != nil {
 		return nil, err
@@ -139,20 +142,11 @@ func (Cody) stateDBPaths(ctx context.Context) ([]string, error) {
 }
 
 func (Cody) stateDBModifiedAfter(dbPath string, after time.Time) bool {
-	if after.IsZero() {
-		return true
-	}
-
-	info, err := os.Stat(dbPath)
-	if err != nil {
-		return false
-	}
-
-	return timestampAtOrAfterCutoff(info.ModTime(), after)
+	return aiSQLiteModifiedAfter(dbPath, after)
 }
 
 func (Cody) queryStorage(ctx context.Context, dbPath string) (string, error) {
-	db, err := sql.Open("sqlite", dbPath)
+	db, err := openAISQLiteDB(ctx, dbPath)
 	if err != nil {
 		return "", fmt.Errorf("failed opening cody sqlite db %q: %s", dbPath, err)
 	}
@@ -172,6 +166,10 @@ LIMIT 1;
 
 	if err != nil {
 		return "", fmt.Errorf("failed querying cody sqlite db %q: %s", dbPath, err)
+	}
+
+	if err := aiSQLiteRead(ctx, value); err != nil {
+		return "", err
 	}
 
 	return strings.TrimSpace(value), nil

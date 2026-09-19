@@ -97,6 +97,9 @@ type (
 
 // Parse parses Qoder's local SQLite cache for ai heartbeats.
 func (g Qoder) Parse(ctx context.Context) (Heartbeats, error) {
+	ctx, cancel := aiSQLiteContext(ctx)
+	defer cancel()
+
 	dbPath, err := g.localDBPath(ctx)
 	if err != nil {
 		return nil, err
@@ -134,6 +137,10 @@ func (g Qoder) Parse(ctx context.Context) (Heartbeats, error) {
 	var heartbeats Heartbeats
 
 	for _, row := range rows {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+
 		timestamp := time.UnixMilli(row.CreatedAtMS)
 		if timestamp.IsZero() || !timestampAtOrAfterCutoff(timestamp, g.After) {
 			continue
@@ -177,16 +184,7 @@ func (Qoder) localDBPath(ctx context.Context) (string, error) {
 }
 
 func (Qoder) localDBModifiedAfter(dbPath string, after time.Time) bool {
-	if after.IsZero() {
-		return true
-	}
-
-	info, err := os.Stat(dbPath)
-	if err != nil {
-		return false
-	}
-
-	return timestampAtOrAfterCutoff(info.ModTime(), after)
+	return aiSQLiteModifiedAfter(dbPath, after)
 }
 
 func (g Qoder) afterUnixMilli() int64 {
@@ -198,7 +196,7 @@ func (g Qoder) afterUnixMilli() int64 {
 }
 
 func (Qoder) openDB(dbPath string) (*sql.DB, error) {
-	db, err := sql.Open("sqlite", dbPath)
+	db, err := openAISQLiteDB(context.Background(), dbPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed opening qoder sqlite db %q: %s", dbPath, err)
 	}
@@ -253,6 +251,12 @@ ORDER BY m.gmt_create ASC;
 			return nil, fmt.Errorf("failed scanning qoder sqlite row: %s", err)
 		}
 
+		if err := aiSQLiteRead(
+			ctx, row.SessionID, row.ProjectURI, row.RequestID, row.Role, row.ToolResult, row.TokenInfo,
+		); err != nil {
+			return nil, err
+		}
+
 		results = append(results, row)
 	}
 
@@ -291,6 +295,10 @@ ORDER BY m.session_id ASC, m.gmt_create ASC;
 		var row qoderPromptRow
 		if err := rows.Scan(&row.SessionID, &row.ProjectURI, &row.CreatedAtMS); err != nil {
 			return nil, fmt.Errorf("failed scanning qoder prompt sqlite row: %s", err)
+		}
+
+		if err := aiSQLiteRead(ctx, row.SessionID, row.ProjectURI); err != nil {
+			return nil, err
 		}
 
 		results = append(results, row)
