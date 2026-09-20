@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"iter"
@@ -21,20 +22,25 @@ import (
 )
 
 type genericAIProvider struct {
-	parser             Parser
-	config             ParserConfig
-	roots              []string
-	fileNames          map[string]bool
-	extensions         map[string]bool
-	sqliteRoots        []string
-	containerKey       string
-	preferMessagesFile bool
-	inputIncludesCache bool
-	tokenCounterMode   genericAICounterMode
-	lineCounterMode    genericAICounterMode
+	parser              Parser
+	config              ParserConfig
+	roots               []string
+	fileNames           map[string]bool
+	extensions          map[string]bool
+	sqliteRoots         []string
+	sqliteTables        []string
+	sqliteQuery         func(table, projection string) string
+	sqliteEvents        func(table string, row map[string]any) []genericAIEvent
+	sqliteParserVersion int
+	containerKey        string
+	preferMessagesFile  bool
+	inputIncludesCache  bool
+	tokenCounterMode    genericAICounterMode
+	lineCounterMode     genericAICounterMode
 }
 
 type genericAIEvent struct {
+	recordID    string
 	timestamp   time.Time
 	sessionID   string
 	model       string
@@ -61,6 +67,16 @@ type genericAISessionState struct {
 type genericAIParseState struct {
 	Sessions     map[string]genericAISessionState
 	LineCounters map[string]int
+	Records      map[string]genericAIRecordState
+}
+
+// Some SQLite providers update a request in place. Track each request separately
+// so a changed row emits only newly observed usage, even across parser runs.
+type genericAIRecordState struct {
+	Input       int64
+	CachedInput int64
+	Output      int64
+	PromptHash  string
 }
 
 var genericAICWDPattern = regexp.MustCompile(
@@ -463,20 +479,20 @@ func genericAIHeartbeatsFromEvents(
 	provider genericAIProvider,
 	path string,
 	events iter.Seq[genericAIEvent],
-	state *genericAIParseState,
+	parseState *genericAIParseState,
 ) (Heartbeats, error) {
 	defaultSessionID := genericAISessionID(path)
 
-	if state.Sessions == nil {
-		state.Sessions = make(map[string]genericAISessionState)
+	if parseState.Sessions == nil {
+		parseState.Sessions = make(map[string]genericAISessionState)
 	}
 
-	if state.LineCounters == nil {
-		state.LineCounters = make(map[string]int)
+	if parseState.LineCounters == nil {
+		parseState.LineCounters = make(map[string]int)
 	}
 
-	states := state.Sessions
-	lineCounters := state.LineCounters
+	states := parseState.Sessions
+	lineCounters := parseState.LineCounters
 
 	var heartbeats Heartbeats
 
@@ -542,6 +558,8 @@ func genericAIHeartbeatsFromEvents(
 		state.Model = event.model
 
 		states[event.sessionID] = state
+
+		event = genericAIRecordDelta(event, parseState)
 		if !insideCutoff || !event.hasActivity() {
 			continue
 		}
@@ -554,6 +572,34 @@ func genericAIHeartbeatsFromEvents(
 
 func nonNegativeDelta(current int64, previous int64) int64 {
 	return max(current-previous, 0)
+}
+
+func genericAIRecordDelta(event genericAIEvent, state *genericAIParseState) genericAIEvent {
+	if event.recordID == "" {
+		return event
+	}
+
+	if state.Records == nil {
+		state.Records = make(map[string]genericAIRecordState)
+	}
+
+	previous := state.Records[event.recordID]
+	current := genericAIRecordState{
+		Input:       max(previous.Input, event.input),
+		CachedInput: max(previous.CachedInput, event.cachedInput),
+		Output:      max(previous.Output, event.output),
+		PromptHash:  fmt.Sprintf("%x", sha256.Sum256([]byte(event.prompt))),
+	}
+	state.Records[event.recordID] = current
+	event.input = current.Input - previous.Input
+	event.cachedInput = current.CachedInput - previous.CachedInput
+
+	event.output = current.Output - previous.Output
+	if current.PromptHash == previous.PromptHash {
+		event.prompt = ""
+	}
+
+	return event
 }
 
 func genericAIEventFromValue(value any) genericAIEvent {
