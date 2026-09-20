@@ -26,6 +26,64 @@ func sqliteTestDB(t *testing.T) (*sql.DB, string) {
 	return db, path
 }
 
+func TestGenericAISQLitePaths(t *testing.T) {
+	root := t.TempDir()
+	nested := filepath.Join(root, "nested")
+	require.NoError(t, os.Mkdir(nested, 0o700))
+
+	var want []string
+
+	for _, name := range []string{"agent.db", "session.SQLITE", "history.sqlite3", "ignored.json", "agent.db-wal"} {
+		path := filepath.Join(nested, name)
+		require.NoError(t, os.WriteFile(path, nil, 0o600))
+
+		if name != "ignored.json" && name != "agent.db-wal" {
+			want = append(want, path)
+		}
+	}
+
+	got, err := genericAISQLitePaths(ZCode{}, ParserConfig{}, []string{"", filepath.Join(root, "missing"), root, nested})
+	require.NoError(t, err)
+	assert.ElementsMatch(t, want, got)
+
+	got, err = genericAISQLitePaths(ZCode{}, ParserConfig{}, []string{
+		filepath.Join(nested, "agent.db"), filepath.Join(nested, "ignored.json"), filepath.Join(nested, "agent.db-wal"),
+	})
+	require.NoError(t, err)
+	assert.Equal(t, []string{filepath.Join(nested, "agent.db")}, got)
+}
+
+func TestGenericAISQLiteContinuesAfterCorruptDatabase(t *testing.T) {
+	db, path := sqliteTestDB(t)
+	_, err := db.Exec(`CREATE TABLE events (payload TEXT)`)
+	require.NoError(t, err)
+	_, err = db.Exec(`INSERT INTO events VALUES (?)`,
+		`{"timestamp":"2026-09-06T12:00:00Z","session_id":"s","input_tokens":10}`)
+	require.NoError(t, err)
+
+	corrupt := filepath.Join(t.TempDir(), "corrupt.db")
+	require.NoError(t, os.WriteFile(corrupt, []byte("not a sqlite database"), 0o600))
+
+	provider := genericAIProvider{parser: ZCode{}, sqliteRoots: []string{corrupt, path}}
+	got, err := parseGenericAISQLite(t.Context(), provider)
+	require.NoError(t, err)
+	require.Len(t, got, 1)
+	assert.Equal(t, int64(10), got[0].AIInputTokens)
+	assert.Equal(t, "ZCode s", got[0].Entity)
+}
+
+func TestGenericAISQLitePropagatesCancellation(t *testing.T) {
+	_, path := sqliteTestDB(t)
+	require.NoError(t, os.WriteFile(path, nil, 0o600))
+
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+
+	got, err := parseGenericAISQLite(ctx, genericAIProvider{parser: ZCode{}, sqliteRoots: []string{path}})
+	require.ErrorIs(t, err, context.Canceled)
+	assert.Nil(t, got)
+}
+
 func TestGenericAISQLiteCursorResumesAfterBudget(t *testing.T) {
 	db, path := sqliteTestDB(t)
 	_, err := db.Exec(`CREATE TABLE events (payload TEXT)`)
