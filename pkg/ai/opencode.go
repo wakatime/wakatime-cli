@@ -265,6 +265,9 @@ func (g OpenCode) parseLegacySession(sessionPath string) (Heartbeats, error) {
 }
 
 func (g OpenCode) parseSQLite(ctx context.Context) (Heartbeats, error) {
+	ctx, cancel := aiSQLiteContext(ctx)
+	defer cancel()
+
 	dbPaths, err := openCodeSQLiteDBPaths(ctx)
 	if err != nil {
 		return nil, err
@@ -289,7 +292,7 @@ func (g OpenCode) parseSQLite(ctx context.Context) (Heartbeats, error) {
 }
 
 func (g OpenCode) parseSQLiteDB(ctx context.Context, dbPath string) (Heartbeats, error) {
-	db, err := sql.Open("sqlite", dbPath)
+	db, err := openAISQLiteDB(ctx, dbPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed opening OpenCode sqlite db %q: %s", dbPath, err)
 	}
@@ -349,6 +352,10 @@ FROM session;
 			return nil, fmt.Errorf("failed scanning OpenCode sqlite session row: %s", err)
 		}
 
+		if err := aiSQLiteRead(ctx, session.ID, session.Directory, session.Version); err != nil {
+			return nil, err
+		}
+
 		sessions[session.ID] = session
 	}
 
@@ -395,6 +402,10 @@ ORDER BY time_created ASC, id ASC;
 
 		if err := rows.Scan(&id, &sessionID, &data, &createdAt); err != nil {
 			return nil, nil, fmt.Errorf("failed scanning OpenCode sqlite message row: %s", err)
+		}
+
+		if err := aiSQLiteRead(ctx, id, sessionID, data); err != nil {
+			return nil, nil, err
 		}
 
 		var message openCodeMessageInfo
@@ -486,6 +497,10 @@ ORDER BY time_created DESC, id DESC;
 			continue
 		}
 
+		if err := aiSQLiteRead(ctx, id, sessionID, data); err != nil {
+			return err
+		}
+
 		var message openCodeMessageInfo
 		if err := json.Unmarshal([]byte(strings.TrimSpace(data)), &message); err != nil {
 			continue
@@ -555,6 +570,10 @@ ORDER BY time_created ASC, id ASC;
 
 		if _, ok := messageIDs[messageID]; !ok {
 			continue
+		}
+
+		if err := aiSQLiteRead(ctx, id, sessionID, data); err != nil {
+			return err
 		}
 
 		var part openCodePart
@@ -720,16 +739,7 @@ func openCodeSQLiteDBPaths(ctx context.Context) ([]string, error) {
 }
 
 func openCodeSQLiteDBModifiedAfter(dbPath string, after time.Time) bool {
-	if after.IsZero() {
-		return true
-	}
-
-	info, err := os.Stat(dbPath)
-	if err != nil {
-		return false
-	}
-
-	return timestampAtOrAfterCutoff(info.ModTime(), after)
+	return aiSQLiteModifiedAfter(dbPath, after)
 }
 
 func (g OpenCode) afterUnixMilli() int64 {
