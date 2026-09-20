@@ -23,16 +23,17 @@ const aiSQLiteBatchSize = 128
 // A scan is checkpointed after each complete row. Row hashes distinguish updates
 // from unchanged records when a changed database is scanned again.
 type genericAISQLiteCursor struct {
-	Version     int
-	RowID       *int64
-	Offset      int64
-	Cutoff      time.Time
-	Pending     bool
-	Rescan      bool
-	Fingerprint string
-	State       genericAIParseState
-	Hashes      map[string]string
-	ScanHashes  map[string]string
+	Version       int
+	ParserVersion int
+	RowID         *int64
+	Offset        int64
+	Cutoff        time.Time
+	Pending       bool
+	Rescan        bool
+	Fingerprint   string
+	State         genericAIParseState
+	Hashes        map[string]string
+	ScanHashes    map[string]string
 }
 
 const genericAISQLiteCursorVersion = 2
@@ -113,13 +114,16 @@ func prepareGenericAISQLiteCursors(
 			return err
 		}
 
-		if cursor.Version != genericAISQLiteCursorVersion {
+		if cursor.Version != genericAISQLiteCursorVersion || cursor.ParserVersion != provider.sqliteParserVersion {
 			cutoff := provider.config.After
-			if cursor.Pending && cursor.Cutoff.Before(cutoff) {
+			if (cursor.Pending || cursor.Rescan) && cursor.Cutoff.Before(cutoff) {
 				cutoff = cursor.Cutoff
 			}
 
-			cursor = genericAISQLiteCursor{Version: genericAISQLiteCursorVersion, Cutoff: cutoff, Pending: true}
+			cursor = genericAISQLiteCursor{
+				Version: genericAISQLiteCursorVersion, ParserVersion: provider.sqliteParserVersion,
+				Cutoff: cutoff, Pending: true,
+			}
 			if err := writeGenericAISQLiteCursor(cursorPath, cursor); err != nil {
 				return err
 			}
@@ -240,8 +244,12 @@ func parseGenericAISQLiteIncremental(
 		return nil, err
 	}
 
-	if cursor.Version != genericAISQLiteCursorVersion || provider.config.After.Before(cursor.Cutoff) {
-		cursor = genericAISQLiteCursor{Version: genericAISQLiteCursorVersion, Cutoff: provider.config.After}
+	if cursor.Version != genericAISQLiteCursorVersion || cursor.ParserVersion != provider.sqliteParserVersion ||
+		provider.config.After.Before(cursor.Cutoff) {
+		cursor = genericAISQLiteCursor{
+			Version: genericAISQLiteCursorVersion, ParserVersion: provider.sqliteParserVersion,
+			Cutoff: provider.config.After,
+		}
 	}
 
 	if !cursor.Pending && cursor.Fingerprint == fingerprint {
@@ -255,8 +263,10 @@ func parseGenericAISQLiteIncremental(
 		}
 
 		cursor = genericAISQLiteCursor{
-			Version: genericAISQLiteCursorVersion, Cutoff: cutoff, Pending: true,
+			Version: genericAISQLiteCursorVersion, ParserVersion: provider.sqliteParserVersion,
+			Cutoff: cutoff, Pending: true,
 			Hashes: cursor.Hashes,
+			State:  genericAIParseState{Records: cursor.State.Records},
 		}
 	}
 
@@ -383,6 +393,9 @@ func genericAISQLiteBatch(
 	}
 
 	query := "SELECT " + projection + " FROM " + aiSQLiteQuote(table) // nolint:gosec
+	if provider.sqliteQuery != nil {
+		query = provider.sqliteQuery(table, projection)
+	}
 
 	var args []any
 
@@ -465,7 +478,7 @@ func genericAISQLiteBatch(
 
 		hash := fmt.Sprintf("%x", digest.Sum(nil))
 
-		parsed, err := genericAISQLiteRowHeartbeats(provider, path, row, singleRow, &cursor.State)
+		parsed, err := genericAISQLiteRowHeartbeats(provider, path, table, row, singleRow, &cursor.State)
 		if err != nil {
 			return heartbeats, false, err
 		}
@@ -489,8 +502,13 @@ func genericAISQLiteBatch(
 }
 
 func genericAISQLiteRowHeartbeats(
-	provider genericAIProvider, path string, row map[string]any, singleRow bool, state *genericAIParseState,
+	provider genericAIProvider, path, table string, row map[string]any, singleRow bool, state *genericAIParseState,
 ) (Heartbeats, error) {
+	if provider.sqliteEvents != nil {
+		events := provider.sqliteEvents(table, row)
+		return genericAIHeartbeatsFromEvents(context.Background(), provider, path, slices.Values(events), state)
+	}
+
 	values := []any{genericAISQLiteDecodeRow(row)}
 	if provider.containerKey != "" {
 		values = genericAISQLiteContainerValues(values, provider.containerKey)

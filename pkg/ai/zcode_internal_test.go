@@ -5,6 +5,7 @@ package ai
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -151,6 +152,10 @@ func TestZCodeParseActualSQLiteSchema(t *testing.T) {
 	_, err = db.Exec(`UPDATE model_usage SET status='completed', completed_at=?,
  input_tokens=100, output_tokens=25, cache_read_input_tokens=40 WHERE id='usage'`, completed.UnixMilli())
 	require.NoError(t, err)
+	_, err = db.Exec(`UPDATE message SET time_updated=?, data=? WHERE id='m'`, completed.UnixMilli(),
+		`{"role":"assistant","modelID":"test-model","tokens":{
+		"input":100,"output":25,"reasoning":5,"cache":{"read":40,"write":10}}}`)
+	require.NoError(t, err)
 	_, err = db.Exec(`UPDATE tool_usage SET status='completed', completed_at=? WHERE id='tool'`, completed.UnixMilli())
 	require.NoError(t, err)
 
@@ -195,11 +200,264 @@ func TestZCodeParseActualSQLiteSchema(t *testing.T) {
 		}
 	}
 
-	assert.Equal(t, int64(100), input)
+	assert.Equal(t, int64(60), input)
 	assert.Equal(t, int64(25), output)
 	assert.Equal(t, int64(40), cached)
 	assert.Equal(t, 1, fileEdits)
 	got, err = parser.Parse(t.Context())
 	require.NoError(t, err)
 	assert.Empty(t, got)
+}
+
+func TestZCodeParseRequestUsageAndPrompts(t *testing.T) {
+	db, _, started := zCodeFixture(t)
+	insertMessage := func(id, data string) {
+		t.Helper()
+
+		_, err := db.Exec(`INSERT INTO message (id, session_id, time_created, time_updated, data)
+ VALUES (?, 's', ?, ?, ?)`, id, started.UnixMilli(), started.UnixMilli(), data)
+		require.NoError(t, err)
+	}
+	insertMessage("user", `{"role":"user"}`)
+	insertMessage("first", `{"role":"assistant","modelID":"GLM-5.3","tokens":{
+ "input":100,"output":25,"reasoning":5,"cache":{"read":40,"write":10}}}`)
+	// A smaller second request is not a reset of a session-wide counter.
+	insertMessage("second", `{"role":"assistant","tokens":{
+ "input":10,"output":4,"reasoning":2,"cache":{"read":2,"write":1}}}`)
+	// Guard against negative regular input and negative provider counters.
+	insertMessage("invalid-tokens", `{"role":"assistant","tokens":{
+ "input":2,"output":-1,"reasoning":-1,"cache":{"read":8}}}`)
+	insertMessage("malformed", `{broken`)
+
+	for _, table := range []string{"model_usage", "turn_usage"} {
+		columns, values := "", ""
+		if table == "model_usage" {
+			columns = "id, logical_request_id, query_source, provider_id, model_id,"
+			values = "'usage', 'request', 'interactive', 'provider', 'model',"
+		}
+
+		_, err := db.Exec("INSERT INTO " + table + " (" + columns + `
+ session_id, turn_id, status, started_at, completed_at, input_tokens, output_tokens,
+ reasoning_tokens, cache_read_input_tokens, cache_creation_input_tokens)
+ VALUES (` + values + ` 's', 'turn', 'completed', 1, 1, 100, 25, 5, 40, 10)`)
+		require.NoError(t, err)
+	}
+
+	parts := []struct {
+		message, data string
+	}{
+		{"user", `{"type":"text","text":"Hi 世界"}`},
+		{"user", `{"type":"text","text":" 👋 "}`},
+		{"user", `{"type":"text","text":"ignored","ignored":true}`},
+		{"user", `{"type":"text","text":"synthetic","synthetic":true}`},
+		{"user", `{"type":"text","text":"   "}`},
+		{"first", `{"type":"text","text":"assistant response"}`},
+		{"first", `{"type":"step-finish","tokens":{"input":100,"output":25,"cache":{"read":40}}}`},
+		{"missing", `{"type":"text","text":"orphan"}`},
+		{"user", `{broken`},
+	}
+	for i, part := range parts {
+		_, err := db.Exec(`INSERT INTO part (id, session_id, message_id, time_created, time_updated, data)
+ VALUES (?, 's', ?, ?, ?, ?)`, fmt.Sprint(i), part.message, started.UnixMilli(), started.UnixMilli(), part.data)
+		require.NoError(t, err)
+	}
+
+	parser := ZCode{After: started.Add(-time.Minute)}
+	got, err := parser.Parse(t.Context())
+	require.NoError(t, err)
+	require.Len(t, got, 5)
+	assertZCodeTotals(t, got, 68, 50, 29, 6)
+
+	for _, hb := range got {
+		assert.Equal(t, "s", hb.AISession)
+		assert.Equal(t, "ZCode s", hb.Entity)
+	}
+
+	assert.Contains(t, got[0].UserAgent, "GLM/5.3")
+
+	// Repeated scans and metadata-only updates must not replay usage or prompts.
+	got, err = parser.Parse(t.Context())
+	require.NoError(t, err)
+	assert.Empty(t, got)
+
+	updated := started.Add(time.Minute)
+	_, err = db.Exec(`UPDATE message SET time_updated=?; UPDATE part SET time_updated=?`,
+		updated.UnixMilli(), updated.UnixMilli())
+	require.NoError(t, err)
+
+	parser.After = started.Add(30 * time.Second)
+	got, err = parser.Parse(t.Context())
+	require.NoError(t, err)
+	assert.Empty(t, got)
+
+	// Only increases on the same request are new usage. Changing one request
+	// must not reset another request's baseline or recount its prompt.
+	_, err = db.Exec(`UPDATE message SET time_updated=?, data=? WHERE id='second'`,
+		updated.Add(time.Second).UnixMilli(), `{"role":"assistant","tokens":{
+ "input":30,"output":9,"reasoning":3,"cache":{"read":8,"write":1}}}`)
+	require.NoError(t, err)
+	got, err = parser.Parse(t.Context())
+	require.NoError(t, err)
+	require.Len(t, got, 1)
+	assertZCodeTotals(t, got, 14, 6, 5, 0)
+}
+
+func TestZCodeParseResumesRequestUsageAndPrompts(t *testing.T) {
+	db, path, started := zCodeFixture(t)
+	_, err := db.Exec(`WITH RECURSIVE ids(id) AS (
+ SELECT 1 UNION ALL SELECT id+1 FROM ids WHERE id<5001
+ ) INSERT INTO message (id, session_id, time_created, time_updated, data)
+ SELECT printf('message-%05d', id), 's', ?, ?,
+ '{"role":"assistant","tokens":{"input":10,"output":4,"reasoning":2,"cache":{"read":2}}}' FROM ids`,
+		started.UnixMilli(), started.UnixMilli())
+	require.NoError(t, err)
+	_, err = db.Exec(`INSERT INTO message (id, session_id, time_created, time_updated, data)
+ VALUES ('user', 's', ?, ?, '{"role":"user"}')`, started.UnixMilli(), started.UnixMilli())
+	require.NoError(t, err)
+	_, err = db.Exec(`WITH RECURSIVE ids(id) AS (
+ SELECT 1 UNION ALL SELECT id+1 FROM ids WHERE id<5001
+ ) INSERT INTO part (id, session_id, message_id, time_created, time_updated, data)
+ SELECT printf('part-%05d', id), 's', 'user', ?, ?, '{"type":"text","text":"Hi 世界"}' FROM ids`,
+		started.UnixMilli(), started.UnixMilli())
+	require.NoError(t, err)
+
+	provider := (ZCode{After: started.Add(-time.Minute)}).sqliteProvider(path)
+	// Force interruption inside a batch, after some complete rows. The real
+	// byte-budget path must checkpoint exactly the usage already returned.
+	ctx := aiSQLiteBudgetContext(t.Context())
+	ctx.Value(aiSQLiteBudgetKey{}).(*aiSQLiteBudget).bytes = aiSQLiteByteLimit - 1500
+	got, err := parseGenericAISQLiteDB(ctx, provider, path)
+	// The DB wrapper logs a per-table byte-limit error and returns the completed
+	// rows. Both tables must retain their original cutoff for the next run.
+	require.NoError(t, err)
+	require.NotEmpty(t, got)
+	require.Less(t, len(got), aiSQLiteBatchSize)
+
+	for _, table := range provider.sqliteTables {
+		cursorPath, err := genericAISQLiteCursorPath(t.Context(), provider, path, table)
+		require.NoError(t, err)
+		cursor, err := readGenericAISQLiteCursor(cursorPath)
+		require.NoError(t, err)
+		require.True(t, cursor.Pending)
+		require.Equal(t, provider.config.After, cursor.Cutoff)
+	}
+
+	provider.config.After = started.Add(time.Hour)
+
+	for range 100 {
+		ctx, cancel := aiSQLiteContext(t.Context())
+		more, parseErr := parseGenericAISQLiteDB(ctx, provider, path)
+		deadlineErr := ctx.Err()
+
+		cancel()
+
+		if parseErr != nil {
+			require.ErrorIs(t, parseErr, deadlineErr)
+		}
+
+		got = append(got, more...)
+		pending := false
+
+		for _, table := range provider.sqliteTables {
+			cursorPath, err := genericAISQLiteCursorPath(t.Context(), provider, path, table)
+			require.NoError(t, err)
+			cursor, err := readGenericAISQLiteCursor(cursorPath)
+			require.NoError(t, err)
+
+			pending = pending || cursor.Pending || cursor.Rescan
+		}
+
+		if !pending {
+			require.Len(t, got, 10002)
+			assertZCodeTotals(t, got, 5001*8, 5001*2, 5001*4, 5001*5)
+
+			return
+		}
+	}
+
+	t.Fatal("ZCode scan did not finish")
+}
+
+func TestZCodeParseUpgradesGenericCursors(t *testing.T) {
+	for _, scan := range []string{"complete", "pending", "rescan"} {
+		t.Run(scan, func(t *testing.T) {
+			db, path, started := zCodeFixture(t)
+			_, err := db.Exec(`INSERT INTO message (id, session_id, time_created, time_updated, data)
+ VALUES ('m', 's', ?, ?, '{"role":"assistant","tokens":{"input":10,"output":4,"cache":{"read":2}}}')`,
+				started.UnixMilli(), started.UnixMilli())
+			require.NoError(t, err)
+
+			oldProvider := genericAIProvider{parser: ZCode{}, config: ParserConfig{After: started.Add(-time.Minute)}}
+			_, err = parseGenericAISQLiteDB(t.Context(), oldProvider, path)
+			require.NoError(t, err)
+			cursorPath, err := genericAISQLiteCursorPath(t.Context(), oldProvider, path, "message")
+			require.NoError(t, err)
+			cursor, err := readGenericAISQLiteCursor(cursorPath)
+			require.NoError(t, err)
+
+			cursor.Pending = scan == "pending"
+			cursor.Rescan = scan == "rescan"
+			require.NoError(t, writeGenericAISQLiteCursor(cursorPath, cursor))
+
+			parser := ZCode{After: oldProvider.config.After}
+			if scan != "complete" {
+				parser.After = started.Add(time.Hour)
+			}
+			// No database write or fingerprint change: the parser version must
+			// invalidate old hashes while preserving unfinished scans' cutoffs.
+			got, err := parser.Parse(t.Context())
+			require.NoError(t, err)
+			require.Len(t, got, 1)
+			assertZCodeTotals(t, got, 8, 2, 4, 0)
+		})
+	}
+}
+
+func zCodeFixture(t *testing.T) (*sql.DB, string, time.Time) {
+	t.Helper()
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+	t.Setenv("WAKATIME_HOME", t.TempDir())
+
+	path := filepath.Join(home, ".zcode", "cli", "db", "db.sqlite")
+	require.NoError(t, os.MkdirAll(filepath.Dir(path), 0o700))
+	db, err := sql.Open("sqlite", path)
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, db.Close()) })
+
+	schema, err := os.ReadFile("testdata/zcode_schema.sql")
+	require.NoError(t, err)
+	_, err = db.Exec(string(schema))
+	require.NoError(t, err)
+
+	started := time.Date(2026, 9, 19, 12, 0, 0, 0, time.UTC)
+	_, err = db.Exec(`INSERT INTO session
+ (id, project_id, slug, directory, title, version, time_created, time_updated)
+ VALUES ('s', 'project', 'demo', ?, 'Not a user prompt', 'test', ?, ?)`,
+		filepath.Join(home, "project"), started.UnixMilli(), started.UnixMilli())
+	require.NoError(t, err)
+
+	return db, path, started
+}
+
+func assertZCodeTotals(t *testing.T, got Heartbeats, input, cached, output int64, prompt int) {
+	t.Helper()
+
+	var (
+		actualInput, actualCached, actualOutput int64
+		actualPrompt                            int
+	)
+
+	for _, hb := range got {
+		actualInput += hb.AIInputTokens
+		actualCached += hb.AICachedInputTokens
+		actualOutput += hb.AIOutputTokens
+		actualPrompt += hb.AIPromptLength
+	}
+
+	assert.Equal(t, input, actualInput)
+	assert.Equal(t, cached, actualCached)
+	assert.Equal(t, output, actualOutput)
+	assert.Equal(t, prompt, actualPrompt)
 }

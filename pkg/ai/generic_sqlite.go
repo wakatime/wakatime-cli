@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/wakatime/wakatime-cli/pkg/log"
@@ -120,6 +121,12 @@ func parseGenericAISQLiteDB(
 	tables, err := genericAISQLiteTables(ctx, db)
 	if err != nil {
 		return nil, err
+	}
+
+	if provider.sqliteTables != nil {
+		tables = slices.DeleteFunc(tables, func(table string) bool {
+			return !slices.Contains(provider.sqliteTables, table)
+		})
 	}
 
 	if err := prepareGenericAISQLiteCursors(ctx, provider, path, tables); err != nil {
