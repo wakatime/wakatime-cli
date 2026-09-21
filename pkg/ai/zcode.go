@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 // ZCode contains parameters for detecting heartbeats from ZCode logs.
@@ -38,18 +39,66 @@ func (g ZCode) sqliteProvider(dbPath string) genericAIProvider {
 // allowing the shared scanner to checkpoint, resume, and detect in-place updates.
 // In particular, parts are not filtered by their parent message's creation time:
 // a tool may finish after that message has fallen outside the cutoff.
-func zCodeSQLiteQuery(table, projection string) string {
+func zCodeSQLiteQuery(table, projection string, after time.Time) (string, []any) {
 	if table == "part" {
+		projection = strings.ReplaceAll(projection, "*", `id, session_id, time_created, time_updated,
+ `+zCodeSQLitePartData+` AS data`)
+
 		return "SELECT " + projection + `,
- (SELECT data FROM message WHERE id = part.message_id) AS zcode_message,
+ (SELECT ` + zCodeSQLiteParentData + ` FROM message WHERE id = part.message_id) AS zcode_message,
  (SELECT directory FROM session WHERE id = part.session_id) AS zcode_directory
- FROM part`
+ FROM part
+ WHERE (
+   COALESCE(NULLIF(time_updated, 0), time_created) >= ?
+   OR EXISTS (
+     SELECT 1 FROM message WHERE id = part.message_id
+     AND CASE WHEN json_valid(data) THEN json_extract(data, '$.role') = 'user' END
+   )
+ )`, []any{after.UnixMilli()}
 	}
+
+	projection = strings.ReplaceAll(projection, "*", `id, session_id, time_created, time_updated,
+ `+zCodeSQLiteMessageData+` AS data`)
 
 	return "SELECT " + projection + `,
  (SELECT directory FROM session WHERE id = message.session_id) AS zcode_directory
- FROM message`
+ FROM message WHERE 1=1`, nil
 }
+
+// Project only fields used for accounting. In particular, never transfer or
+// hash assistant response text, reasoning parts, or tool output.
+// Keep historical request counters and user prompts as deduplication baselines;
+// old assistant parts can be rejected using scalar timestamps before SQLite
+// reads their potentially very large data column.
+const zCodeSQLiteMessageFields = `
+ 'role', json_extract(data, '$.role'),
+ 'modelID', COALESCE(json_extract(data, '$.modelID'), json_extract(data, '$.modelId')),
+ 'path', json_extract(data, '$.path')`
+
+const zCodeSQLiteParentData = `CASE WHEN json_valid(data) THEN json_object(` + zCodeSQLiteMessageFields + `) END`
+
+const zCodeSQLiteMessageData = `CASE WHEN json_valid(data) THEN json_object(` + zCodeSQLiteMessageFields + `,
+ 'tokens', json_extract(data, '$.tokens')
+) END`
+
+const zCodeSQLitePartData = `CASE WHEN json_valid(data) THEN
+ CASE json_extract(data, '$.type')
+ WHEN 'text' THEN CASE WHEN EXISTS (
+   SELECT 1 FROM message WHERE id = part.message_id
+   AND CASE WHEN json_valid(data) THEN json_extract(data, '$.role') = 'user' END
+ ) THEN json_object(
+   'type', 'text', 'text', json_extract(data, '$.text'),
+   'ignored', data -> '$.ignored', 'synthetic', data -> '$.synthetic'
+ ) END
+ WHEN 'tool' THEN CASE WHEN json_extract(data, '$.state.status') = 'completed' THEN json_object(
+   'type', 'tool', 'tool', json_extract(data, '$.tool'),
+   'state', json_object(
+     'status', 'completed', 'input', json_extract(data, '$.state.input'),
+     'metadata', json_extract(data, '$.state.metadata')
+   )
+ ) END
+ END
+END`
 
 type zCodeMessage struct {
 	Role    string `json:"role"`
