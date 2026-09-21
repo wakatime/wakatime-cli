@@ -392,15 +392,16 @@ func genericAISQLiteBatch(
 		projection = rowID + ", *"
 	}
 
-	query := "SELECT " + projection + " FROM " + aiSQLiteQuote(table) // nolint:gosec
-	if provider.sqliteQuery != nil {
-		query = provider.sqliteQuery(table, projection)
-	}
+	query := "SELECT " + projection + " FROM " + aiSQLiteQuote(table) + " WHERE 1=1" // nolint:gosec
 
 	var args []any
 
+	if provider.sqliteQuery != nil {
+		query, args = provider.sqliteQuery(table, projection, provider.config.After)
+	}
+
 	if rowID != "" && cursor.RowID != nil {
-		query += " WHERE " + rowID + " > ?"
+		query += " AND " + rowID + " > ?"
 
 		args = append(args, *cursor.RowID)
 	}

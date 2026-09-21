@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -413,7 +414,146 @@ func TestZCodeParseUpgradesGenericCursors(t *testing.T) {
 	}
 }
 
-func zCodeFixture(t *testing.T) (*sql.DB, string, time.Time) {
+func TestZCodeParseSkipsHistoricalPayloads(t *testing.T) {
+	db, path, started := zCodeFixture(t)
+
+	var project string
+	require.NoError(t, db.QueryRow(`SELECT directory FROM session WHERE id='s'`).Scan(&project))
+
+	_, err := db.Exec(`INSERT INTO message (id, session_id, time_created, time_updated, data)
+ VALUES ('m', 's', ?, ?, '{"role":"assistant","tokens":{"input":10,"output":4}}')`,
+		started.UnixMilli(), started.UnixMilli())
+	require.NoError(t, err)
+
+	// This row exceeds even SQLite's per-value limit. Filtering it by scalar
+	// timestamps must happen before reading data or invoking any JSON function.
+	_, err = db.Exec(`INSERT INTO part (id, message_id, session_id, time_created, time_updated, data)
+ VALUES ('old', 'm', 's', ?, ?, ?)`, started.UnixMilli(), started.UnixMilli(),
+		`{"type":"text","text":"`+strings.Repeat("x", maxTranscriptLineSize+1)+`"}`)
+	require.NoError(t, err)
+
+	provider := (ZCode{After: started.Add(time.Minute)}).sqliteProvider(path)
+	ctx := aiSQLiteBudgetContext(t.Context())
+	got, err := parseGenericAISQLiteDB(ctx, provider, path)
+	require.NoError(t, err)
+	require.Empty(t, got)
+	assertZCodeScanCompleted(t, provider, path)
+	assert.Less(t, ctx.Value(aiSQLiteBudgetKey{}).(*aiSQLiteBudget).bytes, int64(1024))
+
+	// The same rowid can become a completed edit after its parent message has
+	// aged out. The timestamp predicate must use the part, not the message.
+	updated := started.Add(2 * time.Minute)
+	_, err = db.Exec(`UPDATE part SET time_updated=?, data=? WHERE id='old'`, updated.UnixMilli(),
+		`{"type":"tool","tool":"Edit","state":{"status":"completed",`+
+			`"input":{"file_path":"main.go"},"metadata":{"display":{"additions":2,"deletions":1}}}}`)
+	require.NoError(t, err)
+	got, err = parseGenericAISQLiteDB(aiSQLiteBudgetContext(t.Context()), provider, path)
+	require.NoError(t, err)
+	require.Len(t, got, 2)
+	require.NotNil(t, got[1].AILineChanges)
+	assert.Equal(t, 3, *got[1].AILineChanges)
+	assert.Equal(t, filepath.ToSlash(filepath.Join(project, "main.go")), got[1].Entity)
+	assert.Equal(t, float64(updated.Unix()), got[1].Time)
+	assertZCodeScanCompleted(t, provider, path)
+
+	// Historical request counters still seed later token deltas.
+	_, err = db.Exec(`UPDATE message SET time_updated=?, data=? WHERE id='m'`, updated.UnixMilli(),
+		`{"role":"assistant","tokens":{"input":25,"output":9}}`)
+	require.NoError(t, err)
+	got, err = parseGenericAISQLiteDB(aiSQLiteBudgetContext(t.Context()), provider, path)
+	require.NoError(t, err)
+	require.Len(t, got, 1) // A parent's token update must not replay a file edit.
+	assertZCodeTotals(t, got, 15, 0, 5, 0)
+}
+
+func TestZCodeParseProjectsLargeRecentParts(t *testing.T) {
+	db, path, started := zCodeFixture(t)
+	_, err := db.Exec(`INSERT INTO message (id, session_id, time_created, time_updated, data)
+ VALUES ('m', 's', ?, ?, '{"role":"assistant","tokens":{"input":10,"output":4}}')`,
+		started.UnixMilli(), started.UnixMilli())
+	require.NoError(t, err)
+
+	output := strings.Repeat("x", 1024*1024)
+	_, err = db.Exec(`WITH RECURSIVE ids(id) AS (
+ SELECT 1 UNION ALL SELECT id+1 FROM ids WHERE id<70
+ ) INSERT INTO part (id, message_id, session_id, time_created, time_updated, data)
+ SELECT printf('p-%03d', id), 'm', 's', ?, ?,
+ CASE WHEN id%2=0 THEN json_object('type', 'text', 'text', ?)
+ ELSE json_object('type', 'tool', 'tool', 'Read', 'state',
+   json_object('status', 'completed', 'input', json_object('file_path', 'main.go'), 'output', ?)) END
+ FROM ids`, started.UnixMilli(), started.UnixMilli(), output, output)
+	require.NoError(t, err)
+
+	provider := (ZCode{After: started.Add(-time.Minute)}).sqliteProvider(path)
+	ctx := aiSQLiteBudgetContext(t.Context())
+	got, err := parseGenericAISQLiteDB(ctx, provider, path)
+	require.NoError(t, err)
+	assertZCodeTotals(t, got, 10, 0, 4, 0)
+	require.Len(t, got, 71) // One usage heartbeat and 35 app/file read pairs.
+	assertZCodeScanCompleted(t, provider, path)
+	assert.Less(t, ctx.Value(aiSQLiteBudgetKey{}).(*aiSQLiteBudget).bytes, int64(64*1024))
+
+	// Unrelated writes must not make these unchanged payloads exhaust the
+	// budget on every subsequent heartbeat, or replay existing activity.
+	_, err = db.Exec(`UPDATE session SET title='changed'`)
+	require.NoError(t, err)
+	ctx = aiSQLiteBudgetContext(t.Context())
+	got, err = parseGenericAISQLiteDB(ctx, provider, path)
+	require.NoError(t, err)
+	assert.Empty(t, got)
+	assertZCodeScanCompleted(t, provider, path)
+	assert.Less(t, ctx.Value(aiSQLiteBudgetKey{}).(*aiSQLiteBudget).bytes, int64(64*1024))
+}
+
+func assertZCodeScanCompleted(t testing.TB, provider genericAIProvider, path string) {
+	t.Helper()
+
+	for _, table := range provider.sqliteTables {
+		cursorPath, err := genericAISQLiteCursorPath(t.Context(), provider, path, table)
+		require.NoError(t, err)
+		cursor, err := readGenericAISQLiteCursor(cursorPath)
+		require.NoError(t, err)
+		assert.False(t, cursor.Pending, "%s scan did not finish", table)
+		assert.False(t, cursor.Rescan, "%s scan needs another pass", table)
+	}
+}
+
+func BenchmarkZCodeSQLiteLargeParts(b *testing.B) {
+	db, path, started := zCodeFixture(b)
+	_, err := db.Exec(`INSERT INTO message (id, session_id, time_created, time_updated, data)
+ VALUES ('m', 's', ?, ?, '{"role":"assistant","tokens":{"input":10,"output":4}}')`,
+		started.UnixMilli(), started.UnixMilli())
+	require.NoError(b, err)
+
+	output := strings.Repeat("x", 1024*1024)
+	_, err = db.Exec(`WITH RECURSIVE ids(id) AS (
+ SELECT 1 UNION ALL SELECT id+1 FROM ids WHERE id<834
+ ) INSERT INTO part (id, message_id, session_id, time_created, time_updated, data)
+ SELECT printf('p-%04d', id), 'm', 's', ?, ?,
+ CASE WHEN id%2=0 THEN json_object('type', 'text', 'text', ?)
+ ELSE json_object('type', 'tool', 'tool', 'Read', 'state',
+   json_object('status', 'completed', 'input', json_object('file_path', 'main.go'), 'output', ?)) END
+ FROM ids`, started.UnixMilli(), started.UnixMilli(), output, output)
+	require.NoError(b, err)
+
+	provider := (ZCode{After: started.Add(-time.Minute)}).sqliteProvider(path)
+
+	for b.Loop() {
+		// First iteration has cold cursors; later iterations mimic a busy agent
+		// changing unrelated database content between heartbeats.
+		_, err := db.Exec(`UPDATE session SET time_updated=time_updated+1`)
+		require.NoError(b, err)
+		ctx, cancel := aiSQLiteContext(b.Context())
+		_, err = parseGenericAISQLiteDB(ctx, provider, path)
+		require.NoError(b, err)
+		require.NoError(b, ctx.Err())
+		cancel()
+		assertZCodeScanCompleted(b, provider, path)
+		b.ReportMetric(float64(ctx.Value(aiSQLiteBudgetKey{}).(*aiSQLiteBudget).bytes)/1024, "KiB/read")
+	}
+}
+
+func zCodeFixture(t testing.TB) (*sql.DB, string, time.Time) {
 	t.Helper()
 	home := t.TempDir()
 	t.Setenv("HOME", home)

@@ -29,7 +29,7 @@ type genericAIProvider struct {
 	extensions          map[string]bool
 	sqliteRoots         []string
 	sqliteTables        []string
-	sqliteQuery         func(table, projection string) string
+	sqliteQuery         func(table, projection string, after time.Time) (string, []any)
 	sqliteEvents        func(table string, row map[string]any) []genericAIEvent
 	sqliteParserVersion int
 	containerKey        string
