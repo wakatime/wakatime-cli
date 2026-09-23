@@ -40,20 +40,21 @@ type genericAIProvider struct {
 }
 
 type genericAIEvent struct {
-	recordID    string
-	timestamp   time.Time
-	sessionID   string
-	model       string
-	cwd         string
-	prompt      string
-	filePath    string
-	toolName    string
-	input       int64
-	cachedInput int64
-	output      int64
-	lineChanges *int
-	isWrite     bool
-	tokensFound bool
+	observeGrowth bool
+	recordID      string
+	timestamp     time.Time
+	sessionID     string
+	model         string
+	cwd           string
+	prompt        string
+	filePath      string
+	toolName      string
+	input         int64
+	cachedInput   int64
+	output        int64
+	lineChanges   *int
+	isWrite       bool
+	tokensFound   bool
 }
 
 type genericAISessionState struct {
@@ -559,7 +560,14 @@ func genericAIHeartbeatsFromEvents(
 
 		states[event.sessionID] = state
 
+		_, observed := parseState.Records[event.recordID]
+
 		event = genericAIRecordDelta(event, parseState)
+		if event.observeGrowth && observed && (event.input > 0 || event.cachedInput > 0 || event.output > 0) {
+			event.timestamp = time.Now().UTC()
+			insideCutoff = timestampAtOrAfterCutoff(event.timestamp, provider.config.After)
+		}
+
 		if !insideCutoff || !event.hasActivity() {
 			continue
 		}

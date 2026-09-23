@@ -29,6 +29,7 @@ type (
 	}
 
 	copilotCLIParseState struct {
+		legStart         time.Time
 		sessionID        string
 		sessionEntity    string
 		cwd              string
@@ -343,6 +344,9 @@ func (g Copilot) handleCLITranscriptLine(
 		g.handleCLIToolExecutionStart(event, state)
 	case "tool.execution_complete":
 		g.handleCLIToolExecutionComplete(event, state)
+	case "session.compaction_complete":
+		state.tokens = heartbeat.AITokens{}
+		state.legStart = event.Timestamp
 	case "session.shutdown":
 		g.handleCLIShutdown(event, state)
 	}
@@ -359,6 +363,8 @@ func (g Copilot) handleCLIStart(event copilotCLIEvent, state *copilotCLIParseSta
 		state.sessionEntity = appHeartbeatEntity(g.Name(), data.SessionID)
 	}
 
+	state.tokens = heartbeat.AITokens{}
+	state.legStart = event.Timestamp
 	state.cliVersion = firstNonEmptyString(data.CopilotVersion, state.cliVersion)
 	state.agentVersion = firstNonEmptyString(data.CopilotVersion, state.agentVersion)
 	state.cwd = firstNonEmptyString(data.Context.Cwd, state.cwd)
@@ -506,6 +512,9 @@ func (g Copilot) handleCLIToolExecutionComplete(event copilotCLIEvent, state *co
 }
 
 func (g Copilot) handleCLIShutdown(event copilotCLIEvent, state *copilotCLIParseState) {
+	legStart := state.legStart
+	state.legStart = event.Timestamp
+
 	var data copilotCLIShutdownData
 	if err := json.Unmarshal(event.Data, &data); err != nil {
 		return
@@ -570,6 +579,7 @@ func (g Copilot) handleCLIShutdown(event copilotCLIEvent, state *copilotCLIParse
 	if hasTokenDelta || hasCodeChanges || len(state.heartbeats) > 0 {
 		state.heartbeats = append(state.heartbeats, copilotTimedHeartbeat{
 			timestamp: event.Timestamp,
+			shutdown:  true, legStart: legStart,
 			heartbeat: g.cliAppHeartbeat(
 				state.sessionEntity,
 				state.sessionID,

@@ -519,3 +519,41 @@ func TestGenericAISQLiteInsertBeforePendingOffset(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, got, 1)
 }
+
+func TestAISQLiteReadOnlyWithLiveWAL(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "agent # percent %.db")
+	writer, err := sql.Open("sqlite", path)
+	require.NoError(t, err)
+
+	defer writer.Close() // nolint:errcheck
+
+	writer.SetMaxOpenConns(1)
+	_, err = writer.Exec(`PRAGMA journal_mode=WAL; PRAGMA wal_autocheckpoint=0;
+ CREATE TABLE events(value INTEGER); INSERT INTO events VALUES(1);`)
+	require.NoError(t, err)
+	reader, err := openAISQLiteDB(t.Context(), path)
+	require.NoError(t, err)
+
+	defer reader.Close() // nolint:errcheck
+
+	var value int
+	require.NoError(t, reader.QueryRow("SELECT value FROM events").Scan(&value))
+	assert.Equal(t, 1, value)
+
+	_, err = reader.Exec("INSERT INTO events VALUES(2)")
+	require.Error(t, err)
+	_, err = writer.Exec("UPDATE events SET value=3")
+	require.NoError(t, err)
+	require.NoError(t, reader.QueryRow("SELECT value FROM events").Scan(&value))
+	assert.Equal(t, 3, value)
+	missing := filepath.Join(t.TempDir(), "missing.db")
+
+	db, err := openAISQLiteDB(t.Context(), missing)
+	if db != nil {
+		require.NoError(t, db.Close())
+	}
+
+	require.Error(t, err)
+	_, err = os.Stat(missing)
+	assert.True(t, os.IsNotExist(err))
+}

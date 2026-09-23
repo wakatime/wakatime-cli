@@ -1,0 +1,7 @@
+{"type":"session","version":3,"id":"current","isSeeded":true}
+{"type":"request/header","seq":0,"data":{"header":{"config":{"model":"deepseek-v4"}}}}
+{"type":"assistant/message","seq":1,"time":1800000000000,"data":{"usage":{"inputTokens":999}}}
+{"type":"session/end-seed","seq":2,"data":{"inherited":true}}
+{"type":"assistant/attempt","seq":3,"time":1800000001000,"data":{"turn":1,"step":1,"stream":[{"type":"chunk","chunk":{"type":"usage","usage":{"inputTokens":10,"outputTokens":3}}}]}}
+{"type":"assistant/attempt","seq":4,"time":1800000002000,"data":{"turn":1,"step":2,"stream":[{"type":"chunk","chunk":{"type":"usage","usage":{"inputTokens":20,"outputTokens":5}}}]}}
+{"type":"assistant/message","seq":5,"time":1800000003000,"data":{"turn":1,"step":1,"usage":{"inputTokens":12,"outputTokens":4}}}

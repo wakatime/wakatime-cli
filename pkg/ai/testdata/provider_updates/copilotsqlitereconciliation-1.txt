@@ -1,0 +1,4 @@
+CREATE TABLE sessions(id TEXT,cwd TEXT,created_at TEXT);
+ CREATE TABLE assistant_usage_events(id INTEGER,session_id TEXT,model TEXT,input_tokens INTEGER,cache_read_tokens INTEGER,created_at TEXT,initiator TEXT,output_tokens INTEGER);
+ INSERT INTO sessions VALUES ('one','/project','2026-09-20T10:00:00Z');
+ INSERT INTO assistant_usage_events VALUES (1,'one','claude-4',100,20,'2026-09-20T10:00:01Z',NULL,10),(2,'one','claude-4',50,5,'2026-09-20T10:00:02Z','compaction',7);

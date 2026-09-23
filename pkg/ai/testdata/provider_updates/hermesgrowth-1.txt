@@ -1,0 +1,2 @@
+CREATE TABLE sessions(id TEXT PRIMARY KEY,model TEXT,started_at REAL,ended_at REAL,input_tokens INTEGER,cache_read_tokens INTEGER,cache_write_tokens INTEGER,output_tokens INTEGER,reasoning_tokens INTEGER);
+ INSERT INTO sessions VALUES ('one','claude-4',1700000000,1700000010,100,20,5,10,3);

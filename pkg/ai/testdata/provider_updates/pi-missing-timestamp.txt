@@ -1,0 +1,2 @@
+{"type":"session","id":"one","cwd":"/project"}
+{"type":"message","timestamp":"bad","message":{"role":"assistant","model":"claude-4","content":[{"type":"text","text":"done"}],"usage":{"input":10,"output":5}}}

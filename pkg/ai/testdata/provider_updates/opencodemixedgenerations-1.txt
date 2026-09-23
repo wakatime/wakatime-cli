@@ -1,0 +1,11 @@
+CREATE TABLE session(id TEXT,directory TEXT,version TEXT);
+ CREATE TABLE message(id TEXT,session_id TEXT,time_created INTEGER,data TEXT);
+ CREATE TABLE part(id TEXT,message_id TEXT,session_id TEXT,time_created INTEGER,data TEXT);
+ CREATE TABLE session_v2(id TEXT,directory TEXT,parent_id TEXT,time_archived INTEGER);
+ CREATE TABLE session_message(id TEXT,session_id TEXT,type TEXT,seq INTEGER,time_created INTEGER,data BLOB);
+ INSERT INTO session VALUES ('migrated','/project','1'),('legacy','/project','1');
+ INSERT INTO message VALUES ('old','migrated',1800000000000,'{"role":"assistant","tokens":{"input":999,"output":999}}'),
+ ('legacy-msg','legacy',1800000000000,'{"role":"assistant","tokens":{"input":7,"output":3}}');
+ INSERT INTO session_v2 VALUES ('migrated','/project',NULL,1800000000000),('child','/project','migrated',NULL);
+ INSERT INTO session_message VALUES ('new','migrated','assistant',1,1800000000000,'{"model":{"id":"claude-4","providerID":"anthropic"},"tokens":{"input":100,"output":10,"reasoning":2,"cache":{"read":4,"write":5}},"content":[{"type":"tool","name":"write","state":{"status":"completed","input":{"filePath":"main.go","content":"hello"}}}]}'),
+ ('compact','child','compaction',2,1800000001000,'{"model":{"id":"claude-4","providerID":"anthropic"},"tokens":{"input":20,"output":5}}');

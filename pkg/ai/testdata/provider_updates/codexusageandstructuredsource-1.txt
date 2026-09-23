@@ -1,0 +1,7 @@
+{"timestamp":"2026-09-20T10:01:00Z","type":"session_meta","payload":{"id":"child","cwd":"/project","source":{"subagent":{"thread_spawn":{"parent_thread_id":"parent"}}},"cli_version":"1.2.3"}}
+{"timestamp":"2026-09-20T10:00:00Z","type":"event_msg","payload":{"type":"user_message","message":"inherited"}}
+{"timestamp":"2026-09-20T10:00:01Z","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":100,"output_tokens":50}}}}
+{"timestamp":"2026-09-20T10:01:01Z","type":"event_msg","payload":{"type":"user_message","message":"new"}}
+{"timestamp":"2026-09-20T10:01:02Z","type":"event_msg","payload":{"type":"token_count","info":{"last_token_usage":{"input_tokens":10,"cached_input_tokens":2,"output_tokens":3}}}}
+{"timestamp":"2026-09-20T10:01:03Z","type":"event_msg","payload":{"type":"token_count","info":{"last_token_usage":{"input_tokens":10,"cached_input_tokens":2,"output_tokens":3}}}}
+{"timestamp":"2026-09-20T10:01:04Z","type":"event_msg","payload":{"type":"token_count","info":{"last_token_usage":{"input_tokens":20,"cached_input_tokens":5,"output_tokens":4}}}}

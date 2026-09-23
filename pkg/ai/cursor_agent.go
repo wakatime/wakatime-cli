@@ -16,8 +16,14 @@ func (g CursorAgent) Parse(ctx context.Context) (Heartbeats, error) {
 	}
 
 	root := filepath.Join(home, ".cursor")
+
+	transcriptRoots, err := immediateChildPaths(filepath.Join(root, "projects"), "agent-transcripts")
+	if err != nil {
+		return nil, err
+	}
+
 	paths := genericAIPaths{
-		roots:       []string{filepath.Join(root, "projects")},
+		roots:       transcriptRoots,
 		extensions:  []string{".jsonl", ".txt"},
 		sqliteRoots: []string{filepath.Join(root, "ai-tracking", "ai-code-tracking.db")},
 	}
