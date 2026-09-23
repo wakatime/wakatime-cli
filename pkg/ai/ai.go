@@ -139,6 +139,10 @@ const (
 	DeepSeekParser
 	// CodeBuddyCodeParser is the parser ID for Tencent CodeBuddy Code.
 	CodeBuddyCodeParser
+	// OpenClaudeParser identifies OpenClaude transcripts.
+	OpenClaudeParser
+	// GrokBotParser identifies Grok Bot desktop activity.
+	GrokBotParser
 )
 
 type (
@@ -265,12 +269,15 @@ func parseAIHeartbeats(
 	config Config,
 ) (Heartbeats, error) {
 	ctx = aiSQLiteBudgetContext(ctx)
+	ctx = context.WithValue(ctx, wslHomesKey{}, wslHomes(ctx))
 	logger := log.Extract(ctx)
 
 	logs, resetLogs := captureAIParsingLogs(ctx)
 	defer resetLogs()
 
 	var parsers = []Parser{
+		OpenClaude{After: after, UserAgents: userAgents, FallbackUserAgent: config.Plugin},
+		GrokBot{After: after, UserAgents: userAgents, FallbackUserAgent: config.Plugin},
 		Claude{
 			After:             after,
 			UserAgents:        userAgents,

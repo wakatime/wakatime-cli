@@ -483,6 +483,19 @@ func (Claude) configPaths(ctx context.Context) ([]string, error) {
 }
 
 func claudeConfigDirs(ctx context.Context) ([]string, error) {
+	dirs, err := claudeConfiguredDirs(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, home := range wslHomes(ctx) {
+		dirs = append(dirs, filepath.Join(home, ".claude"))
+	}
+
+	return dirs, nil
+}
+
+func claudeConfiguredDirs(ctx context.Context) ([]string, error) {
 	if raw := os.Getenv("CLAUDE_CONFIG_DIR"); raw != "" {
 		dirs := make([]string, 0, strings.Count(raw, ",")+1)
 		seen := make(map[string]bool)
@@ -695,7 +708,7 @@ func (g Claude) parseTranscript(ctx context.Context, transcript string) (Heartbe
 		return nil, fmt.Errorf("failed reading claude transcript %q: %s", transcript, err)
 	}
 
-	return heartbeats, nil
+	return translateWSLHeartbeats(transcript, heartbeats), nil
 }
 
 func claudeNormalizeSubscriptionPlan(value string) string {

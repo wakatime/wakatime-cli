@@ -21,16 +21,21 @@ type Codex ParserConfig
 
 type (
 	codexSessionState struct {
-		cwd     string
-		entity  string
-		id      string
-		source  string
-		version string
+		cwd      string
+		entity   string
+		id       string
+		source   string
+		version  string
+		parentID string
+		created  time.Time
 	}
 
 	codexParseState struct {
 		heartbeats                    Heartbeats
 		tokens                        heartbeat.AITokens
+		lastUsageIdentity             string
+		seenUsage                     map[string]bool
+		usageOwner                    string
 		pendingPatches                map[string]codexPendingPatch
 		subscriptionPlan              string
 		model                         string
@@ -52,12 +57,14 @@ type (
 	}
 
 	codexSessionMeta struct {
-		Type    string `json:"type"`
-		Payload *struct {
-			ID      *string `json:"id"`
-			Cwd     *string `json:"cwd"`
-			Source  *string `json:"source"`
-			Version *string `json:"cli_version"`
+		Type      string    `json:"type"`
+		Timestamp time.Time `json:"timestamp"`
+		Payload   *struct {
+			ID           *string         `json:"id"`
+			Cwd          *string         `json:"cwd"`
+			Source       json.RawMessage `json:"source"`
+			ForkedFromID string          `json:"forked_from_id"`
+			Version      *string         `json:"cli_version"`
 		} `json:"payload"`
 	}
 
@@ -90,6 +97,7 @@ type (
 	}
 
 	codexPayloadTokenCountInfo struct {
+		LastTokenUsage     *codexPayloadTokenCountInfoUsage `json:"last_token_usage"`
 		TotalTokenUsage    *codexPayloadTokenCountInfoUsage `json:"total_token_usage"`
 		ModelContextWindow *int                             `json:"model_context_window"`
 		TotalTokens        *int                             `json:"total_tokens"`
@@ -115,8 +123,11 @@ type (
 	}
 )
 
+type codexSeenUsageKey struct{}
+
 // Parse parses the Codex JSONL session transcript logs for ai heartbeats.
 func (g Codex) Parse(ctx context.Context) (Heartbeats, error) {
+	ctx = context.WithValue(ctx, codexSeenUsageKey{}, make(map[string]bool))
 	logger := log.Extract(ctx)
 
 	transcripts, err := g.transcriptPaths(ctx)
@@ -151,39 +162,80 @@ func (g Codex) transcriptPaths(ctx context.Context) ([]string, error) {
 		return nil, err
 	}
 
-	if _, err := os.Stat(sessionsDir); err != nil {
-		if os.IsNotExist(err) {
-			return nil, nil
-		}
+	roots := []string{filepath.Dir(sessionsDir)}
 
-		return nil, fmt.Errorf("failed to stat .codex sessions directory: %s", err)
-	}
-
-	var transcripts []string
-
-	err = filepath.WalkDir(sessionsDir, func(path string, entry os.DirEntry, walkErr error) error {
-		if walkErr != nil {
-			return walkErr
-		}
-
-		if entry.IsDir() || filepath.Ext(entry.Name()) != ".jsonl" {
-			return nil
-		}
-
-		info, err := entry.Info()
-		if err != nil || !timestampAtOrAfterCutoff(info.ModTime(), g.After) {
-			return nil
-		}
-
-		transcripts = append(transcripts, path)
-
-		return nil
-	})
+	home, err := ini.UserHomeDir(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to walk .codex sessions directory: %s", err)
+		return nil, err
+	}
+	// Launcher homes can retain unique sessions alongside copies of ~/.codex.
+	primary := filepath.Join(home, ".codex")
+	for _, launcher := range []string{filepath.Join(home, ".buzz")} {
+		relative, err := filepath.Rel(launcher, roots[0])
+		if err == nil && relative != ".." && !strings.HasPrefix(relative, ".."+string(filepath.Separator)) {
+			roots = append([]string{primary}, roots...)
+			break
+		}
 	}
 
-	return transcripts, nil
+	for _, home := range wslHomes(ctx) {
+		roots = append(roots, filepath.Join(home, ".codex"))
+	}
+
+	var paths []string
+
+	seen := make(map[string]bool)
+
+	for _, root := range roots {
+		for _, dir := range []string{"sessions", "archived_sessions"} {
+			base := filepath.Join(root, dir)
+			if _, err := os.Stat(base); os.IsNotExist(err) {
+				continue
+			}
+
+			err := filepath.WalkDir(base, func(path string, entry os.DirEntry, walkErr error) error {
+				if walkErr != nil {
+					return walkErr
+				}
+
+				if entry.IsDir() || filepath.Ext(path) != ".jsonl" {
+					return nil
+				}
+
+				info, err := entry.Info()
+				if err != nil || !timestampAtOrAfterCutoff(info.ModTime(), g.After) {
+					return nil
+				}
+
+				id := g.sessionIDFromPath(path)
+
+				file, err := os.Open(filepath.Clean(path)) // nolint:gosec
+				if err != nil {
+					return err
+				}
+
+				meta, err := g.readSessionState(log.Extract(ctx), file, path)
+				_ = file.Close()
+
+				if err == nil && meta.id != "" {
+					id = meta.id
+				}
+
+				if !seen[id] {
+					seen[id] = true
+
+					paths = append(paths, path)
+				}
+
+				return nil
+			})
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	return paths, nil
 }
 
 func codexSessionsDir(ctx context.Context) (string, error) {
@@ -224,7 +276,8 @@ func (g Codex) parseTranscript(ctx context.Context, transcript string) (Heartbea
 		return nil, err
 	}
 
-	state := codexParseState{
+	seen, _ := ctx.Value(codexSeenUsageKey{}).(map[string]bool)
+	state := codexParseState{seenUsage: seen, usageOwner: firstNonEmptyString(session.parentID, session.id),
 		pendingPatches: make(map[string]codexPendingPatch),
 	}
 
@@ -242,7 +295,7 @@ func (g Codex) parseTranscript(ctx context.Context, transcript string) (Heartbea
 
 	state.applySubscriptionPlan()
 
-	return state.heartbeats, nil
+	return translateWSLHeartbeats(transcript, state.heartbeats), nil
 }
 
 func (g Codex) readSessionState(logger *log.Logger, fh *os.File, transcript string) (codexSessionState, error) {
@@ -323,7 +376,18 @@ func (g Codex) handleTranscriptLine(
 		return
 	}
 
-	state.trackTokenCount(logLine, g.After)
+	after := g.After
+	if session.parentID != "" && session.created.After(after) {
+		after = session.created
+	}
+
+	state.trackTokenCount(logLine, after)
+
+	if session.parentID != "" && !session.created.IsZero() && logLine.Timestamp.Before(session.created) {
+		state.trackModel(logLine)
+		return
+	}
+
 	state.trackSubscriptionPlan(logLine)
 	state.trackModel(logLine)
 	state.trackUserMessage(logLine)
@@ -372,28 +436,59 @@ func (g Codex) handleTranscriptLine(
 
 func (s *codexParseState) trackTokenCount(logLine codexLogLine, after time.Time) {
 	if logLine.Payload == nil || logLine.Payload.Type == nil || *logLine.Payload.Type != "token_count" ||
-		logLine.Payload.Info == nil || logLine.Payload.Info.TotalTokenUsage == nil ||
-		logLine.Payload.Info.TotalTokenUsage.InputTokens == nil ||
-		logLine.Payload.Info.TotalTokenUsage.OutputTokens == nil {
+		logLine.Payload.Info == nil {
 		return
 	}
 
-	usage := logLine.Payload.Info.TotalTokenUsage
+	info := logLine.Payload.Info
 
-	cachedInputTokens := int64(0)
-	if usage.CachedInputTokens != nil && *usage.CachedInputTokens > 0 {
-		cachedInputTokens = int64(*usage.CachedInputTokens)
+	identity, _ := json.Marshal(info)
+	if string(identity) == s.lastUsageIdentity {
+		return
 	}
 
-	s.tokens.CurrentInput = int64(*usage.InputTokens) - cachedInputTokens
-	if s.tokens.CurrentInput < 0 {
-		s.tokens.CurrentInput = 0
+	s.lastUsageIdentity = string(identity)
+	usage := info.TotalTokenUsage
+
+	cumulative := usage != nil && usage.InputTokens != nil && usage.OutputTokens != nil
+	if !cumulative {
+		usage = info.LastTokenUsage
 	}
 
-	s.tokens.CurrentCachedInput = cachedInputTokens
-	s.tokens.CurrentOutput = int64(*usage.OutputTokens)
+	if usage == nil {
+		return
+	}
 
-	if logLine.Timestamp.IsZero() || !timestampAtOrAfterCutoff(logLine.Timestamp, after) {
+	value := func(p *int) int64 {
+		if p == nil {
+			return 0
+		}
+
+		return max(int64(*p), 0)
+	}
+	cachedInputTokens := value(usage.CachedInputTokens)
+	input := max(value(usage.InputTokens)-cachedInputTokens, 0)
+
+	output := value(usage.OutputTokens)
+	if cumulative {
+		s.tokens.CurrentInput, s.tokens.CurrentCachedInput, s.tokens.CurrentOutput = input, cachedInputTokens, output
+	} else {
+		s.tokens.CurrentInput += input
+		s.tokens.CurrentCachedInput += cachedInputTokens
+		s.tokens.CurrentOutput += output
+	}
+
+	duplicate := false
+
+	if cumulative && s.seenUsage != nil && !logLine.Timestamp.IsZero() &&
+		timestampAtOrAfterCutoff(logLine.Timestamp, after) {
+		raw, _ := json.Marshal(usage)
+		key := s.usageOwner + ":" + logLine.Timestamp.Format(time.RFC3339Nano) + ":" + string(raw)
+		duplicate = s.seenUsage[key]
+		s.seenUsage[key] = true
+	}
+
+	if duplicate || logLine.Timestamp.IsZero() || !timestampAtOrAfterCutoff(logLine.Timestamp, after) {
 		s.tokens.LastInput = s.tokens.CurrentInput
 		s.tokens.LastCachedInput = s.tokens.CurrentCachedInput
 		s.tokens.LastOutput = s.tokens.CurrentOutput
@@ -557,8 +652,23 @@ func (Codex) updateSessionInfo(state *codexSessionState, sessionMeta *codexSessi
 		state.version = *sessionMeta.Payload.Version
 	}
 
-	if sessionMeta.Payload.Source != nil && *sessionMeta.Payload.Source != "" {
-		state.source = *sessionMeta.Payload.Source
+	state.parentID = sessionMeta.Payload.ForkedFromID
+	state.created = sessionMeta.Timestamp
+
+	var source string
+	if json.Unmarshal(sessionMeta.Payload.Source, &source) == nil {
+		state.source = source
+	} else {
+		var nested struct {
+			Subagent struct {
+				ThreadSpawn struct {
+					ParentThreadID string `json:"parent_thread_id"`
+				} `json:"thread_spawn"`
+			} `json:"subagent"`
+		}
+		if json.Unmarshal(sessionMeta.Payload.Source, &nested) == nil {
+			state.parentID = firstNonEmptyString(state.parentID, nested.Subagent.ThreadSpawn.ParentThreadID)
+		}
 	}
 }
 

@@ -22,7 +22,13 @@ import (
 )
 
 // OpenCode contains params for detecting heartbeats from OpenCode session logs.
-type OpenCode ParserConfig
+type OpenCode struct {
+	After             time.Time
+	FallbackUserAgent string
+	UserAgents        map[string]string
+	ProjectInfo       ProjectInfo
+	seenMessages      map[string]bool
+}
 
 const (
 	openCodeRecentMessageRowLimit = 5000
@@ -129,18 +135,18 @@ type (
 	}
 )
 
-// Parse parses OpenCode legacy storage first, then falls back to the SQLite db.
+// Parse merges database generations and legacy files by session and message ID.
 func (g OpenCode) Parse(ctx context.Context) (Heartbeats, error) {
-	legacy, err := g.parseLegacyStorage(ctx)
+	g.seenMessages = make(map[string]bool)
+
+	current, err := g.parseSQLite(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(legacy) > 0 {
-		return legacy, nil
-	}
+	legacy, err := g.parseLegacyStorage(ctx)
 
-	return g.parseSQLite(ctx)
+	return append(current, legacy...), err
 }
 
 func (g OpenCode) parseLegacyStorage(ctx context.Context) (Heartbeats, error) {
@@ -298,6 +304,27 @@ func (g OpenCode) parseSQLiteDB(ctx context.Context, dbPath string) (Heartbeats,
 	}
 	defer db.Close() // nolint:errcheck
 
+	tables, err := genericAISQLiteTables(ctx, db)
+	if err != nil {
+		return nil, fmt.Errorf("failed querying OpenCode sqlite sessions %q: %w", dbPath, err)
+	}
+
+	var (
+		current  Heartbeats
+		migrated map[string]bool
+	)
+
+	if slices.Contains(tables, "session_v2") && slices.Contains(tables, "session_message") {
+		current, migrated, err = g.parseSQLiteV2(ctx, db)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if !slices.Contains(tables, "session") || !slices.Contains(tables, "message") {
+		return current, nil
+	}
+
 	sessions, err := queryOpenCodeSQLiteSessions(ctx, db, dbPath)
 	if err != nil {
 		return nil, err
@@ -309,7 +336,7 @@ func (g OpenCode) parseSQLiteDB(ctx context.Context, dbPath string) (Heartbeats,
 	}
 
 	if len(messageIDs) == 0 {
-		return nil, nil
+		return current, nil
 	}
 
 	if err := queryOpenCodeSQLiteParts(ctx, db, dbPath, messagesBySession, messageIDs); err != nil {
@@ -319,6 +346,10 @@ func (g OpenCode) parseSQLiteDB(ctx context.Context, dbPath string) (Heartbeats,
 	var heartbeats Heartbeats
 
 	for sessionID, messages := range messagesBySession {
+		if migrated[sessionID] {
+			continue
+		}
+
 		session, ok := sessions[sessionID]
 		if !ok {
 			session = openCodeSessionInfo{ID: sessionID}
@@ -327,7 +358,7 @@ func (g OpenCode) parseSQLiteDB(ctx context.Context, dbPath string) (Heartbeats,
 		heartbeats = append(heartbeats, g.sessionHeartbeats(session, messages)...)
 	}
 
-	return heartbeats, nil
+	return append(current, heartbeats...), nil
 }
 
 func queryOpenCodeSQLiteSessions(
@@ -624,6 +655,15 @@ func (g OpenCode) sessionHeartbeats(
 	)
 
 	for _, message := range messages {
+		if g.seenMessages != nil && message.info.ID != "" {
+			key := session.ID + "\x00" + message.info.ID
+			if g.seenMessages[key] {
+				continue
+			}
+
+			g.seenMessages[key] = true
+		}
+
 		messageTime := time.UnixMilli(message.info.Time.Created)
 
 		cwd := sessionCwd
@@ -706,12 +746,24 @@ func openCodeDataRoots(ctx context.Context) ([]string, error) {
 		return nil, fmt.Errorf("failed to find user home dir: %s", err)
 	}
 
-	return []string{
+	if root := os.Getenv("OPENCODE_DATA_DIR"); root != "" {
+		return []string{root}, nil
+	}
+
+	roots := []string{
 		filepath.Join(home, ".local", "share", "opencode"),
 		filepath.Join(home, "Library", "Application Support", "opencode"),
 		filepath.Join(home, "AppData", "Local", "opencode"),
 		filepath.Join(home, "AppData", "Roaming", "opencode"),
-	}, nil
+	}
+	if root := os.Getenv("XDG_DATA_HOME"); root != "" {
+		candidate := filepath.Join(root, "opencode")
+		if !slices.Contains(roots, candidate) {
+			roots = append([]string{candidate}, roots...)
+		}
+	}
+
+	return roots, nil
 }
 
 func openCodeSQLiteDBPaths(ctx context.Context) ([]string, error) {
@@ -723,7 +775,7 @@ func openCodeSQLiteDBPaths(ctx context.Context) ([]string, error) {
 	var dbPaths []string
 
 	for _, dataRoot := range dataRoots {
-		entries, err := filepath.Glob(filepath.Join(dataRoot, "opencode*.db"))
+		entries, err := filepath.Glob(filepath.Join(dataRoot, envOrDefault("OPENCODE_DB_PREFIX", "opencode")+"*.db"))
 		if err != nil {
 			return nil, fmt.Errorf("failed globbing OpenCode sqlite dbs in %q: %s", dataRoot, err)
 		}

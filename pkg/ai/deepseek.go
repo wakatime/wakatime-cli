@@ -9,6 +9,9 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
+	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -24,9 +27,12 @@ type DeepSeek ParserConfig
 
 type (
 	dshSessionState struct {
-		cwd        string
-		id         string
-		seedLength int
+		cwd          string
+		id           string
+		seedLength   int
+		version      int
+		seeded       bool
+		inheritedCut int
 	}
 
 	dshParseState struct {
@@ -35,11 +41,14 @@ type (
 		model                   string
 		pendingPromptHeartbeats []int
 		pendingTools            map[string]dshToolCall
-		pendingUsage            *dshPendingUsage
+		usages                  map[string]dshPendingUsage
+		attempts                map[string]int
 		tokens                  heartbeat.AITokens
 	}
 
 	dshSessionHeader struct {
+		Version    int    `json:"version"`
+		IsSeeded   bool   `json:"isSeeded"`
 		Type       string `json:"type"`
 		ID         string `json:"id"`
 		Cwd        string `json:"cwd"`
@@ -99,6 +108,11 @@ type (
 	}
 
 	dshEventData struct {
+		Inherited bool `json:"inherited"`
+		Stream    []struct {
+			Type  string    `json:"type"`
+			Chunk *dshChunk `json:"chunk"`
+		} `json:"stream"`
 		Turn       int               `json:"turn"`
 		Step       int               `json:"step"`
 		Role       string            `json:"role"`
@@ -135,6 +149,8 @@ type (
 		step      int
 		timestamp time.Time
 		usage     dshUsage
+		model     string
+		final     bool
 	}
 
 	dshTranscriptReader struct {
@@ -189,6 +205,8 @@ func (g DeepSeek) transcriptPaths(ctx context.Context) ([]string, error) {
 
 	var transcripts []string
 
+	selected := make(map[string]string)
+
 	err = filepath.WalkDir(sessionsDir, func(path string, entry os.DirEntry, walkErr error) error {
 		if walkErr != nil {
 			return walkErr
@@ -199,17 +217,33 @@ func (g DeepSeek) transcriptPaths(ctx context.Context) ([]string, error) {
 		}
 
 		info, err := entry.Info()
-		if err != nil || !timestampAtOrAfterCutoff(info.ModTime(), g.After) {
+		if err != nil || info.IsDir() {
 			return nil
 		}
 
-		transcripts = append(transcripts, path)
+		dir := filepath.Dir(path)
+
+		old := selected[dir]
+		if old == "" || dshGeneration(path) > dshGeneration(old) || (dshGeneration(path) == dshGeneration(old) &&
+			strings.HasSuffix(path, ".zstd")) {
+			selected[dir] = path
+		}
 
 		return nil
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to walk .dsh sessions directory: %s", err)
 	}
+
+	for _, path := range selected {
+		if dshGeneration(path) <= 3 {
+			if info, err := os.Stat(path); err == nil && timestampAtOrAfterCutoff(info.ModTime(), g.After) {
+				transcripts = append(transcripts, path)
+			}
+		}
+	}
+
+	sort.Strings(transcripts)
 
 	return transcripts, nil
 }
@@ -233,8 +267,24 @@ func dshSessionsDir(ctx context.Context) (string, error) {
 	return sessionsDir, nil
 }
 
+var dshFilenamePattern = regexp.MustCompile(`^session(?:\.v([0-9]+))?\.jsonl(?:\.zstd)?$`)
+
+func dshGeneration(path string) int {
+	match := dshFilenamePattern.FindStringSubmatch(filepath.Base(path))
+	if len(match) < 2 || match[1] == "" {
+		return 0
+	}
+
+	value, err := strconv.Atoi(match[1])
+	if err != nil {
+		return 1 << 30
+	}
+
+	return value
+}
+
 func dshTranscriptName(name string) bool {
-	return name == "session.jsonl" || name == "session.jsonl.zstd"
+	return dshFilenamePattern.MatchString(name)
 }
 
 func (g DeepSeek) parseTranscript(ctx context.Context, transcript string) (Heartbeats, error) {
@@ -249,12 +299,30 @@ func (g DeepSeek) parseTranscript(ctx context.Context, transcript string) (Heart
 	scanner := bufio.NewScanner(stream.reader)
 	scanner.Buffer(make([]byte, 0, 64*1024), maxTranscriptLineSize)
 
-	session := dshSessionState{id: filepath.Base(filepath.Dir(transcript))}
+	session := dshSessionState{id: filepath.Base(filepath.Dir(transcript)), inheritedCut: -1}
 	if scanner.Scan() {
 		g.readSessionHeader(logger, transcript, scanner.Bytes(), &session)
 	}
 
-	state := dshParseState{pendingTools: make(map[string]dshToolCall)}
+	if session.version != dshGeneration(transcript) || session.version > 3 {
+		return nil, fmt.Errorf("unsupported or mismatched DSH session version %d", session.version)
+	}
+
+	if session.version >= 2 {
+		cut, err := dshInheritedCut(transcript)
+		if err != nil {
+			return nil, err
+		}
+
+		if session.seeded != (cut >= 0) {
+			return nil, fmt.Errorf("inconsistent DSH inherited seed marker")
+		}
+
+		session.inheritedCut = cut
+	}
+
+	state := dshParseState{pendingTools: make(map[string]dshToolCall), usages: make(map[string]dshPendingUsage),
+		attempts: make(map[string]int)}
 
 	for scanner.Scan() {
 		if ctx.Err() != nil {
@@ -271,7 +339,44 @@ func (g DeepSeek) parseTranscript(ctx context.Context, transcript string) (Heart
 		return nil, fmt.Errorf("failed reading deepseek harness transcript %q: %s", transcript, err)
 	}
 
-	g.commitPendingUsage(session, &state)
+	observations := make([]dshPendingUsage, 0, len(state.usages))
+	for _, usage := range state.usages {
+		observations = append(observations, usage)
+	}
+
+	sort.SliceStable(observations, func(i, j int) bool {
+		return observations[i].timestamp.Before(observations[j].timestamp)
+	})
+
+	for _, observation := range observations {
+		if !timestampAtOrAfterCutoff(observation.timestamp, g.After) {
+			continue
+		}
+
+		state.model = observation.model
+		// Attribute each attempt to its own time/model; never another interleaved step.
+		h := g.appHeartbeat(observation.timestamp, session, &state)
+		h.AIInputTokens = dshTokenValue(observation.usage.InputTokens) + dshTokenValue(observation.usage.CacheWriteTokens)
+		h.AICachedInputTokens = dshTokenValue(observation.usage.CacheReadTokens)
+		h.AIOutputTokens = dshTokenValue(observation.usage.OutputTokens)
+
+		target := -1
+		for i := range state.heartbeats {
+			if state.heartbeats[i].Time <= h.Time &&
+				(target < 0 || state.heartbeats[i].Time >= state.heartbeats[target].Time) {
+				target = i
+			}
+		}
+
+		if target >= 0 && (observation.model == "" ||
+			strings.Contains(state.heartbeats[target].UserAgent, aiModelUserAgentToken(observation.model, ""))) {
+			state.heartbeats[target].AIInputTokens += h.AIInputTokens
+			state.heartbeats[target].AICachedInputTokens += h.AICachedInputTokens
+			state.heartbeats[target].AIOutputTokens += h.AIOutputTokens
+		} else {
+			state.heartbeats = append(state.heartbeats, h)
+		}
+	}
 
 	return state.heartbeats, nil
 }
@@ -336,6 +441,7 @@ func (DeepSeek) readSessionHeader(
 		return
 	}
 
+	session.version, session.seeded = header.Version, header.IsSeeded
 	if header.ID != "" {
 		session.id = header.ID
 	}
@@ -371,8 +477,21 @@ func (g DeepSeek) handleTranscriptLine(
 	eventIndex := state.eventIndex
 	state.eventIndex++
 
-	if dshSeedEvent(logLine.Seq, eventIndex, session.seedLength) {
+	if dshSeedEvent(logLine.Seq, eventIndex, session.seedLength) || (session.version >= 2 &&
+		logLine.Seq != nil && *logLine.Seq <= session.inheritedCut) {
+		if logLine.Type == "request/header" || logLine.Type == "request/context" {
+			g.trackModel(logLine, state)
+		}
+
 		return
+	}
+
+	if logLine.Data.Usage == nil {
+		for _, item := range logLine.Data.Stream {
+			if item.Type == "chunk" && item.Chunk != nil && item.Chunk.Type == "usage" {
+				logLine.Data.Usage = item.Chunk.Usage
+			}
+		}
 	}
 
 	timestamp := time.UnixMilli(logLine.Time).UTC()
@@ -384,12 +503,14 @@ func (g DeepSeek) handleTranscriptLine(
 		g.handleUserMessage(timestamp, logLine, session, state)
 	case "assistant/chunk":
 		g.handleAssistantChunk(timestamp, logLine, session, state)
-	case "assistant/message":
+	case "assistant/attempt", "assistant/message":
 		g.handleAssistantMessage(timestamp, logLine, session, state)
 	case "tool/call":
 		state.handleToolCall(logLine)
 	case "tool/result":
 		g.handleToolResult(timestamp, logLine, session, state)
+	case "llm/retry-started":
+		state.attempts[fmt.Sprintf("%d:%d", logLine.Data.Turn, logLine.Data.Step)]++
 	case "compaction/summary":
 		g.commitUsage(logLine.Data.Usage, timestamp, session, state)
 	}
@@ -475,10 +596,10 @@ func (g DeepSeek) handleUserMessage(
 	state.pendingPromptHeartbeats = append(state.pendingPromptHeartbeats, len(state.heartbeats)-1)
 }
 
-func (g DeepSeek) handleAssistantChunk(
+func (DeepSeek) handleAssistantChunk(
 	timestamp time.Time,
 	logLine dshLogLine,
-	session dshSessionState,
+	_ dshSessionState,
 	state *dshParseState,
 ) {
 	chunk := logLine.Data.Chunk
@@ -486,27 +607,12 @@ func (g DeepSeek) handleAssistantChunk(
 		return
 	}
 
-	switch chunk.Type {
-	case "usage":
-		if chunk.Usage == nil {
-			return
-		}
+	if chunk.Type == "usage" && chunk.Usage != nil {
+		state.observeUsage(logLine.Data, *chunk.Usage, timestamp, false)
+	}
 
-		if state.pendingUsage != nil &&
-			(state.pendingUsage.turn != logLine.Data.Turn || state.pendingUsage.step != logLine.Data.Step) {
-			g.commitPendingUsage(session, state)
-		}
-
-		state.pendingUsage = &dshPendingUsage{
-			turn:      logLine.Data.Turn,
-			step:      logLine.Data.Step,
-			timestamp: timestamp,
-			usage:     *chunk.Usage,
-		}
-	case "finish":
-		if chunk.Reason != nil && (chunk.Reason.Kind == "error" || chunk.Reason.Kind == "aborted") {
-			g.commitPendingUsage(session, state)
-		}
+	if chunk.Type == "finish" && chunk.Reason != nil && (chunk.Reason.Kind == "error" || chunk.Reason.Kind == "aborted") {
+		state.attempts[fmt.Sprintf("%d:%d", logLine.Data.Turn, logLine.Data.Step)]++
 	}
 }
 
@@ -536,20 +642,9 @@ func (g DeepSeek) handleAssistantMessage(
 		}
 	}
 
-	usage := logLine.Data.Usage
-	usageTimestamp := timestamp
-
-	if state.pendingUsage != nil && state.pendingUsage.turn == logLine.Data.Turn &&
-		state.pendingUsage.step == logLine.Data.Step {
-		if usage == nil {
-			usage = &state.pendingUsage.usage
-			usageTimestamp = state.pendingUsage.timestamp
-		}
-
-		state.pendingUsage = nil
+	if logLine.Data.Usage != nil {
+		state.observeUsage(logLine.Data, *logLine.Data.Usage, timestamp, true)
 	}
-
-	g.commitUsage(usage, usageTimestamp, session, state)
 }
 
 func (s *dshParseState) handleToolCall(logLine dshLogLine) {
@@ -742,16 +837,6 @@ func (s *dshParseState) appendHeartbeat(h heartbeat.Heartbeat) {
 	s.advanceTokens()
 }
 
-func (g DeepSeek) commitPendingUsage(session dshSessionState, state *dshParseState) {
-	if state.pendingUsage == nil {
-		return
-	}
-
-	pending := state.pendingUsage
-	state.pendingUsage = nil
-	g.commitUsage(&pending.usage, pending.timestamp, session, state)
-}
-
 func (g DeepSeek) commitUsage(
 	usage *dshUsage,
 	timestamp time.Time,
@@ -904,3 +989,47 @@ func dshTextLineCount(text string) int {
 
 // Name returns the parser name.
 func (DeepSeek) Name() string { return "DeepSeek Harness" }
+
+func (s *dshParseState) observeUsage(data dshEventData, usage dshUsage, timestamp time.Time, final bool) {
+	if s.usages == nil {
+		s.usages = make(map[string]dshPendingUsage)
+	}
+
+	base := fmt.Sprintf("%d:%d", data.Turn, data.Step)
+	key := fmt.Sprintf("%s:%d", base, s.attempts[base])
+
+	previous, exists := s.usages[key]
+	if exists && previous.final && !final {
+		return
+	}
+
+	s.usages[key] = dshPendingUsage{turn: data.Turn, step: data.Step, usage: usage, timestamp: timestamp,
+		model: s.model, final: final}
+}
+
+func dshInheritedCut(path string) (int, error) {
+	stream, err := dshOpenTranscript(path)
+	if err != nil {
+		return -1, err
+	}
+	defer stream.closer.Close() // nolint:errcheck
+
+	scanner := bufio.NewScanner(stream.reader)
+	scanner.Buffer(make([]byte, 65536), maxTranscriptLineSize)
+
+	cut := -1
+
+	for scanner.Scan() {
+		var event dshLogLine
+		if json.Unmarshal(scanner.Bytes(), &event) == nil && event.Type == "session/end-seed" &&
+			event.Data.Inherited && event.Seq != nil {
+			cut = *event.Seq
+		}
+	}
+
+	if err := scanner.Err(); err != nil && !errors.Is(err, io.ErrUnexpectedEOF) {
+		return -1, err
+	}
+
+	return cut, nil
+}
