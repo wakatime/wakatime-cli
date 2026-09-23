@@ -1,0 +1,2 @@
+{"type":"session","id":"old"}
+{"type":"assistant/message","time":1800000000000,"data":{"usage":{"inputTokens":999},"content":[{"type":"text","text":"old"}]}}

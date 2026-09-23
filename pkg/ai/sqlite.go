@@ -6,7 +6,10 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"net/url"
 	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"modernc.org/sqlite"
@@ -27,7 +30,20 @@ type aiSQLiteBudget struct {
 }
 
 func openAISQLiteDB(ctx context.Context, path string) (*sql.DB, error) {
-	db, err := sql.Open("sqlite", path)
+	absolute, err := filepath.Abs(path)
+	if err != nil {
+		return nil, err
+	}
+	// URI escaping keeps filename characters such as ? and # out of query options.
+	// mode=ro still reads committed WAL data; immutable would ignore live writes.
+	uriPath := filepath.ToSlash(absolute)
+	if !strings.HasPrefix(uriPath, "/") {
+		uriPath = "/" + uriPath
+	}
+
+	source := url.URL{Scheme: "file", Path: uriPath, RawQuery: "mode=ro"}
+
+	db, err := sql.Open("sqlite", source.String())
 	if err != nil {
 		return nil, err
 	}

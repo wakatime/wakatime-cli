@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
-	"github.com/wakatime/wakatime-cli/pkg/ini"
 )
 
 // Kiro contains params for detecting heartbeats from Kiro local activity.
@@ -95,15 +94,32 @@ type (
 
 // Parse parses Kiro's local JSON session and execution logs for ai heartbeats.
 func (g Kiro) Parse(ctx context.Context) (Heartbeats, error) {
-	root, err := g.storageRoot(ctx)
+	home, err := aiUserHome(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	if root == "" {
-		return Heartbeats{}, nil
+	var result Heartbeats
+
+	for _, root := range kiroStorageRoots(home) {
+		if _, err := os.Stat(root); os.IsNotExist(err) {
+			continue
+		}
+
+		parsed, err := g.parseLegacyRoot(root)
+		if err != nil {
+			return nil, err
+		}
+
+		result = append(result, parsed...)
 	}
 
+	parsed, err := g.parseModernSessions(ctx, home)
+
+	return append(result, parsed...), err
+}
+
+func (g Kiro) parseLegacyRoot(root string) (Heartbeats, error) {
 	sessions, prompts, err := kiroSessions(root)
 	if err != nil {
 		return nil, err
@@ -137,28 +153,6 @@ func (g Kiro) Parse(ctx context.Context) (Heartbeats, error) {
 	}
 
 	return heartbeats, nil
-}
-
-func (Kiro) storageRoot(ctx context.Context) (string, error) {
-	home, err := ini.UserHomeDir(ctx)
-	if err != nil {
-		return "", fmt.Errorf("failed to find user home dir: %s", err)
-	}
-
-	candidates := []string{
-		filepath.Join(home, "Library", "Application Support", "Kiro", "User", "globalStorage", "kiro.kiroagent"),
-		filepath.Join(home, "AppData", "Roaming", "Kiro", "User", "globalStorage", "kiro.kiroagent"),
-		filepath.Join(home, ".config", "Kiro", "User", "globalStorage", "kiro.kiroagent"),
-		filepath.Join(home, ".config", "kiro", "User", "globalStorage", "kiro.kiroagent"),
-	}
-
-	for _, candidate := range candidates {
-		if info, err := os.Stat(candidate); err == nil && info.IsDir() {
-			return candidate, nil
-		}
-	}
-
-	return "", nil
 }
 
 func kiroSessions(root string) (map[string]kiroSessionInfo, map[string]kiroPrompt, error) {
@@ -499,4 +493,17 @@ func kiroLineChanges(original string, modified string) int {
 // Name returns its name.
 func (Kiro) Name() string {
 	return "Kiro"
+}
+
+func kiroStorageRoots(home string) []string {
+	appData := envOrDefault("APPDATA", filepath.Join(home, "AppData", "Roaming"))
+	config := envOrDefault("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
+
+	return []string{
+		filepath.Join(home, "Library", "Application Support", "Kiro", "User", "globalStorage", "kiro.kiroagent"),
+		filepath.Join(appData, "Kiro", "User", "globalStorage", "kiro.kiroagent"),
+		filepath.Join(config, "Kiro", "User", "globalStorage", "kiro.kiroagent"),
+		filepath.Join(config, "kiro", "User", "globalStorage", "kiro.kiroagent"),
+		filepath.Join(home, ".kiro-server", "data", "User", "globalStorage", "kiro.kiroagent"),
+	}
 }

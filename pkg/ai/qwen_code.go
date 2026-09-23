@@ -338,16 +338,25 @@ func (g QwenCode) parseTranscript(ctx context.Context, transcript string) (Heart
 		return nil, err
 	}
 
+	clock, err := newTranscriptClock(ctx, transcript)
+	if err != nil {
+		return nil, err
+	}
+
 	for scanner.Scan() {
 		if ctx.Err() != nil {
 			return nil, ctx.Err()
 		}
 
-		g.handleTranscriptLine(logger, transcript, scanner.Bytes(), &state)
+		g.handleTranscriptLine(logger, transcript, clock.normalize(scanner.Bytes()), &state)
 	}
 
 	if err := scanner.Err(); err != nil {
 		return nil, fmt.Errorf("failed reading qwen code transcript %q: %s", transcript, err)
+	}
+
+	if err := clock.save(); err != nil {
+		return nil, err
 	}
 
 	return state.heartbeats, nil

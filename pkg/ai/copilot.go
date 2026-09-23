@@ -148,6 +148,8 @@ type (
 
 	copilotTimedHeartbeat struct {
 		timestamp time.Time
+		shutdown  bool
+		legStart  time.Time
 		heartbeat heartbeat.Heartbeat
 	}
 )
@@ -235,7 +237,19 @@ func (g Copilot) Parse(ctx context.Context) (Heartbeats, error) {
 		return nil, err
 	}
 
+	cliHeartbeats, err = g.reconcileSQLiteUsage(ctx, cliHeartbeats)
+	if err != nil {
+		logger.Warnf("failed reading Copilot usage database: %s", err)
+	}
+
 	timed = append(timed, cliHeartbeats...)
+
+	otel, err := g.otelHeartbeats(ctx, timed)
+	if err != nil {
+		logger.Warnf("failed reading Copilot OTel database: %s", err)
+	}
+
+	timed = append(timed, otel...)
 
 	if len(timed) == 0 {
 		return Heartbeats{}, nil
