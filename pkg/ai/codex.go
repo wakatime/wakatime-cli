@@ -164,17 +164,16 @@ func (g Codex) transcriptPaths(ctx context.Context) ([]string, error) {
 
 	roots := []string{filepath.Dir(sessionsDir)}
 
-	home, err := ini.UserHomeDir(ctx)
-	if err != nil {
-		return nil, err
-	}
-	// Launcher homes can retain unique sessions alongside copies of ~/.codex.
-	primary := filepath.Join(home, ".codex")
-	for _, launcher := range []string{filepath.Join(home, ".buzz")} {
-		relative, err := filepath.Rel(launcher, roots[0])
-		if err == nil && relative != ".." && !strings.HasPrefix(relative, ".."+string(filepath.Separator)) {
-			roots = append([]string{primary}, roots...)
-			break
+	// Launcher discovery is optional: CODEX_HOME must work without a user home.
+	if home, err := ini.UserHomeDir(ctx); err == nil {
+		// Launcher homes can retain unique sessions alongside copies of ~/.codex.
+		primary := filepath.Join(home, ".codex")
+		for _, launcher := range []string{filepath.Join(home, ".buzz")} {
+			relative, err := filepath.Rel(launcher, roots[0])
+			if err == nil && relative != ".." && !strings.HasPrefix(relative, ".."+string(filepath.Separator)) {
+				roots = append([]string{primary}, roots...)
+				break
+			}
 		}
 	}
 
