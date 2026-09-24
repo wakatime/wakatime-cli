@@ -1,11 +1,13 @@
-CREATE TABLE session(id TEXT,directory TEXT,version TEXT);
+-- Based on anomalyco/opencode 0f549842ee746e400b1f72516b0b2e292e267e2c:
+-- packages/core/src/session/sql.ts and packages/schema/src/session-message.ts.
+CREATE TABLE session(id TEXT,directory TEXT,version TEXT,parent_id TEXT,time_archived INTEGER);
  CREATE TABLE message(id TEXT,session_id TEXT,time_created INTEGER,data TEXT);
  CREATE TABLE part(id TEXT,message_id TEXT,session_id TEXT,time_created INTEGER,data TEXT);
- CREATE TABLE session_v2(id TEXT,directory TEXT,parent_id TEXT,time_archived INTEGER);
- CREATE TABLE session_message(id TEXT,session_id TEXT,type TEXT,seq INTEGER,time_created INTEGER,data BLOB);
- INSERT INTO session VALUES ('migrated','/project','1'),('legacy','/project','1');
+ CREATE TABLE session_message(id TEXT,session_id TEXT,type TEXT,seq INTEGER,time_created INTEGER,data TEXT);
+ INSERT INTO session VALUES ('migrated','/project','2',NULL,1800000000000),
+ ('legacy','/project','1',NULL,NULL),('child','/project','2','migrated',NULL);
  INSERT INTO message VALUES ('old','migrated',1800000000000,'{"role":"assistant","tokens":{"input":999,"output":999}}'),
  ('legacy-msg','legacy',1800000000000,'{"role":"assistant","tokens":{"input":7,"output":3}}');
- INSERT INTO session_v2 VALUES ('migrated','/project',NULL,1800000000000),('child','/project','migrated',NULL);
- INSERT INTO session_message VALUES ('new','migrated','assistant',1,1800000000000,'{"model":{"id":"claude-4","providerID":"anthropic"},"tokens":{"input":100,"output":10,"reasoning":2,"cache":{"read":4,"write":5}},"content":[{"type":"tool","name":"write","state":{"status":"completed","input":{"filePath":"main.go","content":"hello"}}}]}'),
- ('compact','child','compaction',2,1800000001000,'{"model":{"id":"claude-4","providerID":"anthropic"},"tokens":{"input":20,"output":5}}');
+ INSERT INTO session_message VALUES ('new','migrated','assistant',1,1800000000000,'{"agent":"build","time":{"created":1800000000000},"model":{"id":"claude-4","providerID":"anthropic"},"tokens":{"input":100,"output":10,"reasoning":2,"cache":{"read":4,"write":5}},"content":[{"id":"tool-1","type":"tool","name":"write","time":{"created":1800000000000,"completed":1800000000001},"state":{"status":"completed","input":{"path":"main.go","content":"hello"},"structured":{"operation":"write","target":"/project/main.go","resource":"main.go","existed":false},"content":[]}}]}'),
+ ('child-response','child','assistant',1,1800000001000,'{"agent":"build","time":{"created":1800000001000},"model":{"id":"claude-4","providerID":"anthropic"},"tokens":{"input":20,"output":5,"reasoning":0,"cache":{"read":0,"write":0}},"content":[]}'),
+ ('compact','child','compaction',2,1800000002000,'{"time":{"created":1800000002000},"reason":"auto","summary":"Earlier work","recent":"Latest work"}');

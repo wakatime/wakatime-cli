@@ -6,12 +6,16 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"time"
+
+	"github.com/wakatime/wakatime-cli/pkg/log"
 )
 
-// Read every session, including archived and child sessions. A v2 session owns
-// its identity even when it has no new messages; frozen legacy copies lose.
+// Read sessions with v2 messages, including archived and child sessions. Check
+// ownership before applying the time cutoff so frozen legacy copies lose.
 func (g OpenCode) parseSQLiteV2(ctx context.Context, db *sql.DB) (Heartbeats, map[string]bool, error) {
-	rows, err := db.QueryContext(ctx, `SELECT id, COALESCE(directory, '') FROM session_v2`)
+	rows, err := db.QueryContext(ctx, `SELECT id, COALESCE(directory, ''), COALESCE(version, '') FROM session
+ WHERE EXISTS (SELECT 1 FROM session_message WHERE session_id = session.id)`)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -21,9 +25,9 @@ func (g OpenCode) parseSQLiteV2(ctx context.Context, db *sql.DB) (Heartbeats, ma
 
 	for rows.Next() {
 		var session openCodeSessionInfo
-		if err := rows.Scan(&session.ID, &session.Directory); err != nil {
-			_ = rows.Close()
-			return nil, nil, err
+		if err := rows.Scan(&session.ID, &session.Directory, &session.Version); err != nil {
+			log.Extract(ctx).Debugf("skipping OpenCode v2 session row: %s", err)
+			continue
 		}
 
 		sessions[session.ID] = session
@@ -53,7 +57,8 @@ func (g OpenCode) parseSQLiteV2(ctx context.Context, db *sql.DB) (Heartbeats, ma
 		)
 
 		if err := rows.Scan(&id, &sessionID, &kind, &created, &raw); err != nil {
-			return nil, nil, err
+			log.Extract(ctx).Debugf("skipping OpenCode v2 message row: %s", err)
+			continue
 		}
 
 		if err := aiSQLiteRead(ctx, id, sessionID, raw); err != nil {
@@ -89,10 +94,7 @@ func openCodeV2Message(id, sessionID, kind string, created int64, raw string) (o
 			ID         string `json:"id"`
 			ProviderID string `json:"providerID"`
 		} `json:"model"`
-		Content []struct {
-			openCodePart
-			Name string `json:"name"`
-		} `json:"content"`
+		Content []json.RawMessage `json:"content"`
 	}
 	if json.Unmarshal([]byte(raw), &payload) != nil {
 		return openCodeMessageWithParts{}, false
@@ -107,10 +109,16 @@ func openCodeV2Message(id, sessionID, kind string, created int64, raw string) (o
 	switch kind {
 	case "user":
 		message.parts = []openCodePart{{Type: "text", Text: payload.Text}}
-	case "assistant", "compaction":
-		message.info.Role = "assistant"
+	case "assistant":
+		for _, rawContent := range payload.Content {
+			var content struct {
+				openCodePart
+				Name string `json:"name"`
+			}
+			if json.Unmarshal(rawContent, &content) != nil {
+				continue
+			}
 
-		for _, content := range payload.Content {
 			part := content.openCodePart
 			part.Tool = firstNonEmptyString(content.Name, part.Tool)
 			message.parts = append(message.parts, part)
@@ -120,4 +128,39 @@ func openCodeV2Message(id, sessionID, kind string, created int64, raw string) (o
 	}
 
 	return message, true
+}
+
+// V2 built-in tools store their output in state.structured, with file/status
+// fields instead of the legacy metadata filePath/type fields.
+func (g OpenCode) v2ToolFileHeartbeats(
+	version, model, sessionID, cwd string,
+	timestamp time.Time,
+	state openCodeToolState,
+) Heartbeats {
+	var output struct {
+		Files []struct {
+			File      string `json:"file"`
+			Status    string `json:"status"`
+			Additions int    `json:"additions"`
+			Deletions int    `json:"deletions"`
+		} `json:"files"`
+	}
+	if json.Unmarshal(state.Structured, &output) != nil {
+		return nil
+	}
+
+	var hh Heartbeats
+
+	for _, file := range output.Files {
+		if file.File == "" {
+			continue
+		}
+
+		h := g.fileHeartbeat(version, model, sessionID, openCodeResolvePath(cwd, file.File),
+			file.Additions-file.Deletions, timestamp)
+		h.IsUnsavedEntity = file.Status == "deleted"
+		hh = append(hh, h)
+	}
+
+	return hh
 }
