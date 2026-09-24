@@ -45,6 +45,7 @@ type (
 		filePath    string
 		lineChanges int
 		isWrite     bool
+		isDeleted   bool
 		ok          bool
 	}
 )
@@ -244,6 +245,7 @@ func (g Cline) parseTaskDir(taskDir string) (Heartbeats, error) {
 					fileHB.isWrite,
 				),
 			)
+			heartbeats[len(heartbeats)-1].IsUnsavedEntity = fileHB.isDeleted
 		}
 	}
 
@@ -368,13 +370,15 @@ func (Cline) toolHeartbeat(tool clineToolMessage, cwd string) clineToolHeartbeat
 			ok:       true,
 		}
 	case "fileDeleted":
-		if strings.TrimSpace(tool.Content) == "" {
-			return clineToolHeartbeat{}
+		lineChanges := 0
+		if tool.Content != "" {
+			lineChanges = -countStringLines(tool.Content)
 		}
 
 		return clineToolHeartbeat{
 			filePath:    filePath,
-			lineChanges: -countStringLines(tool.Content),
+			lineChanges: lineChanges,
+			isDeleted:   true,
 			isWrite:     true,
 			ok:          true,
 		}

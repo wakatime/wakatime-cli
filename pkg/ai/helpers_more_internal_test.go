@@ -945,7 +945,7 @@ func TestClineAndRooToolBranches(t *testing.T) {
 	deleted := Cline{}.toolHeartbeat(clineToolMessage{Tool: "fileDeleted", Path: "gone.go", Content: "one\ntwo"}, base)
 	require.True(t, deleted.ok)
 	assert.Equal(t, -2, deleted.lineChanges)
-	assert.False(t, Cline{}.toolHeartbeat(clineToolMessage{Tool: "fileDeleted", Path: "gone.go"}, base).ok)
+	assert.True(t, Cline{}.toolHeartbeat(clineToolMessage{Tool: "fileDeleted", Path: "gone.go"}, base).ok)
 	assert.False(t, Cline{}.toolHeartbeat(clineToolMessage{Tool: "unknown", Path: "x.go"}, base).ok)
 
 	assert.Equal(t, "task text", clineTaskText("prefix <task> task text </task> suffix"))

@@ -957,6 +957,8 @@ func (g Claude) claudeFileHeartbeat(
 		g.userAgent(filePath, version, model, complexity, ideSession),
 	)
 
+	h.IsUnsavedEntity = logLine.ToolUseResult.Object.Type != nil && *logLine.ToolUseResult.Object.Type == "delete"
+
 	return &h
 }
 
