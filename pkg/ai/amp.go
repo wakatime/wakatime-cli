@@ -537,6 +537,7 @@ func (g Amp) patchHeartbeats(
 
 	var (
 		currentFile string
+		isDeleted   bool
 		additions   int
 		deletions   int
 	)
@@ -567,9 +568,11 @@ func (g Amp) patchHeartbeats(
 					additions,
 					deletions,
 				))
+				heartbeats[len(heartbeats)-1].IsUnsavedEntity = isDeleted
 			}
 
 			currentFile = filePath
+			isDeleted = strings.HasPrefix(line, "*** Delete File: ")
 			additions = 0
 			deletions = 0
 		} else if currentFile != "" {
@@ -591,6 +594,7 @@ func (g Amp) patchHeartbeats(
 			additions,
 			deletions,
 		))
+		heartbeats[len(heartbeats)-1].IsUnsavedEntity = isDeleted
 	}
 
 	return heartbeats

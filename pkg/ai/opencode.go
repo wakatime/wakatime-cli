@@ -127,6 +127,7 @@ type (
 
 	openCodeApplyPatchMetadata struct {
 		Files []struct {
+			Type      string `json:"type"`
 			FilePath  string `json:"filePath"`
 			Patch     string `json:"patch"`
 			Additions int    `json:"additions"`
@@ -1085,6 +1086,7 @@ func (g OpenCode) applyPatchHeartbeats(
 				file.Additions-file.Deletions,
 				timestamp,
 			))
+			heartbeats[len(heartbeats)-1].IsUnsavedEntity = file.Type == "delete"
 		}
 
 		return heartbeats
@@ -1110,6 +1112,7 @@ func (g OpenCode) patchHeartbeats(
 
 	var (
 		currentFile string
+		isDeleted   bool
 		additions   int
 		deletions   int
 	)
@@ -1133,9 +1136,11 @@ func (g OpenCode) patchHeartbeats(
 					additions-deletions,
 					timestamp,
 				))
+				heartbeats[len(heartbeats)-1].IsUnsavedEntity = isDeleted
 			}
 
 			currentFile = openCodePatchFilePath(cwd, line)
+			isDeleted = strings.HasPrefix(line, "*** Delete File: ")
 			additions = 0
 			deletions = 0
 		case currentFile != "" && strings.HasPrefix(line, "+"):
@@ -1154,6 +1159,7 @@ func (g OpenCode) patchHeartbeats(
 			additions-deletions,
 			timestamp,
 		))
+		heartbeats[len(heartbeats)-1].IsUnsavedEntity = isDeleted
 	}
 
 	return heartbeats
