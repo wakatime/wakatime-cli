@@ -494,6 +494,14 @@ func (g Copilot) handleCLIToolExecutionComplete(event copilotCLIEvent, state *co
 		return
 	}
 
+	deleted := make(map[string]bool)
+
+	if telemetry.RestrictedProperties != nil {
+		for _, path := range decodeCopilotCLIStringArray(telemetry.RestrictedProperties.DeletedPaths) {
+			deleted[copilotCLIPathID(path)] = true
+		}
+	}
+
 	lineChanges := telemetry.lineChanges(len(paths))
 	for i, path := range paths {
 		if !g.shouldTrackCLIPath(path) {
@@ -508,6 +516,7 @@ func (g Copilot) handleCLIToolExecutionComplete(event copilotCLIEvent, state *co
 		timestamp := event.Timestamp.Add(time.Duration(i) * time.Millisecond)
 		lineChange := lineChanges.value(i)
 		state.appendFileHeartbeat(g, path, timestamp, lineChange)
+		state.heartbeats[len(state.heartbeats)-1].heartbeat.IsUnsavedEntity = deleted[copilotCLIPathID(path)]
 	}
 }
 
@@ -701,9 +710,6 @@ func (t copilotCLIToolTelemetry) filePaths() []string {
 	}
 
 	paths := decodeCopilotCLIStringArray(t.RestrictedProperties.FilePaths)
-	if len(paths) > 0 {
-		return uniqueNonEmptyStrings(paths)
-	}
 
 	paths = append(paths, decodeCopilotCLIStringArray(t.RestrictedProperties.AddedPaths)...)
 	paths = append(paths, decodeCopilotCLIStringArray(t.RestrictedProperties.DeletedPaths)...)

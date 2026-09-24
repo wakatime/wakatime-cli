@@ -772,7 +772,7 @@ func genericAIEventHeartbeats(parser Parser, config ParserConfig, event genericA
 		filePath,
 		heartbeat.FileType,
 		nil,
-		false,
+		genericAIToolDeletesFile(event.toolName),
 		heartbeat.PointerTo(event.isWrite),
 		nil,
 		"",
@@ -1178,10 +1178,21 @@ func genericAICWDFromText(text string) string {
 	return strings.TrimSpace(match[1])
 }
 
+// genericAIToolDeletesFile recognizes explicit file-deletion tools, not line deletions or shell commands.
+func genericAIToolDeletesFile(tool string) bool {
+	switch genericAIKey(tool) {
+	case "deletefile", "removefile", "filedelete", "filedeleted":
+		return true
+	default:
+		return false
+	}
+}
+
 func genericAIToolIsWrite(tool string) bool {
 	tool = strings.ToLower(tool)
 
-	return strings.Contains(tool, "write") || strings.Contains(tool, "edit") || strings.Contains(tool, "patch") ||
+	return genericAIToolDeletesFile(tool) || strings.Contains(tool, "write") || strings.Contains(tool, "edit") ||
+		strings.Contains(tool, "patch") ||
 		strings.Contains(tool, "create") || strings.Contains(tool, "delete") || strings.Contains(tool, "replace")
 }
 

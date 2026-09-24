@@ -1015,6 +1015,7 @@ func (g Codex) patchHeartbeats(
 
 	var (
 		currentFile string
+		isDeleted   bool
 		additions   int
 		deletions   int
 	)
@@ -1049,12 +1050,14 @@ func (g Codex) patchHeartbeats(
 					deletions,
 					tokens,
 				))
+				heartbeats[len(heartbeats)-1].IsUnsavedEntity = isDeleted
 				tokens.LastInput = tokens.CurrentInput
 				tokens.LastCachedInput = tokens.CurrentCachedInput
 				tokens.LastOutput = tokens.CurrentOutput
 			}
 
 			currentFile = codexFilePath(cwd, line)
+			isDeleted = strings.HasPrefix(line, "*** Delete File: ")
 			additions = 0
 			deletions = 0
 		} else if currentFile != "" {
@@ -1080,6 +1083,7 @@ func (g Codex) patchHeartbeats(
 			deletions,
 			tokens,
 		))
+		heartbeats[len(heartbeats)-1].IsUnsavedEntity = isDeleted
 	}
 
 	return heartbeats

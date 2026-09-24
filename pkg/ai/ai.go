@@ -1178,12 +1178,17 @@ func promptLength(text string) int {
 // output of every parser and every transcript, so a single rolling entity would let an app
 // heartbeat from one session inherit a file from an unrelated session parsed right before it.
 func replaceAppHeartbeats(heartbeats []heartbeat.Heartbeat) []heartbeat.Heartbeat {
-	entityBySession := make(map[string]string)
+	type fileEntity struct {
+		path    string
+		unsaved bool
+	}
+
+	entityBySession := make(map[string]fileEntity)
 
 	for _, h := range heartbeats {
 		if h.EntityType == heartbeat.FileType && h.Entity != "" {
 			if _, ok := entityBySession[h.AISession]; !ok {
-				entityBySession[h.AISession] = h.Entity
+				entityBySession[h.AISession] = fileEntity{path: h.Entity, unsaved: h.IsUnsavedEntity}
 			}
 		}
 	}
@@ -1196,14 +1201,15 @@ func replaceAppHeartbeats(heartbeats []heartbeat.Heartbeat) []heartbeat.Heartbea
 
 	for i, h := range heartbeats {
 		if h.EntityType == heartbeat.FileType && h.Entity != "" {
-			entityBySession[h.AISession] = h.Entity
+			entityBySession[h.AISession] = fileEntity{path: h.Entity, unsaved: h.IsUnsavedEntity}
 		}
 
 		entity, hasEntity := entityBySession[h.AISession]
 
 		if h.EntityType == heartbeat.AppType && hasEntity {
 			h.EntityType = heartbeat.FileType
-			h.Entity = entity
+			h.Entity = entity.path
+			h.IsUnsavedEntity = entity.unsaved
 
 			if i > 0 && i+1 < len(heartbeats) && sameHeartbeat(h, heartbeats[i+1]) {
 				mergeHeartbeatCounts(&heartbeats[i+1], h)
@@ -1227,6 +1233,7 @@ func sameHeartbeat(a, b heartbeat.Heartbeat) bool {
 		a.Category == b.Category &&
 		a.Entity == b.Entity &&
 		a.EntityType == b.EntityType &&
+		a.IsUnsavedEntity == b.IsUnsavedEntity &&
 		absFloat64(a.Time-b.Time) < 60
 }
 
