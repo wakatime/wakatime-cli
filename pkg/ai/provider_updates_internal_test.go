@@ -46,6 +46,12 @@ func updateDB(t *testing.T, path string) *sql.DB {
 	require.NoError(t, os.MkdirAll(filepath.Dir(path), 0o700))
 	db, err := sql.Open("sqlite", path)
 	require.NoError(t, err)
+	// Fixtures need committed data visible to other connections, but do not
+	// need crash durability. Disk flushes are particularly costly on Windows.
+	db.SetMaxOpenConns(1)
+	_, err = db.Exec("PRAGMA synchronous = OFF")
+	require.NoError(t, err)
+
 	t.Cleanup(func() { require.NoError(t, db.Close()) })
 
 	return db
