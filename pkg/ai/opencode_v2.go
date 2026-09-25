@@ -15,7 +15,9 @@ import (
 // ownership before applying the time cutoff so frozen legacy copies lose.
 func (g OpenCode) parseSQLiteV2(ctx context.Context, db *sql.DB) (Heartbeats, map[string]bool, error) {
 	rows, err := db.QueryContext(ctx, `SELECT id, COALESCE(directory, ''), COALESCE(version, '') FROM session
- WHERE EXISTS (SELECT 1 FROM session_message WHERE session_id = session.id)`)
+ WHERE COALESCE(octet_length(id), 0) + COALESCE(octet_length(directory), 0)
+     + COALESCE(octet_length(version), 0) <= ?
+ AND EXISTS (SELECT 1 FROM session_message WHERE session_id = session.id)`, openCodeSQLiteRowSizeLimit)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -42,7 +44,10 @@ func (g OpenCode) parseSQLiteV2(ctx context.Context, db *sql.DB) (Heartbeats, ma
 	}
 
 	rows, err = db.QueryContext(ctx, `SELECT id, session_id, type, time_created, CAST(data AS TEXT)
- FROM session_message WHERE time_created >= ? ORDER BY time_created, session_id, seq`, g.afterUnixMilli())
+ FROM session_message
+ WHERE COALESCE(octet_length(id), 0) + COALESCE(octet_length(session_id), 0)
+     + COALESCE(octet_length(type), 0) + COALESCE(octet_length(data), 0) <= ?
+ AND time_created >= ? ORDER BY time_created, session_id, seq`, openCodeSQLiteRowSizeLimit, g.afterUnixMilli())
 	if err != nil {
 		return nil, nil, err
 	}

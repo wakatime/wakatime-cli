@@ -5,6 +5,7 @@ package ai
 import (
 	"context"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -141,4 +142,56 @@ func TestOpenCodeRecoveryHonorsCancellation(t *testing.T) {
 
 	_, err := (OpenCode{}).Parse(ctx)
 	require.ErrorIs(t, err, context.Canceled)
+}
+
+func TestOpenCodeContinuesAfterOversizedRows(t *testing.T) {
+	for _, payload := range []struct {
+		name string
+		data string
+	}{
+		{"text", strings.Repeat("x", maxTranscriptLineSize+1)},
+		{"unicode", strings.Repeat("界", maxTranscriptLineSize/3+1)},
+		// The payload alone fits, but the complete SQLite record does not.
+		{"record", strings.Repeat("x", maxTranscriptLineSize-10)},
+	} {
+		t.Run(payload.name, func(t *testing.T) {
+			home := updateTestHome(t)
+			dbPath := filepath.Join(home, ".local", "share", "opencode", "opencode.db")
+			db := updateDB(t, dbPath)
+			updateSQL(t, db, updateFixture(t, "opencodemixedgenerations-1.txt"))
+
+			for _, query := range []string{
+				`INSERT INTO session VALUES ('oversized',?,'2',NULL,NULL)`,
+				`INSERT INTO message VALUES ('oversized','legacy',1800000000001,?)`,
+				`INSERT INTO part VALUES ('oversized','legacy-msg','legacy',1800000000001,?)`,
+				`INSERT INTO session_message VALUES ('oversized','migrated','assistant',3,1800000000001,?)`,
+			} {
+				_, err := db.ExecContext(context.Background(), query, payload.data)
+
+				require.NoError(t, err)
+			}
+
+			updateSQL(t, db, `INSERT INTO session_message VALUES
+ ('oversized-session','oversized','user',1,1800000000001,'{"text":"ok"}')`)
+
+			parser := OpenCode{}
+			hh, err := parser.parseSQLiteDB(context.Background(), dbPath)
+			require.NoError(t, err)
+			assert.EqualValues(t, 132, updateTotals(hh).input)
+
+			// Valid rows after each bad row must contribute heartbeats, including on
+			// subsequent parses with a cutoff that puts the bad message in the seed query.
+			updateSQL(t, db, `INSERT INTO message VALUES
+    ('later','legacy',1800000003000,'{"role":"user"}');
+    INSERT INTO part VALUES
+    ('later-part','later','legacy',1800000003000,'{"type":"text","text":"hello"}');
+    INSERT INTO session_message VALUES
+    ('later-v2','migrated','user',4,1800000003000,'{"text":"world"}');`)
+
+			parser.After = time.UnixMilli(1800000002000)
+			hh, err = parser.parseSQLiteDB(context.Background(), dbPath)
+			require.NoError(t, err)
+			assert.Equal(t, 10, updateTotals(hh).prompt)
+		})
+	}
 }

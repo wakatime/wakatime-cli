@@ -396,6 +396,11 @@ func (g OpenCode) parseSQLiteDB(ctx context.Context, dbPath string) (Heartbeats,
 	return append(current, heartbeats...), parseErr
 }
 
+// Leave room for SQLite record headers and integer columns as SQLITE_LIMIT_LENGTH
+// also limits encoded rows. octet_length reads column sizes from metadata without
+// loading oversized values, and counts bytes rather than Unicode characters.
+const openCodeSQLiteRowSizeLimit = maxTranscriptLineSize - 128
+
 func queryOpenCodeSQLiteSessions(
 	ctx context.Context,
 	db *sql.DB,
@@ -403,8 +408,10 @@ func queryOpenCodeSQLiteSessions(
 ) (map[string]openCodeSessionInfo, error) {
 	rows, err := db.QueryContext(ctx, `
 SELECT id, COALESCE(directory, ''), COALESCE(version, '')
-FROM session;
-`)
+FROM session
+WHERE COALESCE(octet_length(id), 0) + COALESCE(octet_length(directory), 0)
+    + COALESCE(octet_length(version), 0) <= ?;
+`, openCodeSQLiteRowSizeLimit)
 	if err != nil {
 		return nil, fmt.Errorf("failed querying OpenCode sqlite sessions %q: %s", dbPath, err)
 	}
@@ -442,6 +449,8 @@ func (g OpenCode) querySQLiteMessages(
 WITH recentOpenCodeMessages AS (
 	SELECT id, session_id, CAST(data AS TEXT) AS data, time_created
 	FROM message
+	WHERE COALESCE(octet_length(id), 0) + COALESCE(octet_length(session_id), 0)
+	    + COALESCE(octet_length(data), 0) <= ?
 	ORDER BY rowid DESC
 	LIMIT ?
 )
@@ -450,7 +459,7 @@ FROM recentOpenCodeMessages
 WHERE time_created >= ?
   AND json_valid(data)
 ORDER BY time_created ASC, id ASC;
-`, openCodeRecentMessageRowLimit, g.afterUnixMilli())
+`, openCodeSQLiteRowSizeLimit, openCodeRecentMessageRowLimit, g.afterUnixMilli())
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed querying OpenCode sqlite messages %q: %s", dbPath, err)
 	}
@@ -526,6 +535,8 @@ func (g OpenCode) querySQLiteSeedMessages(
 WITH recentOpenCodeSeedMessages AS (
 	SELECT id, session_id, CAST(data AS TEXT) AS data, time_created
 	FROM message
+	WHERE COALESCE(octet_length(id), 0) + COALESCE(octet_length(session_id), 0)
+	    + COALESCE(octet_length(data), 0) <= ?
 	ORDER BY rowid DESC
 	LIMIT ?
 )
@@ -534,7 +545,7 @@ FROM recentOpenCodeSeedMessages
 WHERE time_created < ?
   AND json_valid(data)
 ORDER BY time_created DESC, id DESC;
-`, openCodeRecentMessageRowLimit, g.afterUnixMilli())
+`, openCodeSQLiteRowSizeLimit, openCodeRecentMessageRowLimit, g.afterUnixMilli())
 	if err != nil {
 		return fmt.Errorf("failed querying OpenCode sqlite seed messages %q: %s", dbPath, err)
 	}
@@ -610,6 +621,8 @@ func queryOpenCodeSQLiteParts(
 WITH recentOpenCodeParts AS (
 	SELECT id, message_id, session_id, CAST(data AS TEXT) AS data, time_created
 	FROM part
+	WHERE COALESCE(octet_length(id), 0) + COALESCE(octet_length(message_id), 0)
+	    + COALESCE(octet_length(session_id), 0) + COALESCE(octet_length(data), 0) <= ?
 	ORDER BY rowid DESC
 	LIMIT ?
 )
@@ -617,7 +630,7 @@ SELECT id, message_id, session_id, data
 FROM recentOpenCodeParts
 WHERE json_valid(data)
 ORDER BY time_created ASC, id ASC;
-`, openCodeRecentPartRowLimit)
+`, openCodeSQLiteRowSizeLimit, openCodeRecentPartRowLimit)
 	if err != nil {
 		return fmt.Errorf("failed querying OpenCode sqlite parts %q: %s", dbPath, err)
 	}
