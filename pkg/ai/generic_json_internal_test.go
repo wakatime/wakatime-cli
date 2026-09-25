@@ -12,6 +12,45 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestGenericAIKeyMatches(t *testing.T) {
+	keys := []string{
+		"", "_ -", "input_tokens", "InputTokens", "INPUT-TOKENS", "input tokens",
+		"input", "inputtokensextra", "output_tokens", "Édit_文件", "édit文件", "\xff", "\ufffd",
+	}
+	for _, raw := range keys {
+		for _, lookup := range keys {
+			key := genericAIKey(lookup)
+			assert.Equal(t, genericAIKey(raw) == key, genericAIKeyMatches(raw, key),
+				"raw=%q lookup=%q", raw, lookup)
+		}
+	}
+}
+
+func TestGenericAIFieldLookupNestedContainers(t *testing.T) {
+	for _, child := range []any{
+		map[string]any{"Input-Tokens": 7},
+		[]any{nil, map[string]any{"Input-Tokens": 7}},
+		` {"Input-Tokens":7}`,
+		` [{"Input-Tokens":7}]`,
+		genericAICacheJSONText(`{"Input-Tokens":7}`),
+	} {
+		value := map[string]any{
+			"a_scalar": "plain text", "b_invalid": "{invalid", "c_number": 123,
+			"d_nil": nil, "e_bool": true, "f_first": child,
+			"z_last": map[string]any{"input_tokens": 99},
+		}
+		// Nested matches retain alphabetical container precedence, including
+		// objects and arrays encoded as JSON strings in SQLite columns.
+		assert.Equal(t, int64(7), genericAIInt64(genericAIFind(value, "input_tokens")))
+		number, ok := genericAINumericField(value, "input_tokens")
+		require.True(t, ok)
+		assert.Equal(t, int64(7), number)
+		assert.Nil(t, genericAIFind(value, "missing"))
+		_, ok = genericAINumericField(value, "missing")
+		assert.False(t, ok)
+	}
+}
+
 func TestGenericAITranscriptPathsPreferMessagesWithUsage(t *testing.T) {
 	tests := []struct {
 		name     string
