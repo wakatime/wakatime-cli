@@ -37,9 +37,9 @@ func TestZCodeParseBeyondSQLiteRowLimit(t *testing.T) {
 	// Timestamps can be nested in JSON, and tables need not have a rowid.
 	// Recent activity on either side of a large historical block must survive.
 	_, err = db.Exec(`WITH RECURSIVE ids(id) AS (
-		SELECT 1 UNION ALL SELECT id + 1 FROM ids WHERE id < 10002
+		SELECT 1 UNION ALL SELECT id + 1 FROM ids WHERE id < 5002
 	) INSERT INTO tool_usage SELECT id, json_object(
-		'timestamp', CASE WHEN id IN (1, 10002) THEN '2026-09-06T12:00:00Z' ELSE '2026-08-14T12:00:00Z' END,
+		'timestamp', CASE WHEN id IN (1, 5002) THEN '2026-09-06T12:00:00Z' ELSE '2026-08-14T12:00:00Z' END,
 		'session_id', 'session-1', 'tool_name', 'edit_file', 'file_path', ?,
 		'lines_added', 3, 'lines_removed', 2,
 		'input_tokens', 10, 'output_tokens', 4
@@ -65,7 +65,7 @@ func TestZCodeParseBeyondSQLiteRowLimit(t *testing.T) {
 
 	// The two unchanged recent rows were already reported during the first scan.
 	got = append(got, collectZCodeSQLite(t, provider, dbPath)...)
-	assert.Equal(t, 20004, len(got))
+	assert.Equal(t, 10004, len(got))
 }
 
 // Exercise the production time budget without assuming that the entire history
@@ -305,21 +305,24 @@ func TestZCodeParseRequestUsageAndPrompts(t *testing.T) {
 
 func TestZCodeParseResumesRequestUsageAndPrompts(t *testing.T) {
 	db, path, started := zCodeFixture(t)
+	// Cross a batch boundary; the separate row-limit regression covers large histories.
+	const rows = aiSQLiteBatchSize + 1
+
 	_, err := db.Exec(`WITH RECURSIVE ids(id) AS (
- SELECT 1 UNION ALL SELECT id+1 FROM ids WHERE id<5001
+ SELECT 1 UNION ALL SELECT id+1 FROM ids WHERE id<?
  ) INSERT INTO message (id, session_id, time_created, time_updated, data)
  SELECT printf('message-%05d', id), 's', ?, ?,
  '{"role":"assistant","tokens":{"input":10,"output":4,"reasoning":2,"cache":{"read":2}}}' FROM ids`,
-		started.UnixMilli(), started.UnixMilli())
+		rows, started.UnixMilli(), started.UnixMilli())
 	require.NoError(t, err)
 	_, err = db.Exec(`INSERT INTO message (id, session_id, time_created, time_updated, data)
  VALUES ('user', 's', ?, ?, '{"role":"user"}')`, started.UnixMilli(), started.UnixMilli())
 	require.NoError(t, err)
 	_, err = db.Exec(`WITH RECURSIVE ids(id) AS (
- SELECT 1 UNION ALL SELECT id+1 FROM ids WHERE id<5001
+ SELECT 1 UNION ALL SELECT id+1 FROM ids WHERE id<?
  ) INSERT INTO part (id, session_id, message_id, time_created, time_updated, data)
  SELECT printf('part-%05d', id), 's', 'user', ?, ?, '{"type":"text","text":"Hi 世界"}' FROM ids`,
-		started.UnixMilli(), started.UnixMilli())
+		rows, started.UnixMilli(), started.UnixMilli())
 	require.NoError(t, err)
 
 	provider := (ZCode{After: started.Add(-time.Minute)}).sqliteProvider(path)
@@ -369,8 +372,8 @@ func TestZCodeParseResumesRequestUsageAndPrompts(t *testing.T) {
 		}
 
 		if !pending {
-			require.Len(t, got, 10002)
-			assertZCodeTotals(t, got, 5001*8, 5001*2, 5001*4, 5001*5)
+			require.Len(t, got, 2*rows)
+			assertZCodeTotals(t, got, rows*8, rows*2, rows*4, rows*5)
 
 			return
 		}
@@ -473,7 +476,7 @@ func TestZCodeParseProjectsLargeRecentParts(t *testing.T) {
 		started.UnixMilli(), started.UnixMilli())
 	require.NoError(t, err)
 
-	output := strings.Repeat("x", 1024*1024)
+	output := strings.Repeat("x", 4*1024)
 	_, err = db.Exec(`WITH RECURSIVE ids(id) AS (
  SELECT 1 UNION ALL SELECT id+1 FROM ids WHERE id<70
  ) INSERT INTO part (id, message_id, session_id, time_created, time_updated, data)
@@ -485,24 +488,29 @@ func TestZCodeParseProjectsLargeRecentParts(t *testing.T) {
 	require.NoError(t, err)
 
 	provider := (ZCode{After: started.Add(-time.Minute)}).sqliteProvider(path)
+	// Leave less budget than the raw payloads need, but enough for projections.
+	const usedBytes = aiSQLiteByteLimit - 64*1024
+
 	ctx := aiSQLiteBudgetContext(t.Context())
+	ctx.Value(aiSQLiteBudgetKey{}).(*aiSQLiteBudget).bytes = usedBytes
 	got, err := parseGenericAISQLiteDB(ctx, provider, path)
 	require.NoError(t, err)
 	assertZCodeTotals(t, got, 10, 0, 4, 0)
 	require.Len(t, got, 71) // One usage heartbeat and 35 app/file read pairs.
 	assertZCodeScanCompleted(t, provider, path)
-	assert.Less(t, ctx.Value(aiSQLiteBudgetKey{}).(*aiSQLiteBudget).bytes, int64(64*1024))
+	assert.Less(t, ctx.Value(aiSQLiteBudgetKey{}).(*aiSQLiteBudget).bytes-usedBytes, int64(64*1024))
 
 	// Unrelated writes must not make these unchanged payloads exhaust the
 	// budget on every subsequent heartbeat, or replay existing activity.
 	_, err = db.Exec(`UPDATE session SET title='changed'`)
 	require.NoError(t, err)
 	ctx = aiSQLiteBudgetContext(t.Context())
+	ctx.Value(aiSQLiteBudgetKey{}).(*aiSQLiteBudget).bytes = usedBytes
 	got, err = parseGenericAISQLiteDB(ctx, provider, path)
 	require.NoError(t, err)
 	assert.Empty(t, got)
 	assertZCodeScanCompleted(t, provider, path)
-	assert.Less(t, ctx.Value(aiSQLiteBudgetKey{}).(*aiSQLiteBudget).bytes, int64(64*1024))
+	assert.Less(t, ctx.Value(aiSQLiteBudgetKey{}).(*aiSQLiteBudget).bytes-usedBytes, int64(64*1024))
 }
 
 func assertZCodeScanCompleted(t testing.TB, provider genericAIProvider, path string) {

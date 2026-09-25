@@ -341,15 +341,17 @@ func TestGenericAISQLiteLargeBatchResumes(t *testing.T) {
 	db, path := sqliteTestDB(t)
 	_, err := db.Exec(`CREATE TABLE events (payload TEXT)`)
 	require.NoError(t, err)
-	// Each row fits the 10 MiB limit, but eight rows exceed the 64 MiB run budget.
-	payload := `{"timestamp":"2026-09-06T12:00:00Z","input_tokens":10,"padding":"` + strings.Repeat("x", 9*1024*1024) + `"}`
+	// Leave room for seven rows so the eighth must resume on the next run.
+	payload := `{"timestamp":"2026-09-06T12:00:00Z","input_tokens":10,"padding":"` + strings.Repeat("x", 1024) + `"}`
 	_, err = db.Exec(`WITH RECURSIVE ids(id) AS (
  SELECT 1 UNION ALL SELECT id + 1 FROM ids WHERE id < 8
  ) INSERT INTO events SELECT ? FROM ids`, payload)
 	require.NoError(t, err)
 
 	provider := genericAIProvider{parser: ZCode{}}
-	got, err := parseGenericAISQLiteTable(aiSQLiteBudgetContext(t.Context()), provider, db, path, "events")
+	ctx := aiSQLiteBudgetContext(t.Context())
+	ctx.Value(aiSQLiteBudgetKey{}).(*aiSQLiteBudget).bytes = aiSQLiteByteLimit - int64(7*len(payload))
+	got, err := parseGenericAISQLiteTable(ctx, provider, db, path, "events")
 	require.ErrorContains(t, err, "byte budget")
 	require.Len(t, got, 7)
 
