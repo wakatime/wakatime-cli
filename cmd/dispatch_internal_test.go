@@ -3,12 +3,16 @@ package cmd
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"io"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
+	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/offline"
 	"github.com/wakatime/wakatime-cli/pkg/version"
 	"github.com/wakatime/wakatime-cli/pkg/vipertools"
@@ -17,6 +21,7 @@ import (
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	bolt "go.etcd.io/bbolt"
 )
 
 func TestNewRootCMD(t *testing.T) {
@@ -164,6 +169,68 @@ func TestRunE_DispatchesErrorCommands(t *testing.T) {
 			var errexitcode exitcode.Err
 			require.ErrorAs(t, err, &errexitcode)
 			assert.Equal(t, test.ExitCode, errexitcode.Code)
+		})
+	}
+}
+
+func TestRunE_SyncAIActivitySyncsOfflineHeartbeats(t *testing.T) {
+	for _, flag := range []string{"sync-ai-activity", "sync-ai-heartbeats"} {
+		t.Run(flag, func(t *testing.T) {
+			home := t.TempDir()
+			t.Setenv("HOME", home)
+			t.Setenv("USERPROFILE", home)
+
+			queueFilepath := filepath.Join(t.TempDir(), "offline.bdb")
+			data, err := os.ReadFile("testdata/heartbeat_go.json")
+			require.NoError(t, err)
+
+			var queued heartbeat.Heartbeat
+			require.NoError(t, json.Unmarshal(data, &queued))
+
+			db, err := bolt.Open(queueFilepath, 0600, nil)
+			require.NoError(t, err)
+			err = db.Update(func(tx *bolt.Tx) error {
+				return offline.NewQueue(tx).PushMany([]heartbeat.Heartbeat{queued})
+			})
+			require.NoError(t, db.Close())
+			require.NoError(t, err)
+
+			received := make(chan []heartbeat.Heartbeat, 1)
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+				assert.Equal(t, http.MethodPost, req.Method)
+				assert.Equal(t, "/users/current/heartbeats.bulk", req.URL.Path)
+
+				var sent []heartbeat.Heartbeat
+				assert.NoError(t, json.NewDecoder(req.Body).Decode(&sent))
+
+				received <- sent
+
+				w.WriteHeader(http.StatusCreated)
+				_, _ = io.WriteString(w, `{"responses":[[{},201]]}`)
+			}))
+			t.Cleanup(server.Close)
+
+			v := newRunEViper(t)
+			v.Set(flag, true)
+			v.Set("api-url", server.URL)
+			v.Set("key", "00000000-0000-4000-8000-000000000000")
+			v.Set("offline-queue-file", queueFilepath)
+
+			// With no transcripts or entity, only the offline sync can send this heartbeat.
+			require.NoError(t, RunE(newRunECommand(), v))
+
+			select {
+			case sent := <-received:
+				require.Len(t, sent, 1)
+				assert.Equal(t, queued.Entity, sent[0].Entity)
+				assert.Equal(t, queued.Time, sent[0].Time)
+			default:
+				t.Error("AI sync did not send the queued offline heartbeat")
+			}
+
+			count, err := offline.CountHeartbeats(t.Context(), queueFilepath)
+			require.NoError(t, err)
+			assert.Zero(t, count)
 		})
 	}
 }
