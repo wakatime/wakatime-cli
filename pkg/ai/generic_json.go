@@ -16,6 +16,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/log"
@@ -822,17 +823,12 @@ func genericAIFindDepth(value any, key string, depth int) any {
 	switch typed := value.(type) {
 	case map[string]any:
 		for childKey, child := range typed {
-			if key == genericAIKey(childKey) && !genericAIEmpty(child) {
+			if genericAIKeyMatches(childKey, key) && !genericAIEmpty(child) {
 				return child
 			}
 		}
 
-		childKeys := make([]string, 0, len(typed))
-		for childKey := range typed {
-			childKeys = append(childKeys, childKey)
-		}
-
-		sort.Strings(childKeys)
+		childKeys := genericAIChildKeys(typed)
 
 		for _, childKey := range childKeys {
 			if found := genericAIFindDepth(genericAIDecodedValue(typed[childKey]), key, depth+1); found != nil {
@@ -848,6 +844,28 @@ func genericAIFindDepth(value any, key string, depth int) any {
 	}
 
 	return nil
+}
+
+// Only containers can contain a nested field. Avoid sorting and revisiting
+// scalar fields for each of the many aliases used when extracting an event.
+func genericAIChildKeys(object map[string]any) []string {
+	var keys []string
+
+	for key, value := range object {
+		switch typed := value.(type) {
+		case map[string]any, []any, genericAIJSONText:
+			keys = append(keys, key)
+		case string:
+			text := strings.TrimSpace(typed)
+			if strings.HasPrefix(text, "{") || strings.HasPrefix(text, "[") {
+				keys = append(keys, key)
+			}
+		}
+	}
+
+	sort.Strings(keys)
+
+	return keys
 }
 
 // Keep the original text for fields such as prompts, while sharing its decoded
@@ -906,6 +924,33 @@ func genericAIKey(key string) string {
 
 		return r
 	}, key)
+}
+
+// Compare with an already normalized lookup key without allocating a normalized
+// copy of every JSON field name on every recursive lookup.
+func genericAIKeyMatches(raw, key string) bool {
+	for _, r := range raw {
+		if r == '_' || r == '-' || r == ' ' {
+			continue
+		}
+
+		if r >= 'A' && r <= 'Z' {
+			r += 'a' - 'A'
+		}
+
+		if len(key) == 0 {
+			return false
+		}
+
+		want, size := utf8.DecodeRuneInString(key)
+		if r != want {
+			return false
+		}
+
+		key = key[size:]
+	}
+
+	return len(key) == 0
 }
 
 func genericAIEmpty(value any) bool {
@@ -971,7 +1016,7 @@ func genericAINumericFieldDepth(value any, key string, depth int) (int64, bool) 
 	switch typed := value.(type) {
 	case map[string]any:
 		for childKey, child := range typed {
-			if key != genericAIKey(childKey) {
+			if !genericAIKeyMatches(childKey, key) {
 				continue
 			}
 
@@ -980,12 +1025,7 @@ func genericAINumericFieldDepth(value any, key string, depth int) (int64, bool) 
 			}
 		}
 
-		childKeys := make([]string, 0, len(typed))
-		for childKey := range typed {
-			childKeys = append(childKeys, childKey)
-		}
-
-		sort.Strings(childKeys)
+		childKeys := genericAIChildKeys(typed)
 
 		for _, childKey := range childKeys {
 			if number, ok := genericAINumericFieldDepth(

@@ -47,6 +47,22 @@ func TestZCodeParseBeyondSQLiteRowLimit(t *testing.T) {
 	require.NoError(t, err)
 
 	provider := genericAIProvider{parser: ZCode{}, config: ParserConfig{After: time.Date(2026, 9, 6, 0, 0, 0, 0, time.UTC)}}
+	// This regression exercises SQLite scanning, checkpointing, and filtering.
+	// Its 5,002 rows contain only two distinct payloads. Decode each once so
+	// race-enabled tests do not repeat the same generic field searches 10,004
+	// times; the small provider fixtures cover per-record event extraction.
+	events := make(map[string]genericAIEvent)
+	provider.sqliteEvents = func(_ string, row map[string]any) []genericAIEvent {
+		payload := row["payload"].(string)
+
+		event, ok := events[payload]
+		if !ok {
+			event = genericAIEventFromValue(genericAIDecodedValue(payload))
+			events[payload] = event
+		}
+
+		return []genericAIEvent{event}
+	}
 	got := collectZCodeSQLite(t, provider, dbPath)
 	require.Len(t, got, 4)
 
