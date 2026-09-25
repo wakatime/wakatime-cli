@@ -148,7 +148,9 @@ func RunE(cmd *cobra.Command, v *viper.Viper) error {
 	if syncAIActivityEnabled(v) {
 		logger.Debugln("command: sync-ai-activity")
 
-		return RunCmd(ctx, v, logger.IsVerboseEnabled(), logger.SendDiagsOnErrors(), cmdheartbeat.RunAISyncActivity)
+		return RunCmdWithOfflineSync(
+			ctx, v, logger.IsVerboseEnabled(), logger.SendDiagsOnErrors(), cmdheartbeat.RunAISyncActivity,
+		)
 	}
 
 	if v.GetBool("offline-count") {
