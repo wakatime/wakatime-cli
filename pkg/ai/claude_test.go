@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -992,4 +993,82 @@ func TestClaudeParse_RealTranscriptContinuesAfterInvalidLineAndField(t *testing.
 	require.NotNil(t, got[2].AILineChanges)
 	assert.Equal(t, 2, *got[1].AILineChanges)
 	assert.Equal(t, 2, *got[2].AILineChanges)
+}
+
+func claudeTestPromptLine(ts, text string) string {
+	return `{"timestamp":"` + ts + `","sessionId":"s1","version":"2.1.45","cwd":"/tmp","type":"user",` +
+		`"message":{"role":"user","content":[{"type":"text","text":"` + text + `"}]}}`
+}
+
+func claudeTestReplyLine(ts, id string, input, cached, output int) string {
+	return `{"timestamp":"` + ts + `","sessionId":"s1","type":"assistant",` +
+		`"message":{"id":"` + id + `","role":"assistant","content":[{"type":"text","text":"done"}],` +
+		`"usage":{"input_tokens":` + strconv.Itoa(input) + `,"cache_read_input_tokens":` + strconv.Itoa(cached) +
+		`,"output_tokens":` + strconv.Itoa(output) + `}}}`
+}
+
+// claudeTestMetadataLines returns metadata lines written after every turn,
+// which carry no timestamp.
+func claudeTestMetadataLines() []string {
+	return []string{
+		`{"type":"last-prompt","lastPrompt":"first prompt","sessionId":"s1"}`,
+		`{"type":"ai-title","aiTitle":"Title","sessionId":"s1"}`,
+		`{"type":"file-history-snapshot","messageId":"m","snapshot":{},"isSnapshotUpdate":false}`,
+	}
+}
+
+func claudeTestWriteTranscript(t *testing.T, lines ...string) {
+	t.Helper()
+
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	transcriptDir := filepath.Join(home, ".claude", "projects", "sample-project")
+	require.NoError(t, os.MkdirAll(transcriptDir, 0o755))
+	require.NoError(t, os.WriteFile(
+		filepath.Join(transcriptDir, "s1.jsonl"),
+		[]byte(strings.Join(lines, "\n")+"\n"),
+		0o644,
+	))
+}
+
+func TestClaudeParse_TimestamplessLinesKeepPendingTokens(t *testing.T) {
+	lines := []string{
+		claudeTestPromptLine("2026-03-18T12:00:00Z", "first prompt"),
+		claudeTestReplyLine("2026-03-18T12:00:05Z", "msg_1", 3, 100, 50),
+	}
+	lines = append(lines, claudeTestMetadataLines()...)
+	lines = append(lines, claudeTestPromptLine("2026-03-18T12:05:00Z", "second prompt"))
+
+	claudeTestWriteTranscript(t, lines...)
+
+	hh, err := ai.Claude{After: time.Date(2026, time.March, 18, 11, 0, 0, 0, time.UTC)}.Parse(context.Background())
+	require.NoError(t, err)
+	require.Len(t, hh, 2)
+
+	// the reply's usage rolls into the next prompt's heartbeat
+	assert.Equal(t, int64(3), hh[1].AIInputTokens)
+	assert.Equal(t, int64(100), hh[1].AICachedInputTokens)
+	assert.Equal(t, int64(50), hh[1].AIOutputTokens)
+}
+
+func TestClaudeParse_TimestamplessLinesDoNotRevivePreCutoffUsage(t *testing.T) {
+	lines := []string{
+		claudeTestPromptLine("2026-03-18T10:00:00Z", "first prompt"),
+		claudeTestReplyLine("2026-03-18T10:00:05Z", "msg_1", 3, 100, 50),
+	}
+	lines = append(lines, claudeTestMetadataLines()...)
+	lines = append(lines, claudeTestPromptLine("2026-03-18T12:05:00Z", "second prompt"))
+
+	claudeTestWriteTranscript(t, lines...)
+
+	// usage before the cutoff was already reported by an earlier run
+	hh, err := ai.Claude{After: time.Date(2026, time.March, 18, 11, 0, 0, 0, time.UTC)}.Parse(context.Background())
+	require.NoError(t, err)
+	require.Len(t, hh, 1)
+
+	assert.Zero(t, hh[0].AIInputTokens)
+	assert.Zero(t, hh[0].AICachedInputTokens)
+	assert.Zero(t, hh[0].AIOutputTokens)
 }

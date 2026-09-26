@@ -674,7 +674,14 @@ func (g Claude) parseTranscript(ctx context.Context, transcript string) (Heartbe
 
 		tokens = g.claudeTokenCounts(logLine, tokens, &lastMsg)
 
-		if logLine.Timestamp.IsZero() || !timestampAtOrAfterCutoff(logLine.Timestamp, g.After) {
+		// Metadata lines Claude writes after each turn (last-prompt, ai-title,
+		// file-history-snapshot, ...) have no timestamp. They are not activity
+		// from before the cutoff, so usage still waiting for a heartbeat is kept.
+		if logLine.Timestamp.IsZero() {
+			continue
+		}
+
+		if !timestampAtOrAfterCutoff(logLine.Timestamp, g.After) {
 			tokens = g.advanceTokens(tokens)
 			continue
 		}
