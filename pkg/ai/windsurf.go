@@ -141,7 +141,8 @@ func (g Windsurf) Parse(ctx context.Context) (Heartbeats, error) {
 
 		tokens := g.windsurfTokenCounts(logLine, bubbleTokens[logLine.BubbleID])
 
-		if logLine.CreatedAt.IsZero() || !timestampAtOrAfterCutoff(logLine.CreatedAt, g.After) {
+		if logLine.CreatedAt.IsZero() ||
+			!timestampAtOrAfterCutoff(logLine.CreatedAt, ParserConfig(g).sessionAfter(logLine.BubbleID)) {
 			bubbleTokens[logLine.BubbleID] = g.advanceTokens(tokens)
 			continue
 		}

@@ -105,7 +105,7 @@ func (g Copilot) reconcileSQLiteUsage(ctx context.Context, timed []copilotTimedH
 	}
 
 	for _, row := range usage {
-		if row.timestamp.IsZero() || !timestampAtOrAfterCutoff(row.timestamp, g.After) {
+		if row.timestamp.IsZero() || !timestampAtOrAfterCutoff(row.timestamp, ParserConfig(g).sessionAfter(row.session)) {
 			continue
 		}
 

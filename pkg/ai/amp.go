@@ -477,7 +477,8 @@ func (g Amp) handleTranscriptLine(
 	delete(state.pendingPatches, logLine.ToolCallID)
 
 	if logLine.RunStatus != "done" || logLine.HasRunError ||
-		logLine.Timestamp.IsZero() || !timestampAtOrAfterCutoff(logLine.Timestamp, g.After) {
+		logLine.Timestamp.IsZero() ||
+		!timestampAtOrAfterCutoff(logLine.Timestamp, ParserConfig(g).sessionAfter(pending.sessionID)) {
 		return
 	}
 

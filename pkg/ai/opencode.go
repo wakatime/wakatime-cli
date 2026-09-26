@@ -29,6 +29,7 @@ type OpenCode struct {
 	FallbackUserAgent string
 	UserAgents        map[string]string
 	ProjectInfo       ProjectInfo
+	checkpoint        *parserCheckpoint
 	seenMessages      map[string]bool
 	v2Sessions        map[string]bool
 }
@@ -498,7 +499,7 @@ ORDER BY time_created ASC, id ASC;
 		}
 
 		if message.Time.Created == 0 ||
-			!timestampAtOrAfterCutoff(time.UnixMilli(message.Time.Created), g.After) {
+			!timestampAtOrAfterCutoff(time.UnixMilli(message.Time.Created), g.sessionAfter(message.SessionID)) {
 			continue
 		}
 
@@ -735,7 +736,7 @@ func (g OpenCode) sessionHeartbeats(
 		}
 
 		if message.info.Time.Created == 0 ||
-			(!g.After.IsZero() && !timestampAtOrAfterCutoff(messageTime, g.After)) {
+			(!g.After.IsZero() && !timestampAtOrAfterCutoff(messageTime, g.sessionAfter(session.ID))) {
 			tokens.LastInput = tokens.CurrentInput
 			tokens.LastCachedInput = tokens.CurrentCachedInput
 			tokens.LastOutput = tokens.CurrentOutput
@@ -1306,4 +1307,8 @@ func openCodeResolvePath(base string, filePath string) string {
 // Name returns its id.
 func (OpenCode) Name() string {
 	return "OpenCode"
+}
+
+func (g OpenCode) sessionAfter(id string) time.Time {
+	return (ParserConfig{After: g.After, checkpoint: g.checkpoint}).sessionAfter(id)
 }

@@ -142,7 +142,7 @@ func (g Qoder) Parse(ctx context.Context) (Heartbeats, error) {
 		}
 
 		timestamp := time.UnixMilli(row.CreatedAtMS)
-		if timestamp.IsZero() || !timestampAtOrAfterCutoff(timestamp, g.After) {
+		if timestamp.IsZero() || !timestampAtOrAfterCutoff(timestamp, ParserConfig(g).sessionAfter(row.SessionID)) {
 			continue
 		}
 
@@ -357,7 +357,8 @@ func (g Qoder) qoderAppHeartbeat(row qoderMessageRow, timestamp time.Time) *hear
 
 func (g Qoder) withPromptLengths(heartbeats Heartbeats, prompts []qoderPrompt) Heartbeats {
 	for _, prompt := range prompts {
-		if prompt.Length == 0 || !timestampAtOrAfterCutoff(prompt.Timestamp, g.After) {
+		if prompt.Length == 0 ||
+			!timestampAtOrAfterCutoff(prompt.Timestamp, ParserConfig(g).sessionAfter(prompt.SessionID)) {
 			continue
 		}
 

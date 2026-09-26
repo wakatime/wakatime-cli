@@ -304,6 +304,8 @@ func (g DeepSeek) parseTranscript(ctx context.Context, transcript string) (Heart
 		g.readSessionHeader(logger, transcript, scanner.Bytes(), &session)
 	}
 
+	g.After = ParserConfig(g).sessionAfter(session.id)
+
 	if session.version != dshGeneration(transcript) || session.version > 3 {
 		return nil, fmt.Errorf("unsupported or mismatched DSH session version %d", session.version)
 	}
@@ -368,7 +370,7 @@ func (g DeepSeek) parseTranscript(ctx context.Context, transcript string) (Heart
 			}
 		}
 
-		if target >= 0 && (observation.model == "" ||
+		if g.checkpoint == nil && target >= 0 && (observation.model == "" ||
 			strings.Contains(state.heartbeats[target].UserAgent, aiModelUserAgentToken(observation.model, ""))) {
 			state.heartbeats[target].AIInputTokens += h.AIInputTokens
 			state.heartbeats[target].AICachedInputTokens += h.AICachedInputTokens
@@ -844,7 +846,7 @@ func (g DeepSeek) commitUsage(
 	state *dshParseState,
 ) {
 	if usage != nil && !timestamp.IsZero() && timestampAtOrAfterCutoff(timestamp, g.After) &&
-		len(state.heartbeats) == 0 && dshUsageHasTokens(*usage) {
+		(len(state.heartbeats) == 0 || g.checkpoint != nil) && dshUsageHasTokens(*usage) {
 		state.appendHeartbeat(g.appHeartbeat(timestamp, session, state))
 	}
 

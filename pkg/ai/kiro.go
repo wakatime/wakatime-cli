@@ -144,7 +144,7 @@ func (g Kiro) parseLegacyRoot(root string) (Heartbeats, error) {
 
 		if prompt, ok := prompts[execution.ExecutionID]; ok {
 			timestamp := time.UnixMilli(execution.StartTimeMS)
-			if timestampAtOrAfterCutoff(timestamp, g.After) {
+			if timestampAtOrAfterCutoff(timestamp, ParserConfig(g).sessionAfter(session.SessionID)) {
 				heartbeats = append(heartbeats, g.promptHeartbeat(prompt, timestamp))
 			}
 		}
@@ -379,7 +379,7 @@ func (g Kiro) actionHeartbeats(execution kiroExecution, session kiroSessionInfo)
 		}
 
 		timestamp := time.UnixMilli(timestampMS)
-		if timestamp.IsZero() || !timestampAtOrAfterCutoff(timestamp, g.After) {
+		if timestamp.IsZero() || !timestampAtOrAfterCutoff(timestamp, ParserConfig(g).sessionAfter(session.SessionID)) {
 			continue
 		}
 

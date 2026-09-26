@@ -265,7 +265,8 @@ func (g CodeBuddyCode) parseTranscript(
 				toolEvent.sessionID = defaultSessionID
 			}
 
-			if toolEvent.timestamp.IsZero() || !timestampAtOrAfterCutoff(toolEvent.timestamp, g.After) {
+			if toolEvent.timestamp.IsZero() ||
+				!timestampAtOrAfterCutoff(toolEvent.timestamp, ParserConfig(g).sessionAfter(toolEvent.sessionID)) {
 				continue
 			}
 
@@ -279,7 +280,8 @@ func (g CodeBuddyCode) parseTranscript(
 		}
 
 		if transcript.subagent || event.timestamp.IsZero() ||
-			!timestampAtOrAfterCutoff(event.timestamp, g.After) || !event.hasActivity() {
+			!timestampAtOrAfterCutoff(event.timestamp, ParserConfig(g).sessionAfter(event.sessionID)) ||
+			!event.hasActivity() {
 			continue
 		}
 
@@ -296,7 +298,9 @@ func (g CodeBuddyCode) nonToolHeartbeats(event genericAIEvent) Heartbeats {
 	event.lineChanges = nil
 	event.isWrite = false
 
-	if event.timestamp.IsZero() || !timestampAtOrAfterCutoff(event.timestamp, g.After) || !event.hasActivity() {
+	if event.timestamp.IsZero() ||
+		!timestampAtOrAfterCutoff(event.timestamp, ParserConfig(g).sessionAfter(event.sessionID)) ||
+		!event.hasActivity() {
 		return nil
 	}
 

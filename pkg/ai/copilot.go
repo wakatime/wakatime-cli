@@ -261,7 +261,7 @@ func (g Copilot) Parse(ctx context.Context) (Heartbeats, error) {
 
 	heartbeats := make(Heartbeats, 0, len(timed))
 	for _, item := range timed {
-		if !timestampAtOrAfterCutoff(item.timestamp, g.After) {
+		if !timestampAtOrAfterCutoff(item.timestamp, ParserConfig(g).sessionAfter(item.heartbeat.AISession)) {
 			continue
 		}
 

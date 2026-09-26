@@ -488,3 +488,20 @@ func copyFile(t *testing.T, source, destination string) {
 	err = os.WriteFile(destination, input, 0600)
 	require.NoError(t, err)
 }
+
+func TestWritePreservesConcurrentUpdates(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "internal.cfg")
+	v := viper.New()
+	location := func(context.Context, *viper.Viper) (string, error) { return path, nil }
+	first, err := ini.NewWriter(t.Context(), v, location)
+	require.NoError(t, err)
+	second, err := ini.NewWriter(t.Context(), v, location)
+	require.NoError(t, err)
+	require.NoError(t, first.Write(t.Context(), "internal",
+		map[string]string{"ai_logs_last_parsed_at": "2026-09-01T12:00:00Z"}))
+	require.NoError(t, second.Write(t.Context(), "internal",
+		map[string]string{"heartbeats_last_sent_at": "2026-09-01T12:01:00Z"}))
+	require.NoError(t, first.File.Reload())
+	assert.Equal(t, "2026-09-01T12:00:00Z", first.File.Section("internal").Key("ai_logs_last_parsed_at").String())
+	assert.Equal(t, "2026-09-01T12:01:00Z", first.File.Section("internal").Key("heartbeats_last_sent_at").String())
+}

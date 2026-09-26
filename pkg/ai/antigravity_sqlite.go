@@ -256,7 +256,7 @@ func (g Gemini) antigravityRow(transcript antigravityTranscript, idx int64, raw 
 	metadata := antigravityProto(antigravityField(chat, 9).bytes)
 
 	stamp := clock.resolve(id, antigravityProtoTime(antigravityField(metadata, 4)))
-	if !timestampAtOrAfterCutoff(stamp, g.After) {
+	if !timestampAtOrAfterCutoff(stamp, ParserConfig(g).sessionAfter(transcript.sessionID)) {
 		return nil
 	}
 

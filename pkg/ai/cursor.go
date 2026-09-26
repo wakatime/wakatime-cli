@@ -176,6 +176,9 @@ func (g Cursor) Parse(ctx context.Context) (Heartbeats, error) {
 		}
 
 		tokens := g.cursorTokenCounts(logLine, bubbleTokens[logLine.BubbleID])
+		if g.checkpoint != nil {
+			cutoff = ParserConfig(g).sessionAfter(logLine.BubbleID)
+		}
 
 		if logLine.CreatedAt.IsZero() || !timestampAtOrAfterCutoff(logLine.CreatedAt, cutoff) {
 			bubbleTokens[logLine.BubbleID] = g.advanceTokens(tokens)

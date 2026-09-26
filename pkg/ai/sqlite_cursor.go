@@ -165,26 +165,7 @@ func writeGenericAISQLiteCursor(path string, cursor genericAISQLiteCursor) error
 		return err
 	}
 
-	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
-		return err
-	}
-
-	file, err := os.CreateTemp(filepath.Dir(path), ".cursor-*")
-	if err != nil {
-		return err
-	}
-	defer os.Remove(file.Name()) // nolint:errcheck
-
-	if _, err := file.Write(contents); err != nil {
-		_ = file.Close()
-		return err
-	}
-
-	if err := file.Close(); err != nil {
-		return err
-	}
-
-	return os.Rename(file.Name(), path)
+	return atomicWriteFile(filepath.Dir(path), ".cursor-*", path, contents)
 }
 
 // Fingerprint both files: WAL commits need not touch the database file. Include

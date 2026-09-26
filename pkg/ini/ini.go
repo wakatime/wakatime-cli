@@ -70,11 +70,17 @@ func NewWriter(
 
 	logger := log.Extract(ctx)
 
+	lock, err := acquireConfigLock(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to acquire config mutex: %w", err)
+	}
+	defer lock.Release()
+
 	// check if file exists
 	if !fileExists(configFilepath) {
 		logger.Debugf("it will create missing config file %q", configFilepath)
 
-		f, err := os.Create(configFilepath) // nolint:gosec
+		f, err := os.OpenFile(configFilepath, os.O_CREATE|os.O_WRONLY, 0o600) // nolint:gosec
 		if err != nil {
 			return nil, fmt.Errorf("failed creating file: %s", err)
 		}
@@ -106,22 +112,10 @@ func (w *WriterConfig) Write(ctx context.Context, section string, keyValue map[s
 		return errors.New("got undefined wakatime config file instance")
 	}
 
-	for key, value := range keyValue {
-		// prevent writing null characters
-		key = strings.ReplaceAll(key, "\x00", "")
-		value = strings.ReplaceAll(value, "\x00", "")
-
-		w.File.Section(section).Key(key).SetValue(value)
-	}
-
-	releaser, err := mutex.Acquire(mutex.Spec{
-		Name:    "wakatime-cli-config-mutex",
-		Delay:   time.Millisecond,
-		Timeout: defaultTimeout,
-		Clock:   &mutexClock{delay: time.Millisecond},
-	})
+	releaser, err := acquireConfigLock(ctx)
 	if err != nil {
 		logger.Debugf("failed to acquire mutex: %s", err)
+		return fmt.Errorf("failed to acquire config mutex: %w", err)
 	}
 
 	defer func() {
@@ -130,11 +124,39 @@ func (w *WriterConfig) Write(ctx context.Context, section string, keyValue map[s
 		}
 	}()
 
+	latest, err := ini.LoadSources(ini.LoadOptions{
+		AllowPythonMultilineValues: true,
+		SkipUnrecognizableLines:    true,
+	}, w.ConfigFilepath)
+	if err != nil {
+		return fmt.Errorf("error saving wakatime config: failed reloading config: %w", err)
+	}
+
+	w.File = latest
+
+	for key, value := range keyValue {
+		// prevent writing null characters
+		key = strings.ReplaceAll(key, "\x00", "")
+		value = strings.ReplaceAll(value, "\x00", "")
+
+		w.File.Section(section).Key(key).SetValue(value)
+	}
+
 	if err := w.File.SaveTo(w.ConfigFilepath); err != nil {
 		return fmt.Errorf("error saving wakatime config: %s", err)
 	}
 
 	return nil
+}
+
+func acquireConfigLock(ctx context.Context) (mutex.Releaser, error) {
+	return mutex.Acquire(mutex.Spec{
+		Name:    "wakatime-cli-config-mutex",
+		Delay:   time.Millisecond,
+		Timeout: defaultTimeout,
+		Cancel:  ctx.Done(),
+		Clock:   &mutexClock{},
+	})
 }
 
 // ReadInConfig reads wakatime config file in memory.
@@ -325,12 +347,10 @@ func WakaResourcesDir(ctx context.Context) (string, error) {
 }
 
 // mutexClock is used to implement mutex.Clock interface.
-type mutexClock struct {
-	delay time.Duration
-}
+type mutexClock struct{}
 
-func (mc *mutexClock) After(time.Duration) <-chan time.Time {
-	return time.After(mc.delay)
+func (*mutexClock) After(d time.Duration) <-chan time.Time {
+	return time.After(d)
 }
 
 func (*mutexClock) Now() time.Time {

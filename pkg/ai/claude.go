@@ -358,7 +358,9 @@ func (g Claude) Parse(ctx context.Context) (Heartbeats, error) {
 	var heartbeats Heartbeats
 
 	for _, transcript := range transcripts {
-		parsed, err := g.parseTranscript(ctx, transcript)
+		parsed, err := parseCheckpointSource(ParserConfig(g), transcript, func() (Heartbeats, error) {
+			return g.parseTranscript(ctx, transcript)
+		})
 		if err != nil {
 			logger.Warnf("failed parsing claude transcript %q: %s", transcript, err)
 			continue
@@ -582,6 +584,16 @@ func (Claude) subscriptionPlanFromConfig(path string) (string, error) {
 }
 
 func (g Claude) parseTranscript(ctx context.Context, transcript string) (Heartbeats, error) {
+	return g.parseTranscriptWithPrefix(ctx, transcript, "")
+}
+
+// parseTranscriptWithPrefix parses a transcript looking up each line's cutoff
+// under sessionPrefix+sessionID. Callers that rewrite AISession afterwards
+// (like OpenClaude) must pass that same prefix so the lookup matches the
+// session id recorded in the checkpoint.
+func (g Claude) parseTranscriptWithPrefix(
+	ctx context.Context, transcript, sessionPrefix string,
+) (Heartbeats, error) {
 	logger := log.Extract(ctx)
 
 	//nolint:gosec
@@ -674,7 +686,11 @@ func (g Claude) parseTranscript(ctx context.Context, transcript string) (Heartbe
 
 		tokens = g.claudeTokenCounts(logLine, tokens, &lastMsg)
 
-		if logLine.Timestamp.IsZero() || !timestampAtOrAfterCutoff(logLine.Timestamp, g.After) {
+		if logLine.Timestamp.IsZero() {
+			continue
+		}
+
+		if !timestampAtOrAfterCutoff(logLine.Timestamp, ParserConfig(g).sessionAfter(sessionPrefix+sessionID)) {
 			tokens = g.advanceTokens(tokens)
 			continue
 		}

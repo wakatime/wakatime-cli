@@ -191,7 +191,7 @@ func (g Cody) heartbeatsFromStorage(value string) Heartbeats {
 		for chatID, transcript := range userHistory.Chat {
 			transcriptID := firstNonEmptyString(transcript.ID, chatID)
 			if transcript.LastInteractionTimestamp.IsZero() ||
-				!timestampAtOrAfterCutoff(transcript.LastInteractionTimestamp, g.After) {
+				!timestampAtOrAfterCutoff(transcript.LastInteractionTimestamp, ParserConfig(g).sessionAfter(transcriptID)) {
 				continue
 			}
 
