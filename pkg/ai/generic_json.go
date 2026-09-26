@@ -24,7 +24,6 @@ import (
 
 type genericAIProvider struct {
 	parser              Parser
-	incremental         bool
 	config              ParserConfig
 	roots               []string
 	fileNames           map[string]bool
@@ -528,14 +527,8 @@ func genericAIHeartbeatsFromEvents(
 			event.filePath = filepath.Join(event.cwd, filepath.FromSlash(event.filePath))
 		}
 
-		after := provider.config.sessionAfter(event.sessionID)
-		if provider.incremental {
-			// Resume pending scans from their original cutoff, even if another
-			// table has already emitted newer activity from the same session.
-			after = provider.config.After
-		}
-
-		insideCutoff := !event.timestamp.IsZero() && timestampAtOrAfterCutoff(event.timestamp, after)
+		insideCutoff := !event.timestamp.IsZero() &&
+			timestampAtOrAfterCutoff(event.timestamp, provider.config.sessionAfter(event.sessionID))
 
 		if provider.tokenCounterMode == genericAICumulativeCounters && event.hasTokens() {
 			currentInput := event.input

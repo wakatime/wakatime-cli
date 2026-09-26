@@ -155,7 +155,7 @@ func acquireConfigLock(ctx context.Context) (mutex.Releaser, error) {
 		Delay:   time.Millisecond,
 		Timeout: defaultTimeout,
 		Cancel:  ctx.Done(),
-		Clock:   &mutexClock{delay: time.Millisecond},
+		Clock:   &mutexClock{},
 	})
 }
 
@@ -347,12 +347,10 @@ func WakaResourcesDir(ctx context.Context) (string, error) {
 }
 
 // mutexClock is used to implement mutex.Clock interface.
-type mutexClock struct {
-	delay time.Duration
-}
+type mutexClock struct{}
 
-func (mc *mutexClock) After(time.Duration) <-chan time.Time {
-	return time.After(mc.delay)
+func (*mutexClock) After(d time.Duration) <-chan time.Time {
+	return time.After(d)
 }
 
 func (*mutexClock) Now() time.Time {

@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"maps"
 	"math"
 	"path/filepath"
 	"runtime/debug"
@@ -285,14 +286,22 @@ func parseAIHeartbeats(
 		return nil, err
 	}
 
+	tracked := make(map[string]bool)
+
 	parserConfig := func(name string) ParserConfig {
 		state := checkpoints.parser(name, after)
+		tracked[name] = true
 
 		return ParserConfig{
 			After: state.discoveryAfter(), UserAgents: userAgents, FallbackUserAgent: config.Plugin,
 			checkpoint: state,
 		}
 	}
+
+	// Parsers reading SQLite databases do not take part in checkpoints. They keep
+	// their own per-database cursors and use the global cutoff, which keeps row
+	// hashes out of the checkpoint file that is loaded and rewritten on every sync.
+	sqliteConfig := ParserConfig{After: after, UserAgents: userAgents, FallbackUserAgent: config.Plugin}
 
 	parsers := []Parser{
 		OpenClaude(parserConfig((OpenClaude{}).Name())),
@@ -304,30 +313,30 @@ func parseAIHeartbeats(
 		GrokBuild(parserConfig((GrokBuild{}).Name())),
 		Amp(parserConfig((Amp{}).Name())),
 		Continue(parserConfig((Continue{}).Name())),
-		Cody(parserConfig((Cody{}).Name())),
+		Cody(sqliteConfig),
 		RooCode(parserConfig((RooCode{}).Name())),
-		newCheckpointOpenCode(parserConfig((OpenCode{}).Name())),
-		Copilot(parserConfig((Copilot{}).Name())),
-		Cursor(parserConfig((Cursor{}).Name())),
-		Windsurf(parserConfig((Windsurf{}).Name())),
-		Qoder(parserConfig((Qoder{}).Name())),
+		newCheckpointOpenCode(sqliteConfig),
+		Copilot(sqliteConfig),
+		Cursor(sqliteConfig),
+		Windsurf(sqliteConfig),
+		Qoder(sqliteConfig),
 		Kiro(parserConfig((Kiro{}).Name())),
 		Cline(parserConfig((Cline{}).Name())),
-		Gemini(parserConfig((Gemini{}).Name())),
+		Gemini(sqliteConfig),
 		QwenCode(parserConfig((QwenCode{}).Name())),
 		Pi(parserConfig((Pi{}).Name())),
-		Goose(parserConfig((Goose{}).Name())),
+		Goose(sqliteConfig),
 		ClineCLI(parserConfig((ClineCLI{}).Name())),
 		Codebuff(parserConfig((Codebuff{}).Name())),
 		CodeWhale(parserConfig((CodeWhale{}).Name())),
-		Crush(parserConfig((Crush{}).Name())),
-		CursorAgent(parserConfig((CursorAgent{}).Name())),
+		Crush(sqliteConfig),
+		CursorAgent(sqliteConfig),
 		Devin(parserConfig((Devin{}).Name())),
 		Droid(parserConfig((Droid{}).Name())),
-		Forge(parserConfig((Forge{}).Name())),
-		Hermes(parserConfig((Hermes{}).Name())),
+		Forge(sqliteConfig),
+		Hermes(sqliteConfig),
 		IBMBob(parserConfig((IBMBob{}).Name())),
-		KiloCode(parserConfig((KiloCode{}).Name())),
+		KiloCode(sqliteConfig),
 		Kimi(parserConfig((Kimi{}).Name())),
 		KimiCode(parserConfig((KimiCode{}).Name())),
 		LingTaiTUI(parserConfig((LingTaiTUI{}).Name())),
@@ -336,10 +345,10 @@ func parseAIHeartbeats(
 		OMP(parserConfig((OMP{}).Name())),
 		OpenClaw(parserConfig((OpenClaw{}).Name())),
 		OpenDesign(parserConfig((OpenDesign{}).Name())),
-		QuickDesk(parserConfig((QuickDesk{}).Name())),
-		Warp(parserConfig((Warp{}).Name())),
-		ZCode(parserConfig((ZCode{}).Name())),
-		Zed(parserConfig((Zed{}).Name())),
+		QuickDesk(sqliteConfig),
+		Warp(sqliteConfig),
+		ZCode(sqliteConfig),
+		Zed(sqliteConfig),
 		Zerostack(parserConfig((Zerostack{}).Name())),
 	}
 
@@ -348,7 +357,10 @@ func parseAIHeartbeats(
 	for _, p := range parsers {
 		logger.Debugf("execute %s", p.Name())
 
-		before := checkpoints.Parsers[p.Name()].clone()
+		var before *parserCheckpoint
+		if tracked[p.Name()] {
+			before = checkpoints.Parsers[p.Name()].clone()
+		}
 
 		heartbeats, err := parseHeartbeats(ctx, p, func(report aiPanicReport) {
 			if logger.IsVerboseEnabled() {
@@ -362,14 +374,23 @@ func parseAIHeartbeats(
 		if err != nil {
 			logger.Errorf("unexpected error occurred at %q: %s", p.Name(), err)
 
-			checkpoints.Parsers[p.Name()] = before
+			if before != nil {
+				checkpoints.Parsers[p.Name()] = before
+			}
 
 			continue
 		}
 
-		heartbeats = checkpoints.Parsers[p.Name()].filter(heartbeats)
+		if tracked[p.Name()] {
+			heartbeats = checkpoints.Parsers[p.Name()].filter(heartbeats)
+		}
+
 		aiHeartbeats = append(aiHeartbeats, heartbeats...)
 	}
+
+	// Drop state left by parsers that no longer use checkpoints, such as sqlite
+	// cursors stored by earlier builds.
+	maps.DeleteFunc(checkpoints.Parsers, func(name string, _ *parserCheckpoint) bool { return !tracked[name] })
 
 	checkpoints.PreviousGlobal = after
 

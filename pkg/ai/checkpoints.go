@@ -32,18 +32,12 @@ type syncCheckpoints struct {
 }
 
 type parserCheckpoint struct {
-	Cutoff      time.Time                     `json:"cutoff"`
-	Sessions    map[string]*sessionCheckpoint `json:"sessions"`
-	Sources     map[string]checkpointSource   `json:"sources,omitempty"`
-	Cursors     map[string]json.RawMessage    `json:"cursors,omitempty"`
-	incremental map[string]int
+	Cutoff   time.Time                     `json:"cutoff"`
+	Sessions map[string]*sessionCheckpoint `json:"sessions"`
+	Sources  map[string]checkpointSource   `json:"sources,omitempty"`
 	// global is this run's global cutoff (ai_logs_last_parsed_at). It is the
 	// cutoff a session gets the first time it is seen, and is never persisted.
 	global time.Time
-	// legacy holds pre-checkpoint cursor files that were read as a fallback.
-	// They are removed once their state is safely saved in Cursors, so a lost
-	// or reset checkpoint cannot resurrect their stale progress.
-	legacy map[string]struct{}
 }
 
 // clone deep-copies p so callers can roll back to it after a failed parser
@@ -70,16 +64,6 @@ func (p *parserCheckpoint) clone() *parserCheckpoint {
 	if p.Sources != nil {
 		clone.Sources = make(map[string]checkpointSource, len(p.Sources))
 		maps.Copy(clone.Sources, p.Sources)
-	}
-
-	if p.Cursors != nil {
-		clone.Cursors = make(map[string]json.RawMessage, len(p.Cursors))
-		maps.Copy(clone.Cursors, p.Cursors)
-	}
-
-	if p.incremental != nil {
-		clone.incremental = make(map[string]int, len(p.incremental))
-		maps.Copy(clone.incremental, p.incremental)
 	}
 
 	return clone
@@ -231,8 +215,7 @@ func (p *parserCheckpoint) filter(hh Heartbeats) Heartbeats {
 
 		timestamp := heartbeatTime(h.Time)
 
-		incremental := p.takeIncremental(h)
-		if timestamp.Before(previous.Cutoff) && !incremental {
+		if timestamp.Before(previous.Cutoff) {
 			continue
 		}
 
@@ -245,7 +228,7 @@ func (p *parserCheckpoint) filter(hh Heartbeats) Heartbeats {
 		occurrences[h.AISession][key]++
 		counts := checkpointTokens{h.AIInputTokens, h.AICachedInputTokens, h.AIOutputTokens}
 
-		if !incremental && timestamp.Equal(previous.Cutoff) && index < len(previous.Boundary[key]) {
+		if timestamp.Equal(previous.Cutoff) && index < len(previous.Boundary[key]) {
 			old := previous.Boundary[key][index]
 			counts.Input = max(counts.Input, old.Input)
 			counts.Cached = max(counts.Cached, old.Cached)
@@ -265,10 +248,6 @@ func (p *parserCheckpoint) filter(hh Heartbeats) Heartbeats {
 			}
 		} else {
 			result = append(result, h)
-		}
-
-		if timestamp.Before(previous.Cutoff) {
-			continue // A durable SQLite row cursor may deliver older rows in a later batch.
 		}
 
 		current := next[h.AISession]
@@ -330,25 +309,7 @@ func (s *syncCheckpoints) save() error {
 		return nil
 	}
 
-	if err := atomicWriteFile(filepath.Dir(s.path), ".ai-parsing-*", s.path, raw); err != nil {
-		return err
-	}
-
-	s.removeMigratedLegacyCursors()
-
-	return nil
-}
-
-func (s *syncCheckpoints) removeMigratedLegacyCursors() {
-	for _, p := range s.Parsers {
-		for path := range p.legacy {
-			if _, ok := p.Cursors[path]; ok {
-				_ = os.Remove(path)
-			}
-		}
-
-		p.legacy = nil
-	}
+	return atomicWriteFile(filepath.Dir(s.path), ".ai-parsing-*", s.path, raw)
 }
 
 // atomicWriteFile replaces path's contents by writing to a temporary file in
@@ -445,36 +406,4 @@ func parseCheckpointSource(config ParserConfig, path string, parse func() (Heart
 	state.Sources[path] = source
 
 	return hh, nil
-}
-
-// SQLite cursors already identify new and changed records, including older rows
-// reached in a later budgeted batch. Do not discard these at a time watermark.
-func (p *parserCheckpoint) markIncremental(hh Heartbeats) {
-	if p.incremental == nil {
-		p.incremental = make(map[string]int)
-	}
-
-	for _, h := range hh {
-		p.incremental[incrementalHeartbeatKey(h)]++
-	}
-}
-
-func (p *parserCheckpoint) takeIncremental(h heartbeat.Heartbeat) bool {
-	if len(p.incremental) == 0 {
-		return false
-	}
-
-	key := incrementalHeartbeatKey(h)
-	if p.incremental[key] == 0 {
-		return false
-	}
-
-	p.incremental[key]--
-
-	return true
-}
-
-func incrementalHeartbeatKey(h heartbeat.Heartbeat) string {
-	raw, _ := json.Marshal(h)
-	return fmt.Sprintf("%x", sha256.Sum256(raw))
 }
