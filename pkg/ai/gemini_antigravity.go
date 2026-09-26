@@ -355,7 +355,7 @@ func (g Gemini) parseAntigravityTranscript(
 		}
 
 		timestamp := parseGeminiTime(line.CreatedAt)
-		if timestamp.IsZero() || !timestampAtOrAfterCutoff(timestamp, g.After) {
+		if timestamp.IsZero() || !timestampAtOrAfterCutoff(timestamp, ParserConfig(g).sessionAfter(transcript.sessionID)) {
 			continue
 		}
 

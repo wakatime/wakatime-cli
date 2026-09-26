@@ -94,7 +94,7 @@ func (g GrokBot) parseMirror(ctx context.Context, root string) (Heartbeats, erro
 			}
 
 			timestamp := genericAITime(entry["timestampMs"])
-			if timestamp.IsZero() || !timestampAtOrAfterCutoff(timestamp, g.After) {
+			if timestamp.IsZero() {
 				continue
 			}
 
@@ -109,6 +109,10 @@ func (g GrokBot) parseMirror(ctx context.Context, root string) (Heartbeats, erro
 			seen[identity] = true
 
 			event := genericAIEvent{sessionID: "grokbot:" + account + ":" + agent, timestamp: timestamp}
+			if !timestampAtOrAfterCutoff(timestamp, ParserConfig(g).sessionAfter(event.sessionID)) {
+				continue
+			}
+
 			if kind == "message" && genericAIString(entry["role"]) == "user" && entry["fromAgent"] == nil {
 				event.prompt = genericAIString(entry["content"])
 				if text, ok := entry["content"].(map[string]any); ok {

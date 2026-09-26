@@ -194,7 +194,7 @@ func (g Cline) parseTaskDir(taskDir string) (Heartbeats, error) {
 
 	for _, message := range messages {
 		timestamp := time.UnixMilli(message.Timestamp)
-		if timestamp.IsZero() || !timestampAtOrAfterCutoff(timestamp, g.After) {
+		if timestamp.IsZero() || !timestampAtOrAfterCutoff(timestamp, ParserConfig(g).sessionAfter(sessionID)) {
 			continue
 		}
 

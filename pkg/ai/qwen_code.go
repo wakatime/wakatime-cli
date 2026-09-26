@@ -432,7 +432,8 @@ func (g QwenCode) handleTranscriptRecord(record qwenCodeRecord, state *qwenCodeP
 	g.trackToolCalls(record.Message, state)
 	state.tokens = g.tokenCounts(record, state.tokens)
 
-	if record.Timestamp.IsZero() || !timestampAtOrAfterCutoff(record.Timestamp, g.After) {
+	if record.Timestamp.IsZero() ||
+		!timestampAtOrAfterCutoff(record.Timestamp, ParserConfig(g).sessionAfter(state.sessionID)) {
 		state.tokens.LastInput = state.tokens.CurrentInput
 		state.tokens.LastCachedInput = state.tokens.CurrentCachedInput
 		state.tokens.LastOutput = state.tokens.CurrentOutput

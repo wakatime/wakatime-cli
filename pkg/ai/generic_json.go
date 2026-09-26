@@ -24,6 +24,7 @@ import (
 
 type genericAIProvider struct {
 	parser              Parser
+	incremental         bool
 	config              ParserConfig
 	roots               []string
 	fileNames           map[string]bool
@@ -96,7 +97,9 @@ func parseGenericAIProvider(ctx context.Context, provider genericAIProvider) (He
 	logger := log.Extract(ctx)
 
 	for _, path := range paths {
-		parsed, err := parseGenericAITranscript(ctx, provider, path)
+		parsed, err := parseCheckpointSource(provider.config, path, func() (Heartbeats, error) {
+			return parseGenericAITranscript(ctx, provider, path)
+		})
 		if err != nil {
 			if ctxErr := ctx.Err(); ctxErr != nil {
 				return nil, ctxErr
@@ -525,8 +528,14 @@ func genericAIHeartbeatsFromEvents(
 			event.filePath = filepath.Join(event.cwd, filepath.FromSlash(event.filePath))
 		}
 
-		insideCutoff := !event.timestamp.IsZero() &&
-			timestampAtOrAfterCutoff(event.timestamp, provider.config.After)
+		after := provider.config.sessionAfter(event.sessionID)
+		if provider.incremental {
+			// Resume pending scans from their original cutoff, even if another
+			// table has already emitted newer activity from the same session.
+			after = provider.config.After
+		}
+
+		insideCutoff := !event.timestamp.IsZero() && timestampAtOrAfterCutoff(event.timestamp, after)
 
 		if provider.tokenCounterMode == genericAICumulativeCounters && event.hasTokens() {
 			currentInput := event.input
@@ -566,7 +575,7 @@ func genericAIHeartbeatsFromEvents(
 		event = genericAIRecordDelta(event, parseState)
 		if event.observeGrowth && observed && (event.input > 0 || event.cachedInput > 0 || event.output > 0) {
 			event.timestamp = time.Now().UTC()
-			insideCutoff = timestampAtOrAfterCutoff(event.timestamp, provider.config.After)
+			insideCutoff = timestampAtOrAfterCutoff(event.timestamp, provider.config.sessionAfter(event.sessionID))
 		}
 
 		if !insideCutoff || !event.hasActivity() {

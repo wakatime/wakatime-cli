@@ -44,6 +44,7 @@ type ParserConfig struct {
 	FallbackUserAgent string
 	UserAgents        map[string]string
 	ProjectInfo       ProjectInfo
+	checkpoint        *parserCheckpoint
 }
 
 const maxTranscriptLineSize = 10 * 1024 * 1024
@@ -196,7 +197,7 @@ func WithAISync(config Config) heartbeat.HandleOption {
 			}
 			defer releaseLock()
 
-			lastParsedAt, err := getLastParsedAt(ctx, config.V)
+			lastParsedAt, err := getSyncLastParsedAt(ctx, config.V)
 			if err != nil {
 				logger.Debugf("failed ai last parsed: %s", err)
 				releaseLock()
@@ -222,6 +223,10 @@ func WithAISync(config Config) heartbeat.HandleOption {
 			minAIHeartbeatTime, maxAIHeartbeatTime := minMaxAIHeartbeatTimes(heartbeats)
 
 			parsedAt := heartbeatTime(maxAIHeartbeatTime)
+			if parsedAt.Before(lastParsedAt) {
+				parsedAt = lastParsedAt
+			}
+
 			if err := UpdateLastParsedAt(ctx, config.V, parsedAt); err != nil {
 				log.Extract(ctx).Warnf("failed to update ai_logs_last_parsed_at: %s", err)
 			}
@@ -275,235 +280,75 @@ func parseAIHeartbeats(
 	logs, resetLogs := captureAIParsingLogs(ctx)
 	defer resetLogs()
 
-	var parsers = []Parser{
-		OpenClaude{After: after, UserAgents: userAgents, FallbackUserAgent: config.Plugin},
-		GrokBot{After: after, UserAgents: userAgents, FallbackUserAgent: config.Plugin},
-		Claude{
-			After:             after,
-			UserAgents:        userAgents,
-			FallbackUserAgent: config.Plugin,
-		},
-		Codex{
-			After:             after,
-			UserAgents:        userAgents,
-			FallbackUserAgent: config.Plugin,
-		},
-		DeepSeek{
-			After:             after,
-			UserAgents:        userAgents,
-			FallbackUserAgent: config.Plugin,
-		},
-		CodeBuddyCode{
-			After:             after,
-			UserAgents:        userAgents,
-			FallbackUserAgent: config.Plugin,
-		},
-		GrokBuild{
-			After:             after,
-			UserAgents:        userAgents,
-			FallbackUserAgent: config.Plugin,
-		},
-		Amp{
-			After:             after,
-			UserAgents:        userAgents,
-			FallbackUserAgent: config.Plugin,
-		},
-		Continue{
-			After:             after,
-			UserAgents:        userAgents,
-			FallbackUserAgent: config.Plugin,
-		},
-		Cody{
-			After:             after,
-			UserAgents:        userAgents,
-			FallbackUserAgent: config.Plugin,
-		},
-		RooCode{
-			After:             after,
-			UserAgents:        userAgents,
-			FallbackUserAgent: config.Plugin,
-		},
-		OpenCode{
-			After:             after,
-			UserAgents:        userAgents,
-			FallbackUserAgent: config.Plugin,
-		},
-		Copilot{
-			After:             after,
-			UserAgents:        userAgents,
-			FallbackUserAgent: config.Plugin,
-		},
-		Cursor{
-			After:             after,
-			UserAgents:        userAgents,
-			FallbackUserAgent: config.Plugin,
-		},
-		Windsurf{
-			After:             after,
-			UserAgents:        userAgents,
-			FallbackUserAgent: config.Plugin,
-		},
-		Qoder{
-			After:             after,
-			UserAgents:        userAgents,
-			FallbackUserAgent: config.Plugin,
-		},
-		Kiro{
-			After:             after,
-			UserAgents:        userAgents,
-			FallbackUserAgent: config.Plugin,
-		},
-		Cline{
-			After:             after,
-			UserAgents:        userAgents,
-			FallbackUserAgent: config.Plugin,
-		},
-		Gemini{
-			After:             after,
-			UserAgents:        userAgents,
-			FallbackUserAgent: config.Plugin,
-		},
-		QwenCode{
-			After:             after,
-			UserAgents:        userAgents,
-			FallbackUserAgent: config.Plugin,
-		},
-		Pi{
-			After:             after,
-			UserAgents:        userAgents,
-			FallbackUserAgent: config.Plugin,
-		},
-		Goose{
-			After:             after,
-			UserAgents:        userAgents,
-			FallbackUserAgent: config.Plugin,
-		},
-		ClineCLI{
-			After:             after,
-			UserAgents:        userAgents,
-			FallbackUserAgent: config.Plugin,
-		},
-		Codebuff{
-			After:             after,
-			UserAgents:        userAgents,
-			FallbackUserAgent: config.Plugin,
-		},
-		CodeWhale{
-			After:             after,
-			UserAgents:        userAgents,
-			FallbackUserAgent: config.Plugin,
-		},
-		Crush{
-			After:             after,
-			UserAgents:        userAgents,
-			FallbackUserAgent: config.Plugin,
-		},
-		CursorAgent{
-			After:             after,
-			UserAgents:        userAgents,
-			FallbackUserAgent: config.Plugin,
-		},
-		Devin{
-			After:             after,
-			UserAgents:        userAgents,
-			FallbackUserAgent: config.Plugin,
-		},
-		Droid{
-			After:             after,
-			UserAgents:        userAgents,
-			FallbackUserAgent: config.Plugin,
-		},
-		Forge{
-			After:             after,
-			UserAgents:        userAgents,
-			FallbackUserAgent: config.Plugin,
-		},
-		Hermes{
-			After:             after,
-			UserAgents:        userAgents,
-			FallbackUserAgent: config.Plugin,
-		},
-		IBMBob{
-			After:             after,
-			UserAgents:        userAgents,
-			FallbackUserAgent: config.Plugin,
-		},
-		KiloCode{
-			After:             after,
-			UserAgents:        userAgents,
-			FallbackUserAgent: config.Plugin,
-		},
-		Kimi{
-			After:             after,
-			UserAgents:        userAgents,
-			FallbackUserAgent: config.Plugin,
-		},
-		KimiCode{
-			After:             after,
-			UserAgents:        userAgents,
-			FallbackUserAgent: config.Plugin,
-		},
-		LingTaiTUI{
-			After:             after,
-			UserAgents:        userAgents,
-			FallbackUserAgent: config.Plugin,
-		},
-		MistralVibe{
-			After:             after,
-			UserAgents:        userAgents,
-			FallbackUserAgent: config.Plugin,
-		},
-		Mux{
-			After:             after,
-			UserAgents:        userAgents,
-			FallbackUserAgent: config.Plugin,
-		},
-		OMP{
-			After:             after,
-			UserAgents:        userAgents,
-			FallbackUserAgent: config.Plugin,
-		},
-		OpenClaw{
-			After:             after,
-			UserAgents:        userAgents,
-			FallbackUserAgent: config.Plugin,
-		},
-		OpenDesign{
-			After:             after,
-			UserAgents:        userAgents,
-			FallbackUserAgent: config.Plugin,
-		},
-		QuickDesk{
-			After:             after,
-			UserAgents:        userAgents,
-			FallbackUserAgent: config.Plugin,
-		},
-		Warp{
-			After:             after,
-			UserAgents:        userAgents,
-			FallbackUserAgent: config.Plugin,
-		},
-		ZCode{
-			After:             after,
-			UserAgents:        userAgents,
-			FallbackUserAgent: config.Plugin,
-		},
-		Zed{
-			After:             after,
-			UserAgents:        userAgents,
-			FallbackUserAgent: config.Plugin,
-		},
-		Zerostack{
-			After:             after,
-			UserAgents:        userAgents,
-			FallbackUserAgent: config.Plugin,
-		},
+	checkpoints, err := loadSyncCheckpoints(ctx, config.V, after)
+	if err != nil {
+		return nil, err
+	}
+
+	parserConfig := func(name string) ParserConfig {
+		state := checkpoints.parser(name, after)
+
+		return ParserConfig{
+			After: state.discoveryAfter(), UserAgents: userAgents, FallbackUserAgent: config.Plugin,
+			checkpoint: state,
+		}
+	}
+
+	parsers := []Parser{
+		OpenClaude(parserConfig((OpenClaude{}).Name())),
+		GrokBot(parserConfig((GrokBot{}).Name())),
+		Claude(parserConfig((Claude{}).Name())),
+		Codex(parserConfig((Codex{}).Name())),
+		DeepSeek(parserConfig((DeepSeek{}).Name())),
+		CodeBuddyCode(parserConfig((CodeBuddyCode{}).Name())),
+		GrokBuild(parserConfig((GrokBuild{}).Name())),
+		Amp(parserConfig((Amp{}).Name())),
+		Continue(parserConfig((Continue{}).Name())),
+		Cody(parserConfig((Cody{}).Name())),
+		RooCode(parserConfig((RooCode{}).Name())),
+		newCheckpointOpenCode(parserConfig((OpenCode{}).Name())),
+		Copilot(parserConfig((Copilot{}).Name())),
+		Cursor(parserConfig((Cursor{}).Name())),
+		Windsurf(parserConfig((Windsurf{}).Name())),
+		Qoder(parserConfig((Qoder{}).Name())),
+		Kiro(parserConfig((Kiro{}).Name())),
+		Cline(parserConfig((Cline{}).Name())),
+		Gemini(parserConfig((Gemini{}).Name())),
+		QwenCode(parserConfig((QwenCode{}).Name())),
+		Pi(parserConfig((Pi{}).Name())),
+		Goose(parserConfig((Goose{}).Name())),
+		ClineCLI(parserConfig((ClineCLI{}).Name())),
+		Codebuff(parserConfig((Codebuff{}).Name())),
+		CodeWhale(parserConfig((CodeWhale{}).Name())),
+		Crush(parserConfig((Crush{}).Name())),
+		CursorAgent(parserConfig((CursorAgent{}).Name())),
+		Devin(parserConfig((Devin{}).Name())),
+		Droid(parserConfig((Droid{}).Name())),
+		Forge(parserConfig((Forge{}).Name())),
+		Hermes(parserConfig((Hermes{}).Name())),
+		IBMBob(parserConfig((IBMBob{}).Name())),
+		KiloCode(parserConfig((KiloCode{}).Name())),
+		Kimi(parserConfig((Kimi{}).Name())),
+		KimiCode(parserConfig((KimiCode{}).Name())),
+		LingTaiTUI(parserConfig((LingTaiTUI{}).Name())),
+		MistralVibe(parserConfig((MistralVibe{}).Name())),
+		Mux(parserConfig((Mux{}).Name())),
+		OMP(parserConfig((OMP{}).Name())),
+		OpenClaw(parserConfig((OpenClaw{}).Name())),
+		OpenDesign(parserConfig((OpenDesign{}).Name())),
+		QuickDesk(parserConfig((QuickDesk{}).Name())),
+		Warp(parserConfig((Warp{}).Name())),
+		ZCode(parserConfig((ZCode{}).Name())),
+		Zed(parserConfig((Zed{}).Name())),
+		Zerostack(parserConfig((Zerostack{}).Name())),
 	}
 
 	var aiHeartbeats Heartbeats
 
 	for _, p := range parsers {
 		logger.Debugf("execute %s", p.Name())
+
+		before := checkpoints.Parsers[p.Name()].clone()
 
 		heartbeats, err := parseHeartbeats(ctx, p, func(report aiPanicReport) {
 			if logger.IsVerboseEnabled() {
@@ -516,12 +361,31 @@ func parseAIHeartbeats(
 		})
 		if err != nil {
 			logger.Errorf("unexpected error occurred at %q: %s", p.Name(), err)
+
+			checkpoints.Parsers[p.Name()] = before
+
 			continue
 		}
 
-		if len(heartbeats) > 0 {
-			aiHeartbeats = append(aiHeartbeats, heartbeats...)
+		heartbeats = checkpoints.Parsers[p.Name()].filter(heartbeats)
+		aiHeartbeats = append(aiHeartbeats, heartbeats...)
+	}
+
+	checkpoints.PreviousGlobal = after
+
+	// getLastParsedAt clamps a future watermark to now, so a future-dated record
+	// (clock skew, wrong timezone) must not push Global past now: the next run
+	// would see after < Global and mistake it for a rewind, wiping every cutoff.
+	now := time.Now()
+
+	for _, h := range aiHeartbeats {
+		if stamp := heartbeatTime(h.Time); stamp.After(checkpoints.Global) && !stamp.After(now) {
+			checkpoints.Global = stamp
 		}
+	}
+
+	if err := checkpoints.save(); err != nil {
+		return nil, fmt.Errorf("failed saving ai checkpoints: %w", err)
 	}
 
 	return aiHeartbeats, nil

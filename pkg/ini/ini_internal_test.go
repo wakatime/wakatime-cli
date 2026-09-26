@@ -1,11 +1,13 @@
 package ini
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
 
+	"github.com/juju/mutex"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -46,4 +48,27 @@ func TestSalvageConfigBranches(t *testing.T) {
 
 	err := salvageConfig(v, filepath.Join(t.TempDir(), "missing.cfg"))
 	require.Error(t, err)
+}
+
+func TestWriteDoesNotProceedWithoutLock(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "internal.cfg")
+	original := []byte("[internal]\nexisting = keep\n")
+	require.NoError(t, os.WriteFile(path, original, 0o600))
+	writer, err := NewWriter(t.Context(), viper.New(), func(context.Context, *viper.Viper) (string, error) {
+		return path, nil
+	})
+	require.NoError(t, err)
+	lock, err := mutex.Acquire(mutex.Spec{Name: "wakatime-cli-config-mutex", Delay: time.Millisecond,
+		Timeout: time.Second, Clock: &mutexClock{delay: time.Millisecond}})
+	require.NoError(t, err)
+
+	defer lock.Release()
+
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+	require.ErrorContains(t, writer.Write(ctx, "internal", map[string]string{"new": "value"}), "config mutex")
+
+	actual, err := os.ReadFile(path)
+	require.NoError(t, err)
+	assert.Equal(t, original, actual)
 }

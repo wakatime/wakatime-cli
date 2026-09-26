@@ -336,7 +336,7 @@ func (g Gemini) parseTranscript(transcript string, projectPath string) (Heartbea
 			state.CurrentOutput = state.LastOutput + max(message.Tokens.Output, 0) + max(message.Tokens.Thoughts, 0)
 		}
 
-		if messageTime.IsZero() || !timestampAtOrAfterCutoff(messageTime, g.After) {
+		if messageTime.IsZero() || !timestampAtOrAfterCutoff(messageTime, ParserConfig(g).sessionAfter(sessionID)) {
 			state.LastInput = state.CurrentInput
 			state.LastCachedInput = state.CurrentCachedInput
 			state.LastOutput = state.CurrentOutput
@@ -749,7 +749,9 @@ func (g Gemini) promptHeartbeatsFromLogs(
 		}
 
 		timestamp := parseGeminiTime(entry.Timestamp)
-		if timestamp.IsZero() || !timestampAtOrAfterCutoff(timestamp, g.After) || strings.TrimSpace(entry.Message) == "" {
+		if timestamp.IsZero() ||
+			!timestampAtOrAfterCutoff(timestamp, ParserConfig(g).sessionAfter(sessionID)) ||
+			strings.TrimSpace(entry.Message) == "" {
 			continue
 		}
 

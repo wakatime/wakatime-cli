@@ -31,7 +31,7 @@ func (g OpenClaude) Parse(ctx context.Context) (Heartbeats, error) {
 	var result Heartbeats
 
 	for _, path := range paths {
-		parsed, err := Claude(g).parseTranscript(ctx, path)
+		parsed, err := Claude(g).parseTranscriptWithPrefix(ctx, path, "openclaude:")
 		if err != nil {
 			return nil, err
 		}
@@ -77,7 +77,9 @@ func (g OpenClaude) Parse(ctx context.Context) (Heartbeats, error) {
 			}
 
 			event = genericAIRecordDelta(event, &state)
-			if event.timestamp.IsZero() || !timestampAtOrAfterCutoff(event.timestamp, g.After) || !event.hasActivity() {
+			if event.timestamp.IsZero() ||
+				!timestampAtOrAfterCutoff(event.timestamp, ParserConfig(g).sessionAfter(event.sessionID)) ||
+				!event.hasActivity() {
 				continue
 			}
 
