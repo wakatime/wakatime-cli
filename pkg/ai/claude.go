@@ -674,7 +674,11 @@ func (g Claude) parseTranscript(ctx context.Context, transcript string) (Heartbe
 
 		tokens = g.claudeTokenCounts(logLine, tokens, &lastMsg)
 
-		if logLine.Timestamp.IsZero() || !timestampAtOrAfterCutoff(logLine.Timestamp, g.After) {
+		if logLine.Timestamp.IsZero() {
+			continue
+		}
+
+		if !timestampAtOrAfterCutoff(logLine.Timestamp, g.After) {
 			tokens = g.advanceTokens(tokens)
 			continue
 		}
