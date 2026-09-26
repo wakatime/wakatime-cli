@@ -32,6 +32,7 @@ type (
 
 	codexParseState struct {
 		heartbeats                    Heartbeats
+		usageHeartbeat                func(time.Time, int64, int64, int64) heartbeat.Heartbeat
 		tokens                        heartbeat.AITokens
 		lastUsageIdentity             string
 		seenUsage                     map[string]bool
@@ -270,6 +271,8 @@ func (g Codex) parseTranscript(ctx context.Context, transcript string) (Heartbea
 		return nil, err
 	}
 
+	g.After = ParserConfig(g).sessionAfter(session.id)
+
 	scanner, err := codexScanner(fh, transcript)
 	if err != nil {
 		return nil, err
@@ -278,6 +281,19 @@ func (g Codex) parseTranscript(ctx context.Context, transcript string) (Heartbea
 	seen, _ := ctx.Value(codexSeenUsageKey{}).(map[string]bool)
 	state := codexParseState{seenUsage: seen, usageOwner: firstNonEmptyString(session.parentID, session.id),
 		pendingPatches: make(map[string]codexPendingPatch),
+	}
+
+	if g.checkpoint != nil {
+		state.usageHeartbeat = func(timestamp time.Time, input, cached, output int64) heartbeat.Heartbeat {
+			event := genericAIEvent{sessionID: session.id, timestamp: timestamp, cwd: session.cwd,
+				model: state.model, input: input, cachedInput: cached, output: output, tokensFound: true}
+			h := genericAIEventHeartbeats(g, ParserConfig(g), event)[0]
+			h.Entity = session.entity
+			h.UserAgent = g.userAgent(session.entity, codexAgentVersion(state.model, state.reasoningEffort),
+				session.version, session.source, g.UserAgents, g.FallbackUserAgent)
+
+			return h
+		}
 	}
 
 	for scanner.Scan() {
@@ -510,7 +526,12 @@ func (s *codexParseState) trackTokenCount(logLine codexLogLine, after time.Time)
 		outputTokens = 0
 	}
 
-	if len(s.heartbeats) > 0 {
+	if s.usageHeartbeat != nil && (inputTokens > 0 || cachedInputTokens > 0 || outputTokens > 0) {
+		// Usage can arrive in a later sync than the activity that triggered it.
+		// Give it its own timestamp so advancing a session cannot discard it.
+		s.heartbeats = append(s.heartbeats,
+			s.usageHeartbeat(logLine.Timestamp, inputTokens, cachedInputTokens, outputTokens))
+	} else if s.usageHeartbeat == nil && len(s.heartbeats) > 0 {
 		i := len(s.heartbeats) - 1
 		s.heartbeats[i].AIInputTokens += inputTokens
 		s.heartbeats[i].AICachedInputTokens += cachedInputTokens

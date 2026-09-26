@@ -383,7 +383,8 @@ func (Copilot) handleCLIModelChange(event copilotCLIEvent, state *copilotCLIPars
 }
 
 func (g Copilot) handleCLIUserMessage(event copilotCLIEvent, state *copilotCLIParseState) {
-	if event.Timestamp.IsZero() || !timestampAtOrAfterCutoff(event.Timestamp, g.After) {
+	if event.Timestamp.IsZero() ||
+		!timestampAtOrAfterCutoff(event.Timestamp, ParserConfig(g).sessionAfter(state.sessionID)) {
 		return
 	}
 
@@ -428,7 +429,8 @@ func (g Copilot) handleCLIAssistantMessage(event copilotCLIEvent, state *copilot
 		state.tokens.CurrentOutput += data.OutputTokens
 	}
 
-	if event.Timestamp.IsZero() || !timestampAtOrAfterCutoff(event.Timestamp, g.After) {
+	if event.Timestamp.IsZero() ||
+		!timestampAtOrAfterCutoff(event.Timestamp, ParserConfig(g).sessionAfter(state.sessionID)) {
 		if assignTokens {
 			state.tokens = g.advanceTokens(state.tokens)
 		}
@@ -508,7 +510,7 @@ func (g Copilot) handleCLIToolExecutionComplete(event copilotCLIEvent, state *co
 			continue
 		}
 
-		if !timestampAtOrAfterCutoff(event.Timestamp, g.After) {
+		if !timestampAtOrAfterCutoff(event.Timestamp, ParserConfig(g).sessionAfter(state.sessionID)) {
 			state.trackCLIFilePath(path)
 			continue
 		}
@@ -574,7 +576,8 @@ func (g Copilot) handleCLIShutdown(event copilotCLIEvent, state *copilotCLIParse
 		assignTokens = true
 	}
 
-	if event.Timestamp.IsZero() || !timestampAtOrAfterCutoff(event.Timestamp, g.After) {
+	if event.Timestamp.IsZero() ||
+		!timestampAtOrAfterCutoff(event.Timestamp, ParserConfig(g).sessionAfter(state.sessionID)) {
 		if assignTokens {
 			state.tokens = g.advanceTokens(state.tokens)
 		}

@@ -216,7 +216,7 @@ func (g Goose) queryRows(ctx context.Context, dbPath string) ([]gooseSessionRow,
 		}
 
 		row, ok := g.rowFromValues(selectColumns, raw)
-		if !ok || row.UpdatedAt.IsZero() || !timestampAtOrAfterCutoff(row.UpdatedAt, g.After) {
+		if !ok || row.UpdatedAt.IsZero() || !timestampAtOrAfterCutoff(row.UpdatedAt, ParserConfig(g).sessionAfter(row.ID)) {
 			continue
 		}
 

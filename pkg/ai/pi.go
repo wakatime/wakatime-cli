@@ -283,6 +283,7 @@ func (g Pi) handleTranscriptLine(
 		return
 	}
 
+	g.After = ParserConfig(g).sessionAfter(session.id)
 	state.tokens = g.piTokenCounts(logLine, state.tokens, g.After)
 	state.version = g.sessionVersion(state.version, logLine)
 

@@ -85,7 +85,7 @@ func (g Kiro) parseModernSessions(ctx context.Context, home string) (Heartbeats,
 			}
 
 			timestamp := genericAITime(object["timestamp"])
-			if timestamp.IsZero() || !timestampAtOrAfterCutoff(timestamp, g.After) {
+			if timestamp.IsZero() || !timestampAtOrAfterCutoff(timestamp, ParserConfig(g).sessionAfter(session)) {
 				continue
 			}
 
@@ -175,7 +175,7 @@ func (g Kiro) kiroCLIEntries(values []any, session, cwd, model string, meta map[
 		}
 
 		key := fmt.Sprintf("kiro-cli:%s:%d", session, turn)
-		if stamp.IsZero() || !timestampAtOrAfterCutoff(stamp, g.After) || seen[key] {
+		if stamp.IsZero() || !timestampAtOrAfterCutoff(stamp, ParserConfig(g).sessionAfter(session)) || seen[key] {
 			return
 		}
 

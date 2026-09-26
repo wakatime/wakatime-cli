@@ -315,6 +315,8 @@ func (g GrokBuild) parseSession(
 		return nil, err
 	}
 
+	g.After = ParserConfig(g).sessionAfter(session.id)
+
 	state := grokBuildParseState{
 		model:               session.model,
 		modelsByPromptIndex: make(map[int][]grokBuildModelSnapshot),
