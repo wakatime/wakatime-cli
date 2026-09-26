@@ -1230,3 +1230,67 @@ func testLoadParamsAndHeartbeats(
 
 	return loaded, cmdheartbeat.BuildHeartbeats(ctx, apiParams.Plugin, heartbeatParams), nil
 }
+
+func TestWithAISyncDoesNotMoveLastParsedAtBackward(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	initialLastParsedAt := time.Date(2026, 3, 18, 13, 0, 0, 0, time.UTC)
+	checkpoint := time.Date(2026, 3, 18, 12, 0, 0, 0, time.UTC)
+	olderHeartbeat := time.Date(2026, 3, 18, 12, 30, 0, 0, time.UTC)
+
+	transcriptDir := filepath.Join(home, ".claude", "projects", "sample-project")
+	require.NoError(t, os.MkdirAll(transcriptDir, 0o755))
+
+	// a slower session whose checkpoint lags the global cutoff
+	transcriptPath := filepath.Join(transcriptDir, "session.jsonl")
+	transcript := strings.Join([]string{
+		`{"timestamp":"2026-03-18T12:00:00Z","version":"2.1.45","cwd":"/tmp",` +
+			`"toolUseResult":{"filePath":"/tmp/a.go","structuredPatch":[{"oldLines":1,"newLines":2}]}}`,
+		`{"timestamp":"2026-03-18T12:30:00Z","version":"2.1.45","cwd":"/tmp",` +
+			`"toolUseResult":{"filePath":"/tmp/b.go","structuredPatch":[{"oldLines":1,"newLines":2}]}}`,
+	}, "\n") + "\n"
+	require.NoError(t, os.WriteFile(transcriptPath, []byte(transcript), 0o644))
+	require.NoError(t, os.Chtimes(transcriptPath, olderHeartbeat, olderHeartbeat))
+
+	internalPath := filepath.Join(t.TempDir(), "wakatime-internal.cfg")
+	require.NoError(t, os.WriteFile(internalPath, nil, 0o600))
+
+	state, err := json.Marshal(map[string]any{
+		transcriptPath: map[string]any{"time": checkpoint, "count": 1},
+	})
+	require.NoError(t, err)
+	require.NoError(t, os.WriteFile(internalPath+"-ai-claude-transcripts.json", state, 0o600))
+
+	v := viper.New()
+	v.Set("internal-config", internalPath)
+	v.Set("internal.ai_logs_last_parsed_at", initialLastParsedAt.Format(ini.DateFormat))
+
+	var sawOlderHeartbeat bool
+
+	handle := ai.WithAISync(ai.Config{
+		V: v,
+	})(func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		for _, h := range hh {
+			if h.Time == float64(olderHeartbeat.Unix()) {
+				sawOlderHeartbeat = true
+			}
+		}
+
+		return nil, nil
+	})
+
+	_, err = handle(t.Context(), []heartbeat.Heartbeat{})
+	require.NoError(t, err)
+	require.True(t, sawOlderHeartbeat, "expected the lagging transcript to produce a heartbeat")
+
+	writer, err := ini.NewWriter(t.Context(), v, ini.InternalFilePath)
+	require.NoError(t, err)
+	require.NoError(t, writer.File.Reload())
+
+	lastParsedAt, err := writer.File.Section("internal").Key("ai_logs_last_parsed_at").TimeFormat(ini.DateFormat)
+	require.NoError(t, err)
+
+	assert.Equal(t, initialLastParsedAt, lastParsedAt.UTC())
+}

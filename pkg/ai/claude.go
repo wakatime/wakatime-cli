@@ -368,7 +368,7 @@ func (g Claude) Parse(ctx context.Context) (Heartbeats, error) {
 	var heartbeats Heartbeats
 
 	for _, transcript := range transcripts {
-		checkpoint, resumed := state[transcript]
+		checkpoint, resumed := g.transcriptCheckpoint(state, transcript)
 		cutoff := g.transcriptCutoff(checkpoint, resumed)
 
 		parsed, info, err := g.parseTranscript(ctx, transcript, cutoff, checkpoint)
@@ -396,6 +396,23 @@ func (g Claude) Parse(ctx context.Context) (Heartbeats, error) {
 	}
 
 	return claudeApplySubscriptionPlan(heartbeats, subscriptionPlan), nil
+}
+
+// transcriptCheckpoint returns the stored checkpoint for a transcript, if it
+// can be resumed. The global cutoff never falls below a checkpoint during
+// normal syncing, so a checkpoint newer than it means the global cutoff was
+// reset for a backfill: the checkpoint is ignored and the transcript is
+// parsed from the global cutoff again.
+func (g Claude) transcriptCheckpoint(
+	state claudeTranscriptState,
+	transcript string,
+) (claudeTranscriptCheckpoint, bool) {
+	checkpoint, ok := state[transcript]
+	if !ok || checkpoint.Time.After(g.After) {
+		return claudeTranscriptCheckpoint{}, false
+	}
+
+	return checkpoint, true
 }
 
 // transcriptCutoff returns the timestamp from which a transcript should be
@@ -460,7 +477,7 @@ func (g Claude) transcriptPaths(
 				return nil
 			}
 
-			checkpoint, resumed := state[path]
+			checkpoint, resumed := g.transcriptCheckpoint(state, path)
 
 			// unchanged since the last parse: nothing new to read
 			if resumed && checkpoint.unchanged(info) {
@@ -732,7 +749,7 @@ func (g Claude) parseTranscript(
 
 		tokens = g.claudeTokenCounts(logLine, tokens, &lastMsg)
 
-		if logLine.Timestamp.IsZero() || !timestampAtOrAfterCutoff(logLine.Timestamp, cutoff) {
+		if logLine.Timestamp.IsZero() || !timestampAtOrAfterCutoff(normalizeHeartbeatTime(logLine.Timestamp), cutoff) {
 			tokens = g.advanceTokens(tokens)
 			continue
 		}

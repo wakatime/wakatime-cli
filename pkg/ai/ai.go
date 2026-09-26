@@ -221,7 +221,13 @@ func WithAISync(config Config) heartbeat.HandleOption {
 
 			minAIHeartbeatTime, maxAIHeartbeatTime := minMaxAIHeartbeatTimes(heartbeats)
 
+			// Parsers may return heartbeats older than the cutoff (Claude resumes
+			// each transcript from its own checkpoint), so never move it backward.
 			parsedAt := heartbeatTime(maxAIHeartbeatTime)
+			if parsedAt.Before(lastParsedAt) {
+				parsedAt = lastParsedAt
+			}
+
 			if err := UpdateLastParsedAt(ctx, config.V, parsedAt); err != nil {
 				log.Extract(ctx).Warnf("failed to update ai_logs_last_parsed_at: %s", err)
 			}
@@ -792,6 +798,12 @@ func heartbeatTime(timestamp float64) time.Time {
 // contract explicit for every AI parser.
 func timestampAtOrAfterCutoff(timestamp time.Time, cutoff time.Time) bool {
 	return !timestamp.Before(cutoff)
+}
+
+// normalizeHeartbeatTime rounds a time the same way it is rounded when stored
+// in a heartbeat, so it compares exactly with cutoffs derived from heartbeats.
+func normalizeHeartbeatTime(t time.Time) time.Time {
+	return heartbeatTime(heartbeatTimestamp(t))
 }
 
 // heartbeatTimestamp converts a time to a heartbeat timestamp without

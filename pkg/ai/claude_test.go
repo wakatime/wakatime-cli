@@ -1083,6 +1083,9 @@ func TestClaudeParse_PerTranscriptCutoff(t *testing.T) {
 		editLine("2026-03-18T14:00:00Z", "/tmp/d.go", 2),
 	)
 
+	// WithAISync advanced the global cutoff to the newest heartbeat
+	parser.After = time.Date(2026, time.March, 18, 13, 0, 0, 0, time.UTC)
+
 	third, err := parser.Parse(ctx)
 	require.NoError(t, err)
 
@@ -1236,6 +1239,9 @@ func TestClaudeParse_SkipsUnchangedTranscripts(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotEmpty(t, first)
 
+	// WithAISync advanced the global cutoff to the newest heartbeat
+	parser.After = time.Date(2026, time.March, 18, 12, 0, 0, 0, time.UTC)
+
 	stateInfo, err := os.Stat(statePath)
 	require.NoError(t, err)
 
@@ -1364,4 +1370,145 @@ func BenchmarkClaudeParseSteadyState(b *testing.B) {
 			b.Fatal(err)
 		}
 	}
+}
+
+func claudeTestEditLine(ts, file string, output int) string {
+	return `{"timestamp":"` + ts + `","sessionId":"s1","version":"2.1.45","cwd":"/tmp",` +
+		`"toolUseResult":{"filePath":"` + file + `","structuredPatch":[{"oldLines":1,"newLines":2}]},` +
+		`"message":{"usage":{"input_tokens":1,"output_tokens":` + strconv.Itoa(output) + `}}}`
+}
+
+func claudeTestUsageOnlyLine(ts string, output int) string {
+	return `{"timestamp":"` + ts + `","sessionId":"s1","type":"assistant",` +
+		`"message":{"role":"assistant","content":[{"type":"text","text":"thinking"}],` +
+		`"usage":{"input_tokens":1,"output_tokens":` + strconv.Itoa(output) + `}}}`
+}
+
+func claudeTestAppend(t *testing.T, path string, lines ...string) {
+	t.Helper()
+
+	fh, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+	require.NoError(t, err)
+
+	for _, line := range lines {
+		_, err = fh.WriteString(line + "\n")
+		require.NoError(t, err)
+	}
+
+	require.NoError(t, fh.Close())
+}
+
+func claudeTestCheckpointTime(t *testing.T, statePath, transcriptPath string) time.Time {
+	t.Helper()
+
+	data, err := os.ReadFile(statePath)
+	require.NoError(t, err)
+
+	var state map[string]struct {
+		Time time.Time `json:"time"`
+	}
+	require.NoError(t, json.Unmarshal(data, &state))
+
+	return state[transcriptPath].Time
+}
+
+func claudeTestOutputTokens(hh ai.Heartbeats, entity string) int64 {
+	for _, h := range hh {
+		if h.Entity == entity {
+			return h.AIOutputTokens
+		}
+	}
+
+	return -1
+}
+
+func TestClaudeParse_FractionalCheckpointKeepsEqualTimestampRecords(t *testing.T) {
+	ctx := context.Background()
+
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	transcriptDir := filepath.Join(home, ".claude", "projects", "sample-project")
+	require.NoError(t, os.MkdirAll(transcriptDir, 0o755))
+
+	transcriptPath := filepath.Join(transcriptDir, "session.jsonl")
+	statePath := filepath.Join(home, ".wakatime", "state.json")
+
+	// millisecond timestamps do not survive the float64 heartbeat time exactly
+	claudeTestAppend(t, transcriptPath, claudeTestEditLine("2026-03-18T12:00:00.397Z", "/tmp/a.go", 10))
+
+	parser := ai.Claude{
+		After:         time.Date(2020, time.January, 1, 0, 0, 0, 0, time.UTC),
+		StateFilePath: statePath,
+	}
+
+	first, err := parser.Parse(ctx)
+	require.NoError(t, err)
+	assert.Equal(t, int64(10), claudeTestOutputTokens(first, "/tmp/a.go"))
+
+	// WithAISync advanced the global cutoff to the newest heartbeat
+	parser.After = claudeTestCheckpointTime(t, statePath, transcriptPath)
+
+	claudeTestAppend(t, transcriptPath,
+		claudeTestUsageOnlyLine("2026-03-18T12:00:00.397Z", 5),
+		claudeTestEditLine("2026-03-18T13:00:00Z", "/tmp/b.go", 2),
+	)
+
+	second, err := parser.Parse(ctx)
+	require.NoError(t, err)
+	assert.Equal(t, int64(-1), claudeTestOutputTokens(second, "/tmp/a.go"))
+	assert.Equal(t, int64(7), claudeTestOutputTokens(second, "/tmp/b.go"))
+}
+
+func TestClaudeParse_ResetGlobalCutoffBypassesCheckpoints(t *testing.T) {
+	ctx := context.Background()
+
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	transcriptDir := filepath.Join(home, ".claude", "projects", "sample-project")
+	require.NoError(t, os.MkdirAll(transcriptDir, 0o755))
+
+	unchangedPath := filepath.Join(transcriptDir, "unchanged.jsonl")
+	changedPath := filepath.Join(transcriptDir, "changed.jsonl")
+	statePath := filepath.Join(home, ".wakatime", "state.json")
+
+	claudeTestAppend(t, unchangedPath,
+		claudeTestEditLine("2026-03-18T10:00:00Z", "/tmp/a.go", 1),
+		claudeTestEditLine("2026-03-18T12:00:00Z", "/tmp/b.go", 1),
+	)
+	claudeTestAppend(t, changedPath, claudeTestEditLine("2026-03-18T11:00:00Z", "/tmp/c.go", 1))
+
+	parser := ai.Claude{
+		After:         time.Date(2026, time.March, 18, 9, 0, 0, 0, time.UTC),
+		StateFilePath: statePath,
+	}
+
+	first, err := parser.Parse(ctx)
+	require.NoError(t, err)
+	assert.Len(t, first, 3)
+
+	// normal sync: the global cutoff moved to the newest heartbeat
+	parser.After = time.Date(2026, time.March, 18, 12, 0, 0, 0, time.UTC)
+
+	second, err := parser.Parse(ctx)
+	require.NoError(t, err)
+	assert.Empty(t, second)
+
+	// reset the global cutoff for a backfill, while one transcript also grew
+	parser.After = time.Date(2026, time.March, 18, 10, 30, 0, 0, time.UTC)
+
+	claudeTestAppend(t, changedPath, claudeTestEditLine("2026-03-18T13:00:00Z", "/tmp/d.go", 1))
+
+	third, err := parser.Parse(ctx)
+	require.NoError(t, err)
+
+	var entities []string
+	for _, h := range third {
+		entities = append(entities, h.Entity)
+	}
+
+	assert.ElementsMatch(t, []string{"/tmp/b.go", "/tmp/c.go", "/tmp/d.go"}, entities)
 }
