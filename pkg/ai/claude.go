@@ -346,16 +346,16 @@ func (g Claude) Parse(ctx context.Context) (Heartbeats, error) {
 
 	state := g.loadTranscriptState(ctx)
 
-	transcripts, visited, err := g.transcriptPaths(ctx, state)
+	transcripts, dirty, err := g.transcriptPaths(ctx, state)
 	if err != nil {
 		return nil, err
 	}
 
-	dirty := state.prune(visited)
-
 	if len(transcripts) == 0 {
 		if dirty {
-			g.saveTranscriptState(ctx, state)
+			if err := g.saveTranscriptState(state); err != nil {
+				logger.Warnf("%s", err)
+			}
 		}
 
 		return Heartbeats{}, nil
@@ -392,10 +392,32 @@ func (g Claude) Parse(ctx context.Context) (Heartbeats, error) {
 	}
 
 	if dirty {
-		g.saveTranscriptState(ctx, state)
+		if err := g.persistTranscriptState(ctx, state); err != nil {
+			return nil, err
+		}
 	}
 
 	return claudeApplySubscriptionPlan(heartbeats, subscriptionPlan), nil
+}
+
+// persistTranscriptState saves the checkpoints for the heartbeats about to be
+// returned. If they cannot be saved, the stale state file is removed: resuming
+// from the old checkpoints would send these heartbeats again, while without a
+// state file the next run falls back to the global cutoff. If even that fails,
+// the heartbeats are withheld and the next run parses them again.
+func (g Claude) persistTranscriptState(ctx context.Context, state claudeTranscriptState) error {
+	err := g.saveTranscriptState(state)
+	if err == nil {
+		return nil
+	}
+
+	if rmErr := os.Remove(g.StateFilePath); rmErr != nil && !os.IsNotExist(rmErr) {
+		return fmt.Errorf("%s, and failed to remove the stale state: %s", err, rmErr)
+	}
+
+	log.Extract(ctx).Warnf("%s", err)
+
+	return nil
 }
 
 // transcriptCheckpoint returns the stored checkpoint for a transcript, if it
@@ -428,20 +450,21 @@ func (g Claude) transcriptCutoff(checkpoint claudeTranscriptCheckpoint, resumed 
 	return g.After
 }
 
-// transcriptPaths returns the transcripts that need parsing plus every
-// transcript path seen while walking, so stale state entries can be pruned
-// without an extra stat per entry.
+// transcriptPaths returns the transcripts that need parsing, and prunes state
+// entries of transcripts that no longer exist. It reports whether the state
+// changed.
 func (g Claude) transcriptPaths(
 	ctx context.Context,
 	state claudeTranscriptState,
-) ([]string, map[string]struct{}, error) {
+) ([]string, bool, error) {
 	configDirs, err := claudeConfigDirs(ctx)
 	if err != nil {
-		return nil, nil, err
+		return nil, false, err
 	}
 
 	var (
 		transcripts []string
+		roots       []string
 		visited     = make(map[string]struct{}, len(state))
 	)
 
@@ -454,7 +477,7 @@ func (g Claude) transcriptPaths(
 				continue
 			}
 
-			return nil, nil, fmt.Errorf("failed to read claude projects directory %q: %s", claudeProjectsDir, err)
+			return nil, false, fmt.Errorf("failed to read claude projects directory %q: %s", claudeProjectsDir, err)
 		}
 
 		if !info.IsDir() {
@@ -493,11 +516,13 @@ func (g Claude) transcriptPaths(
 			return nil
 		})
 		if err != nil {
-			return nil, nil, fmt.Errorf("failed walking claude projects directory %q: %s", claudeProjectsDir, err)
+			return nil, false, fmt.Errorf("failed walking claude projects directory %q: %s", claudeProjectsDir, err)
 		}
+
+		roots = append(roots, claudeProjectsDir)
 	}
 
-	return transcripts, visited, nil
+	return transcripts, state.prune(roots, visited), nil
 }
 
 func (g Claude) subscriptionPlan(ctx context.Context) string {
@@ -1490,9 +1515,12 @@ func (c claudeTranscriptCheckpoint) unchanged(info os.FileInfo) bool {
 	return c.Size == info.Size() && !c.ModTime.IsZero() && c.ModTime.Equal(info.ModTime())
 }
 
-// prune drops state entries for transcripts that no longer exist. Paths seen
-// during the walk are known to exist; only the rest are stat'ed.
-func (s claudeTranscriptState) prune(visited map[string]struct{}) bool {
+// prune drops state entries for transcripts that no longer exist: those under
+// a projects directory walked completely by this run, which the walk did not
+// visit. Entries under directories not walked this time, like a stopped WSL
+// distribution or another CLAUDE_CONFIG_DIR, are kept without touching the
+// filesystem, since probing a stopped WSL share boots the distribution.
+func (s claudeTranscriptState) prune(roots []string, visited map[string]struct{}) bool {
 	pruned := false
 
 	for transcript := range s {
@@ -1500,10 +1528,14 @@ func (s claudeTranscriptState) prune(visited map[string]struct{}) bool {
 			continue
 		}
 
-		if _, err := os.Stat(transcript); err != nil {
-			delete(s, transcript)
+		for _, root := range roots {
+			if strings.HasPrefix(transcript, root+string(filepath.Separator)) {
+				delete(s, transcript)
 
-			pruned = true
+				pruned = true
+
+				break
+			}
 		}
 	}
 
@@ -1580,50 +1612,45 @@ func (g Claude) loadTranscriptState(ctx context.Context) claudeTranscriptState {
 	return state
 }
 
-func (g Claude) saveTranscriptState(ctx context.Context, state claudeTranscriptState) {
-	logger := log.Extract(ctx)
-
+func (g Claude) saveTranscriptState(state claudeTranscriptState) error {
 	if g.StateFilePath == "" {
-		return
+		return nil
 	}
 
 	data, err := json.Marshal(state)
 	if err != nil {
-		logger.Warnf("failed to encode claude transcript state: %s", err)
-		return
+		return fmt.Errorf("failed to encode claude transcript state: %s", err)
 	}
 
 	if err := os.MkdirAll(filepath.Dir(g.StateFilePath), 0o750); err != nil {
-		logger.Warnf("failed to create claude transcript state dir: %s", err)
-		return
+		return fmt.Errorf("failed to create claude transcript state dir: %s", err)
 	}
 
 	tmp, err := os.CreateTemp(filepath.Dir(g.StateFilePath), filepath.Base(g.StateFilePath)+".*")
 	if err != nil {
-		logger.Warnf("failed to create claude transcript state temp file: %s", err)
-		return
+		return fmt.Errorf("failed to create claude transcript state temp file: %s", err)
 	}
 
 	if _, err := tmp.Write(data); err != nil {
-		logger.Warnf("failed to write claude transcript state %q: %s", tmp.Name(), err)
 		_ = tmp.Close()
 		_ = os.Remove(tmp.Name())
 
-		return
+		return fmt.Errorf("failed to write claude transcript state %q: %s", tmp.Name(), err)
 	}
 
 	if err := tmp.Close(); err != nil {
-		logger.Warnf("failed to close claude transcript state %q: %s", tmp.Name(), err)
 		_ = os.Remove(tmp.Name())
 
-		return
+		return fmt.Errorf("failed to close claude transcript state %q: %s", tmp.Name(), err)
 	}
 
 	if err := os.Rename(tmp.Name(), g.StateFilePath); err != nil {
-		logger.Warnf("failed to replace claude transcript state %q: %s", g.StateFilePath, err)
-
 		_ = os.Remove(tmp.Name())
+
+		return fmt.Errorf("failed to replace claude transcript state %q: %s", g.StateFilePath, err)
 	}
+
+	return nil
 }
 
 // Name returns its name.

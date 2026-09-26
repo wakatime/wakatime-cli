@@ -1294,3 +1294,58 @@ func TestWithAISyncDoesNotMoveLastParsedAtBackward(t *testing.T) {
 
 	assert.Equal(t, initialLastParsedAt, lastParsedAt.UTC())
 }
+
+func TestWithAISyncSecondSyncSkipsUnchangedClaudeTranscripts(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	transcriptDir := filepath.Join(home, ".claude", "projects", "sample-project")
+	require.NoError(t, os.MkdirAll(transcriptDir, 0o755))
+
+	// millisecond timestamps do not survive the float64 heartbeat time exactly,
+	// so this exercises the rounding on both the checkpoint and the cutoff
+	transcriptPath := filepath.Join(transcriptDir, "session.jsonl")
+	transcript := strings.Join([]string{
+		`{"timestamp":"2026-03-18T12:00:00.397Z","version":"2.1.45","cwd":"/tmp",` +
+			`"toolUseResult":{"filePath":"/tmp/a.go","structuredPatch":[{"oldLines":1,"newLines":2}]}}`,
+		`{"timestamp":"2026-03-18T12:00:01.123Z","version":"2.1.45","cwd":"/tmp",` +
+			`"toolUseResult":{"filePath":"/tmp/b.go","structuredPatch":[{"oldLines":1,"newLines":2}]}}`,
+	}, "\n") + "\n"
+	require.NoError(t, os.WriteFile(transcriptPath, []byte(transcript), 0o644))
+
+	mtime := time.Date(2026, 3, 18, 12, 0, 2, 0, time.UTC)
+	require.NoError(t, os.Chtimes(transcriptPath, mtime, mtime))
+
+	internalPath := filepath.Join(t.TempDir(), "wakatime-internal.cfg")
+	require.NoError(t, os.WriteFile(internalPath, nil, 0o600))
+
+	v := viper.New()
+	v.Set("internal-config", internalPath)
+	v.Set("internal.ai_logs_last_parsed_at", time.Date(2026, 3, 18, 11, 0, 0, 0, time.UTC).Format(ini.DateFormat))
+
+	sync := func() []heartbeat.Heartbeat {
+		var received []heartbeat.Heartbeat
+
+		handle := ai.WithAISync(ai.Config{
+			V: v,
+		})(func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+			received = hh
+			return nil, nil
+		})
+
+		_, err := handle(t.Context(), []heartbeat.Heartbeat{})
+		require.NoError(t, err)
+
+		// a later process loads the cutoff written by this one
+		writer, err := ini.NewWriter(t.Context(), v, ini.InternalFilePath)
+		require.NoError(t, err)
+		require.NoError(t, writer.File.Reload())
+		v.Set("internal.ai_logs_last_parsed_at", writer.File.Section("internal").Key("ai_logs_last_parsed_at").String())
+
+		return received
+	}
+
+	assert.NotEmpty(t, sync())
+	assert.Empty(t, sync(), "unchanged transcript must not be parsed again")
+}

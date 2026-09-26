@@ -74,43 +74,43 @@ func TestClaudeTranscriptCheckpoint_Unchanged(t *testing.T) {
 }
 
 func TestClaudeTranscriptState_Prune(t *testing.T) {
-	dir := t.TempDir()
-	existing := dir + "/existing.jsonl"
-	require.NoError(t, os.WriteFile(existing, nil, 0o644))
+	// nothing exists on disk: pruning decides from the walk alone
+	root := filepath.Join(t.TempDir(), "projects")
+	visited := filepath.Join(root, "p", "visited.jsonl")
+	deleted := filepath.Join(root, "p", "deleted.jsonl")
+	sibling := filepath.Join(root+"-other", "p", "x.jsonl")
+	unwalked := filepath.Join(t.TempDir(), "stopped-distro", "projects", "p", "x.jsonl")
 
-	state := claudeTranscriptState{
-		dir + "/visited.jsonl": {},
-		existing:               {},
-		dir + "/deleted.jsonl": {},
-	}
+	state := claudeTranscriptState{visited: {}, deleted: {}, sibling: {}, unwalked: {}}
+	seen := map[string]struct{}{visited: {}}
 
-	assert.True(t, state.prune(map[string]struct{}{dir + "/visited.jsonl": {}}))
-	assert.Len(t, state, 2)
-	assert.Contains(t, state, dir+"/visited.jsonl")
-	assert.Contains(t, state, existing)
+	assert.True(t, state.prune([]string{root}, seen))
+	assert.Len(t, state, 3)
+	assert.NotContains(t, state, deleted)
+	assert.Contains(t, state, visited)
+	assert.Contains(t, state, sibling)
+	assert.Contains(t, state, unwalked)
 
-	assert.False(t, state.prune(map[string]struct{}{dir + "/visited.jsonl": {}}))
+	assert.False(t, state.prune([]string{root}, seen))
 }
 
 func TestClaudeSaveTranscriptState_Errors(t *testing.T) {
-	ctx := context.Background()
-
 	tmpDir := t.TempDir()
 	state := claudeTranscriptState{}
 
 	// no state path configured: nothing to do
-	Claude{}.saveTranscriptState(ctx, state)
+	require.NoError(t, Claude{}.saveTranscriptState(state))
 
 	// parent of the state dir is a regular file: MkdirAll fails
 	blocked := filepath.Join(tmpDir, "blocked")
 	require.NoError(t, os.WriteFile(blocked, nil, 0o644))
-	Claude{StateFilePath: filepath.Join(blocked, "dir", "state.json")}.saveTranscriptState(ctx, state)
+	assert.Error(t, Claude{StateFilePath: filepath.Join(blocked, "dir", "state.json")}.saveTranscriptState(state))
 
 	// state path is an existing directory: the final rename fails
 	asDir := filepath.Join(tmpDir, "as-dir", "state.json")
 	require.NoError(t, os.MkdirAll(asDir, 0o755))
 	require.NoError(t, os.WriteFile(filepath.Join(asDir, "keep"), nil, 0o644))
-	Claude{StateFilePath: asDir}.saveTranscriptState(ctx, state)
+	assert.Error(t, Claude{StateFilePath: asDir}.saveTranscriptState(state))
 	assert.DirExists(t, asDir)
 
 	// state dir not writable: creating the temp file fails. Windows ignores
@@ -121,8 +121,23 @@ func TestClaudeSaveTranscriptState_Errors(t *testing.T) {
 
 	readonly := filepath.Join(tmpDir, "readonly")
 	require.NoError(t, os.Mkdir(readonly, 0o500))
-	Claude{StateFilePath: filepath.Join(readonly, "state.json")}.saveTranscriptState(ctx, state)
+	assert.Error(t, Claude{StateFilePath: filepath.Join(readonly, "state.json")}.saveTranscriptState(state))
 	assert.NoFileExists(t, filepath.Join(readonly, "state.json"))
+}
+
+func TestClaudePersistTranscriptState_RemovesStaleState(t *testing.T) {
+	ctx := context.Background()
+
+	// an empty directory at the state path: saving fails, removing succeeds
+	statePath := filepath.Join(t.TempDir(), "state.json")
+	require.NoError(t, os.Mkdir(statePath, 0o755))
+
+	require.NoError(t, Claude{StateFilePath: statePath}.persistTranscriptState(ctx, claudeTranscriptState{}))
+	assert.NoDirExists(t, statePath)
+
+	// a non-empty directory cannot be removed either: the heartbeats are withheld
+	require.NoError(t, os.MkdirAll(filepath.Join(statePath, "keep"), 0o755))
+	assert.Error(t, Claude{StateFilePath: statePath}.persistTranscriptState(ctx, claudeTranscriptState{}))
 }
 
 func TestClaudeLoadTranscriptState_Unreadable(t *testing.T) {

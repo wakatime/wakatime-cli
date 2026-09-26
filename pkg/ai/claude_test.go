@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"testing"
@@ -1165,15 +1166,24 @@ func TestClaudeParse_PrunesDeletedTranscriptsFromState(t *testing.T) {
 
 	statePath := filepath.Join(home, ".wakatime", "state.json")
 	require.NoError(t, os.MkdirAll(filepath.Dir(statePath), 0o755))
-	require.NoError(t, os.WriteFile(statePath, []byte(
-		`{"`+filepath.Join(transcriptDir, "deleted.jsonl")+`":{"time":"2026-03-18T10:00:00Z","count":1}}`), 0o644))
+
+	// a transcript under a projects directory this run does not walk, such as
+	// a stopped WSL distribution, keeps its checkpoint
+	unwalkedPath := filepath.Join(home, "stopped-distro", ".claude", "projects", "p", "session.jsonl")
+
+	seed, err := json.Marshal(map[string]any{
+		filepath.Join(transcriptDir, "deleted.jsonl"): map[string]any{"time": "2026-03-18T10:00:00Z", "count": 1},
+		unwalkedPath: map[string]any{"time": "2026-03-18T10:00:00Z", "count": 1},
+	})
+	require.NoError(t, err)
+	require.NoError(t, os.WriteFile(statePath, seed, 0o644))
 
 	parser := ai.Claude{
 		After:         time.Date(2020, time.January, 1, 0, 0, 0, 0, time.UTC),
 		StateFilePath: statePath,
 	}
 
-	_, err := parser.Parse(ctx)
+	_, err = parser.Parse(ctx)
 	require.NoError(t, err)
 
 	data, err := os.ReadFile(statePath)
@@ -1183,6 +1193,7 @@ func TestClaudeParse_PrunesDeletedTranscriptsFromState(t *testing.T) {
 	require.NoError(t, json.Unmarshal(data, &state))
 	assert.Contains(t, state, transcriptPath)
 	assert.NotContains(t, state, filepath.Join(transcriptDir, "deleted.jsonl"))
+	assert.Contains(t, state, unwalkedPath)
 }
 
 func TestClaudeParse_NoStateFilePath(t *testing.T) {
@@ -1363,6 +1374,14 @@ func BenchmarkClaudeParseSteadyState(b *testing.B) {
 	_, err := parser.Parse(ctx)
 	require.NoError(b, err)
 
+	// WithAISync advanced the global cutoff past every heartbeat
+	parser.After = time.Date(2026, time.March, 18, 11, 0, 0, 0, time.UTC)
+
+	// guard: a steady-state parse must skip every transcript
+	steady, err := parser.Parse(ctx)
+	require.NoError(b, err)
+	require.Empty(b, steady)
+
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
@@ -1511,4 +1530,108 @@ func TestClaudeParse_ResetGlobalCutoffBypassesCheckpoints(t *testing.T) {
 	}
 
 	assert.ElementsMatch(t, []string{"/tmp/b.go", "/tmp/c.go", "/tmp/d.go"}, entities)
+}
+
+func claudeTestEntities(hh ai.Heartbeats) []string {
+	var entities []string
+
+	for _, h := range hh {
+		if h.EntityType == heartbeat.FileType {
+			entities = append(entities, h.Entity)
+		}
+	}
+
+	return entities
+}
+
+func TestClaudeParse_UnsavableStateWithholdsHeartbeats(t *testing.T) {
+	// Windows ignores unix permission bits on directories.
+	if runtime.GOOS == "windows" {
+		t.Skip("Skipping because OS is windows.")
+	}
+
+	ctx := context.Background()
+
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	transcriptDir := filepath.Join(home, ".claude", "projects", "sample-project")
+	require.NoError(t, os.MkdirAll(transcriptDir, 0o755))
+
+	transcriptPath := filepath.Join(transcriptDir, "session.jsonl")
+	stateDir := filepath.Join(home, ".wakatime")
+	statePath := filepath.Join(stateDir, "state.json")
+
+	claudeTestAppend(t, transcriptPath, claudeTestEditLine("2026-03-18T12:00:00Z", "/tmp/a.go", 1))
+
+	parser := ai.Claude{
+		After:         time.Date(2026, time.March, 18, 11, 0, 0, 0, time.UTC),
+		StateFilePath: statePath,
+	}
+
+	first, err := parser.Parse(ctx)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"/tmp/a.go"}, claudeTestEntities(first))
+
+	parser.After = time.Date(2026, time.March, 18, 12, 0, 0, 0, time.UTC)
+
+	claudeTestAppend(t, transcriptPath,
+		claudeTestEditLine("2026-03-18T12:05:00Z", "/tmp/b.go", 1),
+		claudeTestEditLine("2026-03-18T12:10:00Z", "/tmp/c.go", 1),
+	)
+
+	// the state can be neither saved nor removed: returning the heartbeats would
+	// leave a stale checkpoint behind and the next run would send them again
+	require.NoError(t, os.Chmod(stateDir, 0o500))
+	t.Cleanup(func() { _ = os.Chmod(stateDir, 0o755) })
+
+	second, err := parser.Parse(ctx)
+	require.Error(t, err)
+	assert.Empty(t, second)
+
+	require.NoError(t, os.Chmod(stateDir, 0o755))
+
+	third, err := parser.Parse(ctx)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"/tmp/b.go", "/tmp/c.go"}, claudeTestEntities(third))
+
+	parser.After = time.Date(2026, time.March, 18, 12, 10, 0, 0, time.UTC)
+
+	fourth, err := parser.Parse(ctx)
+	require.NoError(t, err)
+	assert.Empty(t, fourth)
+}
+
+func TestClaudeParse_ReadOnlyStateDirWithoutState(t *testing.T) {
+	// Windows ignores unix permission bits on directories.
+	if runtime.GOOS == "windows" {
+		t.Skip("Skipping because OS is windows.")
+	}
+
+	ctx := context.Background()
+
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	transcriptDir := filepath.Join(home, ".claude", "projects", "sample-project")
+	require.NoError(t, os.MkdirAll(transcriptDir, 0o755))
+
+	claudeTestAppend(t, filepath.Join(transcriptDir, "session.jsonl"),
+		claudeTestEditLine("2026-03-18T12:00:00Z", "/tmp/a.go", 1))
+
+	stateDir := filepath.Join(home, ".wakatime")
+	require.NoError(t, os.Mkdir(stateDir, 0o500))
+	t.Cleanup(func() { _ = os.Chmod(stateDir, 0o755) })
+
+	parser := ai.Claude{
+		After:         time.Date(2026, time.March, 18, 11, 0, 0, 0, time.UTC),
+		StateFilePath: filepath.Join(stateDir, "state.json"),
+	}
+
+	// no state to go stale: parse against the global cutoff, as without this file
+	hh, err := parser.Parse(ctx)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"/tmp/a.go"}, claudeTestEntities(hh))
 }
