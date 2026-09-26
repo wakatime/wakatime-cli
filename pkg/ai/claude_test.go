@@ -214,6 +214,67 @@ func TestClaudeParse(t *testing.T) {
 	assert.True(t, *got[8].IsWrite)
 }
 
+func TestClaudeParse_TimestampLessMetadataPreservesTokens(t *testing.T) {
+	for _, beforeCutoff := range []bool{false, true} {
+		name := "pending tokens"
+		usageTimestamp := "2026-03-18T12:00:00Z"
+
+		if beforeCutoff {
+			name = "tokens before cutoff"
+			usageTimestamp = "2026-03-18T10:00:00Z"
+		}
+
+		t.Run(name, func(t *testing.T) {
+			home := t.TempDir()
+			t.Setenv("HOME", home)
+			t.Setenv("USERPROFILE", home)
+			t.Setenv("CLAUDE_CONFIG_DIR", filepath.Join(home, ".claude"))
+			transcriptDir := filepath.Join(home, ".claude", "projects", "sample-project")
+			require.NoError(t, os.MkdirAll(transcriptDir, 0o755))
+
+			lines := []string{
+				`{"type":"assistant","timestamp":"` + usageTimestamp + `","message":{"id":"msg-1",` +
+					`"usage":{"input_tokens":11,"cache_creation_input_tokens":2,` +
+					`"cache_read_input_tokens":7,"output_tokens":12}}}`,
+			}
+			for _, kind := range []string{
+				"last-prompt", "ai-title", "agent-name", "mode", "permission-mode", "file-history-snapshot",
+			} {
+				lines = append(lines, `{"type":"`+kind+`","sessionId":"claude-session"}`)
+			}
+
+			lines = append(lines,
+				`{"type":"user","timestamp":"2026-03-18T12:01:00Z","message":{"role":"user","content":"continue"}}`,
+				`{"type":"user","timestamp":"2026-03-18T12:02:00Z","message":{"role":"user","content":"continue again"}}`,
+			)
+			require.NoError(t, os.WriteFile(
+				filepath.Join(transcriptDir, "session.jsonl"),
+				[]byte(strings.Join(lines, "\n")+"\n"),
+				0o644,
+			))
+
+			parser := ai.Claude{After: time.Date(2026, 3, 18, 11, 0, 0, 0, time.UTC)}
+			got, err := parser.Parse(context.Background())
+			require.NoError(t, err)
+			require.Len(t, got, 2)
+
+			if beforeCutoff {
+				assert.Zero(t, got[0].AIInputTokens)
+				assert.Zero(t, got[0].AICachedInputTokens)
+				assert.Zero(t, got[0].AIOutputTokens)
+			} else {
+				assert.Equal(t, int64(13), got[0].AIInputTokens)
+				assert.Equal(t, int64(7), got[0].AICachedInputTokens)
+				assert.Equal(t, int64(12), got[0].AIOutputTokens)
+			}
+
+			assert.Zero(t, got[1].AIInputTokens)
+			assert.Zero(t, got[1].AICachedInputTokens)
+			assert.Zero(t, got[1].AIOutputTokens)
+		})
+	}
+}
+
 func TestClaudeParse_SubscriptionPlanFromConfig(t *testing.T) {
 	ctx := context.Background()
 
