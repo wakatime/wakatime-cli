@@ -27,13 +27,19 @@ func TestInternalHelpers(t *testing.T) {
 	require.NoError(t, os.WriteFile(missing, []byte("x"), 0600))
 	assert.True(t, fileExists(missing))
 
-	clock := &mutexClock{delay: time.Millisecond}
+	clock := &mutexClock{}
 	assert.False(t, clock.Now().IsZero())
 
 	select {
-	case <-clock.After(time.Hour):
+	case <-clock.After(time.Millisecond):
 	case <-time.After(time.Second):
 		t.Fatal("mutex clock did not fire")
+	}
+
+	select {
+	case <-clock.After(time.Hour):
+		t.Fatal("mutex clock ignored the requested duration")
+	case <-time.After(10 * time.Millisecond):
 	}
 }
 
@@ -59,7 +65,7 @@ func TestWriteDoesNotProceedWithoutLock(t *testing.T) {
 	})
 	require.NoError(t, err)
 	lock, err := mutex.Acquire(mutex.Spec{Name: "wakatime-cli-config-mutex", Delay: time.Millisecond,
-		Timeout: time.Second, Clock: &mutexClock{delay: time.Millisecond}})
+		Timeout: time.Second, Clock: &mutexClock{}})
 	require.NoError(t, err)
 
 	defer lock.Release()

@@ -167,6 +167,49 @@ func TestSyncCheckpointQuietSessionDoesNotLowerDiscovery(t *testing.T) {
 	assert.Equal(t, checkpointReadAfter(base.Add(time.Hour)), empty.discoveryAfter())
 }
 
+func TestAISyncSQLiteParsersDoNotUseCheckpoints(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	v := viper.New()
+	v.Set("internal-config", filepath.Join(home, "internal.cfg"))
+	v.Set("internal.ai_logs_last_parsed_at", time.Now().Add(-time.Hour).Format(time.RFC3339Nano))
+
+	sqliteParsers := []string{
+		(Gemini{}).Name(), (Cody{}).Name(), (Copilot{}).Name(), (Cursor{}).Name(), (Goose{}).Name(),
+		(OpenCode{}).Name(), (Qoder{}).Name(), (Windsurf{}).Name(), (Crush{}).Name(), (CursorAgent{}).Name(),
+		(Forge{}).Name(), (Hermes{}).Name(), (KiloCode{}).Name(), (QuickDesk{}).Name(), (Warp{}).Name(),
+		(ZCode{}).Name(), (Zed{}).Name(),
+	}
+
+	// State left behind by an earlier build that checkpointed a sqlite parser,
+	// including its row cursors.
+	statePath := filepath.Join(home, "internal-ai-parsing.json")
+	stale := `{"version":1,"parsers":{"` + (Zed{}).Name() + `":{"cutoff":"2026-09-01T12:00:00Z",` +
+		`"sessions":{},"cursors":{"/tmp/cursor.json":{"Version":2}}}}}`
+	require.NoError(t, os.WriteFile(statePath, []byte(stale), 0o600))
+
+	handler := WithAISync(Config{V: v})(func(_ context.Context, _ []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		return nil, nil
+	})
+	_, err := handler(t.Context(), nil)
+	require.NoError(t, err)
+
+	raw, err := os.ReadFile(statePath)
+	require.NoError(t, err)
+
+	var state syncCheckpoints
+	require.NoError(t, json.Unmarshal(raw, &state))
+	assert.Contains(t, state.Parsers, (Claude{}).Name())
+
+	for _, name := range sqliteParsers {
+		assert.NotContains(t, state.Parsers, name, "sqlite parser %s must not be checkpointed", name)
+	}
+
+	assert.NotContains(t, string(raw), "cursors")
+}
+
 func TestClaudeTranscriptPrefixUsesPrefixedSessionCutoff(t *testing.T) {
 	base := time.Date(2026, 9, 1, 11, 0, 0, 0, time.UTC)
 	p := &parserCheckpoint{Cutoff: base, global: base, Sessions: map[string]*sessionCheckpoint{

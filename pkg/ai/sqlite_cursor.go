@@ -109,7 +109,7 @@ func prepareGenericAISQLiteCursors(
 			return err
 		}
 
-		cursor, err := provider.readCheckpointCursor(cursorPath)
+		cursor, err := readGenericAISQLiteCursor(cursorPath)
 		if err != nil {
 			return err
 		}
@@ -124,7 +124,7 @@ func prepareGenericAISQLiteCursors(
 				Version: genericAISQLiteCursorVersion, ParserVersion: provider.sqliteParserVersion,
 				Cutoff: cutoff, Pending: true,
 			}
-			if err := provider.writeCheckpointCursor(cursorPath, cursor); err != nil {
+			if err := writeGenericAISQLiteCursor(cursorPath, cursor); err != nil {
 				return err
 			}
 		}
@@ -215,7 +215,7 @@ func parseGenericAISQLiteIncremental(
 		return nil, err
 	}
 
-	cursor, err := provider.readCheckpointCursor(cursorPath)
+	cursor, err := readGenericAISQLiteCursor(cursorPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed reading sqlite cursor: %w", err)
 	}
@@ -260,7 +260,6 @@ func parseGenericAISQLiteIncremental(
 	}
 
 	provider.config.After = cursor.Cutoff
-	provider.incremental = provider.config.checkpoint != nil
 
 	order, keys, err := genericAISQLiteOrder(ctx, db, table, rowID)
 	if err != nil {
@@ -304,12 +303,8 @@ func parseGenericAISQLiteIncremental(
 		}
 	}
 
-	if err := provider.writeCheckpointCursor(cursorPath, cursor); err != nil {
+	if err := writeGenericAISQLiteCursor(cursorPath, cursor); err != nil {
 		return nil, fmt.Errorf("failed saving sqlite cursor: %w", err)
-	}
-
-	if provider.config.checkpoint != nil {
-		provider.config.checkpoint.markIncremental(heartbeats)
 	}
 
 	return heartbeats, parseErr
@@ -514,61 +509,4 @@ func genericAISQLiteRowHeartbeats(
 	// Finish this size-limited row atomically with its checkpoint. The scan checks
 	// cancellation before reading the next row, including within each SQL batch.
 	return genericAIHeartbeatsFromEvents(context.Background(), provider, path, slices.Values(events), state)
-}
-
-func (p genericAIProvider) readCheckpointCursor(path string) (genericAISQLiteCursor, error) {
-	if p.config.checkpoint == nil {
-		return readGenericAISQLiteCursor(path)
-	}
-
-	if raw, ok := p.config.checkpoint.Cursors[path]; ok {
-		var cursor genericAISQLiteCursor
-		if len(raw) > 0 {
-			if err := json.Unmarshal(raw, &cursor); err != nil {
-				return cursor, err
-			}
-		}
-
-		return cursor, nil
-	}
-
-	// The checkpoint has never seen this cursor before: fall back to the
-	// legacy on-disk cursor file so upgrading does not force a full rescan
-	// (and resend) of rows already scanned by a pre-checkpoint build.
-	cursor, err := readGenericAISQLiteCursor(path)
-	if err != nil || cursor.Version == 0 {
-		return cursor, err
-	}
-
-	// Adopt the legacy cursor into the checkpoint right away. It is otherwise
-	// only written back when the database changed, which would leave an
-	// unchanged store reading the legacy file forever.
-	state := p.config.checkpoint
-	if state.legacy == nil {
-		state.legacy = make(map[string]struct{})
-	}
-
-	state.legacy[path] = struct{}{}
-
-	return cursor, p.writeCheckpointCursor(path, cursor)
-}
-
-func (p genericAIProvider) writeCheckpointCursor(path string, cursor genericAISQLiteCursor) error {
-	if p.config.checkpoint == nil {
-		return writeGenericAISQLiteCursor(path, cursor)
-	}
-
-	raw, err := json.Marshal(cursor)
-	if err != nil {
-		return err
-	}
-
-	state := p.config.checkpoint
-	if state.Cursors == nil {
-		state.Cursors = make(map[string]json.RawMessage)
-	}
-
-	state.Cursors[path] = raw
-
-	return nil
 }
