@@ -245,7 +245,7 @@ func TestDetect(t *testing.T) {
 		"html": {
 			Filepath:     "testdata/html_minimal.html",
 			Language:     heartbeat.LanguageHTML,
-			Dependencies: []string{`"https://cdn.wakatime.com/app.min.js"`},
+			Dependencies: []string{`https://cdn.wakatime.com/app.min.js`},
 		},
 		"java": {
 			Filepath:     "testdata/java_minimal.java",

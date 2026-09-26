@@ -1,0 +1,1 @@
+{"value":{"entries":[{"id":"one","kind":"message","role":"user","timestampMs":1800000000000,"content":"hello"},{"id":"two","kind":"send-message","timestampMs":1800000001000,"message":"done"},{"id":"three","kind":"message","role":"user","fromAgent":{"id":"other"},"timestampMs":1800000002000,"content":"internal"}]}}

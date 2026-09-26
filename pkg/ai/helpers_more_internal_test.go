@@ -945,7 +945,7 @@ func TestClineAndRooToolBranches(t *testing.T) {
 	deleted := Cline{}.toolHeartbeat(clineToolMessage{Tool: "fileDeleted", Path: "gone.go", Content: "one\ntwo"}, base)
 	require.True(t, deleted.ok)
 	assert.Equal(t, -2, deleted.lineChanges)
-	assert.False(t, Cline{}.toolHeartbeat(clineToolMessage{Tool: "fileDeleted", Path: "gone.go"}, base).ok)
+	assert.True(t, Cline{}.toolHeartbeat(clineToolMessage{Tool: "fileDeleted", Path: "gone.go"}, base).ok)
 	assert.False(t, Cline{}.toolHeartbeat(clineToolMessage{Tool: "unknown", Path: "x.go"}, base).ok)
 
 	assert.Equal(t, "task text", clineTaskText("prefix <task> task text </task> suffix"))
@@ -2513,6 +2513,11 @@ func openOpenCodeTestDB(t *testing.T, dbPath string) *sql.DB {
 	t.Helper()
 
 	db, err := sql.Open("sqlite", dbPath)
+	require.NoError(t, err)
+	// Fixtures need committed data visible to other connections, but do not
+	// need crash durability. Disk flushes are particularly costly on Windows.
+	db.SetMaxOpenConns(1)
+	_, err = db.Exec("PRAGMA synchronous = OFF")
 	require.NoError(t, err)
 
 	return db

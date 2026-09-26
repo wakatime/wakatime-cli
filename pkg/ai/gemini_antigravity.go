@@ -234,7 +234,9 @@ func (g Gemini) parseAntigravity(ctx context.Context) (Heartbeats, error) {
 		heartbeats = append(heartbeats, parsed...)
 	}
 
-	return heartbeats, nil
+	sqlite, err := g.antigravitySQLite(ctx, home)
+
+	return append(heartbeats, sqlite...), err
 }
 
 func (g Gemini) antigravityTranscriptPaths(home string) ([]antigravityTranscript, error) {

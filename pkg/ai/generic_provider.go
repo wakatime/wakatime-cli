@@ -116,3 +116,25 @@ func stringSet(values ...string) map[string]bool {
 
 	return result
 }
+
+// immediateChildPaths selects known stores without traversing unrelated caches or backups.
+func immediateChildPaths(root, name string) ([]string, error) {
+	entries, err := os.ReadDir(root)
+	if os.IsNotExist(err) {
+		return nil, nil
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	var paths []string
+
+	for _, entry := range entries {
+		if entry.IsDir() {
+			paths = append(paths, filepath.Join(root, entry.Name(), name))
+		}
+	}
+
+	return paths, nil
+}

@@ -29,6 +29,7 @@ type (
 	}
 
 	copilotCLIParseState struct {
+		legStart         time.Time
 		sessionID        string
 		sessionEntity    string
 		cwd              string
@@ -343,6 +344,9 @@ func (g Copilot) handleCLITranscriptLine(
 		g.handleCLIToolExecutionStart(event, state)
 	case "tool.execution_complete":
 		g.handleCLIToolExecutionComplete(event, state)
+	case "session.compaction_complete":
+		state.tokens = heartbeat.AITokens{}
+		state.legStart = event.Timestamp
 	case "session.shutdown":
 		g.handleCLIShutdown(event, state)
 	}
@@ -359,6 +363,8 @@ func (g Copilot) handleCLIStart(event copilotCLIEvent, state *copilotCLIParseSta
 		state.sessionEntity = appHeartbeatEntity(g.Name(), data.SessionID)
 	}
 
+	state.tokens = heartbeat.AITokens{}
+	state.legStart = event.Timestamp
 	state.cliVersion = firstNonEmptyString(data.CopilotVersion, state.cliVersion)
 	state.agentVersion = firstNonEmptyString(data.CopilotVersion, state.agentVersion)
 	state.cwd = firstNonEmptyString(data.Context.Cwd, state.cwd)
@@ -488,6 +494,14 @@ func (g Copilot) handleCLIToolExecutionComplete(event copilotCLIEvent, state *co
 		return
 	}
 
+	deleted := make(map[string]bool)
+
+	if telemetry.RestrictedProperties != nil {
+		for _, path := range decodeCopilotCLIStringArray(telemetry.RestrictedProperties.DeletedPaths) {
+			deleted[copilotCLIPathID(path)] = true
+		}
+	}
+
 	lineChanges := telemetry.lineChanges(len(paths))
 	for i, path := range paths {
 		if !g.shouldTrackCLIPath(path) {
@@ -502,10 +516,14 @@ func (g Copilot) handleCLIToolExecutionComplete(event copilotCLIEvent, state *co
 		timestamp := event.Timestamp.Add(time.Duration(i) * time.Millisecond)
 		lineChange := lineChanges.value(i)
 		state.appendFileHeartbeat(g, path, timestamp, lineChange)
+		state.heartbeats[len(state.heartbeats)-1].heartbeat.IsUnsavedEntity = deleted[copilotCLIPathID(path)]
 	}
 }
 
 func (g Copilot) handleCLIShutdown(event copilotCLIEvent, state *copilotCLIParseState) {
+	legStart := state.legStart
+	state.legStart = event.Timestamp
+
 	var data copilotCLIShutdownData
 	if err := json.Unmarshal(event.Data, &data); err != nil {
 		return
@@ -570,6 +588,7 @@ func (g Copilot) handleCLIShutdown(event copilotCLIEvent, state *copilotCLIParse
 	if hasTokenDelta || hasCodeChanges || len(state.heartbeats) > 0 {
 		state.heartbeats = append(state.heartbeats, copilotTimedHeartbeat{
 			timestamp: event.Timestamp,
+			shutdown:  true, legStart: legStart,
 			heartbeat: g.cliAppHeartbeat(
 				state.sessionEntity,
 				state.sessionID,
@@ -691,9 +710,6 @@ func (t copilotCLIToolTelemetry) filePaths() []string {
 	}
 
 	paths := decodeCopilotCLIStringArray(t.RestrictedProperties.FilePaths)
-	if len(paths) > 0 {
-		return uniqueNonEmptyStrings(paths)
-	}
 
 	paths = append(paths, decodeCopilotCLIStringArray(t.RestrictedProperties.AddedPaths)...)
 	paths = append(paths, decodeCopilotCLIStringArray(t.RestrictedProperties.DeletedPaths)...)

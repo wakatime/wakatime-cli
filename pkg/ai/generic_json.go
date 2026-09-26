@@ -4,55 +4,81 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"iter"
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/log"
 )
 
 type genericAIProvider struct {
-	parser             Parser
-	config             ParserConfig
-	roots              []string
-	fileNames          map[string]bool
-	extensions         map[string]bool
-	sqliteRoots        []string
-	containerKey       string
-	preferMessagesFile bool
-	inputIncludesCache bool
-	tokenCounterMode   genericAICounterMode
-	lineCounterMode    genericAICounterMode
+	parser              Parser
+	config              ParserConfig
+	roots               []string
+	fileNames           map[string]bool
+	extensions          map[string]bool
+	sqliteRoots         []string
+	sqliteTables        []string
+	sqliteQuery         func(table, projection string, after time.Time) (string, []any)
+	sqliteEvents        func(table string, row map[string]any) []genericAIEvent
+	sqliteParserVersion int
+	containerKey        string
+	preferMessagesFile  bool
+	inputIncludesCache  bool
+	tokenCounterMode    genericAICounterMode
+	lineCounterMode     genericAICounterMode
 }
 
 type genericAIEvent struct {
-	timestamp   time.Time
-	sessionID   string
-	model       string
-	cwd         string
-	prompt      string
-	filePath    string
-	toolName    string
-	input       int64
-	cachedInput int64
-	output      int64
-	lineChanges *int
-	isWrite     bool
-	tokensFound bool
+	observeGrowth bool
+	recordID      string
+	timestamp     time.Time
+	sessionID     string
+	model         string
+	cwd           string
+	prompt        string
+	filePath      string
+	toolName      string
+	input         int64
+	cachedInput   int64
+	output        int64
+	lineChanges   *int
+	isWrite       bool
+	tokensFound   bool
 }
 
 type genericAISessionState struct {
-	event       genericAIEvent
-	input       int64
-	cachedInput int64
-	output      int64
+	CWD         string
+	Model       string
+	Input       int64
+	CachedInput int64
+	Output      int64
+}
+
+type genericAIParseState struct {
+	Sessions     map[string]genericAISessionState
+	LineCounters map[string]int
+	Records      map[string]genericAIRecordState
+}
+
+// Some SQLite providers update a request in place. Track each request separately
+// so a changed row emits only newly observed usage, even across parser runs.
+type genericAIRecordState struct {
+	Input       int64
+	CachedInput int64
+	Output      int64
+	PromptHash  string
 }
 
 var genericAICWDPattern = regexp.MustCompile(
@@ -400,31 +426,85 @@ func genericAIHeartbeats(
 	path string,
 	values []any,
 ) (Heartbeats, error) {
-	defaultSessionID := genericAISessionID(path)
-	states := make(map[string]genericAISessionState)
-	lineCounters := make(map[string]int)
-	fallbackTimestamp := time.Time{}
+	return genericAIHeartbeatsFromValues(ctx, provider, path, slices.Values(values))
+}
 
-	if len(values) == 1 {
-		if info, err := os.Stat(path); err == nil {
-			fallbackTimestamp = info.ModTime()
+// genericAIEvents buffers the first event to preserve the file timestamp fallback
+// for single-value transcripts without materializing an entire SQLite table.
+func genericAIEvents(path string, values iter.Seq[any]) iter.Seq[genericAIEvent] {
+	return func(yield func(genericAIEvent) bool) {
+		var first genericAIEvent
+
+		count := 0
+
+		for value := range values {
+			event := genericAIEventFromValue(value)
+			count++
+
+			if count == 1 {
+				first = event
+				continue
+			}
+
+			if count == 2 && !yield(first) {
+				return
+			}
+
+			if !yield(event) {
+				return
+			}
+		}
+
+		if count == 1 {
+			if first.timestamp.IsZero() {
+				if info, err := os.Stat(path); err == nil {
+					first.timestamp = info.ModTime()
+				}
+			}
+
+			yield(first)
 		}
 	}
+}
+
+func genericAIHeartbeatsFromValues(
+	ctx context.Context,
+	provider genericAIProvider,
+	path string,
+	values iter.Seq[any],
+) (Heartbeats, error) {
+	return genericAIHeartbeatsFromEvents(ctx, provider, path, genericAIEvents(path, values), &genericAIParseState{})
+}
+
+func genericAIHeartbeatsFromEvents(
+	ctx context.Context,
+	provider genericAIProvider,
+	path string,
+	events iter.Seq[genericAIEvent],
+	parseState *genericAIParseState,
+) (Heartbeats, error) {
+	defaultSessionID := genericAISessionID(path)
+
+	if parseState.Sessions == nil {
+		parseState.Sessions = make(map[string]genericAISessionState)
+	}
+
+	if parseState.LineCounters == nil {
+		parseState.LineCounters = make(map[string]int)
+	}
+
+	states := parseState.Sessions
+	lineCounters := parseState.LineCounters
 
 	var heartbeats Heartbeats
 
-	for _, value := range values {
+	for event := range events {
 		if err := ctx.Err(); err != nil {
 			return nil, err
 		}
 
-		event := genericAIEventFromValue(value)
 		if provider.inputIncludesCache {
 			event.input = max(event.input-event.cachedInput, 0)
-		}
-
-		if event.timestamp.IsZero() {
-			event.timestamp = fallbackTimestamp
 		}
 
 		if event.sessionID == "" {
@@ -433,13 +513,12 @@ func genericAIHeartbeats(
 
 		state := states[event.sessionID]
 
-		previous := state.event
 		if event.cwd == "" {
-			event.cwd = previous.cwd
+			event.cwd = state.CWD
 		}
 
 		if event.model == "" {
-			event.model = previous.model
+			event.model = state.Model
 		}
 
 		if event.filePath != "" && event.cwd != "" && !genericAIPathIsAbs(event.filePath) {
@@ -455,14 +534,14 @@ func genericAIHeartbeats(
 			currentOutput := event.output
 
 			if insideCutoff {
-				event.input = nonNegativeDelta(currentInput, state.input)
-				event.cachedInput = nonNegativeDelta(currentCachedInput, state.cachedInput)
-				event.output = nonNegativeDelta(currentOutput, state.output)
+				event.input = nonNegativeDelta(currentInput, state.Input)
+				event.cachedInput = nonNegativeDelta(currentCachedInput, state.CachedInput)
+				event.output = nonNegativeDelta(currentOutput, state.Output)
 			}
 
-			state.input = currentInput
-			state.cachedInput = currentCachedInput
-			state.output = currentOutput
+			state.Input = currentInput
+			state.CachedInput = currentCachedInput
+			state.Output = currentOutput
 		}
 
 		if provider.lineCounterMode == genericAICumulativeCounters && event.lineChanges != nil {
@@ -477,9 +556,19 @@ func genericAIHeartbeats(
 			}
 		}
 
-		state.event = event
+		state.CWD = event.cwd
+		state.Model = event.model
 
 		states[event.sessionID] = state
+
+		_, observed := parseState.Records[event.recordID]
+
+		event = genericAIRecordDelta(event, parseState)
+		if event.observeGrowth && observed && (event.input > 0 || event.cachedInput > 0 || event.output > 0) {
+			event.timestamp = time.Now().UTC()
+			insideCutoff = timestampAtOrAfterCutoff(event.timestamp, provider.config.After)
+		}
+
 		if !insideCutoff || !event.hasActivity() {
 			continue
 		}
@@ -492,6 +581,34 @@ func genericAIHeartbeats(
 
 func nonNegativeDelta(current int64, previous int64) int64 {
 	return max(current-previous, 0)
+}
+
+func genericAIRecordDelta(event genericAIEvent, state *genericAIParseState) genericAIEvent {
+	if event.recordID == "" {
+		return event
+	}
+
+	if state.Records == nil {
+		state.Records = make(map[string]genericAIRecordState)
+	}
+
+	previous := state.Records[event.recordID]
+	current := genericAIRecordState{
+		Input:       max(previous.Input, event.input),
+		CachedInput: max(previous.CachedInput, event.cachedInput),
+		Output:      max(previous.Output, event.output),
+		PromptHash:  fmt.Sprintf("%x", sha256.Sum256([]byte(event.prompt))),
+	}
+	state.Records[event.recordID] = current
+	event.input = current.Input - previous.Input
+	event.cachedInput = current.CachedInput - previous.CachedInput
+
+	event.output = current.Output - previous.Output
+	if current.PromptHash == previous.PromptHash {
+		event.prompt = ""
+	}
+
+	return event
 }
 
 func genericAIEventFromValue(value any) genericAIEvent {
@@ -656,7 +773,7 @@ func genericAIEventHeartbeats(parser Parser, config ParserConfig, event genericA
 		filePath,
 		heartbeat.FileType,
 		nil,
-		false,
+		genericAIToolDeletesFile(event.toolName),
 		heartbeat.PointerTo(event.isWrite),
 		nil,
 		"",
@@ -706,17 +823,12 @@ func genericAIFindDepth(value any, key string, depth int) any {
 	switch typed := value.(type) {
 	case map[string]any:
 		for childKey, child := range typed {
-			if key == genericAIKey(childKey) && !genericAIEmpty(child) {
+			if genericAIKeyMatches(childKey, key) && !genericAIEmpty(child) {
 				return child
 			}
 		}
 
-		childKeys := make([]string, 0, len(typed))
-		for childKey := range typed {
-			childKeys = append(childKeys, childKey)
-		}
-
-		sort.Strings(childKeys)
+		childKeys := genericAIChildKeys(typed)
 
 		for _, childKey := range childKeys {
 			if found := genericAIFindDepth(genericAIDecodedValue(typed[childKey]), key, depth+1); found != nil {
@@ -734,7 +846,54 @@ func genericAIFindDepth(value any, key string, depth int) any {
 	return nil
 }
 
+// Only containers can contain a nested field. Avoid sorting and revisiting
+// scalar fields for each of the many aliases used when extracting an event.
+func genericAIChildKeys(object map[string]any) []string {
+	var keys []string
+
+	for key, value := range object {
+		switch typed := value.(type) {
+		case map[string]any, []any, genericAIJSONText:
+			keys = append(keys, key)
+		case string:
+			text := strings.TrimSpace(typed)
+			if strings.HasPrefix(text, "{") || strings.HasPrefix(text, "[") {
+				keys = append(keys, key)
+			}
+		}
+	}
+
+	sort.Strings(keys)
+
+	return keys
+}
+
+// Keep the original text for fields such as prompts, while sharing its decoded
+// representation across the many recursive field lookups for a SQLite row.
+type genericAIJSONText struct {
+	text    string
+	decoded any
+}
+
+func genericAICacheJSONText(value any) any {
+	text, ok := value.(string)
+	if !ok {
+		return value
+	}
+
+	trimmed := strings.TrimSpace(text)
+	if !strings.HasPrefix(trimmed, "{") && !strings.HasPrefix(trimmed, "[") {
+		return value
+	}
+
+	return genericAIJSONText{text: text, decoded: genericAIDecodedValue(text)}
+}
+
 func genericAIDecodedValue(value any) any {
+	if cached, ok := value.(genericAIJSONText); ok {
+		return cached.decoded
+	}
+
 	text, ok := value.(string)
 	if !ok {
 		return value
@@ -767,6 +926,33 @@ func genericAIKey(key string) string {
 	}, key)
 }
 
+// Compare with an already normalized lookup key without allocating a normalized
+// copy of every JSON field name on every recursive lookup.
+func genericAIKeyMatches(raw, key string) bool {
+	for _, r := range raw {
+		if r == '_' || r == '-' || r == ' ' {
+			continue
+		}
+
+		if r >= 'A' && r <= 'Z' {
+			r += 'a' - 'A'
+		}
+
+		if len(key) == 0 {
+			return false
+		}
+
+		want, size := utf8.DecodeRuneInString(key)
+		if r != want {
+			return false
+		}
+
+		key = key[size:]
+	}
+
+	return len(key) == 0
+}
+
 func genericAIEmpty(value any) bool {
 	switch typed := value.(type) {
 	case nil:
@@ -782,6 +968,8 @@ func genericAIEmpty(value any) bool {
 
 func genericAIString(value any) string {
 	switch typed := value.(type) {
+	case genericAIJSONText:
+		return strings.TrimSpace(typed.text)
 	case string:
 		return strings.TrimSpace(typed)
 	case json.Number:
@@ -828,7 +1016,7 @@ func genericAINumericFieldDepth(value any, key string, depth int) (int64, bool) 
 	switch typed := value.(type) {
 	case map[string]any:
 		for childKey, child := range typed {
-			if key != genericAIKey(childKey) {
+			if !genericAIKeyMatches(childKey, key) {
 				continue
 			}
 
@@ -837,12 +1025,7 @@ func genericAINumericFieldDepth(value any, key string, depth int) (int64, bool) 
 			}
 		}
 
-		childKeys := make([]string, 0, len(typed))
-		for childKey := range typed {
-			childKeys = append(childKeys, childKey)
-		}
-
-		sort.Strings(childKeys)
+		childKeys := genericAIChildKeys(typed)
 
 		for _, childKey := range childKeys {
 			if number, ok := genericAINumericFieldDepth(
@@ -995,6 +1178,8 @@ func genericAIPrompt(value any) string {
 
 func genericAIContentText(value any) string {
 	switch typed := value.(type) {
+	case genericAIJSONText:
+		return strings.TrimSpace(typed.text)
 	case string:
 		return strings.TrimSpace(typed)
 	case map[string]any:
@@ -1033,20 +1218,31 @@ func genericAICWDFromText(text string) string {
 	return strings.TrimSpace(match[1])
 }
 
+// genericAIToolDeletesFile recognizes explicit file-deletion tools, not line deletions or shell commands.
+func genericAIToolDeletesFile(tool string) bool {
+	switch genericAIKey(tool) {
+	case "deletefile", "removefile", "filedelete", "filedeleted":
+		return true
+	default:
+		return false
+	}
+}
+
 func genericAIToolIsWrite(tool string) bool {
 	tool = strings.ToLower(tool)
 
-	return strings.Contains(tool, "write") || strings.Contains(tool, "edit") || strings.Contains(tool, "patch") ||
+	return genericAIToolDeletesFile(tool) || strings.Contains(tool, "write") || strings.Contains(tool, "edit") ||
+		strings.Contains(tool, "patch") ||
 		strings.Contains(tool, "create") || strings.Contains(tool, "delete") || strings.Contains(tool, "replace")
 }
 
 func genericAILineChanges(value any, isWrite bool) *int {
 	added, addedFound := genericAINumericField(
-		value, "lines_added", "linesAdded", "added_lines", "model_added_lines",
+		value, "lines_added", "linesAdded", "added_lines", "model_added_lines", "additions",
 	)
 
 	removed, removedFound := genericAINumericField(
-		value, "lines_removed", "linesRemoved", "removed_lines", "model_removed_lines",
+		value, "lines_removed", "linesRemoved", "removed_lines", "model_removed_lines", "deletions",
 	)
 	if addedFound || removedFound {
 		lineChanges := int(max(added, 0) + max(removed, 0))
@@ -1083,7 +1279,7 @@ func genericAILineChanges(value any, isWrite bool) *int {
 
 func genericAITimestampKeys() []string {
 	return []string{
-		"timestamp", "created_at", "createdAt", "updated_at", "updatedAt",
+		"timestamp", "created_at", "createdAt", "updated_at", "updatedAt", "time_updated", "time_created",
 		"completed_at", "completedAt", "ended_at", "endedAt", "started_at", "startedAt",
 		"end_time", "endTime", "start_time", "startTime", "ts", "time",
 	}
