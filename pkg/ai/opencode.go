@@ -348,8 +348,15 @@ func (g OpenCode) parseSQLiteDB(ctx context.Context, dbPath string) (Heartbeats,
 		parseErr error
 	)
 
-	if slices.Contains(tables, "session") && slices.Contains(tables, "session_message") {
-		current, migrated, err = g.parseSQLiteV2(ctx, db)
+	// OpenCode 2.0.18 renamed the sessions table from "session" to "session_v2";
+	// both carry the id/directory/version columns used below.
+	sessionsTable := "session"
+	if !slices.Contains(tables, "session") && slices.Contains(tables, "session_v2") {
+		sessionsTable = "session_v2"
+	}
+
+	if slices.Contains(tables, sessionsTable) && slices.Contains(tables, "session_message") {
+		current, migrated, err = g.parseSQLiteV2(ctx, db, sessionsTable)
 		parseErr = errors.Join(parseErr, err)
 
 		if g.v2Sessions != nil {
