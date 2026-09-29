@@ -95,6 +95,36 @@ func TestOpenCodeV2SharedSessionTable(t *testing.T) {
 	}
 }
 
+func TestOpenCodeV2RenamedSessionTable(t *testing.T) {
+	// OpenCode 2.0.18 renamed the sessions table to session_v2; parsing must
+	// fall back to it when the legacy "session" table is absent.
+	home := updateTestHome(t)
+	dbPath := filepath.Join(home, ".local", "share", "opencode", "opencode.db")
+	db := updateDB(t, dbPath)
+	updateSQL(t, db, `CREATE TABLE session_v2(
+  id TEXT PRIMARY KEY, directory TEXT, version TEXT, parent_id TEXT, time_archived INTEGER);
+CREATE TABLE session_message(
+  id TEXT PRIMARY KEY, session_id TEXT, type TEXT, seq INTEGER,
+  time_created INTEGER, time_updated INTEGER, data TEXT);
+INSERT INTO session_v2 VALUES ('ses_v2', '/project', '2.0.18', NULL, NULL);
+INSERT INTO session_message VALUES
+ ('user-1', 'ses_v2', 'user', 1, 1800000000000, NULL,
+  '{"text":"Fix it","time":{"created":1800000000000}}'),
+ ('assistant-1', 'ses_v2', 'assistant', 2, 1800000001000, NULL,
+  '{"agent":"build","time":{"created":1800000001000},"model":{"id":"claude-4","providerID":"anthropic"},"tokens":{"input":100,"output":10,"reasoning":2,"cache":{"read":4,"write":5}},"content":[{"id":"tool-1","type":"tool","name":"write","time":{"created":1800000001000,"completed":1800000001001},"state":{"status":"completed","input":{"path":"main.go","content":"hello"},"structured":{"operation":"write","target":"/project/main.go","resource":"main.go","existed":false},"content":[]}}]}')`)
+
+	hh, err := (OpenCode{}).Parse(context.Background())
+	require.NoError(t, err)
+	require.Len(t, hh, 3)
+
+	assert.Equal(t, "OpenCode ses_v2", hh[0].Entity)
+	assert.Equal(t, "OpenCode ses_v2", hh[1].Entity)
+	assert.Equal(t, heartbeat.FileType, hh[2].EntityType)
+	assert.Equal(t, "/project/main.go", filepath.ToSlash(hh[2].Entity))
+	assert.Equal(t, heartbeat.PointerTo(1), hh[2].AILineChanges)
+	assert.Contains(t, hh[2].UserAgent, "opencode-cli/2.0.18")
+}
+
 func TestOpenCodeV2Compaction(t *testing.T) {
 	// Compaction records are summaries, not assistant responses with usage.
 	raw := `{"reason":"auto","summary":"Earlier work","recent":"Latest work","time":{"created":1000}}`
