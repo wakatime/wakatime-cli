@@ -35,6 +35,8 @@ type (
 		usageHeartbeat                func(time.Time, int64, int64, int64) heartbeat.Heartbeat
 		tokens                        heartbeat.AITokens
 		lastUsageIdentity             string
+		cumulativeBaselineSet         bool
+		modelOutputSeen               bool
 		seenUsage                     map[string]bool
 		usageOwner                    string
 		pendingPatches                map[string]codexPendingPatch
@@ -217,12 +219,21 @@ func (g Codex) transcriptPaths(ctx context.Context) ([]string, error) {
 				meta, err := g.readSessionState(log.Extract(ctx), file, path)
 				_ = file.Close()
 
+				key := id
+
 				if err == nil && meta.id != "" {
 					id = meta.id
+					key = id
+
+					// Resumed sessions keep the same id across rollout files, each
+					// with its own session_meta timestamp, while copies share it.
+					if !meta.created.IsZero() {
+						key += "\x00" + meta.created.Format(time.RFC3339Nano)
+					}
 				}
 
-				if !seen[id] {
-					seen[id] = true
+				if !seen[key] {
+					seen[key] = true
 
 					paths = append(paths, path)
 				}
@@ -396,6 +407,7 @@ func (g Codex) handleTranscriptLine(
 		after = session.created
 	}
 
+	state.trackModelOutput(logLine)
 	state.trackTokenCount(logLine, after)
 
 	if session.parentID != "" && !session.created.IsZero() && logLine.Timestamp.Before(session.created) {
@@ -487,6 +499,11 @@ func (s *codexParseState) trackTokenCount(logLine codexLogLine, after time.Time)
 	output := value(usage.OutputTokens)
 	if cumulative {
 		s.tokens.CurrentInput, s.tokens.CurrentCachedInput, s.tokens.CurrentOutput = input, cachedInputTokens, output
+
+		if !s.cumulativeBaselineSet {
+			s.cumulativeBaselineSet = true
+			s.setCumulativeBaseline(info.LastTokenUsage)
+		}
 	} else {
 		s.tokens.CurrentInput += input
 		s.tokens.CurrentCachedInput += cachedInputTokens
@@ -541,6 +558,55 @@ func (s *codexParseState) trackTokenCount(logLine codexLogLine, after time.Time)
 	s.tokens.LastInput = s.tokens.CurrentInput
 	s.tokens.LastCachedInput = s.tokens.CurrentCachedInput
 	s.tokens.LastOutput = s.tokens.CurrentOutput
+}
+
+// setCumulativeBaseline sets the totals the first cumulative token_count of a
+// rollout file is compared against. A resumed session's rollout file continues
+// the cumulative totals of the previous file, so only the first turn's own
+// usage is new. Codex also re-emits the restored totals before any new model
+// output, e.g. when a request hits a usage limit, and those contain no new usage.
+func (s *codexParseState) setCumulativeBaseline(last *codexPayloadTokenCountInfoUsage) {
+	if last == nil {
+		return
+	}
+
+	if !s.modelOutputSeen {
+		s.tokens.LastInput = s.tokens.CurrentInput
+		s.tokens.LastCachedInput = s.tokens.CurrentCachedInput
+		s.tokens.LastOutput = s.tokens.CurrentOutput
+
+		return
+	}
+
+	value := func(p *int) int64 {
+		if p == nil {
+			return 0
+		}
+
+		return max(int64(*p), 0)
+	}
+	lastCached := value(last.CachedInputTokens)
+	s.tokens.LastInput = max(s.tokens.CurrentInput-max(value(last.InputTokens)-lastCached, 0), 0)
+	s.tokens.LastCachedInput = max(s.tokens.CurrentCachedInput-lastCached, 0)
+	s.tokens.LastOutput = max(s.tokens.CurrentOutput-value(last.OutputTokens), 0)
+}
+
+func (s *codexParseState) trackModelOutput(logLine codexLogLine) {
+	if s.modelOutputSeen || logLine.Payload == nil || logLine.Payload.Type == nil {
+		return
+	}
+
+	switch logLine.Type {
+	case "response_item":
+		switch *logLine.Payload.Type {
+		case "reasoning", "function_call", "custom_tool_call", "local_shell_call":
+			s.modelOutputSeen = true
+		case "message":
+			s.modelOutputSeen = logLine.Payload.Role != nil && *logLine.Payload.Role == "assistant"
+		}
+	case "event_msg":
+		s.modelOutputSeen = *logLine.Payload.Type == "agent_message"
+	}
 }
 
 func (s *codexParseState) trackModel(logLine codexLogLine) {

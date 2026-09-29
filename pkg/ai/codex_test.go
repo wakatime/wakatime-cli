@@ -357,6 +357,99 @@ func TestCodexParse_AttributesTokenCountsToPreviousHeartbeat(t *testing.T) {
 	assert.EqualValues(t, 8, got[1].AIOutputTokens)
 }
 
+func TestCodexParse_CountsResumedSessionRolloutFiles(t *testing.T) {
+	tests := map[string]struct {
+		restored bool
+	}{
+		"resumed rollout file": {},
+		// Codex re-emits the restored totals, e.g. when a request hits a
+		// usage limit, before the resumed file has any new model output.
+		"resumed rollout file starting with restored usage": {restored: true},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			ctx := context.Background()
+			home := t.TempDir()
+			t.Setenv("HOME", home)
+			t.Setenv("USERPROFILE", home)
+			t.Setenv("CODEX_HOME", "")
+
+			sessionsDir := filepath.Join(home, ".codex", "sessions", "2026", "06")
+			require.NoError(t, os.MkdirAll(filepath.Join(sessionsDir, "20"), 0o755))
+			require.NoError(t, os.MkdirAll(filepath.Join(sessionsDir, "21"), 0o755))
+
+			// The resumed rollout file keeps the session id and continues the
+			// cumulative totals of the previous file.
+			original := strings.Join([]string{
+				`{"timestamp":"2026-06-20T12:00:00Z","type":"session_meta",` +
+					`"payload":{"id":"session","cwd":"/workspace/project"}}`,
+				`{"timestamp":"2026-06-20T12:00:01Z","type":"response_item",` +
+					`"payload":{"type":"message","role":"user","content":` +
+					`[{"type":"input_text","text":"Make the change"}]}}`,
+				`{"timestamp":"2026-06-20T12:00:02Z","type":"event_msg",` +
+					`"payload":{"type":"agent_message","message":"Done."}}`,
+				`{"timestamp":"2026-06-20T12:00:03Z","type":"event_msg",` +
+					`"payload":{"type":"token_count","info":{` +
+					`"total_token_usage":{"input_tokens":1000,"cached_input_tokens":600,"output_tokens":100},` +
+					`"last_token_usage":{"input_tokens":1000,"cached_input_tokens":600,"output_tokens":100}}}}`,
+			}, "\n") + "\n"
+
+			resumedLines := []string{
+				`{"timestamp":"2026-06-21T09:00:00Z","type":"session_meta",` +
+					`"payload":{"id":"session","cwd":"/workspace/project"}}`,
+				`{"timestamp":"2026-06-21T09:00:01Z","type":"response_item",` +
+					`"payload":{"type":"message","role":"user","content":` +
+					`[{"type":"input_text","text":"Continue"}]}}`,
+			}
+			if test.restored {
+				resumedLines = append(resumedLines,
+					`{"timestamp":"2026-06-21T09:00:01.500Z","type":"event_msg",`+
+						`"payload":{"type":"token_count","info":{`+
+						`"total_token_usage":{"input_tokens":1000,"cached_input_tokens":600,"output_tokens":100},`+
+						`"last_token_usage":{"input_tokens":1000,"cached_input_tokens":600,"output_tokens":100}},`+
+						`"rate_limits":{"primary":{"used_percent":100}}}}`)
+			}
+
+			resumedLines = append(resumedLines,
+				`{"timestamp":"2026-06-21T09:00:02Z","type":"event_msg",`+
+					`"payload":{"type":"agent_message","message":"Continuing."}}`,
+				`{"timestamp":"2026-06-21T09:00:03Z","type":"event_msg",`+
+					`"payload":{"type":"token_count","info":{`+
+					`"total_token_usage":{"input_tokens":1300,"cached_input_tokens":800,"output_tokens":130},`+
+					`"last_token_usage":{"input_tokens":300,"cached_input_tokens":200,"output_tokens":30}}}}`,
+				`{"timestamp":"2026-06-21T09:00:04Z","type":"event_msg",`+
+					`"payload":{"type":"agent_message","message":"Done."}}`,
+				`{"timestamp":"2026-06-21T09:00:05Z","type":"event_msg",`+
+					`"payload":{"type":"token_count","info":{`+
+					`"total_token_usage":{"input_tokens":1450,"cached_input_tokens":900,"output_tokens":140},`+
+					`"last_token_usage":{"input_tokens":150,"cached_input_tokens":100,"output_tokens":10}}}}`,
+			)
+			resumed := strings.Join(resumedLines, "\n") + "\n"
+
+			require.NoError(t, os.WriteFile(
+				filepath.Join(sessionsDir, "20", "rollout-2026-06-20T12-00-00-session.jsonl"), []byte(original), 0o644))
+			require.NoError(t, os.WriteFile(
+				filepath.Join(sessionsDir, "21", "rollout-2026-06-21T09-00-00-session.jsonl"), []byte(resumed), 0o644))
+
+			got, err := (ai.Codex{After: time.Date(2026, 6, 20, 0, 0, 0, 0, time.UTC)}).Parse(ctx)
+			require.NoError(t, err)
+
+			var input, cached, output int64
+
+			for _, h := range got {
+				input += h.AIInputTokens
+				cached += h.AICachedInputTokens
+				output += h.AIOutputTokens
+			}
+
+			assert.EqualValues(t, 550, input)
+			assert.EqualValues(t, 900, cached)
+			assert.EqualValues(t, 140, output)
+		})
+	}
+}
+
 func TestCodexParse_EmitsOnlySuccessfulPatches(t *testing.T) {
 	ctx := context.Background()
 	home := t.TempDir()
