@@ -111,7 +111,14 @@ INSERT INTO session_message VALUES
  ('user-1', 'ses_v2', 'user', 1, 1800000000000, NULL,
   '{"text":"Fix it","time":{"created":1800000000000}}'),
  ('assistant-1', 'ses_v2', 'assistant', 2, 1800000001000, NULL,
-  '{"agent":"build","time":{"created":1800000001000},"model":{"id":"claude-4","providerID":"anthropic"},"tokens":{"input":100,"output":10,"reasoning":2,"cache":{"read":4,"write":5}},"content":[{"id":"tool-1","type":"tool","name":"write","time":{"created":1800000001000,"completed":1800000001001},"state":{"status":"completed","input":{"path":"main.go","content":"hello"},"structured":{"operation":"write","target":"/project/main.go","resource":"main.go","existed":false},"content":[]}}]}')`)
+  '{"agent":"build","time":{"created":1800000001000},
+    "model":{"id":"claude-4","providerID":"anthropic"},
+    "tokens":{"input":100,"output":10,"reasoning":2,"cache":{"read":4,"write":5}},
+    "content":[{"id":"tool-1","type":"tool","name":"write",
+      "time":{"created":1800000001000,"completed":1800000001001},
+      "state":{"status":"completed","input":{"path":"main.go","content":"hello"},
+        "structured":{"operation":"write","target":"/project/main.go","resource":"main.go","existed":false},
+        "content":[]}}]}')`)
 
 	hh, err := (OpenCode{}).Parse(context.Background())
 	require.NoError(t, err)
