@@ -13,11 +13,20 @@ import (
 
 // Read sessions with v2 messages, including archived and child sessions. Check
 // ownership before applying the time cutoff so frozen legacy copies lose.
-func (g OpenCode) parseSQLiteV2(ctx context.Context, db *sql.DB) (Heartbeats, map[string]bool, error) {
-	rows, err := db.QueryContext(ctx, `SELECT id, COALESCE(directory, ''), COALESCE(version, '') FROM session
+// sessionsTable is "session" or "session_v2" (renamed in opencode 2.0.18);
+// both carry the id/directory/version columns.
+func (g OpenCode) parseSQLiteV2(ctx context.Context, db *sql.DB, sessionsTable string) (Heartbeats, map[string]bool, error) {
+	const sessionFilter = `
  WHERE COALESCE(octet_length(id), 0) + COALESCE(octet_length(directory), 0)
      + COALESCE(octet_length(version), 0) <= ?
- AND EXISTS (SELECT 1 FROM session_message WHERE session_id = session.id)`, openCodeSQLiteRowSizeLimit)
+ AND EXISTS (SELECT 1 FROM session_message WHERE session_id = s.id)`
+
+	query := `SELECT id, COALESCE(directory, ''), COALESCE(version, '') FROM session AS s` + sessionFilter
+	if sessionsTable == "session_v2" {
+		query = `SELECT id, COALESCE(directory, ''), COALESCE(version, '') FROM session_v2 AS s` + sessionFilter
+	}
+
+	rows, err := db.QueryContext(ctx, query, openCodeSQLiteRowSizeLimit)
 	if err != nil {
 		return nil, nil, err
 	}
