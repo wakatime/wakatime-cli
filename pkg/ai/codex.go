@@ -4,8 +4,10 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"os"
 	"path/filepath"
 	"strings"
@@ -139,10 +141,12 @@ func (g Codex) Parse(ctx context.Context) (Heartbeats, error) {
 	ctx = context.WithValue(ctx, codexParentSourcesKey{}, make(map[string]string))
 	logger := log.Extract(ctx)
 
-	transcripts, err := g.transcriptPaths(ctx)
+	transcripts, err := g.discoverTranscripts(ctx)
 	if err != nil {
 		return nil, err
 	}
+
+	g.pruneSources(transcripts)
 
 	if len(transcripts) == 0 {
 		return Heartbeats{}, nil
@@ -150,19 +154,105 @@ func (g Codex) Parse(ctx context.Context) (Heartbeats, error) {
 
 	logger.Debugf("Found %d transcript logs modified after %s for %s", len(transcripts), g.After, g.Name())
 
+	g.planTranscriptReads(transcripts)
+
 	var heartbeats Heartbeats
 
 	for _, transcript := range transcripts {
-		parsed, err := g.parseTranscript(ctx, transcript)
-		if err != nil {
-			logger.Warnf("failed parsing codex transcript %q: %s", transcript, err)
+		if transcript.skip {
+			logger.Debugf("skipping unchanged codex transcript %q", transcript.path)
 			continue
 		}
+
+		parsed, err := g.parseTranscriptFrom(ctx, transcript.path, transcript.start)
+		if err != nil {
+			logger.Warnf("failed parsing codex transcript %q: %s", transcript.path, err)
+			continue
+		}
+
+		g.recordSource(transcript)
 
 		heartbeats = append(heartbeats, parsed...)
 	}
 
 	return heartbeats, nil
+}
+
+// codexTranscript is a discovered transcript and how much of it to read.
+type codexTranscript struct {
+	path string
+	// owner is the root session ID. Forks and subagents share their parent's
+	// owner, and token usage is deduplicated across files with the same owner.
+	owner  string
+	source checkpointSource
+	skip   bool
+	start  int64
+}
+
+// planTranscriptReads uses the checkpoint's per-file sizes so a sync only
+// reads what changed. A transcript seen for the first time is read in full,
+// which keeps backfills and syncs after downtime complete. A transcript that
+// grew resumes one line-size window before its previous end, so every new
+// byte is read and the preceding context restores the model, cwd and token
+// baselines. An unchanged transcript is skipped, unless another transcript
+// with the same owner changed, since usage is deduplicated across those.
+func (g Codex) planTranscriptReads(transcripts []codexTranscript) {
+	if g.checkpoint == nil {
+		return
+	}
+
+	changedOwners := make(map[string]bool)
+	unchanged := make([]bool, len(transcripts))
+
+	for i, transcript := range transcripts {
+		previous, ok := g.checkpoint.Sources[transcript.path]
+		if !ok || previous.Size > transcript.source.Size {
+			// New, or rewritten shorter: read the whole file.
+			changedOwners[transcript.owner] = true
+			continue
+		}
+
+		if previous.Size == transcript.source.Size && previous.Modified.Equal(transcript.source.Modified) {
+			unchanged[i] = true
+		} else {
+			changedOwners[transcript.owner] = true
+		}
+
+		transcripts[i].start = max(previous.Size-maxTranscriptLineSize, 0)
+	}
+
+	for i := range transcripts {
+		transcripts[i].skip = unchanged[i] && !changedOwners[transcripts[i].owner]
+	}
+}
+
+// pruneSources keeps the checkpoint file small. A transcript that is not
+// discovered has not changed since the discovery cutoff, so it is not read;
+// if it changes later it is simply read in full once.
+func (g Codex) pruneSources(transcripts []codexTranscript) {
+	if g.checkpoint == nil || len(g.checkpoint.Sources) == 0 {
+		return
+	}
+
+	discovered := make(map[string]bool, len(transcripts))
+	for _, transcript := range transcripts {
+		discovered[transcript.path] = true
+	}
+
+	maps.DeleteFunc(g.checkpoint.Sources, func(path string, _ checkpointSource) bool { return !discovered[path] })
+}
+
+func (g Codex) recordSource(transcript codexTranscript) {
+	if g.checkpoint == nil {
+		return
+	}
+
+	if g.checkpoint.Sources == nil {
+		g.checkpoint.Sources = make(map[string]checkpointSource)
+	}
+
+	// The snapshot was taken before reading, so a concurrent append is reread.
+	g.checkpoint.Sources[transcript.path] = transcript.source
 }
 
 func codexRoots(ctx context.Context) ([]string, error) {
@@ -194,12 +284,26 @@ func codexRoots(ctx context.Context) ([]string, error) {
 }
 
 func (g Codex) transcriptPaths(ctx context.Context) ([]string, error) {
+	transcripts, err := g.discoverTranscripts(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	paths := make([]string, 0, len(transcripts))
+	for _, transcript := range transcripts {
+		paths = append(paths, transcript.path)
+	}
+
+	return paths, nil
+}
+
+func (g Codex) discoverTranscripts(ctx context.Context) ([]codexTranscript, error) {
 	roots, err := codexRoots(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	var paths []string
+	var transcripts []codexTranscript
 
 	seen := make(map[string]bool)
 
@@ -234,14 +338,21 @@ func (g Codex) transcriptPaths(ctx context.Context) ([]string, error) {
 				meta, err := g.readSessionState(log.Extract(ctx), file, path)
 				_ = file.Close()
 
+				owner := id
+
 				if err == nil && meta.id != "" {
 					id = meta.id
+					owner = firstNonEmptyString(meta.parentID, meta.id)
 				}
 
 				if !seen[id] {
 					seen[id] = true
 
-					paths = append(paths, path)
+					transcripts = append(transcripts, codexTranscript{
+						path:   path,
+						owner:  owner,
+						source: checkpointSource{Size: info.Size(), Modified: info.ModTime()},
+					})
 				}
 
 				return nil
@@ -252,7 +363,7 @@ func (g Codex) transcriptPaths(ctx context.Context) ([]string, error) {
 		}
 	}
 
-	return paths, nil
+	return transcripts, nil
 }
 
 // parentSource returns the source of the nearest ancestor session that has
@@ -344,6 +455,12 @@ func codexSessionsDir(ctx context.Context) (string, error) {
 }
 
 func (g Codex) parseTranscript(ctx context.Context, transcript string) (Heartbeats, error) {
+	return g.parseTranscriptFrom(ctx, transcript, 0)
+}
+
+// parseTranscriptFrom parses transcript starting at the first full line at or
+// after start. Session metadata always comes from the first line.
+func (g Codex) parseTranscriptFrom(ctx context.Context, transcript string, start int64) (Heartbeats, error) {
 	logger := log.Extract(ctx)
 
 	//nolint:gosec
@@ -370,7 +487,7 @@ func (g Codex) parseTranscript(ctx context.Context, transcript string) (Heartbea
 		session.source = g.parentSource(ctx, session.parentID)
 	}
 
-	scanner, err := codexScanner(fh, transcript)
+	reader, err := codexReader(fh, transcript, start)
 	if err != nil {
 		return nil, err
 	}
@@ -393,16 +510,28 @@ func (g Codex) parseTranscript(ctx context.Context, transcript string) (Heartbea
 		}
 	}
 
-	for scanner.Scan() {
+	for {
 		if ctx.Err() != nil {
 			return nil, ctx.Err()
 		}
 
-		g.handleTranscriptLine(logger, transcript, scanner.Bytes(), &session, &state)
-	}
+		// Lines over the size limit, such as huge tool outputs, are skipped
+		// rather than ending the scan, so later activity is still read.
+		line, readErr := grokBuildReadJSONLLine(reader, maxTranscriptLineSize)
+		if errors.Is(readErr, errGrokBuildLineTooLong) {
+			logger.Debugf("skipping oversized codex transcript line in %q", transcript)
+			continue
+		}
 
-	if err := scanner.Err(); err != nil {
-		return nil, fmt.Errorf("failed reading codex transcript %q: %s", transcript, err)
+		if readErr != nil && !errors.Is(readErr, io.EOF) {
+			return nil, fmt.Errorf("failed reading codex transcript %q: %s", transcript, readErr)
+		}
+
+		g.handleTranscriptLine(logger, transcript, line, &session, &state)
+
+		if errors.Is(readErr, io.EOF) {
+			break
+		}
 	}
 
 	state.applySubscriptionPlan()
@@ -439,34 +568,27 @@ func (g Codex) readSessionState(logger *log.Logger, fh *os.File, transcript stri
 	return state, nil
 }
 
-func codexScanner(fh *os.File, transcript string) (*bufio.Scanner, error) {
-	info, err := fh.Stat()
-	if err != nil {
-		return nil, fmt.Errorf("failed to stat codex transcript %q: %s", transcript, err)
-	}
-
-	skipFirstLine := false
-
-	if info.Size() > maxTranscriptLineSize {
-		if _, err := fh.Seek(info.Size()-maxTranscriptLineSize, 0); err != nil {
+func codexReader(fh *os.File, transcript string, start int64) (*bufio.Reader, error) {
+	if start <= 0 {
+		if _, err := fh.Seek(0, io.SeekStart); err != nil {
 			return nil, fmt.Errorf("failed to seek codex transcript %q: %s", transcript, err)
 		}
 
-		skipFirstLine = true
+		return bufio.NewReaderSize(fh, 64*1024), nil
 	}
 
-	scanner := bufio.NewScanner(fh)
-	scanner.Buffer(make([]byte, 0, 64*1024), maxTranscriptLineSize)
-
-	if skipFirstLine {
-		scanner.Scan()
-
-		if err := scanner.Err(); err != nil {
-			return nil, fmt.Errorf("failed to read codex transcript %q: %s", transcript, err)
-		}
+	// Start one byte early and discard through the next newline. That drops a
+	// partial line, but keeps a full line that begins exactly at start.
+	if _, err := fh.Seek(start-1, io.SeekStart); err != nil {
+		return nil, fmt.Errorf("failed to seek codex transcript %q: %s", transcript, err)
 	}
 
-	return scanner, nil
+	reader := bufio.NewReaderSize(fh, 64*1024)
+	if err := grokBuildDiscardJSONLLine(reader); err != nil && !errors.Is(err, io.EOF) {
+		return nil, fmt.Errorf("failed to read codex transcript %q: %s", transcript, err)
+	}
+
+	return reader, nil
 }
 
 func (g Codex) handleTranscriptLine(
