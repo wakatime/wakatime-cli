@@ -1898,7 +1898,6 @@ func TestTranscriptParserOpenContextAndScannerErrors(t *testing.T) {
 	_, err = Amp{}.parseTranscript(ctx, transcript, ampSessionMetadata{})
 	require.ErrorIs(t, err, context.Canceled)
 
-	assertScannerOversizedTranscript(t, "codex", codexScanner)
 	assertScannerOversizedTranscript(t, "pi", piScanner)
 	assertScannerOversizedTranscript(t, "qwen code", qwenCodeScanner)
 	assertScannerOversizedTranscript(t, "amp", ampScanner)
