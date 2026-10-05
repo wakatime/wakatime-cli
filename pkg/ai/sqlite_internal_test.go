@@ -234,7 +234,7 @@ func TestAISQLiteSharedBudgetAndCancellation(t *testing.T) {
 	assert.Same(t, ctx.Value(aiSQLiteBudgetKey{}), child.Value(aiSQLiteBudgetKey{}))
 
 	payload := strings.Repeat("x", maxTranscriptLineSize)
-	for range 6 {
+	for range aiSQLiteByteLimit / maxTranscriptLineSize {
 		require.NoError(t, aiSQLiteRead(child, payload))
 	}
 
