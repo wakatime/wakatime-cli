@@ -28,6 +28,9 @@ type (
 		version  string
 		parentID string
 		created  time.Time
+		// internal is set for Codex's own background sessions, such as guardian
+		// approval reviews, which are not user coding activity.
+		internal bool
 	}
 
 	codexParseState struct {
@@ -61,11 +64,13 @@ type (
 		Type      string    `json:"type"`
 		Timestamp time.Time `json:"timestamp"`
 		Payload   *struct {
-			ID           *string         `json:"id"`
-			Cwd          *string         `json:"cwd"`
-			Source       json.RawMessage `json:"source"`
-			ForkedFromID string          `json:"forked_from_id"`
-			Version      *string         `json:"cli_version"`
+			ID             *string         `json:"id"`
+			Cwd            *string         `json:"cwd"`
+			Source         json.RawMessage `json:"source"`
+			ForkedFromID   string          `json:"forked_from_id"`
+			ParentThreadID string          `json:"parent_thread_id"`
+			ThreadSource   string          `json:"thread_source"`
+			Version        *string         `json:"cli_version"`
 		} `json:"payload"`
 	}
 
@@ -126,9 +131,12 @@ type (
 
 type codexSeenUsageKey struct{}
 
+type codexParentSourcesKey struct{}
+
 // Parse parses the Codex JSONL session transcript logs for ai heartbeats.
 func (g Codex) Parse(ctx context.Context) (Heartbeats, error) {
 	ctx = context.WithValue(ctx, codexSeenUsageKey{}, make(map[string]bool))
+	ctx = context.WithValue(ctx, codexParentSourcesKey{}, make(map[string]string))
 	logger := log.Extract(ctx)
 
 	transcripts, err := g.transcriptPaths(ctx)
@@ -157,7 +165,7 @@ func (g Codex) Parse(ctx context.Context) (Heartbeats, error) {
 	return heartbeats, nil
 }
 
-func (g Codex) transcriptPaths(ctx context.Context) ([]string, error) {
+func codexRoots(ctx context.Context) ([]string, error) {
 	sessionsDir, err := codexSessionsDir(ctx)
 	if err != nil {
 		return nil, err
@@ -180,6 +188,15 @@ func (g Codex) transcriptPaths(ctx context.Context) ([]string, error) {
 
 	for _, home := range wslHomes(ctx) {
 		roots = append(roots, filepath.Join(home, ".codex"))
+	}
+
+	return roots, nil
+}
+
+func (g Codex) transcriptPaths(ctx context.Context) ([]string, error) {
+	roots, err := codexRoots(ctx)
+	if err != nil {
+		return nil, err
 	}
 
 	var paths []string
@@ -238,6 +255,76 @@ func (g Codex) transcriptPaths(ctx context.Context) ([]string, error) {
 	return paths, nil
 }
 
+// parentSource returns the source of the nearest ancestor session that has
+// one, following parent links through nested subagents.
+func (g Codex) parentSource(ctx context.Context, parentID string) string {
+	cache, _ := ctx.Value(codexParentSourcesKey{}).(map[string]string)
+
+	roots, err := codexRoots(ctx)
+	if err != nil {
+		return ""
+	}
+
+	visited := make(map[string]bool)
+
+	for id := parentID; id != "" && !visited[id] && len(visited) < 8; {
+		visited[id] = true
+
+		if source, ok := cache[id]; ok {
+			return source
+		}
+
+		session, found := g.findSession(log.Extract(ctx), roots, id)
+		if !found {
+			return ""
+		}
+
+		if session.source != "" {
+			if cache != nil {
+				cache[parentID] = session.source
+			}
+
+			return session.source
+		}
+
+		id = session.parentID
+	}
+
+	return ""
+}
+
+func (g Codex) findSession(logger *log.Logger, roots []string, id string) (codexSessionState, bool) {
+	if strings.ContainsAny(id, `*?[]\/`) {
+		return codexSessionState{}, false
+	}
+
+	name := "rollout-*-" + id + ".jsonl"
+
+	for _, root := range roots {
+		for _, pattern := range []string{
+			filepath.Join(root, "sessions", "*", "*", "*", name),
+			filepath.Join(root, "archived_sessions", name),
+		} {
+			matches, _ := filepath.Glob(pattern)
+			for _, match := range matches {
+				fh, err := os.Open(filepath.Clean(match)) // nolint:gosec
+				if err != nil {
+					continue
+				}
+
+				session, err := g.readSessionState(logger, fh, match)
+				_ = fh.Close()
+
+				if err == nil {
+					return session, true
+				}
+			}
+		}
+	}
+
+	return codexSessionState{}, false
+}
+
 func codexSessionsDir(ctx context.Context) (string, error) {
 	if configuredHome := os.Getenv("CODEX_HOME"); configuredHome != "" {
 		sessionsDir, err := filepath.Abs(filepath.Join(configuredHome, "sessions"))
@@ -273,6 +360,16 @@ func (g Codex) parseTranscript(ctx context.Context, transcript string) (Heartbea
 
 	g.After = ParserConfig(g).sessionAfter(session.id)
 
+	if session.internal {
+		logger.Debugf("skipping internal codex session %q", transcript)
+		return nil, nil
+	}
+
+	if session.source == "" && session.parentID != "" {
+		// Subagents only record their parent thread, so inherit its editor.
+		session.source = g.parentSource(ctx, session.parentID)
+	}
+
 	scanner, err := codexScanner(fh, transcript)
 	if err != nil {
 		return nil, err
@@ -301,7 +398,7 @@ func (g Codex) parseTranscript(ctx context.Context, transcript string) (Heartbea
 			return nil, ctx.Err()
 		}
 
-		g.handleTranscriptLine(logger, transcript, scanner.Bytes(), session, &state)
+		g.handleTranscriptLine(logger, transcript, scanner.Bytes(), &session, &state)
 	}
 
 	if err := scanner.Err(); err != nil {
@@ -376,7 +473,7 @@ func (g Codex) handleTranscriptLine(
 	logger *log.Logger,
 	transcript string,
 	line []byte,
-	session codexSessionState,
+	session *codexSessionState,
 	state *codexParseState,
 ) {
 	if len(line) == 0 {
@@ -389,6 +486,13 @@ func (g Codex) handleTranscriptLine(
 		logger.Debugf("failed parsing codex transcript line: %s", line)
 
 		return
+	}
+
+	// A turn can run in a different directory than the session started in,
+	// for example a worktree, so relative patch paths follow the latest cwd.
+	if logLine.Type == "turn_context" && logLine.Payload != nil && logLine.Payload.Cwd != nil &&
+		strings.TrimSpace(*logLine.Payload.Cwd) != "" {
+		session.cwd = strings.TrimSpace(*logLine.Payload.Cwd)
 	}
 
 	after := g.After
@@ -407,7 +511,7 @@ func (g Codex) handleTranscriptLine(
 	state.trackModel(logLine)
 	state.trackUserMessage(logLine)
 
-	if patchHeartbeats, handled := g.handlePendingPatch(logLine, session, state); handled {
+	if patchHeartbeats, handled := g.handlePendingPatch(logLine, *session, state); handled {
 		if !logLine.Timestamp.IsZero() && timestampAtOrAfterCutoff(logLine.Timestamp, g.After) {
 			state.heartbeats = append(state.heartbeats, patchHeartbeats...)
 		}
@@ -672,22 +776,42 @@ func (Codex) updateSessionInfo(state *codexSessionState, sessionMeta *codexSessi
 		state.version = *sessionMeta.Payload.Version
 	}
 
-	state.parentID = sessionMeta.Payload.ForkedFromID
+	state.parentID = firstNonEmptyString(sessionMeta.Payload.ForkedFromID, sessionMeta.Payload.ParentThreadID)
 	state.created = sessionMeta.Timestamp
+	state.internal = sessionMeta.Payload.ThreadSource == "guardian_review"
 
 	var source string
 	if json.Unmarshal(sessionMeta.Payload.Source, &source) == nil {
 		state.source = source
-	} else {
-		var nested struct {
-			Subagent struct {
-				ThreadSpawn struct {
-					ParentThreadID string `json:"parent_thread_id"`
-				} `json:"thread_spawn"`
-			} `json:"subagent"`
-		}
-		if json.Unmarshal(sessionMeta.Payload.Source, &nested) == nil {
-			state.parentID = firstNonEmptyString(state.parentID, nested.Subagent.ThreadSpawn.ParentThreadID)
+		return
+	}
+
+	// Object sources look like {"internal":"guardian"} or {"subagent":...},
+	// where subagent is a string ("review") or an object such as
+	// {"thread_spawn":{"parent_thread_id":"..."}} or {"other":"guardian"}.
+	var nested struct {
+		Internal string          `json:"internal"`
+		Subagent json.RawMessage `json:"subagent"`
+	}
+	if json.Unmarshal(sessionMeta.Payload.Source, &nested) != nil {
+		return
+	}
+
+	if nested.Internal != "" {
+		state.internal = true
+	}
+
+	var subagent struct {
+		ThreadSpawn struct {
+			ParentThreadID string `json:"parent_thread_id"`
+		} `json:"thread_spawn"`
+		Other string `json:"other"`
+	}
+	if len(nested.Subagent) > 0 && json.Unmarshal(nested.Subagent, &subagent) == nil {
+		state.parentID = firstNonEmptyString(state.parentID, subagent.ThreadSpawn.ParentThreadID)
+
+		if strings.EqualFold(strings.TrimSpace(subagent.Other), "guardian") {
+			state.internal = true
 		}
 	}
 }
@@ -866,8 +990,39 @@ func codexToolCallSucceeded(output json.RawMessage) bool {
 		items = []codexContentItem{{Text: text}}
 	}
 
+	texts := make([]string, 0, len(items))
+
 	for _, item := range items {
-		text := strings.ToLower(item.Text)
+		// Desktop wraps tool results as {"content":[...],"isError":false}.
+		var structured struct {
+			IsError *bool              `json:"isError"`
+			Content []codexContentItem `json:"content"`
+		}
+		if json.Unmarshal([]byte(strings.TrimSpace(item.Text)), &structured) == nil && structured.IsError != nil {
+			if *structured.IsError {
+				return false
+			}
+
+			for _, content := range structured.Content {
+				texts = append(texts, content.Text)
+			}
+
+			continue
+		}
+
+		texts = append(texts, item.Text)
+	}
+
+	// apply_patch reports this once the patch is on disk, so a later failing
+	// command in the same exec script must not discard the write.
+	for _, text := range texts {
+		if strings.Contains(strings.ToLower(text), "success. updated the following files") {
+			return true
+		}
+	}
+
+	for _, text := range texts {
+		text = strings.ToLower(text)
 		if strings.Contains(text, "failed") ||
 			strings.Contains(text, "error") ||
 			strings.Contains(text, "invalid context") ||
