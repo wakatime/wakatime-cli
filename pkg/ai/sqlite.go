@@ -17,8 +17,11 @@ import (
 )
 
 const (
-	aiSQLiteTimeout   = 5 * time.Second
-	aiSQLiteByteLimit = 64 * 1024 * 1024
+	aiSQLiteTimeout = 5 * time.Second
+	// The byte budget is shared by every SQLite parser in one sync. Cursor alone
+	// can read 70 MB or more from its 5,000 most recent bubble rows plus joined
+	// file contents, so 64 MiB dropped all Cursor activity for heavy users.
+	aiSQLiteByteLimit = 256 * 1024 * 1024
 )
 
 type aiSQLiteBudgetKey struct{}
