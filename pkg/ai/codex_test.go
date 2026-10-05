@@ -888,3 +888,169 @@ func jsonString(value string) string {
 
 	return string(encoded)
 }
+
+func writeCodexTestTranscript(t *testing.T, name string, lines ...string) string {
+	t.Helper()
+
+	home := os.Getenv("HOME")
+	transcriptDir := filepath.Join(home, ".codex", "sessions", "2026", "10", "03")
+	require.NoError(t, os.MkdirAll(transcriptDir, 0o755))
+
+	transcriptPath := filepath.Join(transcriptDir, name)
+	require.NoError(t, os.WriteFile(transcriptPath, []byte(strings.Join(lines, "\n")+"\n"), 0o644))
+
+	return transcriptPath
+}
+
+func setupCodexTestHome(t *testing.T) {
+	t.Helper()
+
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+	t.Setenv("CODEX_HOME", "")
+}
+
+func TestCodexParse_HonorsStructuredToolResults(t *testing.T) {
+	tests := map[string]struct {
+		Output         string
+		ExpectedWrites int
+	}{
+		"plain success": {
+			Output:         `"Done"`,
+			ExpectedWrites: 1,
+		},
+		"structured success": {
+			Output: `[{"type":"input_text",` +
+				`"text":"{\"content\":[{\"type\":\"text\",\"text\":\"Done\"}],\"isError\":false}"}]`,
+			ExpectedWrites: 1,
+		},
+		"structured error": {
+			Output: `[{"type":"input_text",` +
+				`"text":"{\"content\":[{\"type\":\"text\",\"text\":\"Done\"}],\"isError\":true}"}]`,
+			ExpectedWrites: 0,
+		},
+		"structured success with failed patch text": {
+			Output: `[{"type":"input_text",` +
+				`"text":"{\"content\":[{\"type\":\"text\",\"text\":\"Failed to apply patch\"}],\"isError\":false}"}]`,
+			ExpectedWrites: 0,
+		},
+		"patch success then later command error": {
+			Output: `[{"type":"input_text",` +
+				`"text":"Success. Updated the following files:\nA demo.txt\nError: lint failed"}]`,
+			ExpectedWrites: 1,
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			setupCodexTestHome(t)
+
+			writeCodexTestTranscript(t, "session.jsonl",
+				`{"timestamp":"2026-10-03T07:00:00Z","type":"session_meta","payload":{"id":"session",`+
+					`"cwd":"/workspace/project","source":"vscode","cli_version":"0.159.0"}}`,
+				`{"timestamp":"2026-10-03T07:01:00Z","type":"response_item",`+
+					`"payload":{"type":"custom_tool_call","name":"exec","call_id":"patch-1",`+
+					`"input":"text(await tools.apply_patch(\"*** Begin Patch\\n`+
+					`*** Add File: demo.txt\\n+hello\\n*** End Patch\"));"}}`,
+				`{"timestamp":"2026-10-03T07:01:01Z","type":"response_item",`+
+					`"payload":{"type":"custom_tool_call_output","call_id":"patch-1","output":`+test.Output+`}}`,
+			)
+
+			got, err := (ai.Codex{After: time.Date(2026, 10, 3, 0, 0, 0, 0, time.UTC)}).Parse(context.Background())
+			require.NoError(t, err)
+
+			writes := 0
+
+			for _, h := range got {
+				if h.IsWrite != nil && *h.IsWrite {
+					writes++
+				}
+			}
+
+			assert.Equal(t, test.ExpectedWrites, writes)
+		})
+	}
+}
+
+func TestCodexParse_RelativePatchPathUsesTurnContextCwd(t *testing.T) {
+	setupCodexTestHome(t)
+
+	writeCodexTestTranscript(t, "session.jsonl",
+		`{"timestamp":"2026-10-03T07:00:00Z","type":"session_meta","payload":{"id":"session",`+
+			`"cwd":"/workspace/original","source":"cli","cli_version":"0.159.0"}}`,
+		`{"timestamp":"2026-10-03T07:00:30Z","type":"turn_context","payload":{"cwd":"/workspace/worktree",`+
+			`"model":"gpt-5.5"}}`,
+		`{"timestamp":"2026-10-03T07:01:00Z","type":"response_item","payload":{"type":"custom_tool_call",`+
+			`"name":"apply_patch","call_id":"patch-1",`+
+			`"input":"*** Begin Patch\n*** Add File: demo.txt\n+hello\n*** End Patch"}}`,
+		`{"timestamp":"2026-10-03T07:01:01Z","type":"response_item","payload":{"type":"custom_tool_call_output",`+
+			`"call_id":"patch-1","output":"Done"}}`,
+	)
+
+	got, err := (ai.Codex{After: time.Date(2026, 10, 3, 0, 0, 0, 0, time.UTC)}).Parse(context.Background())
+	require.NoError(t, err)
+	require.Len(t, got, 1)
+	assert.Equal(t, filepath.Join("/workspace/worktree", "demo.txt"), got[0].Entity)
+}
+
+func TestCodexParse_SkipsGuardianSessions(t *testing.T) {
+	tests := map[string]string{
+		"subagent other guardian": `"source":{"subagent":{"other":"guardian"}},"parent_thread_id":"parent"`,
+		"internal guardian":       `"source":{"internal":"guardian"}`,
+		"guardian thread source":  `"source":"vscode","thread_source":"guardian_review"`,
+	}
+
+	for name, fields := range tests {
+		t.Run(name, func(t *testing.T) {
+			setupCodexTestHome(t)
+
+			writeCodexTestTranscript(t, "rollout-2026-10-03T07-00-00-guardian-session.jsonl",
+				`{"timestamp":"2026-10-03T07:00:00Z","type":"session_meta","payload":{"id":"guardian-session",`+
+					`"cwd":"/workspace/project","cli_version":"0.159.0",`+fields+`}}`,
+				`{"timestamp":"2026-10-03T07:00:01Z","type":"response_item","payload":{"type":"message",`+
+					`"role":"user","content":[{"type":"input_text","text":"Approve running this command?"}]}}`,
+				`{"timestamp":"2026-10-03T07:00:02Z","type":"response_item","payload":{"type":"message",`+
+					`"role":"assistant","content":[{"type":"output_text","text":"{\"outcome\":\"allow\"}"}]}}`,
+			)
+
+			got, err := (ai.Codex{After: time.Date(2026, 10, 3, 0, 0, 0, 0, time.UTC)}).Parse(context.Background())
+			require.NoError(t, err)
+			assert.Empty(t, got)
+		})
+	}
+}
+
+func TestCodexParse_SubagentInheritsParentEditor(t *testing.T) {
+	tests := map[string]string{
+		"thread spawn source": `"source":{"subagent":{"thread_spawn":` +
+			`{"parent_thread_id":"01a0e593-81d9-70b0-9cdd-6dd2452266a7","depth":1}}}`,
+		"top level parent id": `"source":{"subagent":"review"},` +
+			`"parent_thread_id":"01a0e593-81d9-70b0-9cdd-6dd2452266a7"`,
+	}
+
+	for name, fields := range tests {
+		t.Run(name, func(t *testing.T) {
+			setupCodexTestHome(t)
+
+			writeCodexTestTranscript(t, "rollout-2026-10-03T06-00-00-01a0e593-81d9-70b0-9cdd-6dd2452266a7.jsonl",
+				`{"timestamp":"2026-10-03T06:00:00Z","type":"session_meta",`+
+					`"payload":{"id":"01a0e593-81d9-70b0-9cdd-6dd2452266a7","cwd":"/workspace/project",`+
+					`"source":"vscode","cli_version":"0.159.0"}}`,
+			)
+			writeCodexTestTranscript(t, "rollout-2026-10-03T07-00-00-01a0e594-0000-7000-8000-000000000001.jsonl",
+				`{"timestamp":"2026-10-03T07:00:00Z","type":"session_meta",`+
+					`"payload":{"id":"01a0e594-0000-7000-8000-000000000001","cwd":"/workspace/project",`+
+					`"cli_version":"0.159.0",`+fields+`}}`,
+				`{"timestamp":"2026-10-03T07:00:01Z","type":"response_item","payload":{"type":"message",`+
+					`"role":"user","content":[{"type":"input_text","text":"Investigate the failing test"}]}}`,
+			)
+
+			got, err := (ai.Codex{After: time.Date(2026, 10, 3, 0, 0, 0, 0, time.UTC)}).Parse(context.Background())
+			require.NoError(t, err)
+			require.Len(t, got, 1)
+			assert.Equal(t, "01a0e594-0000-7000-8000-000000000001", got[0].AISession)
+			assert.Contains(t, got[0].UserAgent, "codex-vscode/0.159.0")
+		})
+	}
+}
