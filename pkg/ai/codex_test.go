@@ -231,7 +231,7 @@ func TestCodexParse_UserAgentUsesTranscriptSource(t *testing.T) {
 	}
 }
 
-func TestCodexParse_UserAgentUsesModelAndReasoningEffort(t *testing.T) {
+func TestCodexParse_UserAgentUsesModelForPricing(t *testing.T) {
 	ctx := context.Background()
 	home := t.TempDir()
 	t.Setenv("HOME", home)
@@ -268,12 +268,12 @@ func TestCodexParse_UserAgentUsesModelAndReasoningEffort(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, got, 1)
 	assert.Equal(t,
-		"gpt/5.5-medium codex-cli/0.141.0 antigravity-cli/1.0.10 antigravity-cli-wakatime/1.0.0",
+		"gpt/5.5 codex-cli/0.141.0 antigravity-cli/1.0.10 antigravity-cli-wakatime/1.0.0",
 		got[0].UserAgent,
 	)
 }
 
-func TestCodexParse_UpdatesReasoningEffortForFutureHeartbeats(t *testing.T) {
+func TestCodexParse_ReasoningEffortDoesNotChangeModelPricing(t *testing.T) {
 	ctx := context.Background()
 	home := t.TempDir()
 	t.Setenv("HOME", home)
@@ -312,8 +312,8 @@ func TestCodexParse_UpdatesReasoningEffortForFutureHeartbeats(t *testing.T) {
 	}).Parse(ctx)
 	require.NoError(t, err)
 	require.Len(t, got, 2)
-	assert.Equal(t, "gpt/5.5-high codex-cli/0.141.0 plugin/0.0.1", got[0].UserAgent)
-	assert.Equal(t, "gpt/5.5-medium codex-cli/0.141.0 plugin/0.0.1", got[1].UserAgent)
+	assert.Equal(t, "gpt/5.5 codex-cli/0.141.0 plugin/0.0.1", got[0].UserAgent)
+	assert.Equal(t, "gpt/5.5 codex-cli/0.141.0 plugin/0.0.1", got[1].UserAgent)
 }
 
 func TestCodexParse_AttributesTokenCountsToPreviousHeartbeat(t *testing.T) {
