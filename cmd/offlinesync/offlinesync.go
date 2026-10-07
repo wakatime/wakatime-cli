@@ -96,13 +96,6 @@ func syncOfflineActivityLegacy(ctx context.Context, v *viper.Viper, queueFilepat
 		return nil
 	}
 
-	defer func() {
-		if err := os.Remove(queueFilepath); err != nil {
-			logger := log.Extract(ctx)
-			logger.Warnf("failed to delete legacy offline file: %s", err)
-		}
-	}()
-
 	offlineParams := params.LoadOfflineParams(ctx, v, params.FlagReadOrderFlagPrecedence)
 
 	apiParams, err := params.LoadAPIParams(ctx, v, params.FlagReadOrderFlagPrecedence)
