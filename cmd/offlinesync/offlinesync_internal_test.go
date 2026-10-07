@@ -109,6 +109,40 @@ func TestSyncOfflineActivityLegacy(t *testing.T) {
 	assert.Equal(t, 1, numCalls)
 }
 
+func TestSyncOfflineActivityLegacy_InvalidAPIKey(t *testing.T) {
+	f, err := os.CreateTemp(t.TempDir(), "")
+	require.NoError(t, err)
+	require.NoError(t, f.Close())
+
+	db, err := bolt.Open(f.Name(), 0600, nil)
+	require.NoError(t, err)
+
+	data, err := os.ReadFile("testdata/heartbeat_go.json")
+	require.NoError(t, err)
+
+	insertHeartbeatRecords(t, db, "heartbeats", []heartbeatRecord{
+		{
+			ID:        "1592868367.219124-file-coding-wakatime-cli-heartbeat-/tmp/main.go-true",
+			Heartbeat: string(data),
+		},
+	})
+
+	require.NoError(t, db.Close())
+
+	before, err := os.ReadFile(f.Name())
+	require.NoError(t, err)
+
+	v := viper.New()
+	v.Set("key", "invalid-key")
+
+	err = syncOfflineActivityLegacy(t.Context(), v, f.Name())
+	require.ErrorContains(t, err, "invalid api key format")
+
+	after, err := os.ReadFile(f.Name())
+	require.NoError(t, err)
+	assert.Equal(t, before, after)
+}
+
 func setupTestServer() (string, *http.ServeMux, func()) {
 	router := http.NewServeMux()
 	srv := httptest.NewServer(router)
