@@ -806,19 +806,17 @@ func (s *codexParseState) trackModel(logLine codexLogLine) {
 	}
 }
 
-func codexAgentVersion(model string, reasoningEffort string) string {
+// Codex reasoning effort is an inference setting, not part of the billable
+// model identity. Keep the user-agent model token stable so server-side model
+// pricing can match it even when the effort changes within a session.
+func codexAgentVersion(model string, _ string) string {
 	model = strings.TrimSpace(model)
-	reasoningEffort = strings.TrimSpace(reasoningEffort)
 
 	if model == "" {
 		return ""
 	}
 
-	if reasoningEffort == "" {
-		return model
-	}
-
-	return model + "-" + reasoningEffort
+	return model
 }
 
 func (s *codexParseState) trackSubscriptionPlan(logLine codexLogLine) {

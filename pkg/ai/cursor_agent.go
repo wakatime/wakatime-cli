@@ -26,6 +26,11 @@ func (g CursorAgent) Parse(ctx context.Context) (Heartbeats, error) {
 		roots:       transcriptRoots,
 		extensions:  []string{".jsonl", ".txt"},
 		sqliteRoots: []string{filepath.Join(root, "ai-tracking", "ai-code-tracking.db")},
+		// Cursor's tracking database contains code attribution in ai_code_hashes.
+		// The other tables include full tracked-file snapshots and commit history,
+		// neither of which produces agent activity heartbeats.
+		sqliteTables:        []string{"ai_code_hashes"},
+		sqliteParserVersion: 1,
 	}
 
 	return parseGenericProvider(ctx, g, ParserConfig(g), paths)

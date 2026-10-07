@@ -1,8 +1,11 @@
 package ai
 
 import (
+	"context"
+	"database/sql"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -61,4 +64,47 @@ func TestCursorAgentIgnoresTerminalSnapshots(t *testing.T) {
 	got, err := (CursorAgent{}).Parse(t.Context())
 	require.NoError(t, err)
 	require.NotEmpty(t, got)
+}
+
+func TestCursorAgentSkipsIrrelevantSQLiteTables(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+	t.Setenv("WAKATIME_HOME", t.TempDir())
+
+	dbPath := filepath.Join(home, ".cursor", "ai-tracking", "ai-code-tracking.db")
+	require.NoError(t, os.MkdirAll(filepath.Dir(dbPath), 0o755))
+
+	db, err := sql.Open("sqlite", dbPath)
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, db.Close()) })
+
+	_, err = db.Exec(`CREATE TABLE tracked_file_content (content TEXT)`)
+	require.NoError(t, err)
+	_, err = db.Exec(`INSERT INTO tracked_file_content VALUES (?)`, strings.Repeat("x", 2048))
+	require.NoError(t, err)
+
+	_, err = db.Exec(`CREATE TABLE ai_code_hashes (
+		hash TEXT PRIMARY KEY,
+		fileName TEXT,
+		conversationId TEXT,
+		timestamp INTEGER,
+		model TEXT
+	)`)
+	require.NoError(t, err)
+
+	filePath := filepath.Join(home, "project", "main.go")
+	_, err = db.Exec(`INSERT INTO ai_code_hashes VALUES (?, ?, ?, ?, ?)`,
+		"hash", filePath, "conversation", time.Now().UnixMilli(), "grok-4.5")
+	require.NoError(t, err)
+
+	ctx := context.WithValue(t.Context(), aiSQLiteBudgetKey{}, &aiSQLiteBudget{
+		bytes: aiSQLiteByteLimit - 1024,
+	})
+	got, err := (CursorAgent{}).Parse(ctx)
+	require.NoError(t, err)
+	require.Len(t, got, 2)
+	assert.Equal(t, "Cursor Agent conversation", got[0].Entity)
+	assert.Equal(t, "grok/4.5 Cursor Agent", got[0].UserAgent)
+	assert.Equal(t, filepath.ToSlash(filePath), got[1].Entity)
 }

@@ -12,15 +12,17 @@ import (
 )
 
 type genericAIPaths struct {
-	roots              []string
-	fileNames          []string
-	extensions         []string
-	sqliteRoots        []string
-	containerKey       string
-	preferMessagesFile bool
-	inputIncludesCache bool
-	tokenCounterMode   genericAICounterMode
-	lineCounterMode    genericAICounterMode
+	roots               []string
+	fileNames           []string
+	extensions          []string
+	sqliteRoots         []string
+	sqliteTables        []string
+	sqliteParserVersion int
+	containerKey        string
+	preferMessagesFile  bool
+	inputIncludesCache  bool
+	tokenCounterMode    genericAICounterMode
+	lineCounterMode     genericAICounterMode
 }
 
 type genericAICounterMode uint8
@@ -37,17 +39,19 @@ func parseGenericProvider(
 	paths genericAIPaths,
 ) (Heartbeats, error) {
 	return parseGenericAIProvider(ctx, genericAIProvider{
-		parser:             parser,
-		config:             config,
-		roots:              paths.roots,
-		fileNames:          stringSet(paths.fileNames...),
-		extensions:         stringSet(paths.extensions...),
-		sqliteRoots:        paths.sqliteRoots,
-		containerKey:       paths.containerKey,
-		preferMessagesFile: paths.preferMessagesFile,
-		inputIncludesCache: paths.inputIncludesCache,
-		tokenCounterMode:   paths.tokenCounterMode,
-		lineCounterMode:    paths.lineCounterMode,
+		parser:              parser,
+		config:              config,
+		roots:               paths.roots,
+		fileNames:           stringSet(paths.fileNames...),
+		extensions:          stringSet(paths.extensions...),
+		sqliteRoots:         paths.sqliteRoots,
+		sqliteTables:        paths.sqliteTables,
+		sqliteParserVersion: paths.sqliteParserVersion,
+		containerKey:        paths.containerKey,
+		preferMessagesFile:  paths.preferMessagesFile,
+		inputIncludesCache:  paths.inputIncludesCache,
+		tokenCounterMode:    paths.tokenCounterMode,
+		lineCounterMode:     paths.lineCounterMode,
 	})
 }
 
