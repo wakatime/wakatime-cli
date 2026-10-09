@@ -3231,13 +3231,40 @@ func TestOffline_String(t *testing.T) {
 func TestParamsString_IncludesAIParams(t *testing.T) {
 	params := paramspkg.AIParams{
 		SyncDisabled: true,
+		ExcludeProjects: []regex.Regex{
+			regex.NewRegexpWrap(regexp.MustCompile("(?i)^nautilus$")),
+		},
 	}
 
 	assert.Equal(
 		t,
-		"disabled: true",
+		"disabled: true, exclude projects: '[(?i)^nautilus$]'",
 		params.String(),
 	)
+}
+
+func TestLoadAIParams_ExcludeProjects(t *testing.T) {
+	v := vipertools.MustNew()
+	v.Set("settings.ai_exclude_projects", "^nautilus$\n^overnight-codex$")
+	v.Set("ai-exclude-projects", "my-project")
+
+	params, err := paramspkg.LoadAIParams(t.Context(), v, paramspkg.FlagReadOrderFlagPrecedence)
+	require.NoError(t, err)
+
+	assert.False(t, params.SyncDisabled)
+	require.Len(t, params.ExcludeProjects, 3)
+	assert.Equal(t, "(?i)^nautilus$", params.ExcludeProjects[1].String())
+}
+
+func TestLoadAIParams_SyncDisabled(t *testing.T) {
+	v := vipertools.MustNew()
+	v.Set("settings.sync_ai_disabled", true)
+
+	params, err := paramspkg.LoadAIParams(t.Context(), v, paramspkg.FlagReadOrderFlagPrecedence)
+	require.NoError(t, err)
+
+	assert.True(t, params.SyncDisabled)
+	assert.Empty(t, params.ExcludeProjects)
 }
 
 func TestProjectParams_String(t *testing.T) {

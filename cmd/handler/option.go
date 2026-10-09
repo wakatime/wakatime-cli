@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"github.com/wakatime/wakatime-cli/pkg/ai"
 	"github.com/wakatime/wakatime-cli/pkg/apikey"
 	"github.com/wakatime/wakatime-cli/pkg/deps"
 	"github.com/wakatime/wakatime-cli/pkg/fileexperts"
@@ -113,6 +114,19 @@ func WithProjectFiltering() Preprocessor {
 	return func(params params.Params) heartbeat.HandleOption {
 		return project.WithFiltering(project.FilterConfig{
 			ExcludeUnknownProject: params.Heartbeat.Filter.ExcludeUnknownProject,
+		})
+	}
+}
+
+// WithAIFiltering returns a Preprocessor that drops ai coding heartbeats disabled
+// per-project via sync_ai_disabled or ai_exclude_projects. It must run after
+// project detection, so the project name is already resolved, and before
+// sanitization, so project names are not yet obfuscated.
+func WithAIFiltering() Preprocessor {
+	return func(params params.Params) heartbeat.HandleOption {
+		return ai.WithFiltering(ai.FilterConfig{
+			SyncDisabled:    params.AI.SyncDisabled,
+			ExcludeProjects: params.AI.ExcludeProjects,
 		})
 	}
 }

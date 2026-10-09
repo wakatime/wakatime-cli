@@ -260,6 +260,13 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 	flags.Bool("sync-ai-disabled", false, "Disable parsing AI transcript logs when sending heartbeats. "+
 		"By default, AI transcript logs are parsed every time when sending heartbeats.")
 	flags.Bool("sync-ai-disable", false, "")
+	flags.StringSlice(
+		"ai-exclude-projects",
+		nil,
+		"Project patterns to exclude from AI tracking. Heartbeats with category \"ai coding\""+
+			" matching any of these POSIX regex patterns will be skipped, while normal coding"+
+			" activity is still logged. Can be used more than once.",
+	)
 	flags.Int(
 		"sync-offline-activity",
 		offline.SyncMaxDefault,

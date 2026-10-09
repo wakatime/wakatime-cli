@@ -251,6 +251,10 @@ type (
 	// AIParams contains AI sync command parameters.
 	AIParams struct {
 		SyncDisabled bool
+		// ExcludeProjects contains project name patterns excluded from AI tracking.
+		// Heartbeats with category "ai coding" matching any of these patterns are
+		// skipped, while normal coding activity is still logged. POSIX regex syntax.
+		ExcludeProjects []regex.Regex
 	}
 
 	// Offline contains offline related parameters.
@@ -899,11 +903,30 @@ func loadProjectMapPatterns(ctx context.Context, v *viper.Viper, prefix string) 
 }
 
 // LoadAIParams loads ai sync params from viper.Viper instance.
-func LoadAIParams(_ context.Context, v *viper.Viper, _ FlagReadOrder) (AIParams, error) {
+func LoadAIParams(ctx context.Context, v *viper.Viper, _ FlagReadOrder) (AIParams, error) {
+	excludeProjects := v.GetStringSlice("ai-exclude-projects")
+	excludeProjects = append(excludeProjects, v.GetStringSlice("settings.ai_exclude_projects")...)
+
+	var excludePatterns []regex.Regex
+
+	for _, s := range excludeProjects {
+		patterns, err := parseBoolOrRegexList(ctx, s)
+		if err != nil {
+			return AIParams{}, fmt.Errorf(
+				"failed to parse regex ai exclude projects param %q: %s",
+				s,
+				err,
+			)
+		}
+
+		excludePatterns = append(excludePatterns, patterns...)
+	}
+
 	return AIParams{
 		SyncDisabled: v.GetBool("sync-ai-disable") ||
 			v.GetBool("sync-ai-disabled") ||
 			v.GetBool("settings.sync_ai_disabled"),
+		ExcludeProjects: excludePatterns,
 	}, nil
 }
 
@@ -1413,8 +1436,9 @@ func (p Offline) String() string {
 // String implements fmt.Stringer interface.
 func (p AIParams) String() string {
 	return fmt.Sprintf(
-		"disabled: %t",
+		"disabled: %t, exclude projects: '%s'",
 		p.SyncDisabled,
+		p.ExcludeProjects,
 	)
 }
 

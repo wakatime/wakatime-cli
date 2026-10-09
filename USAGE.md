@@ -119,6 +119,32 @@ Notice how you have to include the exclude patterns from your main `~/.wakatime.
 | metrics                        | When set, collects metrics usage in '~/.wakatime/metrics' folder. For further reference visit <https://go.dev/blog/pprof>.                                                                                                                                             | _bool_        | `false`                           |
 | guess_language                 | When `true`, enables detecting programming language from file contents.                                                                                                                                                                                                | _bool_        | `false`                           |
 | sync_ai_disabled               | When `true`, disables detecting AI Coding from AI transcript session logs. By default, transcript logs for Claude, Codex, Cursor, etc. are parsed to find when AI edited or read files in your projects.                                                               | _bool_        | `false`                           |
+| ai_exclude_projects            | Project patterns to exclude from AI tracking. Heartbeats with category `ai coding` matching any of these patterns are skipped, while normal coding activity is still logged. POSIX regex syntax.                                                                          | _list_        |                                   |
+
+### Disabling AI tracking per project
+
+File `exclude` patterns only match file paths, so AI heartbeats (entity type `app`,
+e.g. `OpenCode ses_...`) bypass them. To track coding time on a project but not AI
+time (e.g. a long-running agent thread overnight), use either option:
+
+```ini
+[settings]
+ai_exclude_projects =
+    ^nautilus$
+    ^overnight-codex$
+```
+
+Or create a `.wakatime` file in the project folder with:
+
+```ini
+[settings]
+sync_ai_disabled = true
+```
+
+Both keep normal `coding` heartbeats flowing and only drop `ai coding` heartbeats
+for the matching project. Note the project `.wakatime` file applies to file
+heartbeats resolved to that folder; `app` type AI heartbeats without a file path
+are covered by `ai_exclude_projects`.
 
 ### Project Map Section
 
