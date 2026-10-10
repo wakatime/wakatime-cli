@@ -206,3 +206,48 @@ func testBuildHeartbeats(ctx context.Context, v *viper.Viper) ([]heartbeat.Heart
 
 	return cmdheartbeat.BuildHeartbeats(ctx, apiParams.Plugin, heartbeatParams), nil
 }
+
+func TestSaveHeartbeatsWithParams_ExcludesAIPaths(t *testing.T) {
+	tmpFile, err := os.CreateTemp(t.TempDir(), "")
+	require.NoError(t, err)
+
+	defer tmpFile.Close()
+
+	offlineQueueFile, err := os.CreateTemp(t.TempDir(), "")
+	require.NoError(t, err)
+
+	defer offlineQueueFile.Close()
+
+	ctx := t.Context()
+
+	v := viper.New()
+	v.Set("config", tmpFile.Name())
+	v.Set("entity", "testdata/main.go")
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("project", "wakatime-cli")
+	v.Set("category", "ai coding")
+	v.Set("settings.exclude_ai", "/testdata/")
+	v.Set("hide-project-names", true)
+
+	hh, err := testBuildHeartbeats(ctx, v)
+	require.NoError(t, err)
+
+	apiParams, err := params.LoadAPIParams(ctx, v, params.FlagReadOrderFlagPrecedence)
+	require.NoError(t, err)
+
+	heartbeatParams, err := params.LoadHeartbeatParams(ctx, v, params.FlagReadOrderFlagPrecedence)
+	require.NoError(t, err)
+
+	err = cmdoffline.SaveHeartbeatsWithParams(ctx, v, offlineQueueFile.Name(), hh, params.Params{
+		AI:        heartbeatParams.AIParams,
+		API:       apiParams,
+		Heartbeat: heartbeatParams,
+		Offline:   params.LoadOfflineParams(ctx, v, params.FlagReadOrderFlagPrecedence),
+	})
+	require.NoError(t, err)
+
+	offlineCount, err := offline.CountHeartbeats(ctx, offlineQueueFile.Name())
+	require.NoError(t, err)
+
+	assert.Equal(t, 0, offlineCount)
+}

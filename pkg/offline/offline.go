@@ -267,7 +267,7 @@ func handleResults(
 		}
 	}
 
-	return err != nil && !stopSending, err
+	return stopSending, err
 }
 
 func resultHeartbeat(result heartbeat.Result, hh []heartbeat.Heartbeat, n int) (heartbeat.Heartbeat, bool) {
