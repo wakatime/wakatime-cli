@@ -93,6 +93,7 @@ func initHandleOptions() []handler.Preprocessor {
 		handler.WithCategoryDetection(),
 		handler.WithProjectDetection(),
 		handler.WithProjectFiltering(),
+		handler.WithAIFiltering(),
 		handler.WithHeartbeatSanitization(),
 		handler.WithRemoteCleanup(),
 	}

@@ -255,3 +255,42 @@ func TestSplitAIExcludedHeartbeats_ProjectFileDisablesAI(t *testing.T) {
 	assert.Len(t, excluded, 1)
 	assert.Len(t, included, 0)
 }
+
+func TestSendPreparedHeartbeatsRateLimitedFiltersExcludedAI(t *testing.T) {
+	queueFile := filepath.Join(t.TempDir(), "offline.bdb")
+	p := internalCommandParams()
+	p.Offline.LastSentAt = time.Now()
+	p.Offline.RateLimit = time.Hour
+	p.AI.ExcludeProjects = []regex.Regex{regex.MustCompile("(?i)^nautilus$")} // nolint
+
+	tmpDir := t.TempDir()
+	aiFile := filepath.Join(tmpDir, "ai_main.py")
+	require.NoError(t, os.WriteFile(aiFile, []byte("print('ai')\n"), 0644))
+	codeFile := filepath.Join(tmpDir, "code_main.py")
+	require.NoError(t, os.WriteFile(codeFile, []byte("print('code')\n"), 0644))
+
+	aiHb := heartbeatpkg.Heartbeat{
+		Entity:          aiFile,
+		EntityType:      heartbeatpkg.FileType,
+		Category:        heartbeatpkg.AICodingCategory.String(),
+		ProjectOverride: "nautilus",
+		Time:            1750000000,
+		UserAgent:       "plugin/0.0.1",
+	}
+	codeHb := heartbeatpkg.Heartbeat{
+		Entity:          codeFile,
+		EntityType:      heartbeatpkg.FileType,
+		Category:        heartbeatpkg.CodingCategory.String(),
+		ProjectOverride: "nautilus",
+		Time:            1750000001,
+		UserAgent:       "plugin/0.0.1",
+	}
+
+	err := sendPreparedHeartbeats(t.Context(), viper.New(), p, queueFile,
+		[]heartbeatpkg.Heartbeat{aiHb, codeHb}, false, loadParams)
+	require.NoError(t, err)
+
+	count, err := offlinepkg.CountHeartbeats(t.Context(), queueFile)
+	require.NoError(t, err)
+	assert.Equal(t, 1, count)
+}
