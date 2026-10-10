@@ -1,6 +1,6 @@
 module github.com/wakatime/wakatime-cli
 
-go 1.26.8
+go 1.26.9
 
 require (
 	github.com/Azure/go-ntlmssp v0.1.1
@@ -23,10 +23,10 @@ require (
 	github.com/stretchr/testify v1.11.1
 	go.etcd.io/bbolt v1.5.0
 	go.uber.org/zap v1.28.0
-	golang.org/x/crypto v0.56.0
-	golang.org/x/net v0.58.0
-	golang.org/x/sys v0.47.0
-	golang.org/x/text v0.41.0
+	golang.org/x/crypto v0.57.0
+	golang.org/x/net v0.60.0
+	golang.org/x/sys v0.48.0
+	golang.org/x/text v0.42.0
 	gopkg.in/ini.v1 v1.67.3
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	modernc.org/sqlite v1.57.0
