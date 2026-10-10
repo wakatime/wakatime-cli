@@ -10,6 +10,7 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/ini"
 	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/params"
+	"github.com/wakatime/wakatime-cli/pkg/vipertools"
 
 	"github.com/spf13/viper"
 )
@@ -93,6 +94,14 @@ func findProjectConfigFile(
 	if !ok {
 		return params.Params{}, false, nil
 	}
+
+	// Isolate project settings so they do not leak into the next heartbeat.
+	projectV := vipertools.MustNew()
+	if err := projectV.MergeConfigMap(v.AllSettings()); err != nil {
+		return params.Params{}, false, fmt.Errorf("failed to copy configuration: %w", err)
+	}
+
+	v = projectV
 
 	// load project-level configuration file into viper instance
 	if err := ini.ReadInConfig(v, fp); err != nil {
