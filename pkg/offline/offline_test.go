@@ -813,7 +813,7 @@ func TestSync_APIErrorBulkNested(t *testing.T) {
 	assert.Equal(t, 1, numCalls)
 }
 
-func TestSync_InvalidResults(t *testing.T) {
+func TestSync_StopsOnInvalidResults(t *testing.T) {
 	// setup
 	f, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)
@@ -858,44 +858,28 @@ func TestSync_InvalidResults(t *testing.T) {
 	err = syncFn(func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		numCalls++
 
-		// first request
-		if numCalls == 1 {
-			require.Len(t, hh, 3)
-			assert.Equal(t, []heartbeat.Heartbeat{
-				testHeartbeats()[2],
-				testHeartbeats()[1],
-				testHeartbeats()[0],
-			}, hh)
-
-			return []heartbeat.Result{
-				{
-					Status: 201,
-					ID:     "D0E1F2A3-B4C5-4678-D012-345678JKLMNO",
-				},
-				// any non 201/202/400 status results will be retried.
-				{
-					Status: 429,
-					Errors: []string{"Too many heartbeats"},
-					ID:     "E1F2A3B4-C5D6-4789-E123-456789KLMNOP",
-				},
-				// 400 status results will be discarded
-				{
-					Status: 400,
-					ID:     "F2A3B4C5-D6E7-4890-F234-567890LMNOPQ",
-				},
-			}, nil
-		}
-
-		// second request: assert retry of 429 result
-		require.Len(t, hh, 1)
+		require.Len(t, hh, 3)
 		assert.Equal(t, []heartbeat.Heartbeat{
+			testHeartbeats()[2],
 			testHeartbeats()[1],
+			testHeartbeats()[0],
 		}, hh)
 
 		return []heartbeat.Result{
 			{
 				Status: 201,
-				ID:     "A3B4C5D6-E7F8-4901-A345-678901MNOPQR",
+				ID:     "D0E1F2A3-B4C5-4678-D012-345678JKLMNO",
+			},
+			// Rate-limited heartbeats stay queued for a later sync.
+			{
+				Status: 429,
+				Errors: []string{"Too many heartbeats"},
+				ID:     "E1F2A3B4-C5D6-4789-E123-456789KLMNOP",
+			},
+			// Bad request heartbeats are discarded.
+			{
+				Status: 400,
+				ID:     "F2A3B4C5-D6E7-4890-F234-567890LMNOPQ",
 			},
 		}, nil
 	})
@@ -924,9 +908,11 @@ func TestSync_InvalidResults(t *testing.T) {
 	err = db.Close()
 	require.NoError(t, err)
 
-	require.Len(t, stored, 0)
+	require.Len(t, stored, 1)
+	assert.Equal(t, "1592868386.079084-13-file-debugging-wakatime-summary-/tmp/main.py-false", stored[0].ID)
+	assert.JSONEq(t, string(dataPy), stored[0].Heartbeat)
 
-	assert.Equal(t, 2, numCalls)
+	assert.Equal(t, 1, numCalls)
 }
 
 func TestSync_SyncLimit(t *testing.T) {
