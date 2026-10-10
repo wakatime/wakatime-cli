@@ -305,7 +305,8 @@ func sendPreparedHeartbeats(
 		offlineCtx := log.ToContext(ctx, &offlineLogger)
 
 		go func(done chan<- bool) {
-			if err := offlinecmd.SaveHeartbeatsWithParams(offlineCtx, v, queueFilepath, extraHeartbeats, params); err != nil {
+			err := offlinecmd.SaveHeartbeatsWithParams(offlineCtx, v, queueFilepath, extraHeartbeats, params)
+			if err != nil {
 				offlineLogger.Errorf("failed to save extra heartbeats to offline queue: %s", err)
 			}
 
