@@ -86,6 +86,7 @@ func initHandleOptions() []handler.Preprocessor {
 		handler.WithFormatting(),
 		handler.WithEntityModifier(),
 		handler.WithHeartbeatFiltering(),
+		handler.WithAIFiltering(),
 		handler.WithRemoteDetection(),
 		handler.WithFileStatsDetection(),
 		handler.WithLanguageDetection(),

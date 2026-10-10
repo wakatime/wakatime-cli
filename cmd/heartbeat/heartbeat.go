@@ -208,6 +208,7 @@ func initHandleOptions() []handler.Preprocessor {
 		handler.WithFormatting(),
 		handler.WithEntityModifier(),
 		handler.WithHeartbeatFiltering(),
+		handler.WithAIFiltering(),
 		handler.WithRemoteDetection(),
 		handler.WithAPIKeyReplacing(),
 		handler.WithFileStatsDetection(),
@@ -229,6 +230,7 @@ func applyAIParsing(
 ) ([]heartbeat.Heartbeat, error) {
 	handle := ai.WithAISync(ai.Config{
 		SyncDisabled: params.AI.SyncDisabled,
+		Exclude:      params.AI.Exclude,
 		Plugin:       params.API.Plugin,
 		Project:      params.Heartbeat.Project,
 		Sanitize:     params.Heartbeat.Sanitize,
