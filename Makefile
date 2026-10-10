@@ -20,7 +20,7 @@ GOTEST=$(GOCMD) test
 GOGET=$(GOCMD) get
 
 # linting
-GOLANGCI_LINT_VERSION?=v2.11.0
+GOLANGCI_LINT_VERSION?=v2.14.0
 INSTALLED_LINT_VERSION=$(shell golangci-lint --version 2>/dev/null | awk '{print "v"$$4}')
 
 # get GOPATH, GOOS and GOARCH according to OS
