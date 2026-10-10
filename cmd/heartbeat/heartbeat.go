@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	apicmd "github.com/wakatime/wakatime-cli/cmd/api"
@@ -13,12 +14,15 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/api"
 	"github.com/wakatime/wakatime-cli/pkg/backoff"
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
+	"github.com/wakatime/wakatime-cli/pkg/file"
 	"github.com/wakatime/wakatime-cli/pkg/filter"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/ini"
 	_ "github.com/wakatime/wakatime-cli/pkg/lexer" // force to load all lexers
 	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/offline"
 	"github.com/wakatime/wakatime-cli/pkg/params"
+	"github.com/wakatime/wakatime-cli/pkg/project"
 	"github.com/wakatime/wakatime-cli/pkg/ratelimit"
 	"github.com/wakatime/wakatime-cli/pkg/wakaerror"
 
@@ -93,10 +97,19 @@ func SendHeartbeats(
 	setLogFields(ctx, params)
 	logger.Debugf("params: %s", params)
 
-	heartbeats, err := applyAIParsing(ctx, v, params, heartbeats)
+	// Preserve normal IDE activity for projects excluded from AI tracking.
+	// AI parsing can recategorize human heartbeats as "ai coding" or drop them
+	// as duplicates; the later AI filter would then discard them. Excluded
+	// humans must bypass AI parsing untouched, while excluded AI heartbeats
+	// are still dropped later by the pipeline filter.
+	included, excluded := splitAIExcludedHeartbeats(ctx, params, heartbeats)
+
+	heartbeats, err := applyAIParsing(ctx, v, params, included)
 	if err != nil {
 		return err
 	}
+
+	heartbeats = append(excluded, heartbeats...)
 
 	return sendPreparedHeartbeats(ctx, v, params, queueFilepath, heartbeats, true, loadParams)
 }
@@ -220,6 +233,134 @@ func initHandleOptions() []handler.Preprocessor {
 		handler.WithHeartbeatSanitization(),
 		handler.WithRemoteCleanup(),
 	}
+}
+
+// splitAIExcludedHeartbeats separates humans belonging to AI-excluded projects
+// before AI parsing runs. AI parsing can recategorize human heartbeats as
+// "ai coding" or drop them as duplicates, after which the pipeline AI filter
+// would discard normal IDE activity. Excluded heartbeats bypass AI parsing
+// untouched (normal coding is still logged); excluded AI heartbeats generated
+// from transcripts are still dropped later by the pipeline filter after
+// project detection.
+func splitAIExcludedHeartbeats(
+	ctx context.Context,
+	params params.Params,
+	hh []heartbeat.Heartbeat,
+) (included, excluded []heartbeat.Heartbeat) {
+	if len(hh) == 0 {
+		return hh, nil
+	}
+
+	// Fast path: project-level .wakatime files can still disable AI even when
+	// no global exclude patterns are configured. Check files first without
+	// project detection.
+	var remaining []heartbeat.Heartbeat
+
+	for _, h := range hh {
+		if projectFileDisablesAI(ctx, h) {
+			excluded = append(excluded, h)
+			continue
+		}
+
+		remaining = append(remaining, h)
+	}
+
+	if len(params.AI.ExcludeProjects) == 0 {
+		return remaining, excluded
+	}
+
+	// Resolve project names so exclude patterns match the same names the
+	// pipeline filter sees after project detection.
+	resolved := resolveProjectsForExclusion(ctx, params, remaining)
+
+	for _, h := range resolved {
+		if h.Project != nil {
+			matched := false
+
+			for _, pattern := range params.AI.ExcludeProjects {
+				if pattern.MatchString(ctx, *h.Project) {
+					matched = true
+					break
+				}
+			}
+
+			if matched {
+				excluded = append(excluded, h)
+				continue
+			}
+		}
+
+		included = append(included, h)
+	}
+
+	return included, excluded
+}
+
+// resolveProjectsForExclusion runs project detection to fill Project/Branch/
+// ProjectPath, so AI exclusions match resolved names before AI parsing.
+// It reuses the same detection config as the pipeline; running detection
+// twice is idempotent.
+func resolveProjectsForExclusion(
+	ctx context.Context,
+	params params.Params,
+	hh []heartbeat.Heartbeat,
+) []heartbeat.Heartbeat {
+	if len(hh) == 0 {
+		return hh
+	}
+
+	detect := project.WithDetection(project.Config{
+		HideProjectNames:     params.Heartbeat.Sanitize.HideProjectNames,
+		MapPatterns:          params.Heartbeat.Project.MapPatterns,
+		ProjectFromGitRemote: params.Heartbeat.Project.ProjectFromGitRemote,
+		Submodule: project.Submodule{
+			DisabledPatterns: params.Heartbeat.Project.SubmodulesDisabled,
+			MapPatterns:      params.Heartbeat.Project.SubmoduleMapPatterns,
+		},
+	})(func(_ context.Context, resolved []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+		results := make([]heartbeat.Result, len(resolved))
+		for i := range resolved {
+			results[i] = heartbeat.Result{Heartbeat: resolved[i]}
+		}
+
+		return results, nil
+	})
+
+	results, err := detect(ctx, hh)
+	if err != nil {
+		return hh
+	}
+
+	resolved := make([]heartbeat.Heartbeat, 0, len(results))
+	for _, r := range results {
+		resolved = append(resolved, r.Heartbeat)
+	}
+
+	return resolved
+}
+
+// projectFileDisablesAI reports whether the project-level .wakatime file for
+// the heartbeat's entity disables AI tracking. It mirrors handler's project
+// config lookup but read-only, so the shared viper instance is not mutated
+// before AI parsing.
+func projectFileDisablesAI(ctx context.Context, h heartbeat.Heartbeat) bool {
+	if h.EntityType != heartbeat.FileType || h.IsUnsavedEntity {
+		return false
+	}
+
+	fp, ok := file.Find(ctx, filepath.Dir(h.Entity), ".wakatime")
+	if !ok {
+		return false
+	}
+
+	vv := viper.New()
+	if err := ini.ReadInConfig(vv, fp); err != nil {
+		return false
+	}
+
+	return vv.GetBool("settings.sync_ai_disabled") ||
+		vv.GetBool("sync-ai-disabled") ||
+		vv.GetBool("sync-ai-disable")
 }
 
 func applyAIParsing(

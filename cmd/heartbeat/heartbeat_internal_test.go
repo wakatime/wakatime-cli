@@ -1,6 +1,7 @@
 package heartbeat
 
 import (
+	"os"
 	"path/filepath"
 	"sync"
 	"testing"
@@ -12,6 +13,7 @@ import (
 	heartbeatpkg "github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	offlinepkg "github.com/wakatime/wakatime-cli/pkg/offline"
 	paramspkg "github.com/wakatime/wakatime-cli/pkg/params"
+	"github.com/wakatime/wakatime-cli/pkg/regex"
 )
 
 func TestLoadParamsInternalBranches(t *testing.T) {
@@ -188,4 +190,68 @@ func internalAppHeartbeat() heartbeatpkg.Heartbeat {
 		Time:       1,
 		UserAgent:  "plugin/0.0.1",
 	}
+}
+
+func TestSplitAIExcludedHeartbeats_PreservesExcludedHuman(t *testing.T) {
+	human := heartbeatpkg.Heartbeat{
+		Entity:           "/tmp/nautilus/main.py",
+		EntityType:       heartbeatpkg.FileType,
+		Category:         heartbeatpkg.CodingCategory.String(),
+		HumanLineChanges: heartbeatpkg.PointerTo(5),
+		ProjectOverride:  "nautilus",
+		Time:             1750000000,
+	}
+
+	p := internalCommandParams()
+	p.AI.ExcludeProjects = []regex.Regex{regex.MustCompile("(?i)^nautilus$")} // nolint
+
+	included, excluded := splitAIExcludedHeartbeats(t.Context(), p, []heartbeatpkg.Heartbeat{human})
+
+	assert.Len(t, excluded, 1)
+	assert.Len(t, included, 0)
+	require.NotNil(t, excluded[0].Project)
+	assert.Equal(t, "nautilus", *excluded[0].Project)
+}
+
+func TestSplitAIExcludedHeartbeats_KeepsNonExcluded(t *testing.T) {
+	human := heartbeatpkg.Heartbeat{
+		Entity:           "/tmp/other/main.py",
+		EntityType:       heartbeatpkg.FileType,
+		Category:         heartbeatpkg.CodingCategory.String(),
+		HumanLineChanges: heartbeatpkg.PointerTo(5),
+		ProjectOverride:  "other-project",
+		Time:             1750000000,
+	}
+
+	p := internalCommandParams()
+	p.AI.ExcludeProjects = []regex.Regex{regex.MustCompile("(?i)^nautilus$")} // nolint
+
+	included, excluded := splitAIExcludedHeartbeats(t.Context(), p, []heartbeatpkg.Heartbeat{human})
+
+	assert.Len(t, included, 1)
+	assert.Len(t, excluded, 0)
+}
+
+func TestSplitAIExcludedHeartbeats_ProjectFileDisablesAI(t *testing.T) {
+	tmpDir := t.TempDir()
+	codeFile := filepath.Join(tmpDir, "main.py")
+	require.NoError(t, os.WriteFile(codeFile, []byte("print('x')\n"), 0644))
+	require.NoError(t, os.WriteFile(
+		filepath.Join(tmpDir, ".wakatime"),
+		[]byte("[settings]\nsync_ai_disabled = true\n"),
+		0644,
+	))
+
+	h := heartbeatpkg.Heartbeat{
+		Entity:     codeFile,
+		EntityType: heartbeatpkg.FileType,
+		Category:   heartbeatpkg.CodingCategory.String(),
+		Time:       1750000000,
+	}
+
+	assert.True(t, projectFileDisablesAI(t.Context(), h))
+
+	included, excluded := splitAIExcludedHeartbeats(t.Context(), internalCommandParams(), []heartbeatpkg.Heartbeat{h})
+	assert.Len(t, excluded, 1)
+	assert.Len(t, included, 0)
 }
