@@ -131,7 +131,7 @@ func TestHandleResultsStopsWhenResultHasNoHeartbeat(t *testing.T) {
 	stop, err := handleResults(t.Context(), filepath.Join(t.TempDir(), "offline.bdb"), results, nil)
 
 	require.NoError(t, err)
-	assert.False(t, stop)
+	assert.True(t, stop)
 }
 
 func TestResultHeartbeatBranches(t *testing.T) {
