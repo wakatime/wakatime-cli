@@ -299,9 +299,14 @@ func sendPreparedHeartbeats(
 
 		logger.Debugf("save %d extra heartbeat(s) to offline queue", len(extraHeartbeats))
 
+		// Copy the logger before starting the goroutine so offline log fields do
+		// not mutate the logger used concurrently by the foreground handler.
+		offlineLogger := *logger
+		offlineCtx := log.ToContext(ctx, &offlineLogger)
+
 		go func(done chan<- bool) {
-			if err := offlinecmd.SaveHeartbeatsWithParams(ctx, v, queueFilepath, extraHeartbeats, params); err != nil {
-				logger.Errorf("failed to save extra heartbeats to offline queue: %s", err)
+			if err := offlinecmd.SaveHeartbeatsWithParams(offlineCtx, v, queueFilepath, extraHeartbeats, params); err != nil {
+				offlineLogger.Errorf("failed to save extra heartbeats to offline queue: %s", err)
 			}
 
 			done <- true
