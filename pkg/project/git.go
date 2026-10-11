@@ -343,7 +343,7 @@ func findGitRemote(ctx context.Context, fp string) (string, error) {
 					return "", fmt.Errorf("invalid origin url from %q: %s", fp, subline)
 				}
 
-				return strings.TrimSpace(strings.TrimSuffix(parts[1], ".git")), nil
+				return strings.TrimSuffix(strings.TrimSpace(parts[1]), ".git"), nil
 			}
 		}
 	}
