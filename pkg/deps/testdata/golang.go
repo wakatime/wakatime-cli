@@ -19,6 +19,8 @@ import (
 	. "math"
 )
 
+const message = "not-a-dependency"
+
 func main() {
 	fmt.Println("Hello, World!")
 }
