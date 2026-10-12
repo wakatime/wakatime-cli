@@ -3235,7 +3235,7 @@ func TestParamsString_IncludesAIParams(t *testing.T) {
 
 	assert.Equal(
 		t,
-		"disabled: true",
+		"disabled: true, exclude: '[]'",
 		params.String(),
 	)
 }
@@ -3452,4 +3452,28 @@ func TestLoadAPIParams_APIURLs_NormalizesURL(t *testing.T) {
 	}
 
 	assert.Equal(t, expected, params.URLPatterns)
+}
+
+func TestLoadAIParams_Exclude(t *testing.T) {
+	v := vipertools.MustNew()
+	v.Set("settings.exclude_ai", "/nautilus/\n/overnight-codex/")
+	v.Set("exclude-ai", "/my-folder/")
+
+	params, err := paramspkg.LoadAIParams(t.Context(), v, paramspkg.FlagReadOrderFlagPrecedence)
+	require.NoError(t, err)
+
+	assert.False(t, params.SyncDisabled)
+	require.Len(t, params.Exclude, 3)
+	assert.Equal(t, "(?i)/nautilus/", params.Exclude[1].String())
+}
+
+func TestLoadAIParams_SyncDisabled(t *testing.T) {
+	v := vipertools.MustNew()
+	v.Set("settings.sync_ai_disabled", true)
+
+	params, err := paramspkg.LoadAIParams(t.Context(), v, paramspkg.FlagReadOrderFlagPrecedence)
+	require.NoError(t, err)
+
+	assert.True(t, params.SyncDisabled)
+	assert.Empty(t, params.Exclude)
 }

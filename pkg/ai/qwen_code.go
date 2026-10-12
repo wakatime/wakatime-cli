@@ -195,6 +195,7 @@ func qwenCodeRuntimeDir(ctx context.Context) (string, error) {
 	}
 
 	// Relative runtimeOutputDir settings are project-specific and cannot be resolved without the originating cwd.
+	// #nosec G703 -- QWEN_HOME intentionally lets the local user choose their settings directory.
 	contents, err := os.ReadFile(filepath.Clean(filepath.Join(qwenHome, "settings.json")))
 	if err == nil {
 		var settings qwenCodeSettings

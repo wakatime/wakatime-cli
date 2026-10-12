@@ -251,6 +251,8 @@ type (
 	// AIParams contains AI sync command parameters.
 	AIParams struct {
 		SyncDisabled bool
+		// Exclude contains entity file path patterns excluded from AI tracking.
+		Exclude []regex.Regex
 	}
 
 	// Offline contains offline related parameters.
@@ -899,11 +901,30 @@ func loadProjectMapPatterns(ctx context.Context, v *viper.Viper, prefix string) 
 }
 
 // LoadAIParams loads ai sync params from viper.Viper instance.
-func LoadAIParams(_ context.Context, v *viper.Viper, _ FlagReadOrder) (AIParams, error) {
+func LoadAIParams(ctx context.Context, v *viper.Viper, _ FlagReadOrder) (AIParams, error) {
+	exclude := v.GetStringSlice("exclude-ai")
+	exclude = append(exclude, v.GetStringSlice("settings.exclude_ai")...)
+
+	var excludePatterns []regex.Regex
+
+	for _, s := range exclude {
+		patterns, err := parseBoolOrRegexList(ctx, s)
+		if err != nil {
+			return AIParams{}, fmt.Errorf(
+				"failed to parse regex ai exclude param %q: %s",
+				s,
+				err,
+			)
+		}
+
+		excludePatterns = append(excludePatterns, patterns...)
+	}
+
 	return AIParams{
 		SyncDisabled: v.GetBool("sync-ai-disable") ||
 			v.GetBool("sync-ai-disabled") ||
 			v.GetBool("settings.sync_ai_disabled"),
+		Exclude: excludePatterns,
 	}, nil
 }
 
@@ -1413,8 +1434,9 @@ func (p Offline) String() string {
 // String implements fmt.Stringer interface.
 func (p AIParams) String() string {
 	return fmt.Sprintf(
-		"disabled: %t",
+		"disabled: %t, exclude: '%s'",
 		p.SyncDisabled,
+		p.Exclude,
 	)
 }
 

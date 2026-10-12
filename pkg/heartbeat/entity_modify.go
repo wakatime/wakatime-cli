@@ -14,20 +14,27 @@ func WithEntityModifier() HandleOption {
 			// logger := log.Extract(ctx)
 			// logger.Debugln("execute heartbeat entity modifier")
 			for n, h := range hh {
-				// Support XCode playgrounds
-				if h.EntityType == FileType && isXCodePlayground(ctx, h.Entity) {
-					hh[n].Entity = filepath.Join(h.Entity, "Contents.swift")
-				}
-
-				// Support XCode projects
-				if h.EntityType == FileType && isXCodeProject(ctx, h.Entity) {
-					hh[n].Entity = filepath.Join(h.Entity, "project.pbxproj")
-				}
+				hh[n] = ModifyEntity(ctx, h)
 			}
 
 			return next(ctx, hh)
 		}
 	}
+}
+
+// ModifyEntity resolves Xcode bundles to the file whose activity is tracked.
+func ModifyEntity(ctx context.Context, h Heartbeat) Heartbeat {
+	if h.EntityType != FileType {
+		return h
+	}
+
+	if isXCodePlayground(ctx, h.Entity) {
+		h.Entity = filepath.Join(h.Entity, "Contents.swift")
+	} else if isXCodeProject(ctx, h.Entity) {
+		h.Entity = filepath.Join(h.Entity, "project.pbxproj")
+	}
+
+	return h
 }
 
 func isXCodePlayground(ctx context.Context, fp string) bool {

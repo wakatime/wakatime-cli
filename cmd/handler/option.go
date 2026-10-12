@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"github.com/wakatime/wakatime-cli/pkg/ai"
 	"github.com/wakatime/wakatime-cli/pkg/apikey"
 	"github.com/wakatime/wakatime-cli/pkg/deps"
 	"github.com/wakatime/wakatime-cli/pkg/fileexperts"
@@ -141,5 +142,15 @@ func WithFileExpertsValidation() Preprocessor {
 func WithRemoteCleanup() Preprocessor {
 	return func(_ params.Params) heartbeat.HandleOption {
 		return remote.WithCleanup()
+	}
+}
+
+// WithAIFiltering excludes AI file heartbeats before paths are sanitized.
+func WithAIFiltering() Preprocessor {
+	return func(p params.Params) heartbeat.HandleOption {
+		return ai.WithFiltering(ai.Config{
+			SyncDisabled: p.AI.SyncDisabled,
+			Exclude:      p.AI.Exclude,
+		})
 	}
 }

@@ -7,6 +7,7 @@ import (
 	"io"
 	"maps"
 	"math"
+	"os"
 	"path/filepath"
 	"runtime/debug"
 	"strings"
@@ -16,16 +17,19 @@ import (
 	"github.com/spf13/viper"
 	"github.com/wakatime/wakatime-cli/pkg/api"
 	"github.com/wakatime/wakatime-cli/pkg/diagnostic"
+	"github.com/wakatime/wakatime-cli/pkg/file"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/ini"
 	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/params"
+	"github.com/wakatime/wakatime-cli/pkg/regex"
 	"github.com/wakatime/wakatime-cli/pkg/vipertools"
 )
 
 // Config contains filtering configurations.
 type Config struct {
 	SyncDisabled bool
+	Exclude      []regex.Regex
 	Plugin       string
 	Project      params.ProjectParams
 	Sanitize     params.SanitizeParams
@@ -221,7 +225,7 @@ func WithAISync(config Config) heartbeat.HandleOption {
 				return next(ctx, hh)
 			}
 
-			minAIHeartbeatTime, maxAIHeartbeatTime := minMaxAIHeartbeatTimes(heartbeats)
+			_, maxAIHeartbeatTime := minMaxAIHeartbeatTimes(heartbeats)
 
 			parsedAt := heartbeatTime(maxAIHeartbeatTime)
 			if parsedAt.Before(lastParsedAt) {
@@ -236,12 +240,39 @@ func WithAISync(config Config) heartbeat.HandleOption {
 
 			heartbeats = replaceAppHeartbeats(heartbeats)
 
+			exclusions := newEntityExclusions(config)
+
+			heartbeats, err = exclusions.filter(ctx, heartbeats)
+			if err != nil {
+				return nil, err
+			}
+
+			hh, err = exclusions.filter(ctx, hh)
+			if err != nil {
+				return nil, err
+			}
+
+			if len(heartbeats) == 0 {
+				return next(ctx, hh)
+			}
+
+			minAIHeartbeatTime, maxAIHeartbeatTime := minMaxAIHeartbeatTimes(heartbeats)
 			heartbeats, firstHumanEdit := preserveHumanAttributes(heartbeats, hh, config, maxAIHeartbeatTime)
 
 			entities := entityToTimeMap(heartbeats)
 
 			// Add back Human heartbeats unless they look like duplicate AI heartbeats
 			for _, h := range hh {
+				excluded, err := exclusions.excludes(ctx, h)
+				if err != nil {
+					return nil, err
+				}
+
+				if excluded {
+					heartbeats = append(heartbeats, h)
+					continue
+				}
+
 				if sameEntityAIHeartbeatWithinWindow(h, entities, 5) && (firstHumanEdit == nil || h.Time < *firstHumanEdit) {
 					continue
 				}
@@ -1190,4 +1221,141 @@ func absFloat64(v float64) float64 {
 	}
 
 	return v
+}
+
+// WithFiltering applies AI exclusions before heartbeats are sanitized or queued.
+func WithFiltering(config Config) heartbeat.HandleOption {
+	return func(next heartbeat.Handle) heartbeat.Handle {
+		return func(ctx context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+			filtered, err := newEntityExclusions(config).filter(ctx, hh)
+			if err != nil {
+				return nil, err
+			}
+
+			return next(ctx, filtered)
+		}
+	}
+}
+
+func (f *entityExclusions) filter(ctx context.Context, hh []heartbeat.Heartbeat) (Heartbeats, error) {
+	filtered := make(Heartbeats, 0, len(hh))
+	for _, h := range hh {
+		if h.Category != heartbeat.AICodingCategory.String() {
+			filtered = append(filtered, h)
+			continue
+		}
+
+		excluded, err := f.excludes(ctx, h)
+		if err != nil {
+			return nil, err
+		}
+
+		if !excluded {
+			filtered = append(filtered, h)
+			continue
+		}
+
+		log.Extract(ctx).Debugf("skipping ai coding heartbeat for excluded entity: %s", h.Entity)
+
+		if h.LocalFileNeedsCleanup {
+			if err := os.Remove(h.LocalFile); err != nil {
+				log.Extract(ctx).Warnf("unable to delete tmp file: %s", err)
+			}
+		}
+	}
+
+	return filtered, nil
+}
+
+// Each batch shares decisions and project settings across transcript and IDE
+// heartbeats. A new batch reads configuration again so changes take effect.
+type entityExclusions struct {
+	config            Config
+	decisions         map[exclusionEntity]bool
+	paramsByDirectory map[string]params.AIParams
+}
+
+type exclusionEntity struct {
+	entity  string
+	unsaved bool
+}
+
+func newEntityExclusions(config Config) *entityExclusions {
+	return &entityExclusions{
+		config:            config,
+		decisions:         make(map[exclusionEntity]bool),
+		paramsByDirectory: make(map[string]params.AIParams),
+	}
+}
+
+func (f *entityExclusions) excludes(ctx context.Context, h heartbeat.Heartbeat) (bool, error) {
+	if h.EntityType != heartbeat.FileType || h.Entity == "" {
+		return f.config.SyncDisabled, nil
+	}
+
+	key := exclusionEntity{entity: h.Entity, unsaved: h.IsUnsavedEntity}
+	if excluded, ok := f.decisions[key]; ok {
+		return excluded, nil
+	}
+
+	aiParams, err := f.loadParams(ctx, h)
+	if err != nil {
+		return false, err
+	}
+
+	excluded := aiParams.SyncDisabled
+	if !excluded && len(aiParams.Exclude) > 0 {
+		if !h.IsRemote() {
+			h = heartbeat.Format(ctx, h)
+		}
+
+		h = heartbeat.ModifyEntity(ctx, h)
+		for _, pattern := range aiParams.Exclude {
+			if pattern.MatchString(ctx, h.Entity) {
+				excluded = true
+				break
+			}
+		}
+	}
+
+	f.decisions[key] = excluded
+
+	return excluded, nil
+}
+
+func (f *entityExclusions) loadParams(ctx context.Context, h heartbeat.Heartbeat) (params.AIParams, error) {
+	base := params.AIParams{SyncDisabled: f.config.SyncDisabled, Exclude: f.config.Exclude}
+	if f.config.V == nil || h.IsUnsavedEntity {
+		return base, nil
+	}
+
+	directory := filepath.Dir(h.Entity)
+	if cached, ok := f.paramsByDirectory[directory]; ok {
+		return cached, nil
+	}
+
+	fp, ok := file.Find(ctx, directory, ".wakatime")
+	if !ok {
+		f.paramsByDirectory[directory] = base
+		return base, nil
+	}
+
+	v := vipertools.MustNew()
+	if err := v.MergeConfigMap(f.config.V.AllSettings()); err != nil {
+		return base, err
+	}
+
+	if err := ini.ReadInConfig(v, fp); err != nil {
+		return base, fmt.Errorf("failed to read AI project settings %q: %w", fp, err)
+	}
+	// Use the same effective settings as the heartbeat and offline pipelines.
+	// The merged config already includes global settings and command-line flags.
+	effective, err := params.LoadAIParams(ctx, v, params.FlagReadOrderProjectConfigPrecedence)
+	if err != nil {
+		return base, err
+	}
+
+	f.paramsByDirectory[directory] = effective
+
+	return effective, nil
 }

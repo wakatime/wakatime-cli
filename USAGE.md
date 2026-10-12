@@ -119,6 +119,30 @@ Notice how you have to include the exclude patterns from your main `~/.wakatime.
 | metrics                        | When set, collects metrics usage in '~/.wakatime/metrics' folder. For further reference visit <https://go.dev/blog/pprof>.                                                                                                                                             | _bool_        | `false`                           |
 | guess_language                 | When `true`, enables detecting programming language from file contents.                                                                                                                                                                                                | _bool_        | `false`                           |
 | sync_ai_disabled               | When `true`, disables detecting AI Coding from AI transcript session logs. By default, transcript logs for Claude, Codex, Cursor, etc. are parsed to find when AI edited or read files in your projects.                                                               | _bool_        | `false`                           |
+| exclude_ai                     | File path patterns to exclude from AI tracking. Only matching `ai coding` file heartbeats are skipped; human activity is still logged. Uses the same POSIX regex syntax and entity paths as `exclude`. | _list_ | |
+
+### Disabling AI tracking for folders and files
+
+Use `exclude_ai` to skip AI activity for matching file paths while keeping human
+coding activity. Like `exclude`, patterns match entity paths, using forward
+slashes on Windows. The command-line flag is `--exclude-ai` and can be repeated.
+
+```ini
+[settings]
+exclude_ai =
+    /nautilus/
+    /overnight-codex/
+```
+
+Or create a `.wakatime` file in the project folder with:
+
+```ini
+[settings]
+sync_ai_disabled = true
+```
+
+Both preserve human heartbeats. Path patterns apply to file entities; AI session
+heartbeats that have no file path cannot match `exclude_ai`.
 
 ### Project Map Section
 

@@ -1645,3 +1645,71 @@ func testLoadParamsAndHeartbeats(
 
 	return loaded, cmdheartbeat.BuildHeartbeats(ctx, apiParams.Plugin, heartbeatParams), nil
 }
+
+func TestSendHeartbeats_RateLimitedExcludesAIPaths(t *testing.T) {
+	resetSingleton(t)
+
+	testServerURL, router, tearDown := setupTestServer()
+	defer tearDown()
+
+	var (
+		plugin   = "plugin/0.0.1"
+		numCalls int
+	)
+
+	router.HandleFunc("/users/current/heartbeats.bulk", func(_ http.ResponseWriter, _ *http.Request) {
+		// Should not be called
+		numCalls++
+	})
+
+	tmpFile, err := os.CreateTemp(t.TempDir(), "wakatime-config")
+	require.NoError(t, err)
+
+	defer tmpFile.Close()
+
+	tmpFileInternal, err := os.CreateTemp(t.TempDir(), "wakatime-internal-config")
+	require.NoError(t, err)
+
+	defer tmpFileInternal.Close()
+
+	offlineQueueFile, err := os.CreateTemp(t.TempDir(), "offline-queue-file")
+	require.NoError(t, err)
+
+	defer offlineQueueFile.Close()
+
+	v := viper.New()
+	v.SetDefault("sync-offline-activity", 1000)
+	v.Set("api-url", testServerURL)
+	v.Set("category", "ai coding")
+	v.Set("settings.exclude_ai", "/testdata/")
+	v.Set("cursorpos", 42)
+	v.Set("entity", "testdata/main.go")
+	v.Set("entity-type", "file")
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("language", "Go")
+	v.Set("alternate-language", "Golang")
+	v.Set("hide-branch-names", true)
+	v.Set("projectmap..*", "wakatime-cli")
+	v.Set("lineno", 13)
+	v.Set("local-file", "testdata/localfile.go")
+	v.Set("plugin", plugin)
+	v.Set("time", 1585598059.1)
+	v.Set("timeout", 5)
+	v.Set("write", true)
+	v.Set("heartbeat-rate-limit-seconds", 500)
+	v.Set("config", tmpFile.Name())
+	v.Set("internal-config", tmpFileInternal.Name())
+	v.Set("offline-queue-file", offlineQueueFile.Name())
+	v.Set("internal.heartbeats_last_sent_at", time.Now().Add(-time.Minute).Format(time.RFC3339))
+
+	params, heartbeats, err := testLoadParamsAndHeartbeats(t.Context(), v)
+	require.NoError(t, err)
+
+	err = cmdheartbeat.SendHeartbeats(t.Context(), v, params, offlineQueueFile.Name(), heartbeats)
+	require.NoError(t, err)
+
+	assert.Zero(t, numCalls)
+	count, err := offline.CountHeartbeats(t.Context(), offlineQueueFile.Name())
+	require.NoError(t, err)
+	assert.Zero(t, count)
+}
