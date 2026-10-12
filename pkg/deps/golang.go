@@ -68,6 +68,8 @@ func (p *ParserGo) init() {
 
 func (p *ParserGo) processToken(token chroma.Token) {
 	switch token.Type {
+	case chroma.KeywordDeclaration:
+		p.State = StateGoUnknown
 	case chroma.KeywordNamespace:
 		p.processKeywordNamespace(token.Value)
 	case chroma.LiteralString:

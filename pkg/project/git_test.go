@@ -36,6 +36,25 @@ func TestGit_Detect(t *testing.T) {
 	}, result)
 }
 
+func TestGit_Detect_GitRemoteTrailingSpaces(t *testing.T) {
+	fp := setupTestGitBasic(t)
+	configPath := filepath.Join(fp, "wakatime-cli/.git/config")
+	config := []byte("[remote \"origin\"]\n\turl = git@github.com:wakatime/wakatime-cli.git  \n")
+	err := os.WriteFile(configPath, config, 0600)
+	require.NoError(t, err)
+
+	g := project.Git{
+		Filepath:             filepath.Join(fp, "wakatime-cli/src/pkg/file.go"),
+		ProjectFromGitRemote: true,
+	}
+
+	result, detected, err := g.Detect(t.Context())
+	require.NoError(t, err)
+
+	assert.True(t, detected)
+	assert.Equal(t, "wakatime/wakatime-cli", result.Project)
+}
+
 func TestGit_Detect_BranchWithSlash(t *testing.T) {
 	fp := setupTestGitBasicBranchWithSlash(t)
 
