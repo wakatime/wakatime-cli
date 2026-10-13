@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/wakatime/wakatime-cli/pkg/ini"
 )
@@ -17,6 +18,7 @@ type genericAIPaths struct {
 	extensions          []string
 	sqliteRoots         []string
 	sqliteTables        []string
+	sqliteQuery         func(table, projection string, after time.Time) (string, []any)
 	sqliteParserVersion int
 	containerKey        string
 	preferMessagesFile  bool
@@ -46,6 +48,7 @@ func parseGenericProvider(
 		extensions:          stringSet(paths.extensions...),
 		sqliteRoots:         paths.sqliteRoots,
 		sqliteTables:        paths.sqliteTables,
+		sqliteQuery:         paths.sqliteQuery,
 		sqliteParserVersion: paths.sqliteParserVersion,
 		containerKey:        paths.containerKey,
 		preferMessagesFile:  paths.preferMessagesFile,
