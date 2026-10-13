@@ -20,6 +20,10 @@ func TestRenderToday(t *testing.T) {
 			Output:   output.TextOutput,
 			Expected: "2 hrs 1 min",
 		},
+		"json output": {
+			Output:   output.JSONOutput,
+			Expected: readFile(t, "testdata/goal.json"),
+		},
 		"raw json output": {
 			Output:   output.RawJSONOutput,
 			Expected: readFile(t, "testdata/goal.json"),
