@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -391,6 +392,43 @@ func TestClaudeParse_UsesClaudeConfigDirForTranscripts(t *testing.T) {
 	require.Len(t, got, 1)
 
 	assert.Equal(t, "claude-session", got[0].AISession)
+	assert.Equal(t, "/tmp", got[0].ProjectPathOverride)
+}
+
+func TestClaudeParse_FollowsSymlinkedProjectsDir(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("creating symlinks requires elevated privileges on windows")
+	}
+
+	ctx := context.Background()
+
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+	t.Setenv("CLAUDE_CONFIG_DIR", filepath.Join(home, ".claude"))
+
+	// transcripts live outside the config dir, e.g. in a cloud-synced folder,
+	// and ~/.claude/projects is only a symlink pointing there.
+	realProjectsDir := filepath.Join(home, "cloud-sync", "projects")
+	transcriptDir := filepath.Join(realProjectsDir, "sample-project")
+	require.NoError(t, os.MkdirAll(transcriptDir, 0o755))
+	require.NoError(t, os.MkdirAll(filepath.Join(home, ".claude"), 0o755))
+	require.NoError(t, os.Symlink(realProjectsDir, filepath.Join(home, ".claude", "projects")))
+
+	transcript := strings.Join([]string{
+		`{"timestamp":"2026-03-18T11:45:00Z","sessionId":"symlinked-session","version":"2.1.45",`,
+		`"cwd":"/tmp","isSidechain":false,"type":"user",`,
+		`"message":{"role":"user","content":"please continue"}}`,
+	}, "") + "\n"
+	require.NoError(t, os.WriteFile(filepath.Join(transcriptDir, "session.jsonl"), []byte(transcript), 0o644))
+
+	got, err := ai.Claude{
+		After: time.Date(2026, 3, 18, 11, 0, 0, 0, time.UTC),
+	}.Parse(ctx)
+	require.NoError(t, err)
+	require.Len(t, got, 1)
+
+	assert.Equal(t, "symlinked-session", got[0].AISession)
 	assert.Equal(t, "/tmp", got[0].ProjectPathOverride)
 }
 
