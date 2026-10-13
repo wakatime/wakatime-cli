@@ -383,6 +383,13 @@ func (g Claude) transcriptPaths(ctx context.Context) ([]string, error) {
 	for _, dir := range configDirs {
 		claudeProjectsDir := filepath.Join(dir, "projects")
 
+		// filepath.WalkDir never descends into a root that is itself a symlink,
+		// so resolve it first: ~/.claude/projects is commonly symlinked (iCloud,
+		// Dropbox, another disk) and would otherwise silently yield no transcripts.
+		if resolved, err := filepath.EvalSymlinks(claudeProjectsDir); err == nil {
+			claudeProjectsDir = resolved
+		}
+
 		info, err := os.Stat(claudeProjectsDir)
 		if err != nil {
 			if os.IsNotExist(err) {
