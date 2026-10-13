@@ -208,11 +208,7 @@ func (g Cursor) bufferedCutoff() time.Time {
 }
 
 func (Cursor) cursorTokenCounts(line cursorLogLine, previous heartbeat.AITokens) heartbeat.AITokens {
-	if line.TokenCount != nil {
-		if line.TokenCount.isZero() {
-			return previous
-		}
-
+	if line.TokenCount != nil && !line.TokenCount.isZero() {
 		current := previous
 
 		if inputTokens := cursorFirstInt(line.TokenCount.InputTokens, line.TokenCount.InputTokensSnake); inputTokens != nil {
@@ -295,21 +291,17 @@ func (u cursorUsage) isZero() bool {
 }
 
 func cursorAllIntsZero(values ...*int) bool {
-	hasValue := false
-
 	for _, value := range values {
 		if value == nil {
 			continue
 		}
-
-		hasValue = true
 
 		if *value != 0 {
 			return false
 		}
 	}
 
-	return hasValue
+	return true
 }
 
 func cursorFirstInt(values ...*int) *int {

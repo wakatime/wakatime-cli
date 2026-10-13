@@ -334,6 +334,80 @@ func TestCursorParse_UnicodePathsAndText(t *testing.T) {
 	assert.Equal(t, 2, *got[1].AILineChanges)
 }
 
+func TestCursorParse_UsageFallbackWithTokenCountPlaceholders(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	dbDir := filepath.Join(home, "Library", "Application Support", "Cursor", "User", "globalStorage")
+	require.NoError(t, os.MkdirAll(dbDir, 0o755))
+
+	createCursorDB(t, filepath.Join(dbDir, "state.vscdb"), []cursorTestRow{
+		{
+			Key: "bubbleId:grok-session:baseline",
+			Value: map[string]any{
+				"type":      2,
+				"text":      "Earlier response",
+				"createdAt": "2026-10-12T10:00:00Z",
+				"modelName": "grok-4.6",
+				"tokenCount": map[string]any{
+					"inputTokens":  3,
+					"outputTokens": 2,
+				},
+			},
+		},
+		{
+			Key: "bubbleId:grok-session:zero-token-count",
+			Value: map[string]any{
+				"type":      2,
+				"text":      "Response with usage",
+				"createdAt": "2026-10-12T10:01:00Z",
+				"tokenCount": map[string]any{
+					"inputTokens":  0,
+					"outputTokens": 0,
+					"totalTokens":  0,
+				},
+				"usage": map[string]any{
+					"input_tokens":  80,
+					"output_tokens": 12,
+				},
+			},
+		},
+		{
+			Key: "bubbleId:grok-session:empty-token-count",
+			Value: map[string]any{
+				"type":       2,
+				"text":       "Another response with usage",
+				"createdAt":  "2026-10-12T10:02:00Z",
+				"tokenCount": map[string]any{},
+				"usage": map[string]any{
+					"inputTokens":  85,
+					"outputTokens": 14,
+				},
+			},
+		},
+	})
+
+	got, err := ai.Cursor{
+		After:             time.Date(2026, 10, 12, 10, 0, 30, 0, time.UTC),
+		FallbackUserAgent: "Cursor/1.128.0",
+	}.Parse(context.Background())
+	require.NoError(t, err)
+	require.Len(t, got, 2)
+
+	assert.Equal(t, int64(77), got[0].AIInputTokens)
+	assert.Equal(t, int64(10), got[0].AIOutputTokens)
+	assert.Equal(t, int64(5), got[1].AIInputTokens)
+	assert.Equal(t, int64(2), got[1].AIOutputTokens)
+
+	for _, h := range got {
+		assert.Equal(t, "grok-session", h.AISession)
+		assert.Equal(t, heartbeat.AppType, h.EntityType)
+		assert.Equal(t, heartbeat.AICodingCategory.String(), h.Category)
+		assert.Equal(t, "grok/4.6 Cursor/1.128.0", h.UserAgent)
+	}
+}
+
 func TestCursorParse_ContentSnapshots(t *testing.T) {
 	ctx := context.Background()
 
