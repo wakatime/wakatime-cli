@@ -106,6 +106,7 @@ func CountLines(ctx context.Context, fp string) (int, error) {
 	reader := io.LimitReader(f, MaxFileSizeSupported)
 
 	scanner := bufio.NewScanner(reader)
+	scanner.Buffer(nil, MaxFileSizeSupported+1)
 	scanner.Split(bufio.ScanLines)
 
 	var count int
