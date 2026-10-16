@@ -82,7 +82,7 @@ type (
 		Input             *string                     `json:"input"`
 		Message           *string                     `json:"message"`
 		Role              *string                     `json:"role"`
-		Status            *string                     `json:"status"`
+		Status            json.RawMessage             `json:"status"`
 		Content           []codexContentItem          `json:"content"`
 		Cwd               *string                     `json:"cwd"`
 		Info              *codexPayloadTokenCountInfo `json:"info"`
