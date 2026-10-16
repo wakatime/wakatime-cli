@@ -84,17 +84,17 @@ func TestEntityUserAgentsAndAIUserAgent(t *testing.T) {
 	assert.Equal(t, map[string]string{"/tmp/main.go": "editor/1.0.0"}, userAgents)
 	assert.Equal(
 		t,
-		aiPlugin(Cursor{}, "")+" "+"editor/1.0.0",
+		"editor/1.0.0 "+aiPlugin(Cursor{}, ""),
 		aiUserAgent("/tmp/main.go", userAgents, "plugin/0.1.0", aiPlugin(Cursor{}, "")),
 	)
 	assert.Equal(
 		t,
-		aiPlugin(Cursor{}, "")+" "+"plugin/0.1.0",
+		aiPlugin(Cursor{}, "")+" plugin/0.1.0",
 		aiUserAgent("/tmp/other.go", userAgents, "plugin/0.1.0", aiPlugin(Cursor{}, "")),
 	)
 	assert.Equal(
 		t,
-		aiPlugin(Cursor{}, "")+" "+heartbeat.UserAgent(ctx, "editor/1.0.0"),
+		heartbeat.UserAgent(ctx, "editor/1.0.0 "+aiPlugin(Cursor{}, "")),
 		aiUserAgent(
 			"/tmp/rendered.go",
 			map[string]string{
@@ -128,7 +128,7 @@ func TestEntityUserAgentsAndAIUserAgent(t *testing.T) {
 	)
 	assert.Equal(
 		t,
-		"Codex/1.2.3 "+heartbeat.UserAgent(ctx, "Claude/1.7196.0 macos-wakatime/5.28.3"),
+		heartbeat.UserAgent(ctx, "Codex/1.2.3 Claude/1.7196.0 macos-wakatime/5.28.3"),
 		aiUserAgent(
 			"/tmp/rendered-claude.go",
 			map[string]string{

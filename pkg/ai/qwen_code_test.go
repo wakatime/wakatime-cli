@@ -319,7 +319,7 @@ func TestQwenCodeParse(t *testing.T) {
 	assert.EqualValues(t, 5, got[4].AIOutputTokens)
 	require.NotNil(t, got[4].IsWrite)
 	assert.True(t, *got[4].IsWrite)
-	assert.Contains(t, got[4].UserAgent, "qwen/3-coder-plus qwen-code-cli/0.17.0")
+	assert.Contains(t, got[4].UserAgent, "qwen/3-coder-plus editor/1.2.3 qwen-code-cli/0.17.0")
 	assert.True(t, strings.Index(got[4].UserAgent, "qwen/3-coder-plus") <
 		strings.Index(got[4].UserAgent, "qwen-code-cli/0.17.0"))
 	assert.Contains(t, got[4].UserAgent, "editor/1.2.3")

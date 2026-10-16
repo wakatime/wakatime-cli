@@ -732,8 +732,9 @@ func genericAIEventHeartbeats(parser Parser, config ParserConfig, event genericA
 		CurrentCachedInput: max(event.cachedInput, 0),
 		CurrentOutput:      max(event.output, 0),
 	}
-	userAgent := aiUserAgent(entity, config.UserAgents, config.FallbackUserAgent, aiPlugin(parser, ""))
-	userAgent = userAgentWithPrependedAgent(userAgent, aiModelUserAgentToken(event.model, ""))
+	userAgent := aiUserAgentWithModelAndEditor(
+		entity, config.UserAgents, config.FallbackUserAgent, event.model, "", aiPlugin(parser, ""),
+	)
 
 	app := heartbeat.NewWithAITokens(
 		nil,

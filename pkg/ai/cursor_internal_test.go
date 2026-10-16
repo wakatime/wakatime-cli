@@ -324,7 +324,7 @@ func TestCursorUserAgentWithModel(t *testing.T) {
 	)
 	assert.Equal(
 		t,
-		"composer/2.5 wakatime/13.0.7 (macOS-arm64-arm64) go1.26 Cursor/1.105.1",
+		"wakatime/13.0.7 (macOS-arm64-arm64) go1.26 composer/2.5 Cursor/1.105.1",
 		cursorUserAgentWithModel(
 			"wakatime/13.0.7 (macOS-arm64-arm64) go1.26 Cursor/1.105.1",
 			"composer/2.5",

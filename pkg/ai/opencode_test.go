@@ -154,7 +154,7 @@ func TestOpenCodeParse_LegacyStorage(t *testing.T) {
 	assert.Equal(t, 1, *got[2].AILineChanges)
 	require.NotNil(t, got[2].IsWrite)
 	assert.True(t, *got[2].IsWrite)
-	assert.Contains(t, got[2].UserAgent, "claude/3.5 opencode-cli/1.4.4")
+	assert.Contains(t, got[2].UserAgent, "claude/3.5 editor/1.2.3 opencode-cli/1.4.4")
 	assert.True(t, strings.Index(got[2].UserAgent, "claude/3.5") <
 		strings.Index(got[2].UserAgent, "opencode-cli/1.4.4"))
 	assert.Contains(t, got[2].UserAgent, "editor/1.2.3")

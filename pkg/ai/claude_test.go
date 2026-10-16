@@ -141,7 +141,7 @@ func TestClaudeParse(t *testing.T) {
 	assert.Equal(t, float64(time.Date(2026, 3, 18, 12, 0, 0, 0, time.UTC).Unix()), got[1].Time)
 	assert.Equal(
 		t,
-		"claude-code/2.1.45 "+heartbeat.UserAgent(ctx, "editor/1.2.3"),
+		heartbeat.UserAgent(ctx, "editor/1.2.3 claude-code/2.1.45"),
 		got[1].UserAgent,
 	)
 	assert.Contains(t, got[1].UserAgent, "claude-code/2.1.45")

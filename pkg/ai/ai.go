@@ -12,6 +12,7 @@ import (
 	"runtime/debug"
 	"strings"
 	"time"
+	"unicode"
 	"unicode/utf8"
 
 	"github.com/spf13/viper"
@@ -800,7 +801,7 @@ func entityUserAgents(hh []heartbeat.Heartbeat) map[string]string {
 	userAgents := make(map[string]string, len(hh))
 
 	for _, h := range hh {
-		if h.Entity == "" || h.UserAgent == "" {
+		if h.EntityType != heartbeat.FileType || h.Entity == "" || h.UserAgent == "" {
 			continue
 		}
 
@@ -887,7 +888,7 @@ func aiUserAgent(entity string, userAgents map[string]string, fallback string, p
 	}
 
 	if existing != "" {
-		return userAgentWithPrependedParser(existing, parser)
+		return userAgentWithAgentProduct(existing, parser, userAgentHasFileContext(existing, userAgents))
 	}
 
 	return canonicalAgentToken(parser)
@@ -921,75 +922,51 @@ func aiUserAgentWithModelAndEditor(
 		existing = fromHeartbeat
 	}
 
-	existing = userAgentWithPrependedEditor(existing, editor)
+	hasFileContext := userAgentHasFileContext(existing, userAgents)
+	modelToken := aiModelUserAgentToken(model, complexity)
+	header, products := splitUserAgent(existing)
+	fields := strings.Fields(products)
+	filtered := make([]string, 0, len(fields))
 
-	return userAgentWithPrependedAgent(existing, aiModelUserAgentToken(model, complexity))
+	for _, field := range fields {
+		if modelToken == "" || !strings.EqualFold(field, modelToken) {
+			filtered = append(filtered, field)
+		}
+	}
+
+	existing = strings.TrimSpace(header + " " + strings.Join(filtered, " "))
+	existing = userAgentWithAgentProduct(existing, editor, hasFileContext)
+
+	return userAgentWithPrependedAgent(existing, modelToken)
 }
 
 func userAgentWithPrependedAgent(userAgent string, agent string) string {
-	if userAgent == "" {
-		return agent
-	}
-
-	if agent == "" || userAgentHasToken(userAgent, agent) {
+	if agent == "" {
 		return userAgent
 	}
 
-	return strings.TrimSpace(agent + " " + userAgent)
+	header, products := splitUserAgent(userAgent)
+	fields := []string{agent}
+
+	for _, field := range strings.Fields(products) {
+		if !strings.EqualFold(field, agent) {
+			fields = append(fields, field)
+		}
+	}
+
+	return strings.TrimSpace(header + " " + strings.Join(fields, " "))
 }
 
-func userAgentWithPrependedParser(userAgent string, parser string) string {
-	return userAgentWithAgentProduct(userAgent, parser)
-}
+// userAgentHasFileContext confirms that the selected plugin was observed on
+// a file heartbeat, even when it is used as the fallback for another file.
+func userAgentHasFileContext(userAgent string, userAgents map[string]string) bool {
+	for _, existing := range userAgents {
+		if userAgent != "" && userAgent == existing {
+			return true
+		}
+	}
 
-func userAgentWithPrependedEditor(userAgent string, editor string) string {
-	return userAgentWithAgentProduct(userAgent, editor)
-}
-
-// hostEditorProducts are versioned IDE tokens plugins already send. The server
-// uses the product immediately after the model as the editor, so an agent
-// product is placed after one of these instead of in front of it.
-var hostEditorProducts = map[string]struct{}{
-	"androidstudio":   {},
-	"arduino":         {},
-	"azdata":          {},
-	"bbedit":          {},
-	"clion":           {},
-	"cursor":          {},
-	"datagrip":        {},
-	"eclipse":         {},
-	"emacs":           {},
-	"goland":          {},
-	"idea":            {},
-	"intellij":        {},
-	"intellijidea":    {},
-	"jetbrains":       {},
-	"kate":            {},
-	"lapce":           {},
-	"neovim":          {},
-	"netbeans":        {},
-	"nova":            {},
-	"nvim":            {},
-	"onivim":          {},
-	"phpstorm":        {},
-	"positron":        {},
-	"pycharm":         {},
-	"rider":           {},
-	"rubymine":        {},
-	"sqlops":          {},
-	"sublime":         {},
-	"sublime-text":    {},
-	"textmate":        {},
-	"trae":            {},
-	"vim":             {},
-	"visualstudio":    {},
-	"vscode":          {},
-	"vscode-insiders": {},
-	"vscodium":        {},
-	"webstorm":        {},
-	"windsurf":        {},
-	"xcode":           {},
-	"zed":             {},
+	return false
 }
 
 // canonicalAgentToken collapses a spaced parser name into one product token.
@@ -998,11 +975,12 @@ var hostEditorProducts = map[string]struct{}{
 // caller's spelling, including versioned products such as codex-vscode/0.162.0.
 func canonicalAgentToken(name string) string {
 	name = strings.TrimSpace(name)
-	if name == "" || !strings.Contains(name, " ") {
+
+	fields := strings.Fields(name)
+	if len(fields) < 2 {
 		return name
 	}
 
-	fields := strings.Fields(name)
 	versioned := 0
 
 	for _, field := range fields {
@@ -1021,6 +999,7 @@ func canonicalAgentToken(name string) string {
 	product, version, found := strings.Cut(strings.Join(fields, " "), "/")
 
 	product = strings.ToLower(strings.Join(strings.Fields(product), "-"))
+
 	product = strings.Trim(product, "-_.")
 	if product == "" {
 		return ""
@@ -1041,55 +1020,144 @@ func canonicalAgentToken(name string) string {
 // userAgentWithAgentProduct records an agent without taking the editor slot
 // away from a host IDE. With a host token the order is host, agent, other
 // plugins. Without one, the agent stays in front and is the editor.
-func userAgentWithAgentProduct(userAgent string, agent string) string {
+func userAgentWithAgentProduct(userAgent string, agent string, hasFileContext bool) string {
 	agent = canonicalAgentToken(agent)
 	if agent == "" {
 		return userAgent
 	}
 
-	if userAgent == "" {
-		return agent
+	header, products := splitUserAgent(userAgent)
+	fields := strings.Fields(products)
+	updated := make([]string, 0, len(fields)+2)
+	host := ""
+
+	if hostAt, ok := hostEditorFieldIndex(fields, hasFileContext); ok {
+		host = fields[hostAt]
+		updated = append(updated, host)
+		fields = append(fields[:hostAt], fields[hostAt+1:]...)
 	}
 
-	if userAgentHasProduct(userAgent, userAgentProduct(agent)) || userAgentHasToken(userAgent, agent) {
-		return userAgent
-	}
-
-	tokens := strings.Fields(agent)
-	fields := strings.Fields(userAgent)
-	if hostAt, ok := hostEditorFieldIndex(fields); ok {
-		updated := make([]string, 0, len(fields)+len(tokens))
-		updated = append(updated, fields[:hostAt+1]...)
-		updated = append(updated, tokens...)
-		updated = append(updated, fields[hostAt+1:]...)
-
-		return strings.Join(updated, " ")
-	}
-
-	return strings.TrimSpace(strings.Join(tokens, " ") + " " + userAgent)
-}
-
-func hostEditorFieldIndex(fields []string) (int, bool) {
-	start := 0
-	if len(fields) > 0 && strings.HasPrefix(fields[0], "wakatime/") {
-		if len(fields) < 4 {
-			return 0, false
-		}
-
-		start = 3
-	}
-
-	for i := start; i < len(fields); i++ {
-		if !strings.Contains(fields[i], "/") {
+	for _, token := range strings.Fields(agent) {
+		if host != "" && strings.EqualFold(userAgentProduct(host), userAgentProduct(token)) {
 			continue
 		}
 
-		if _, ok := hostEditorProducts[strings.ToLower(userAgentProduct(fields[i]))]; ok {
-			return i, true
+		var existing string
+
+		existing, fields = takeUserAgentProduct(fields, token)
+		updated = append(updated, existing)
+	}
+
+	updated = append(updated, fields...)
+
+	return strings.TrimSpace(header + " " + strings.Join(updated, " "))
+}
+
+// takeUserAgentProduct preserves an existing product's spelling and version
+// while removing copies so it can be placed in the correct position.
+func takeUserAgentProduct(fields []string, token string) (string, []string) {
+	remaining := fields[:0]
+	found := false
+
+	for _, field := range fields {
+		if strings.EqualFold(userAgentProduct(field), userAgentProduct(token)) {
+			if !found {
+				token = field
+				found = true
+			}
+
+			continue
+		}
+
+		remaining = append(remaining, field)
+	}
+
+	return token, remaining
+}
+
+// hostEditorFieldIndex uses the editor supplied by the plugin instead of an
+// allowlist of IDE names when a file heartbeat establishes editor provenance.
+// Without file context, or with the foreground app collector, only known IDE
+// products can establish a host; unrelated apps must not replace the parser.
+func hostEditorFieldIndex(fields []string, hasFileContext bool) (int, bool) {
+	if !hasFileContext {
+		return knownIDEFieldIndex(fields)
+	}
+
+	for _, field := range fields {
+		if strings.EqualFold(userAgentProduct(field), "macos-wakatime") {
+			return knownIDEFieldIndex(fields)
+		}
+	}
+
+	for i, field := range fields {
+		product := strings.ToLower(userAgentProduct(field))
+		if !strings.Contains(field, "/") || strings.Contains(product, "wakatime") || aiHarnessProduct(product) {
+			continue
+		}
+
+		return i, true
+	}
+
+	return 0, false
+}
+
+func knownIDEFieldIndex(fields []string) (int, bool) {
+	for i, field := range fields {
+		if !strings.Contains(field, "/") {
+			continue
+		}
+
+		for _, source := range antigravityProductDirs() {
+			if source.hostEditor && strings.EqualFold(userAgentProduct(field), source.userAgentProduct) {
+				return i, true
+			}
+		}
+
+		for _, editor := range []Parser{Cursor{}, Windsurf{}, Qoder{}, Kiro{}, Zed{}} {
+			if strings.EqualFold(userAgentProduct(field), editor.Name()) {
+				return i, true
+			}
 		}
 	}
 
 	return 0, false
+}
+
+// aiHarnessProduct recognizes products emitted by the supported AI parsers.
+// Keeping their names tied to the parsers lets arbitrary plugin editor names
+// remain in the editor slot, including renamed and newly added IDEs.
+func aiHarnessProduct(product string) bool {
+	if strings.HasPrefix(product, strings.ToLower((Codex{}).Name())+"-") {
+		return true
+	}
+
+	for _, source := range antigravityProductDirs() {
+		if !source.hostEditor && product == source.userAgentProduct {
+			return true
+		}
+	}
+
+	product = strings.TrimSuffix(product, "-cli")
+	if product == "claude-code" || product == "github-copilot" {
+		return true
+	}
+
+	for _, parser := range []Parser{
+		Claude{}, Codex{}, Continue{}, Cody{}, RooCode{}, OpenCode{}, Copilot{},
+		Cline{}, Gemini{}, QwenCode{}, Pi{}, Goose{}, Amp{}, GrokBuild{}, ClineCLI{},
+		Codebuff{}, CodeWhale{}, Crush{}, CursorAgent{}, Devin{}, Droid{}, Forge{},
+		Hermes{}, IBMBob{}, KiloCode{}, Kimi{}, KimiCode{}, LingTaiTUI{}, MistralVibe{},
+		Mux{}, OMP{}, OpenClaw{}, OpenDesign{}, QuickDesk{}, Warp{}, ZCode{}, Zerostack{},
+		DeepSeek{}, CodeBuddyCode{}, OpenClaude{}, GrokBot{},
+	} {
+		name := strings.ToLower(strings.Join(strings.Fields(parser.Name()), "-"))
+		if product == name {
+			return true
+		}
+	}
+
+	return false
 }
 
 func aiAgentUserAgentToken(agent string) string {
@@ -1135,20 +1203,6 @@ func aiAgentUserAgentToken(agent string) string {
 	return agent
 }
 
-func userAgentHasProduct(userAgent string, product string) bool {
-	if userAgent == "" || product == "" {
-		return false
-	}
-
-	for _, field := range userAgentProductFields(userAgent) {
-		if strings.EqualFold(userAgentProduct(field), product) {
-			return true
-		}
-	}
-
-	return false
-}
-
 func userAgentHasToken(userAgent string, token string) bool {
 	if userAgent == "" || token == "" {
 		return false
@@ -1170,20 +1224,62 @@ func userAgentProduct(token string) string {
 }
 
 func userAgentProductFields(userAgent string) []string {
-	fields := strings.Fields(userAgent)
-	if len(fields) == 0 {
+	_, products := splitUserAgent(userAgent)
+	if products == "" {
 		return nil
 	}
 
-	if strings.HasPrefix(fields[0], "wakatime/") {
-		if len(fields) < 4 {
-			return nil
-		}
+	return strings.Fields(products)
+}
 
-		fields = fields[3:]
+// splitUserAgent separates the optional CLI header from plugin products. The
+// operating system description can contain spaces, so it is not a fixed
+// number of whitespace-separated fields.
+func splitUserAgent(userAgent string) (string, string) {
+	userAgent = strings.TrimSpace(userAgent)
+	if !strings.HasPrefix(userAgent, "wakatime/") {
+		return "", userAgent
 	}
 
-	return fields
+	systemEnd := userAgentSystemEnd(userAgent)
+	if systemEnd == -1 {
+		return userAgent, ""
+	}
+
+	runtime := strings.TrimSpace(userAgent[systemEnd+1:])
+
+	separator := strings.IndexFunc(runtime, unicode.IsSpace)
+	if separator == -1 {
+		return userAgent, ""
+	}
+
+	products := strings.TrimSpace(runtime[separator:])
+	header := strings.TrimSpace(userAgent[:len(userAgent)-len(products)])
+
+	return header, products
+}
+
+func userAgentSystemEnd(userAgent string) int {
+	start := strings.IndexByte(userAgent, '(')
+	if start == -1 {
+		return -1
+	}
+
+	depth := 0
+
+	for i := start; i < len(userAgent); i++ {
+		switch userAgent[i] {
+		case '(':
+			depth++
+		case ')':
+			depth--
+			if depth == 0 {
+				return i
+			}
+		}
+	}
+
+	return -1
 }
 
 func appHeartbeatEntity(parserName string, rawEntity string) string {
