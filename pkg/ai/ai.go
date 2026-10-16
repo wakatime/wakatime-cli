@@ -890,7 +890,7 @@ func aiUserAgent(entity string, userAgents map[string]string, fallback string, p
 		return userAgentWithPrependedParser(existing, parser)
 	}
 
-	return parser
+	return canonicalAgentToken(parser)
 }
 
 func aiUserAgentWithModel(
@@ -939,23 +939,157 @@ func userAgentWithPrependedAgent(userAgent string, agent string) string {
 }
 
 func userAgentWithPrependedParser(userAgent string, parser string) string {
-	if userAgentHasProduct(userAgent, userAgentProduct(parser)) {
-		return userAgent
-	}
-
-	return strings.TrimSpace(parser + " " + userAgent)
+	return userAgentWithAgentProduct(userAgent, parser)
 }
 
 func userAgentWithPrependedEditor(userAgent string, editor string) string {
-	if editor == "" {
+	return userAgentWithAgentProduct(userAgent, editor)
+}
+
+// hostEditorProducts are versioned IDE tokens plugins already send. The server
+// uses the product immediately after the model as the editor, so an agent
+// product is placed after one of these instead of in front of it.
+var hostEditorProducts = map[string]struct{}{
+	"androidstudio":   {},
+	"arduino":         {},
+	"azdata":          {},
+	"bbedit":          {},
+	"clion":           {},
+	"cursor":          {},
+	"datagrip":        {},
+	"eclipse":         {},
+	"emacs":           {},
+	"goland":          {},
+	"idea":            {},
+	"intellij":        {},
+	"intellijidea":    {},
+	"jetbrains":       {},
+	"kate":            {},
+	"lapce":           {},
+	"neovim":          {},
+	"netbeans":        {},
+	"nova":            {},
+	"nvim":            {},
+	"onivim":          {},
+	"phpstorm":        {},
+	"positron":        {},
+	"pycharm":         {},
+	"rider":           {},
+	"rubymine":        {},
+	"sqlops":          {},
+	"sublime":         {},
+	"sublime-text":    {},
+	"textmate":        {},
+	"trae":            {},
+	"vim":             {},
+	"visualstudio":    {},
+	"vscode":          {},
+	"vscode-insiders": {},
+	"vscodium":        {},
+	"webstorm":        {},
+	"windsurf":        {},
+	"xcode":           {},
+	"zed":             {},
+}
+
+// canonicalAgentToken collapses a spaced parser name into one product token.
+// "Cursor Agent" becomes "cursor-agent" and "Grok Build/1.2.3" becomes
+// "grok-build/1.2.3". Tokens that are already a single field keep their
+// caller's spelling, including versioned products such as codex-vscode/0.162.0.
+func canonicalAgentToken(name string) string {
+	name = strings.TrimSpace(name)
+	if name == "" || !strings.Contains(name, " ") {
+		return name
+	}
+
+	fields := strings.Fields(name)
+	versioned := 0
+
+	for _, field := range fields {
+		if strings.Contains(field, "/") {
+			versioned++
+		}
+	}
+
+	// Two versioned tokens, such as "github-copilot-cli/1 copilot/1", are
+	// already separate products. Only a spaced name like "Grok Build/1.2.3"
+	// or "Cursor Agent" collapses into one token.
+	if versioned > 1 {
+		return strings.Join(fields, " ")
+	}
+
+	product, version, found := strings.Cut(strings.Join(fields, " "), "/")
+
+	product = strings.ToLower(strings.Join(strings.Fields(product), "-"))
+	product = strings.Trim(product, "-_.")
+	if product == "" {
+		return ""
+	}
+
+	if !found {
+		return product
+	}
+
+	version = strings.Trim(strings.Join(strings.Fields(version), "-"), "-_.")
+	if version == "" {
+		return product
+	}
+
+	return product + "/" + version
+}
+
+// userAgentWithAgentProduct records an agent without taking the editor slot
+// away from a host IDE. With a host token the order is host, agent, other
+// plugins. Without one, the agent stays in front and is the editor.
+func userAgentWithAgentProduct(userAgent string, agent string) string {
+	agent = canonicalAgentToken(agent)
+	if agent == "" {
 		return userAgent
 	}
 
-	if userAgentHasProduct(userAgent, userAgentProduct(editor)) {
+	if userAgent == "" {
+		return agent
+	}
+
+	if userAgentHasProduct(userAgent, userAgentProduct(agent)) || userAgentHasToken(userAgent, agent) {
 		return userAgent
 	}
 
-	return strings.TrimSpace(editor + " " + userAgent)
+	tokens := strings.Fields(agent)
+	fields := strings.Fields(userAgent)
+	if hostAt, ok := hostEditorFieldIndex(fields); ok {
+		updated := make([]string, 0, len(fields)+len(tokens))
+		updated = append(updated, fields[:hostAt+1]...)
+		updated = append(updated, tokens...)
+		updated = append(updated, fields[hostAt+1:]...)
+
+		return strings.Join(updated, " ")
+	}
+
+	return strings.TrimSpace(strings.Join(tokens, " ") + " " + userAgent)
+}
+
+func hostEditorFieldIndex(fields []string) (int, bool) {
+	start := 0
+	if len(fields) > 0 && strings.HasPrefix(fields[0], "wakatime/") {
+		if len(fields) < 4 {
+			return 0, false
+		}
+
+		start = 3
+	}
+
+	for i := start; i < len(fields); i++ {
+		if !strings.Contains(fields[i], "/") {
+			continue
+		}
+
+		if _, ok := hostEditorProducts[strings.ToLower(userAgentProduct(fields[i]))]; ok {
+			return i, true
+		}
+	}
+
+	return 0, false
 }
 
 func aiAgentUserAgentToken(agent string) string {
