@@ -173,11 +173,20 @@ func findSubmodule(ctx context.Context, fp string, patterns []regex.Regex) (stri
 			fmt.Errorf("error finding gitdir for submodule: %s", err)
 	}
 
-	if strings.Contains(gitdir, "modules") {
-		return gitdir, true, nil
+	if !strings.Contains(gitdir, "modules") {
+		return "", false, nil
 	}
 
-	return "", false, nil
+	_, isWorktree, err := findCommondir(ctx, gitdir)
+	if err != nil {
+		return "", false, err
+	}
+
+	if isWorktree {
+		return "", false, nil
+	}
+
+	return gitdir, true, nil
 }
 
 // shouldTakeSubmodule checks a filepath against the passed in regex patterns to determine,
