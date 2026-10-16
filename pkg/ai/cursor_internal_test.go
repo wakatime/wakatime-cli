@@ -130,6 +130,92 @@ func TestCursorHelpers(t *testing.T) {
 	})
 }
 
+func TestCursorTokenCounts_UsageFallback(t *testing.T) {
+	zero := 0
+	input := 20
+	output := 30
+	countInput := 17
+	countOutput := 25
+	previous := heartbeat.AITokens{
+		LastInput:     3,
+		LastOutput:    5,
+		CurrentInput:  10,
+		CurrentOutput: 16,
+	}
+	usage := &cursorUsage{InputTokens: &input, OutputTokens: &output}
+	wantUsage := heartbeat.AITokens{
+		LastInput:     3,
+		LastOutput:    5,
+		CurrentInput:  20,
+		CurrentOutput: 30,
+	}
+
+	tests := []struct {
+		name string
+		line cursorLogLine
+		want heartbeat.AITokens
+	}{
+		{
+			name: "zero placeholders fall back to snake case usage",
+			line: cursorLogLine{
+				TokenCount: &cursorTokenCount{InputTokens: &zero, OutputTokens: &zero, TotalTokens: &zero},
+				Usage:      usage,
+			},
+			want: wantUsage,
+		},
+		{
+			name: "snake case placeholders fall back to camel case usage",
+			line: cursorLogLine{
+				TokenCount: &cursorTokenCount{InputTokensSnake: &zero, OutputTokensSnake: &zero},
+				Usage:      &cursorUsage{InputTokensCamel: &input, OutputTokensCamel: &output},
+			},
+			want: wantUsage,
+		},
+		{
+			name: "empty token count falls back to usage",
+			line: cursorLogLine{TokenCount: &cursorTokenCount{}, Usage: usage},
+			want: wantUsage,
+		},
+		{
+			name: "usable token count retains precedence",
+			line: cursorLogLine{
+				TokenCount: &cursorTokenCount{InputTokens: &countInput, OutputTokens: &countOutput},
+				Usage:      usage,
+			},
+			want: heartbeat.AITokens{
+				LastInput:     3,
+				LastOutput:    5,
+				CurrentInput:  17,
+				CurrentOutput: 25,
+			},
+		},
+		{
+			name: "zero placeholders without usage preserve pending tokens",
+			line: cursorLogLine{TokenCount: &cursorTokenCount{InputTokens: &zero, OutputTokens: &zero}},
+			want: previous,
+		},
+		{
+			name: "empty token count without usage preserves pending tokens",
+			line: cursorLogLine{TokenCount: &cursorTokenCount{}},
+			want: previous,
+		},
+		{
+			name: "zero usage preserves pending tokens",
+			line: cursorLogLine{
+				TokenCount: &cursorTokenCount{},
+				Usage:      &cursorUsage{InputTokens: &zero, OutputTokens: &zero},
+			},
+			want: previous,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, Cursor{}.cursorTokenCounts(tt.line, previous))
+		})
+	}
+}
+
 func TestCursorHeartbeatFallbacks(t *testing.T) {
 	parser := Cursor{FallbackUserAgent: "plugin/0.1.0"}
 	createdAt := time.Date(2026, 3, 20, 12, 0, 0, 0, time.UTC)
