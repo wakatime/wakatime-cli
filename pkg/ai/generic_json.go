@@ -768,6 +768,10 @@ func genericAIEventHeartbeats(parser Parser, config ParserConfig, event genericA
 	}
 
 	filePath := strings.ReplaceAll(filepath.Clean(event.filePath), `\`, "/")
+	fileUserAgent := aiUserAgentWithModelAndEditor(
+		filePath, config.UserAgents, config.FallbackUserAgent, event.model, "", aiPlugin(parser, ""),
+	)
+
 	fileHeartbeat := heartbeat.New(
 		event.lineChanges,
 		"",
@@ -788,7 +792,7 @@ func genericAIEventHeartbeats(parser Parser, config ParserConfig, event genericA
 		"",
 		"",
 		heartbeatTimestamp(event.timestamp),
-		aiUserAgent(filePath, config.UserAgents, config.FallbackUserAgent, aiPlugin(parser, "")),
+		fileUserAgent,
 	)
 	fileHeartbeat.AISession = event.sessionID
 	heartbeats = append(heartbeats, fileHeartbeat)

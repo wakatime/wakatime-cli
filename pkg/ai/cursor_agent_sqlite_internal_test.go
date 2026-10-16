@@ -57,6 +57,7 @@ func TestCursorAgentSkipsIrrelevantSQLiteTables(t *testing.T) {
 	assert.Equal(t, "Cursor Agent conversation", got[0].Entity)
 	assert.Equal(t, "grok/4.5 cursor-agent", got[0].UserAgent)
 	assert.Equal(t, filepath.ToSlash(filePath), got[1].Entity)
+	assert.Equal(t, "grok/4.5 cursor-agent", got[1].UserAgent)
 }
 
 func TestCursorAgentSkipsHistoricalSQLiteRows(t *testing.T) {
@@ -111,6 +112,7 @@ func TestCursorAgentSkipsHistoricalSQLiteRows(t *testing.T) {
 	assert.Equal(t, "Cursor Agent recent-conversation", got[0].Entity)
 	assert.Equal(t, "grok/4.5 cursor-agent", got[0].UserAgent)
 	assert.Equal(t, filepath.ToSlash(filePath), got[1].Entity)
+	assert.Equal(t, "grok/4.5 cursor-agent", got[1].UserAgent)
 	assert.LessOrEqual(t, ctx.Value(aiSQLiteBudgetKey{}).(*aiSQLiteBudget).bytes, int64(aiSQLiteByteLimit))
 
 	for _, h := range got {

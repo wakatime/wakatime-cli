@@ -1374,13 +1374,26 @@ func replaceAppHeartbeats(heartbeats []heartbeat.Heartbeat) []heartbeat.Heartbea
 	return deduped
 }
 
+// sameHeartbeat only combines activity with the same leading product, which
+// identifies the AI model when available. A model switch must keep token
+// counts on its own heartbeat even when the file and session are unchanged.
 func sameHeartbeat(a, b heartbeat.Heartbeat) bool {
 	return a.AISession == b.AISession &&
+		firstUserAgentToken(a.UserAgent) == firstUserAgentToken(b.UserAgent) &&
 		a.Category == b.Category &&
 		a.Entity == b.Entity &&
 		a.EntityType == b.EntityType &&
 		a.IsUnsavedEntity == b.IsUnsavedEntity &&
 		absFloat64(a.Time-b.Time) < 60
+}
+
+func firstUserAgentToken(userAgent string) string {
+	fields := userAgentProductFields(userAgent)
+	if len(fields) == 0 {
+		return ""
+	}
+
+	return strings.ToLower(fields[0])
 }
 
 func mergeHeartbeatCounts(dst *heartbeat.Heartbeat, src heartbeat.Heartbeat) {

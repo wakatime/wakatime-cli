@@ -117,6 +117,13 @@ func TestAIUserAgentRepeatedParserComposition(t *testing.T) {
 	assert.Equal(t, "grok/4.7 cursor/2 plugin/3", cursorAgent)
 	cursor.FallbackUserAgent = cursorAgent
 	assert.Equal(t, cursorAgent, cursor.userAgent(entity, "grok-4.7"))
+
+	event := genericAIEvent{model: "grok-4.7", filePath: entity}
+	config := ParserConfig{FallbackUserAgent: plugin}
+	generic := genericAIEventHeartbeats(CursorAgent{}, config, event)
+	assert.Equal(t, "grok/4.7 cursor/2 cursor-agent plugin/3", generic[1].UserAgent)
+	config.FallbackUserAgent = generic[1].UserAgent
+	assert.Equal(t, generic[1].UserAgent, genericAIEventHeartbeats(CursorAgent{}, config, event)[1].UserAgent)
 }
 
 func TestAIUserAgentUsesFileContextForFallbackEditor(t *testing.T) {
