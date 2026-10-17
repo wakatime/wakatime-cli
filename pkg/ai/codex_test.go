@@ -399,6 +399,34 @@ func TestCodexParse_EmitsOnlySuccessfulPatches(t *testing.T) {
 	assert.Equal(t, float64(time.Date(2026, 6, 20, 12, 0, 4, 0, time.UTC).Unix()), got[0].Time)
 }
 
+func TestCodexParse_AcceptsObjectStatusInCollabCloseEnd(t *testing.T) {
+	ctx := context.Background()
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+	t.Setenv("CODEX_HOME", "")
+
+	transcriptDir := filepath.Join(home, ".codex", "sessions", "2026", "06", "20")
+	require.NoError(t, os.MkdirAll(transcriptDir, 0o755))
+	transcriptPath := filepath.Join(transcriptDir, "session.jsonl")
+	transcript := strings.Join([]string{
+		`{"timestamp":"2026-06-20T12:00:00Z","type":"session_meta",` +
+			`"payload":{"id":"session","cwd":"/workspace/project"}}`,
+		`{"timestamp":"2026-06-20T12:00:01Z","type":"response_item",` +
+			`"payload":{"type":"custom_tool_call","call_id":"patch-with-object-status",` +
+			`"name":"apply_patch","input":"*** Update File: object_status.go\n+one"}}`,
+		`{"timestamp":"2026-06-20T12:00:02Z","type":"event_msg",` +
+			`"payload":{"type":"patch_apply_end","call_id":"patch-with-object-status",` +
+			`"success":true,"status":{"error":"agent not found","code":"not_found"}}}`,
+	}, "\n") + "\n"
+	require.NoError(t, os.WriteFile(transcriptPath, []byte(transcript), 0o644))
+
+	got, err := (ai.Codex{After: time.Date(2026, 6, 20, 12, 0, 0, 0, time.UTC)}).Parse(ctx)
+	require.NoError(t, err)
+	require.Len(t, got, 1)
+	assert.Equal(t, filepath.Join("/workspace/project", "object_status.go"), got[0].Entity)
+}
+
 func TestCodexParse_UserAgentUsesSourceFromRealSessionMetaLines(t *testing.T) {
 	tests := map[string]struct {
 		SessionMeta       string

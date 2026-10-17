@@ -2,6 +2,7 @@ package file_test
 
 import (
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/wakatime/wakatime-cli/pkg/file"
@@ -159,6 +160,21 @@ func TestCountLines(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, lines, 2000)
+}
+
+func TestCountLines_LongLine(t *testing.T) {
+	f, err := os.CreateTemp(t.TempDir(), "")
+	require.NoError(t, err)
+
+	defer f.Close()
+
+	_, err = f.WriteString(strings.Repeat("x", file.MaxFileSizeSupported))
+	require.NoError(t, err)
+
+	lines, err := file.CountLines(t.Context(), f.Name())
+	require.NoError(t, err)
+
+	assert.Equal(t, 1, lines)
 }
 
 func TestReadLines_EmptyFile(t *testing.T) {

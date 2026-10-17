@@ -176,6 +176,30 @@ func TestGit_Detect_Worktree(t *testing.T) {
 	}, result)
 }
 
+func TestGit_Detect_Worktree_ModulesPath(t *testing.T) {
+	fp := setupTestGitWorktree(t)
+	projectDir := filepath.Join(fp, "node_modules", "wakatime-cli")
+	require.NoError(t, os.MkdirAll(filepath.Dir(projectDir), 0700))
+	require.NoError(t, os.Rename(filepath.Join(fp, "wakatime-cli"), projectDir))
+
+	gitdir := filepath.Join(projectDir, ".git", "worktrees", "api")
+	require.NoError(t, os.WriteFile(filepath.Join(fp, "api", ".git"), []byte("gitdir: "+gitdir), 0600))
+
+	g := project.Git{
+		Filepath: filepath.Join(fp, "api", "src", "pkg", "file.go"),
+	}
+
+	result, detected, err := g.Detect(t.Context())
+	require.NoError(t, err)
+
+	assert.True(t, detected)
+	assert.Equal(t, project.Result{
+		Project: "wakatime-cli",
+		Branch:  "feature/api",
+		Folder:  projectDir,
+	}, result)
+}
+
 func TestGit_Detect_WorktreeGitRemote(t *testing.T) {
 	fp := setupTestGitWorktree(t)
 
