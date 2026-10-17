@@ -324,7 +324,7 @@ func TestCursorUserAgentWithModel(t *testing.T) {
 	)
 	assert.Equal(
 		t,
-		"composer/2.5 wakatime/13.0.7 (macOS-arm64-arm64) go1.26 Cursor/1.105.1",
+		"wakatime/13.0.7 (macOS-arm64-arm64) go1.26 composer/2.5 Cursor/1.105.1",
 		cursorUserAgentWithModel(
 			"wakatime/13.0.7 (macOS-arm64-arm64) go1.26 Cursor/1.105.1",
 			"composer/2.5",
@@ -357,7 +357,7 @@ func TestCursorUserAgentIncludesModelAndCursorAttribution(t *testing.T) {
 	)
 	assert.Equal(
 		t,
-		"grok/4.5 Cursor neovim/0.12 wakatime.nvim/12.0.0",
+		"grok/4.5 neovim/0.12 Cursor wakatime.nvim/12.0.0",
 		parser.userAgent("/tmp/dependencies.ts", "grok-4.5"),
 	)
 	assert.Equal(t, "grok/4.5 Cursor", Cursor{}.userAgent("Cursor session-id", "grok-4.5"))

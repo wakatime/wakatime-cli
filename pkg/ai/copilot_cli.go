@@ -988,14 +988,9 @@ func (g Copilot) cliFileHeartbeat(
 }
 
 func (g Copilot) cliUserAgent(entity string, model string, cliVersion string, agentVersion string) string {
-	existing := g.FallbackUserAgent
-	if fromHeartbeat, found := g.UserAgents[entity]; found && fromHeartbeat != "" {
-		existing = fromHeartbeat
-	}
-
-	existing = userAgentWithPrependedEditor(existing, copilotCLIHarnessUserAgent(cliVersion, agentVersion))
-
-	return userAgentWithPrependedAgent(existing, aiModelUserAgentToken(model, ""))
+	return aiUserAgentWithModelAndEditor(
+		entity, g.UserAgents, g.FallbackUserAgent, model, "", copilotCLIHarnessUserAgent(cliVersion, agentVersion),
+	)
 }
 
 func copilotCLIHarnessUserAgent(cliVersion string, agentVersion string) string {

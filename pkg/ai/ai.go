@@ -12,6 +12,7 @@ import (
 	"runtime/debug"
 	"strings"
 	"time"
+	"unicode"
 	"unicode/utf8"
 
 	"github.com/spf13/viper"
@@ -800,7 +801,7 @@ func entityUserAgents(hh []heartbeat.Heartbeat) map[string]string {
 	userAgents := make(map[string]string, len(hh))
 
 	for _, h := range hh {
-		if h.Entity == "" || h.UserAgent == "" {
+		if h.EntityType != heartbeat.FileType || h.Entity == "" || h.UserAgent == "" {
 			continue
 		}
 
@@ -887,10 +888,10 @@ func aiUserAgent(entity string, userAgents map[string]string, fallback string, p
 	}
 
 	if existing != "" {
-		return userAgentWithPrependedParser(existing, parser)
+		return userAgentWithAgentProduct(existing, parser, userAgentHasFileContext(existing, userAgents))
 	}
 
-	return parser
+	return canonicalAgentToken(parser)
 }
 
 func aiUserAgentWithModel(
@@ -900,12 +901,7 @@ func aiUserAgentWithModel(
 	model string,
 	complexity string,
 ) string {
-	existing := fallback
-	if fromHeartbeat, found := userAgents[entity]; found && fromHeartbeat != "" {
-		existing = fromHeartbeat
-	}
-
-	return userAgentWithPrependedAgent(existing, aiModelUserAgentToken(model, complexity))
+	return aiUserAgentWithModelAndEditor(entity, userAgents, fallback, model, complexity, "")
 }
 
 func aiUserAgentWithModelAndEditor(
@@ -921,41 +917,296 @@ func aiUserAgentWithModelAndEditor(
 		existing = fromHeartbeat
 	}
 
-	existing = userAgentWithPrependedEditor(existing, editor)
+	hasFileContext := userAgentHasFileContext(existing, userAgents)
+	modelToken := aiModelUserAgentToken(model, complexity)
 
-	return userAgentWithPrependedAgent(existing, aiModelUserAgentToken(model, complexity))
+	existing, previousModel := userAgentWithoutModel(existing, fallback, modelToken)
+	if modelToken == "" {
+		modelToken = previousModel
+	}
+
+	existing = userAgentWithAgentProduct(existing, editor, hasFileContext)
+
+	return userAgentWithPrependedAgent(existing, modelToken)
+}
+
+// userAgentWithoutModel separates an existing model before selecting the host
+// editor. The raw caller plugin chain and known IDE metadata establish the
+// editor's position without maintaining a list of model families.
+func userAgentWithoutModel(userAgent string, fallback string, model string) (string, string) {
+	header, products := splitUserAgent(userAgent)
+	fields := strings.Fields(products)
+	previousModel := ""
+
+	if userAgentHasLeadingModel(fields, userAgentProductFields(fallback), model) {
+		previousModel = fields[0]
+		fields = fields[1:]
+	}
+
+	filtered := make([]string, 0, len(fields))
+
+	for _, field := range fields {
+		if model == "" || !strings.EqualFold(field, model) {
+			filtered = append(filtered, field)
+		}
+	}
+
+	return strings.TrimSpace(header + " " + strings.Join(filtered, " ")), previousModel
+}
+
+func userAgentHasLeadingModel(fields []string, fallback []string, model string) bool {
+	if len(fields) == 0 {
+		return false
+	}
+
+	if model != "" && strings.EqualFold(fields[0], model) {
+		return true
+	}
+
+	if len(fields) < 2 || !strings.Contains(fields[0], "/") {
+		return false
+	}
+
+	product := strings.ToLower(userAgentProduct(fields[0]))
+
+	// The raw caller's first product anchors the editor independently of the
+	// model name, including names also used by agents such as Claude.
+	if len(fallback) > 0 {
+		callerProduct := userAgentProduct(fallback[0])
+		if strings.EqualFold(product, callerProduct) {
+			return false
+		}
+
+		if strings.EqualFold(userAgentProduct(fields[1]), callerProduct) {
+			return true
+		}
+	}
+
+	if aiHarnessProduct(product) || strings.Contains(product, "wakatime") {
+		return false
+	}
+
+	hostAt, found := knownIDEFieldIndex(fields)
+
+	return found && hostAt == 1
 }
 
 func userAgentWithPrependedAgent(userAgent string, agent string) string {
-	if userAgent == "" {
-		return agent
-	}
-
-	if agent == "" || userAgentHasToken(userAgent, agent) {
+	if agent == "" {
 		return userAgent
 	}
 
-	return strings.TrimSpace(agent + " " + userAgent)
+	header, products := splitUserAgent(userAgent)
+	fields := []string{agent}
+
+	for _, field := range strings.Fields(products) {
+		if !strings.EqualFold(field, agent) {
+			fields = append(fields, field)
+		}
+	}
+
+	return strings.TrimSpace(header + " " + strings.Join(fields, " "))
 }
 
-func userAgentWithPrependedParser(userAgent string, parser string) string {
-	if userAgentHasProduct(userAgent, userAgentProduct(parser)) {
-		return userAgent
+// userAgentHasFileContext confirms that the selected plugin was observed on
+// a file heartbeat, even when it is used as the fallback for another file.
+func userAgentHasFileContext(userAgent string, userAgents map[string]string) bool {
+	for _, existing := range userAgents {
+		if userAgent != "" && userAgent == existing {
+			return true
+		}
 	}
 
-	return strings.TrimSpace(parser + " " + userAgent)
+	return false
 }
 
-func userAgentWithPrependedEditor(userAgent string, editor string) string {
-	if editor == "" {
+// canonicalAgentToken collapses a spaced parser name into one product token.
+// "Cursor Agent" becomes "cursor-agent" and "Grok Build/1.2.3" becomes
+// "grok-build/1.2.3". Tokens that are already a single field keep their
+// caller's spelling, including versioned products such as codex-vscode/0.162.0.
+func canonicalAgentToken(name string) string {
+	name = strings.TrimSpace(name)
+
+	fields := strings.Fields(name)
+	if len(fields) < 2 {
+		return name
+	}
+
+	versioned := 0
+
+	for _, field := range fields {
+		if strings.Contains(field, "/") {
+			versioned++
+		}
+	}
+
+	// Two versioned tokens, such as "github-copilot-cli/1 copilot/1", are
+	// already separate products. Only a spaced name like "Grok Build/1.2.3"
+	// or "Cursor Agent" collapses into one token.
+	if versioned > 1 {
+		return strings.Join(fields, " ")
+	}
+
+	product, version, found := strings.Cut(strings.Join(fields, " "), "/")
+
+	product = strings.ToLower(strings.Join(strings.Fields(product), "-"))
+
+	product = strings.Trim(product, "-_.")
+	if product == "" {
+		return ""
+	}
+
+	if !found {
+		return product
+	}
+
+	version = strings.Trim(strings.Join(strings.Fields(version), "-"), "-_.")
+	if version == "" {
+		return product
+	}
+
+	return product + "/" + version
+}
+
+// userAgentWithAgentProduct records an agent without taking the editor slot
+// away from a host IDE. With a host token the order is host, agent, other
+// plugins. Without one, the agent stays in front and is the editor.
+func userAgentWithAgentProduct(userAgent string, agent string, hasFileContext bool) string {
+	agent = canonicalAgentToken(agent)
+	if agent == "" {
 		return userAgent
 	}
 
-	if userAgentHasProduct(userAgent, userAgentProduct(editor)) {
-		return userAgent
+	header, products := splitUserAgent(userAgent)
+	fields := strings.Fields(products)
+	updated := make([]string, 0, len(fields)+2)
+	host := ""
+
+	if hostAt, ok := hostEditorFieldIndex(fields, hasFileContext); ok {
+		host = fields[hostAt]
+		updated = append(updated, host)
+		fields = append(fields[:hostAt], fields[hostAt+1:]...)
 	}
 
-	return strings.TrimSpace(editor + " " + userAgent)
+	for _, token := range strings.Fields(agent) {
+		if host != "" && strings.EqualFold(userAgentProduct(host), userAgentProduct(token)) {
+			continue
+		}
+
+		var existing string
+
+		existing, fields = takeUserAgentProduct(fields, token)
+		updated = append(updated, existing)
+	}
+
+	updated = append(updated, fields...)
+
+	return strings.TrimSpace(header + " " + strings.Join(updated, " "))
+}
+
+// takeUserAgentProduct preserves an existing product's spelling and version
+// while removing copies so it can be placed in the correct position.
+func takeUserAgentProduct(fields []string, token string) (string, []string) {
+	remaining := fields[:0]
+	found := false
+
+	for _, field := range fields {
+		if strings.EqualFold(userAgentProduct(field), userAgentProduct(token)) {
+			if !found {
+				token = field
+				found = true
+			}
+
+			continue
+		}
+
+		remaining = append(remaining, field)
+	}
+
+	return token, remaining
+}
+
+// hostEditorFieldIndex uses the editor supplied by the plugin instead of an
+// allowlist of IDE names when a file heartbeat establishes editor provenance.
+// Without file context, or with the foreground app collector, only known IDE
+// products can establish a host; unrelated apps must not replace the parser.
+func hostEditorFieldIndex(fields []string, hasFileContext bool) (int, bool) {
+	if !hasFileContext || len(fields) == 0 {
+		return knownIDEFieldIndex(fields)
+	}
+
+	for _, field := range fields {
+		if strings.EqualFold(userAgentProduct(field), "macos-wakatime") {
+			return knownIDEFieldIndex(fields)
+		}
+	}
+
+	// A caller declares its editor first. Products after a standalone harness
+	// are plugin metadata, not evidence of an additional host editor.
+	product := strings.ToLower(userAgentProduct(fields[0]))
+	if !strings.Contains(fields[0], "/") || strings.Contains(product, "wakatime") || aiHarnessProduct(product) {
+		return knownIDEFieldIndex(fields)
+	}
+
+	return 0, true
+}
+
+func knownIDEFieldIndex(fields []string) (int, bool) {
+	for i, field := range fields {
+		if !strings.Contains(field, "/") {
+			continue
+		}
+
+		for _, source := range antigravityProductDirs() {
+			if source.hostEditor && strings.EqualFold(userAgentProduct(field), source.userAgentProduct) {
+				return i, true
+			}
+		}
+
+		for _, editor := range []Parser{Cursor{}, Windsurf{}, Qoder{}, Kiro{}, Zed{}} {
+			if strings.EqualFold(userAgentProduct(field), editor.Name()) {
+				return i, true
+			}
+		}
+	}
+
+	return 0, false
+}
+
+// aiHarnessProduct recognizes products emitted by the supported AI parsers.
+// Keeping their names tied to the parsers lets arbitrary plugin editor names
+// remain in the editor slot, including renamed and newly added IDEs.
+func aiHarnessProduct(product string) bool {
+	if strings.HasPrefix(product, strings.ToLower((Codex{}).Name())+"-") {
+		return true
+	}
+
+	for _, source := range antigravityProductDirs() {
+		if !source.hostEditor && product == source.userAgentProduct {
+			return true
+		}
+	}
+
+	product = strings.TrimSuffix(product, "-cli")
+	if product == "claude-code" || product == "github-copilot" {
+		return true
+	}
+
+	for _, parser := range []Parser{
+		Claude{}, Codex{}, Continue{}, Cody{}, RooCode{}, OpenCode{}, Copilot{},
+		Cline{}, Gemini{}, QwenCode{}, Pi{}, Goose{}, Amp{}, GrokBuild{}, ClineCLI{},
+		Codebuff{}, CodeWhale{}, Crush{}, CursorAgent{}, Devin{}, Droid{}, Forge{},
+		Hermes{}, IBMBob{}, KiloCode{}, Kimi{}, KimiCode{}, LingTaiTUI{}, MistralVibe{},
+		Mux{}, OMP{}, OpenClaw{}, OpenDesign{}, QuickDesk{}, Warp{}, ZCode{}, Zerostack{},
+		DeepSeek{}, CodeBuddyCode{}, OpenClaude{}, GrokBot{},
+	} {
+		name := strings.ToLower(strings.Join(strings.Fields(parser.Name()), "-"))
+		if product == name {
+			return true
+		}
+	}
+
+	return false
 }
 
 func aiAgentUserAgentToken(agent string) string {
@@ -1001,20 +1252,6 @@ func aiAgentUserAgentToken(agent string) string {
 	return agent
 }
 
-func userAgentHasProduct(userAgent string, product string) bool {
-	if userAgent == "" || product == "" {
-		return false
-	}
-
-	for _, field := range userAgentProductFields(userAgent) {
-		if strings.EqualFold(userAgentProduct(field), product) {
-			return true
-		}
-	}
-
-	return false
-}
-
 func userAgentHasToken(userAgent string, token string) bool {
 	if userAgent == "" || token == "" {
 		return false
@@ -1036,20 +1273,62 @@ func userAgentProduct(token string) string {
 }
 
 func userAgentProductFields(userAgent string) []string {
-	fields := strings.Fields(userAgent)
-	if len(fields) == 0 {
+	_, products := splitUserAgent(userAgent)
+	if products == "" {
 		return nil
 	}
 
-	if strings.HasPrefix(fields[0], "wakatime/") {
-		if len(fields) < 4 {
-			return nil
-		}
+	return strings.Fields(products)
+}
 
-		fields = fields[3:]
+// splitUserAgent separates the optional CLI header from plugin products. The
+// operating system description can contain spaces, so it is not a fixed
+// number of whitespace-separated fields.
+func splitUserAgent(userAgent string) (string, string) {
+	userAgent = strings.TrimSpace(userAgent)
+	if !strings.HasPrefix(userAgent, "wakatime/") {
+		return "", userAgent
 	}
 
-	return fields
+	systemEnd := userAgentSystemEnd(userAgent)
+	if systemEnd == -1 {
+		return userAgent, ""
+	}
+
+	runtime := strings.TrimSpace(userAgent[systemEnd+1:])
+
+	separator := strings.IndexFunc(runtime, unicode.IsSpace)
+	if separator == -1 {
+		return userAgent, ""
+	}
+
+	products := strings.TrimSpace(runtime[separator:])
+	header := strings.TrimSpace(userAgent[:len(userAgent)-len(products)])
+
+	return header, products
+}
+
+func userAgentSystemEnd(userAgent string) int {
+	start := strings.IndexByte(userAgent, '(')
+	if start == -1 {
+		return -1
+	}
+
+	depth := 0
+
+	for i := start; i < len(userAgent); i++ {
+		switch userAgent[i] {
+		case '(':
+			depth++
+		case ')':
+			depth--
+			if depth == 0 {
+				return i
+			}
+		}
+	}
+
+	return -1
 }
 
 func appHeartbeatEntity(parserName string, rawEntity string) string {
@@ -1144,13 +1423,26 @@ func replaceAppHeartbeats(heartbeats []heartbeat.Heartbeat) []heartbeat.Heartbea
 	return deduped
 }
 
+// sameHeartbeat only combines activity with the same leading product, which
+// identifies the AI model when available. A model switch must keep token
+// counts on its own heartbeat even when the file and session are unchanged.
 func sameHeartbeat(a, b heartbeat.Heartbeat) bool {
 	return a.AISession == b.AISession &&
+		firstUserAgentToken(a.UserAgent) == firstUserAgentToken(b.UserAgent) &&
 		a.Category == b.Category &&
 		a.Entity == b.Entity &&
 		a.EntityType == b.EntityType &&
 		a.IsUnsavedEntity == b.IsUnsavedEntity &&
 		absFloat64(a.Time-b.Time) < 60
+}
+
+func firstUserAgentToken(userAgent string) string {
+	fields := userAgentProductFields(userAgent)
+	if len(fields) == 0 {
+		return ""
+	}
+
+	return strings.ToLower(fields[0])
 }
 
 func mergeHeartbeatCounts(dst *heartbeat.Heartbeat, src heartbeat.Heartbeat) {

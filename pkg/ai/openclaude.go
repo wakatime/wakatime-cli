@@ -30,8 +30,16 @@ func (g OpenClaude) Parse(ctx context.Context) (Heartbeats, error) {
 
 	var result Heartbeats
 
+	claude := Claude(g)
+
+	caller := userAgentProductFields(g.FallbackUserAgent)
+	if len(caller) > 0 && strings.EqualFold(userAgentProduct(caller[0]), g.Name()) {
+		claude.FallbackUserAgent = strings.Replace(g.FallbackUserAgent,
+			userAgentProduct(caller[0])+"/", "claude-code/", 1)
+	}
+
 	for _, path := range paths {
-		parsed, err := Claude(g).parseTranscriptWithPrefix(ctx, path, "openclaude:")
+		parsed, err := claude.parseTranscriptWithPrefix(ctx, path, "openclaude:")
 		if err != nil {
 			return nil, err
 		}
@@ -56,12 +64,21 @@ func (g OpenClaude) Parse(ctx context.Context) (Heartbeats, error) {
 		}
 
 		state := genericAIParseState{}
+		ideSession := false
 
 		for _, value := range values {
 			raw, _ := json.Marshal(value)
 
 			var line claudeLogLine
-			if claudeJSONUnmarshal(raw, &line) != nil || line.Message == nil || line.Message.Usage == nil {
+			if claudeJSONUnmarshal(raw, &line) != nil {
+				continue
+			}
+
+			if claudeHasIDEContext(line) {
+				ideSession = true
+			}
+
+			if line.Message == nil || line.Message.Usage == nil {
 				continue
 			}
 
@@ -85,8 +102,8 @@ func (g OpenClaude) Parse(ctx context.Context) (Heartbeats, error) {
 
 			emitted := genericAIEventHeartbeats(g, ParserConfig(g), event)
 			for i := range emitted {
-				emitted[i].UserAgent = aiUserAgentWithModelAndEditor(emitted[i].Entity, g.UserAgents, g.FallbackUserAgent,
-					event.model, "", "openclaude/"+unknownIfEmpty(line.Version))
+				userAgent := claude.userAgent(emitted[i].Entity, line.Version, event.model, "", ideSession)
+				emitted[i].UserAgent = strings.ReplaceAll(userAgent, "claude-code/", "openclaude/")
 			}
 
 			result = append(result, emitted...)

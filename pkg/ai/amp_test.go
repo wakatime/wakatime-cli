@@ -146,7 +146,7 @@ func TestAmpParse(t *testing.T) {
 	require.NotNil(t, got[0].IsWrite)
 	assert.True(t, *got[0].IsWrite)
 	assert.Equal(t, float64(time.Date(2026, 6, 21, 14, 28, 7, 330000000, time.UTC).UnixMilli())/1000, got[0].Time)
-	assert.Equal(t, "amp/unknown-medium "+heartbeat.UserAgent(ctx, "editor/1.2.3"), got[0].UserAgent)
+	assert.Equal(t, heartbeat.UserAgent(ctx, "editor/1.2.3 amp/unknown-medium"), got[0].UserAgent)
 
 	assert.Equal(t, ampTestPath, got[1].Entity)
 	assert.Equal(t, threadID, got[1].AISession)

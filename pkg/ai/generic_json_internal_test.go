@@ -10,6 +10,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 )
 
 func TestGenericAIKeyMatches(t *testing.T) {
@@ -223,6 +224,159 @@ func TestGenericAIJSONLinesUsePerEventTokenCountsByDefault(t *testing.T) {
 	assert.Equal(t, int64(4), got[0].AIOutputTokens)
 	assert.Equal(t, int64(6), got[1].AIInputTokens)
 	assert.Equal(t, int64(3), got[1].AIOutputTokens)
+}
+
+func TestGenericAIFileHeartbeatsIncludeModel(t *testing.T) {
+	filePath := filepath.ToSlash(filepath.Join(t.TempDir(), "main.go"))
+	tests := []struct {
+		name      string
+		config    ParserConfig
+		userAgent string
+	}{
+		{
+			name:      "standalone agent",
+			userAgent: "grok/4.5 cursor-agent",
+		},
+		{
+			name:      "fallback editor",
+			config:    ParserConfig{FallbackUserAgent: "cursor/1.128.0 vscode-wakatime/30.2.1"},
+			userAgent: "grok/4.5 cursor/1.128.0 cursor-agent vscode-wakatime/30.2.1",
+		},
+		{
+			name: "file editor overrides fallback",
+			config: ParserConfig{
+				FallbackUserAgent: "cursor/1.128.0 vscode-wakatime/30.2.1",
+				UserAgents:        map[string]string{filePath: "neovim/0.12 wakatime.nvim/12.0.0"},
+			},
+			userAgent: "grok/4.5 neovim/0.12 cursor-agent wakatime.nvim/12.0.0",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := genericAIEventHeartbeats(CursorAgent{}, tt.config, genericAIEvent{
+				timestamp: time.Date(2026, 8, 6, 12, 0, 0, 0, time.UTC),
+				sessionID: "session-1", model: "grok-4.5", filePath: filePath,
+			})
+			require.Len(t, got, 2)
+			assert.Equal(t, heartbeat.FileType, got[1].EntityType)
+			assert.Equal(t, tt.userAgent, got[1].UserAgent)
+		})
+	}
+}
+
+func TestGenericAIContainerModelsPreserveSessionAttribution(t *testing.T) {
+	tests := []struct {
+		name       string
+		metadata   string
+		messages   string
+		wantModels []string
+	}{
+		{
+			name:       "parent model",
+			metadata:   `"model":"grok-4.5",`,
+			messages:   `{"input_tokens":10,"file_path":"/workspace/main.go"},{"input_tokens":20}`,
+			wantModels: []string{"grok/4.5", "grok/4.5", "grok/4.5"},
+		},
+		{
+			name:       "parent model alias",
+			metadata:   `"activeModel":"grok-4.5",`,
+			messages:   `{"input_tokens":10}`,
+			wantModels: []string{"grok/4.5"},
+		},
+		{
+			name:       "message override persists after switch",
+			metadata:   `"model":"grok-4.5",`,
+			messages:   `{"input_tokens":10},{"model":"gpt-5.4","input_tokens":20},{"input_tokens":30}`,
+			wantModels: []string{"grok/4.5", "gpt/5.4", "gpt/5.4"},
+		},
+		{
+			name:       "session models remain independent",
+			metadata:   `"model":"grok-4.5",`,
+			messages:   `{"session_id":"other","model":"gpt-5.4","input_tokens":10},{"input_tokens":20}`,
+			wantModels: []string{"gpt/5.4", "grok/4.5"},
+		},
+		{
+			name:       "later message model is not parent metadata",
+			messages:   `{"input_tokens":10},{"model":"gpt-5.4","input_tokens":20},{"input_tokens":30}`,
+			wantModels: []string{"cursor-agent", "gpt/5.4", "gpt/5.4"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			transcript := filepath.Join(t.TempDir(), "session.json")
+			contents := `{"session_id":"session-1","updated_at":"2026-08-06T12:00:00Z",` +
+				tt.metadata + `"messages":[` + tt.messages + `]}`
+			require.NoError(t, os.WriteFile(transcript, []byte(contents), 0o600))
+
+			provider := genericAIProvider{parser: CursorAgent{}, containerKey: "messages"}
+			got, err := parseGenericAITranscript(t.Context(), provider, transcript)
+			require.NoError(t, err)
+			require.Len(t, got, len(tt.wantModels))
+
+			for i, model := range tt.wantModels {
+				assert.Equal(t, model, firstUserAgentToken(got[i].UserAgent))
+			}
+		})
+	}
+}
+
+func TestGenericAIModelSurvivesMergingAppTokensIntoFile(t *testing.T) {
+	transcript := filepath.Join(t.TempDir(), "session.jsonl")
+	contents := strings.Join([]string{
+		`{"timestamp":"2026-08-06T12:00:00Z","session_id":"session-1","cwd":"/workspace/project",` +
+			`"model":"grok-4.5","input_tokens":10,"cached_input_tokens":2,"output_tokens":4,` +
+			`"tool":{"tool_name":"edit_file","file_path":"main.go","lines_added":2}}`,
+		`{"timestamp":"2026-08-06T12:00:01Z","session_id":"session-1",` +
+			`"input_tokens":6,"cached_input_tokens":1,"output_tokens":3,` +
+			`"tool":{"tool_name":"edit_file","file_path":"main.go","lines_added":3}}`,
+	}, "\n") + "\n"
+	require.NoError(t, os.WriteFile(transcript, []byte(contents), 0o600))
+
+	provider := genericAIProvider{
+		parser: CursorAgent{},
+		config: ParserConfig{FallbackUserAgent: "cursor/1.128.0 vscode-wakatime/30.2.1"},
+	}
+	got, err := parseGenericAITranscript(t.Context(), provider, transcript)
+	require.NoError(t, err)
+	require.Len(t, got, 4)
+
+	got = replaceAppHeartbeats(got)
+	require.Len(t, got, 3)
+	assert.Equal(t, heartbeat.FileType, got[2].EntityType)
+	assert.Equal(t, filepath.ToSlash(filepath.Join("/workspace/project", "main.go")), got[2].Entity)
+	assert.Equal(t, "grok/4.5 cursor/1.128.0 cursor-agent vscode-wakatime/30.2.1", got[2].UserAgent)
+	assert.Equal(t, int64(6), got[2].AIInputTokens)
+	assert.Equal(t, int64(1), got[2].AICachedInputTokens)
+	assert.Equal(t, int64(3), got[2].AIOutputTokens)
+	require.NotNil(t, got[2].AILineChanges)
+	assert.Equal(t, 3, *got[2].AILineChanges)
+}
+
+func TestGenericAIModelSwitchKeepsUsageTokensSeparate(t *testing.T) {
+	config := ParserConfig{FallbackUserAgent: "cursor/1.128.0 vscode-wakatime/30.2.1"}
+	stamp := time.Date(2026, 8, 6, 12, 0, 0, 0, time.UTC)
+	got := genericAIEventHeartbeats(CursorAgent{}, config, genericAIEvent{
+		timestamp: stamp, sessionID: "session-1", model: "grok-4.5",
+		filePath: "/workspace/project/main.go", lineChanges: heartbeat.PointerTo(3),
+		input: 10, cachedInput: 2, output: 4,
+	})
+	got = append(got, genericAIEventHeartbeats(CursorAgent{}, config, genericAIEvent{
+		timestamp: stamp.Add(time.Second), sessionID: "session-1", model: "gpt-5.4",
+		input: 6, cachedInput: 1, output: 3,
+	})...)
+
+	got = replaceAppHeartbeats(got)
+	require.Len(t, got, 3)
+	assert.Equal(t, "grok/4.5 cursor/1.128.0 cursor-agent vscode-wakatime/30.2.1", got[1].UserAgent)
+	assert.Zero(t, got[1].AIInputTokens)
+	assert.Zero(t, got[1].AICachedInputTokens)
+	assert.Zero(t, got[1].AIOutputTokens)
+	assert.Equal(t, "gpt/5.4 cursor/1.128.0 cursor-agent vscode-wakatime/30.2.1", got[2].UserAgent)
+	assert.Equal(t, int64(6), got[2].AIInputTokens)
+	assert.Equal(t, int64(1), got[2].AICachedInputTokens)
+	assert.Equal(t, int64(3), got[2].AIOutputTokens)
 }
 
 func TestGenericAIHeartbeatsSingleValueTimestampFallback(t *testing.T) {

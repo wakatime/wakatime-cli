@@ -353,6 +353,8 @@ func genericAIContainerValues(object map[string]any, key string) []any {
 
 	sessionID := genericAIString(genericAIFind(object, genericAISessionKeys()...))
 	cwd := genericAIString(genericAIFind(object, genericAICWDKeys()...))
+	model := genericAITopLevelString(object, genericAIModelKeys()...)
+	modelsBySession := make(map[string]string)
 	// Container records without per-message timestamps (notably ForgeCode's
 	// conversations table) represent the latest transcript state at updated_at.
 	// Prefer it to the row's creation time when inheriting a timestamp.
@@ -374,6 +376,22 @@ func genericAIContainerValues(object map[string]any, key string) []any {
 		if cwd != "" && genericAIString(genericAIFind(child, genericAICWDKeys()...)) == "" {
 			child["cwd"] = cwd
 		}
+
+		childSessionID := genericAIString(genericAIFind(child, genericAISessionKeys()...))
+		childModel := genericAIString(genericAIFind(child, genericAIModelKeys()...))
+
+		if childModel == "" {
+			childModel = modelsBySession[childSessionID]
+			if childModel == "" {
+				childModel = model
+			}
+
+			if childModel != "" {
+				child["model"] = childModel
+			}
+		}
+
+		modelsBySession[childSessionID] = childModel
 
 		if !genericAITime(timestamp).IsZero() &&
 			genericAITime(genericAIFind(child, genericAITimestampKeys()...)).IsZero() {
@@ -656,15 +674,19 @@ func genericAIPathIsAbs(path string) bool {
 	return filepath.IsAbs(path) || strings.HasPrefix(path, "/") || strings.HasPrefix(path, `\`)
 }
 
-func genericAITopLevelString(value any, key string) string {
+func genericAITopLevelString(value any, keys ...string) string {
 	object, ok := value.(map[string]any)
 	if !ok {
 		return ""
 	}
 
-	for objectKey, child := range object {
-		if genericAIKey(objectKey) == genericAIKey(key) {
-			return genericAIString(child)
+	for _, key := range keys {
+		for objectKey, child := range object {
+			if genericAIKey(objectKey) == genericAIKey(key) {
+				if text := genericAIString(child); text != "" {
+					return text
+				}
+			}
 		}
 	}
 
@@ -727,13 +749,22 @@ func (e genericAIEvent) hasTokens() bool {
 
 func genericAIEventHeartbeats(parser Parser, config ParserConfig, event genericAIEvent) Heartbeats {
 	entity := appHeartbeatEntity(parser.Name(), event.sessionID)
+
+	filePath := event.filePath
+	if filePath != "" {
+		filePath = strings.ReplaceAll(filepath.Clean(filePath), `\`, "/")
+	}
+
 	tokens := heartbeat.AITokens{
 		CurrentInput:       max(event.input, 0),
 		CurrentCachedInput: max(event.cachedInput, 0),
 		CurrentOutput:      max(event.output, 0),
 	}
-	userAgent := aiUserAgent(entity, config.UserAgents, config.FallbackUserAgent, aiPlugin(parser, ""))
-	userAgent = userAgentWithPrependedAgent(userAgent, aiModelUserAgentToken(event.model, ""))
+	// Usage and file activity from the same event share the known file's editor.
+	userAgent := aiUserAgentWithModelAndEditor(
+		firstNonEmptyString(filePath, entity), config.UserAgents, config.FallbackUserAgent,
+		event.model, "", aiPlugin(parser, ""),
+	)
 
 	app := heartbeat.NewWithAITokens(
 		nil,
@@ -762,11 +793,10 @@ func genericAIEventHeartbeats(parser Parser, config ParserConfig, event genericA
 	app.AIPromptLength = promptLength(event.prompt)
 
 	heartbeats := Heartbeats{app}
-	if event.filePath == "" {
+	if filePath == "" {
 		return heartbeats
 	}
 
-	filePath := strings.ReplaceAll(filepath.Clean(event.filePath), `\`, "/")
 	fileHeartbeat := heartbeat.New(
 		event.lineChanges,
 		"",
@@ -787,7 +817,7 @@ func genericAIEventHeartbeats(parser Parser, config ParserConfig, event genericA
 		"",
 		"",
 		heartbeatTimestamp(event.timestamp),
-		aiUserAgent(filePath, config.UserAgents, config.FallbackUserAgent, aiPlugin(parser, "")),
+		userAgent,
 	)
 	fileHeartbeat.AISession = event.sessionID
 	heartbeats = append(heartbeats, fileHeartbeat)

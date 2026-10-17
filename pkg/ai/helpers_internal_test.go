@@ -84,17 +84,17 @@ func TestEntityUserAgentsAndAIUserAgent(t *testing.T) {
 	assert.Equal(t, map[string]string{"/tmp/main.go": "editor/1.0.0"}, userAgents)
 	assert.Equal(
 		t,
-		aiPlugin(Cursor{}, "")+" "+"editor/1.0.0",
+		"editor/1.0.0 "+aiPlugin(Cursor{}, ""),
 		aiUserAgent("/tmp/main.go", userAgents, "plugin/0.1.0", aiPlugin(Cursor{}, "")),
 	)
 	assert.Equal(
 		t,
-		aiPlugin(Cursor{}, "")+" "+"plugin/0.1.0",
+		aiPlugin(Cursor{}, "")+" plugin/0.1.0",
 		aiUserAgent("/tmp/other.go", userAgents, "plugin/0.1.0", aiPlugin(Cursor{}, "")),
 	)
 	assert.Equal(
 		t,
-		aiPlugin(Cursor{}, "")+" "+heartbeat.UserAgent(ctx, "editor/1.0.0"),
+		heartbeat.UserAgent(ctx, "editor/1.0.0 "+aiPlugin(Cursor{}, "")),
 		aiUserAgent(
 			"/tmp/rendered.go",
 			map[string]string{
@@ -128,7 +128,7 @@ func TestEntityUserAgentsAndAIUserAgent(t *testing.T) {
 	)
 	assert.Equal(
 		t,
-		"Codex/1.2.3 "+heartbeat.UserAgent(ctx, "Claude/1.7196.0 macos-wakatime/5.28.3"),
+		heartbeat.UserAgent(ctx, "Codex/1.2.3 Claude/1.7196.0 macos-wakatime/5.28.3"),
 		aiUserAgent(
 			"/tmp/rendered-claude.go",
 			map[string]string{
@@ -149,6 +149,69 @@ func TestEntityUserAgentsAndAIUserAgent(t *testing.T) {
 			"plugin/0.1.0",
 			"Codex/1.2.3",
 		),
+	)
+}
+
+func TestUserAgentKeepsHostEditorAfterModel(t *testing.T) {
+	assert.Equal(t, "cursor-agent", canonicalAgentToken("Cursor Agent"))
+	assert.Equal(t, "grok-bot", canonicalAgentToken("Grok Bot"))
+	assert.Equal(t, "grok-build/1.2.3", canonicalAgentToken("Grok Build/1.2.3"))
+	assert.Equal(t, "codex-vscode/0.162.0", canonicalAgentToken("codex-vscode/0.162.0"))
+	assert.Equal(t, "Cursor", canonicalAgentToken("Cursor"))
+
+	const cursorPlugin = "cursor/1.128.0 vscode-wakatime/30.2.1"
+
+	assert.Equal(
+		t,
+		"cursor/1.128.0 cursor-agent vscode-wakatime/30.2.1",
+		aiUserAgent("/tmp/main.go", nil, cursorPlugin, "Cursor Agent"),
+	)
+	assert.Equal(
+		t,
+		"grok/4.7 cursor/1.128.0 cursor-agent vscode-wakatime/30.2.1",
+		userAgentWithPrependedAgent(
+			aiUserAgent("/tmp/main.go", nil, cursorPlugin, "Cursor Agent"),
+			"grok/4.7",
+		),
+	)
+	assert.Equal(
+		t,
+		"gpt/5.6-terra cursor/1.128.0 codex-vscode/0.162.0 vscode-wakatime/30.2.1",
+		aiUserAgentWithModelAndEditor(
+			"/tmp/main.go", nil, cursorPlugin, "gpt-5.6-terra", "", "codex-vscode/0.162.0",
+		),
+	)
+	assert.Equal(
+		t,
+		"claude/4.6 cursor/1.128.0 claude-code/2.1.45 vscode-wakatime/30.2.1",
+		aiUserAgentWithModelAndEditor(
+			"/tmp/main.go", nil, cursorPlugin, "claude-4.6", "", "claude-code/2.1.45",
+		),
+	)
+	assert.Equal(
+		t,
+		"grok/4.5 windsurf/1.0 grok-build/0.2.111",
+		aiUserAgentWithModelAndEditor(
+			"/tmp/main.go", nil, "windsurf/1.0", "grok-4.5", "", "grok-build/0.2.111",
+		),
+	)
+	assert.Equal(
+		t,
+		"codex-cli/0.134.0 claude-code/2.1.142 claude-code-wakatime/3.1.6",
+		aiUserAgentWithModelAndEditor(
+			"/tmp/main.go",
+			nil,
+			"claude-code/2.1.142 claude-code-wakatime/3.1.6",
+			"",
+			"",
+			"codex-cli/0.134.0",
+		),
+	)
+	assert.Equal(t, "grok-bot", aiUserAgent("/tmp/main.go", nil, "", "Grok Bot"))
+	assert.Equal(
+		t,
+		"cursor/1.128.0 grok-bot vscode-wakatime/30.2.1",
+		aiUserAgent("/tmp/main.go", nil, cursorPlugin, "Grok Bot"),
 	)
 }
 
