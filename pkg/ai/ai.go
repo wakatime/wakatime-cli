@@ -901,12 +901,7 @@ func aiUserAgentWithModel(
 	model string,
 	complexity string,
 ) string {
-	existing := fallback
-	if fromHeartbeat, found := userAgents[entity]; found && fromHeartbeat != "" {
-		existing = fromHeartbeat
-	}
-
-	return userAgentWithPrependedAgent(existing, aiModelUserAgentToken(model, complexity))
+	return aiUserAgentWithModelAndEditor(entity, userAgents, fallback, model, complexity, "")
 }
 
 func aiUserAgentWithModelAndEditor(
@@ -924,20 +919,76 @@ func aiUserAgentWithModelAndEditor(
 
 	hasFileContext := userAgentHasFileContext(existing, userAgents)
 	modelToken := aiModelUserAgentToken(model, complexity)
-	header, products := splitUserAgent(existing)
+
+	existing, previousModel := userAgentWithoutModel(existing, fallback, modelToken)
+	if modelToken == "" {
+		modelToken = previousModel
+	}
+
+	existing = userAgentWithAgentProduct(existing, editor, hasFileContext)
+
+	return userAgentWithPrependedAgent(existing, modelToken)
+}
+
+// userAgentWithoutModel separates an existing model before selecting the host
+// editor. The raw caller plugin chain and known IDE metadata establish the
+// editor's position without maintaining a list of model families.
+func userAgentWithoutModel(userAgent string, fallback string, model string) (string, string) {
+	header, products := splitUserAgent(userAgent)
 	fields := strings.Fields(products)
+	previousModel := ""
+
+	if userAgentHasLeadingModel(fields, userAgentProductFields(fallback), model) {
+		previousModel = fields[0]
+		fields = fields[1:]
+	}
+
 	filtered := make([]string, 0, len(fields))
 
 	for _, field := range fields {
-		if modelToken == "" || !strings.EqualFold(field, modelToken) {
+		if model == "" || !strings.EqualFold(field, model) {
 			filtered = append(filtered, field)
 		}
 	}
 
-	existing = strings.TrimSpace(header + " " + strings.Join(filtered, " "))
-	existing = userAgentWithAgentProduct(existing, editor, hasFileContext)
+	return strings.TrimSpace(header + " " + strings.Join(filtered, " ")), previousModel
+}
 
-	return userAgentWithPrependedAgent(existing, modelToken)
+func userAgentHasLeadingModel(fields []string, fallback []string, model string) bool {
+	if len(fields) == 0 {
+		return false
+	}
+
+	if model != "" && strings.EqualFold(fields[0], model) {
+		return true
+	}
+
+	if len(fields) < 2 || !strings.Contains(fields[0], "/") {
+		return false
+	}
+
+	product := strings.ToLower(userAgentProduct(fields[0]))
+
+	// The raw caller's first product anchors the editor independently of the
+	// model name, including names also used by agents such as Claude.
+	if len(fallback) > 0 {
+		callerProduct := userAgentProduct(fallback[0])
+		if strings.EqualFold(product, callerProduct) {
+			return false
+		}
+
+		if strings.EqualFold(userAgentProduct(fields[1]), callerProduct) {
+			return true
+		}
+	}
+
+	if aiHarnessProduct(product) || strings.Contains(product, "wakatime") {
+		return false
+	}
+
+	hostAt, found := knownIDEFieldIndex(fields)
+
+	return found && hostAt == 1
 }
 
 func userAgentWithPrependedAgent(userAgent string, agent string) string {
@@ -1080,7 +1131,7 @@ func takeUserAgentProduct(fields []string, token string) (string, []string) {
 // Without file context, or with the foreground app collector, only known IDE
 // products can establish a host; unrelated apps must not replace the parser.
 func hostEditorFieldIndex(fields []string, hasFileContext bool) (int, bool) {
-	if !hasFileContext {
+	if !hasFileContext || len(fields) == 0 {
 		return knownIDEFieldIndex(fields)
 	}
 
@@ -1090,16 +1141,14 @@ func hostEditorFieldIndex(fields []string, hasFileContext bool) (int, bool) {
 		}
 	}
 
-	for i, field := range fields {
-		product := strings.ToLower(userAgentProduct(field))
-		if !strings.Contains(field, "/") || strings.Contains(product, "wakatime") || aiHarnessProduct(product) {
-			continue
-		}
-
-		return i, true
+	// A caller declares its editor first. Products after a standalone harness
+	// are plugin metadata, not evidence of an additional host editor.
+	product := strings.ToLower(userAgentProduct(fields[0]))
+	if !strings.Contains(fields[0], "/") || strings.Contains(product, "wakatime") || aiHarnessProduct(product) {
+		return knownIDEFieldIndex(fields)
 	}
 
-	return 0, false
+	return 0, true
 }
 
 func knownIDEFieldIndex(fields []string) (int, bool) {
