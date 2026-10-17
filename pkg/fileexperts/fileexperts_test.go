@@ -149,6 +149,38 @@ func TestRenderFileExperts_RawJSON(t *testing.T) {
 	assert.Equal(t, string(data), rendered)
 }
 
+func TestRenderFileExperts_EmptyJSON(t *testing.T) {
+	tests := []struct {
+		name        string
+		data        []fileexperts.Data
+		expectedRaw string
+	}{
+		{
+			name:        "nil_data",
+			expectedRaw: `{"data":null}`,
+		},
+		{
+			name:        "empty_data",
+			data:        []fileexperts.Data{},
+			expectedRaw: `{"data":[]}`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			d := &fileexperts.FileExperts{Data: tt.data}
+
+			rendered, err := fileexperts.RenderFileExperts(d, output.JSONOutput)
+			require.NoError(t, err)
+			assert.JSONEq(t, `{}`, rendered)
+
+			rendered, err = fileexperts.RenderFileExperts(d, output.RawJSONOutput)
+			require.NoError(t, err)
+			assert.JSONEq(t, tt.expectedRaw, rendered)
+		})
+	}
+}
+
 func TestRenderFileExperts_NilOrEmpty(t *testing.T) {
 	rendered, err := fileexperts.RenderFileExperts(nil, output.TextOutput)
 	require.NoError(t, err)

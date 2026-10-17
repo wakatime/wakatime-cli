@@ -72,10 +72,6 @@ func RenderFileExperts(d *FileExperts, out output.Output) (string, error) {
 		return "", nil
 	}
 
-	if len(d.Data) == 0 {
-		return "", nil
-	}
-
 	if out == output.RawJSONOutput {
 		data, err := json.Marshal(d)
 		if err != nil {
