@@ -2,6 +2,7 @@ package fileexperts
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	apicmd "github.com/wakatime/wakatime-cli/cmd/api"
@@ -21,7 +22,8 @@ import (
 func Run(ctx context.Context, v *viper.Viper) (int, error) {
 	output, err := FileExperts(ctx, v)
 	if err != nil {
-		if errwaka, ok := err.(wakaerror.Error); ok {
+		var errwaka wakaerror.Error
+		if errors.As(err, &errwaka) {
 			return errwaka.ExitCode(), fmt.Errorf("file experts fetch failed: %s", errwaka.Message())
 		}
 
