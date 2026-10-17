@@ -166,13 +166,13 @@ func RenderToday(
 	out output.Output,
 ) (string, error) {
 	if summary == nil {
-		return "", errors.New("no summary found for the current day")
+		return renderEmptyToday(out, hideMinutes), errors.New("no summary found for the current day")
 	}
 
 	if out == output.RawJSONOutput {
 		data, err := json.Marshal(summary)
 		if err != nil {
-			return "", fmt.Errorf("failed to marshal json summary: %s", err)
+			return renderEmptyToday(out, hideMinutes), fmt.Errorf("failed to marshal json summary: %s", err)
 		}
 
 		return string(data), nil
@@ -191,7 +191,7 @@ func RenderToday(
 
 		data, err := json.Marshal(s)
 		if err != nil {
-			return "", fmt.Errorf("failed to marshal json simplified summary: %s", err)
+			return renderEmptyToday(out, hideMinutes), fmt.Errorf("failed to marshal json simplified summary: %s", err)
 		}
 
 		return string(data), nil
@@ -237,4 +237,23 @@ func durationText(hours int, text string, hideMinutes bool) string {
 	}
 
 	return fmt.Sprintf("%d hrs", hours)
+}
+
+func renderEmptyToday(out output.Output, hideMinutes bool) string {
+	text := "0 secs"
+	if hideMinutes {
+		text = "0 hrs"
+	}
+
+	if out == output.TextOutput {
+		return text
+	}
+
+	if out == output.RawJSONOutput {
+		return fmt.Sprintf(`{"data":{"categories":[],"dependencies":[],"editors":[],`+
+			`"grand_total":{"decimal":"0.00","digital":"0:00","hours":0,"minutes":0,"text":"%s",`+
+			`"total_seconds":0},"languages":[],"machines":[],"operating_systems":[],"projects":[]}}`, text)
+	}
+
+	return fmt.Sprintf(`{"text":"%s"}`, text)
 }

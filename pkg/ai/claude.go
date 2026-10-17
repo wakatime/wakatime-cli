@@ -989,7 +989,14 @@ func (g Claude) userAgent(entity string, version string, model string, complexit
 	modelToken := aiModelUserAgentToken(model, complexity)
 	cli := "claude-code/" + unknownIfEmpty(version)
 
-	if !ideSession && len(g.UserAgents) > 0 {
+	if !ideSession {
+		// Foreground apps and file heartbeats do not establish IDE membership.
+		// Only the native caller's plugin chain belongs to a standalone session.
+		caller := userAgentProduct(firstUserAgentToken(g.FallbackUserAgent))
+		if strings.EqualFold(caller, userAgentProduct(cli)) {
+			return userAgentWithPrependedAgent(g.FallbackUserAgent, modelToken)
+		}
+
 		return strings.TrimSpace(modelToken + " " + cli)
 	}
 

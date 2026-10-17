@@ -13,6 +13,7 @@ import (
 
 	"github.com/gandarez/go-realpath"
 	cmdheartbeat "github.com/wakatime/wakatime-cli/cmd/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/ini"
 	"github.com/wakatime/wakatime-cli/pkg/offline"
 
@@ -67,6 +68,7 @@ func TestRunAISyncActivity_SendsAIHeartbeatsWithoutEntity(t *testing.T) {
 		assert.Equal(t, http.MethodPost, req.Method)
 		assert.Equal(t, []string{"application/json"}, req.Header["Accept"])
 		assert.Equal(t, []string{"application/json"}, req.Header["Content-Type"])
+		assert.Contains(t, req.Header.Get("User-Agent"), "plugin/0.0.1")
 
 		body, err := io.ReadAll(req.Body)
 		require.NoError(t, err)
@@ -98,8 +100,7 @@ func TestRunAISyncActivity_SendsAIHeartbeatsWithoutEntity(t *testing.T) {
 		assert.Equal(t, int64(3), entities[0].AIInputTokens)
 		assert.Equal(t, int64(3), entities[0].AICachedInputTokens)
 		assert.Equal(t, int64(7), entities[0].AIOutputTokens)
-		assert.Contains(t, entities[0].UserAgent, "claude-code/2.1.45")
-		assert.Contains(t, entities[0].UserAgent, "plugin/0.0.1")
+		assert.Equal(t, heartbeat.UserAgent(t.Context(), "claude-code/2.1.45"), entities[0].UserAgent)
 
 		w.WriteHeader(http.StatusCreated)
 

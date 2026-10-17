@@ -307,13 +307,66 @@ func TestCursorModelUserAgentToken(t *testing.T) {
 		"claude-3.7-sonnet":           "claude/3.7-sonnet",
 		"gpt 5 high":                  "gpt/5-high",
 		"anthropic/claude-sonnet-4.5": "anthropic/claude-sonnet-4.5",
+		"claude-opus-5-5":             "claude-opus/5-5",
+		"grok-code-fast-1":            "grok-code-fast/1",
+		"auto":                        "auto",
 		"":                            "",
 		"/":                           "",
 	}
 
 	for raw, expected := range tests {
 		assert.Equal(t, expected, cursorModelUserAgentToken(raw))
+
+		parser := Cursor{FallbackUserAgent: "Cursor/2 vscode-wakatime/3"}
+		assert.Equal(t, strings.TrimSpace(expected+" Cursor/2 vscode-wakatime/3"),
+			parser.userAgent("Cursor session", raw), raw)
 	}
+}
+
+func TestCursorModelSwitchPreservesEditor(t *testing.T) {
+	const (
+		entity = "/workspace/main.go"
+		plugin = "neovim/0.12 wakatime.nvim/12"
+	)
+
+	parser := Cursor{FallbackUserAgent: plugin, UserAgents: map[string]string{entity: plugin}}
+
+	for _, tt := range []struct{ model, token string }{
+		{"auto", "auto"},
+		{"anthropic/claude-sonnet-4.5", "anthropic/claude-sonnet-4.5"},
+		{"claude-opus-5-5", "claude-opus/5-5"},
+		{"", "claude-opus/5-5"},
+	} {
+		got := parser.userAgent(entity, tt.model)
+		assert.Equal(t, tt.token+" neovim/0.12 Cursor wakatime.nvim/12", got)
+		parser.UserAgents[entity] = got
+		assert.Equal(t, got, parser.userAgent(entity, tt.model))
+	}
+}
+
+func TestCursorDistinctModelUsageSurvivesMerging(t *testing.T) {
+	parser := Cursor{FallbackUserAgent: "Cursor/2 vscode-wakatime/3"}
+	stamp := time.Date(2026, 10, 17, 12, 0, 0, 0, time.UTC)
+	file := parser.cursorHeartbeats(cursorLogLine{
+		BubbleID: "session", CreatedAt: stamp, Type: 2,
+		ToolFormerData: &cursorToolFormerData{
+			Name: "edit_file", Status: "completed",
+			RawArgs: `{"target_file":"/workspace/main.go","code_edit":"updated"}`,
+		},
+	}, "", "provider-a/custom-model-1", heartbeat.AITokens{CurrentInput: 10})
+	require.Len(t, file, 1)
+	assert.Equal(t, "provider-a/custom-model-1 Cursor/2 vscode-wakatime/3", file[0].UserAgent)
+
+	app := parser.cursorHeartbeats(cursorLogLine{
+		BubbleID: "session", CreatedAt: stamp.Add(time.Second), Type: 2, Text: "done",
+	}, "", "provider-b/custom-model-1", heartbeat.AITokens{CurrentInput: 20})
+	require.Len(t, app, 1)
+	assert.Equal(t, "provider-b/custom-model-1 Cursor/2 vscode-wakatime/3", app[0].UserAgent)
+
+	got := replaceAppHeartbeats(append(file, app...))
+	require.Len(t, got, 2)
+	assert.Equal(t, int64(10), got[0].AIInputTokens)
+	assert.Equal(t, int64(20), got[1].AIInputTokens)
 }
 
 func TestCursorUserAgentWithModel(t *testing.T) {
@@ -324,7 +377,7 @@ func TestCursorUserAgentWithModel(t *testing.T) {
 	)
 	assert.Equal(
 		t,
-		"composer/2.5 wakatime/13.0.7 (macOS-arm64-arm64) go1.26 Cursor/1.105.1",
+		"wakatime/13.0.7 (macOS-arm64-arm64) go1.26 composer/2.5 Cursor/1.105.1",
 		cursorUserAgentWithModel(
 			"wakatime/13.0.7 (macOS-arm64-arm64) go1.26 Cursor/1.105.1",
 			"composer/2.5",
@@ -357,7 +410,7 @@ func TestCursorUserAgentIncludesModelAndCursorAttribution(t *testing.T) {
 	)
 	assert.Equal(
 		t,
-		"grok/4.5 Cursor neovim/0.12 wakatime.nvim/12.0.0",
+		"grok/4.5 neovim/0.12 Cursor wakatime.nvim/12.0.0",
 		parser.userAgent("/tmp/dependencies.ts", "grok-4.5"),
 	)
 	assert.Equal(t, "grok/4.5 Cursor", Cursor{}.userAgent("Cursor session-id", "grok-4.5"))

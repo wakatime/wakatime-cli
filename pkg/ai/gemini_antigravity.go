@@ -20,6 +20,7 @@ type (
 		appDir           string
 		entityName       string
 		userAgentProduct string
+		hostEditor       bool
 	}
 
 	antigravityTranscript struct {
@@ -52,7 +53,10 @@ type (
 func antigravityProductDirs() []antigravityProduct {
 	return []antigravityProduct{
 		{appDir: "antigravity", entityName: "Antigravity Desktop", userAgentProduct: "antigravity-desktop"},
-		{appDir: "antigravity-ide", entityName: "Antigravity IDE", userAgentProduct: "antigravity-ide"},
+		{
+			appDir: "antigravity-ide", entityName: "Antigravity IDE",
+			userAgentProduct: "antigravity-ide", hostEditor: true,
+		},
 		{appDir: "antigravity-cli", entityName: "Antigravity CLI", userAgentProduct: "antigravity-cli"},
 	}
 }

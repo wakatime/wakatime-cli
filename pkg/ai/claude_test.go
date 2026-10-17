@@ -141,7 +141,7 @@ func TestClaudeParse(t *testing.T) {
 	assert.Equal(t, float64(time.Date(2026, 3, 18, 12, 0, 0, 0, time.UTC).Unix()), got[1].Time)
 	assert.Equal(
 		t,
-		"claude-code/2.1.45 "+heartbeat.UserAgent(ctx, "editor/1.2.3"),
+		heartbeat.UserAgent(ctx, "editor/1.2.3 claude-code/2.1.45"),
 		got[1].UserAgent,
 	)
 	assert.Contains(t, got[1].UserAgent, "claude-code/2.1.45")
@@ -739,20 +739,41 @@ func TestClaudeParse_DoesNotUseEditorUserAgentWithoutIDEContext(t *testing.T) {
 	}, "\n") + "\n"
 	require.NoError(t, os.WriteFile(transcriptPath, []byte(transcript), 0o644))
 
-	parser := ai.Claude{
-		After:             time.Date(2026, 3, 18, 11, 0, 0, 0, time.UTC),
-		FallbackUserAgent: "nvim/0.11.0",
-		UserAgents: map[string]string{
-			"/tmp/edited.go": heartbeat.UserAgent(ctx, "nvim/0.11.0"),
+	tests := map[string]struct {
+		Plugin     string
+		UserAgents map[string]string
+	}{
+		"file editor": {
+			Plugin: "nvim/0.11.0",
+			UserAgents: map[string]string{
+				"/tmp/edited.go": heartbeat.UserAgent(ctx, "nvim/0.11.0"),
+			},
+		},
+		"foreground editor without file heartbeats": {
+			Plugin: "Cursor/2 macos-wakatime/3",
+		},
+		"foreground editor with empty file context": {
+			Plugin:     "Cursor/2 macos-wakatime/3",
+			UserAgents: map[string]string{},
 		},
 	}
 
-	got, err := parser.Parse(ctx)
-	require.NoError(t, err)
-	require.Len(t, got, 2)
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			parser := ai.Claude{
+				After:             time.Date(2026, 3, 18, 11, 0, 0, 0, time.UTC),
+				FallbackUserAgent: tt.Plugin,
+				UserAgents:        tt.UserAgents,
+			}
 
-	assert.Equal(t, "opus/4.1-medium claude-code/2.1.45", got[0].UserAgent)
-	assert.Equal(t, "opus/4.1-medium claude-code/2.1.45", got[1].UserAgent)
+			got, err := parser.Parse(ctx)
+			require.NoError(t, err)
+			require.Len(t, got, 2)
+
+			assert.Equal(t, "opus/4.1-medium claude-code/2.1.45", got[0].UserAgent)
+			assert.Equal(t, "opus/4.1-medium claude-code/2.1.45", got[1].UserAgent)
+		})
+	}
 }
 
 func TestClaudeParse_SupportsClaudeFable5Model(t *testing.T) {

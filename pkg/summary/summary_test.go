@@ -1,6 +1,8 @@
 package summary_test
 
 import (
+	"fmt"
+	"math"
 	"os"
 	"strings"
 	"testing"
@@ -130,6 +132,66 @@ func TestRenderToday_MinutesOnlyPreservedWhenMinutesHidden(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, "57 mins", rendered)
+}
+
+func TestRenderToday_Empty(t *testing.T) {
+	for _, hideMinutes := range []bool{false, true} {
+		for _, out := range []output.Output{output.TextOutput, output.JSONOutput, output.RawJSONOutput} {
+			t.Run(fmt.Sprintf("%s/hideMinutes=%t", out, hideMinutes), func(t *testing.T) {
+				rendered, err := summary.RenderToday(nil, false, hideMinutes, 0, out)
+				require.EqualError(t, err, "no summary found for the current day")
+				assertEmptyToday(t, rendered, out, hideMinutes)
+			})
+		}
+	}
+}
+
+func TestRenderToday_MarshalError(t *testing.T) {
+	for _, value := range []float64{math.NaN(), math.Inf(1), math.Inf(-1)} {
+		for _, hideMinutes := range []bool{false, true} {
+			t.Run(fmt.Sprintf("%v/hideMinutes=%t", value, hideMinutes), func(t *testing.T) {
+				s := testSummary()
+				s.Data.GrandTotal.TotalSeconds = value
+				rendered, err := summary.RenderToday(s, false, hideMinutes, 0, output.RawJSONOutput)
+				require.ErrorContains(t, err, "failed to marshal json summary:")
+				assertEmptyToday(t, rendered, output.RawJSONOutput, hideMinutes)
+
+				// Simplified output only marshals text and team features, so non-finite totals are harmless.
+				rendered, err = summary.RenderToday(s, true, hideMinutes, 0, output.JSONOutput)
+				require.NoError(t, err)
+
+				text := "2 hrs 17 mins"
+				if hideMinutes {
+					text = "2 hrs"
+				}
+
+				assert.JSONEq(t, fmt.Sprintf(`{"text":%q,"has_team_features":true}`, text), rendered)
+			})
+		}
+	}
+}
+
+func assertEmptyToday(t *testing.T, rendered string, out output.Output, hideMinutes bool) {
+	t.Helper()
+
+	text := "0 secs"
+	if hideMinutes {
+		text = "0 hrs"
+	}
+
+	switch out {
+	case output.TextOutput:
+		assert.Equal(t, text, rendered)
+	case output.JSONOutput:
+		assert.JSONEq(t, fmt.Sprintf(`{"text":%q}`, text), rendered)
+	case output.RawJSONOutput:
+		expected := fmt.Sprintf(`{"data":{
+   "categories":[],"dependencies":[],"editors":[],
+   "grand_total":{"decimal":"0.00","digital":"0:00","hours":0,"minutes":0,"text":%q,"total_seconds":0},
+   "languages":[],"machines":[],"operating_systems":[],"projects":[]
+  }}`, text)
+		assert.JSONEq(t, expected, rendered)
+	}
 }
 
 func readFile(t *testing.T, fp string) string {

@@ -2,6 +2,7 @@ package todaygoal
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"regexp"
 
@@ -30,7 +31,8 @@ type Params struct {
 func Run(ctx context.Context, v *viper.Viper) (int, error) {
 	output, err := Goal(ctx, v)
 	if err != nil {
-		if errwaka, ok := err.(wakaerror.Error); ok {
+		var errwaka wakaerror.Error
+		if errors.As(err, &errwaka) {
 			return errwaka.ExitCode(), fmt.Errorf("today goal fetch failed: %s", errwaka.Message())
 		}
 

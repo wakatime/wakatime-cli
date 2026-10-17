@@ -715,9 +715,9 @@ func (g Cursor) cursorFileHeartbeat(
 }
 
 func (g Cursor) userAgent(entity string, model string) string {
-	cursorUserAgent := aiUserAgent(entity, g.UserAgents, g.FallbackUserAgent, aiPlugin(g, ""))
-
-	return userAgentWithPrependedAgent(cursorUserAgent, aiModelUserAgentToken(model, ""))
+	return aiUserAgentWithModelTokenAndEditor(
+		entity, g.UserAgents, g.FallbackUserAgent, cursorModelUserAgentToken(model), aiPlugin(g, ""),
+	)
 }
 
 func cursorUserAgentWithModel(userAgent string, modelToken string) string {
