@@ -3,6 +3,8 @@ package fileexperts_test
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"math"
 	"os"
 	"testing"
 
@@ -149,46 +151,55 @@ func TestRenderFileExperts_RawJSON(t *testing.T) {
 	assert.Equal(t, string(data), rendered)
 }
 
-func TestRenderFileExperts_EmptyJSON(t *testing.T) {
-	tests := []struct {
-		name        string
-		data        []fileexperts.Data
-		expectedRaw string
-	}{
-		{
-			name:        "nil_data",
-			expectedRaw: `{"data":null}`,
-		},
-		{
-			name:        "empty_data",
-			data:        []fileexperts.Data{},
-			expectedRaw: `{"data":[]}`,
-		},
+func TestRenderFileExperts_Empty(t *testing.T) {
+	inputs := map[string]*fileexperts.FileExperts{
+		"nil response": nil,
+		"nil data":     {},
+		"empty data":   {Data: []fileexperts.Data{}},
+	}
+	outputs := map[output.Output]string{
+		output.TextOutput:    "",
+		output.JSONOutput:    `{}`,
+		output.RawJSONOutput: `{"data":[]}`,
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			d := &fileexperts.FileExperts{Data: tt.data}
+	for name, input := range inputs {
+		t.Run(name, func(t *testing.T) {
+			for out, expected := range outputs {
+				t.Run(out.String(), func(t *testing.T) {
+					rendered, err := fileexperts.RenderFileExperts(input, out)
+					require.NoError(t, err)
 
-			rendered, err := fileexperts.RenderFileExperts(d, output.JSONOutput)
-			require.NoError(t, err)
-			assert.JSONEq(t, `{}`, rendered)
-
-			rendered, err = fileexperts.RenderFileExperts(d, output.RawJSONOutput)
-			require.NoError(t, err)
-			assert.JSONEq(t, tt.expectedRaw, rendered)
+					if out == output.TextOutput {
+						assert.Equal(t, expected, rendered)
+					} else {
+						assert.JSONEq(t, expected, rendered)
+					}
+				})
+			}
 		})
 	}
 }
 
-func TestRenderFileExperts_NilOrEmpty(t *testing.T) {
-	rendered, err := fileexperts.RenderFileExperts(nil, output.TextOutput)
-	require.NoError(t, err)
-	assert.Empty(t, rendered)
+func TestRenderFileExperts_MarshalError(t *testing.T) {
+	for _, value := range []float64{math.NaN(), math.Inf(1), math.Inf(-1)} {
+		for _, out := range []output.Output{output.JSONOutput, output.RawJSONOutput} {
+			t.Run(fmt.Sprintf("%s/%v", out, value), func(t *testing.T) {
+				d := &fileexperts.FileExperts{Data: []fileexperts.Data{{
+					Total: fileexperts.Total{TotalSeconds: value},
+				}}}
+				rendered, err := fileexperts.RenderFileExperts(d, out)
+				require.ErrorContains(t, err, "failed to marshal json")
 
-	rendered, err = fileexperts.RenderFileExperts(&fileexperts.FileExperts{}, output.TextOutput)
-	require.NoError(t, err)
-	assert.Empty(t, rendered)
+				expected := `{}`
+				if out == output.RawJSONOutput {
+					expected = `{"data":[]}`
+				}
+
+				assert.JSONEq(t, expected, rendered)
+			})
+		}
+	}
 }
 
 func TestRenderFileExperts_TextWithOtherOnlyEmptyUser(t *testing.T) {
