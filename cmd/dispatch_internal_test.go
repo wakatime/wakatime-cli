@@ -119,10 +119,11 @@ func TestRunE_DispatchesErrorCommands(t *testing.T) {
 			Configure: func(_ *testing.T, v *viper.Viper) {
 				v.Set("today", true)
 			},
-			ExitCode: exitcode.ErrGeneric,
+			ExitCode: exitcode.ErrAuth,
 		},
 		"today goal": {
 			Configure: func(_ *testing.T, v *viper.Viper) {
+				v.Set("key", "00000000-0000-4000-8000-000000000000")
 				v.Set("today-goal", "invalid")
 			},
 			ExitCode: exitcode.ErrGeneric,

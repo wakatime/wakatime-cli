@@ -2,6 +2,7 @@ package today
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	cmdapi "github.com/wakatime/wakatime-cli/cmd/api"
@@ -18,7 +19,8 @@ import (
 func Run(ctx context.Context, v *viper.Viper) (int, error) {
 	output, err := Today(ctx, v)
 	if err != nil {
-		if errwaka, ok := err.(wakaerror.Error); ok {
+		var errwaka wakaerror.Error
+		if errors.As(err, &errwaka) {
 			return errwaka.ExitCode(), fmt.Errorf("today fetch failed: %s", errwaka.Message())
 		}
 

@@ -64,12 +64,26 @@ func TestRun(t *testing.T) {
 func TestRunErr(t *testing.T) {
 	v := viper.New()
 	v.Set("entity", "testdata/main.go")
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("output", "invalid")
 
 	code, err := fileexperts.Run(t.Context(), v)
 
 	require.Error(t, err)
 	assert.Equal(t, exitcode.ErrGeneric, code)
 	assert.Contains(t, err.Error(), "file experts fetch failed")
+}
+
+func TestRun_ErrAuth_UnsetAPIKey(t *testing.T) {
+	t.Setenv("WAKATIME_API_KEY", "")
+
+	v := viper.New()
+	v.Set("entity", "testdata/main.go")
+
+	code, err := fileexperts.Run(t.Context(), v)
+
+	require.Error(t, err)
+	assert.Equal(t, exitcode.ErrAuth, code)
 }
 
 func TestFileExperts(t *testing.T) {
