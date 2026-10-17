@@ -265,6 +265,63 @@ func TestGenericAIFileHeartbeatsIncludeModel(t *testing.T) {
 	}
 }
 
+func TestGenericAIContainerModelsPreserveSessionAttribution(t *testing.T) {
+	tests := []struct {
+		name       string
+		metadata   string
+		messages   string
+		wantModels []string
+	}{
+		{
+			name:       "parent model",
+			metadata:   `"model":"grok-4.5",`,
+			messages:   `{"input_tokens":10,"file_path":"/workspace/main.go"},{"input_tokens":20}`,
+			wantModels: []string{"grok/4.5", "grok/4.5", "grok/4.5"},
+		},
+		{
+			name:       "parent model alias",
+			metadata:   `"activeModel":"grok-4.5",`,
+			messages:   `{"input_tokens":10}`,
+			wantModels: []string{"grok/4.5"},
+		},
+		{
+			name:       "message override persists after switch",
+			metadata:   `"model":"grok-4.5",`,
+			messages:   `{"input_tokens":10},{"model":"gpt-5.4","input_tokens":20},{"input_tokens":30}`,
+			wantModels: []string{"grok/4.5", "gpt/5.4", "gpt/5.4"},
+		},
+		{
+			name:       "session models remain independent",
+			metadata:   `"model":"grok-4.5",`,
+			messages:   `{"session_id":"other","model":"gpt-5.4","input_tokens":10},{"input_tokens":20}`,
+			wantModels: []string{"gpt/5.4", "grok/4.5"},
+		},
+		{
+			name:       "later message model is not parent metadata",
+			messages:   `{"input_tokens":10},{"model":"gpt-5.4","input_tokens":20},{"input_tokens":30}`,
+			wantModels: []string{"cursor-agent", "gpt/5.4", "gpt/5.4"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			transcript := filepath.Join(t.TempDir(), "session.json")
+			contents := `{"session_id":"session-1","updated_at":"2026-08-06T12:00:00Z",` +
+				tt.metadata + `"messages":[` + tt.messages + `]}`
+			require.NoError(t, os.WriteFile(transcript, []byte(contents), 0o600))
+
+			provider := genericAIProvider{parser: CursorAgent{}, containerKey: "messages"}
+			got, err := parseGenericAITranscript(t.Context(), provider, transcript)
+			require.NoError(t, err)
+			require.Len(t, got, len(tt.wantModels))
+
+			for i, model := range tt.wantModels {
+				assert.Equal(t, model, firstUserAgentToken(got[i].UserAgent))
+			}
+		})
+	}
+}
+
 func TestGenericAIModelSurvivesMergingAppTokensIntoFile(t *testing.T) {
 	transcript := filepath.Join(t.TempDir(), "session.jsonl")
 	contents := strings.Join([]string{
