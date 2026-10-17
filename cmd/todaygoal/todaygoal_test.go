@@ -59,12 +59,56 @@ func TestRun(t *testing.T) {
 
 func TestRunErr(t *testing.T) {
 	v := viper.New()
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("output", "invalid")
 
 	code, err := todaygoal.Run(t.Context(), v)
 
 	require.Error(t, err)
 	assert.Equal(t, exitcode.ErrGeneric, code)
 	assert.Contains(t, err.Error(), "today goal fetch failed")
+}
+
+func TestRun_ErrAuth_UnsetAPIKey(t *testing.T) {
+	t.Setenv("WAKATIME_API_KEY", "")
+
+	code, err := todaygoal.Run(t.Context(), viper.New())
+
+	require.Error(t, err)
+	assert.Equal(t, exitcode.ErrAuth, code)
+}
+
+func TestRun_ErrAPI(t *testing.T) {
+	tests := map[string]struct {
+		Status       int
+		ExpectedCode int
+	}{
+		"unauthorized": {Status: http.StatusUnauthorized, ExpectedCode: exitcode.ErrAuth},
+		"server error": {Status: http.StatusInternalServerError, ExpectedCode: exitcode.ErrAPI},
+		"bad request":  {Status: http.StatusBadRequest, ExpectedCode: exitcode.ErrGeneric},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			testServerURL, router, tearDown := setupTestServer()
+			defer tearDown()
+
+			router.HandleFunc(
+				"/users/current/goals/00000000-0000-4000-8000-000000000000", func(w http.ResponseWriter, _ *http.Request) {
+					w.WriteHeader(test.Status)
+				})
+
+			v := viper.New()
+			v.Set("key", "00000000-0000-4000-8000-000000000000")
+			v.Set("api-url", testServerURL)
+			v.Set("today-goal", "00000000-0000-4000-8000-000000000000")
+
+			code, err := todaygoal.Run(t.Context(), v)
+
+			require.Error(t, err)
+			assert.Equal(t, test.ExpectedCode, code)
+		})
+	}
 }
 
 func TestGoal(t *testing.T) {
