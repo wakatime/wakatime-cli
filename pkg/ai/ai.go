@@ -912,13 +912,26 @@ func aiUserAgentWithModelAndEditor(
 	complexity string,
 	editor string,
 ) string {
+	return aiUserAgentWithModelTokenAndEditor(
+		entity, userAgents, fallback, aiModelUserAgentToken(model, complexity), editor,
+	)
+}
+
+// aiUserAgentWithModelTokenAndEditor composes an already normalized model token
+// without interpreting its provider or model family again.
+func aiUserAgentWithModelTokenAndEditor(
+	entity string,
+	userAgents map[string]string,
+	fallback string,
+	modelToken string,
+	editor string,
+) string {
 	existing := fallback
 	if fromHeartbeat, found := userAgents[entity]; found && fromHeartbeat != "" {
 		existing = fromHeartbeat
 	}
 
 	hasFileContext := userAgentHasFileContext(existing, userAgents)
-	modelToken := aiModelUserAgentToken(model, complexity)
 
 	existing, previousModel := userAgentWithoutModel(existing, fallback, modelToken)
 	if modelToken == "" {
@@ -963,7 +976,7 @@ func userAgentHasLeadingModel(fields []string, fallback []string, model string) 
 		return true
 	}
 
-	if len(fields) < 2 || !strings.Contains(fields[0], "/") {
+	if len(fields) < 2 {
 		return false
 	}
 
@@ -982,7 +995,7 @@ func userAgentHasLeadingModel(fields []string, fallback []string, model string) 
 		}
 	}
 
-	if aiHarnessProduct(product) || strings.Contains(product, "wakatime") {
+	if !strings.Contains(fields[0], "/") || aiHarnessProduct(product) || strings.Contains(product, "wakatime") {
 		return false
 	}
 
