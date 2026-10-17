@@ -749,13 +749,21 @@ func (e genericAIEvent) hasTokens() bool {
 
 func genericAIEventHeartbeats(parser Parser, config ParserConfig, event genericAIEvent) Heartbeats {
 	entity := appHeartbeatEntity(parser.Name(), event.sessionID)
+
+	filePath := event.filePath
+	if filePath != "" {
+		filePath = strings.ReplaceAll(filepath.Clean(filePath), `\`, "/")
+	}
+
 	tokens := heartbeat.AITokens{
 		CurrentInput:       max(event.input, 0),
 		CurrentCachedInput: max(event.cachedInput, 0),
 		CurrentOutput:      max(event.output, 0),
 	}
+	// Usage and file activity from the same event share the known file's editor.
 	userAgent := aiUserAgentWithModelAndEditor(
-		entity, config.UserAgents, config.FallbackUserAgent, event.model, "", aiPlugin(parser, ""),
+		firstNonEmptyString(filePath, entity), config.UserAgents, config.FallbackUserAgent,
+		event.model, "", aiPlugin(parser, ""),
 	)
 
 	app := heartbeat.NewWithAITokens(
@@ -785,14 +793,9 @@ func genericAIEventHeartbeats(parser Parser, config ParserConfig, event genericA
 	app.AIPromptLength = promptLength(event.prompt)
 
 	heartbeats := Heartbeats{app}
-	if event.filePath == "" {
+	if filePath == "" {
 		return heartbeats
 	}
-
-	filePath := strings.ReplaceAll(filepath.Clean(event.filePath), `\`, "/")
-	fileUserAgent := aiUserAgentWithModelAndEditor(
-		filePath, config.UserAgents, config.FallbackUserAgent, event.model, "", aiPlugin(parser, ""),
-	)
 
 	fileHeartbeat := heartbeat.New(
 		event.lineChanges,
@@ -814,7 +817,7 @@ func genericAIEventHeartbeats(parser Parser, config ParserConfig, event genericA
 		"",
 		"",
 		heartbeatTimestamp(event.timestamp),
-		fileUserAgent,
+		userAgent,
 	)
 	fileHeartbeat.AISession = event.sessionID
 	heartbeats = append(heartbeats, fileHeartbeat)
