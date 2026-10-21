@@ -56,6 +56,13 @@ type (
 		OldLines int `json:"oldLines"`
 	}
 
+	claudeBashEditDiff struct {
+		Files []struct {
+			FilePath string            `json:"filePath"`
+			Hunks    []structuredPatch `json:"hunks"`
+		} `json:"files"`
+	}
+
 	contentValue struct {
 		String *string
 		Array  *[]json.RawMessage
@@ -67,18 +74,19 @@ type (
 	}
 
 	toolUseResult struct {
-		Type            *string            `json:"type"`
-		File            *toolUseResultFile `json:"file"`
-		Content         *contentValue      `json:"content"`
-		Stdout          *contentValue      `json:"stdout"`
-		Stderr          *contentValue      `json:"stderr"`
-		Result          *contentValue      `json:"result"`
-		CodeText        *contentValue      `json:"codeText"`
-		FilePath        *string            `json:"filePath"`
-		OriginalFile    *string            `json:"originalFile"`
-		OldString       *string            `json:"oldString"`
-		NewString       *string            `json:"newString"`
-		StructuredPatch *[]structuredPatch `json:"structuredPatch"`
+		Type            *string             `json:"type"`
+		File            *toolUseResultFile  `json:"file"`
+		Content         *contentValue       `json:"content"`
+		Stdout          *contentValue       `json:"stdout"`
+		Stderr          *contentValue       `json:"stderr"`
+		Result          *contentValue       `json:"result"`
+		CodeText        *contentValue       `json:"codeText"`
+		FilePath        *string             `json:"filePath"`
+		OriginalFile    *string             `json:"originalFile"`
+		OldString       *string             `json:"oldString"`
+		NewString       *string             `json:"newString"`
+		StructuredPatch *[]structuredPatch  `json:"structuredPatch"`
+		BashEditDiff    *claudeBashEditDiff `json:"bashEditDiff"`
 		Raw             map[string]json.RawMessage
 	}
 
@@ -178,6 +186,7 @@ func (r *toolUseResult) UnmarshalJSON(data []byte) error {
 	claudeDecodeField(raw, "oldString", &r.OldString)
 	claudeDecodeField(raw, "newString", &r.NewString)
 	claudeDecodeField(raw, "structuredPatch", &r.StructuredPatch)
+	claudeDecodeField(raw, "bashEditDiff", &r.BashEditDiff)
 
 	return nil
 }
@@ -897,6 +906,40 @@ func (g Claude) claudeHeartbeats(
 		fileTokens,
 	); heartbeat != nil {
 		heartbeats = append(heartbeats, *heartbeat)
+		fileTokens = nil
+	}
+
+	if logLine.ToolUseResult == nil || logLine.ToolUseResult.Object == nil {
+		return heartbeats
+	}
+
+	diff := logLine.ToolUseResult.Object.BashEditDiff
+	if diff == nil {
+		return heartbeats
+	}
+
+	for _, file := range diff.Files {
+		if file.FilePath == "" || len(file.Hunks) == 0 || isClaudeTaskOutputFilePath(file.FilePath) {
+			continue
+		}
+
+		projectPathOverride := ""
+		if cwdFromTranscript {
+			projectPathOverride = cwd
+		}
+
+		heartbeats = append(heartbeats, g.newHeartbeat(
+			heartbeat.PointerTo(claudePatchLineChanges(file.Hunks)),
+			sessionID,
+			fileTokens,
+			file.FilePath,
+			heartbeat.FileType,
+			heartbeat.PointerTo(true),
+			projectPathOverride,
+			heartbeatTimestamp(logLine.Timestamp),
+			g.userAgent(file.FilePath, version, model, complexity, ideSession),
+		))
+		fileTokens = nil
 	}
 
 	return heartbeats
@@ -1136,6 +1179,15 @@ func (g Claude) projectPath(logLine claudeLogLine, fallbackToFilePath bool) stri
 	}
 
 	filePath := g.getFilePath(*result.Object)
+	if filePath == "" && result.Object.BashEditDiff != nil {
+		for _, file := range result.Object.BashEditDiff.Files {
+			if file.FilePath != "" && !isClaudeTaskOutputFilePath(file.FilePath) {
+				filePath = file.FilePath
+				break
+			}
+		}
+	}
+
 	if filePath == "" {
 		return ""
 	}
@@ -1163,12 +1215,7 @@ func isClaudeTaskOutputFilePath(path string) bool {
 
 func (Claude) lineChanges(result toolUseResult) int {
 	if result.StructuredPatch != nil && len(*result.StructuredPatch) > 0 {
-		lineChanges := 0
-		for _, patch := range *result.StructuredPatch {
-			lineChanges += patch.NewLines - patch.OldLines
-		}
-
-		return lineChanges
+		return claudePatchLineChanges(*result.StructuredPatch)
 	}
 
 	if result.NewString != nil {
@@ -1195,6 +1242,15 @@ func (Claude) lineChanges(result toolUseResult) int {
 	// Don't count File.Content as line changes.
 
 	return 0
+}
+
+func claudePatchLineChanges(patches []structuredPatch) int {
+	lineChanges := 0
+	for _, patch := range patches {
+		lineChanges += patch.NewLines - patch.OldLines
+	}
+
+	return lineChanges
 }
 
 func (Claude) isWrite(result toolUseResult) bool {

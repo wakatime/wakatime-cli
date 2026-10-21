@@ -215,6 +215,69 @@ func TestClaudeParse(t *testing.T) {
 	assert.True(t, *got[8].IsWrite)
 }
 
+func TestClaudeParse_BashEditDiffFiles(t *testing.T) {
+	ctx := context.Background()
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	transcriptDir := filepath.Join(home, ".claude", "projects", "sample-project")
+	require.NoError(t, os.MkdirAll(transcriptDir, 0o755))
+
+	first := filepath.Join(home, "project", "first.go")
+	second := filepath.Join(home, "project", "second.go")
+	created := filepath.Join(home, "project", "created.go")
+
+	line, err := json.Marshal(map[string]any{
+		"type": "user", "timestamp": "2026-10-20T21:04:23Z", "sessionId": "session",
+		"version": "2.1.304", "cwd": filepath.Dir(first),
+		"usage": map[string]any{"input_tokens": 7, "output_tokens": 4},
+		"toolUseResult": map[string]any{
+			"stdout": "", "stderr": "", "interrupted": false,
+			"bashEditDiff": map[string]any{
+				"changedFiles": []string{first, second, created}, "moreFiles": 0,
+				"files": []any{
+					map[string]any{"filePath": first, "hunks": []any{
+						map[string]any{"oldLines": 3, "newLines": 8, "lines": []string{" context", "+new", "-old"}},
+						map[string]any{"oldLines": 2, "newLines": 1},
+					}},
+					map[string]any{"filePath": second, "hunks": []any{
+						map[string]any{"oldLines": 2, "newLines": 2},
+					}},
+					map[string]any{"filePath": created, "hunks": []any{
+						map[string]any{"oldLines": 0, "newLines": 3},
+					}},
+					map[string]any{"filePath": filepath.Join(home, "project", "empty.go"), "hunks": []any{}},
+				},
+			},
+		},
+	})
+	require.NoError(t, err)
+	require.NoError(t, os.WriteFile(filepath.Join(transcriptDir, "session.jsonl"), append(line, '\n'), 0o644))
+
+	got, err := (ai.Claude{After: time.Date(2026, 10, 20, 0, 0, 0, 0, time.UTC)}).Parse(ctx)
+	require.NoError(t, err)
+	require.Len(t, got, 4)
+	assert.Equal(t, heartbeat.AppType, got[0].EntityType)
+	assert.Equal(t, int64(7), got[0].AIInputTokens)
+	assert.Equal(t, int64(4), got[0].AIOutputTokens)
+
+	for i, want := range []struct {
+		path  string
+		lines int
+	}{{first, 4}, {second, 0}, {created, 3}} {
+		h := got[i+1]
+		assert.Equal(t, want.path, h.Entity)
+		assert.Equal(t, heartbeat.FileType, h.EntityType)
+		require.NotNil(t, h.AILineChanges)
+		assert.Equal(t, want.lines, *h.AILineChanges)
+		require.NotNil(t, h.IsWrite)
+		assert.True(t, *h.IsWrite)
+		assert.Equal(t, filepath.Dir(first), h.ProjectPathOverride)
+		assert.Zero(t, h.AIInputTokens)
+	}
+}
+
 func TestClaudeParse_TimestampLessMetadataPreservesTokens(t *testing.T) {
 	for _, beforeCutoff := range []bool{false, true} {
 		name := "pending tokens"
