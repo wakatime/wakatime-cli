@@ -2,6 +2,7 @@ package params_test
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -17,6 +18,7 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/apikey"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	inipkg "github.com/wakatime/wakatime-cli/pkg/ini"
+	"github.com/wakatime/wakatime-cli/pkg/keychain"
 	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/log/setup"
 	"github.com/wakatime/wakatime-cli/pkg/offline"
@@ -30,6 +32,7 @@ import (
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/zalando/go-keyring"
 	iniv1 "gopkg.in/ini.v1"
 )
 
@@ -2328,6 +2331,148 @@ func TestLoadAPIParams_APIKeyFromEnv_ConfigTakesPrecedence(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, "00000000-0000-4000-8000-000000000000", params.Key)
+}
+
+func TestLoadAPIParams_APIKey_FromKeychain(t *testing.T) {
+	keyring.MockInit()
+
+	err := keyring.Set(keychain.Service, keychain.User, "00000000-0000-4000-8000-000000000000")
+	require.NoError(t, err)
+
+	v := vipertools.MustNew()
+	v.Set("settings.api_key_storage", "keychain")
+
+	params, err := paramspkg.LoadAPIParams(t.Context(), v, paramspkg.FlagReadOrderFlagPrecedence)
+	require.NoError(t, err)
+
+	assert.Equal(t, "00000000-0000-4000-8000-000000000000", params.Key)
+}
+
+func TestLoadAPIParams_APIKey_FromKeychain_Disabled(t *testing.T) {
+	keyring.MockInit()
+
+	err := keyring.Set(keychain.Service, keychain.User, "00000000-0000-4000-8000-000000000000")
+	require.NoError(t, err)
+
+	v := vipertools.MustNew()
+
+	t.Setenv("WAKATIME_API_KEY", "10000000-0000-4000-8000-000000000000")
+
+	params, err := paramspkg.LoadAPIParams(t.Context(), v, paramspkg.FlagReadOrderFlagPrecedence)
+	require.NoError(t, err)
+
+	assert.Equal(t, "10000000-0000-4000-8000-000000000000", params.Key)
+}
+
+func TestLoadAPIParams_APIKey_FromKeychain_ConfigTakesPrecedence(t *testing.T) {
+	keyring.MockInit()
+
+	err := keyring.Set(keychain.Service, keychain.User, "00000000-0000-4000-8000-000000000000")
+	require.NoError(t, err)
+
+	v := vipertools.MustNew()
+	v.Set("settings.api_key", "10000000-0000-4000-8000-000000000000")
+	v.Set("settings.api_key_storage", "keychain")
+
+	params, err := paramspkg.LoadAPIParams(t.Context(), v, paramspkg.FlagReadOrderFlagPrecedence)
+	require.NoError(t, err)
+
+	assert.Equal(t, "10000000-0000-4000-8000-000000000000", params.Key)
+}
+
+func TestLoadAPIParams_APIKey_FromKeychain_TakesPrecedenceOverEnv(t *testing.T) {
+	keyring.MockInit()
+
+	err := keyring.Set(keychain.Service, keychain.User, "00000000-0000-4000-8000-000000000000")
+	require.NoError(t, err)
+
+	v := vipertools.MustNew()
+	v.Set("settings.api_key_storage", "keychain")
+
+	t.Setenv("WAKATIME_API_KEY", "10000000-0000-4000-8000-000000000000")
+
+	params, err := paramspkg.LoadAPIParams(t.Context(), v, paramspkg.FlagReadOrderFlagPrecedence)
+	require.NoError(t, err)
+
+	assert.Equal(t, "00000000-0000-4000-8000-000000000000", params.Key)
+}
+
+func TestLoadAPIParams_APIKey_FromKeychain_NotFoundFallsBackToEnv(t *testing.T) {
+	keyring.MockInit()
+
+	v := vipertools.MustNew()
+	v.Set("settings.api_key_storage", "keychain")
+
+	t.Setenv("WAKATIME_API_KEY", "10000000-0000-4000-8000-000000000000")
+
+	params, err := paramspkg.LoadAPIParams(t.Context(), v, paramspkg.FlagReadOrderFlagPrecedence)
+	require.NoError(t, err)
+
+	assert.Equal(t, "10000000-0000-4000-8000-000000000000", params.Key)
+}
+
+func TestLoadAPIParams_APIKey_FromKeychain_Err(t *testing.T) {
+	keyring.MockInitWithError(errors.New("keychain locked"))
+
+	v := vipertools.MustNew()
+	v.Set("settings.api_key_storage", "keychain")
+
+	_, err := paramspkg.LoadAPIParams(t.Context(), v, paramspkg.FlagReadOrderFlagPrecedence)
+	require.Error(t, err)
+
+	var errauth api.ErrAuth
+
+	assert.ErrorAs(t, err, &errauth)
+	assert.EqualError(t, errauth, "failed to read api key from keychain: keychain locked")
+}
+
+func TestLoadAPIParams_APIKey_FromKeychain_Invalid(t *testing.T) {
+	keyring.MockInit()
+
+	err := keyring.Set(keychain.Service, keychain.User, "not-uuid")
+	require.NoError(t, err)
+
+	v := vipertools.MustNew()
+	v.Set("settings.api_key_storage", "keychain")
+
+	_, err = paramspkg.LoadAPIParams(t.Context(), v, paramspkg.FlagReadOrderFlagPrecedence)
+	require.Error(t, err)
+
+	var errauth api.ErrAuth
+
+	assert.ErrorAs(t, err, &errauth)
+	assert.EqualError(t, errauth, "invalid api key format")
+}
+
+func TestLoadConfigAPIKey(t *testing.T) {
+	v := vipertools.MustNew()
+	v.Set("settings.api_key", "00000000-0000-4000-8000-000000000000")
+
+	apiKey, err := paramspkg.LoadConfigAPIKey(v)
+	require.NoError(t, err)
+
+	assert.Equal(t, "00000000-0000-4000-8000-000000000000", apiKey)
+}
+
+func TestLoadConfigAPIKey_Err(t *testing.T) {
+	tests := map[string]struct {
+		Value    string
+		Expected string
+	}{
+		"empty":   {Value: "", Expected: "api key not found or empty"},
+		"invalid": {Value: "not-uuid", Expected: "invalid api key format"},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			v := vipertools.MustNew()
+			v.Set("settings.api_key", test.Value)
+
+			_, err := paramspkg.LoadConfigAPIKey(v)
+
+			assert.EqualError(t, err, test.Expected)
+		})
+	}
 }
 
 func TestLoadAPIParams_APIUrl_Sanitize(t *testing.T) {
