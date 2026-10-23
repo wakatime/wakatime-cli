@@ -29,12 +29,13 @@ import (
 
 // Config contains filtering configurations.
 type Config struct {
-	SyncDisabled bool
-	Exclude      []regex.Regex
-	Plugin       string
-	Project      params.ProjectParams
-	Sanitize     params.SanitizeParams
-	V            *viper.Viper
+	SyncDisabled      bool
+	GrokBuildAsEditor bool
+	Exclude           []regex.Regex
+	Plugin            string
+	Project           params.ProjectParams
+	Sanitize          params.SanitizeParams
+	V                 *viper.Viper
 }
 
 // ProjectInfo contains --project, --alternate-project, and --project-folder cli args.
@@ -49,6 +50,7 @@ type ParserConfig struct {
 	After             time.Time
 	FallbackUserAgent string
 	UserAgents        map[string]string
+	GrokBuildAsEditor bool
 	ProjectInfo       ProjectInfo
 	checkpoint        *parserCheckpoint
 }
@@ -326,7 +328,8 @@ func parseAIHeartbeats(
 
 		return ParserConfig{
 			After: state.discoveryAfter(), UserAgents: userAgents, FallbackUserAgent: config.Plugin,
-			checkpoint: state,
+			GrokBuildAsEditor: config.GrokBuildAsEditor,
+			checkpoint:        state,
 		}
 	}
 
@@ -888,7 +891,7 @@ func aiUserAgent(entity string, userAgents map[string]string, fallback string, p
 	}
 
 	if existing != "" {
-		return userAgentWithAgentProduct(existing, parser, userAgentHasFileContext(existing, userAgents))
+		return userAgentWithAgentProduct(existing, parser, userAgentHasFileContext(existing, userAgents), false)
 	}
 
 	return canonicalAgentToken(parser)
@@ -913,7 +916,7 @@ func aiUserAgentWithModelAndEditor(
 	editor string,
 ) string {
 	return aiUserAgentWithModelTokenAndEditor(
-		entity, userAgents, fallback, aiModelUserAgentToken(model, complexity), editor,
+		entity, userAgents, fallback, aiModelUserAgentToken(model, complexity), editor, false,
 	)
 }
 
@@ -925,6 +928,7 @@ func aiUserAgentWithModelTokenAndEditor(
 	fallback string,
 	modelToken string,
 	editor string,
+	preferAgentAsEditor bool,
 ) string {
 	existing := fallback
 	if fromHeartbeat, found := userAgents[entity]; found && fromHeartbeat != "" {
@@ -938,7 +942,7 @@ func aiUserAgentWithModelTokenAndEditor(
 		modelToken = previousModel
 	}
 
-	existing = userAgentWithAgentProduct(existing, editor, hasFileContext)
+	existing = userAgentWithAgentProduct(existing, editor, hasFileContext, preferAgentAsEditor)
 
 	return userAgentWithPrependedAgent(existing, modelToken)
 }
@@ -1081,10 +1085,9 @@ func canonicalAgentToken(name string) string {
 	return product + "/" + version
 }
 
-// userAgentWithAgentProduct records an agent without taking the editor slot
-// away from a host IDE. With a host token the order is host, agent, other
-// plugins. Without one, the agent stays in front and is the editor.
-func userAgentWithAgentProduct(userAgent string, agent string, hasFileContext bool) string {
+// userAgentWithAgentProduct records an agent after a host IDE unless the agent
+// is preferred as the editor. Without a host, the agent is always the editor.
+func userAgentWithAgentProduct(userAgent string, agent string, hasFileContext bool, preferAgentAsEditor bool) string {
 	agent = canonicalAgentToken(agent)
 	if agent == "" {
 		return userAgent
@@ -1095,7 +1098,7 @@ func userAgentWithAgentProduct(userAgent string, agent string, hasFileContext bo
 	updated := make([]string, 0, len(fields)+2)
 	host := ""
 
-	if hostAt, ok := hostEditorFieldIndex(fields, hasFileContext); ok {
+	if hostAt, ok := hostEditorFieldIndex(fields, hasFileContext); ok && !preferAgentAsEditor {
 		host = fields[hostAt]
 		updated = append(updated, host)
 		fields = append(fields[:hostAt], fields[hostAt+1:]...)
