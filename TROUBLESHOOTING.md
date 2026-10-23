@@ -2,9 +2,9 @@
 
 First, read [How to debug WakaTime plugins][faq debug plugins].
 
-Set `debug=true` in your `~/.wakatime.cfg` file to enable verbose logging.
+Set `debug=true` in your [config file](USAGE.md#config-file) to enable verbose logging.
 
-If you’re debugging RAM usage, set `metrics=true` in your `~/.wakatime.cfg` file to log [pprof][pprof] memory usage to `~/.wakatime/metrics/`.
+If you’re debugging RAM usage, set `metrics=true` in your config file to log [pprof][pprof] memory usage to `~/.wakatime/metrics/`.
 
 The common wakatime-cli program logs to your user `$HOME` directory `~/.wakatime/wakatime.log`.
 
