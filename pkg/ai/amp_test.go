@@ -2,6 +2,7 @@ package ai_test
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -155,6 +156,329 @@ func TestAmpParse(t *testing.T) {
 	require.NotNil(t, got[1].IsWrite)
 	assert.True(t, *got[1].IsWrite)
 	assert.Equal(t, "amp/unknown-medium plugin/0.0.1", got[1].UserAgent)
+}
+
+func TestAmpParse_FileToolLeases(t *testing.T) {
+	tests := []struct {
+		name         string
+		toolName     string
+		content      string
+		oldString    string
+		newString    string
+		absolutePath bool
+		lineChanges  *int
+	}{
+		{
+			name: "create absolute file", toolName: "create_file",
+			content: "one\ntwo\n", absolutePath: true,
+		},
+		{
+			name: "create relative file without trailing newline", toolName: "create_file",
+			content: "one\ntwo",
+		},
+		{
+			name: "create empty file", toolName: "create_file",
+		},
+		{
+			name: "create blank lines", toolName: "create_file",
+			content: "\n\n",
+		},
+		{
+			name: "create patch-like content", toolName: "create_file",
+			content: "*** Add File: other.go\n-old\n+new\n",
+		},
+		{
+			name: "edit absolute file", toolName: "edit_file",
+			oldString: "old\n", newString: "new\nsecond\n", absolutePath: true, lineChanges: heartbeat.PointerTo(1),
+		},
+		{
+			name: "insert lines", toolName: "edit_file",
+			newString: "one\ntwo\n",
+		},
+		{
+			name: "delete lines", toolName: "edit_file",
+			oldString: "one\ntwo\n",
+		},
+		{
+			name: "edit without trailing newline", toolName: "edit_file",
+			oldString: "one\ntwo", newString: "three", lineChanges: heartbeat.PointerTo(-1),
+		},
+		{
+			name: "edit blank lines", toolName: "edit_file",
+			oldString: "\n\n", newString: "\n", lineChanges: heartbeat.PointerTo(-1),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
+			home := t.TempDir()
+			t.Setenv("HOME", home)
+			t.Setenv("USERPROFILE", home)
+			t.Setenv("XDG_CACHE_HOME", filepath.Join(home, ".cache"))
+			t.Setenv("LOCALAPPDATA", filepath.Join(home, "AppData", "Local"))
+
+			projectDir := filepath.Join(home, "project")
+			filePath := filepath.Join(projectDir, "main.go")
+
+			path := "main.go"
+			if tt.absolutePath {
+				path = filePath
+			}
+
+			args := map[string]interface{}{"path": path, "workdir": projectDir}
+			if tt.toolName == "create_file" {
+				args["content"] = tt.content
+			} else {
+				args["old_str"] = tt.oldString
+				args["new_str"] = tt.newString
+			}
+
+			const threadID = "T-file-tools"
+
+			completedAt := time.Date(2026, 10, 18, 4, 1, 2, 0, time.UTC)
+			transcript := mustJSONLine(t, map[string]interface{}{
+				"@timestamp": "2026-10-18T04:01:01Z", "message": "onToolLease",
+				"threadId": threadID, "reasoningEffort": "medium",
+				"data": map[string]interface{}{
+					"toolCallId": "TU-file", "toolName": tt.toolName, "args": args,
+				},
+			}) + "\n" + mustJSONLine(t, map[string]interface{}{
+				"@timestamp": completedAt.Add(-500 * time.Millisecond), "message": "agent_state",
+				"threadId": threadID, "reasoningEffort": "high",
+			}) + "\n" + mustJSONLine(t, map[string]interface{}{
+				"@timestamp": completedAt, "type": "executor_tool_result",
+				"toolCallId": "TU-file", "runStatus": "done", "hasRunError": false,
+			}) + "\n"
+			transcriptDir := filepath.Join(home, ".cache", "amp", "logs", "threads")
+			require.NoError(t, os.MkdirAll(transcriptDir, 0o755))
+
+			transcriptPath := filepath.Join(transcriptDir, threadID+".log")
+			require.NoError(t, os.WriteFile(transcriptPath, []byte(transcript), 0o644))
+			require.NoError(t, os.Chtimes(transcriptPath, completedAt, completedAt))
+
+			got, err := (ai.Amp{
+				After:             completedAt.Add(-time.Minute),
+				FallbackUserAgent: "plugin/0.0.1",
+				UserAgents: map[string]string{
+					filePath: heartbeat.UserAgent(ctx, "editor/1.2.3"),
+				},
+			}).Parse(ctx)
+			require.NoError(t, err)
+			require.Len(t, got, 1)
+
+			assert.Equal(t, filePath, got[0].Entity)
+			assert.Equal(t, heartbeat.FileType, got[0].EntityType)
+			assert.Equal(t, threadID, got[0].AISession)
+			assert.Equal(t, heartbeat.AICodingCategory.String(), got[0].Category)
+			assert.Equal(t, tt.lineChanges, got[0].AILineChanges)
+			require.NotNil(t, got[0].IsWrite)
+			assert.True(t, *got[0].IsWrite)
+			assert.Equal(t, float64(completedAt.UnixMilli())/1000, got[0].Time)
+			assert.Equal(t, heartbeat.UserAgent(ctx, "editor/1.2.3 amp/unknown-medium"), got[0].UserAgent)
+		})
+	}
+}
+
+func TestAmpParse_FileToolLineCounts(t *testing.T) {
+	tests := []struct {
+		name        string
+		toolName    string
+		after       string
+		oldString   string
+		newString   string
+		replaceAll  bool
+		lineChanges *int
+	}{
+		{
+			name: "create omits unavailable line count", toolName: "create_file",
+			after: "new\n",
+		},
+		{
+			name: "join surrounding lines", toolName: "edit_file",
+			after: "foobar", oldString: "foo\n", newString: "foo",
+		},
+		{
+			name: "same replacement at end of file", toolName: "edit_file",
+			after: "foo", oldString: "foo\n", newString: "foo",
+		},
+		{
+			name: "replace all removes lines", toolName: "edit_file",
+			oldString: "x\n", replaceAll: true,
+		},
+		{
+			name: "replace all adds multiple lines", toolName: "edit_file",
+			after:     "x\ny\nx\ny\n",
+			oldString: "x", newString: "x\ny", replaceAll: true,
+		},
+		{
+			name: "split surrounding line", toolName: "edit_file",
+			after: "foo\nbar", oldString: "foo", newString: "foo\n",
+		},
+		{
+			name: "insert without old text", toolName: "edit_file",
+			after: "foo", newString: "foo",
+		},
+		{
+			name: "delete without replacement", toolName: "edit_file",
+			oldString: "foo",
+		},
+		{
+			name: "single replacement adds a line", toolName: "edit_file",
+			after:     "prefix\nalpha\nbeta\ngamma\nsuffix\n",
+			oldString: "alpha\nbeta", newString: "alpha\nbeta\ngamma", lineChanges: heartbeat.PointerTo(1),
+		},
+		{
+			name: "single replacement removes a line", toolName: "edit_file",
+			after:     "alpha\n",
+			oldString: "alpha\nbeta\n", newString: "alpha\n", lineChanges: heartbeat.PointerTo(-1),
+		},
+		{
+			name: "single replacement keeps line count", toolName: "edit_file",
+			after: "bar", oldString: "foo", newString: "bar", lineChanges: heartbeat.PointerTo(0),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
+			home := t.TempDir()
+			t.Setenv("HOME", home)
+			t.Setenv("USERPROFILE", home)
+			t.Setenv("XDG_CACHE_HOME", filepath.Join(home, ".cache"))
+			t.Setenv("LOCALAPPDATA", filepath.Join(home, "AppData", "Local"))
+
+			filePath := filepath.Join(home, "main.go")
+			// The file on disk already contains the completed tool result.
+			require.NoError(t, os.WriteFile(filePath, []byte(tt.after), 0o644))
+
+			args := map[string]interface{}{"path": filePath}
+			if tt.toolName == "create_file" {
+				args["content"] = tt.after
+			} else {
+				args["old_str"] = tt.oldString
+				args["new_str"] = tt.newString
+				args["replace_all"] = tt.replaceAll
+			}
+
+			completedAt := time.Date(2026, 10, 23, 10, 0, 1, 0, time.UTC)
+			transcript := mustJSONLine(t, map[string]interface{}{
+				"@timestamp": completedAt.Add(-time.Second), "message": "onToolLease", "threadId": "T-counts",
+				"data": map[string]interface{}{
+					"toolCallId": "TU-counts", "toolName": tt.toolName, "args": args,
+				},
+			}) + "\n" + mustJSONLine(t, map[string]interface{}{
+				"@timestamp": completedAt, "type": "executor_tool_result",
+				"toolCallId": "TU-counts", "runStatus": "done", "hasRunError": false,
+			}) + "\n"
+			transcriptDir := filepath.Join(home, ".cache", "amp", "logs", "threads")
+			require.NoError(t, os.MkdirAll(transcriptDir, 0o755))
+
+			transcriptPath := filepath.Join(transcriptDir, "T-counts.log")
+			require.NoError(t, os.WriteFile(transcriptPath, []byte(transcript), 0o644))
+			require.NoError(t, os.Chtimes(transcriptPath, completedAt, completedAt))
+
+			got, err := (ai.Amp{After: completedAt.Add(-time.Minute)}).Parse(ctx)
+			require.NoError(t, err)
+			require.Len(t, got, 1)
+			assert.Equal(t, filePath, got[0].Entity)
+			assert.Equal(t, "T-counts", got[0].AISession)
+			assert.Equal(t, heartbeat.AICodingCategory.String(), got[0].Category)
+			require.NotNil(t, got[0].IsWrite)
+			assert.True(t, *got[0].IsWrite)
+			assert.Equal(t, tt.lineChanges, got[0].AILineChanges)
+
+			encoded, err := json.Marshal(got[0])
+			require.NoError(t, err)
+
+			if tt.lineChanges == nil {
+				assert.NotContains(t, string(encoded), "\"ai_line_changes\"")
+			}
+		})
+	}
+}
+
+func TestAmpParse_FileToolLeaseResults(t *testing.T) {
+	for _, toolName := range []string{"create_file", "edit_file"} {
+		t.Run(toolName, func(t *testing.T) {
+			ctx := context.Background()
+			home := t.TempDir()
+			t.Setenv("HOME", home)
+			t.Setenv("USERPROFILE", home)
+			t.Setenv("XDG_CACHE_HOME", filepath.Join(home, ".cache"))
+			t.Setenv("LOCALAPPDATA", filepath.Join(home, "AppData", "Local"))
+
+			completedAt := time.Date(2026, 10, 18, 4, 1, 2, 0, time.UTC)
+			filePath := filepath.Join(home, "success.go")
+			cases := []string{
+				"success", "failed", "not done", "unmatched", "before cutoff", "uncompleted",
+				"missing path", "missing call id", "missing timestamp",
+			}
+
+			var lines []string
+
+			for _, name := range cases {
+				callID := "TU-" + name
+
+				args := map[string]interface{}{
+					"path": filePath, "content": "one\ntwo\n", "old_str": "one\n", "new_str": "one\ntwo\n",
+				}
+				if name == "missing path" {
+					delete(args, "path")
+				}
+
+				if name == "missing call id" {
+					callID = ""
+				}
+
+				lines = append(lines, mustJSONLine(t, map[string]interface{}{
+					"@timestamp": completedAt.Add(-time.Second), "message": "onToolLease", "threadId": "T-file-tools",
+					"data": map[string]interface{}{
+						"toolCallId": callID, "toolName": toolName, "args": args,
+					},
+				}))
+
+				if name == "uncompleted" {
+					continue
+				}
+
+				result := map[string]interface{}{
+					"@timestamp": completedAt, "type": "executor_tool_result",
+					"toolCallId": callID, "runStatus": "done", "hasRunError": false,
+				}
+
+				switch name {
+				case "failed":
+					result["hasRunError"] = true
+				case "not done":
+					result["runStatus"] = "running"
+				case "unmatched":
+					result["toolCallId"] = "TU-other"
+				case "before cutoff":
+					result["@timestamp"] = completedAt.Add(-time.Second)
+				case "missing timestamp":
+					delete(result, "@timestamp")
+				}
+
+				lines = append(lines, mustJSONLine(t, result))
+				if name == "success" {
+					lines = append(lines, mustJSONLine(t, result))
+				}
+			}
+
+			transcriptDir := filepath.Join(home, ".cache", "amp", "logs", "threads")
+			require.NoError(t, os.MkdirAll(transcriptDir, 0o755))
+
+			transcriptPath := filepath.Join(transcriptDir, "T-file-tools.log")
+			require.NoError(t, os.WriteFile(transcriptPath, []byte(strings.Join(lines, "\n")), 0o644))
+			require.NoError(t, os.Chtimes(transcriptPath, completedAt, completedAt))
+
+			got, err := (ai.Amp{After: completedAt}).Parse(ctx)
+			require.NoError(t, err)
+			require.Len(t, got, 1)
+			assert.Equal(t, filePath, got[0].Entity)
+		})
+	}
 }
 
 func TestAmpParse_UsesCLIProcessMetadata(t *testing.T) {
