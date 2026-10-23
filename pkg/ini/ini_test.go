@@ -11,6 +11,7 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/ini"
 	"github.com/wakatime/wakatime-cli/pkg/vipertools"
 
+	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -141,8 +142,13 @@ func TestReadInConfig_NullBytes(t *testing.T) {
 }
 
 func TestFilePath(t *testing.T) {
-	home, err := os.UserHomeDir()
-	require.NoError(t, err)
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	homedir.Reset()
+	t.Cleanup(homedir.Reset)
+	require.NoError(t, os.WriteFile(filepath.Join(home, ".wakatime.cfg"), nil, 0600))
 
 	ctx := t.Context()
 
@@ -185,6 +191,78 @@ func TestFilePath(t *testing.T) {
 			assert.Equal(t, test.Expected, configFilepath)
 		})
 	}
+}
+
+func TestFilePath_XDG(t *testing.T) {
+	xdgHome := t.TempDir()
+	tests := map[string]struct {
+		ConfigHome string
+		Existing   bool
+		Expected   string
+	}{
+		"default": {},
+		"custom missing config": {
+			ConfigHome: xdgHome,
+			Expected:   filepath.Join(xdgHome, "wakatime", "wakatime.cfg"),
+		},
+		"custom existing config": {
+			ConfigHome: xdgHome,
+			Existing:   true,
+			Expected:   filepath.Join(xdgHome, "wakatime", "wakatime.cfg"),
+		},
+		"relative config home": {
+			ConfigHome: "relative-config",
+		},
+		"unexpanded config home": {
+			ConfigHome: "~/.config",
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			home := t.TempDir()
+			t.Setenv("HOME", home)
+			t.Setenv("USERPROFILE", home)
+			t.Setenv("WAKATIME_HOME", "")
+			t.Setenv("XDG_CONFIG_HOME", test.ConfigHome)
+
+			expected := test.Expected
+			if expected == "" {
+				expected = filepath.Join(home, ".config", "wakatime", "wakatime.cfg")
+			}
+
+			if test.Existing {
+				require.NoError(t, os.MkdirAll(filepath.Dir(expected), 0700))
+				require.NoError(t, os.WriteFile(expected, []byte("[settings]\ndebug = true\n"), 0600))
+			}
+
+			configFilepath, err := ini.FilePath(t.Context(), viper.New())
+			require.NoError(t, err)
+			assert.Equal(t, expected, configFilepath)
+			assert.NoFileExists(t, filepath.Join(home, ".wakatime.cfg"))
+			assert.NoDirExists(t, filepath.Join(home, ".config"))
+		})
+	}
+}
+
+func TestFilePath_LegacyStatError(t *testing.T) {
+	home := t.TempDir()
+	legacy := filepath.Join(home, ".wakatime.cfg")
+	require.NoError(t, os.WriteFile(legacy, nil, 0600))
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+	t.Setenv("WAKATIME_HOME", "")
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	require.NoError(t, os.Chmod(home, 0))
+	t.Cleanup(func() { require.NoError(t, os.Chmod(home, 0700)) })
+
+	if _, err := os.Stat(legacy); !os.IsPermission(err) {
+		t.Skip("file permissions are not enforced")
+	}
+
+	configFilepath, err := ini.FilePath(t.Context(), viper.New())
+	require.NoError(t, err)
+	assert.Equal(t, legacy, configFilepath)
 }
 
 func TestFilePathExpandError(t *testing.T) {
