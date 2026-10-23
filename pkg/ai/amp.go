@@ -23,8 +23,12 @@ type Amp ParserConfig
 
 type (
 	ampToolArgs struct {
-		PatchText string `json:"patchText"`
-		Workdir   string `json:"workdir"`
+		PatchText  string `json:"patchText"`
+		Workdir    string `json:"workdir"`
+		Path       string `json:"path"`
+		OldString  string `json:"old_str"`
+		NewString  string `json:"new_str"`
+		ReplaceAll bool   `json:"replace_all"`
 	}
 
 	ampToolData struct {
@@ -68,18 +72,10 @@ type (
 		version string
 	}
 
-	ampPendingPatch struct {
-		cwd             string
-		patchText       string
-		reasoningEffort string
-		sessionID       string
-		version         string
-	}
-
 	ampParseState struct {
 		cwd             string
 		heartbeats      Heartbeats
-		pendingPatches  map[string]ampPendingPatch
+		pendingTools    map[string]Heartbeats
 		reasoningEffort string
 		sessionID       string
 		version         string
@@ -343,10 +339,10 @@ func (g Amp) parseTranscript(
 	}
 
 	state := ampParseState{
-		cwd:            session.cwd,
-		pendingPatches: make(map[string]ampPendingPatch),
-		sessionID:      session.id,
-		version:        session.version,
+		cwd:          session.cwd,
+		pendingTools: make(map[string]Heartbeats),
+		sessionID:    session.id,
+		version:      session.version,
 	}
 
 	for scanner.Scan() {
@@ -460,7 +456,7 @@ func (g Amp) handleTranscriptLine(
 	}
 
 	if logLine.Message == "onToolLease" && logLine.Data != nil {
-		g.handleToolLease(logger, transcript, *logLine.Data, state)
+		g.handleToolLease(logger, transcript, *logLine.Data, logLine.Timestamp, state)
 
 		return
 	}
@@ -469,33 +465,29 @@ func (g Amp) handleTranscriptLine(
 		return
 	}
 
-	pending, found := state.pendingPatches[logLine.ToolCallID]
-	if !found {
+	pending := state.pendingTools[logLine.ToolCallID]
+
+	delete(state.pendingTools, logLine.ToolCallID)
+
+	if logLine.RunStatus != "done" || logLine.HasRunError || logLine.Timestamp.IsZero() {
 		return
 	}
 
-	delete(state.pendingPatches, logLine.ToolCallID)
+	for _, hb := range pending {
+		if !timestampAtOrAfterCutoff(logLine.Timestamp, ParserConfig(g).sessionAfter(hb.AISession)) {
+			continue
+		}
 
-	if logLine.RunStatus != "done" || logLine.HasRunError ||
-		logLine.Timestamp.IsZero() ||
-		!timestampAtOrAfterCutoff(logLine.Timestamp, ParserConfig(g).sessionAfter(pending.sessionID)) {
-		return
+		hb.Time = float64(logLine.Timestamp.UnixMilli()) / 1000
+		state.heartbeats = append(state.heartbeats, hb)
 	}
-
-	state.heartbeats = append(state.heartbeats, g.patchHeartbeats(
-		logLine.Timestamp,
-		pending.cwd,
-		pending.patchText,
-		pending.reasoningEffort,
-		pending.sessionID,
-		pending.version,
-	)...)
 }
 
-func (Amp) handleToolLease(
+func (g Amp) handleToolLease(
 	logger *log.Logger,
 	transcript string,
 	data ampToolData,
+	timestamp time.Time,
 	state *ampParseState,
 ) {
 	var args ampToolArgs
@@ -513,17 +505,45 @@ func (Amp) handleToolLease(
 		}
 	}
 
-	if !strings.EqualFold(data.ToolName, "apply_patch") || data.ToolCallID == "" || args.PatchText == "" {
+	if data.ToolCallID == "" {
 		return
 	}
 
-	state.pendingPatches[data.ToolCallID] = ampPendingPatch{
-		cwd:             workdir,
-		patchText:       args.PatchText,
-		reasoningEffort: state.reasoningEffort,
-		sessionID:       state.sessionID,
-		version:         state.version,
+	var pending Heartbeats
+
+	switch strings.ToLower(data.ToolName) {
+	case "apply_patch":
+		pending = g.patchHeartbeats(timestamp, workdir, args.PatchText,
+			state.reasoningEffort, state.sessionID, state.version)
+	case "create_file", "edit_file":
+		filePath := codexFilePath(workdir, "*** Update File: "+args.Path)
+		if filePath == "" {
+			return
+		}
+
+		var lineChanges *int
+		if strings.EqualFold(data.ToolName, "edit_file") {
+			lineChanges = ampEditLineChanges(args)
+		}
+
+		pending = Heartbeats{g.heartbeat(filePath, state.reasoningEffort,
+			state.sessionID, timestamp, state.version, lineChanges)}
 	}
+
+	if len(pending) > 0 {
+		state.pendingTools[data.ToolCallID] = pending
+	}
+}
+
+func ampEditLineChanges(args ampToolArgs) *int {
+	// The log has neither the surrounding file nor the replacement count.
+	// A trailing newline change can join/split lines or only change the EOF.
+	if args.ReplaceAll || args.OldString == "" || args.NewString == "" ||
+		strings.HasSuffix(args.OldString, "\n") != strings.HasSuffix(args.NewString, "\n") {
+		return nil
+	}
+
+	return heartbeat.PointerTo(strings.Count(args.NewString, "\n") - strings.Count(args.OldString, "\n"))
 }
 
 func (g Amp) patchHeartbeats(
@@ -566,8 +586,7 @@ func (g Amp) patchHeartbeats(
 					sessionID,
 					timestamp,
 					version,
-					additions,
-					deletions,
+					heartbeat.PointerTo(additions-deletions),
 				))
 				heartbeats[len(heartbeats)-1].IsUnsavedEntity = isDeleted
 			}
@@ -592,8 +611,7 @@ func (g Amp) patchHeartbeats(
 			sessionID,
 			timestamp,
 			version,
-			additions,
-			deletions,
+			heartbeat.PointerTo(additions-deletions),
 		))
 		heartbeats[len(heartbeats)-1].IsUnsavedEntity = isDeleted
 	}
@@ -607,11 +625,10 @@ func (g Amp) heartbeat(
 	sessionID string,
 	timestamp time.Time,
 	version string,
-	additions int,
-	deletions int,
+	lineChanges *int,
 ) heartbeat.Heartbeat {
 	return heartbeat.NewWithAITokens(
-		heartbeat.PointerTo(additions-deletions),
+		lineChanges,
 		sessionID,
 		heartbeat.AITokens{},
 		"",
