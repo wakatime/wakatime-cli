@@ -119,7 +119,25 @@ Notice how you have to include the exclude patterns from your main `~/.wakatime.
 | metrics                        | When set, collects metrics usage in '~/.wakatime/metrics' folder. For further reference visit <https://go.dev/blog/pprof>.                                                                                                                                             | _bool_        | `false`                           |
 | guess_language                 | When `true`, enables detecting programming language from file contents.                                                                                                                                                                                                | _bool_        | `false`                           |
 | sync_ai_disabled               | When `true`, disables detecting AI Coding from AI transcript session logs. By default, transcript logs for Claude, Codex, Cursor, etc. are parsed to find when AI edited or read files in your projects.                                                               | _bool_        | `false`                           |
+| grok_build_as_editor            | When `true`, reports Grok Build as the editor for its AI activity even when a host IDE is present. | _bool_ | `false` |
 | exclude_ai                     | File path patterns to exclude from AI tracking. Only matching `ai coding` file heartbeats are skipped; human activity is still logged. Uses the same POSIX regex syntax and entity paths as `exclude`. | _list_ | |
+
+### Reporting Grok Build as the editor
+
+To distinguish Grok Build activity from activity attributed to its host IDE, add
+this setting to your global `$WAKATIME_HOME/.wakatime.cfg`:
+
+```ini
+[settings]
+grok_build_as_editor = true
+```
+
+You can also pass `--grok-build-as-editor` on the command line. Use
+`--grok-build-as-editor=false` to override an enabled global setting for one run.
+The default continues to report the associated host IDE as the editor.
+The setting applies to newly synced Grok Build activity; it does not reattribute
+previously uploaded activity. Human activity and other AI tools keep their
+existing editor attribution.
 
 ### Disabling AI tracking for folders and files
 

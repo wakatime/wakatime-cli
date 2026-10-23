@@ -873,14 +873,59 @@ func (g GrokBuild) hunkHeartbeat(
 }
 
 func (g GrokBuild) userAgent(entity string, model string, version string) string {
-	return aiUserAgentWithModelAndEditor(
+	modelToken := aiModelUserAgentToken(model, "")
+	userAgents := g.UserAgents
+	fallback := g.FallbackUserAgent
+
+	if g.GrokBuildAsEditor {
+		existing := fallback
+		if fromHeartbeat, found := userAgents[entity]; found && fromHeartbeat != "" {
+			existing = fromHeartbeat
+		}
+
+		withoutModel, previousModel := grokBuildUserAgentWithoutPreviousModel(existing, fallback)
+		if previousModel != "" {
+			fallback = withoutModel
+			userAgents = nil
+
+			if modelToken == "" {
+				modelToken = previousModel
+			}
+		}
+	}
+
+	return aiUserAgentWithModelTokenAndEditor(
 		entity,
-		g.UserAgents,
-		g.FallbackUserAgent,
-		model,
-		"",
+		userAgents,
+		fallback,
+		modelToken,
 		grokBuildUserAgentProduct(version),
+		g.GrokBuildAsEditor,
 	)
+}
+
+// grokBuildUserAgentWithoutPreviousModel recognizes the preferred Grok Build
+// ordering without interpreting arbitrary caller editors as model products.
+func grokBuildUserAgentWithoutPreviousModel(userAgent string, fallback string) (string, string) {
+	header, products := splitUserAgent(userAgent)
+
+	fields := strings.Fields(products)
+	if len(fields) < 2 {
+		return userAgent, ""
+	}
+
+	product, version, found := strings.Cut(fields[0], "/")
+	if !found || version == "" || !strings.EqualFold(product, "grok") ||
+		!strings.EqualFold(userAgentProduct(fields[1]), "grok-build") || !strings.Contains(fields[1], "/") {
+		return userAgent, ""
+	}
+
+	caller := userAgentProductFields(fallback)
+	if len(caller) > 0 && strings.EqualFold(userAgentProduct(caller[0]), product) {
+		return userAgent, ""
+	}
+
+	return strings.TrimSpace(header + " " + strings.Join(fields[1:], " ")), fields[0]
 }
 
 func grokBuildUserAgentProduct(version string) string {

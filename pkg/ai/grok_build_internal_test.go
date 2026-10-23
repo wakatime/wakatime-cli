@@ -40,6 +40,154 @@ func TestGrokBuildUserAgentProduct(t *testing.T) {
 	assert.Equal(t, "grok-build/1.2.3", grokBuildUserAgentProduct(" 1.2.3 "))
 }
 
+func TestGrokBuildUserAgentEditorPreference(t *testing.T) {
+	const entity = "/tmp/main.go"
+
+	tests := []struct {
+		name      string
+		fallback  string
+		fileAgent string
+		model     string
+		version   string
+		defaultUA string
+		preferred string
+	}{
+		{
+			name:      "host IDE",
+			fallback:  "cursor/1.128.0 vscode-wakatime/30.2.1",
+			model:     "grok-4.7",
+			version:   "1.0.67",
+			defaultUA: "grok/4.7 cursor/1.128.0 grok-build/1.0.67 vscode-wakatime/30.2.1",
+			preferred: "grok/4.7 grok-build/1.0.67 cursor/1.128.0 vscode-wakatime/30.2.1",
+		},
+		{
+			name:      "file editor overrides fallback",
+			fallback:  "cursor/1.128.0 vscode-wakatime/30.2.1",
+			fileAgent: "neovim/0.12 wakatime.nvim/12.0.0",
+			model:     "grok-4.7",
+			version:   "1.0.67",
+			defaultUA: "grok/4.7 neovim/0.12 grok-build/1.0.67 wakatime.nvim/12.0.0",
+			preferred: "grok/4.7 grok-build/1.0.67 neovim/0.12 wakatime.nvim/12.0.0",
+		},
+		{
+			name:      "missing model and version",
+			fallback:  "cursor/1.128.0 vscode-wakatime/30.2.1",
+			defaultUA: "cursor/1.128.0 grok-build/unknown vscode-wakatime/30.2.1",
+			preferred: "grok-build/unknown cursor/1.128.0 vscode-wakatime/30.2.1",
+		},
+		{
+			name:      "without host IDE",
+			fallback:  "plugin/1",
+			model:     "grok-4.7",
+			version:   "1.0.67",
+			defaultUA: "grok/4.7 grok-build/1.0.67 plugin/1",
+			preferred: "grok/4.7 grok-build/1.0.67 plugin/1",
+		},
+		{
+			name:      "full user agent",
+			fallback:  "wakatime/1 (Linux (Ubuntu)-6-amd64) go1.27.2 cursor/1 vscode-wakatime/2",
+			model:     "grok-4.7",
+			version:   "1.0.67",
+			defaultUA: "wakatime/1 (Linux (Ubuntu)-6-amd64) go1.27.2 grok/4.7 cursor/1 grok-build/1.0.67 vscode-wakatime/2",
+			preferred: "wakatime/1 (Linux (Ubuntu)-6-amd64) go1.27.2 grok/4.7 grok-build/1.0.67 cursor/1 vscode-wakatime/2",
+		},
+		{
+			name:      "existing product version and duplicates",
+			fallback:  "cursor/1 grok-build/1.0.13 grok-build/1.0.13 vscode-wakatime/2",
+			model:     "grok-4.7",
+			version:   "1.0.67",
+			defaultUA: "grok/4.7 cursor/1 grok-build/1.0.13 vscode-wakatime/2",
+			preferred: "grok/4.7 grok-build/1.0.13 cursor/1 vscode-wakatime/2",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			for name, prefer := range map[string]bool{"default": false, "preferred": true} {
+				t.Run(name, func(t *testing.T) {
+					parser := GrokBuild{FallbackUserAgent: tt.fallback, GrokBuildAsEditor: prefer}
+					if tt.fileAgent != "" {
+						parser.UserAgents = map[string]string{entity: tt.fileAgent}
+					}
+
+					expected := tt.defaultUA
+					if prefer {
+						expected = tt.preferred
+					}
+
+					got := parser.userAgent(entity, tt.model, tt.version)
+					assert.Equal(t, expected, got)
+					parser.UserAgents = map[string]string{entity: got}
+					assert.Equal(t, expected, parser.userAgent(entity, tt.model, tt.version))
+				})
+			}
+		})
+	}
+}
+
+func TestGrokBuildUserAgentEditorPreferenceRecomposesPreviousModel(t *testing.T) {
+	const (
+		entity   = "/tmp/main.go"
+		fallback = "cursor/2 vscode-wakatime/3"
+		previous = "wakatime/1 (Linux-6-amd64) go1.27.2 grok/4.7 grok-build/1 cursor/2 vscode-wakatime/3"
+	)
+
+	for _, model := range []string{"", "grok-4.8"} {
+		t.Run(model, func(t *testing.T) {
+			parser := GrokBuild{
+				FallbackUserAgent: fallback,
+				UserAgents:        map[string]string{entity: previous},
+				GrokBuildAsEditor: true,
+			}
+
+			expected := previous
+			if model != "" {
+				expected = strings.Replace(previous, "grok/4.7", "grok/4.8", 1)
+			}
+
+			got := parser.userAgent(entity, model, "1")
+			assert.Equal(t, expected, got)
+			parser.UserAgents[entity] = got
+			assert.Equal(t, expected, parser.userAgent(entity, model, "1"))
+		})
+	}
+}
+
+func TestGrokBuildUserAgentEditorPreferencePreservesCallerProducts(t *testing.T) {
+	const entity = "/tmp/main.go"
+
+	tests := []struct {
+		name     string
+		fallback string
+		existing string
+		expected string
+	}{
+		{
+			name:     "custom editor before Grok Build",
+			fallback: "cursor/2",
+			existing: "custom-editor/4 grok-build/1 cursor/2",
+			expected: "grok-build/1 custom-editor/4 cursor/2",
+		},
+		{
+			name:     "caller editor named Grok",
+			fallback: "grok/2 editor-wakatime/3",
+			existing: "grok/2 grok-build/1 editor-wakatime/3",
+			expected: "grok-build/1 grok/2 editor-wakatime/3",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			parser := GrokBuild{
+				FallbackUserAgent: tt.fallback,
+				UserAgents:        map[string]string{entity: tt.existing},
+				GrokBuildAsEditor: true,
+			}
+			assert.Equal(t, tt.expected, parser.userAgent(entity, "", "1"))
+		})
+	}
+}
+
 func TestGrokBuildDecodeUpdate(t *testing.T) {
 	t.Run("envelope", func(t *testing.T) {
 		event, err := grokBuildDecodeUpdate([]byte(`{

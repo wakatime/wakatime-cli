@@ -89,6 +89,10 @@ var (
 		FlagReadOrderFlagPrecedence:          {"guess-language", "settings.guess_language"},
 		FlagReadOrderProjectConfigPrecedence: {"settings.guess_language", "guess-language"},
 	}
+	grokBuildAsEditorOrder = map[FlagReadOrder][]string{
+		FlagReadOrderFlagPrecedence:          {"grok-build-as-editor", "settings.grok_build_as_editor"},
+		FlagReadOrderProjectConfigPrecedence: {"settings.grok_build_as_editor", "grok-build-as-editor"},
+	}
 	excludeUnknownProjectOrder = map[FlagReadOrder][]string{
 		FlagReadOrderFlagPrecedence:          {"exclude-unknown-project", "settings.exclude_unknown_project"},
 		FlagReadOrderProjectConfigPrecedence: {"settings.exclude_unknown_project", "exclude-unknown-project"},
@@ -251,6 +255,8 @@ type (
 	// AIParams contains AI sync command parameters.
 	AIParams struct {
 		SyncDisabled bool
+		// GrokBuildAsEditor reports Grok Build instead of the host IDE as its editor.
+		GrokBuildAsEditor bool
 		// Exclude contains entity file path patterns excluded from AI tracking.
 		Exclude []regex.Regex
 	}
@@ -901,7 +907,7 @@ func loadProjectMapPatterns(ctx context.Context, v *viper.Viper, prefix string) 
 }
 
 // LoadAIParams loads ai sync params from viper.Viper instance.
-func LoadAIParams(ctx context.Context, v *viper.Viper, _ FlagReadOrder) (AIParams, error) {
+func LoadAIParams(ctx context.Context, v *viper.Viper, order FlagReadOrder) (AIParams, error) {
 	exclude := v.GetStringSlice("exclude-ai")
 	exclude = append(exclude, v.GetStringSlice("settings.exclude_ai")...)
 
@@ -924,7 +930,8 @@ func LoadAIParams(ctx context.Context, v *viper.Viper, _ FlagReadOrder) (AIParam
 		SyncDisabled: v.GetBool("sync-ai-disable") ||
 			v.GetBool("sync-ai-disabled") ||
 			v.GetBool("settings.sync_ai_disabled"),
-		Exclude: excludePatterns,
+		GrokBuildAsEditor: vipertools.FirstNonEmptyBool(v, grokBuildAsEditorOrder[order]...),
+		Exclude:           excludePatterns,
 	}, nil
 }
 
@@ -1434,8 +1441,9 @@ func (p Offline) String() string {
 // String implements fmt.Stringer interface.
 func (p AIParams) String() string {
 	return fmt.Sprintf(
-		"disabled: %t, exclude: '%s'",
+		"disabled: %t, grok build as editor: %t, exclude: '%s'",
 		p.SyncDisabled,
+		p.GrokBuildAsEditor,
 		p.Exclude,
 	)
 }
