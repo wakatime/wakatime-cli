@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/wakatime/wakatime-cli/cmd/configwrite"
@@ -49,10 +50,11 @@ func TestRunErr(t *testing.T) {
 }
 
 func TestRunNewWriterErr(t *testing.T) {
-	// point config at a path whose parent directory does not exist, so
-	// ini.NewWriter fails to create the file and returns an error.
+	parent := filepath.Join(t.TempDir(), "file")
+	require.NoError(t, os.WriteFile(parent, nil, 0600))
+
 	v := viper.New()
-	v.Set("config", filepath.Join(t.TempDir(), "does-not-exist", ".wakatime.cfg"))
+	v.Set("config", filepath.Join(parent, ".wakatime.cfg"))
 	v.Set("config-section", "settings")
 	v.Set("config-write", map[string]string{"debug": "true"})
 
@@ -61,6 +63,106 @@ func TestRunNewWriterErr(t *testing.T) {
 	require.Error(t, err)
 	assert.Equal(t, exitcode.ErrConfigFileParse, code)
 	assert.Contains(t, err.Error(), "failed to write to config file")
+}
+
+func TestRun_ConfigPathError(t *testing.T) {
+	v := viper.New()
+	v.Set("config", "~missing-user/.wakatime.cfg")
+	v.Set("config-section", "settings")
+	v.Set("config-write", map[string]string{"debug": "true"})
+
+	code, err := configwrite.Run(t.Context(), v)
+
+	require.ErrorContains(t, err, "failed to expand config param")
+	assert.Equal(t, exitcode.ErrConfigFileParse, code)
+}
+
+func TestRun_XDG(t *testing.T) {
+	tests := map[string]struct {
+		CustomHome bool
+		Existing   bool
+		Legacy     bool
+	}{
+		"create default config": {},
+		"create custom config":  {CustomHome: true},
+		"update xdg config":     {CustomHome: true, Existing: true},
+		"update legacy config":  {CustomHome: true, Existing: true, Legacy: true},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			home := t.TempDir()
+			t.Setenv("HOME", home)
+			t.Setenv("USERPROFILE", home)
+			t.Setenv("WAKATIME_HOME", "")
+			t.Setenv("XDG_CONFIG_HOME", "")
+
+			xdgHome := filepath.Join(home, ".config")
+			if test.CustomHome {
+				xdgHome = filepath.Join(home, "custom-config")
+				t.Setenv("XDG_CONFIG_HOME", xdgHome)
+			}
+
+			xdgFile := filepath.Join(xdgHome, "wakatime", "wakatime.cfg")
+			original := []byte("[settings]\napi_key = keep-key\ndebug = false\n")
+
+			if test.Existing {
+				require.NoError(t, os.MkdirAll(filepath.Dir(xdgFile), 0750))
+				require.NoError(t, os.Chmod(filepath.Dir(xdgFile), 0750))
+				require.NoError(t, os.WriteFile(xdgFile, original, 0600))
+			}
+
+			expected := xdgFile
+
+			legacy := filepath.Join(home, ".wakatime.cfg")
+			if test.Legacy {
+				require.NoError(t, os.WriteFile(legacy, original, 0600))
+				expected = legacy
+			}
+
+			v := viper.New()
+			v.Set("config-section", "settings")
+			v.Set("config-write", map[string]string{"debug": "true"})
+
+			code, err := configwrite.Run(t.Context(), v)
+			require.NoError(t, err)
+			assert.Equal(t, exitcode.Success, code)
+
+			resolved, err := ini.FilePath(t.Context(), v)
+			require.NoError(t, err)
+			assert.Equal(t, expected, resolved)
+			require.NoError(t, ini.ReadInConfig(v, resolved))
+			assert.Equal(t, "true", v.GetString("settings.debug"))
+
+			if test.Existing {
+				assert.Equal(t, "keep-key", v.GetString("settings.api_key"))
+			}
+
+			if test.Legacy {
+				contents, err := os.ReadFile(xdgFile)
+				require.NoError(t, err)
+				assert.Equal(t, original, contents)
+			} else {
+				assert.NoFileExists(t, legacy)
+			}
+
+			if runtime.GOOS != "windows" && !test.Legacy {
+				dirInfo, err := os.Stat(filepath.Dir(xdgFile))
+				require.NoError(t, err)
+
+				expectedMode := os.FileMode(0700)
+				if test.Existing {
+					expectedMode = 0750
+				}
+
+				assert.Equal(t, expectedMode, dirInfo.Mode().Perm())
+
+				fileInfo, err := os.Stat(xdgFile)
+				require.NoError(t, err)
+				assert.Equal(t, os.FileMode(0600), fileInfo.Mode().Perm())
+			}
+		})
+	}
 }
 
 func TestLoadParams(t *testing.T) {

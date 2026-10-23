@@ -18,11 +18,14 @@ WakaTime plugins and wakatime-cli share a common [INI][usage] config file:
 
 `$WAKATIME_HOME/.wakatime.cfg`
 
+Without an explicit config path or `WAKATIME_HOME`, wakatime-cli also supports an
+[XDG config fallback](USAGE.md#config-file) when `~/.wakatime.cfg` does not exist.
+
 IDE plugins log to the IDE’s console, and wakatime-cli writes JSONL logs to:
 
 `$WAKATIME_HOME/.wakatime/wakatime.log`
 
-With the `~/.wakatime.cfg` config `debug = true` enabling verbose logs.
+Set `debug = true` in your config file to enable verbose logs.
 
 See [Usage][usage] or the [WakaTime FAQ][faq] for more details.
 

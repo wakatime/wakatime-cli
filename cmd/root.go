@@ -78,7 +78,12 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 			" \"writing docs\", \"code reviewing\", \"browsing\","+
 			" \"translating\", or \"designing\". Defaults to \"coding\".",
 	)
-	flags.String("config", "", "Optional config file. Defaults to '~/.wakatime.cfg'.")
+	flags.String(
+		"config",
+		"",
+		"Optional config file. Uses $WAKATIME_HOME/.wakatime.cfg when set, then an existing ~/.wakatime.cfg, "+
+			"otherwise $XDG_CONFIG_HOME/wakatime/wakatime.cfg (~/.config/wakatime/wakatime.cfg by default).",
+	)
 	flags.String("internal-config", "", "Optional internal config file. Defaults to '~/.wakatime/wakatime-internal.cfg'.")
 	flags.String("config-read", "", "Prints value for the given config key, then exits.")
 	flags.String(
@@ -171,7 +176,7 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 		"Normally files that don't exist on disk are skipped and not tracked. When this option is present,"+
 			" the main heartbeat file will be tracked even if it doesn't exist. To set this flag on"+
 			" extra heartbeats, use the 'is_unsaved_entity' json key.")
-	flags.String("key", "", "Your wakatime api key; uses api_key from ~/.wakatime.cfg by default.")
+	flags.String("key", "", "Your wakatime api key; uses api_key from the config file by default.")
 	flags.String("language", "", "Optional language name. If valid, takes priority over auto-detected language.")
 	flags.Int("lineno", 0, "Optional line number. This is the current line being edited.")
 	flags.Int(

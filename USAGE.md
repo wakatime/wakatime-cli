@@ -1,14 +1,28 @@
 # Usage
 
-Options can be passed to wakatime-cli via command line, or set in the `$WAKATIME_HOME/.wakatime.cfg` config file.
-`$WAKATIME_HOME` defaults to your user's `$HOME` directory.
+Options can be passed to wakatime-cli via command line, or set in the INI config file described below.
 Command line arguments take precedence over config file settings.
 Run `wakatime-cli --help` for available command line options.
 
 ## Config File
 
-After [installing WakaTime][plugins], a minimal `$WAKATIME_HOME/.wakatime.cfg` config file will be created for you.
-You can add to that config file with these available options:
+wakatime-cli selects one main config file in this order:
+
+1. The path passed with `--config`.
+2. `$WAKATIME_HOME/.wakatime.cfg` when `WAKATIME_HOME` is set to a valid, non-empty path.
+3. An existing `~/.wakatime.cfg`, including an empty file. Errors reading this file do not trigger XDG fallback.
+4. `$XDG_CONFIG_HOME/wakatime/wakatime.cfg`. If `XDG_CONFIG_HOME` is unset, empty, or relative,
+   the default is `~/.config/wakatime/wakatime.cfg`.
+
+When no config exists, `--config-write` creates the selected file and any missing parent directories.
+New directories use permissions `0700` and new files use `0600`; existing directory permissions are preserved.
+Config lookup does not create the selected file or its parent directories.
+
+Some [editor plugins][plugins] still read and create `~/.wakatime.cfg` directly. If a plugin creates this legacy file,
+it takes precedence over the XDG config on subsequent CLI runs. Plugin support is needed for a consistent XDG setup
+across editors. Existing files are not moved, and log, internal-config, and offline-queue locations are unchanged.
+
+You can add to the selected config file with these available options:
 
 ```ini
 [settings]

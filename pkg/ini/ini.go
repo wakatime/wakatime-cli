@@ -236,12 +236,27 @@ func FilePath(ctx context.Context, v *viper.Viper) (string, error) {
 		return p, nil
 	}
 
-	home, _, err := WakaHomeDir(ctx)
+	home, homeType, err := WakaHomeDir(ctx)
 	if err != nil {
 		return "", fmt.Errorf("failed to get user's home directory: %s", err)
 	}
 
-	return filepath.Join(home, defaultFile), nil
+	legacy := filepath.Join(home, defaultFile)
+	if homeType == WakaHomeTypeEnvVar {
+		return legacy, nil
+	}
+
+	// Only a missing legacy file permits fallback; keep empty files and read errors authoritative.
+	if _, err := os.Stat(legacy); !os.IsNotExist(err) {
+		return legacy, nil
+	}
+
+	configHome := os.Getenv("XDG_CONFIG_HOME")
+	if !filepath.IsAbs(configHome) {
+		configHome = filepath.Join(home, ".config")
+	}
+
+	return filepath.Join(configHome, "wakatime", "wakatime.cfg"), nil
 }
 
 // ImportFilePath returns the path for custom wakatime config file.
