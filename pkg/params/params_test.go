@@ -3230,12 +3230,13 @@ func TestOffline_String(t *testing.T) {
 
 func TestParamsString_IncludesAIParams(t *testing.T) {
 	params := paramspkg.AIParams{
-		SyncDisabled: true,
+		SyncDisabled:      true,
+		GrokBuildAsEditor: true,
 	}
 
 	assert.Equal(
 		t,
-		"disabled: true, exclude: '[]'",
+		"disabled: true, grok build as editor: true, exclude: '[]'",
 		params.String(),
 	)
 }
@@ -3476,4 +3477,50 @@ func TestLoadAIParams_SyncDisabled(t *testing.T) {
 
 	assert.True(t, params.SyncDisabled)
 	assert.Empty(t, params.Exclude)
+}
+
+func TestLoadAIParams_GrokBuildAsEditor(t *testing.T) {
+	tests := []struct {
+		name   string
+		values map[string]any
+		order  paramspkg.FlagReadOrder
+		want   bool
+	}{
+		{name: "default"},
+		{name: "config enabled", values: map[string]any{"settings.grok_build_as_editor": true}, want: true},
+		{name: "flag enabled", values: map[string]any{"grok-build-as-editor": true}, want: true},
+		{
+			name: "flag false overrides config true",
+			values: map[string]any{
+				"grok-build-as-editor": false, "settings.grok_build_as_editor": true,
+			},
+		},
+		{
+			name: "flag true overrides config false",
+			values: map[string]any{
+				"grok-build-as-editor": true, "settings.grok_build_as_editor": false,
+			},
+			want: true,
+		},
+		{
+			name: "project config precedence",
+			values: map[string]any{
+				"grok-build-as-editor": true, "settings.grok_build_as_editor": false,
+			},
+			order: paramspkg.FlagReadOrderProjectConfigPrecedence,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			v := vipertools.MustNew()
+			for key, value := range tt.values {
+				v.Set(key, value)
+			}
+
+			got, err := paramspkg.LoadAIParams(t.Context(), v, tt.order)
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, got.GrokBuildAsEditor)
+		})
+	}
 }

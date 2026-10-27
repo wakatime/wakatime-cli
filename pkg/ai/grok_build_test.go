@@ -93,6 +93,48 @@ func TestGrokBuildParse(t *testing.T) {
 	assert.Contains(t, got[2].UserAgent, "editor/1.2.3")
 }
 
+func TestGrokBuildParse_EditorPreference(t *testing.T) {
+	for name, prefer := range map[string]bool{"default": false, "preferred": true} {
+		t.Run(name, func(t *testing.T) {
+			session := setupGrokBuildTestSession(t, false)
+			base := time.Date(2026, 7, 23, 22, 0, 0, 0, time.UTC)
+			promptIndex := 0
+			session.writeUpdates(t, []string{
+				grokBuildTestEnvelope(t, session.id, "session/update", base.Add(time.Second),
+					grokBuildTestUserUpdate("update main.go", "grok-4.5", &promptIndex)),
+			})
+
+			editFile := filepath.Join(session.projectDir, "main.go")
+			session.writeHunks(t, []string{
+				grokBuildTestHunk(t, session.id, "edit", editFile, base.Add(2*time.Second),
+					"added", "agent", &promptIndex, 1, 0),
+			})
+
+			parser := ai.GrokBuild{
+				After:             base,
+				FallbackUserAgent: "cursor/1 vscode-wakatime/2",
+				UserAgents:        map[string]string{editFile: "neovim/3 wakatime.nvim/4"},
+				GrokBuildAsEditor: prefer,
+			}
+			got, err := parser.Parse(context.Background())
+			require.NoError(t, err)
+			require.Len(t, got, 2)
+
+			expectedPrompt := "grok/4.5 cursor/1 grok-build/0.2.111 vscode-wakatime/2"
+			expectedFile := "grok/4.5 neovim/3 grok-build/0.2.111 wakatime.nvim/4"
+
+			if prefer {
+				expectedPrompt = "grok/4.5 grok-build/0.2.111 cursor/1 vscode-wakatime/2"
+				expectedFile = "grok/4.5 grok-build/0.2.111 neovim/3 wakatime.nvim/4"
+			}
+
+			assert.Equal(t, expectedPrompt, got[0].UserAgent)
+			assert.Equal(t, expectedFile, got[1].UserAgent)
+			assertGrokBuildFileHeartbeat(t, got[1], editFile, 1, "grok/4.5")
+		})
+	}
+}
+
 func TestGrokBuildParse_PromptShapesAndRewind(t *testing.T) {
 	session := setupGrokBuildTestSession(t, false)
 	base := time.Date(2026, 7, 23, 22, 0, 0, 0, time.UTC)

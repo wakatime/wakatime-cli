@@ -229,12 +229,13 @@ func applyAIParsing(
 	heartbeats []heartbeat.Heartbeat,
 ) ([]heartbeat.Heartbeat, error) {
 	handle := ai.WithAISync(ai.Config{
-		SyncDisabled: params.AI.SyncDisabled,
-		Exclude:      params.AI.Exclude,
-		Plugin:       params.API.Plugin,
-		Project:      params.Heartbeat.Project,
-		Sanitize:     params.Heartbeat.Sanitize,
-		V:            v,
+		SyncDisabled:      params.AI.SyncDisabled,
+		GrokBuildAsEditor: params.AI.GrokBuildAsEditor,
+		Exclude:           params.AI.Exclude,
+		Plugin:            params.API.Plugin,
+		Project:           params.Heartbeat.Project,
+		Sanitize:          params.Heartbeat.Sanitize,
+		V:                 v,
 	})(func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
 		results := make([]heartbeat.Result, len(hh))
 

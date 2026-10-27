@@ -265,6 +265,11 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 	flags.Bool("sync-ai-disabled", false, "Disable parsing AI transcript logs when sending heartbeats. "+
 		"By default, AI transcript logs are parsed every time when sending heartbeats.")
 	flags.Bool("sync-ai-disable", false, "")
+	flags.Bool(
+		"grok-build-as-editor",
+		false,
+		"Report Grok Build as the editor for its AI activity, even when a host IDE is present.",
+	)
 	flags.StringSlice(
 		"exclude-ai",
 		nil,
