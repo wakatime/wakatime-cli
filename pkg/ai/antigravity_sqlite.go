@@ -120,7 +120,12 @@ func (g Gemini) antigravitySQLite(ctx context.Context, home string) (Heartbeats,
 			}
 
 			for _, path := range paths {
-				transcript := antigravityTranscript{path: path, sessionID: strings.TrimSuffix(filepath.Base(path), ".db"),
+				sessionID := strings.TrimSuffix(filepath.Base(path), ".db")
+				if !aiSQLiteModifiedAfter(path, ParserConfig(g).sessionAfter(sessionID)) {
+					continue
+				}
+
+				transcript := antigravityTranscript{path: path, sessionID: sessionID,
 					entityName: product.entityName, userAgentProduct: product.userAgentProduct + "/unknown"}
 
 				parsed, err := g.parseAntigravityDB(ctx, transcript)
