@@ -2,6 +2,7 @@ package ai
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -58,7 +59,7 @@ type (
 
 	piMessage struct {
 		Role       string           `json:"role"`
-		Content    []piContentBlock `json:"content"`
+		Content    piMessageContent `json:"content"`
 		Provider   string           `json:"provider"`
 		Model      string           `json:"model"`
 		ToolCallID string           `json:"toolCallId"`
@@ -81,6 +82,51 @@ type (
 		Arguments map[string]interface{}
 	}
 )
+
+// piMessageContent accepts both shapes Pi writes for `message.content`: an
+// array of content blocks (assistant/user/toolResult) and a plain string
+// (system/custom roles). Pi's own schema allows either, so a slice-only field
+// made every string line fail to unmarshal and get skipped.
+type piMessageContent []piContentBlock
+
+func (c *piMessageContent) UnmarshalJSON(data []byte) error {
+	trimmed := bytes.TrimSpace(data)
+	if len(trimmed) == 0 || bytes.Equal(trimmed, []byte("null")) {
+		*c = nil
+
+		return nil
+	}
+
+	// Dispatch on the first byte so a malformed array reports the real field
+	// that failed, instead of "cannot unmarshal array into string" from a
+	// fallback attempt.
+	if trimmed[0] == '"' {
+		var text string
+		if err := json.Unmarshal(trimmed, &text); err != nil {
+			return err
+		}
+
+		// Skip empty strings so downstream loops see no phantom text block.
+		if text == "" {
+			*c = nil
+
+			return nil
+		}
+
+		*c = piMessageContent{{Type: "text", Text: text}}
+
+		return nil
+	}
+
+	var blocks []piContentBlock
+	if err := json.Unmarshal(trimmed, &blocks); err != nil {
+		return err
+	}
+
+	*c = blocks
+
+	return nil
+}
 
 var piSuccessPathPattern = regexp.MustCompile(`(?i)\b(?:in|to)\s+([~/A-Za-z]:[^\s]+|/[^\s]+)`)
 
