@@ -316,6 +316,74 @@ func TestCodexParse_UpdatesReasoningEffortForFutureHeartbeats(t *testing.T) {
 	assert.Equal(t, "gpt/5.5-medium codex-cli/0.141.0 plugin/0.0.1", got[1].UserAgent)
 }
 
+func TestCodexParse_ModelForUserMessageBeforeContext(t *testing.T) {
+	user := `{"type":"response_item","payload":{"type":"message","role":"user",` +
+		`"content":[{"type":"input_text","text":"Hello"}]}}`
+	userEvent := `{"type":"event_msg","payload":{"type":"user_message","message":"Hello"}}`
+	assistant := `{"type":"event_msg","payload":{"type":"agent_message","message":"Hi"}}`
+	contextHigh := `{"type":"turn_context","payload":{"model":"gpt-5.5","effort":"high"}}`
+	contextMedium := `{"type":"turn_context","payload":{"model":"gpt-5.5","effort":"medium"}}`
+	contextOther := `{"type":"turn_context","payload":{"model":"gpt-5.4","effort":"low"}}`
+
+	for name, tc := range map[string]struct {
+		lines  []string
+		models []string
+	}{
+		"response item": {[]string{user, contextHigh, assistant}, []string{"gpt/5.5-high ", "gpt/5.5-high "}},
+		"event message": {[]string{userEvent, contextHigh, assistant}, []string{"gpt/5.5-high ", "gpt/5.5-high "}},
+		"duplicate user event": {
+			[]string{user, userEvent, contextHigh, assistant}, []string{"gpt/5.5-high ", "gpt/5.5-high "},
+		},
+		"context before prompt": {[]string{contextHigh, user, assistant}, []string{"gpt/5.5-high ", "gpt/5.5-high "}},
+		"model switch": {
+			[]string{user, contextHigh, assistant, user, contextOther, assistant},
+			[]string{"gpt/5.5-high ", "gpt/5.5-high ", "gpt/5.4-low ", "gpt/5.4-low "},
+		},
+		"effort switch": {
+			[]string{user, contextHigh, assistant, user, contextMedium, assistant},
+			[]string{"gpt/5.5-high ", "gpt/5.5-high ", "gpt/5.5-medium ", "gpt/5.5-medium "},
+		},
+		"missing context": {[]string{user, assistant}, []string{"", ""}},
+		"later context does not rewrite earlier turn": {
+			[]string{user, assistant, contextHigh, assistant}, []string{"", "", "gpt/5.5-high "},
+		},
+		"turn boundary prevents backfill": {
+			[]string{user, `{"type":"event_msg","payload":{"type":"task_complete"}}`, contextHigh, assistant},
+			[]string{"", "gpt/5.5-high "},
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			home := t.TempDir()
+			t.Setenv("HOME", home)
+			t.Setenv("USERPROFILE", home)
+			t.Setenv("CODEX_HOME", "")
+
+			dir := filepath.Join(home, ".codex", "sessions")
+			require.NoError(t, os.MkdirAll(dir, 0o755))
+
+			lines := []string{`{"type":"session_meta","payload":{"id":"session","cwd":"/workspace/project",` +
+				`"cli_version":"0.141.0","source":"cli"}}`}
+			start := time.Date(2026, 6, 20, 0, 0, 0, 0, time.UTC)
+
+			for i, line := range tc.lines {
+				stamp := start.Add(time.Duration(i) * 100 * time.Millisecond).Format(time.RFC3339Nano)
+				lines = append(lines, `{"timestamp":"`+stamp+`",`+line[1:])
+			}
+
+			transcript := []byte(strings.Join(lines, "\n") + "\n")
+			require.NoError(t, os.WriteFile(filepath.Join(dir, "session.jsonl"), transcript, 0o644))
+
+			got, err := (ai.Codex{After: start, FallbackUserAgent: "plugin/0.0.1"}).Parse(context.Background())
+			require.NoError(t, err)
+			require.Len(t, got, len(tc.models))
+
+			for i, model := range tc.models {
+				assert.Equal(t, model+"codex-cli/0.141.0 plugin/0.0.1", got[i].UserAgent)
+			}
+		})
+	}
+}
+
 func TestCodexParse_AttributesTokenCountsToPreviousHeartbeat(t *testing.T) {
 	ctx := context.Background()
 	home := t.TempDir()
