@@ -43,6 +43,8 @@ type (
 		seenUsage                     map[string]bool
 		usageOwner                    string
 		pendingPatches                map[string]codexPendingPatch
+		pendingUserStart              int // Consecutive prompt range, local to this transcript.
+		pendingUserEnd                int
 		subscriptionPlan              string
 		model                         string
 		reasoningEffort               string
@@ -519,6 +521,7 @@ func (g Codex) parseTranscriptFrom(ctx context.Context, transcript string, start
 		// rather than ending the scan, so later activity is still read.
 		line, readErr := grokBuildReadJSONLLine(reader, maxTranscriptLineSize)
 		if errors.Is(readErr, errGrokBuildLineTooLong) {
+			state.pendingUserEnd = state.pendingUserStart
 			logger.Debugf("skipping oversized codex transcript line in %q", transcript)
 			continue
 		}
@@ -604,6 +607,7 @@ func (g Codex) handleTranscriptLine(
 
 	var logLine codexLogLine
 	if err := json.Unmarshal(line, &logLine); err != nil {
+		state.pendingUserEnd = state.pendingUserStart
 		logger.Warnf("failed parsing codex transcript line from %q: %s", transcript, err)
 		logger.Debugf("failed parsing codex transcript line: %s", line)
 
@@ -631,6 +635,7 @@ func (g Codex) handleTranscriptLine(
 
 	state.trackSubscriptionPlan(logLine)
 	state.trackModel(logLine)
+	g.backfillUserModel(logLine, *session, state)
 	state.trackUserMessage(logLine)
 
 	if patchHeartbeats, handled := g.handlePendingPatch(logLine, *session, state); handled {
@@ -670,9 +675,48 @@ func (g Codex) handleTranscriptLine(
 		return
 	}
 
+	if codexIsUserMessage(logLine) {
+		if state.pendingUserStart == state.pendingUserEnd {
+			state.pendingUserStart = len(state.heartbeats)
+		}
+
+		state.pendingUserEnd = len(state.heartbeats) + len(aiHeartbeats)
+	}
+
 	state.heartbeats = append(state.heartbeats, aiHeartbeats...)
 	state.trackAgentMessage(logLine)
 	state.trackAssistantMessage(logLine)
+}
+
+// backfillUserModel only associates consecutive prompts with their immediately
+// following context. Never propagate a later turn's user agent across responses,
+// turn boundaries, or transcripts. Build the shared string once for the range.
+func (g Codex) backfillUserModel(logLine codexLogLine, session codexSessionState, state *codexParseState) {
+	if state.pendingUserStart == state.pendingUserEnd || codexIsUserMessage(logLine) {
+		return
+	}
+
+	if logLine.Type == "turn_context" && state.model != "" {
+		userAgent := g.userAgent(session.entity,
+			codexAgentVersion(state.model, state.reasoningEffort), session.version,
+			session.source, g.UserAgents, g.FallbackUserAgent)
+
+		for i := state.pendingUserStart; i < state.pendingUserEnd; i++ {
+			state.heartbeats[i].UserAgent = userAgent
+		}
+	}
+
+	state.pendingUserEnd = state.pendingUserStart
+}
+
+func codexIsUserMessage(logLine codexLogLine) bool {
+	payload := logLine.Payload
+	if payload == nil || payload.Type == nil {
+		return false
+	}
+
+	return *payload.Type == "user_message" ||
+		(*payload.Type == "message" && payload.Role != nil && *payload.Role == "user")
 }
 
 func (s *codexParseState) trackTokenCount(logLine codexLogLine, after time.Time) {
