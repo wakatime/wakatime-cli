@@ -254,7 +254,6 @@ jobs:
         id: semver-tag
         uses: alanhamlett/semver-action@a4c3580ce5328d1a34fefa2854d0f2fde8e29536 # master
         with:
-          debug: true
           branching_model: git-flow
           develop_branch_name: develop
           main_branch_name: release
