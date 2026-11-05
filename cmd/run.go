@@ -16,6 +16,7 @@ import (
 	"github.com/wakatime/wakatime-cli/cmd/configwrite"
 	"github.com/wakatime/wakatime-cli/cmd/fileexperts"
 	cmdheartbeat "github.com/wakatime/wakatime-cli/cmd/heartbeat"
+	"github.com/wakatime/wakatime-cli/cmd/keychainstore"
 	cmdoffline "github.com/wakatime/wakatime-cli/cmd/offline"
 	"github.com/wakatime/wakatime-cli/cmd/offlinecount"
 	"github.com/wakatime/wakatime-cli/cmd/offlineprint"
@@ -115,6 +116,12 @@ func RunE(cmd *cobra.Command, v *viper.Viper) error {
 		return RunCmd(ctx, v, logger.IsVerboseEnabled(), logger.SendDiagsOnErrors(), configwrite.Run)
 	}
 
+	if v.GetBool("store-api-key-in-keychain") {
+		logger.Debugln("command: store-api-key-in-keychain")
+
+		return RunCmd(ctx, v, logger.IsVerboseEnabled(), logger.SendDiagsOnErrors(), keychainstore.Run)
+	}
+
 	if v.GetBool("today") {
 		logger.Debugln("command: today")
 
@@ -172,6 +179,7 @@ func RunE(cmd *cobra.Command, v *viper.Viper) error {
 		"--file-experts",
 		"--offline-count",
 		"--print-offline-heartbeats",
+		"--store-api-key-in-keychain",
 		"--sync-ai-activity",
 		"--sync-ai-heartbeats",
 		"--sync-offline-activity",

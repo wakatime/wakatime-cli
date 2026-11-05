@@ -21,6 +21,7 @@ import (
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/zalando/go-keyring"
 	bolt "go.etcd.io/bbolt"
 )
 
@@ -108,6 +109,27 @@ func TestRunE_DispatchesLocalCommands(t *testing.T) {
 		assert.Contains(t, string(config), "debug")
 		assert.Contains(t, string(config), "true")
 	})
+}
+
+func TestRunE_DispatchesStoreAPIKeyInKeychain(t *testing.T) {
+	keyring.MockInit()
+
+	configPath := filepath.Join(t.TempDir(), ".wakatime.cfg")
+	v := newRunEViper(t)
+	v.Set("config", configPath)
+	v.Set("key", "00000000-0000-4000-8000-000000000000")
+	v.Set("store-api-key-in-keychain", true)
+
+	err := RunE(newRunECommand(), v)
+	require.NoError(t, err)
+
+	stored, err := keyring.Get("wakatime", "api_key")
+	require.NoError(t, err)
+	assert.Equal(t, "00000000-0000-4000-8000-000000000000", stored)
+
+	config, err := os.ReadFile(configPath)
+	require.NoError(t, err)
+	assert.Contains(t, string(config), "api_key_storage = keychain")
 }
 
 func TestRunE_DispatchesErrorCommands(t *testing.T) {

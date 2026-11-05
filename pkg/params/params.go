@@ -22,6 +22,7 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/apikey"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 	"github.com/wakatime/wakatime-cli/pkg/ini"
+	"github.com/wakatime/wakatime-cli/pkg/keychain"
 	"github.com/wakatime/wakatime-cli/pkg/log"
 	"github.com/wakatime/wakatime-cli/pkg/offline"
 	"github.com/wakatime/wakatime-cli/pkg/output"
@@ -587,6 +588,21 @@ func loadAPIKey(ctx context.Context, v *viper.Viper, order FlagReadOrder) (strin
 		return apiKey, nil
 	}
 
+	apiKey, err = readAPIKeyFromKeychain(v)
+	if err != nil {
+		return "", api.ErrAuth{Err: fmt.Errorf("failed to read api key from keychain: %s", err)}
+	}
+
+	if apiKey != "" {
+		if !apiKeyRegex.MatchString(apiKey) {
+			return "", api.ErrAuth{Err: errors.New("invalid api key format")}
+		}
+
+		logger.Debugln("loaded api key from keychain")
+
+		return apiKey, nil
+	}
+
 	apiKey = os.Getenv("WAKATIME_API_KEY")
 	if apiKey != "" {
 		if !apiKeyRegex.MatchString(apiKey) {
@@ -1095,6 +1111,42 @@ func readAPIKeyFromCommand(cmdStr string) (string, error) {
 	}
 
 	return strings.TrimSpace(string(out)), nil
+}
+
+// readAPIKeyFromKeychain reads the api key from the OS keychain when
+// settings.api_key_storage is set to keychain. A missing keychain entry is not an error,
+// so the WAKATIME_API_KEY env var can still be used as a fallback.
+func readAPIKeyFromKeychain(v *viper.Viper) (string, error) {
+	storage := strings.TrimSpace(vipertools.GetString(v, "settings.api_key_storage"))
+	if !strings.EqualFold(storage, keychain.StorageKeychain) {
+		return "", nil
+	}
+
+	apiKey, err := keychain.ReadAPIKey()
+	if err != nil {
+		if errors.Is(err, keychain.ErrNotFound) {
+			return "", nil
+		}
+
+		return "", err
+	}
+
+	return apiKey, nil
+}
+
+// LoadConfigAPIKey returns the api key given with --key or found in the config file,
+// without falling back to the vault command, the keychain or the env var.
+func LoadConfigAPIKey(v *viper.Viper) (string, error) {
+	apiKey := vipertools.FirstNonEmptyString(v, apiKeyOrder[FlagReadOrderFlagPrecedence]...)
+	if apiKey == "" {
+		return "", errors.New("api key not found or empty")
+	}
+
+	if !apiKeyRegex.MatchString(apiKey) {
+		return "", errors.New("invalid api key format")
+	}
+
+	return apiKey, nil
 }
 
 var extraHeartbeatsCache []heartbeat.Heartbeat // nolint:gochecknoglobals

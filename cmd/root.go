@@ -247,6 +247,12 @@ func setFlags(cmd *cobra.Command, v *viper.Viper) {
 		"Override the bundled CA certs file. By default, uses"+
 			" system ca certs.",
 	)
+	flags.Bool(
+		"store-api-key-in-keychain",
+		false,
+		"Copies the api key from --key or the config file into the OS keychain, sets api_key_storage"+
+			" to keychain and blanks api_key in the config file, then exits.",
+	)
 	flags.Float64("sync-ai-after", 0, "(deprecated) Parse AI transcript logs for Claude, Codex, Copilot, "+
 		"Cursor, etc. after a floating-point unix epoch timestamp. Sends any AI heartbeats"+
 		"along with normal heartbeats, changing the category of normal heartbeats to "+
