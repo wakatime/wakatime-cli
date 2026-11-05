@@ -43,6 +43,7 @@ type (
 		seenUsage                     map[string]bool
 		usageOwner                    string
 		pendingPatches                map[string]codexPendingPatch
+		pendingUserHeartbeats         []int
 		subscriptionPlan              string
 		model                         string
 		reasoningEffort               string
@@ -631,6 +632,7 @@ func (g Codex) handleTranscriptLine(
 
 	state.trackSubscriptionPlan(logLine)
 	state.trackModel(logLine)
+	g.backfillUserModel(logLine, *session, state)
 	state.trackUserMessage(logLine)
 
 	if patchHeartbeats, handled := g.handlePendingPatch(logLine, *session, state); handled {
@@ -670,9 +672,42 @@ func (g Codex) handleTranscriptLine(
 		return
 	}
 
+	if codexIsUserMessage(logLine) {
+		state.pendingUserHeartbeats = append(state.pendingUserHeartbeats, len(state.heartbeats))
+	}
+
 	state.heartbeats = append(state.heartbeats, aiHeartbeats...)
 	state.trackAgentMessage(logLine)
 	state.trackAssistantMessage(logLine)
+}
+
+// backfillUserModel associates a prompt with the context immediately following
+// it. Any intervening non-user event ends the association, so a later turn must
+// not relabel an earlier prompt. Duplicate user events can precede the context.
+func (g Codex) backfillUserModel(logLine codexLogLine, session codexSessionState, state *codexParseState) {
+	if codexIsUserMessage(logLine) {
+		return
+	}
+
+	if logLine.Type == "turn_context" && state.model != "" {
+		for _, i := range state.pendingUserHeartbeats {
+			state.heartbeats[i].UserAgent = g.userAgent(session.entity,
+				codexAgentVersion(state.model, state.reasoningEffort), session.version,
+				session.source, g.UserAgents, g.FallbackUserAgent)
+		}
+	}
+
+	state.pendingUserHeartbeats = nil
+}
+
+func codexIsUserMessage(logLine codexLogLine) bool {
+	payload := logLine.Payload
+	if payload == nil || payload.Type == nil {
+		return false
+	}
+
+	return *payload.Type == "user_message" ||
+		(*payload.Type == "message" && payload.Role != nil && *payload.Role == "user")
 }
 
 func (s *codexParseState) trackTokenCount(logLine codexLogLine, after time.Time) {
