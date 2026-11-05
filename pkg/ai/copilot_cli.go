@@ -989,7 +989,8 @@ func (g Copilot) cliFileHeartbeat(
 
 func (g Copilot) cliUserAgent(entity string, model string, cliVersion string, agentVersion string) string {
 	return aiUserAgentWithModelAndEditor(
-		entity, g.UserAgents, g.FallbackUserAgent, model, "", copilotCLIHarnessUserAgent(cliVersion, agentVersion),
+		entity, g.UserAgents, g.FallbackUserAgent, model, "",
+		copilotCLIHarnessUserAgent(cliVersion, agentVersion), g.aiEditors...,
 	)
 }
 

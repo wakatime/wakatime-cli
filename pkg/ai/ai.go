@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime/debug"
+	"slices"
 	"strings"
 	"time"
 	"unicode"
@@ -50,6 +51,7 @@ type ParserConfig struct {
 	FallbackUserAgent string
 	UserAgents        map[string]string
 	ProjectInfo       ProjectInfo
+	aiEditors         []string
 	checkpoint        *parserCheckpoint
 }
 
@@ -319,6 +321,8 @@ func parseAIHeartbeats(
 	}
 
 	tracked := make(map[string]bool)
+	aiEditors := strings.FieldsFunc(strings.ToLower(vipertools.GetString(config.V, "settings.ai_editors")),
+		func(r rune) bool { return r == ',' || unicode.IsSpace(r) })
 
 	parserConfig := func(name string) ParserConfig {
 		state := checkpoints.parser(name, after)
@@ -326,14 +330,16 @@ func parseAIHeartbeats(
 
 		return ParserConfig{
 			After: state.discoveryAfter(), UserAgents: userAgents, FallbackUserAgent: config.Plugin,
-			checkpoint: state,
+			aiEditors: aiEditors, checkpoint: state,
 		}
 	}
 
 	// Parsers reading SQLite databases do not take part in checkpoints. They keep
 	// their own per-database cursors and use the global cutoff, which keeps row
 	// hashes out of the checkpoint file that is loaded and rewritten on every sync.
-	sqliteConfig := ParserConfig{After: after, UserAgents: userAgents, FallbackUserAgent: config.Plugin}
+	sqliteConfig := ParserConfig{
+		After: after, UserAgents: userAgents, FallbackUserAgent: config.Plugin, aiEditors: aiEditors,
+	}
 
 	parsers := []Parser{
 		OpenClaude(parserConfig((OpenClaude{}).Name())),
@@ -881,14 +887,16 @@ func aiModelUserAgentToken(model string, complexity string) string {
 	return ""
 }
 
-func aiUserAgent(entity string, userAgents map[string]string, fallback string, parser string) string {
+func aiUserAgent(entity string, userAgents map[string]string, fallback string, parser string, aiEditors ...string) string {
 	existing := fallback
 	if fromHeartbeat, found := userAgents[entity]; found && fromHeartbeat != "" {
 		existing = fromHeartbeat
 	}
 
 	if existing != "" {
-		return userAgentWithAgentProduct(existing, parser, userAgentHasFileContext(existing, userAgents))
+		return userAgentWithAgentProduct(
+			existing, parser, userAgentHasFileContext(existing, userAgents), preferredAIEditor(parser, aiEditors) != "",
+		)
 	}
 
 	return canonicalAgentToken(parser)
@@ -911,9 +919,10 @@ func aiUserAgentWithModelAndEditor(
 	model string,
 	complexity string,
 	editor string,
+	aiEditors ...string,
 ) string {
 	return aiUserAgentWithModelTokenAndEditor(
-		entity, userAgents, fallback, aiModelUserAgentToken(model, complexity), editor,
+		entity, userAgents, fallback, aiModelUserAgentToken(model, complexity), editor, aiEditors...,
 	)
 }
 
@@ -925,6 +934,7 @@ func aiUserAgentWithModelTokenAndEditor(
 	fallback string,
 	modelToken string,
 	editor string,
+	aiEditors ...string,
 ) string {
 	existing := fallback
 	if fromHeartbeat, found := userAgents[entity]; found && fromHeartbeat != "" {
@@ -932,13 +942,14 @@ func aiUserAgentWithModelTokenAndEditor(
 	}
 
 	hasFileContext := userAgentHasFileContext(existing, userAgents)
+	preferredEditor := preferredAIEditor(editor, aiEditors)
 
-	existing, previousModel := userAgentWithoutModel(existing, fallback, modelToken)
+	existing, previousModel := userAgentWithoutModel(existing, fallback, modelToken, preferredEditor)
 	if modelToken == "" {
 		modelToken = previousModel
 	}
 
-	existing = userAgentWithAgentProduct(existing, editor, hasFileContext)
+	existing = userAgentWithAgentProduct(existing, editor, hasFileContext, preferredEditor != "")
 
 	return userAgentWithPrependedAgent(existing, modelToken)
 }
@@ -946,12 +957,12 @@ func aiUserAgentWithModelTokenAndEditor(
 // userAgentWithoutModel separates an existing model before selecting the host
 // editor. The raw caller plugin chain and known IDE metadata establish the
 // editor's position without maintaining a list of model families.
-func userAgentWithoutModel(userAgent string, fallback string, model string) (string, string) {
+func userAgentWithoutModel(userAgent string, fallback string, model string, preferredEditor string) (string, string) {
 	header, products := splitUserAgent(userAgent)
 	fields := strings.Fields(products)
 	previousModel := ""
 
-	if userAgentHasLeadingModel(fields, userAgentProductFields(fallback), model) {
+	if userAgentHasLeadingModel(fields, userAgentProductFields(fallback), model, preferredEditor) {
 		previousModel = fields[0]
 		fields = fields[1:]
 	}
@@ -967,7 +978,7 @@ func userAgentWithoutModel(userAgent string, fallback string, model string) (str
 	return strings.TrimSpace(header + " " + strings.Join(filtered, " ")), previousModel
 }
 
-func userAgentHasLeadingModel(fields []string, fallback []string, model string) bool {
+func userAgentHasLeadingModel(fields []string, fallback []string, model string, preferredEditor string) bool {
 	if len(fields) == 0 {
 		return false
 	}
@@ -991,6 +1002,13 @@ func userAgentHasLeadingModel(fields []string, fallback []string, model string) 
 		}
 
 		if strings.EqualFold(userAgentProduct(fields[1]), callerProduct) {
+			return true
+		}
+
+		// After promotion the agent can appear between the model and the caller.
+		// Check for the caller's original chain to distinguish it from a raw UA.
+		if preferredEditor != "" && strings.EqualFold(userAgentProduct(fields[1]), preferredEditor) &&
+			slices.EqualFunc(fields[2:], fallback, strings.EqualFold) {
 			return true
 		}
 	}
@@ -1081,10 +1099,24 @@ func canonicalAgentToken(name string) string {
 	return product + "/" + version
 }
 
-// userAgentWithAgentProduct records an agent without taking the editor slot
-// away from a host IDE. With a host token the order is host, agent, other
-// plugins. Without one, the agent stays in front and is the editor.
-func userAgentWithAgentProduct(userAgent string, agent string, hasFileContext bool) string {
+func preferredAIEditor(agent string, aiEditors []string) string {
+	if len(aiEditors) == 0 {
+		return ""
+	}
+
+	primary, _, _ := strings.Cut(canonicalAgentToken(agent), " ")
+
+	product := strings.ToLower(userAgentProduct(primary))
+	if slices.Contains(aiEditors, product) {
+		return product
+	}
+
+	return ""
+}
+
+// userAgentWithAgentProduct places the host first by default. A selected agent
+// product goes first while keeping the host and the rest of the plugin chain.
+func userAgentWithAgentProduct(userAgent string, agent string, hasFileContext bool, preferAgent bool) string {
 	agent = canonicalAgentToken(agent)
 	if agent == "" {
 		return userAgent
@@ -1095,7 +1127,7 @@ func userAgentWithAgentProduct(userAgent string, agent string, hasFileContext bo
 	updated := make([]string, 0, len(fields)+2)
 	host := ""
 
-	if hostAt, ok := hostEditorFieldIndex(fields, hasFileContext); ok {
+	if hostAt, ok := hostEditorFieldIndex(fields, hasFileContext); ok && !preferAgent {
 		host = fields[hostAt]
 		updated = append(updated, host)
 		fields = append(fields[:hostAt], fields[hostAt+1:]...)

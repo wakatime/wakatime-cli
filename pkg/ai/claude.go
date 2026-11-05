@@ -1044,7 +1044,7 @@ func (g Claude) userAgent(entity string, version string, model string, complexit
 	}
 
 	return aiUserAgentWithModelAndEditor(
-		entity, g.UserAgents, g.FallbackUserAgent, model, complexity, cli)
+		entity, g.UserAgents, g.FallbackUserAgent, model, complexity, cli, g.aiEditors...)
 }
 
 func (Claude) tokenDelta(tokens heartbeat.AITokens) (int64, int64) {

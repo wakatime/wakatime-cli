@@ -880,6 +880,7 @@ func (g GrokBuild) userAgent(entity string, model string, version string) string
 		model,
 		"",
 		grokBuildUserAgentProduct(version),
+		g.aiEditors...,
 	)
 }
 

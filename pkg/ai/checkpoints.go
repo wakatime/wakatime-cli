@@ -340,7 +340,7 @@ func atomicWriteFile(dir, pattern, path string, contents []byte) error {
 
 func newCheckpointOpenCode(config ParserConfig) OpenCode {
 	return OpenCode{After: config.After, FallbackUserAgent: config.FallbackUserAgent, UserAgents: config.UserAgents,
-		ProjectInfo: config.ProjectInfo, checkpoint: config.checkpoint}
+		ProjectInfo: config.ProjectInfo, aiEditors: config.aiEditors, checkpoint: config.checkpoint}
 }
 
 // getSyncLastParsedAt reads the freshest on-disk value of ai_logs_last_parsed_at,

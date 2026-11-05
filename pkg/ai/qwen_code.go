@@ -536,7 +536,8 @@ func (g QwenCode) messageHeartbeat(record qwenCodeRecord, state qwenCodeParseSta
 		state.cwd,
 		float64(record.Timestamp.UnixMilli())/1000,
 		aiUserAgentWithModelAndEditor(
-			entity, g.UserAgents, g.FallbackUserAgent, state.model, "", "qwen-code-cli/"+unknownIfEmpty(state.version)),
+			entity, g.UserAgents, g.FallbackUserAgent, state.model, "",
+			"qwen-code-cli/"+unknownIfEmpty(state.version), g.aiEditors...),
 	)
 	if record.Type == "user" {
 		h.AIPromptLength = promptLength(content)
@@ -593,7 +594,8 @@ func (g QwenCode) toolResultHeartbeat(record qwenCodeRecord, state *qwenCodePars
 		"",
 		float64(record.Timestamp.UnixMilli())/1000,
 		aiUserAgentWithModelAndEditor(
-			filePath, g.UserAgents, g.FallbackUserAgent, state.model, "", "qwen-code-cli/"+unknownIfEmpty(state.version)),
+			filePath, g.UserAgents, g.FallbackUserAgent, state.model, "",
+			"qwen-code-cli/"+unknownIfEmpty(state.version), g.aiEditors...),
 	)
 
 	return &h

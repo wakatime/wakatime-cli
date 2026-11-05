@@ -302,7 +302,7 @@ func (g Gemini) antigravityRow(transcript antigravityTranscript, idx int64, raw 
 	for i := range emitted {
 		emitted[i].Entity = transcript.entityName
 		emitted[i].UserAgent = aiUserAgentWithModelAndEditor(emitted[i].Entity, g.UserAgents, g.FallbackUserAgent,
-			model, "", transcript.userAgentProduct)
+			model, "", transcript.userAgentProduct, g.aiEditors...)
 	}
 
 	result := emitted
@@ -381,7 +381,7 @@ func (g Gemini) antigravityTools(transcript antigravityTranscript, root []antigr
 			emitted := genericAIEventHeartbeats(g, ParserConfig(g), activity)
 			for i := range emitted {
 				emitted[i].UserAgent = aiUserAgentWithModelAndEditor(emitted[i].Entity, g.UserAgents,
-					g.FallbackUserAgent, model, "", transcript.userAgentProduct)
+					g.FallbackUserAgent, model, "", transcript.userAgentProduct, g.aiEditors...)
 			}
 
 			result = append(result, emitted...)

@@ -459,6 +459,7 @@ func (g Gemini) antigravityAppHeartbeat(
 			line.Model,
 			"",
 			transcript.userAgentProduct,
+			g.aiEditors...,
 		),
 	)
 	if isPrompt {
@@ -513,6 +514,7 @@ func (g Gemini) antigravityFileHeartbeat(
 			line.Model,
 			"",
 			transcript.userAgentProduct,
+			g.aiEditors...,
 		),
 	)
 

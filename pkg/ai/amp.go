@@ -649,7 +649,9 @@ func (g Amp) heartbeat(
 		"",
 		"",
 		float64(timestamp.UnixMilli())/1000,
-		aiUserAgent(currentFile, g.UserAgents, g.FallbackUserAgent, ampAgentVersion(version, reasoningEffort)),
+		aiUserAgent(
+			currentFile, g.UserAgents, g.FallbackUserAgent, ampAgentVersion(version, reasoningEffort), g.aiEditors...,
+		),
 	)
 }
 
