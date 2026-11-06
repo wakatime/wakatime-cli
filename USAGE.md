@@ -133,7 +133,23 @@ Notice how you have to include the exclude patterns from your main `~/.wakatime.
 | metrics                        | When set, collects metrics usage in '~/.wakatime/metrics' folder. For further reference visit <https://go.dev/blog/pprof>.                                                                                                                                             | _bool_        | `false`                           |
 | guess_language                 | When `true`, enables detecting programming language from file contents.                                                                                                                                                                                                | _bool_        | `false`                           |
 | sync_ai_disabled               | When `true`, disables detecting AI Coding from AI transcript session logs. By default, transcript logs for Claude, Codex, Cursor, etc. are parsed to find when AI edited or read files in your projects.                                                               | _bool_        | `false`                           |
+| ai_editors                     | AI tool products to report as editors on newly synced transcript heartbeats. Set this in the main config file.                                                                                                                                                       | _string_      |                                   |
 | exclude_ai                     | File path patterns to exclude from AI tracking. Only matching `ai coding` file heartbeats are skipped; human activity is still logged. Uses the same POSIX regex syntax and entity paths as `exclude`. | _list_ | |
+
+### Reporting AI tools as editors
+
+Transcript activity defaults to the host IDE when one is known. Set `ai_editors`
+in the main config file to report newly synced Grok Build activity under the
+tool's name in editor statistics.
+
+```ini
+[settings]
+ai_editors = grok-build
+```
+
+Use case-insensitive product names without versions, separated by commas or
+whitespace. For example, `grok-build, claude-code` also selects Claude Code
+activity inside a host IDE when the transcript parser supplies its tool product.
 
 ### Disabling AI tracking for folders and files
 

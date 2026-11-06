@@ -29,6 +29,7 @@ type OpenCode struct {
 	FallbackUserAgent string
 	UserAgents        map[string]string
 	ProjectInfo       ProjectInfo
+	aiEditors         []string
 	checkpoint        *parserCheckpoint
 	seenMessages      map[string]bool
 	v2Sessions        map[string]bool
@@ -982,8 +983,7 @@ func (g OpenCode) userHeartbeat(
 		"",
 		cwd,
 		heartbeatTimestamp(time.UnixMilli(message.info.Time.Created)),
-		aiUserAgentWithModelAndEditor(
-			entity, g.UserAgents, g.FallbackUserAgent, model, "", "opencode-cli/"+unknownIfEmpty(version)),
+		g.userAgent(entity, model, version),
 	)
 	h.AIPromptLength = prompt
 
@@ -1038,8 +1038,7 @@ func (g OpenCode) assistantHeartbeat(
 		"",
 		cwd,
 		heartbeatTimestamp(time.UnixMilli(message.info.Time.Created)),
-		aiUserAgentWithModelAndEditor(
-			entity, g.UserAgents, g.FallbackUserAgent, model, "", "opencode-cli/"+unknownIfEmpty(version)),
+		g.userAgent(entity, model, version),
 	)
 
 	return &h
@@ -1275,8 +1274,13 @@ func (g OpenCode) fileHeartbeat(
 		"",
 		"",
 		heartbeatTimestamp(timestamp),
-		aiUserAgentWithModelAndEditor(
-			filePath, g.UserAgents, g.FallbackUserAgent, model, "", "opencode-cli/"+unknownIfEmpty(version)),
+		g.userAgent(filePath, model, version),
+	)
+}
+
+func (g OpenCode) userAgent(entity string, model string, version string) string {
+	return aiUserAgentWithModelAndEditor(
+		entity, g.UserAgents, g.FallbackUserAgent, model, "", "opencode-cli/"+unknownIfEmpty(version), g.aiEditors...,
 	)
 }
 

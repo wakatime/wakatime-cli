@@ -89,11 +89,11 @@ func TestAIUserAgentCanonicalizesParserWhitespace(t *testing.T) {
 func TestAIUserAgentReordersExistingAgentProducts(t *testing.T) {
 	assert.Equal(t,
 		"cursor/2 codex-vscode/1 plugin/3",
-		userAgentWithAgentProduct("codex-vscode/1 cursor/2 plugin/3", "codex-vscode/2", false),
+		userAgentWithAgentProduct("codex-vscode/1 cursor/2 plugin/3", "codex-vscode/2", false, false),
 	)
 	assert.Equal(t,
 		"cursor/2 github-copilot-cli/1 copilot/2 plugin/3",
-		userAgentWithAgentProduct("cursor/2 plugin/3 github-copilot-cli/1", "github-copilot-cli/2 copilot/2", false),
+		userAgentWithAgentProduct("cursor/2 plugin/3 github-copilot-cli/1", "github-copilot-cli/2 copilot/2", false, false),
 	)
 	assert.Equal(t, "gpt/5.6 cursor/2 plugin/3",
 		userAgentWithPrependedAgent("cursor/2 gpt/5.6 plugin/3 gpt/5.6", "gpt/5.6"),

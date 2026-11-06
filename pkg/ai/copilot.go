@@ -1223,7 +1223,7 @@ func (Copilot) shouldTrackReadPath(path string) bool {
 	return !info.IsDir()
 }
 
-func (Copilot) appHeartbeat(
+func (g Copilot) appHeartbeat(
 	entity string,
 	sessionID string,
 	aiTokens *heartbeat.AITokens,
@@ -1257,7 +1257,7 @@ func (Copilot) appHeartbeat(
 			"",
 			projectPath,
 			float64(timestamp.UnixMilli())/1000,
-			aiUserAgent(entity, userAgents, fallbackUserAgent, plugin),
+			aiUserAgent(entity, userAgents, fallbackUserAgent, plugin, g.aiEditors...),
 		)
 
 		h.AIPromptLength = promptLength
@@ -1285,7 +1285,7 @@ func (Copilot) appHeartbeat(
 		"",
 		projectPath,
 		float64(timestamp.UnixMilli())/1000,
-		aiUserAgent(entity, userAgents, fallbackUserAgent, plugin),
+		aiUserAgent(entity, userAgents, fallbackUserAgent, plugin, g.aiEditors...),
 	)
 	h.AISession = sessionID
 	h.AIPromptLength = promptLength
@@ -1293,7 +1293,7 @@ func (Copilot) appHeartbeat(
 	return h
 }
 
-func (Copilot) fileHeartbeat(
+func (g Copilot) fileHeartbeat(
 	path string,
 	sessionID string,
 	aiTokens *heartbeat.AITokens,
@@ -1327,7 +1327,7 @@ func (Copilot) fileHeartbeat(
 			"",
 			"",
 			float64(timestamp.UnixMilli())/1000,
-			aiUserAgent(path, userAgents, fallbackUserAgent, plugin),
+			aiUserAgent(path, userAgents, fallbackUserAgent, plugin, g.aiEditors...),
 		)
 	}
 
@@ -1351,7 +1351,7 @@ func (Copilot) fileHeartbeat(
 		"",
 		"",
 		float64(timestamp.UnixMilli())/1000,
-		aiUserAgent(path, userAgents, fallbackUserAgent, plugin),
+		aiUserAgent(path, userAgents, fallbackUserAgent, plugin, g.aiEditors...),
 	)
 	h.AISession = sessionID
 

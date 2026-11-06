@@ -12,6 +12,7 @@ func TestAIUserAgentWithModelAndEditorReplacesPreviousModel(t *testing.T) {
 		Fallback  string
 		Model     string
 		Editor    string
+		AIEditors []string
 		Expected  string
 	}{
 		"file editor": {
@@ -92,6 +93,28 @@ func TestAIUserAgentWithModelAndEditorReplacesPreviousModel(t *testing.T) {
 			Editor:    "codex-vscode/1",
 			Expected:  "gpt/5.4 cursor/2 codex-vscode/1 plugin/3",
 		},
+		"change model with selected agent and custom host": {
+			UserAgent: "grok/4.5 grok-build/1 future-editor/2 plugin/3",
+			Fallback:  "future-editor/2 plugin/3",
+			Model:     "grok-4.7",
+			Editor:    "grok-build/2",
+			AIEditors: []string{"grok-build"},
+			Expected:  "grok/4.7 grok-build/1 future-editor/2 plugin/3",
+		},
+		"retain model with another selected agent": {
+			UserAgent: "claude/4.5 claude-code/1 cursor/2 plugin/3",
+			Fallback:  "cursor/2 plugin/3",
+			Editor:    "claude-code/1",
+			AIEditors: []string{"grok-build", "claude-code"},
+			Expected:  "claude/4.5 claude-code/1 cursor/2 plugin/3",
+		},
+		"unselected agent keeps host first": {
+			UserAgent: "cursor/2 plugin/3",
+			Fallback:  "cursor/2 plugin/3",
+			Editor:    "claude-code/1",
+			AIEditors: []string{"grok-build"},
+			Expected:  "cursor/2 claude-code/1 plugin/3",
+		},
 	}
 
 	for name, tt := range tests {
@@ -99,12 +122,12 @@ func TestAIUserAgentWithModelAndEditorReplacesPreviousModel(t *testing.T) {
 			const entity = "/tmp/main.go"
 
 			userAgents := map[string]string{entity: tt.UserAgent}
-			got := aiUserAgentWithModelAndEditor(entity, userAgents, tt.Fallback, tt.Model, "", tt.Editor)
+			got := aiUserAgentWithModelAndEditor(entity, userAgents, tt.Fallback, tt.Model, "", tt.Editor, tt.AIEditors...)
 			assert.Equal(t, tt.Expected, got)
 
 			userAgents[entity] = got
 			assert.Equal(t, tt.Expected,
-				aiUserAgentWithModelAndEditor(entity, userAgents, tt.Fallback, tt.Model, "", tt.Editor),
+				aiUserAgentWithModelAndEditor(entity, userAgents, tt.Fallback, tt.Model, "", tt.Editor, tt.AIEditors...),
 			)
 		})
 	}

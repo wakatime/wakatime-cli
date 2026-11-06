@@ -763,7 +763,7 @@ func genericAIEventHeartbeats(parser Parser, config ParserConfig, event genericA
 	// Usage and file activity from the same event share the known file's editor.
 	userAgent := aiUserAgentWithModelAndEditor(
 		firstNonEmptyString(filePath, entity), config.UserAgents, config.FallbackUserAgent,
-		event.model, "", aiPlugin(parser, ""),
+		event.model, "", aiPlugin(parser, ""), config.aiEditors...,
 	)
 
 	app := heartbeat.NewWithAITokens(

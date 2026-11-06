@@ -1675,7 +1675,7 @@ func codexMoveFilePath(cwd string, line string) string {
 	return filepath.Join(cwd, file)
 }
 
-func (Codex) userAgent(
+func (g Codex) userAgent(
 	entity string,
 	agentVersion string,
 	version string,
@@ -1690,6 +1690,7 @@ func (Codex) userAgent(
 		agentVersion,
 		"",
 		codexSourceEditor(source, version),
+		g.aiEditors...,
 	)
 }
 
