@@ -1172,7 +1172,7 @@ func (g Copilot) responsePaths(item copilotResponseItem) []string {
 		for key, ref := range message.URIs {
 			path := ref.FSPath
 			if path == "" {
-				path = ref.Path
+				path = g.uriPathToFilePath(ref.Path)
 			}
 
 			if path == "" && strings.HasPrefix(key, "file://") {
@@ -1201,13 +1201,24 @@ func (g Copilot) responsePaths(item copilotResponseItem) []string {
 	return files
 }
 
-func (Copilot) fileURIToPath(raw string) (string, error) {
+func (g Copilot) fileURIToPath(raw string) (string, error) {
 	parsed, err := url.Parse(raw)
 	if err != nil {
 		return "", err
 	}
 
-	return parsed.Path, nil
+	return g.uriPathToFilePath(parsed.Path), nil
+}
+
+// uriPathToFilePath converts the path of a file URI to a local path. Windows
+// file URIs keep a slash before the drive letter (/c:/Users/...), which
+// filepath.Abs would otherwise resolve to C:\c:\Users\....
+func (Copilot) uriPathToFilePath(path string) string {
+	if len(path) >= 3 && path[0] == '/' && path[2] == ':' {
+		return filepath.FromSlash(path[1:])
+	}
+
+	return path
 }
 
 func (Copilot) shouldTrackReadPath(path string) bool {
