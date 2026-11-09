@@ -175,6 +175,90 @@ func TestCopilotParseJSONSessionAndEditState(t *testing.T) {
 	assert.Zero(t, got[4].AIPromptLength)
 }
 
+func TestCopilotParse_UsesWorkspaceFolder(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	workspaceDir := filepath.Join(home, "Library", "Application Support", "Code", "User", "workspaceStorage", "workspace-5")
+	require.NoError(t, os.MkdirAll(filepath.Join(workspaceDir, "chatSessions"), 0o755))
+	require.NoError(t, os.MkdirAll(filepath.Join(workspaceDir, "chatEditingSessions", "session-5"), 0o755))
+
+	projectDir := filepath.Join(home, "project a")
+	mainFile := filepath.Join(projectDir, "main.go")
+	// Read files outside the workspace, such as Copilot's own tool output, must
+	// not decide the project of the session.
+	outsideFile := filepath.Join(home, "AppData", "chat-session-resources", "content.txt")
+
+	workspace, err := json.Marshal(map[string]any{
+		"folder": (&url.URL{Scheme: "file", Path: filepath.ToSlash(projectDir)}).String(),
+	})
+	require.NoError(t, err)
+	require.NoError(t, os.WriteFile(filepath.Join(workspaceDir, "workspace.json"), workspace, 0o644))
+
+	session, err := json.Marshal(map[string]any{
+		"version":   3,
+		"sessionId": "session-5",
+		"requests": []any{
+			map[string]any{
+				"requestId": "request-5",
+				"timestamp": int64(1770000001000),
+				"message":   map[string]any{"text": "Fix main"},
+				"variableData": map[string]any{
+					"variables": []any{
+						map[string]any{"kind": "file", "value": map[string]any{"fsPath": outsideFile}},
+					},
+				},
+			},
+		},
+	})
+	require.NoError(t, err)
+	require.NoError(t, os.WriteFile(filepath.Join(workspaceDir, "chatSessions", "session-5.json"), session, 0o644))
+
+	state, err := json.Marshal(map[string]any{
+		"timeline": map[string]any{
+			"operations": []any{
+				map[string]any{
+					"type":      "textEdit",
+					"requestId": "request-5",
+					"uri":       map[string]any{"fsPath": mainFile},
+					"edits": []any{
+						map[string]any{
+							"text": "package main\n",
+							"range": map[string]any{
+								"startLineNumber": 1,
+								"startColumn":     1,
+								"endLineNumber":   1,
+								"endColumn":       1,
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	statePath := filepath.Join(workspaceDir, "chatEditingSessions", "session-5", "state.json")
+	require.NoError(t, os.WriteFile(statePath, state, 0o644))
+
+	got, err := ai.Copilot{
+		After:             time.Unix(1769999990, 0),
+		FallbackUserAgent: "editor/1.0.0",
+	}.Parse(t.Context())
+	require.NoError(t, err)
+
+	entities := make([]string, 0, len(got))
+	for _, h := range got {
+		entities = append(entities, h.Entity)
+		assert.Equal(t, projectDir, h.ProjectPathOverride, h.Entity)
+	}
+
+	assert.Contains(t, entities, "Copilot session-5")
+	assert.Contains(t, entities, outsideFile)
+	assert.Contains(t, entities, mainFile)
+}
+
 func TestCopilotParseJSONLSession(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
@@ -286,6 +370,45 @@ func TestCopilotParseJSONLSession_IgnoresStringVariableValues(t *testing.T) {
 	assert.Equal(t, "session-3", got[1].AISession)
 	assert.Equal(t, heartbeat.AppType, got[1].EntityType)
 	assert.Zero(t, got[1].AIPromptLength)
+}
+
+func TestCopilotParseJSONLSession_WindowsFileURIs(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	workspaceDir := filepath.Join(home, "Library", "Application Support", "Code", "User", "workspaceStorage", "workspace-4")
+	require.NoError(t, os.MkdirAll(filepath.Join(workspaceDir, "chatSessions"), 0o755))
+
+	sessionPath := filepath.Join(workspaceDir, "chatSessions", "session-4.jsonl")
+	lines := []string{
+		strings.Join([]string{
+			`{"kind":0,"v":{"version":3,"creationDate":1771000000000,`,
+			`"sessionId":"session-4","requests":[{"requestId":"request-c",`,
+			`"timestamp":1771000005000,`,
+			`"agent":{"extensionVersion":"0.43.0"},`,
+			`"message":{"text":"Explain this file"},`,
+			`"variableData":{"variables":[{"kind":"file",`,
+			`"id":"file:///c%3A/Users/me/my%20app/main.js"}]},`,
+			`"response":[{"kind":"toolInvocationSerialized",`,
+			`"invocationMessage":{"value":"Reading util.js","uris":{`,
+			`"file:///c%3A/Users/me/my%20app/util.js":{"path":"/c:/Users/me/my app/util.js"}}}}]}]}}`,
+		}, ""),
+	}
+	require.NoError(t, os.WriteFile(sessionPath, []byte(strings.Join(lines, "\n")+"\n"), 0o644))
+
+	got, err := ai.Copilot{
+		After:             time.Unix(1771000000, 0),
+		FallbackUserAgent: "editor/1.0.0",
+	}.Parse(t.Context())
+	require.NoError(t, err)
+	require.Len(t, got, 4)
+
+	assert.Equal(t, "Copilot session-4", got[0].Entity)
+	assert.Equal(t, filepath.FromSlash("c:/Users/me/my app/main.js"), got[1].Entity)
+	assert.Equal(t, heartbeat.FileType, got[1].EntityType)
+	assert.Equal(t, filepath.FromSlash("c:/Users/me/my app/util.js"), got[2].Entity)
+	assert.Equal(t, heartbeat.FileType, got[2].EntityType)
 }
 
 func TestCopilotParseCLISessionEvents(t *testing.T) {
