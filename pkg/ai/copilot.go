@@ -137,6 +137,7 @@ type (
 
 	copilotWorkspaceState struct {
 		workspaceDir string
+		folder       string
 		sessions     map[string]*copilotSession
 	}
 
@@ -221,15 +222,25 @@ func (g Copilot) Parse(ctx context.Context) (Heartbeats, error) {
 	}
 
 	for _, ws := range workspaces {
-		sessionHeartbeats, requestMeta := g.sessionHeartbeats(ws)
-		timed = append(timed, sessionHeartbeats...)
+		workspaceHeartbeats, requestMeta := g.sessionHeartbeats(ws)
 
 		editHeartbeats, err := g.editHeartbeats(ws.workspaceDir, requestMeta)
 		if err != nil {
 			return nil, err
 		}
 
-		timed = append(timed, editHeartbeats...)
+		workspaceHeartbeats = append(workspaceHeartbeats, editHeartbeats...)
+
+		// Sessions belong to the folder VS Code opened for this workspace, not
+		// to whichever project is open when syncing, which is otherwise used as
+		// the fallback project folder.
+		if ws.folder != "" {
+			for i := range workspaceHeartbeats {
+				workspaceHeartbeats[i].heartbeat.ProjectPathOverride = ws.folder
+			}
+		}
+
+		timed = append(timed, workspaceHeartbeats...)
 	}
 
 	cliHeartbeats, err := g.cliHeartbeats(ctx)
@@ -293,11 +304,38 @@ func (g Copilot) workspaceStates(ctx context.Context) ([]copilotWorkspaceState, 
 
 		workspaces = append(workspaces, copilotWorkspaceState{
 			workspaceDir: dir,
+			folder:       g.workspaceFolder(dir),
 			sessions:     sessions,
 		})
 	}
 
 	return workspaces, nil
+}
+
+// workspaceFolder returns the local folder VS Code opened for a workspace
+// storage directory, read from its workspace.json. It returns an empty string
+// for multi-root, remote or unreadable workspaces.
+func (g Copilot) workspaceFolder(workspaceDir string) string {
+	//nolint:gosec
+	data, err := os.ReadFile(filepath.Clean(filepath.Join(workspaceDir, "workspace.json")))
+	if err != nil {
+		return ""
+	}
+
+	var workspace struct {
+		Folder string `json:"folder"`
+	}
+
+	if err := json.Unmarshal(data, &workspace); err != nil || !strings.HasPrefix(workspace.Folder, "file://") {
+		return ""
+	}
+
+	folder, err := g.fileURIToPath(workspace.Folder)
+	if err != nil {
+		return ""
+	}
+
+	return folder
 }
 
 func workspaceStorageDirs(ctx context.Context) ([]string, error) {
