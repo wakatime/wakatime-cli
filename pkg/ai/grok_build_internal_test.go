@@ -5,11 +5,13 @@ import (
 	"context"
 	"errors"
 	"io"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -125,6 +127,42 @@ func TestGrokBuildEventTime(t *testing.T) {
 	}
 }
 
+func TestGrokBuildLegacyUsageCutoff(t *testing.T) {
+	ctx := t.Context()
+	base := time.Date(2026, 7, 24, 1, 0, 0, 0, time.UTC)
+	session := grokBuildSession{id: "legacy"}
+	prompt := grokBuildPrompt{timestamp: base.Add(time.Second), length: 10, model: "grok-4.5"}
+	completedAt := base.Add(3 * time.Second)
+	savedAt := base.Add(4 * time.Second)
+	v := viper.New()
+	v.Set("internal-config", filepath.Join(t.TempDir(), "wakatime-internal.cfg"))
+
+	legacy, err := loadSyncCheckpoints(ctx, v, base)
+	require.NoError(t, err)
+
+	g := GrokBuild{}
+	oldPrompt := g.promptHeartbeat(session, prompt)
+	oldPrompt.AIInputTokens = 100
+	oldPrompt.AIOutputTokens = 10
+	oldParser := legacy.parser(g.Name(), base)
+	oldParser.filter(Heartbeats{oldPrompt})
+	require.NoError(t, legacy.save())
+	require.NoError(t, os.Chtimes(legacy.path, savedAt, savedAt))
+
+	// The legacy completion is later than the stored prompt cutoff. Keep it
+	// suppressed across repeated scans while allowing completions after the upgrade.
+	for range 2 {
+		state, err := loadSyncCheckpoints(ctx, v, base)
+		require.NoError(t, err)
+
+		g.checkpoint = state.parser(g.Name(), base)
+		g.initLegacyUsageCutoff()
+		assert.True(t, g.legacyTurnReported(session, completedAt, prompt))
+		assert.False(t, g.legacyTurnReported(session, savedAt.Add(time.Second), prompt))
+		require.NoError(t, state.save())
+	}
+}
+
 func TestGrokBuildSmallHelpers(t *testing.T) {
 	zero, one, anotherOne := 0, 1, 1
 
@@ -132,12 +170,6 @@ func TestGrokBuildSmallHelpers(t *testing.T) {
 	assert.False(t, grokBuildSamePromptIndex(nil, &zero))
 	assert.False(t, grokBuildSamePromptIndex(&zero, &one))
 	assert.True(t, grokBuildSamePromptIndex(&one, &anotherOne))
-
-	negative, positive := int64(-1), int64(7)
-
-	assert.Zero(t, grokBuildNonNegativeTokenCount(nil))
-	assert.Zero(t, grokBuildNonNegativeTokenCount(&negative))
-	assert.EqualValues(t, 7, grokBuildNonNegativeTokenCount(&positive))
 
 	assert.Empty(t, grokBuildNativePath("  "))
 
