@@ -29,21 +29,26 @@ type syncCheckpoints struct {
 	Parsers        map[string]*parserCheckpoint `json:"parsers"`
 	path           string
 	original       []byte
+	savedAt        time.Time
 }
 
 type parserCheckpoint struct {
-	Cutoff   time.Time                     `json:"cutoff"`
-	Sessions map[string]*sessionCheckpoint `json:"sessions"`
-	Sources  map[string]checkpointSource   `json:"sources,omitempty"`
+	Cutoff                      time.Time                     `json:"cutoff"`
+	Sessions                    map[string]*sessionCheckpoint `json:"sessions"`
+	Sources                     map[string]checkpointSource   `json:"sources,omitempty"`
+	GrokBuildLegacyUsageThrough *time.Time                    `json:"grok_build_legacy_usage_through,omitempty"`
 	// global is this run's global cutoff (ai_logs_last_parsed_at). It is the
 	// cutoff a session gets the first time it is seen, and is never persisted.
-	global time.Time
+	global  time.Time
+	savedAt time.Time
 }
 
 // clone deep-copies p so callers can roll back to it after a failed parser
 // run without paying for a JSON marshal/unmarshal round-trip on every run.
 func (p *parserCheckpoint) clone() *parserCheckpoint {
-	clone := &parserCheckpoint{Cutoff: p.Cutoff, global: p.global}
+	clone := &parserCheckpoint{
+		Cutoff: p.Cutoff, GrokBuildLegacyUsageThrough: p.GrokBuildLegacyUsageThrough, global: p.global, savedAt: p.savedAt,
+	}
 
 	if p.Sessions != nil {
 		clone.Sessions = make(map[string]*sessionCheckpoint, len(p.Sessions))
@@ -132,6 +137,10 @@ func loadSyncCheckpoints(ctx context.Context, v *viper.Viper, after time.Time) (
 	state.PreviousGlobal = after
 	state.original = raw
 
+	if info, err := os.Stat(path); err == nil {
+		state.savedAt = info.ModTime()
+	}
+
 	return state, nil
 }
 
@@ -143,6 +152,7 @@ func (s *syncCheckpoints) parser(name string, after time.Time) *parserCheckpoint
 	}
 
 	state.global = after
+	state.savedAt = s.savedAt
 
 	if state.Sessions == nil {
 		state.Sessions = make(map[string]*sessionCheckpoint)

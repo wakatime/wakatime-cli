@@ -86,8 +86,9 @@ type (
 	}
 
 	grokBuildUsage struct {
-		InputTokens  *int64 `json:"inputTokens"`
-		OutputTokens *int64 `json:"outputTokens"`
+		InputTokens      int64 `json:"inputTokens"`
+		CachedReadTokens int64 `json:"cachedReadTokens"`
+		OutputTokens     int64 `json:"outputTokens"`
 	}
 
 	grokBuildUpdateEvent struct {
@@ -105,11 +106,9 @@ type (
 	}
 
 	grokBuildPrompt struct {
-		length       int
-		timestamp    time.Time
-		model        string
-		inputTokens  int64
-		outputTokens int64
+		length    int
+		timestamp time.Time
+		model     string
 	}
 
 	grokBuildModelSnapshot struct {
@@ -130,10 +129,9 @@ type (
 	}
 
 	grokBuildParseState struct {
-		prompts        []grokBuildPrompt
-		hunkHeartbeats Heartbeats
-		tokens         heartbeat.AITokens
-		model          string
+		heartbeats Heartbeats
+		lastPrompt grokBuildPrompt
+		model      string
 		// Prompt indexes can be reused after a rewind, so retain model history.
 		modelsByPromptIndex map[int][]grokBuildModelSnapshot
 		// Removal records omit author and model while negating the whole mixed-author hunk.
@@ -203,6 +201,8 @@ func (g GrokBuild) Parse(ctx context.Context) (Heartbeats, error) {
 	if len(sessionDirs) == 0 {
 		return Heartbeats{}, nil
 	}
+
+	g.initLegacyUsageCutoff()
 
 	logger.Debugf("Found %d Grok Build sessions modified after %s", len(sessionDirs), g.After)
 	version := grokBuildCLIVersion(logger, grokHome)
@@ -339,12 +339,11 @@ func (g GrokBuild) parseSession(
 		logger.Warnf("failed parsing Grok Build hunks for session %q: %s", sessionDir, err)
 	}
 
-	heartbeats := append(g.promptHeartbeats(session, state.prompts), state.hunkHeartbeats...)
-	sort.SliceStable(heartbeats, func(i, j int) bool {
-		return heartbeats[i].Time < heartbeats[j].Time
+	sort.SliceStable(state.heartbeats, func(i, j int) bool {
+		return state.heartbeats[i].Time < state.heartbeats[j].Time
 	})
 
-	return heartbeats, nil
+	return state.heartbeats, nil
 }
 
 func grokBuildReadSession(sessionDir string, version string) (grokBuildSession, error) {
@@ -385,7 +384,7 @@ func (g GrokBuild) parseUpdates(
 	session grokBuildSession,
 	state *grokBuildParseState,
 ) error {
-	defer grokBuildFlushPrompt(session, state)
+	defer g.flushPrompt(session, state)
 
 	path := filepath.Join(sessionDir, "updates.jsonl")
 
@@ -405,7 +404,7 @@ func (g GrokBuild) parseUpdates(
 			return nil
 		},
 		func() {
-			grokBuildFlushPrompt(session, state)
+			g.flushPrompt(session, state)
 		},
 	)
 }
@@ -419,17 +418,15 @@ func (g GrokBuild) handleUpdate(
 	timestamp := grokBuildEventTime(event)
 	g.trackUpdateModel(timestamp, update, session, state)
 
-	switch {
-	case !event.isXAI && update.SessionUpdate == "user_message_chunk":
-		grokBuildHandleUserMessage(timestamp, update, session, state)
-	case event.isXAI && update.SessionUpdate == "rewind_marker":
-		grokBuildFlushPrompt(session, state)
-	default:
-		grokBuildFlushPrompt(session, state)
+	if !event.isXAI && update.SessionUpdate == "user_message_chunk" {
+		g.handleUserMessage(timestamp, update, session, state)
+		return
+	}
 
-		if update.SessionUpdate == "turn_completed" {
-			g.handleTurnCompleted(timestamp, update, state)
-		}
+	g.flushPrompt(session, state)
+
+	if update.SessionUpdate == "turn_completed" {
+		g.handleTurnCompleted(timestamp, update.Usage, session, state)
 	}
 }
 
@@ -466,14 +463,14 @@ func (GrokBuild) trackUpdateModel(
 	}
 }
 
-func grokBuildHandleUserMessage(
+func (g GrokBuild) handleUserMessage(
 	timestamp time.Time,
 	update grokBuildUpdate,
 	session grokBuildSession,
 	state *grokBuildParseState,
 ) {
 	if !grokBuildIsPromptText(update) {
-		grokBuildFlushPrompt(session, state)
+		g.flushPrompt(session, state)
 		return
 	}
 
@@ -494,7 +491,7 @@ func grokBuildHandleUserMessage(
 	}
 
 	if newRun {
-		grokBuildFlushPrompt(session, state)
+		g.flushPrompt(session, state)
 		state.pending = &grokBuildPendingPrompt{
 			promptIndex: promptIndex,
 			timestamp:   timestamp,
@@ -535,7 +532,7 @@ func grokBuildIsPromptText(update grokBuildUpdate) bool {
 	return update.Content.Meta == nil || update.Content.Meta.BashCommand == nil
 }
 
-func grokBuildFlushPrompt(session grokBuildSession, state *grokBuildParseState) {
+func (g GrokBuild) flushPrompt(session grokBuildSession, state *grokBuildParseState) {
 	if state.pending == nil {
 		return
 	}
@@ -560,93 +557,129 @@ func grokBuildFlushPrompt(session grokBuildSession, state *grokBuildParseState) 
 		)
 	}
 
-	state.prompts = append(state.prompts, grokBuildPrompt{
+	prompt := grokBuildPrompt{
 		length:    promptLength(text),
 		timestamp: pending.timestamp,
 		model:     firstNonEmptyString(model, state.model, session.model),
-	})
+	}
+	state.lastPrompt = prompt
+
+	if !prompt.timestamp.IsZero() && timestampAtOrAfterCutoff(prompt.timestamp, g.After) {
+		state.heartbeats = append(state.heartbeats, g.promptHeartbeat(session, prompt))
+	}
 }
 
 func (g GrokBuild) handleTurnCompleted(
 	timestamp time.Time,
-	update grokBuildUpdate,
+	usage *grokBuildUsage,
+	session grokBuildSession,
 	state *grokBuildParseState,
 ) {
-	if update.Usage == nil {
+	if usage == nil || timestamp.IsZero() || !timestampAtOrAfterCutoff(timestamp, g.After) {
 		return
 	}
 
-	inputTokens := grokBuildNonNegativeTokenCount(update.Usage.InputTokens)
-	outputTokens := grokBuildNonNegativeTokenCount(update.Usage.OutputTokens)
-	// Turn usage is incremental. Convert it to Codex-style cumulative state so
-	// the heartbeat receives only the delta since the previous token event.
-	state.tokens.CurrentInput = state.tokens.LastInput + inputTokens
-	state.tokens.CurrentOutput = state.tokens.LastOutput + outputTokens
+	input := max(usage.InputTokens, 0)
 
-	inputDelta := state.tokens.CurrentInput - state.tokens.LastInput
-	outputDelta := state.tokens.CurrentOutput - state.tokens.LastOutput
+	output := max(usage.OutputTokens, 0)
+	if input == 0 && output == 0 {
+		return
+	}
 
-	if !timestamp.IsZero() && timestampAtOrAfterCutoff(timestamp, g.After) && len(state.prompts) > 0 {
-		prompt := &state.prompts[len(state.prompts)-1]
-		if timestampAtOrAfterCutoff(prompt.timestamp, g.After) {
-			prompt.inputTokens += inputDelta
-			prompt.outputTokens += outputDelta
+	if g.legacyTurnReported(session, timestamp, state.lastPrompt) {
+		return
+	}
+
+	// ACP reports cached reads as part of the full input count. Each completion
+	// reports per-turn usage and may arrive after its prompt has been synced.
+	cached := min(max(usage.CachedReadTokens, 0), input)
+	h := g.appHeartbeat(session, timestamp, state.model)
+	h.AIInputTokens = input - cached
+	h.AICachedInputTokens = cached
+	h.AIOutputTokens = output
+	state.heartbeats = append(state.heartbeats, h)
+}
+
+func (g GrokBuild) initLegacyUsageCutoff() {
+	checkpoint := g.checkpoint
+	if checkpoint == nil || checkpoint.GrokBuildLegacyUsageThrough != nil {
+		return
+	}
+
+	// The saved checkpoint predates the first completion-based sync. Keep its
+	// save time so legacy completions also stay suppressed on later scans.
+	var cutoff time.Time
+	if len(checkpoint.Sessions) > 0 {
+		cutoff = checkpoint.savedAt
+	}
+
+	checkpoint.GrokBuildLegacyUsageThrough = &cutoff
+}
+
+// Older CLI versions attached usage to the prompt. Avoid resending those
+// tokens at the completion time.
+func (g GrokBuild) legacyTurnReported(session grokBuildSession, completedAt time.Time, prompt grokBuildPrompt) bool {
+	checkpoint := g.checkpoint
+	if checkpoint == nil || checkpoint.GrokBuildLegacyUsageThrough == nil || prompt.timestamp.IsZero() ||
+		completedAt.After(*checkpoint.GrokBuildLegacyUsageThrough) {
+		return false
+	}
+
+	previous := checkpoint.Sessions[session.id]
+	if previous == nil || len(previous.Boundary) == 0 {
+		return false
+	}
+
+	promptAt := heartbeatTime(heartbeatTimestamp(prompt.timestamp))
+	if !promptAt.Equal(previous.Cutoff) {
+		// The old checkpoint only retains counts for its latest timestamp.
+		return promptAt.Before(previous.Cutoff)
+	}
+
+	key := checkpointHeartbeatKey(g.promptHeartbeat(session, prompt))
+	for _, tokens := range previous.Boundary[key] {
+		if tokens.Input > 0 || tokens.Output > 0 {
+			return true
 		}
 	}
 
-	state.tokens.LastInput = state.tokens.CurrentInput
-	state.tokens.LastOutput = state.tokens.CurrentOutput
+	return false
 }
 
-func grokBuildNonNegativeTokenCount(value *int64) int64 {
-	if value == nil || *value < 0 {
-		return 0
-	}
+func (g GrokBuild) promptHeartbeat(session grokBuildSession, prompt grokBuildPrompt) heartbeat.Heartbeat {
+	h := g.appHeartbeat(session, prompt.timestamp, prompt.model)
+	h.AIPromptLength = prompt.length
 
-	return *value
+	return h
 }
 
-func (g GrokBuild) promptHeartbeats(session grokBuildSession, prompts []grokBuildPrompt) Heartbeats {
-	heartbeats := make(Heartbeats, 0, len(prompts))
+func (g GrokBuild) appHeartbeat(session grokBuildSession, timestamp time.Time, model string) heartbeat.Heartbeat {
 	entity := appHeartbeatEntity(g.Name(), session.id)
 
-	for _, prompt := range prompts {
-		if prompt.timestamp.IsZero() || !timestampAtOrAfterCutoff(prompt.timestamp, g.After) {
-			continue
-		}
-
-		h := heartbeat.NewWithAITokens(
-			nil,
-			session.id,
-			heartbeat.AITokens{
-				CurrentInput:  prompt.inputTokens,
-				CurrentOutput: prompt.outputTokens,
-			},
-			"",
-			heartbeat.AICodingCategory.String(),
-			nil,
-			entity,
-			heartbeat.AppType,
-			nil,
-			false,
-			heartbeat.PointerTo(false),
-			nil,
-			"",
-			nil,
-			nil,
-			"",
-			"",
-			false,
-			"",
-			session.cwd,
-			heartbeatTimestamp(prompt.timestamp),
-			g.userAgent(entity, prompt.model, session.version),
-		)
-		h.AIPromptLength = prompt.length
-		heartbeats = append(heartbeats, h)
-	}
-
-	return heartbeats
+	return heartbeat.NewWithAITokens(
+		nil,
+		session.id,
+		heartbeat.AITokens{},
+		"",
+		heartbeat.AICodingCategory.String(),
+		nil,
+		entity,
+		heartbeat.AppType,
+		nil,
+		false,
+		heartbeat.PointerTo(false),
+		nil,
+		"",
+		nil,
+		nil,
+		"",
+		"",
+		false,
+		"",
+		session.cwd,
+		heartbeatTimestamp(timestamp),
+		g.userAgent(entity, model, session.version),
+	)
 }
 
 func (g GrokBuild) parseHunks(
@@ -718,8 +751,8 @@ func (g GrokBuild) handleHunk(
 	}
 
 	if timestampAtOrAfterCutoff(hunk.Timestamp, g.After) {
-		state.hunkHeartbeats = append(
-			state.hunkHeartbeats,
+		state.heartbeats = append(
+			state.heartbeats,
 			g.hunkHeartbeat(filePath, lineChanges, hunk.Timestamp, model, session),
 		)
 	}
@@ -758,8 +791,8 @@ func (g GrokBuild) handleRemovedHunk(
 	sort.Strings(models)
 
 	for _, model := range models {
-		state.hunkHeartbeats = append(
-			state.hunkHeartbeats,
+		state.heartbeats = append(
+			state.heartbeats,
 			g.hunkHeartbeat(filePath, -contributions[model], hunk.Timestamp, model, session),
 		)
 	}

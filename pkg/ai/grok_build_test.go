@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/wakatime/wakatime-cli/pkg/ai"
@@ -70,27 +71,93 @@ func TestGrokBuildParse(t *testing.T) {
 
 	got, err := parser.Parse(ctx)
 	require.NoError(t, err)
-	require.Len(t, got, 6)
+	require.Len(t, got, 8)
 
 	assert.Equal(t, "Grok Build "+session.id, got[0].Entity)
 	assert.Equal(t, heartbeat.AppType, got[0].EntityType)
 	assert.Equal(t, len([]rune("fix main.go")), got[0].AIPromptLength)
-	assert.EqualValues(t, 100, got[0].AIInputTokens)
-	assert.EqualValues(t, 40, got[0].AIOutputTokens)
+	assert.Zero(t, got[0].AIInputTokens)
 	assert.Equal(t, session.projectDir, got[0].ProjectPathOverride)
 	assert.Contains(t, got[0].UserAgent, "grok/3")
 	assert.Contains(t, got[0].UserAgent, "grok-build/0.2.111")
 
-	assert.Equal(t, len([]rune("commit")), got[1].AIPromptLength)
-	assert.EqualValues(t, 20, got[1].AIInputTokens)
-	assert.EqualValues(t, 5, got[1].AIOutputTokens)
-	assert.Contains(t, got[1].UserAgent, "grok/4.5")
+	assert.EqualValues(t, 100, got[1].AIInputTokens)
+	assert.Zero(t, got[1].AICachedInputTokens)
+	assert.EqualValues(t, 40, got[1].AIOutputTokens)
+	assert.Zero(t, got[1].AIPromptLength)
+	assert.Contains(t, got[1].UserAgent, "grok/3")
 
-	assertGrokBuildFileHeartbeat(t, got[2], editFile, 2, "grok/3")
-	assertGrokBuildFileHeartbeat(t, got[3], editFile, 1, "grok/4.5")
-	assertGrokBuildFileHeartbeat(t, got[4], editFile, -1, "grok/4.5")
-	assertGrokBuildFileHeartbeat(t, got[5], editFile, -2, "grok/3")
-	assert.Contains(t, got[2].UserAgent, "editor/1.2.3")
+	assert.Equal(t, len([]rune("commit")), got[2].AIPromptLength)
+	assert.EqualValues(t, 20, got[3].AIInputTokens)
+	assert.EqualValues(t, 5, got[3].AIOutputTokens)
+	assert.Contains(t, got[3].UserAgent, "grok/4.5")
+
+	assertGrokBuildFileHeartbeat(t, got[4], editFile, 2, "grok/3")
+	assertGrokBuildFileHeartbeat(t, got[5], editFile, 1, "grok/4.5")
+	assertGrokBuildFileHeartbeat(t, got[6], editFile, -1, "grok/4.5")
+	assertGrokBuildFileHeartbeat(t, got[7], editFile, -2, "grok/3")
+	assert.Contains(t, got[4].UserAgent, "editor/1.2.3")
+}
+
+func TestGrokBuildSync_ReportsUsageAfterPromptAndEdit(t *testing.T) {
+	session := setupGrokBuildTestSession(t, false)
+	t.Setenv("WAKATIME_HOME", filepath.Dir(session.grokHome))
+
+	base := time.Date(2026, 7, 23, 22, 0, 0, 0, time.UTC)
+	promptIndex := 0
+	prompt := grokBuildTestEnvelope(t, session.id, "session/update", base.Add(time.Second),
+		grokBuildTestUserUpdate("edit main.go", "grok-4.7", &promptIndex))
+	editFile := filepath.Join(session.projectDir, "main.go")
+	session.writeUpdates(t, []string{prompt})
+	session.writeHunks(t, []string{
+		grokBuildTestHunk(t, session.id, "edit", editFile, base.Add(2*time.Second), "added", "agent", &promptIndex, 2, 1),
+	})
+
+	v := viper.New()
+	v.Set("internal-config", filepath.Join(t.TempDir(), "wakatime-internal.cfg"))
+	v.Set("internal.ai_logs_last_parsed_at", base.Format(time.RFC3339Nano))
+
+	sync := func() ai.Heartbeats {
+		var got ai.Heartbeats
+
+		handler := ai.WithAISync(ai.Config{V: v, Plugin: "cursor/1.128.0 vscode-wakatime/30.2.1"})(
+			func(_ context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+				got = hh
+				return nil, nil
+			},
+		)
+		_, err := handler(t.Context(), nil)
+		require.NoError(t, err)
+
+		return got
+	}
+
+	first := sync()
+	require.Len(t, first, 2)
+	assert.Equal(t, len("edit main.go"), first[0].AIPromptLength)
+	assert.Zero(t, first[0].AIInputTokens)
+	assertGrokBuildFileHeartbeat(t, first[1], editFile, 1, "grok/4.7")
+
+	completedAt := base.Add(3 * time.Second)
+	completion := grokBuildTestEnvelope(t, session.id, "_x.ai/session/update", completedAt, map[string]any{
+		"sessionUpdate": "turn_completed",
+		"usage": map[string]any{
+			"inputTokens": 100, "cachedReadTokens": 80, "outputTokens": 10, "reasoningTokens": 4, "totalTokens": 110,
+		},
+	})
+	session.writeUpdates(t, []string{prompt, completion})
+
+	got := sync()
+	require.Len(t, got, 1)
+	assert.EqualValues(t, completedAt.Unix(), got[0].Time)
+	assert.EqualValues(t, 20, got[0].AIInputTokens)
+	assert.EqualValues(t, 80, got[0].AICachedInputTokens)
+	assert.EqualValues(t, 10, got[0].AIOutputTokens)
+	assert.Zero(t, got[0].AIPromptLength)
+	assert.Nil(t, got[0].AILineChanges)
+	assert.Equal(t, session.id, got[0].AISession)
+	assert.Contains(t, got[0].UserAgent, "grok/4.7 cursor/1.128.0")
+	assert.Empty(t, sync())
 }
 
 func TestGrokBuildParse_PromptShapesAndRewind(t *testing.T) {
@@ -144,16 +211,16 @@ func TestGrokBuildParse_PromptShapesAndRewind(t *testing.T) {
 
 	got, err := (ai.GrokBuild{After: base}).Parse(context.Background())
 	require.NoError(t, err)
-	require.Len(t, got, 7)
+	require.Len(t, got, 8)
 
 	lengths := make([]int, 0, len(got))
 	for _, h := range got {
 		lengths = append(lengths, h.AIPromptLength)
 	}
 
-	assert.Equal(t, []int{10, 5, 6, 4, 5, 9, 12}, lengths)
-	assert.EqualValues(t, 7, got[6].AIInputTokens)
-	assert.EqualValues(t, 2, got[6].AIOutputTokens)
+	assert.Equal(t, []int{10, 5, 6, 4, 5, 9, 12, 0}, lengths)
+	assert.EqualValues(t, 7, got[7].AIInputTokens)
+	assert.EqualValues(t, 2, got[7].AIOutputTokens)
 }
 
 func TestGrokBuildParse_ToolUpdateDiffDoesNotDuplicateHunkEdit(t *testing.T) {
@@ -187,11 +254,11 @@ func TestGrokBuildParse_ToolUpdateDiffDoesNotDuplicateHunkEdit(t *testing.T) {
 
 	got, err := (ai.GrokBuild{After: base}).Parse(context.Background())
 	require.NoError(t, err)
-	require.Len(t, got, 2)
+	require.Len(t, got, 3)
 	assert.Equal(t, len([]rune("still parsed")), got[0].AIPromptLength)
-	assert.EqualValues(t, 3, got[0].AIInputTokens)
-	assert.EqualValues(t, 1, got[0].AIOutputTokens)
-	assertGrokBuildFileHeartbeat(t, got[1], editFile, 1, "grok/4.5")
+	assert.EqualValues(t, 3, got[1].AIInputTokens)
+	assert.EqualValues(t, 1, got[1].AIOutputTokens)
+	assertGrokBuildFileHeartbeat(t, got[2], editFile, 1, "grok/4.5")
 }
 
 func TestGrokBuildParse_RemovalReversesPriorModelContributions(t *testing.T) {
@@ -318,13 +385,15 @@ func TestGrokBuildParse_RewindKeepsHistoricalPromptsAndTokens(t *testing.T) {
 
 	got, err := (ai.GrokBuild{After: base}).Parse(context.Background())
 	require.NoError(t, err)
-	require.Len(t, got, 2)
+	require.Len(t, got, 4)
 	assert.Equal(t, len([]rune("old branch")), got[0].AIPromptLength)
-	assert.EqualValues(t, 10, got[0].AIInputTokens)
-	assert.EqualValues(t, 2, got[0].AIOutputTokens)
-	assert.Equal(t, len([]rune("new branch")), got[1].AIPromptLength)
-	assert.EqualValues(t, 4, got[1].AIInputTokens)
-	assert.EqualValues(t, 1, got[1].AIOutputTokens)
+	assert.EqualValues(t, 10, got[1].AIInputTokens)
+	assert.EqualValues(t, 2, got[1].AIOutputTokens)
+	assert.Contains(t, got[1].UserAgent, "grok/3")
+	assert.Equal(t, len([]rune("new branch")), got[2].AIPromptLength)
+	assert.EqualValues(t, 4, got[3].AIInputTokens)
+	assert.EqualValues(t, 1, got[3].AIOutputTokens)
+	assert.Contains(t, got[3].UserAgent, "grok/4.5")
 }
 
 func TestGrokBuildParse_ReusedPromptIndexUsesCurrentGenerationForUpdatedHunk(t *testing.T) {
@@ -395,10 +464,10 @@ func TestGrokBuildParse_OversizedRecordsDoNotBlockFollowingLines(t *testing.T) {
 
 	got, err := (ai.GrokBuild{After: base}).Parse(context.Background())
 	require.NoError(t, err)
-	require.Len(t, got, 2)
+	require.Len(t, got, 3)
 	assert.Equal(t, len([]rune("still parsed")), got[0].AIPromptLength)
-	assert.EqualValues(t, 3, got[0].AIInputTokens)
-	assertGrokBuildFileHeartbeat(t, got[1], editFile, 1, "grok/4.5")
+	assert.EqualValues(t, 3, got[1].AIInputTokens)
+	assertGrokBuildFileHeartbeat(t, got[2], editFile, 1, "grok/4.5")
 }
 
 func TestGrokBuildParse_CustomHomeAndNativePaths(t *testing.T) {
