@@ -27,6 +27,7 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/output"
 	"github.com/wakatime/wakatime-cli/pkg/project"
 	"github.com/wakatime/wakatime-cli/pkg/regex"
+	"github.com/wakatime/wakatime-cli/pkg/summary"
 	"github.com/wakatime/wakatime-cli/pkg/vipertools"
 
 	"github.com/mitchellh/go-homedir"
@@ -291,6 +292,7 @@ type (
 		HideMinutes    bool
 		MaxCategories  int
 		Output         output.Output
+		TimeFormat     summary.TimeFormat
 	}
 )
 
@@ -1031,6 +1033,17 @@ func LoadStatusBarParams(v *viper.Viper, order FlagReadOrder) (StatusBar, error)
 		hideMinutes = val
 	}
 
+	var timeFormat summary.TimeFormat
+
+	if timeFormatStr := vipertools.GetString(v, "settings.status_bar_time_format"); timeFormatStr != "" {
+		parsed, err := summary.ParseTimeFormat(timeFormatStr)
+		if err != nil {
+			return StatusBar{}, fmt.Errorf("failed to parse status_bar_time_format: %s", err)
+		}
+
+		timeFormat = parsed
+	}
+
 	maxCategories := 2
 
 	if maxCategoriesStr := vipertools.FirstNonEmptyString(v, todayMaxCategoriesOrder[order]...); maxCategoriesStr != "" {
@@ -1062,6 +1075,7 @@ func LoadStatusBarParams(v *viper.Viper, order FlagReadOrder) (StatusBar, error)
 		HideMinutes:    hideMinutes,
 		MaxCategories:  maxCategories,
 		Output:         out,
+		TimeFormat:     timeFormat,
 	}, nil
 }
 

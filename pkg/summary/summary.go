@@ -155,6 +155,43 @@ type (
 	}
 )
 
+// TimeFormat represents the duration format of the status bar text.
+type TimeFormat int
+
+const (
+	// TextTimeFormat formats durations like "11 hrs 41 mins". This is the default value.
+	TextTimeFormat TimeFormat = iota
+	// ShortTimeFormat formats durations like "11h 41m".
+	ShortTimeFormat
+	// DecimalTimeFormat formats durations like "11.7h".
+	DecimalTimeFormat
+	// DigitalTimeFormat formats durations like "11:41".
+	DigitalTimeFormat
+)
+
+// ParseTimeFormat parses a time format from a string.
+func ParseTimeFormat(s string) (TimeFormat, error) {
+	switch s {
+	case "text":
+		return TextTimeFormat, nil
+	case "short":
+		return ShortTimeFormat, nil
+	case "decimal":
+		return DecimalTimeFormat, nil
+	case "digital":
+		return DigitalTimeFormat, nil
+	default:
+		return TextTimeFormat, fmt.Errorf("invalid time format %q", s)
+	}
+}
+
+type duration struct {
+	hours        int
+	minutes      int
+	text         string
+	totalSeconds float64
+}
+
 // RenderToday generates a text representation from summary of the current day.
 // If out is set to output.RawJSONOutput or output.JSONOutput, the summary will be marshaled to JSON.
 // Expects exactly one summary for the current day. Will return an error otherwise.
@@ -162,17 +199,18 @@ func RenderToday(
 	summary *Summary,
 	hideCategories bool,
 	hideMinutes bool,
+	timeFormat TimeFormat,
 	maxCategories int,
 	out output.Output,
 ) (string, error) {
 	if summary == nil {
-		return renderEmptyToday(out, hideMinutes), errors.New("no summary found for the current day")
+		return renderEmptyToday(out, hideMinutes, timeFormat), errors.New("no summary found for the current day")
 	}
 
 	if out == output.RawJSONOutput {
 		data, err := json.Marshal(summary)
 		if err != nil {
-			return renderEmptyToday(out, hideMinutes), fmt.Errorf("failed to marshal json summary: %s", err)
+			return renderEmptyToday(out, hideMinutes, timeFormat), fmt.Errorf("failed to marshal json summary: %s", err)
 		}
 
 		return string(data), nil
@@ -185,24 +223,38 @@ func RenderToday(
 		}
 
 		s := simplified{
-			Text:            getText(summary, hideCategories, hideMinutes, maxCategories),
+			Text:            getText(summary, hideCategories, hideMinutes, timeFormat, maxCategories),
 			HasTeamFeatures: summary.HasTeamFeatures,
 		}
 
 		data, err := json.Marshal(s)
 		if err != nil {
-			return renderEmptyToday(out, hideMinutes), fmt.Errorf("failed to marshal json simplified summary: %s", err)
+			return renderEmptyToday(out, hideMinutes, timeFormat),
+				fmt.Errorf("failed to marshal json simplified summary: %s", err)
 		}
 
 		return string(data), nil
 	}
 
-	return getText(summary, hideCategories, hideMinutes, maxCategories), nil
+	return getText(summary, hideCategories, hideMinutes, timeFormat, maxCategories), nil
 }
 
-func getText(summary *Summary, hideCategories bool, hideMinutes bool, maxCategories int) string {
+func getText(
+	summary *Summary,
+	hideCategories bool,
+	hideMinutes bool,
+	timeFormat TimeFormat,
+	maxCategories int,
+) string {
 	if len(summary.Data.Categories) < 2 || hideCategories {
-		return durationText(summary.Data.GrandTotal.Hours, summary.Data.GrandTotal.Text, hideMinutes)
+		total := summary.Data.GrandTotal
+
+		return durationText(duration{
+			hours:        total.Hours,
+			minutes:      total.Minutes,
+			text:         total.Text,
+			totalSeconds: total.TotalSeconds,
+		}, hideMinutes, timeFormat)
 	}
 
 	var outputs []string
@@ -214,7 +266,12 @@ func getText(summary *Summary, hideCategories bool, hideMinutes bool, maxCategor
 	}
 
 	for _, category := range categories {
-		text := durationText(category.Hours, category.Text, hideMinutes)
+		text := durationText(duration{
+			hours:        category.Hours,
+			minutes:      category.Minutes,
+			text:         category.Text,
+			totalSeconds: category.TotalSeconds,
+		}, hideMinutes, timeFormat)
 		outputs = append(outputs, fmt.Sprintf("%s %s", text, category.Name))
 	}
 
@@ -227,22 +284,54 @@ func getText(summary *Summary, hideCategories bool, hideMinutes bool, maxCategor
 	return result
 }
 
-func durationText(hours int, text string, hideMinutes bool) string {
-	if !hideMinutes || hours == 0 {
-		return text
+func durationText(d duration, hideMinutes bool, timeFormat TimeFormat) string {
+	switch timeFormat {
+	case ShortTimeFormat:
+		return shortDurationText(d, hideMinutes)
+	case DecimalTimeFormat:
+		return fmt.Sprintf("%.1fh", d.totalSeconds/3600)
+	case DigitalTimeFormat:
+		return fmt.Sprintf("%d:%02d", d.hours, d.minutes)
+	case TextTimeFormat:
+		return textDurationText(d, hideMinutes)
+	default:
+		return d.text
+	}
+}
+
+func textDurationText(d duration, hideMinutes bool) string {
+	if !hideMinutes || d.hours == 0 {
+		return d.text
 	}
 
-	if hours == 1 {
+	if d.hours == 1 {
 		return "1 hr"
 	}
 
-	return fmt.Sprintf("%d hrs", hours)
+	return fmt.Sprintf("%d hrs", d.hours)
 }
 
-func renderEmptyToday(out output.Output, hideMinutes bool) string {
+func shortDurationText(d duration, hideMinutes bool) string {
+	switch {
+	case d.hours > 0 && hideMinutes:
+		return fmt.Sprintf("%dh", d.hours)
+	case d.hours > 0:
+		return fmt.Sprintf("%dh %dm", d.hours, d.minutes)
+	case d.minutes > 0:
+		return fmt.Sprintf("%dm", d.minutes)
+	default:
+		return fmt.Sprintf("%ds", int(d.totalSeconds))
+	}
+}
+
+func renderEmptyToday(out output.Output, hideMinutes bool, timeFormat TimeFormat) string {
 	text := "0 secs"
 	if hideMinutes {
 		text = "0 hrs"
+	}
+
+	if timeFormat != TextTimeFormat {
+		text = durationText(duration{}, hideMinutes, timeFormat)
 	}
 
 	if out == output.TextOutput {

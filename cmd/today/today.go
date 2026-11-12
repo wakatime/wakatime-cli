@@ -64,6 +64,7 @@ func Today(ctx context.Context, v *viper.Viper) (string, error) {
 		s,
 		paramStatusBar.HideCategories,
 		paramStatusBar.HideMinutes,
+		paramStatusBar.TimeFormat,
 		paramStatusBar.MaxCategories,
 		paramStatusBar.Output,
 	)

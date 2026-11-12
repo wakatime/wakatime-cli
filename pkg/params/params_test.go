@@ -24,6 +24,7 @@ import (
 	paramspkg "github.com/wakatime/wakatime-cli/pkg/params"
 	"github.com/wakatime/wakatime-cli/pkg/project"
 	"github.com/wakatime/wakatime-cli/pkg/regex"
+	"github.com/wakatime/wakatime-cli/pkg/summary"
 	"github.com/wakatime/wakatime-cli/pkg/vipertools"
 
 	viperini "github.com/go-viper/encoding/ini"
@@ -2970,6 +2971,26 @@ func TestLoadStatusBarParams_HideMinutesInvalid(t *testing.T) {
 		"failed to parse status_bar_hide_minutes: strconv.ParseBool: parsing \"invalid\": invalid syntax",
 		err.Error(),
 	)
+}
+
+func TestLoadStatusBarParams_TimeFormat(t *testing.T) {
+	v := vipertools.MustNew()
+	v.Set("settings.status_bar_time_format", "short")
+
+	params, err := paramspkg.LoadStatusBarParams(v, paramspkg.FlagReadOrderFlagPrecedence)
+	require.NoError(t, err)
+
+	assert.Equal(t, summary.ShortTimeFormat, params.TimeFormat)
+}
+
+func TestLoadStatusBarParams_TimeFormatInvalid(t *testing.T) {
+	v := vipertools.MustNew()
+	v.Set("settings.status_bar_time_format", "invalid")
+
+	_, err := paramspkg.LoadStatusBarParams(v, paramspkg.FlagReadOrderFlagPrecedence)
+	require.Error(t, err)
+
+	assert.Equal(t, `failed to parse status_bar_time_format: invalid time format "invalid"`, err.Error())
 }
 
 func TestLoadStatusBarParams_Output(t *testing.T) {
