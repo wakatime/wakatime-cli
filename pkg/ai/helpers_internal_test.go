@@ -23,6 +23,38 @@ func (*panicJSONUnmarshaler) UnmarshalJSON([]byte) error {
 	panic("boom")
 }
 
+func TestAIModelUserAgentTokenFamilyAndVersion(t *testing.T) {
+	tests := []struct {
+		name       string
+		model      string
+		complexity string
+		want       string
+	}{
+		{"series prefix", "atlas-a3.1-pro", "", "atlas/3.1-pro"},
+		{"provider and series prefix", "vendor/atlas-a3.1-pro", "", "atlas/3.1-pro"},
+		{"underscores", "atlas_a3.1_pro", "", "atlas/3.1-pro"},
+		{"already formatted series", "atlas/3.1-pro", "", "atlas/3.1-pro"},
+		{"letter version", "example-model-i", "", "example-model/i"},
+		{"different letter version", "example-model-f", "", "example-model/f"},
+		{"provider and letter version", "vendor/example-model-i", "", "example-model/i"},
+		{"already formatted letter version", "example-model/i", "", "example-model/i"},
+		{"formatted letter version with suffix", "example-model/i-high", "", "example-model/i-high"},
+		{"letter version with complexity", "example-model-i", "high", "example-model/i-high"},
+		{"existing complexity", "example-model-i-HIGH", "high", "example-model/i-HIGH"},
+		{"single unversioned token", "auto", "", ""},
+		{"existing GPT format", "gpt-5.2", "high", "gpt/5.2-high"},
+		{"existing Claude format", "claude-opus-4.1", "medium", "opus/4.1-medium"},
+		{"existing provider model", "openai/o3-mini", "", "o/3-mini"},
+		{"existing version prefix", "atlas-v3", "", "atlas/3"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, aiModelUserAgentToken(tt.model, tt.complexity))
+		})
+	}
+}
+
 func TestParserIDStringAndPlugins(t *testing.T) {
 	assert.Equal(t, "Claude", aiPlugin(Claude{}, ""))
 	assert.Equal(t, "Claude/1.2.3", aiPlugin(Claude{}, "1.2.3"))
@@ -571,13 +603,14 @@ func TestClaudeHelpers(t *testing.T) {
 func TestCodexHelpers(t *testing.T) {
 	timestamp := time.Date(2026, 3, 28, 12, 0, 0, 0, time.UTC)
 	parser := Codex{}
+	agentVersion := codexAgentVersion("gpt-1.2.3", "")
 
 	assert.Nil(t, parser.getHeartbeats(
 		timestamp,
 		"session.jsonl",
 		"session",
 		"1.2.3",
-		"gpt-1.2.3",
+		agentVersion,
 		"",
 		"/workspace",
 		nil,
@@ -590,7 +623,7 @@ func TestCodexHelpers(t *testing.T) {
 		"session.jsonl",
 		"session",
 		"1.2.3",
-		"gpt-1.2.3",
+		agentVersion,
 		"",
 		"/workspace",
 		nil,
@@ -607,7 +640,7 @@ func TestCodexHelpers(t *testing.T) {
 		"session.jsonl",
 		"session",
 		"1.2.3",
-		"gpt-1.2.3",
+		agentVersion,
 		"",
 		"/workspace",
 		nil,
@@ -634,7 +667,7 @@ func TestCodexHelpers(t *testing.T) {
 		"session.jsonl",
 		"session",
 		"1.2.3",
-		"gpt-1.2.3",
+		agentVersion,
 		"",
 		"/workspace",
 		nil,
@@ -660,7 +693,7 @@ func TestCodexHelpers(t *testing.T) {
 		"session.jsonl",
 		"session",
 		"1.2.3",
-		"gpt-1.2.3",
+		agentVersion,
 		"",
 		"/workspace",
 		nil,
@@ -692,7 +725,7 @@ func TestCodexHelpers(t *testing.T) {
 		"session.jsonl",
 		"session",
 		"1.2.3",
-		"gpt-1.2.3",
+		agentVersion,
 		"",
 		"/workspace",
 		nil,
@@ -721,7 +754,7 @@ func TestCodexHelpers(t *testing.T) {
 		"session.jsonl",
 		"session",
 		"1.2.3",
-		"gpt-1.2.3",
+		agentVersion,
 		"",
 		"/workspace",
 		nil,
@@ -746,7 +779,7 @@ func TestCodexHelpers(t *testing.T) {
 		"session.jsonl",
 		"session",
 		"1.2.3",
-		"gpt-1.2.3",
+		agentVersion,
 		"",
 		"/workspace",
 		nil,

@@ -603,7 +603,12 @@ func codeBuddyCodeModel(value any) string {
 		}
 	}
 
-	return ""
+	// The requested ID is a fallback when no model field is available.
+	if model := codeBuddyCodeTopLevelString(value, "requestModelId"); model != "" {
+		return model
+	}
+
+	return codeBuddyCodeTopLevelString(providerData, "requestModelId")
 }
 
 func codeBuddyCodeTopLevelObject(value any, key string) map[string]any {

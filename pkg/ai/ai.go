@@ -827,17 +827,19 @@ func aiModelUserAgentToken(model string, complexity string) string {
 		return ""
 	}
 
-	complexity = strings.Join(strings.Fields(strings.TrimSpace(complexity)), "-")
-
-	complexity = strings.Trim(complexity, "-_/.")
-	if complexity != "" && !strings.HasSuffix(strings.ToLower(model), "-"+strings.ToLower(complexity)) {
-		model += "-" + complexity
-	}
+	// Keep the effort separate so it cannot be mistaken for the model version.
+	model, complexitySuffix := aiModelComplexitySuffix(model, complexity)
 
 	if product, version, found := strings.Cut(model, "/"); found && product != "" && version != "" {
 		first := rune(version[0])
 		if first >= '0' && first <= '9' {
-			return product + "/" + version
+			return product + "/" + version + complexitySuffix
+		}
+
+		if !strings.ContainsAny(version, "/0123456789") &&
+			(!strings.ContainsAny(version, "-_") ||
+				(len(version) > 1 && (version[1] == '-' || version[1] == '_') && strings.ContainsAny(product, "-_"))) {
+			return product + "/" + version + complexitySuffix
 		}
 	}
 
@@ -859,12 +861,16 @@ func aiModelUserAgentToken(model string, complexity string) string {
 					return ""
 				}
 
-				return parts[i-1] + "/" + strings.Join(parts[i:], "-")
+				return parts[i-1] + "/" + strings.Join(parts[i:], "-") + complexitySuffix
 			}
 
 			if j > 0 {
 				product := part[:j]
 				if strings.EqualFold(product, "v") && i > 0 {
+					product = parts[i-1]
+				} else if i > 0 && len(product) == 1 && len(parts[i-1]) > 1 &&
+					strings.EqualFold(product, parts[i-1][:1]) {
+					// A one-letter series prefix should not replace the family name.
 					product = parts[i-1]
 				}
 
@@ -873,12 +879,34 @@ func aiModelUserAgentToken(model string, complexity string) string {
 					version += "-" + strings.Join(parts[i+1:], "-")
 				}
 
-				return product + "/" + version
+				return product + "/" + version + complexitySuffix
 			}
 		}
 	}
 
+	// For IDs without digits, retain the last component as their version.
+	if len(parts) > 1 {
+		return strings.Join(parts[:len(parts)-1], "-") + "/" + parts[len(parts)-1] + complexitySuffix
+	}
+
 	return ""
+}
+
+func aiModelComplexitySuffix(model string, complexity string) (string, string) {
+	complexity = strings.Join(strings.Fields(strings.TrimSpace(complexity)), "-")
+
+	complexity = strings.Trim(complexity, "-_/.")
+	if complexity == "" {
+		return model, ""
+	}
+
+	for i := len(model) - 1; i >= 0; i-- {
+		if model[i] == '-' && strings.EqualFold(model[i+1:], complexity) {
+			return model[:i], model[i:]
+		}
+	}
+
+	return model, "-" + complexity
 }
 
 func aiUserAgent(entity string, userAgents map[string]string, fallback string, parser string) string {

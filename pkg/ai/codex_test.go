@@ -273,6 +273,31 @@ func TestCodexParse_UserAgentUsesModelAndReasoningEffort(t *testing.T) {
 	)
 }
 
+func TestCodexParse_UnnumberedModelWithReasoningEffort(t *testing.T) {
+	setupCodexTestHome(t)
+	writeCodexTestTranscript(t, "session.jsonl",
+		`{"timestamp":"2026-10-03T07:00:00Z","type":"session_meta",`+
+			`"payload":{"id":"session","source":"cli","cli_version":"0.141.0"}}`,
+		`{"timestamp":"2026-10-03T07:00:01Z","type":"turn_context",`+
+			`"payload":{"model":"example-model-i","effort":"high"}}`,
+		`{"timestamp":"2026-10-03T07:00:02Z","type":"event_msg",`+
+			`"payload":{"type":"agent_message","message":"First response."}}`,
+		`{"timestamp":"2026-10-03T07:00:03Z","type":"turn_context",`+
+			`"payload":{"model":"example-model-f","effort":"medium"}}`,
+		`{"timestamp":"2026-10-03T07:00:04Z","type":"event_msg",`+
+			`"payload":{"type":"agent_message","message":"Second response."}}`,
+	)
+
+	got, err := (ai.Codex{
+		After:             time.Date(2026, 10, 3, 7, 0, 0, 0, time.UTC),
+		FallbackUserAgent: "plugin/0.0.1",
+	}).Parse(context.Background())
+	require.NoError(t, err)
+	require.Len(t, got, 2)
+	assert.Equal(t, "example-model/i-high codex-cli/0.141.0 plugin/0.0.1", got[0].UserAgent)
+	assert.Equal(t, "example-model/f-medium codex-cli/0.141.0 plugin/0.0.1", got[1].UserAgent)
+}
+
 func TestCodexParse_UpdatesReasoningEffortForFutureHeartbeats(t *testing.T) {
 	ctx := context.Background()
 	home := t.TempDir()
