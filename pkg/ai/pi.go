@@ -2,6 +2,7 @@ package ai
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -58,7 +59,7 @@ type (
 
 	piMessage struct {
 		Role       string           `json:"role"`
-		Content    []piContentBlock `json:"content"`
+		Content    piMessageContent `json:"content"`
 		Provider   string           `json:"provider"`
 		Model      string           `json:"model"`
 		ToolCallID string           `json:"toolCallId"`
@@ -81,6 +82,46 @@ type (
 		Arguments map[string]interface{}
 	}
 )
+
+// piMessageContent accepts both shapes Pi writes for `message.content`:
+// an array of content blocks, or a plain string (Pi uses it for system messages).
+type piMessageContent []piContentBlock
+
+func (c *piMessageContent) UnmarshalJSON(data []byte) error {
+	trimmed := bytes.TrimSpace(data)
+
+	if len(trimmed) == 0 || bytes.Equal(trimmed, []byte("null")) {
+		*c = nil
+
+		return nil
+	}
+
+	if trimmed[0] == '"' {
+		var text string
+		if err := json.Unmarshal(trimmed, &text); err != nil {
+			return err
+		}
+
+		if text == "" {
+			*c = nil
+
+			return nil
+		}
+
+		*c = piMessageContent{{Type: "text", Text: text}}
+
+		return nil
+	}
+
+	var blocks []piContentBlock
+	if err := json.Unmarshal(trimmed, &blocks); err != nil {
+		return err
+	}
+
+	*c = blocks
+
+	return nil
+}
 
 var piSuccessPathPattern = regexp.MustCompile(`(?i)\b(?:in|to)\s+([~/A-Za-z]:[^\s]+|/[^\s]+)`)
 
