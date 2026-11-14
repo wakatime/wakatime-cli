@@ -201,3 +201,55 @@ func newDiagnosticViper(apiURL string) *viper.Viper {
 
 	return v
 }
+
+func TestPiMessageContentUnmarshal(t *testing.T) {
+	tests := map[string]struct {
+		Input    string
+		Expected piMessageContent
+	}{
+		"string content becomes one text block": {
+			Input:    `"hello world"`,
+			Expected: piMessageContent{{Type: "text", Text: "hello world"}},
+		},
+		"empty string content becomes nil": {
+			Input:    `""`,
+			Expected: nil,
+		},
+		"null content becomes nil": {
+			Input:    `null`,
+			Expected: nil,
+		},
+		"empty array content stays an empty slice": {
+			Input:    `[]`,
+			Expected: piMessageContent{},
+		},
+		"whitespace around the JSON string is ignored": {
+			Input:    `  "hello world"  `,
+			Expected: piMessageContent{{Type: "text", Text: "hello world"}},
+		},
+		"array content is kept as is": {
+			Input: `[{"type":"text","text":"hi"},{"type":"toolCall","name":"read","arguments":{"path":"a.go"}}]`,
+			Expected: piMessageContent{
+				{Type: "text", Text: "hi"},
+				{Type: "toolCall", Name: "read", Arguments: map[string]interface{}{"path": "a.go"}},
+			},
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			var got piMessageContent
+
+			require.NoError(t, json.Unmarshal([]byte(test.Input), &got))
+			assert.Equal(t, test.Expected, got)
+		})
+	}
+}
+
+func TestPiMessageContentUnmarshalInvalid(t *testing.T) {
+	var got piMessageContent
+
+	err := json.Unmarshal([]byte(`{"type":"text"}`), &got)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "cannot unmarshal object")
+}
