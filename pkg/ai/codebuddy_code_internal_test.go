@@ -13,6 +13,101 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 )
 
+func TestCodeBuddyCodeModelRequestFallback(t *testing.T) {
+	tests := []struct {
+		name  string
+		value any
+		want  string
+	}{
+		{"top-level request", map[string]any{"requestModelId": "example-model-i"}, "example-model-i"},
+		{
+			"provider request", map[string]any{"providerData": map[string]any{"requestModelId": "example-model-i"}},
+			"example-model-i",
+		},
+		{
+			"request key variant", map[string]any{"providerData": map[string]any{"request_model_id": "example-model-i"}},
+			"example-model-i",
+		},
+		{"top-level model wins", map[string]any{"model": "gpt-5", "requestModelId": "example-model-i"}, "gpt-5"},
+		{
+			"provider model wins", map[string]any{"requestModelId": "example-model-i",
+				"providerData": map[string]any{"modelId": "gpt-5"}}, "gpt-5",
+		},
+		{
+			"top-level request wins over provider request", map[string]any{"requestModelId": "example-model-i",
+				"providerData": map[string]any{"requestModelId": "example-model-f"}}, "example-model-i",
+		},
+		{
+			"empty model falls back", map[string]any{"model": " ",
+				"providerData": map[string]any{"requestModelId": "example-model-i"}}, "example-model-i",
+		},
+		{"missing model", map[string]any{}, ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, codeBuddyCodeModel(tt.value))
+		})
+	}
+}
+
+func TestCodeBuddyCodeParseRequestModelID(t *testing.T) {
+	_, projectDir, sessionsDir := codeBuddyCodeTestDirs(t)
+	startedAt := time.Date(2026, 8, 28, 12, 0, 0, 0, time.UTC)
+
+	transcript := codeBuddyCodeJSONLines(t,
+		map[string]any{
+			"timestamp": startedAt.UnixMilli(), "type": "message", "role": "user", "cwd": projectDir,
+			"content": "Update the file", "providerData": map[string]any{"requestModelId": "example-model-i"},
+		},
+		map[string]any{
+			"timestamp": startedAt.Add(time.Second).UnixMilli(), "type": "message", "role": "assistant",
+			"providerData": map[string]any{
+				"requestModelId": "example-model-i",
+				"usage":          map[string]any{"inputTokens": 12, "outputTokens": 3},
+			},
+		},
+		codeBuddyCodeToolCallRecord(t, "edit", startedAt.Add(2*time.Second), projectDir, "Edit", map[string]any{
+			"file_path": "main.go", "old_string": "old", "new_string": "new\nline",
+		}),
+		codeBuddyCodeToolResult("edit", startedAt.Add(3*time.Second), "completed", map[string]any{
+			"content": "Successfully edited file",
+		}),
+	)
+	codeBuddyCodeWriteTranscript(t, filepath.Join(sessionsDir, "session.jsonl"), transcript, startedAt)
+
+	subagentsDir := filepath.Join(sessionsDir, "session", "subagents")
+	require.NoError(t, os.MkdirAll(subagentsDir, 0o755))
+	subagent := codeBuddyCodeJSONLines(t,
+		map[string]any{
+			"timestamp": startedAt.UnixMilli(), "type": "message", "role": "assistant",
+			"providerData": map[string]any{"requestModelId": "example-model-i"},
+		},
+		codeBuddyCodeToolCallRecord(t, "sub-edit", startedAt.Add(time.Second), projectDir, "Edit", map[string]any{
+			"file_path": "sub.go", "old_string": "old", "new_string": "new\nline",
+		}),
+		codeBuddyCodeToolResult("sub-edit", startedAt.Add(2*time.Second), "completed", map[string]any{
+			"content": "Successfully edited file",
+		}),
+	)
+	codeBuddyCodeWriteTranscript(t, filepath.Join(subagentsDir, "agent.jsonl"), subagent, startedAt)
+
+	got, err := (CodeBuddyCode{After: startedAt.Add(-time.Minute), FallbackUserAgent: "plugin/0.0.1"}).Parse(t.Context())
+	require.NoError(t, err)
+	require.Len(t, got, 5)
+
+	for _, h := range got {
+		assert.Contains(t, h.UserAgent, "example-model/i")
+	}
+
+	assert.Equal(t, len("Update the file"), got[0].AIPromptLength)
+	assert.Equal(t, int64(12), got[1].AIInputTokens)
+	assert.Equal(t, int64(3), got[1].AIOutputTokens)
+	assert.Equal(t, filepath.ToSlash(filepath.Join(projectDir, "main.go")), got[3].Entity)
+	assert.Equal(t, "session/agent", got[4].AISession)
+	assert.Equal(t, filepath.ToSlash(filepath.Join(projectDir, "sub.go")), got[4].Entity)
+}
+
 func TestCodeBuddyCodeParse(t *testing.T) {
 	configDir, projectDir, sessionsDir := codeBuddyCodeTestDirs(t)
 	startedAt := time.Date(2026, 8, 28, 12, 0, 0, 0, time.UTC)

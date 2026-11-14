@@ -851,18 +851,8 @@ func (s *codexParseState) trackModel(logLine codexLogLine) {
 }
 
 func codexAgentVersion(model string, reasoningEffort string) string {
-	model = strings.TrimSpace(model)
-	reasoningEffort = strings.TrimSpace(reasoningEffort)
-
-	if model == "" {
-		return ""
-	}
-
-	if reasoningEffort == "" {
-		return model
-	}
-
-	return model + "-" + reasoningEffort
+	// Keep the model and reasoning effort separate until normalization.
+	return aiModelUserAgentToken(model, reasoningEffort)
 }
 
 func (s *codexParseState) trackSubscriptionPlan(logLine codexLogLine) {
@@ -1683,12 +1673,11 @@ func (Codex) userAgent(
 	userAgents map[string]string,
 	fallbackUserAgent string,
 ) string {
-	return aiUserAgentWithModelAndEditor(
+	return aiUserAgentWithModelTokenAndEditor(
 		entity,
 		userAgents,
 		fallbackUserAgent,
 		agentVersion,
-		"",
 		codexSourceEditor(source, version),
 	)
 }
