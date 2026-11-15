@@ -52,6 +52,35 @@ func TestGenericAIFieldLookupNestedContainers(t *testing.T) {
 	}
 }
 
+func TestGenericAIEventNestedJSONPreservesTextAndChanges(t *testing.T) {
+	payload := `{"nested":"{\"input_tokens\":11,\"cached_input_tokens\":3,` +
+		`\"cache_creation_input_tokens\":2,\"output_tokens\":5,` +
+		`\"tool_name\":\"Edit\",\"file_path\":\"main.go\",\"lines_added\":4}"}`
+	value := map[string]any{
+		"timestamp":  "2025-01-01T12:00:00Z",
+		"session_id": "session",
+		"role":       "user",
+		"prompt":     ` {"question":"keep the original text"} `,
+		"payload":    payload,
+		"invalid":    "{not valid json",
+	}
+
+	event := genericAIEventFromValue(value)
+	assert.Equal(t, "session", event.sessionID)
+	assert.Equal(t, int64(13), event.input)
+	assert.Equal(t, int64(3), event.cachedInput)
+	assert.Equal(t, int64(2), event.cacheCreation)
+	assert.Equal(t, int64(5), event.output)
+	assert.Equal(t, "Edit", event.toolName)
+	assert.Equal(t, "main.go", event.filePath)
+	assert.Equal(t, heartbeat.PointerTo(4), event.lineChanges)
+	assert.Equal(t, `{"question":"keep the original text"}`, event.prompt)
+	assert.Equal(t, payload, value["payload"], "field lookup must not mutate the input record")
+
+	value["payload"] = `{"input_tokens":17}`
+	assert.Equal(t, int64(17), genericAIEventFromValue(value).input, "separate events must not share a cache")
+}
+
 func TestGenericAITranscriptPathsPreferMessagesWithUsage(t *testing.T) {
 	tests := []struct {
 		name     string

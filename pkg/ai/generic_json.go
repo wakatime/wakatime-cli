@@ -52,6 +52,7 @@ type genericAIEvent struct {
 	toolName      string
 	input         int64
 	cachedInput   int64
+	cacheCreation int64
 	output        int64
 	lineChanges   *int
 	isWrite       bool
@@ -632,6 +633,8 @@ func genericAIRecordDelta(event genericAIEvent, state *genericAIParseState) gene
 }
 
 func genericAIEventFromValue(value any) genericAIEvent {
+	value = genericAICachedValue(value)
+
 	event := genericAIEvent{
 		timestamp: genericAITime(genericAIFind(value, genericAITimestampKeys()...)),
 		sessionID: genericAIString(genericAIFind(value, genericAISessionKeys()...)),
@@ -647,8 +650,8 @@ func genericAIEventFromValue(value any) genericAIEvent {
 	event.cachedInput, cachedInputFound = genericAINumericField(value, genericAICachedInputKeys()...)
 	event.output, outputFound = genericAINumericField(value, genericAIOutputKeys()...)
 
-	cacheCreation, cacheCreationFound := genericAINumericField(value, genericAICacheCreationKeys()...)
-	event.input += cacheCreation
+	event.cacheCreation, cacheCreationFound = genericAINumericField(value, genericAICacheCreationKeys()...)
+	event.input += event.cacheCreation
 
 	event.tokensFound = inputFound || cachedInputFound || outputFound || cacheCreationFound
 	if event.sessionID == "" && event.input > 0 {
@@ -675,6 +678,10 @@ func genericAIPathIsAbs(path string) bool {
 }
 
 func genericAITopLevelString(value any, keys ...string) string {
+	if cached, ok := value.(*genericAIValueCache); ok {
+		value = cached.value
+	}
+
 	object, ok := value.(map[string]any)
 	if !ok {
 		return ""
@@ -694,14 +701,15 @@ func genericAITopLevelString(value any, keys ...string) string {
 }
 
 func genericAIToolName(value any) string {
-	if name := genericAIString(genericAIFind(value, genericAIToolKeys()...)); name != "" {
+	cached := genericAICachedValue(value)
+	if name := genericAIString(genericAIFind(cached, genericAIToolKeys()...)); name != "" {
 		return name
 	}
 
-	return genericAINestedToolName(value, 0)
+	return genericAINestedToolName(cached.value, 0, cached)
 }
 
-func genericAINestedToolName(value any, depth int) string {
+func genericAINestedToolName(value any, depth int, cached *genericAIValueCache) string {
 	if depth > 10 {
 		return ""
 	}
@@ -717,20 +725,20 @@ func genericAINestedToolName(value any, depth int) string {
 
 		for key, child := range typed {
 			if genericAIKey(key) == "function" {
-				if name := genericAITopLevelString(genericAIDecodedValue(child), "name"); name != "" {
+				if name := genericAITopLevelString(cached.decode(child), "name"); name != "" {
 					return name
 				}
 			}
 		}
 
 		for _, child := range typed {
-			if name := genericAINestedToolName(genericAIDecodedValue(child), depth+1); name != "" {
+			if name := genericAINestedToolName(cached.decode(child), depth+1, cached); name != "" {
 				return name
 			}
 		}
 	case []any:
 		for _, child := range typed {
-			if name := genericAINestedToolName(child, depth+1); name != "" {
+			if name := genericAINestedToolName(child, depth+1, cached); name != "" {
 				return name
 			}
 		}
@@ -838,8 +846,10 @@ func genericAISessionID(path string) string {
 }
 
 func genericAIFind(value any, keys ...string) any {
+	cached := genericAICachedValue(value)
+
 	for _, key := range keys {
-		if found := genericAIFindDepth(value, genericAIKey(key), 0); found != nil {
+		if found := genericAIFindDepth(cached.value, genericAIKey(key), 0, cached); found != nil {
 			return found
 		}
 	}
@@ -847,7 +857,7 @@ func genericAIFind(value any, keys ...string) any {
 	return nil
 }
 
-func genericAIFindDepth(value any, key string, depth int) any {
+func genericAIFindDepth(value any, key string, depth int, cached *genericAIValueCache) any {
 	if depth > 10 {
 		return nil
 	}
@@ -863,19 +873,59 @@ func genericAIFindDepth(value any, key string, depth int) any {
 		childKeys := genericAIChildKeys(typed)
 
 		for _, childKey := range childKeys {
-			if found := genericAIFindDepth(genericAIDecodedValue(typed[childKey]), key, depth+1); found != nil {
+			if found := genericAIFindDepth(cached.decode(typed[childKey]), key, depth+1, cached); found != nil {
 				return found
 			}
 		}
 	case []any:
 		for _, child := range typed {
-			if found := genericAIFindDepth(child, key, depth+1); found != nil {
+			if found := genericAIFindDepth(child, key, depth+1, cached); found != nil {
 				return found
 			}
 		}
 	}
 
 	return nil
+}
+
+// A lookup cache lives for one event and does not alter the original record.
+// Multiple aliases can otherwise decode the same nested JSON string repeatedly.
+type genericAIValueCache struct {
+	value   any
+	decoded map[string]any
+}
+
+func genericAICachedValue(value any) *genericAIValueCache {
+	if cached, ok := value.(*genericAIValueCache); ok {
+		return cached
+	}
+
+	return &genericAIValueCache{value: value}
+}
+
+func (c *genericAIValueCache) decode(value any) any {
+	text, ok := value.(string)
+	if !ok {
+		return genericAIDecodedValue(value)
+	}
+
+	trimmed := strings.TrimSpace(text)
+	if !strings.HasPrefix(trimmed, "{") && !strings.HasPrefix(trimmed, "[") {
+		return value
+	}
+
+	if decoded, exists := c.decoded[text]; exists {
+		return decoded
+	}
+
+	if c.decoded == nil {
+		c.decoded = make(map[string]any)
+	}
+
+	decoded := genericAIDecodedValue(value)
+	c.decoded[text] = decoded
+
+	return decoded
 }
 
 // Only containers can contain a nested field. Avoid sorting and revisiting
@@ -1031,8 +1081,10 @@ func genericAIInt64(value any) int64 {
 }
 
 func genericAINumericField(value any, keys ...string) (int64, bool) {
+	cached := genericAICachedValue(value)
+
 	for _, key := range keys {
-		if number, ok := genericAINumericFieldDepth(value, genericAIKey(key), 0); ok {
+		if number, ok := genericAINumericFieldDepth(cached.value, genericAIKey(key), 0, cached); ok {
 			return number, true
 		}
 	}
@@ -1040,7 +1092,7 @@ func genericAINumericField(value any, keys ...string) (int64, bool) {
 	return 0, false
 }
 
-func genericAINumericFieldDepth(value any, key string, depth int) (int64, bool) {
+func genericAINumericFieldDepth(value any, key string, depth int, cached *genericAIValueCache) (int64, bool) {
 	if depth > 10 {
 		return 0, false
 	}
@@ -1061,14 +1113,14 @@ func genericAINumericFieldDepth(value any, key string, depth int) (int64, bool) 
 
 		for _, childKey := range childKeys {
 			if number, ok := genericAINumericFieldDepth(
-				genericAIDecodedValue(typed[childKey]), key, depth+1,
+				cached.decode(typed[childKey]), key, depth+1, cached,
 			); ok {
 				return number, true
 			}
 		}
 	case []any:
 		for _, child := range typed {
-			if number, ok := genericAINumericFieldDepth(child, key, depth+1); ok {
+			if number, ok := genericAINumericFieldDepth(child, key, depth+1, cached); ok {
 				return number, true
 			}
 		}
