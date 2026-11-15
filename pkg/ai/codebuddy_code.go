@@ -3,6 +3,7 @@ package ai
 import (
 	"context"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -55,7 +56,18 @@ func (g CodeBuddyCode) Parse(ctx context.Context) (Heartbeats, error) {
 	var heartbeats Heartbeats
 
 	for _, transcript := range transcripts {
-		values, err := genericAIJSONLines(ctx, g.Name(), transcript.path)
+		// Skip transcripts unchanged since the last sync. Old sessions keep the
+		// discovery cutoff early, so otherwise every sync reparses all of them.
+		parsed, err := parseCheckpointSource(ParserConfig(g), transcript.path, func() (Heartbeats, error) {
+			values, err := genericAIJSONLines(ctx, g.Name(), transcript.path)
+			if err != nil {
+				return nil, err
+			}
+
+			hh := g.parseTranscript(ctx, transcript, values)
+
+			return hh, ctx.Err()
+		})
 		if err != nil {
 			if ctxErr := ctx.Err(); ctxErr != nil {
 				return nil, ctxErr
@@ -66,13 +78,27 @@ func (g CodeBuddyCode) Parse(ctx context.Context) (Heartbeats, error) {
 			continue
 		}
 
-		heartbeats = append(heartbeats, g.parseTranscript(ctx, transcript, values)...)
-		if ctxErr := ctx.Err(); ctxErr != nil {
-			return nil, ctxErr
-		}
+		heartbeats = append(heartbeats, parsed...)
 	}
 
+	g.pruneSources(transcripts)
+
 	return heartbeats, nil
+}
+
+// pruneSources keeps the checkpoint small. A transcript that is no longer
+// discovered is read in full again if it changes later.
+func (g CodeBuddyCode) pruneSources(transcripts []codeBuddyCodeTranscript) {
+	if g.checkpoint == nil || len(g.checkpoint.Sources) == 0 {
+		return
+	}
+
+	discovered := make(map[string]bool, len(transcripts))
+	for _, transcript := range transcripts {
+		discovered[transcript.path] = true
+	}
+
+	maps.DeleteFunc(g.checkpoint.Sources, func(path string, _ checkpointSource) bool { return !discovered[path] })
 }
 
 func codeBuddyCodeTranscriptPaths(configDir string, after time.Time) ([]codeBuddyCodeTranscript, error) {
@@ -207,7 +233,7 @@ func (g CodeBuddyCode) parseTranscript(
 			}
 		}
 
-		codeBuddyCodeNormalizeUsage(value, &event)
+		codeBuddyCodeNormalizeUsage(&event)
 
 		recordType := strings.ToLower(codeBuddyCodeTopLevelString(value, "type"))
 		switch recordType {
@@ -336,9 +362,8 @@ func (g CodeBuddyCode) fileHeartbeat(event genericAIEvent) heartbeat.Heartbeat {
 	return h
 }
 
-func codeBuddyCodeNormalizeUsage(value any, event *genericAIEvent) {
-	cacheCreation, _ := genericAINumericField(value, genericAICacheCreationKeys()...)
-	rawInput := max(event.input-cacheCreation, 0)
+func codeBuddyCodeNormalizeUsage(event *genericAIEvent) {
+	rawInput := max(event.input-event.cacheCreation, 0)
 	event.input = max(rawInput-event.cachedInput, 0)
 }
 
