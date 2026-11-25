@@ -33,6 +33,10 @@ type aiSQLiteBudget struct {
 }
 
 func openAISQLiteDB(ctx context.Context, path string) (*sql.DB, error) {
+	return openAISQLiteDBWithLimit(ctx, path, maxTranscriptLineSize)
+}
+
+func openAISQLiteDBWithLimit(ctx context.Context, path string, limit int) (*sql.DB, error) {
 	absolute, err := filepath.Abs(path)
 	if err != nil {
 		return nil, err
@@ -61,7 +65,7 @@ func openAISQLiteDB(ctx context.Context, path string) (*sql.DB, error) {
 		return nil, err
 	}
 
-	_, err = sqlite.Limit(conn, sqlite3.SQLITE_LIMIT_LENGTH, maxTranscriptLineSize)
+	_, err = sqlite.Limit(conn, sqlite3.SQLITE_LIMIT_LENGTH, limit)
 
 	_ = conn.Close()
 	if err != nil {

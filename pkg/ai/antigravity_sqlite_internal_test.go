@@ -5,6 +5,7 @@ package ai
 import (
 	"bytes"
 	"context"
+	"encoding/binary"
 	"os"
 	"path/filepath"
 	"strings"
@@ -83,8 +84,6 @@ func TestAntigravitySQLiteSkipsOversizedRows(t *testing.T) {
 	}{
 		{"blob", bytes.Repeat([]byte("x"), maxTranscriptLineSize+1)},
 		{"unicode", strings.Repeat("界", maxTranscriptLineSize/3+1)},
-		// The payload alone fits, but the complete SQLite record does not.
-		{"record", bytes.Repeat([]byte("x"), maxTranscriptLineSize-10)},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			home := updateTestHome(t)
@@ -136,6 +135,97 @@ CREATE TABLE steps(idx INTEGER, metadata BLOB);`)
 			assert.Equal(t, []string{"/project/before.go", "/project/after.go"}, files)
 		})
 	}
+}
+
+func TestAntigravitySQLitePreservesMaxPayloadRow(t *testing.T) {
+	home := updateTestHome(t)
+	dir := filepath.Join(home, ".gemini", "antigravity", "conversations")
+	onePath := filepath.Join(dir, "one.db")
+
+	db := updateDB(t, onePath)
+	updateSQL(t, db, `CREATE TABLE gen_metadata(idx INTEGER, data BLOB);
+CREATE TABLE steps(idx INTEGER, metadata BLOB);`)
+
+	rootBefore := antigravityTestRoot("response-before", 100, 20, "2026-09-20T10:00:00Z", 1)
+	// Payload fits within maxTranscriptLineSize, but its encoded SQLite record overflows
+	// an unadjusted SQLITE_LIMIT_LENGTH on the ordered query.
+	rootBoundary := antigravityTestPaddedRoot(
+		t, "response-boundary", 70, 15, "2026-09-20T10:00:30Z", maxTranscriptLineSize-1,
+	)
+	rootAfter := antigravityTestRoot("response-after", 50, 10, "2026-09-20T10:01:00Z", 2)
+	stepBefore := antigravityTestStep("/project/before.go")
+	stepAfter := antigravityTestStep("/project/after.go")
+
+	_, err := db.ExecContext(t.Context(), `INSERT INTO gen_metadata VALUES (1, ?), (2, ?), (3, ?)`,
+		rootBefore, rootBoundary, rootAfter)
+	require.NoError(t, err)
+
+	_, err = db.ExecContext(t.Context(), `INSERT INTO steps VALUES (1, ?), (2, ?)`, stepBefore, stepAfter)
+	require.NoError(t, err)
+	require.NoError(t, db.Close())
+
+	// Confirm the original connection limit fails on this row with "too big".
+	origDB, err := openAISQLiteDB(t.Context(), onePath)
+	require.NoError(t, err)
+
+	origRows, origErr := origDB.QueryContext(t.Context(), `SELECT idx, data FROM gen_metadata ORDER BY idx`)
+	if origErr == nil {
+		for origRows.Next() {
+			var (
+				idx int64
+				raw []byte
+			)
+
+			if err := origRows.Scan(&idx, &raw); err != nil {
+				origErr = err
+				break
+			}
+		}
+
+		if origErr == nil {
+			origErr = origRows.Err()
+		}
+
+		_ = origRows.Close()
+	}
+
+	require.NoError(t, origDB.Close())
+	require.ErrorContains(t, origErr, "too big")
+
+	hh, err := (Gemini{}).antigravitySQLite(t.Context(), home)
+	require.NoError(t, err)
+
+	totals := updateTotals(hh)
+	assert.EqualValues(t, 220, totals.input)
+	assert.EqualValues(t, 45, totals.output)
+
+	var files []string
+
+	for _, h := range hh {
+		if h.EntityType == heartbeat.FileType {
+			files = append(files, h.Entity)
+		}
+	}
+
+	assert.Equal(t, []string{"/project/before.go", "/project/after.go"}, files)
+}
+
+func antigravityTestPaddedRoot(t *testing.T, id string, input, output uint64, stamp string, totalSize int) []byte {
+	t.Helper()
+
+	base := antigravityTestRoot(id, input, output, stamp)
+	tag := binary.AppendUvarint(nil, 99<<3|2)
+
+	padLen := totalSize - len(base) - len(tag)
+	for headerLen := len(binary.AppendUvarint(nil, uint64(padLen))); len(base)+len(tag)+headerLen+padLen != totalSize; {
+		padLen = totalSize - len(base) - len(tag) - headerLen
+		headerLen = len(binary.AppendUvarint(nil, uint64(padLen)))
+	}
+
+	base = append(base, updateProtoBytes(99, bytes.Repeat([]byte("p"), padLen))...)
+	require.Len(t, base, totalSize)
+
+	return base
 }
 
 func antigravityTestRoot(id string, input, output uint64, stamp string, steps ...uint64) []byte {
