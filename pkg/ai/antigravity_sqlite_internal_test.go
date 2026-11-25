@@ -3,6 +3,7 @@
 package ai
 
 import (
+	"bytes"
 	"context"
 	"os"
 	"path/filepath"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
 )
 
 func TestAntigravitySQLiteModifiedAfter(t *testing.T) {
@@ -36,16 +38,21 @@ func TestAntigravitySQLiteModifiedAfter(t *testing.T) {
 					t.Run(tc.name, func(t *testing.T) {
 						home := updateTestHome(t)
 						path := filepath.Join(home, ".gemini", product.appDir, directory, "one.db")
+
 						db := updateDB(t, path)
 						if tc.wal {
 							updateSQL(t, db, `PRAGMA journal_mode = WAL`)
 						}
+
 						updateSQL(t, db, `CREATE TABLE gen_metadata(idx INTEGER, data BLOB)`)
 						updateSQL(t, db, `INSERT INTO gen_metadata VALUES(1, ?)`, strings.Repeat("x", 2048))
+
 						if !tc.wal {
 							require.NoError(t, db.Close())
 						}
+
 						require.NoError(t, os.Chtimes(path, tc.modified, tc.modified))
+
 						if tc.wal {
 							recent := cutoff.Add(time.Hour)
 							require.NoError(t, os.Chtimes(path+"-wal", recent, recent))
@@ -54,6 +61,7 @@ func TestAntigravitySQLiteModifiedAfter(t *testing.T) {
 						// Leave only 1 KiB to prove historical payloads never consume the shared budget.
 						budget := &aiSQLiteBudget{bytes: aiSQLiteByteLimit - 1024}
 						ctx := context.WithValue(t.Context(), aiSQLiteBudgetKey{}, budget)
+
 						_, err := (Gemini{After: tc.after}).antigravitySQLite(ctx, home)
 						if tc.wantRead {
 							require.ErrorContains(t, err, "sqlite parsing exceeded byte budget")
@@ -66,4 +74,88 @@ func TestAntigravitySQLiteModifiedAfter(t *testing.T) {
 			})
 		}
 	}
+}
+
+func TestAntigravitySQLiteSkipsOversizedRows(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		data any
+	}{
+		{"blob", bytes.Repeat([]byte("x"), maxTranscriptLineSize+1)},
+		{"unicode", strings.Repeat("界", maxTranscriptLineSize/3+1)},
+		// The payload alone fits, but the complete SQLite record does not.
+		{"record", bytes.Repeat([]byte("x"), maxTranscriptLineSize-10)},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			home := updateTestHome(t)
+			dir := filepath.Join(home, ".gemini", "antigravity", "conversations")
+			onePath := filepath.Join(dir, "one.db")
+
+			db := updateDB(t, onePath)
+			updateSQL(t, db, `CREATE TABLE gen_metadata(idx INTEGER, data BLOB);
+CREATE TABLE steps(idx INTEGER, metadata BLOB);`)
+
+			rootBefore := antigravityTestRoot("response-before", 100, 20, "2026-09-20T10:00:00Z", 1)
+			rootAfter := antigravityTestRoot("response-after", 50, 10, "2026-09-20T10:01:00Z", 2, 3)
+			stepBefore := antigravityTestStep("/project/before.go")
+			stepAfter := antigravityTestStep("/project/after.go")
+
+			_, err := db.ExecContext(t.Context(), `INSERT INTO gen_metadata VALUES (1, ?), (2, ?), (3, ?)`,
+				rootBefore, tc.data, rootAfter)
+			require.NoError(t, err)
+
+			_, err = db.ExecContext(t.Context(), `INSERT INTO steps VALUES (1, ?), (2, ?), (3, ?)`,
+				stepBefore, tc.data, stepAfter)
+			require.NoError(t, err)
+			require.NoError(t, db.Close())
+
+			twoPath := filepath.Join(dir, "two.db")
+			dbTwo := updateDB(t, twoPath)
+			updateSQL(t, dbTwo, `CREATE TABLE gen_metadata(idx INTEGER, data BLOB);`)
+
+			rootTwo := antigravityTestRoot("response-two", 30, 5, "2026-09-20T10:02:00Z")
+			_, err = dbTwo.ExecContext(t.Context(), `INSERT INTO gen_metadata VALUES (1, ?)`, rootTwo)
+			require.NoError(t, err)
+			require.NoError(t, dbTwo.Close())
+
+			hh, err := (Gemini{}).antigravitySQLite(t.Context(), home)
+			require.NoError(t, err)
+
+			totals := updateTotals(hh)
+			assert.EqualValues(t, 180, totals.input)
+			assert.EqualValues(t, 35, totals.output)
+
+			var files []string
+
+			for _, h := range hh {
+				if h.EntityType == heartbeat.FileType {
+					files = append(files, h.Entity)
+				}
+			}
+
+			assert.Equal(t, []string{"/project/before.go", "/project/after.go"}, files)
+		})
+	}
+}
+
+func antigravityTestRoot(id string, input, output uint64, stamp string, steps ...uint64) []byte {
+	usage := append(updateProtoInt(2, input), updateProtoInt(3, output)...)
+	usage = append(usage, updateProtoBytes(11, []byte(id))...)
+
+	chat := append(updateProtoBytes(4, usage), updateProtoBytes(19, []byte("gemini-3"))...)
+	chat = append(chat, updateProtoBytes(9, updateProtoBytes(4, []byte(stamp)))...)
+
+	root := updateProtoBytes(1, chat)
+	for _, step := range steps {
+		root = append(root, updateProtoInt(2, step)...)
+	}
+
+	return root
+}
+
+func antigravityTestStep(file string) []byte {
+	args := []byte(`{"TargetFile":"` + file + `","CodeContent":"one\ntwo"}`)
+	tool := append(updateProtoBytes(2, []byte("write_to_file")), updateProtoBytes(3, args)...)
+
+	return updateProtoBytes(4, tool)
 }

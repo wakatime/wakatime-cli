@@ -109,6 +109,11 @@ func antigravityProtoTime(field antigravityProtoField) time.Time {
 	return time.Time{}
 }
 
+// Leave room for SQLite record headers and integer columns as SQLITE_LIMIT_LENGTH
+// also limits encoded rows. octet_length reads column sizes from metadata without
+// loading oversized values, and counts bytes rather than Unicode characters.
+const antigravitySQLiteRowSizeLimit = maxTranscriptLineSize - 128
+
 func (g Gemini) antigravitySQLite(ctx context.Context, home string) (Heartbeats, error) {
 	var result Heartbeats
 
@@ -163,7 +168,11 @@ func (g Gemini) parseAntigravityDB(ctx context.Context, transcript antigravityTr
 	steps := make(map[uint64][]byte)
 
 	if slices.Contains(tables, "steps") {
-		rows, err := db.QueryContext(ctx, `SELECT idx, metadata FROM steps`)
+		rows, err := db.QueryContext(
+			ctx,
+			`SELECT idx, metadata FROM steps WHERE COALESCE(octet_length(metadata), 0) <= ?`,
+			antigravitySQLiteRowSizeLimit,
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -195,7 +204,11 @@ func (g Gemini) parseAntigravityDB(ctx context.Context, transcript antigravityTr
 		}
 	}
 
-	rows, err := db.QueryContext(ctx, `SELECT idx,data FROM gen_metadata ORDER BY idx`)
+	rows, err := db.QueryContext(
+		ctx,
+		`SELECT idx, data FROM gen_metadata WHERE COALESCE(octet_length(data), 0) <= ? ORDER BY idx`,
+		antigravitySQLiteRowSizeLimit,
+	)
 	if err != nil {
 		return nil, err
 	}
