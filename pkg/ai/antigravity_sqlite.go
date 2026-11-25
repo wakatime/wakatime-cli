@@ -109,6 +109,10 @@ func antigravityProtoTime(field antigravityProtoField) time.Time {
 	return time.Time{}
 }
 
+// Reserve room for SQLite record headers and integer columns in the connection
+// limit so valid payloads up to maxTranscriptLineSize remain readable.
+const antigravitySQLiteRecordOverhead = 128
+
 func (g Gemini) antigravitySQLite(ctx context.Context, home string) (Heartbeats, error) {
 	var result Heartbeats
 
@@ -145,7 +149,7 @@ func (g Gemini) parseAntigravityDB(ctx context.Context, transcript antigravityTr
 	ctx, cancel := aiSQLiteContext(ctx)
 	defer cancel()
 
-	db, err := openAISQLiteDB(ctx, transcript.path)
+	db, err := openAISQLiteDBWithLimit(ctx, transcript.path, maxTranscriptLineSize+antigravitySQLiteRecordOverhead)
 	if err != nil {
 		return nil, err
 	}
@@ -163,7 +167,11 @@ func (g Gemini) parseAntigravityDB(ctx context.Context, transcript antigravityTr
 	steps := make(map[uint64][]byte)
 
 	if slices.Contains(tables, "steps") {
-		rows, err := db.QueryContext(ctx, `SELECT idx, metadata FROM steps`)
+		rows, err := db.QueryContext(
+			ctx,
+			`SELECT idx, metadata FROM steps WHERE COALESCE(octet_length(metadata), 0) <= ?`,
+			maxTranscriptLineSize,
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -195,7 +203,11 @@ func (g Gemini) parseAntigravityDB(ctx context.Context, transcript antigravityTr
 		}
 	}
 
-	rows, err := db.QueryContext(ctx, `SELECT idx,data FROM gen_metadata ORDER BY idx`)
+	rows, err := db.QueryContext(
+		ctx,
+		`SELECT idx, data FROM gen_metadata WHERE COALESCE(octet_length(data), 0) <= ? ORDER BY idx`,
+		maxTranscriptLineSize,
+	)
 	if err != nil {
 		return nil, err
 	}
