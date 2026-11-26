@@ -44,7 +44,7 @@ func openAISQLiteDB(ctx context.Context, path string) (*sql.DB, error) {
 		uriPath = "/" + uriPath
 	}
 
-	source := url.URL{Scheme: "file", Path: uriPath, RawQuery: "mode=ro"}
+	source := url.URL{Scheme: "file", Path: uriPath, RawQuery: "mode=ro&_pragma=busy_timeout(500)"}
 
 	db, err := sql.Open("sqlite", source.String())
 	if err != nil {

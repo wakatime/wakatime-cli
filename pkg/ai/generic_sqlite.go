@@ -172,7 +172,7 @@ func genericAISQLiteContainerValues(values []any, key string) []any {
 func genericAISQLiteTables(ctx context.Context, db *sql.DB) ([]string, error) {
 	rows, err := db.QueryContext(ctx, "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'")
 	if err != nil {
-		return nil, fmt.Errorf("failed listing tables: %s", err)
+		return nil, fmt.Errorf("failed listing tables: %w", err)
 	}
 	defer rows.Close() // nolint:errcheck
 
@@ -181,14 +181,14 @@ func genericAISQLiteTables(ctx context.Context, db *sql.DB) ([]string, error) {
 	for rows.Next() {
 		var table string
 		if err := rows.Scan(&table); err != nil {
-			return nil, fmt.Errorf("failed scanning table name: %s", err)
+			return nil, fmt.Errorf("failed scanning table name: %w", err)
 		}
 
 		tables = append(tables, table)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("failed reading table names: %s", err)
+		return nil, fmt.Errorf("failed reading table names: %w", err)
 	}
 
 	return tables, nil

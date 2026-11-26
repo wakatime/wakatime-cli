@@ -6,11 +6,16 @@ import (
 	"context"
 	"encoding/binary"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"path/filepath"
 	"slices"
 	"strings"
 	"time"
+
+	"github.com/wakatime/wakatime-cli/pkg/log"
+	"modernc.org/sqlite"
+	sqlite3 "modernc.org/sqlite/lib"
 )
 
 type antigravityProtoField struct {
@@ -130,6 +135,11 @@ func (g Gemini) antigravitySQLite(ctx context.Context, home string) (Heartbeats,
 
 				parsed, err := g.parseAntigravityDB(ctx, transcript)
 				if err != nil {
+					if isAntigravitySkippableSQLiteError(err) {
+						log.Extract(ctx).Warnf("skipping Antigravity sqlite database %q: %s", path, err)
+						continue
+					}
+
 					return result, err
 				}
 
@@ -258,9 +268,15 @@ func (g Gemini) antigravityRow(transcript antigravityTranscript, idx int64, raw 
 	}
 
 	seen[id] = true
+	indices := antigravityStepIndices(root)
 	metadata := antigravityProto(antigravityField(chat, 9).bytes)
 
-	stamp := clock.resolve(id, antigravityProtoTime(antigravityField(metadata, 4)))
+	parsedStamp := antigravityProtoTime(antigravityField(metadata, 4))
+	if parsedStamp.IsZero() {
+		parsedStamp = antigravityStepsTime(indices, steps)
+	}
+
+	stamp := clock.resolve(id, parsedStamp)
 	if !timestampAtOrAfterCutoff(stamp, ParserConfig(g).sessionAfter(transcript.sessionID)) {
 		return nil
 	}
@@ -307,15 +323,10 @@ func (g Gemini) antigravityRow(transcript antigravityTranscript, idx int64, raw 
 
 	result := emitted
 
-	return append(result, g.antigravityTools(transcript, root, steps, event, seen)...)
+	return append(result, g.antigravityTools(transcript, indices, steps, event, seen)...)
 }
 
-func (g Gemini) antigravityTools(transcript antigravityTranscript, root []antigravityProtoField,
-	steps map[uint64][]byte, event genericAIEvent, seen map[string]bool) Heartbeats {
-	var result Heartbeats
-
-	model, stamp := event.model, event.timestamp
-
+func antigravityStepIndices(root []antigravityProtoField) []uint64 {
 	var indices []uint64
 
 	for _, field := range root {
@@ -340,6 +351,82 @@ func (g Gemini) antigravityTools(transcript antigravityTranscript, root []antigr
 		}
 	}
 
+	return indices
+}
+
+func antigravityStepTime(metadata []byte) time.Time {
+	if len(metadata) == 0 {
+		return time.Time{}
+	}
+
+	fields := antigravityProto(metadata)
+
+	// Field 1 is the step created_at timestamp; fields 7, 8, and 6 carry completion timestamps.
+	for _, fieldNumber := range []uint64{1, 7, 8, 6} {
+		stamp := antigravityProtoTime(antigravityField(fields, fieldNumber))
+		if !stamp.IsZero() && stamp.Year() >= 2020 {
+			return stamp
+		}
+	}
+
+	return time.Time{}
+}
+
+func antigravityStepsTime(indices []uint64, steps map[uint64][]byte) time.Time {
+	for _, index := range indices {
+		if stamp := antigravityStepTime(steps[index]); !stamp.IsZero() {
+			return stamp
+		}
+	}
+
+	return time.Time{}
+}
+
+func isAntigravitySkippableSQLiteError(err error) bool {
+	var sqliteErr *sqlite.Error
+	if !errors.As(err, &sqliteErr) {
+		return false
+	}
+
+	code := sqliteErr.Code()
+	primary := code & 0xff
+
+	return primary == sqlite3.SQLITE_BUSY ||
+		primary == sqlite3.SQLITE_LOCKED ||
+		code == sqlite3.SQLITE_READONLY_RECOVERY
+}
+
+func antigravityToolLineChanges(name string, args map[string]any) *int {
+	switch name {
+	case "write_to_file":
+		if content, ok := args["CodeContent"].(string); ok {
+			count := countStringLines(content)
+			return &count
+		}
+	case "write_file":
+		if content, ok := args["Content"].(string); ok {
+			count := countStringLines(content)
+			return &count
+		}
+	case "edit_file":
+		target, okTarget := args["Target"].(string)
+
+		replacement, okReplacement := args["Replacement"].(string)
+		if okTarget && okReplacement {
+			count := countStringLines(replacement) - countStringLines(target)
+			return &count
+		}
+	}
+
+	return nil
+}
+
+func (g Gemini) antigravityTools(transcript antigravityTranscript, indices []uint64,
+	steps map[uint64][]byte, event genericAIEvent, seen map[string]bool) Heartbeats {
+	var result Heartbeats
+
+	model := event.model
+
 	for _, index := range indices {
 		key := fmt.Sprintf("step:%d", index)
 		if seen[key] {
@@ -347,6 +434,11 @@ func (g Gemini) antigravityTools(transcript antigravityTranscript, root []antigr
 		}
 
 		seen[key] = true
+
+		stamp := antigravityStepTime(steps[index])
+		if stamp.IsZero() {
+			stamp = event.timestamp
+		}
 
 		for _, field := range antigravityProto(steps[index]) {
 			if field.number != 4 {
@@ -361,21 +453,30 @@ func (g Gemini) antigravityTools(transcript antigravityTranscript, root []antigr
 				continue
 			}
 			// A reference from committed generation metadata establishes completion.
-			file := firstNonEmptyString(genericAIString(args["TargetFile"]), genericAIString(args["AbsolutePath"]),
-				genericAIString(args["file_path"]))
+			file := firstNonEmptyString(
+				genericAIString(args["TargetFile"]),
+				genericAIString(args["AbsolutePath"]),
+				genericAIString(args["Path"]),
+				genericAIString(args["file_path"]),
+			)
 			if file == "" {
 				continue
 			}
 
-			write := name == "write_to_file" || name == "replace_file_content" || name == "multi_replace_file_content"
+			write := name == "write_to_file" ||
+				name == "replace_file_content" ||
+				name == "multi_replace_file_content" ||
+				name == "write_file" ||
+				name == "edit_file"
 
-			activity := genericAIEvent{sessionID: transcript.sessionID, model: model, timestamp: stamp, filePath: file,
-				toolName: name, isWrite: write}
-			if name == "write_to_file" {
-				if content, ok := args["CodeContent"].(string); ok {
-					count := countStringLines(content)
-					activity.lineChanges = &count
-				}
+			activity := genericAIEvent{
+				sessionID:   transcript.sessionID,
+				model:       model,
+				timestamp:   stamp,
+				filePath:    file,
+				toolName:    name,
+				isWrite:     write,
+				lineChanges: antigravityToolLineChanges(name, args),
 			}
 
 			emitted := genericAIEventHeartbeats(g, ParserConfig(g), activity)
