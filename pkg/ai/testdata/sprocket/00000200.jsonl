@@ -1,0 +1,3 @@
+{"number":200,"sourceKey":"failure","kind":"tool","runId":"local-run","createdAt":1767355205000,"tool":{"toolInvocationId":"edit-two","status":"failed","output":{"error":"Synthetic failure"}}}
+{"number":201,"sourceKey":"success","kind":"tool","runId":"local-run","createdAt":1767355206789,"tool":{"toolInvocationId":"edit-one","status":"completed","output":{"changes":[{"path":"/workspace/main.go","operation":"updated"},{"path":"/workspace/new.go","operation":"created"}]}}}
+{"number":202,"sourceKey":"duplicate","kind":"tool","runId":"local-run","createdAt":1767355206789,"tool":{"toolInvocationId":"edit-one","status":"completed","output":{"changes":[{"path":"/workspace/main.go","operation":"updated"},{"path":"/workspace/new.go","operation":"created"}]}}}

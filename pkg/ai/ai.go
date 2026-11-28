@@ -150,6 +150,8 @@ const (
 	OpenClaudeParser
 	// GrokBotParser identifies Grok Bot desktop activity.
 	GrokBotParser
+	// SprocketParser identifies Sprocket transcripts.
+	SprocketParser
 )
 
 type (
@@ -340,6 +342,7 @@ func parseAIHeartbeats(
 		GrokBot(parserConfig((GrokBot{}).Name())),
 		Claude(parserConfig((Claude{}).Name())),
 		Codex(parserConfig((Codex{}).Name())),
+		Sprocket(parserConfig((Sprocket{}).Name())),
 		DeepSeek(parserConfig((DeepSeek{}).Name())),
 		CodeBuddyCode(parserConfig((CodeBuddyCode{}).Name())),
 		GrokBuild(parserConfig((GrokBuild{}).Name())),
@@ -1211,7 +1214,7 @@ func aiHarnessProduct(product string) bool {
 		Codebuff{}, CodeWhale{}, Crush{}, CursorAgent{}, Devin{}, Droid{}, Forge{},
 		Hermes{}, IBMBob{}, KiloCode{}, Kimi{}, KimiCode{}, LingTaiTUI{}, MistralVibe{},
 		Mux{}, OMP{}, OpenClaw{}, OpenDesign{}, QuickDesk{}, Warp{}, ZCode{}, Zerostack{},
-		DeepSeek{}, CodeBuddyCode{}, OpenClaude{}, GrokBot{},
+		DeepSeek{}, CodeBuddyCode{}, OpenClaude{}, GrokBot{}, Sprocket{},
 	} {
 		name := strings.ToLower(strings.Join(strings.Fields(parser.Name()), "-"))
 		if product == name {

@@ -135,6 +135,28 @@ Notice how you have to include the exclude patterns from your main `~/.wakatime.
 | sync_ai_disabled               | When `true`, disables detecting AI Coding from AI transcript session logs. By default, transcript logs for Claude, Codex, Cursor, etc. are parsed to find when AI edited or read files in your projects.                                                               | _bool_        | `false`                           |
 | exclude_ai                     | File path patterns to exclude from AI tracking. Only matching `ai coding` file heartbeats are skipped; human activity is still logged. Uses the same POSIX regex syntax and entity paths as `exclude`. | _list_ | |
 
+### Sprocket AI activity
+
+Sprocket transcripts are read from
+`~/.sprocket/transcripts/<user>/<thread>/parts/*.jsonl`. Set `SPROCKET_DATA_DIR` to
+override `~/.sprocket`. Only runs with a local `<thread>/wakatime/<run_id>.json`
+sidecar are tracked:
+
+```json
+{"workspacePath":"/absolute/workspace","version":"0.5.3"}
+```
+
+Sprocket writes this sidecar when starting a local run with tracking enabled.
+Downloaded runs without a sidecar are ignored. The workspace comes from the
+sidecar and successful `set_cwd` results, not hidden prompts. Token counts are not
+available in transcript parts and are not estimated.
+
+To sync, run:
+
+```sh
+wakatime-cli --sync-ai-activity --plugin 'Sprocket/0.5.3 sprocket-wakatime/0.5.3'
+```
+
 ### Disabling AI tracking for folders and files
 
 Use `exclude_ai` to skip AI activity for matching file paths while keeping human

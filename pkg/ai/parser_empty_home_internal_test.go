@@ -15,6 +15,7 @@ func TestParsersEmptyHome(t *testing.T) {
 	t.Setenv("CODEX_HOME", "")
 	t.Setenv("DSH_HOME", "")
 	t.Setenv("GROK_HOME", "")
+	t.Setenv("SPROCKET_DATA_DIR", "")
 
 	after := time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC)
 	parsers := []Parser{
@@ -56,6 +57,7 @@ func TestParsersEmptyHome(t *testing.T) {
 		QwenCode{After: after},
 		QuickDesk{After: after},
 		RooCode{After: after},
+		Sprocket{After: after},
 		Warp{After: after},
 		Windsurf{After: after},
 		ZCode{After: after},
